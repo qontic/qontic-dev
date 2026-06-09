@@ -67,7 +67,11 @@ const APPS=[
 {title:'Pilot-Wave Stern-Gerlach Close Up',slug:'stern-gerlach-close-up',status:'live',category:'pilot',url:'stern-gerlach-close-up/',tags:['Pilot-wave dynamics','Stern-Gerlach','3D','Spin guidance'],description:'Three-dimensional Stern-Gerlach visualization with Pauli spinor dynamics, guided trajectories, and interactive camera controls.'},
 {title:'Hydrogen Atom',slug:'hydrogen-atom',status:'live',category:'pilot',url:'hydrogen-atom/hydrogen-3d.html',tags:['Pilot-wave dynamics','Orbitals','3D'],description:'Interactive 3D visualization of hydrogen orbitals and trajectory-oriented pilot-wave structure.'}
 ];
-render(APPS);document.getElementById('category-filter').addEventListener('change',applyFilters);document.getElementById('search').addEventListener('input',applyFilters);applyFilters();
+render(APPS);
+const categoryFilter=document.getElementById('category-filter');
+const requestedView=new URLSearchParams(window.location.search).get('view');
+if(requestedView&&CATEGORY_COPY[requestedView]) categoryFilter.value=requestedView;
+categoryFilter.addEventListener('change',applyFilters);document.getElementById('search').addEventListener('input',applyFilters);applyFilters();
 }());
 </script>
 </body>
