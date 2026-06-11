@@ -70,6 +70,9 @@ jobs:
           # The free-packet notebook and its embedded applets are maintained in this repo.
           # The initial rsync above already copied the complete bohmian-free-packet-2d folder.
 
+          # The delayed-choice notebook and its embedded applets are maintained in this repo.
+          # The initial rsync above already copied the complete delayed-choice folder.
+
           git clone --depth 1 https://github.com/anssiZander/Bohmian-Free-3D.git /tmp/Bohmian-Free-3D
           rm -rf _site/bohmian-free-particle-box-3d
           mkdir -p _site/bohmian-free-particle-box-3d

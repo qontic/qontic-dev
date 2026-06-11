@@ -48,6 +48,14 @@
     "description": "Detector-coupled tunneling simulation comparing Collapse/Copenhagen, Pilot-Wave, and Many-Worlds pictures, with explicit detector back-action and outcome statistics."
   },
   {
+    "title": "Delayed Choice",
+    "slug": "delayed-choice",
+    "status": "live",
+    "url": "delayed-choice/",
+    "tags": ["Pilot-wave", "Delayed choice", "Interferometry", "WebGL2"],
+    "description": "Bohmian delayed-choice notebook with a balanced splitter, guided trajectories, detector statistics, and an in-flight detector choice."
+  },
+  {
     "title": "Bell Experiment — Entanglement",
     "slug": "bell-experiment",
     "status": "live",
