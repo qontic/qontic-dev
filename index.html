@@ -69,8 +69,11 @@ const APPS=[
 ];
 render(APPS);
 const categoryFilter=document.getElementById('category-filter');
-const requestedView=new URLSearchParams(window.location.search).get('view');
-if(requestedView&&CATEGORY_COPY[requestedView]) categoryFilter.value=requestedView;
+const params=new URLSearchParams(window.location.search);
+const requestedView=params.get('view');
+const hostDefault=window.location.hostname.toLowerCase()==='qonticlab.rice.edu'?'multi':'all';
+const initialView=(requestedView&&CATEGORY_COPY[requestedView])?requestedView:hostDefault;
+categoryFilter.value=initialView;
 categoryFilter.addEventListener('change',applyFilters);document.getElementById('search').addEventListener('input',applyFilters);applyFilters();
 }());
 </script>
