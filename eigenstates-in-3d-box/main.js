@@ -54,7 +54,7 @@ const params = {
   mass: 1.0,
   dt: 0.01,
 
-  nParticles: 500,
+  nParticles: 100,
   rhoMin: 1e-6,
   velClamp: 80.0,
   spinS: 2.,
@@ -89,8 +89,6 @@ const params = {
   trailWidth: 14.0,
   trailBlendMode: 2,
   densityScale: 0.5,
-
-  paletteId: 4,
 };
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -105,7 +103,7 @@ const embeddedBasePreset = {
   showParticles: 1,
   showTrail: 1,
   showProjectedContour: 1,
-  showLevelsets: 1,
+  showLevelsets: 0,
   showFieldLines: 0,
 };
 
@@ -118,8 +116,9 @@ const PRESETS = {
       eigenNz: 1,
       bFieldStrength: 0,
       spinS: 2,
+      showTrail: 1,
     },
-    adjustable: ["nParticles", "showCloud", "showParticles", "showTrail"],
+    adjustable: ["spinS", "nParticles","showPhase",],
   },
   excited: {
     params: {
@@ -127,16 +126,14 @@ const PRESETS = {
       eigenNx: 2,
       eigenNy: 1,
       eigenNz: 2,
+      showPhase: 1,
       bFieldStrength: 0,
       spinS: 2,
-      showTrail: 0,
     },
     adjustable: [
+      "spinS",
       "eigenQuantumNumbers",
-      "showCloud",
       "showPhase",
-      "showProjectedContour",
-      "showLevelsets",
     ],
   },
   magnetic: {
@@ -145,13 +142,14 @@ const PRESETS = {
       eigenNx: 1,
       eigenNy: 1,
       eigenNz: 1,
-      bFieldStrength: 0.006,
-      bFieldAxis: 2,
+      bFieldStrength: 0.01,
+      bFieldAxis: 0,
       initialSpin: 0,
       spinS: 2,
+      showPhase: 1,
       showFieldLines: 1,
     },
-    adjustable: ["spinS", "initialSpin", "bFieldStrength", "bFieldAxis"],
+    adjustable: ["spinS", "initialSpin", "bFieldStrength", "bFieldAxis","eigenQuantumNumbers","showPhase",],
   },
 };
 
@@ -162,20 +160,6 @@ if (presetDefinition) Object.assign(params, presetDefinition.params);
 function isControlFixed(key) {
   return Boolean(presetDefinition) && !adjustableControls.has(key);
 }
-
-const PALETTE_NAMES = [
-  "Nebula",
-  "Synthwave",
-  "Viridis-ish",
-  "Inferno-ish",
-  "Ice",
-  "Plasma Drift",
-  "Arctic Aurora",
-  "Solar Flare",
-  "Cosmic Dust",
-  "Neon Noir",
-  "Pastel Mirage"
-];
 
 const GUIDING_MODE_NAMES = [
   "Pauli spinor"
@@ -215,7 +199,7 @@ const INFO_OVERLAY_SCALE = 2;
 const INFO_OVERLAY_TEXTURE_WIDTH = INFO_OVERLAY_WIDTH_CSS * INFO_OVERLAY_SCALE;
 const INFO_OVERLAY_TEXTURE_HEIGHT = INFO_OVERLAY_HEIGHT_CSS * INFO_OVERLAY_SCALE;
 const INFO_OVERLAY_MARGIN_CSS = 18;
-const DRAW_INFO_OVERLAY_IN_WEBGPU = !isEmbedded || window.innerWidth >= 760;
+const DRAW_INFO_OVERLAY_IN_WEBGPU = !isEmbedded;
 
 let paused = false;
 let redrawPending = true;
@@ -283,6 +267,7 @@ function addSlider(key, label, min, max, step, onChange = null) {
   const val = document.createElement("div");
   val.className = "val";
   val.textContent = fmt(params[key]);
+  if (key === "bFieldStrength") val.style.display = "none";
 
   input.addEventListener("input", () => {
     const v = parseFloat(input.value);
@@ -326,6 +311,40 @@ function addToggleInt(key, label, onChange = null) {
   row.appendChild(btn);
   row.appendChild(val);
   controls.appendChild(row);
+}
+
+function addSpinCurrentToggle() {
+  if (isControlFixed("spinS")) return;
+  const row = document.createElement("div");
+  row.className = "row";
+
+  const lab = document.createElement("label");
+  lab.textContent = "Spin current";
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.style.flex = "1";
+
+  const sync = () => {
+    btn.textContent = params.spinS > 0 ? "ON" : "OFF";
+  };
+
+  btn.addEventListener("click", () => {
+    params.spinS = params.spinS > 0 ? 0 : 2;
+    sync();
+    requestTrailClear();
+    requestRedraw();
+  });
+
+  const val = document.createElement("div");
+  val.className = "val";
+  val.textContent = "";
+
+  row.appendChild(lab);
+  row.appendChild(btn);
+  row.appendChild(val);
+  controls.appendChild(row);
+  sync();
 }
 
 function addToggleButtonGroup(label, entries) {
@@ -508,13 +527,12 @@ function addEigenQuantumPicker(onChange = null) {
 
   const val = document.createElement("div");
   val.className = "val";
-  val.style.width = "92px";
+  val.style.display = "90px";
 
   const sync = () => {
     for (const [key, select] of selects) {
       select.value = String(Math.max(1, Math.min(MAX_EIGEN_QUANTUM_NUMBER, Math.round(params[key]))));
     }
-    val.textContent = `E=${fmt(selectedEigenEnergy())}`;
   };
 
   row.appendChild(lab);
@@ -559,9 +577,9 @@ const cameraProjectionControl = addCycleButton("cameraProjection", "camera view"
 });
 
 addSectionHeader("Physical Parameters");
-addSlider("spinS", "spin strength", 0.0, 2.0, 0.5);
+addSpinCurrentToggle();
 addSegmentedControl("initialSpin", "Spin", INITIAL_SPIN_NAMES, () => resetAll());
-addSlider("bFieldStrength", "B strength", 0.0, 0.01, 0.001);
+addSlider("bFieldStrength", "B strength", 0.0, 0.05, 0.001);
 addSegmentedControl("bFieldAxis", "B direction", B_FIELD_AXIS_NAMES, () => {
   rebuildMagneticFieldLines();
 });
@@ -579,7 +597,7 @@ addToggleInt("showFieldLines", "B streamlines");
 addSlider("cloudGain", "cloud density", 0.005, 0.05, 0.005);
 
 addToggleInt("showParticles", "show particles");
-addSlider("nParticles", "particle count", 1, 5001, 100, () => rebuildParticles());
+addSlider("nParticles", "particle count", 1, 301, 10, () => rebuildParticles());
 
 addSlider("dotSize", "particle size", 2.0, 26.0, 0.5);
 addSlider("dotGain", "particle brightness", 0.1, 5.0, 0.1);
@@ -1166,7 +1184,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([simW, simH, simD, voxelCount], 0);
   uniformData.set([params.hbar, params.mass, stationaryPhase, params.dt], 4);
   uniformData.set([params.cloudGain, params.cloudGamma, params.cloudLowBoost, params.cloudCutoff], 8);
-  uniformData.set([params.cloudPointSize, params.showPhase, params.paletteId | 0, params.boxScale], 12);
+  uniformData.set([params.cloudPointSize, params.showPhase, 0, params.boxScale], 12);
   uniformData.set([params.dotSize, params.dotSigma, params.dotGain, params.spinS], 16);
   uniformData.set([params.rhoMin, params.velClamp, Math.floor(params.nParticles), params.trailWidth], 20);
   uniformData.set([camera.eye[0], camera.eye[1], camera.eye[2], camera.distance], 24);
@@ -1299,7 +1317,7 @@ const cameraTarget = {
   pitch: cameraOrbit.pitch,
   distance: cameraOrbit.distance,
 };
-const CAMERA_EASE = 0.01;
+const CAMERA_EASE = 0.1;
 const ORTHO_VIEWS = {
   XY: { yaw: -Math.PI * 0.5, pitch: Math.PI * 0.5 },
   XZ: { yaw: -Math.PI * 0.5, pitch: 0 },

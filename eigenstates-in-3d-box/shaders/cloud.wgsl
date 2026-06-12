@@ -30,6 +30,14 @@ fn visiblePhaseColor(rawColor: vec3<f32>, phaseT: f32) -> vec3<f32> {
   return min(saturated * (targetLuma / max(satLuma, 1e-4)), vec3<f32>(1.55));
 }
 
+fn phasePalette(t: f32) -> vec3<f32> {
+  let a = vec3<f32>(0.02, 0.06, 0.10);
+  let b = vec3<f32>(0.65, 0.95, 1.00);
+  let c = vec3<f32>(1.0);
+  let d = vec3<f32>(0.10, 0.30, 0.60);
+  return a + b * cos(6.283185 * (c * t + d));
+}
+
 @vertex
 fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> CloudOut {
   var out: CloudOut;
@@ -89,9 +97,8 @@ fn fs(in: CloudOut) -> @location(0) vec4<f32> {
   let edge = smoothstep(0.5, 0.18, r);
   let blur = exp(-16.0 * r * r);
   let a = in.alpha * edge * blur;
-  let params = getPaletteParams(i32(uni.visual1.z));
   let phaseT = fract((5.0 * in.phase + 3.14159265) / 6.2831853);
-  let phaseCol = visiblePhaseColor(palette(phaseT, params.a, params.b, params.c, params.d), phaseT);
+  let phaseCol = visiblePhaseColor(phasePalette(phaseT), phaseT);
   let densityCol = mix(vec3<f32>(0.05, 0.22, 0.46), vec3<f32>(0.58, 0.95, 1.00), smoothstep(0.08, 0.95, in.intensity));
   var col = densityCol;
   var alpha = a;

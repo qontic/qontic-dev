@@ -270,7 +270,7 @@
     <section class="page-hero" aria-labelledby="page-title">
       <p class="kicker">Educational notebook</p>
       <h1 id="page-title">Eigenstates in 3D Box</h1>
-      <p>Explore stationary particle-in-a-box states, nodal surfaces, Pauli spin current, and Bohmian motion inside a hard-walled three-dimensional region.</p>
+      <p>Explore the stationary states, the Pauli spin current, and Bohmian motion.</p>
     </section>
 
     <section class="intro-grid" aria-label="Notebook preview and section navigation">
@@ -282,18 +282,25 @@
         <ul class="note-list">
           <li><a href="#ground-state">Ground state</a></li>
           <li><a href="#excited-state">Excited states and nodes</a></li>
-          <li><a href="#spin-current">Spin current and magnetic field</a></li>
+          <li><a href="#magnetic-field">Spin current and magnetic field</a></li>
           <li><a href="#theory">Theory and equations</a></li>
         </ul>
       </aside>
     </section>
 
     <section class="applet-section" aria-labelledby="ground-state">
-      <h2 id="ground-state">Ground-state density</h2>
+      <h2 id="ground-state">Ground-state</h2>
       <p>
-        The state \(n_x=n_y=n_z=1\) has no interior nodal planes. Its probability density is
-        largest near the center and vanishes on all six hard walls. Adjust the particle count
-        and compare the trajectory ensemble with the glowing density cloud.
+        All the energy eigenstates are stationary states, which means their probability density does not change in time.
+        Let us start with the ground state.
+      </p>
+      <p>
+        The state \(n_x=n_y=n_z=1\) has no interior nodal planes. 
+        The phase of the wave functionis spatially constant, and therefore the scalar guidance current vanishes,
+        making bohmian particles seem to stand still. 
+        However, if we take the spin into account, there will be an extra spin current in the guidance equation,
+        which can produce nontrivial motion even in the ground state. 
+        Switch the spin current on and off in the following demo.
       </p>
       <div class="applet-shell is-inactive">
         <div class="applet-toolbar">Ground state: \(n=(1,1,1)\)</div>
@@ -309,9 +316,11 @@
     <section class="applet-section" aria-labelledby="excited-state">
       <h2 id="excited-state">Excited states and nodes</h2>
       <p>
-        Higher quantum numbers introduce nodal planes where the wave function and probability
-        density vanish. Change \(n_x\), \(n_y\), and \(n_z\) to see how each quantum number
-        controls the number of lobes along its corresponding axis.
+        Higher quantum numbers introduce nodal cells. The phase is still spatially constant within each nodal cell.
+        Therefore the phase dependent guidance current vanishes everywhere, and the Bohmian particles again appear to be at rest.
+        But as before, the density gradients will induce spin current which has the effect of driving the bohmian particles around 
+        density level curves. Each particle remains confined to a single nodal cell, 
+        as the spin current can only circulate them along the density curves.
       </p>
       <div class="applet-shell is-inactive">
         <div class="applet-toolbar">Excited eigenstates and nodal structure</div>
@@ -321,15 +330,19 @@
           <button class="applet-play" type="button" aria-label="Play excited-state simulation">Play</button>
         </div>
       </div>
-      <p class="caption">Floor contours and internal level sets help expose the density's nodal geometry.</p>
+      <p class="caption">Spin current which has the effect of driving the bohmian particles around 
+        density level curves.</p>
     </section>
 
-    <section class="applet-section" aria-labelledby="spin-current">
-      <h2 id="spin-current">Pauli spin current</h2>
+    <section class="applet-section" aria-labelledby="magnetic-field">
+      <h2 id="magnetic-field">Magnetic field</h2>
       <p>
-        For a Pauli spinor, the Bohmian guidance current contains a spin-dependent curl term.
-        This can produce motion even when the scalar spatial eigenfunction is real. Use the
-        controls to compare spin directions and add a uniform magnetic field.
+        We can also apply a uniform magnetic field. The field is indicated by red lines. 
+        As is well known, a magnetic field is represented through a vector potential,
+         which enters the kinetic term of the Pauli equation through minimal coupling. 
+         The magnetic field also couples directly to the particle’s spin. 
+        In Bohmian mechanics, the vector potential contributes an additional term to the particle’s guidance law.
+        Visually it can create a visual precession of the spin orbits.
       </p>
       <div class="applet-shell is-inactive">
         <div class="applet-toolbar">Spin current and uniform magnetic field</div>

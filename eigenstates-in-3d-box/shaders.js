@@ -1,6 +1,5 @@
 const SHADER_FILES = {
   UNIFORMS_WGSL: "shaders/uniforms.wgsl",
-  PALETTE_WGSL: "shaders/palette.wgsl",
   WAVE_INIT_BODY: "shaders/wave-init.wgsl",
   WAVE_STEP_BODY: "shaders/wave-step.wgsl",
   PARTICLE_UPDATE_BODY: "shaders/particle-update.wgsl",
@@ -38,13 +37,11 @@ export async function createShaderSources({ WAVE_WORKGROUP_SIZE, PARTICLE_WORKGR
 
   const withDefines = (source, extraDefines = {}) => applyShaderDefines(source, { ...defines, ...extraDefines });
   const withUniforms = (source, extraDefines = {}) => sources.UNIFORMS_WGSL + withDefines(source, extraDefines);
-  const withUniformsAndPalette = source => sources.UNIFORMS_WGSL + sources.PALETTE_WGSL + withDefines(source);
-
   return {
     WAVE_INIT_WGSL: withUniforms(sources.WAVE_INIT_BODY),
     WAVE_STEP_WGSL: withUniforms(sources.WAVE_STEP_BODY),
     PARTICLE_UPDATE_WGSL: withUniforms(sources.PARTICLE_UPDATE_BODY),
-    CLOUD_WGSL: withUniformsAndPalette(sources.CLOUD_BODY),
+    CLOUD_WGSL: withUniforms(sources.CLOUD_BODY),
     PARTICLE_RENDER_WGSL: withUniforms(sources.PARTICLE_RENDER_BODY),
     DENSITY_WGSL: withUniforms(sources.DENSITY_BODY),
     BOX_SHELL_WGSL: withUniforms(sources.BOX_SHELL_BODY),
