@@ -48,6 +48,22 @@
     "description": "Detector-coupled tunneling simulation comparing Collapse/Copenhagen, Pilot-Wave, and Many-Worlds pictures, with explicit detector back-action and outcome statistics."
   },
   {
+    "title": "Delayed Choice",
+    "slug": "delayed-choice",
+    "status": "live",
+    "url": "delayed-choice/",
+    "tags": ["Pilot-wave", "Delayed choice", "Interferometry", "WebGL2"],
+    "description": "Bohmian delayed-choice notebook with a balanced splitter, guided trajectories, detector statistics, and an in-flight detector choice."
+  },
+  {
+    "title": "Eigenstates in 3D Box",
+    "slug": "eigenstates-in-3d-box",
+    "status": "live",
+    "url": "eigenstates-in-3d-box/",
+    "tags": ["Pilot-wave", "Eigenstates", "3D", "WebGPU"],
+    "description": "Three-dimensional particle-in-a-box notebook with eigenstate density, nodal surfaces, Pauli spin current, and Bohmian trajectories."
+  },
+  {
     "title": "Bell Experiment — Entanglement",
     "slug": "bell-experiment",
     "status": "live",
