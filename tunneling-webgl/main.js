@@ -13,12 +13,12 @@ if (!extFloatRT) {
 
 const params = {
   simScale: .5,
-  stepsPerFrame: 20,
+  stepsPerFrame: 10,
 
   hbar: 6.0,
   mass: 1.0,
-  p0: 4.5,
-  dt: 0.02,
+  p0: 4.0,
+  dt: 0.01,
 
   packetX: 0.3,
   packetY: 0.3,
@@ -26,13 +26,13 @@ const params = {
 
   barrierY: 0.55,
   barrierThick: 50.0,
-  V0: 5.0,
+  V0: 4.0,
 
   absorbPx: 40.0,
   absorbStrength: 3.,
   particleKillMargin: 12.0,
 
-  nParticles: 400,
+  nParticles: 200,
   rhoMin: 1e-6,
   velClamp: 160.0,
   guidingMode: 1,
@@ -44,78 +44,103 @@ const params = {
   showPhase: 1,
 
   showParticles: 1,
-  dotSize: 7.0,
+  dotSize: 16.0,
   dotSigma: 0.28,
   dotGain: 1.,
 
   showTrail: 1,
-  trailHalfLife: 100.0,
-  trailVisGain: .8,
-  trailVisGamma: 1,
+  trailHalfLife: 30.0,
+  trailVisGain: .5,
+  trailVisGamma: .6,
   trailStampGain: 0.55,
-  trailWidth: 5.0,
+  trailWidth: 6.0,
   trailBlendMode: 1,
 
-  paletteId: 5,
 };
 
-const PALETTE_NAMES = [
-  "Nebula",
-  "Synthwave",
-  "Viridis-ish",
-  "Inferno-ish",
-  "Ice",
-  "Plasma Drift",
-  "Arctic Aurora",
-  "Solar Flare",
-  "Cosmic Dust",
-  "Neon Noir",
-  "Pastel Mirage"
-];
+const urlParams = new URLSearchParams(window.location.search);
+const isEmbedded = urlParams.get("embed") === "1";
+const preset = urlParams.get("preset");
 
-const PALETTE_COMPLEMENTS = [
-  [0.92,0.93,0.88],
-  [0.10,0.60,0.10],
-  [0.80,0.60,0.55],
-  [0.10,0.60,0.80],
-  [0.80,0.30,0.15],
-  [0.20,0.80,0.30],
-  [0.85,0.25,0.25],
-  [0.10,0.10,0.80],
-  [0.40,0.50,0.70],
-  [0.90,0.90,0.10],
-  [0.40,0.40,0.60]
-];
+const embeddedBasePreset = {
+  simScale: 0.5,
+  stepsPerFrame: 10,
+  dt: 0.01,
+  packetSigma: 30.0,
+  absorbPx: 25.0,
+  spinMagnitude: 0.5,
+  guidingMode: 0,
+  spinSign: 1,
+  showPhase: 1,
+  showParticles: 1,
+  dotSize: 16.0,
+  dotGain: 1.0,
+  showTrail: 1,
+  trailHalfLife: 30.0,
+  trailVisGain: 0.5,
+  trailVisGamma: 0.6,
+  trailWidth: 6.0,
+};
 
-const GUIDING_MODE_NAMES = [
-  "Schrodinger",
-  "Pauli spin"
-];
+const PRESETS = {
+  // Preset values are fixed and hidden unless their key is listed in adjustable.
+  transmission: {
+    params: {
+      ...embeddedBasePreset,
+      p0: 4.5,
+      V0: 5.0,
+      absorbPx: 29.0,
+      barrierThick: 50.0,
+      nParticles: 250,
+    },
+    adjustable: ["p0", "V0"],
+  },
+  tunneling: {
+    params: {
+      ...embeddedBasePreset,
+      p0: 3.0,
+      V0: 4.6,
+      barrierThick: 8.0,
+      nParticles: 400,
+      showParticles:0,
+      showTrail:0,
+    },
+    adjustable: ["p0", "V0", "barrierThick","showParticles"],
+  },
+  ensemble: {
+    params: {
+      ...embeddedBasePreset,
+      p0: 3.0,
+      V0: 2.0,
+      barrierThick: 50.0,
+      nParticles: 2000,
+      showPhase: 0,
+      dotSize: 3.0,
+      showTrail: 0,
+      trailHalfLife: 8.0,
+      trailWidth: 2.0,
+    },
+    adjustable: ["V0", "barrierThick", "nParticles"],
+  },
+};
 
-const BARRIER_V0_MAX = 12.0;
+const presetDefinition = PRESETS[preset];
+const adjustableControls = new Set(presetDefinition?.adjustable ?? []);
+
+if (presetDefinition) {
+  Object.assign(params, presetDefinition.params);
+}
+
+function isControlFixed(key) {
+  return Boolean(presetDefinition) && !adjustableControls.has(key);
+}
+
+const BOUNDARY_FREEZE_DETECTION_CHANCE = 0.0001;
+const BARRIER_V0_MAX = 9.0;
 
 let paused = false;
-const RECORDING_CONFIG = {
-  fps: 60,
-  videoBitsPerSecond: 14_000_000,
-  chunkMs: 1000,
-};
-const recordingState = {
-  recorder: null,
-  stream: null,
-  videoTrack: null,
-  manualFrames: false,
-  chunks: [],
-  startedAt: 0,
-  mimeType: "",
-  finalizing: false,
-  lastUrl: null,
-  pendingBlob: null,
-  pendingFileName: "",
-};
 
 const controls = document.getElementById("controls");
-const statsEl = document.getElementById("stats");
 
 function fmt(v) {
   const av = Math.abs(v);
@@ -124,6 +149,8 @@ function fmt(v) {
 }
 
 function addSlider(key, label, min, max, step, onChange = null) {
+  if (isControlFixed(key)) return;
+
   const row = document.createElement("div");
   row.className = "row";
 
@@ -155,6 +182,8 @@ function addSlider(key, label, min, max, step, onChange = null) {
 }
 
 function addToggleInt(key, label) {
+  if (isControlFixed(key)) return;
+
   const row = document.createElement("div");
   row.className = "row";
   const lab = document.createElement("label");
@@ -179,6 +208,8 @@ function addToggleInt(key, label) {
 }
 
 function addCycleButton(key, label, values, onChange = null) {
+  if (isControlFixed(key)) return;
+
   const row = document.createElement("div");
   row.className = "row";
 
@@ -211,6 +242,7 @@ function addCycleButton(key, label, values, onChange = null) {
 
 function addSectionHeader(label) {
   const header = document.createElement("div");
+  header.className = "section-header";
   header.style.marginTop = "12px";
   header.style.marginBottom = "8px";
   header.style.fontSize = "11px";
@@ -222,12 +254,29 @@ function addSectionHeader(label) {
   controls.appendChild(header);
 }
 
+function removeEmptySectionHeaders() {
+  for (const header of controls.querySelectorAll(".section-header")) {
+    let sibling = header.nextElementSibling;
+    let hasControl = false;
+
+    while (sibling && !sibling.classList.contains("section-header")) {
+      if (sibling.classList.contains("row")) {
+        hasControl = true;
+        break;
+      }
+      sibling = sibling.nextElementSibling;
+    }
+
+    if (!hasControl) header.remove();
+  }
+}
+
 addSectionHeader("Performance");
 addSlider("simScale", "sim scale", 0.25, 1.0, 0.05, () => rebuildSimulation());
 addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
 
 addSectionHeader("Physical Parameters");
-addSlider("p0", "momentum p", 0.5, 8.0, 0.1, () => resetAll());
+addSlider("p0", "momentum p", 0.5, 6.0, 0.1, () => resetAll());
 addSlider("dt", "dt", 0.01, 0.04, 0.001);
 //addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
@@ -236,7 +285,7 @@ addSlider("V0", "barrier V0", 0.0, BARRIER_V0_MAX, 0.1, () => resetAll());
 addSlider("barrierThick", "barrier thickness", 4.0, 150.0, 1.0, () => resetAll());
 addSlider("absorbPx", "absorb boundary", 0.0, 60.0, 1.0);
 addSlider("spinMagnitude", "spin |s|", 0.0, 2.0, 0.5);
-{
+if (!isControlFixed("guidingMode") && !isControlFixed("spinSign")) {
   const row = document.createElement("div");
   row.className = "row";
 
@@ -297,7 +346,7 @@ addSlider("spinMagnitude", "spin |s|", 0.0, 2.0, 0.5);
 addSectionHeader("Visual Parameters");
 addToggleInt("showPhase", "show phase");
 addToggleInt("showParticles", "show particles");
-addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
+addSlider("nParticles", "particle count", 1, 3000, 1, () => resetAll());
 addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
 addSlider("dotGain", "particle brightness", 0.1, 3.0, 0.1);
 
@@ -310,9 +359,10 @@ addSlider("trailWidth", "trail width (px)", 1, 9.0, 1);
 //addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
 //addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
 
+removeEmptySectionHeaders();
+
 document.getElementById("reset").onclick = () => resetAll();
 const pauseButton = document.getElementById("pause");
-const recordButton = document.getElementById("record");
 
 function syncPauseButton() {
   pauseButton.textContent = paused ? "Resume" : "Pause";
@@ -323,187 +373,18 @@ function togglePause() {
   syncPauseButton();
 }
 
-function canRecordCanvas() {
-  return typeof MediaRecorder !== "undefined" && typeof canvas.captureStream === "function" && !!chooseRecordingMimeType();
-}
-
-function isRecording() {
-  return recordingState.recorder?.state === "recording";
-}
-
-function chooseRecordingMimeType() {
-  const candidates = [
-    "video/mp4;codecs=avc1.42E01E",
-    "video/mp4;codecs=avc1.640028",
-    "video/mp4;codecs=h264",
-    "video/mp4",
-  ];
-  return candidates.find(type => MediaRecorder.isTypeSupported?.(type)) || "";
-}
-
-function recordingFileName(startedAt = recordingState.startedAt) {
-  const stamp = new Date(startedAt || Date.now()).toISOString().replace(/[:.]/g, "-");
-  return `bohmian-tunneling-${stamp}.mp4`;
-}
-
-function syncRecordingButton() {
-  const recording = isRecording();
-  const supported = canRecordCanvas();
-  recordButton.textContent = recording ? "Stop Recording" : (recordingState.finalizing ? "Saving Recording..." : "Start Recording");
-  recordButton.classList.toggle("recording", recording);
-  recordButton.disabled = recordingState.finalizing || (!recordingState.pendingBlob && !supported);
-  recordButton.title = recordingState.pendingBlob
-    ? "Download the most recent MP4 recording."
-    : (supported ? "Records the WebGL canvas only; DOM controls are excluded." : "MP4 canvas recording is not supported by this browser.");
-}
-
-function toggleRecording() {
-  if (recordingState.pendingBlob && !isRecording()) downloadPendingRecording(true);
-  else if (isRecording()) stopRecording();
-  else startRecording();
-}
-
-function startRecording() {
-  if (!canRecordCanvas()) {
-    alert("MP4 canvas recording is not supported by this browser.");
-    syncRecordingButton();
-    return;
-  }
-  clearPendingRecording();
-
-  const mimeType = chooseRecordingMimeType();
-  const options = {
-    mimeType,
-    videoBitsPerSecond: RECORDING_CONFIG.videoBitsPerSecond,
-  };
-
-  let stream, recorder, videoTrack, manualFrames = false;
-  try {
-    stream = canvas.captureStream(0);
-    videoTrack = stream.getVideoTracks()[0];
-    manualFrames = typeof videoTrack?.requestFrame === "function";
-    if (!manualFrames) {
-      stream.getTracks().forEach(track => track.stop());
-      stream = canvas.captureStream(RECORDING_CONFIG.fps);
-      videoTrack = stream.getVideoTracks()[0];
-    }
-    recorder = new MediaRecorder(stream, options);
-  } catch (error) {
-    stream?.getTracks().forEach(track => track.stop());
-    alert(`Could not start MP4 recording: ${error.message}`);
-    syncRecordingButton();
-    return;
-  }
-
-  recordingState.recorder = recorder;
-  recordingState.stream = stream;
-  recordingState.videoTrack = videoTrack;
-  recordingState.manualFrames = manualFrames;
-  recordingState.chunks = [];
-  recordingState.startedAt = Date.now();
-  recordingState.mimeType = recorder.mimeType || mimeType;
-  recordingState.finalizing = false;
-
-  recorder.ondataavailable = event => {
-    if (event.data && event.data.size > 0) recordingState.chunks.push(event.data);
-  };
-  recorder.onerror = event => {
-    console.error("Recording error:", event.error || event);
-    stopRecording();
-  };
-  recorder.onstop = finishRecordingDownload;
-  recorder.start(RECORDING_CONFIG.chunkMs);
-  requestRecordingFrame();
-  syncRecordingButton();
-}
-
-function stopRecording() {
-  const recorder = recordingState.recorder;
-  if (!recorder || recorder.state === "inactive") return;
-  recordingState.finalizing = true;
-  syncRecordingButton();
-  try {
-    recorder.requestData();
-  } catch (error) {
-    console.warn("Could not flush recording data:", error);
-  }
-  recorder.stop();
-}
-
-function finishRecordingDownload() {
-  recordingState.stream?.getTracks().forEach(track => track.stop());
-  recordingState.stream = null;
-  recordingState.videoTrack = null;
-  recordingState.manualFrames = false;
-  const chunks = recordingState.chunks;
-  recordingState.chunks = [];
-
-  if (!chunks.length) {
-    recordingState.recorder = null;
-    recordingState.finalizing = false;
-    alert("No recording data was produced.");
-    syncRecordingButton();
-    return;
-  }
-
-  recordingState.pendingBlob = new Blob(chunks, { type: recordingState.mimeType || "video/mp4" });
-  recordingState.pendingFileName = recordingFileName();
-  recordingState.recorder = null;
-  recordingState.finalizing = false;
-  downloadPendingRecording(true);
-  syncRecordingButton();
-}
-
-function requestRecordingFrame() {
-  if (!isRecording() || !recordingState.manualFrames) return;
-  recordingState.videoTrack?.requestFrame?.();
-}
-
-function requestRecordingFrameAfterRender() {
-  if (!isRecording() || !recordingState.manualFrames) return;
-  gl.flush();
-  requestRecordingFrame();
-}
-
-function clearPendingRecording() {
-  if (recordingState.lastUrl) {
-    URL.revokeObjectURL(recordingState.lastUrl);
-    recordingState.lastUrl = null;
-  }
-  recordingState.pendingBlob = null;
-  recordingState.pendingFileName = "";
-}
-
-function downloadPendingRecording(clearAfterClick) {
-  if (!recordingState.pendingBlob) return;
-  if (!recordingState.lastUrl) {
-    recordingState.lastUrl = URL.createObjectURL(recordingState.pendingBlob);
-  }
-  const url = recordingState.lastUrl;
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = recordingState.pendingFileName || recordingFileName();
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  if (clearAfterClick) {
-    recordingState.pendingBlob = null;
-    recordingState.pendingFileName = "";
-    syncRecordingButton();
-    setTimeout(() => {
-      if (recordingState.lastUrl === url) {
-        URL.revokeObjectURL(recordingState.lastUrl);
-        recordingState.lastUrl = null;
-      }
-      syncRecordingButton();
-    }, 1000);
-  }
-}
-
 pauseButton.onclick = togglePause;
-recordButton.onclick = toggleRecording;
 syncPauseButton();
-syncRecordingButton();
+
+if (isEmbedded) {
+  document.getElementById("theory").hidden = true;
+  document.getElementById("minui").style.display = "none";
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) return;
+    if (event.data?.type !== "qontic:set-paused" || !event.data.paused) return;
+    if (!paused) togglePause();
+  });
+}
 
 window.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() === "r") resetAll();
@@ -545,6 +426,9 @@ const view = {
   offsetY: 0,
 };
 
+const INITIAL_VISIBLE_FRACTION = 0.85;
+let userAdjustedView = false;
+
 function clampViewOffset() {
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
@@ -560,25 +444,36 @@ function applyViewTransform() {
   canvas.style.transform = `translate(${view.offsetX}px, ${view.offsetY}px) scale(${view.zoom})`;
 }
 
-canvas.addEventListener("wheel", (e) => {
-  e.preventDefault();
-
-  const rect = canvas.parentElement.getBoundingClientRect();
-  const cursorX = e.clientX - rect.left;
-  const cursorY = e.clientY - rect.top;
-  const oldZoom = view.zoom;
-  const zoomFactor = Math.exp(-e.deltaY * 0.0012);
-  const nextZoom = Math.min(8, Math.max(1, oldZoom * zoomFactor));
-
-  if (nextZoom === oldZoom) return;
-
-  const worldX = (cursorX - view.offsetX) / oldZoom;
-  const worldY = (cursorY - view.offsetY) / oldZoom;
-  view.zoom = nextZoom;
-  view.offsetX = cursorX - worldX * nextZoom;
-  view.offsetY = cursorY - worldY * nextZoom;
+function applyInitialViewTransform() {
+  const visibleFraction = Math.min(1, Math.max(0.2, INITIAL_VISIBLE_FRACTION));
+  view.zoom = 1 / visibleFraction;
+  view.offsetX = canvas.clientWidth * (1 - view.zoom) * 0.5;
+  view.offsetY = canvas.clientHeight * (1 - view.zoom) * 0.5;
   applyViewTransform();
-}, { passive: false });
+}
+
+if (!isEmbedded) {
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    userAdjustedView = true;
+
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const cursorX = e.clientX - rect.left;
+    const cursorY = e.clientY - rect.top;
+    const oldZoom = view.zoom;
+    const zoomFactor = Math.exp(-e.deltaY * 0.0012);
+    const nextZoom = Math.min(8, Math.max(1, oldZoom * zoomFactor));
+
+    if (nextZoom === oldZoom) return;
+
+    const worldX = (cursorX - view.offsetX) / oldZoom;
+    const worldY = (cursorY - view.offsetY) / oldZoom;
+    view.zoom = nextZoom;
+    view.offsetX = cursorX - worldX * nextZoom;
+    view.offsetY = cursorY - worldY * nextZoom;
+    applyViewTransform();
+  }, { passive: false });
+}
 
 function compile(type, src) {
   const sh = gl.createShader(type);
@@ -680,6 +575,7 @@ let U = {};
 
 let vaoKillBoundary = null;
 let boundaryBuffer = null;
+let physicsFrame = 0;
 
 function buildPrograms() {
   const vsFull = compile(gl.VERTEX_SHADER, SH["fullscreen.vert"]);
@@ -739,11 +635,12 @@ function buildPrograms() {
     uVisGain: u(progWaveRender, "uVisGain"),
     uVisGamma: u(progWaveRender, "uVisGamma"),
     uShowPhase: u(progWaveRender, "uShowPhase"),
+    uAbsorbPx: u(progWaveRender, "uAbsorbPx"),
+    uParticleKillMarginPx: u(progWaveRender, "uParticleKillMarginPx"),
     uBarrierYFrac: u(progWaveRender, "uBarrierYFrac"),
     uBarrierThickPx: u(progWaveRender, "uBarrierThickPx"),
     uBarrierOpacity: u(progWaveRender, "uBarrierOpacity"),
     uBarrierClassicallyForbidden: u(progWaveRender, "uBarrierClassicallyForbidden"),
-    uPaletteId: u(progWaveRender, "uPaletteId"),
   };
 
   U.partUpdate = {
@@ -756,6 +653,8 @@ function buildPrograms() {
     uSpinMagnitude: u(progPartUpdate, "uSpinMagnitude"),
     uSpinSign: u(progPartUpdate, "uSpinSign"),
     uAbsorbPx: u(progPartUpdate, "uAbsorbPx"),
+    uBoundaryFreezeChance: u(progPartUpdate, "uBoundaryFreezeChance"),
+    uPhysicsFrame: u(progPartUpdate, "uPhysicsFrame"),
     uRhoMin: u(progPartUpdate, "uRhoMin"),
     uVelClamp: u(progPartUpdate, "uVelClamp"),
     uParticleKillMarginPx: u(progPartUpdate, "uParticleKillMarginPx"),
@@ -766,7 +665,6 @@ function buildPrograms() {
     uPointSize: u(progPartView, "uPointSize"),
     uDotSigma: u(progPartView, "uDotSigma"),
     uDotGain: u(progPartView, "uDotGain"),
-    uPaletteId: u(progPartView, "uPaletteId"),
   };
 
   U.partStamp = {
@@ -788,7 +686,6 @@ function buildPrograms() {
     uDensity: u(progDensityRender, "uDensity"),
     uGain: u(progDensityRender, "uGain"),
     uGamma: u(progDensityRender, "uGamma"),
-    uPaletteId: u(progDensityRender, "uPaletteId"),
     uBlendMode: u(progDensityRender, "uBlendMode"),
   };
 }
@@ -949,6 +846,8 @@ function particleUpdate() {
   gl.uniform1f(U.partUpdate.uSpinSign, params.spinSign);
 
   gl.uniform1f(U.partUpdate.uAbsorbPx, params.absorbPx);
+  gl.uniform1f(U.partUpdate.uBoundaryFreezeChance, BOUNDARY_FREEZE_DETECTION_CHANCE);
+  gl.uniform1i(U.partUpdate.uPhysicsFrame, physicsFrame);
   gl.uniform1f(U.partUpdate.uParticleKillMarginPx, params.particleKillMargin);
   gl.uniform1f(U.partUpdate.uRhoMin, params.rhoMin);
   gl.uniform1f(U.partUpdate.uVelClamp, params.velClamp);
@@ -971,6 +870,8 @@ function particleUpdate() {
   gl.bindBuffer(gl.ARRAY_BUFFER, particleSrc);
   gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
   gl.bindVertexArray(null);
+
+  physicsFrame = (physicsFrame + 1) % 1000000000;
 }
 
 const LN2 = Math.log(2);
@@ -1139,7 +1040,7 @@ function drawKillBoundary() {
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-  let comp = PALETTE_COMPLEMENTS[params.paletteId | 0] || [1,1,1];
+  const comp = [0.20, 0.80, 0.30];
   const alpha = 0.15;
   const colorLoc = gl.getUniformLocation(progBoundary, 'uBoundaryColor');
   gl.uniform4f(colorLoc, comp[0], comp[1], comp[2], alpha);
@@ -1208,11 +1109,12 @@ function render() {
   gl.uniform1f(U.waveRender.uVisGain, params.visGain);
   gl.uniform1f(U.waveRender.uVisGamma, params.visGamma);
   gl.uniform1i(U.waveRender.uShowPhase, params.showPhase);
+  gl.uniform1f(U.waveRender.uAbsorbPx, params.absorbPx);
+  gl.uniform1f(U.waveRender.uParticleKillMarginPx, params.particleKillMargin);
 
   gl.uniform1f(U.waveRender.uBarrierYFrac, params.barrierY);
   gl.uniform1f(U.waveRender.uBarrierThickPx, params.barrierThick);
 
-  gl.uniform1i(U.waveRender.uPaletteId, params.paletteId | 0);
 
   if (U.waveRender.uBarrierOpacity) {
     gl.uniform1f(U.waveRender.uBarrierOpacity, computeBarrierOpacity());
@@ -1247,7 +1149,6 @@ function render() {
 
     gl.uniform1f(U.densityRender.uGain, params.trailVisGain);
     gl.uniform1f(U.densityRender.uGamma, params.trailVisGamma);
-    gl.uniform1i(U.densityRender.uPaletteId, params.paletteId | 0);
     gl.uniform1i(U.densityRender.uBlendMode, params.trailBlendMode | 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -1259,7 +1160,7 @@ function render() {
 
   if (params.showParticles) {
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     gl.useProgram(progPartView);
     gl.bindVertexArray(vaoParticles);
@@ -1268,26 +1169,12 @@ function render() {
     gl.uniform1f(U.partView.uPointSize, params.dotSize);
     gl.uniform1f(U.partView.uDotSigma, params.dotSigma);
     gl.uniform1f(U.partView.uDotGain, params.dotGain);
-    gl.uniform1i(U.partView.uPaletteId, params.paletteId | 0);
 
     gl.drawArrays(gl.POINTS, 0, Math.floor(params.nParticles));
 
     gl.disable(gl.BLEND);
     gl.bindVertexArray(null);
   }
-}
-
-function guidingModeLabel() {
-  if ((params.guidingMode | 0) === 1) {
-    return `${GUIDING_MODE_NAMES[1]} (${params.spinSign > 0 ? "up" : "down"}, |s| = ${fmt(params.spinMagnitude)} hbar)`;
-  }
-  return GUIDING_MODE_NAMES[params.guidingMode | 0] ?? GUIDING_MODE_NAMES[0];
-}
-
-function updateStats() {
-  statsEl.innerHTML =
-    `<b>Guiding</b>: ${guidingModeLabel()}<br>` +
-    `<b>Sim Grid</b>: ${simW} x ${simH} (${fmt(params.simScale)}x)`;
 }
 
 function rebuildSimulation() {
@@ -1305,24 +1192,30 @@ function rebuildSimulation() {
   resetWave();
   rebuildParticles();
   rebuildDensity();
+  physicsFrame = 0;
 }
 
 function resetAll() {
   resetWave();
   rebuildParticles();
   clearDensity();
+  physicsFrame = 0;
 }
 
 window.addEventListener("resize", () => {
   rebuildSimulation();
+  if (userAdjustedView) {
   applyViewTransform();
+  } else {
+    applyInitialViewTransform();
+  }
 });
 
 async function main() {
   await loadShaders();
   buildPrograms();
   rebuildSimulation();
-  updateStats();
+  applyInitialViewTransform();
 
   params.trailHalfLife*=0.99;
 
@@ -1339,8 +1232,6 @@ async function main() {
     }
 
     render();
-    requestRecordingFrameAfterRender();
-    updateStats();
     requestAnimationFrame(loop);
   });
 }

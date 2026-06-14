@@ -2,236 +2,527 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>3D Stern Gerlach with Spin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stern-Gerlach - Q-Ontic Lab</title>
+  <meta name="description" content="An interactive notebook about spinor splitting, Bohmian trajectories, and detection in the Stern-Gerlach experiment." />
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["\\(", "\\)"]],
+        displayMath: [["\\[", "\\]"]]
+      },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <style>
-    html, body { margin:0; height:100%; background:#000; overflow:hidden; font-family: system-ui, sans-serif; }
-    #wrap { position:relative; width:100%; height:100%; }
-    #c { width:100%; height:100%; display:block; }
-    #ui {
-      position:absolute; left:12px; top:12px; width:330px;
-      background:rgba(0,0,0,0.55); color:#ddd; padding:12px 12px 10px;
-      border:1px solid rgba(255,255,255,0.12); border-radius:10px;
-      backdrop-filter: blur(6px);
-      user-select:none;
-      box-sizing:border-box;
-      max-height:calc(100vh - 24px);
-      display:flex;
-      flex-direction:column;
+    :root {
+      --blue-900: #003366;
+      --blue-800: #003f7f;
+      --blue-700: #0055aa;
+      --ink: #253142;
+      --muted: #5d6b7a;
+      --paper: #f9f9f9;
+      --surface: #fff;
+      --line: #dbe4f0;
+      --cyan: #007f9f;
     }
-    #ui h3 { margin:0 0 8px 0; font-size:14px; font-weight:600; color:#fff; }
-    #uibody { flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:4px; scrollbar-width:thin; }
-    .row { display:flex; align-items:center; gap:10px; margin:6px 0; }
-    .row label { width:120px; font-size:12px; color:#bbb; }
-    .row input[type="range"] { flex:1; }
-    .row .val { width:76px; text-align:right; font-variant-numeric: tabular-nums; font-size:12px; color:#fff; }
-    .btns { display:flex; gap:10px; margin-top:8px; }
-    button {
-      flex:1; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);
-      background:rgba(255,255,255,0.08); color:#fff; cursor:pointer;
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.65 "Segoe UI", system-ui, sans-serif;
     }
-    button:hover { background:rgba(255,255,255,0.12); }
-    button.selected { background:rgba(64,156,255,0.35); border-color:rgba(64,156,255,0.6); }
-    button:disabled { cursor:not-allowed; opacity:0.62; }
-    .toggle-group { display:flex; gap:6px; flex:1; }
-    .toggle-group button { flex:1; padding:6px 8px; font-size:11px; }
-    .row.mode-row { flex-direction:column; align-items:stretch; gap:6px; }
-    .row.mode-row label { width:auto; }
-    .row.mode-row .val { display:none; }
-    .row.mode-row .toggle-group { width:100%; }
-    .row.mode-row .toggle-group button { min-width:0; white-space:normal; line-height:1.15; }
-    .stat { margin-top:8px; font-size:12px; color:#bbb; line-height:1.35; }
-    .stat b { color:#fff; font-weight:600; }
-    #viewtools {
-      position:absolute; left:382px; top:12px; width:118px;
-      display:flex; flex-direction:column; align-items:center; gap:6px;
-      background:rgba(0,0,0,0.42); color:#ddd; padding:7px;
-      border:1px solid rgba(255,255,255,0.12); border-radius:8px;
-      backdrop-filter: blur(6px);
-      user-select:none;
+    a { color: var(--blue-700); }
+    a:hover { color: var(--blue-800); }
+
+    .site-banner {
+      padding: 1rem;
+      background: var(--blue-900);
+      color: #fff;
+      text-align: center;
     }
-    #viewGizmo {
-      width:104px; height:76px; display:block;
+    .site-banner h1 {
+      margin: 0;
+      font-size: 2.25rem;
+      line-height: 1.1;
     }
-    #viewtools .view-buttons {
-      display:flex; gap:6px;
+    .site-banner p {
+      margin: 0.45rem 0 0;
+      font-size: 1.05rem;
+      line-height: 1.35;
     }
-    #viewtools button {
-      flex:0 0 auto; width:32px; height:30px; padding:0;
-      border-radius:6px; font-size:11px; font-weight:700;
-      line-height:1; text-align:center;
+
+    main,
+    .site-footer-inner {
+      width: min(1120px, calc(100% - 2rem));
+      margin: 0 auto;
     }
-    #explain {
-      position:absolute; right:12px; top:12px;
-      width:25vw; min-width:280px; max-width:430px;
-      max-height:calc(100vh - 24px);
-      background:rgba(0,0,0,0.58); color:#d7e1e7;
-      border:1px solid rgba(255,255,255,0.14); border-radius:10px;
-      backdrop-filter: blur(7px);
-      box-sizing:border-box;
-      display:flex; flex-direction:column;
-      user-select:text;
+    main { padding-bottom: 3.5rem; }
+    section {
+      margin-bottom: 2.8rem;
+      scroll-margin-top: 24px;
     }
-    #explain.closed { width:auto; min-width:0; }
-    .panel-head {
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      padding:10px 12px;
-      user-select:none;
+    .page-nav {
+      display: flex;
+      padding-top: 1rem;
     }
-    .panel-head h3 { margin:0; font-size:14px; font-weight:650; color:#fff; }
-    #explainToggle {
-      flex:0 0 auto; width:34px; height:28px; padding:0;
-      display:flex; align-items:center; justify-content:center;
-      font-size:16px; line-height:1;
+    .nav-button,
+    .primary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0.55rem 0.9rem;
+      border-radius: 4px;
+      font-weight: 700;
+      line-height: 1.2;
+      text-decoration: none;
     }
-    #explainBody {
-      flex:1 1 auto; min-height:0; overflow-y:auto;
-      padding:0 14px 14px 14px;
-      font-size:13px; line-height:1.45;
-      color:#cbd7dd;
-      scrollbar-width:thin;
+    .nav-button {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--blue-900);
+      box-shadow: 0 1px 3px rgba(0, 0, 51, 0.06);
     }
-    #explain.closed #explainBody { display:none; }
-    #explainBody p { margin:0 0 10px 0; }
-    #explainBody h4 {
-      margin:14px 0 6px 0;
-      font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
-      color:#9fb8c5;
+    .primary-button {
+      border: 1px solid var(--blue-700);
+      background: var(--blue-700);
+      color: #fff;
     }
-    .eq {
-      margin:8px 0 12px 0;
-      padding:9px 10px;
-      border-left:2px solid rgba(107, 219, 190, 0.5);
-      background:rgba(255,255,255,0.045);
-      color:#f0fbff;
-      overflow-x:auto;
+    .primary-button:hover {
+      background: var(--blue-800);
+      color: #fff;
     }
-    .eq math {
-      font-family: "Cambria Math", "STIX Two Math", "Times New Roman", serif;
-      font-size:16px;
+
+    .page-hero {
+      margin-bottom: 0.8rem;
+      padding: 1.4rem 0 0.7rem;
     }
-    @media (max-height: 720px) {
-      #ui { padding:9px; }
-      .row { margin:4px 0; gap:8px; }
-      .row label, .row .val, .stat { font-size:11px; }
-      button { padding:6px 8px; }
-      #viewtools { padding:5px; }
+    .kicker {
+      margin: 0 0 0.45rem;
+      color: var(--blue-700);
+      font-size: 0.86rem;
+      font-weight: 700;
     }
-    @media (max-width: 900px) {
-      #explain { width:34vw; min-width:240px; }
+    .page-hero h1 {
+      margin: 0;
+      color: var(--blue-900);
+      font-size: 3rem;
+      line-height: 1.12;
+    }
+    .page-hero p:last-child {
+      max-width: 800px;
+      margin: 0.9rem 0 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .intro-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.8fr);
+      gap: 2rem;
+      align-items: start;
+    }
+    .header-image {
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid #11294d;
+      border-radius: 8px;
+      background: #000;
+      box-shadow: 0 8px 24px rgba(0, 0, 45, 0.14);
+    }
+    .header-image img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1100 / 650;
+      object-fit: cover;
+    }
+    .note-box {
+      padding: 1rem 1.1rem;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--cyan);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    .note-box h2 {
+      margin: 0 0 0.55rem;
+      color: var(--blue-900);
+      font-size: 1.1rem;
+    }
+    .note-list {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+    .note-list li { margin: 0.45rem 0; }
+
+    h2, h3 {
+      color: var(--blue-900);
+      line-height: 1.25;
+    }
+    h2 {
+      margin: 0 0 0.8rem;
+      font-size: 1.75rem;
+    }
+    .applet-section > p { max-width: 920px; }
+    .applet-shell {
+      overflow: hidden;
+      border: 1px solid #1d3558;
+      border-radius: 8px;
+      background: #000;
+      box-shadow: 0 9px 26px rgba(0, 0, 45, 0.16);
+    }
+    .applet-toolbar {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid #28476e;
+      background: #172439;
+      color: #fff;
+      font-weight: 650;
+    }
+    .applet-stage {
+      position: relative;
+      height: 650px;
+      background: #000 center / cover no-repeat;
+    }
+    .applet-frame {
+      display: block;
+      width: 100%;
+      height: 650px;
+      border: 0;
+      background: #000;
+    }
+    .applet-shell.is-inactive .applet-frame { visibility: hidden; }
+    .applet-play {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 0;
+      background: rgba(0, 0, 0, 0.22);
+      color: rgba(255, 255, 255, 0.86);
+      font: 700 2rem/1 "Segoe UI", system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .applet-play:hover,
+    .applet-play:focus-visible {
+      background: rgba(0, 0, 0, 0.34);
+      color: #fff;
+    }
+    .caption {
+      margin: 0.7rem 0 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .theory-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.2rem 2rem;
+    }
+    .theory-grid > div { min-width: 0; }
+    .equation {
+      overflow-x: auto;
+      margin: 0.8rem 0;
+      padding: 0.8rem 1rem;
+      border-left: 3px solid var(--cyan);
+      background: #eef5fa;
+    }
+    .next-step {
+      padding: 1.4rem 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .full-applet-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .site-footer {
+      background: var(--blue-900);
+      color: #fff;
+    }
+    .site-footer-inner { padding: 1.5rem 0; }
+    .site-footer a { color: #cce7ff; }
+
+    @media (max-width: 760px) {
+      .page-hero h1 { font-size: 2.25rem; }
+      .intro-grid,
+      .theory-grid { grid-template-columns: 1fr; }
+      .applet-stage,
+      .applet-frame { height: 560px; }
     }
   </style>
 </head>
 <body>
-  <div id="wrap">
-    <canvas id="c"></canvas>
-    <div id="ui">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
-  <h3 style="margin:0; font-size:14px; font-weight:600; color:#fff;">3D Bohmian Particle in a Box</h3>
-  <button id="minui" title="Minimize/expand" style="
-    width:34px; height:28px; padding:0;
-    border-radius:8px; border:1px solid rgba(255,255,255,0.2);
-    background:rgba(255,255,255,0.08); color:#fff; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; font-size:16px; line-height:1;
-  ">▾</button>
-</div>
-      <div id="uibody">
-  <div id="controls"></div>
-  <div class="btns">
-    <button id="reset">Reset (R)</button>
-    <button id="pause">Pause</button>
-  </div>
-  <div class="stat" id="stats"></div>
-</div>
+  <header class="site-banner">
+    <h1>Q-Ontic Lab</h1>
+    <p>Interactive quantum simulations for representational comparison</p>
+  </header>
+
+  <main>
+    <nav class="page-nav" aria-label="Page navigation">
+      <a class="nav-button" href="../index.html">Back to Main Page</a>
+    </nav>
+
+    <section class="page-hero" aria-labelledby="page-title">
+      <p class="kicker">Educational notebook</p>
+      <h1 id="page-title">Stern-Gerlach in Bohmian Mechanics</h1>
+      <p>What is Spin in Bohmian mechanics?</p>
+    </section>
+
+    <section class="intro-grid" aria-label="Notebook preview and section navigation">
+      <figure class="header-image">
+        <img src="spinSplitPoster.png" alt="A spinor wave packet splitting in a Stern-Gerlach magnetic field">
+      </figure>
+      <aside class="note-box" aria-labelledby="sections-nav">
+        <h2 id="sections-nav">Sections</h2>
+        <ul class="note-list">
+          <li><a href="#free-propagation">Before the magnet</a></li>
+          <li><a href="#definite-spin">Definite spin</a></li>
+          <li><a href="#spin-splitting">Spin superposition</a></li>
+          <li><a href="#representations">Contextuality of spin</a></li>
+          <li><a href="#theory">Theory and equations</a></li>
+          <li><a href="#full-applet">Full Demos</a></li>
+
+        </ul>
+      </aside>
+    </section>
+
+    <section class="applet-section" aria-labelledby="free-propagation">
+      <h2 id="free-propagation">Before the magnet</h2>
+      <p>
+        Bohmian mechanics allows us to provide an unusually "detailed" version of what is going on in Stern-Gerlach (SG) experiment.
+        As you may know, in SG we send a spin 1/2- particle (in the original experiment, a silver-atom) through a non-uniform 
+        magnetic field. The magnetic field needs to be non-uniform in order couple with the magnetic dipole moment of the particle.
+      </p>
+      <p>
+        The simulation scene is a tunnel, where the spin half particle travels. You can adjust the spin direction and momentum.
+        The default spin axis is aligned with the motion. Such a state also corresponds to an up/down superposition,
+        as we want it.
+      </p>
+      <div class="applet-shell is-inactive">
+        <div class="applet-toolbar">Free propagation: magnetic gradient off</div>
+        <div class="applet-stage" style="background-image:url('freePropagationPoster.png')">
+          <iframe class="applet-frame" title="Free Pauli spinor propagation before a Stern-Gerlach magnet"
+            data-src="full-applet.html?embed=1&amp;preset=free-propagation" allow="fullscreen"></iframe>
+          <button class="applet-play" type="button" aria-label="Play free-propagation simulation">Play</button>
+        </div>
+      </div>
+      <p class="caption">The field lines are absent and the packet remains spatially unsplit.</p>
+    </section>
+
+
+
+    <section class="applet-section" aria-labelledby="spin-splitting">
+      <h2 id="spin-splitting">A spin superposition</h2>
+      <p>
+        In bohmian mechanics, the particles do not contain the spin. The spin is in the wave, so to speak.
+        Each Bohmian particle simply follows where the splitting wave happens to guide it. 
+      </p>
+      <p>
+        Let us prepare the spinorial wave function in an equal superposition of \(+z\) and \(-z\) components. 
+        The Pauli equation will dictate how the wave components will couple with opposite signs to the magnetic field. 
+        This causes the spinor wave to separate into spatially distinct packets.
+        
+      </p>
+      <div class="applet-shell is-inactive">
+        <div class="applet-toolbar">Equal up/down superposition and beam splitting</div>
+        <div class="applet-stage" style="background-image:url('spinSplitPoster.png')">
+          <iframe class="applet-frame" title="Spin-superposition packet splitting in a Stern-Gerlach field"
+            data-src="full-applet.html?embed=1&amp;preset=spin-split" allow="fullscreen"></iframe>
+          <button class="applet-play" type="button" aria-label="Play spin-splitting simulation">Play</button>
+        </div>
+      </div>
+      <p class="caption">The wave splits, and the bohmian particles get carried along.</p>
+    </section>
+    <p>
+        Q: What determines whether a particle ends up in the upper or lower portion of the packet?
+         
+    </p>
+    <p>
+        
+        A: The position of the particle as the splitting is enacted. If the particle is (roughly) in the 
+        upper portion of the packet, the upward wave component will dominate can carry it up.
+        Conversely, if the particle is in the lower portion, it will go along with the downward component of the wave. 
+    </p>
+    <p>
+        In the middle region there is quite a competion for the particles between the packets.
+    </p>
+
+    <section class="applet-section" aria-labelledby="representations">
+      <h2 id="representations">Contextuality of Spin</h2>
+      <p>
+        As we have seen, in Bohmian mechanics the particle does not posses an intrinsic property called spin. 
+        The spin is "in the wave". This really is no problem, but may lead to confusion from the point of view 
+        of the traditional interpretation. 
+      </p>
+      <p>
+         Let us demonstrate with a simplified version of the SG experiment. This demo allows you to rotate the SG-magnets.
+         Try flipping the SG-apparatus upside down. Now up is down and vise versa, right? Indeed, if you look at the color coding
+         of the wave, you observe that the packet which originally went up, now goes down (and vise versa). 
+         Just as one would expect.
+      </p>
+      <p>
+         However, if you look at the particles, the one that happen to start in the upper portion will still be guided up, 
+         and the one starting from the lower portion will be guided down. The particles did not notice the inversion of the field!
+         This is what is referred to as contextuality of spin.
+         
+      </p>
+      <p>
+         
+         Contextuality is may seem surpricing, even wrong, 
+         but only if you hold on to the idea of particles themselves carrying the spin. 
+         As soon as you recal the particles just follow the wave, there is nothing mysterious about it whatsoever.
+         And the statistics will remain exactly the same, so empirically the Bohmian mechanics 
+         continues to produce the standard predictions of quantum mechanics.
+      </p>
+      <div class="applet-shell is-inactive">
+        <div class="applet-toolbar">Pilot-wave contextuality with adjustable magnet orientation</div>
+        <div class="applet-stage" style="background-image:url('multiviewPoster.png')">
+          <iframe class="applet-frame" title="Pilot-wave Stern-Gerlach contextuality simulation"
+            data-src="multiview-applet/index.html?embed=1" allow="fullscreen"></iframe>
+          <button class="applet-play" type="button" aria-label="Play pilot-wave Stern-Gerlach simulation">Play</button>
+        </div>
+      </div>
+      <p class="caption">
+        Flip the SG magnet upside down. 
+        The spin carrying wave will flip, but the particles will not. Statistics remain the same. 
+      </p>
+    </section>
+
+    <section id="theory" aria-labelledby="theory-title">
+      <h2 id="theory-title">Theory and equations</h2>
+      <div class="theory-grid">
+        <div>
+          <h3>The Pauli spinor</h3>
+          <p>The "Schrödinger wave" is replaced by a spinorial wave function. Spin-\(\tfrac12\) state has two complex components:</p>
+          <div class="equation">
+            \[
+              \Psi(\mathbf x,t)
+              =
+              \begin{pmatrix}
+                \psi_+(\mathbf x,t)\\
+                \psi_-(\mathbf x,t)
+              \end{pmatrix},
+              \qquad
+              \rho=\Psi^\dagger\Psi .
+            \]
+          </div>
+          <p>The two components represent amplitudes for opposite spin outcomes along the selected measurement axis.</p>
+        </div>
+        <div>
+          <h3>Magnetic interaction</h3>
+          <p>The Schrödinger wave equation is replaced by the Pauli equation, which contains the coupling between spin and the magnetic field:</p>
+          <div class="equation">
+            \[
+              i\hbar\frac{\partial\Psi}{\partial t}
+              =
+              \left[
+                \frac{1}{2m}
+                \left(-i\hbar\nabla-q\mathbf A\right)^2
+                +q\Phi
+                -\boldsymbol{\mu}\cdot\mathbf B(\mathbf x)
+              \right]\Psi .
+            \]
+          </div>
+          <p>
+            Here \(q\) is the particle's charge, \(\Phi\) is the scalar potential,
+            and \(\mathbf B=\nabla\times\mathbf A\). A spatial gradient in
+            \(\mathbf B\) gives the two spin components opposite forces and
+            separates their wave packets. The simulation retains the spin-field
+            interaction but neglects the orbital coupling to \(\mathbf A\).
+            For a neutral atom's center of mass, \(q=0\), so this orbital term
+            vanishes while the magnetic-moment coupling remains.
+          </p>
+        </div>
+        <div>
+          <h3>Measurement probabilities</h3>
+          <p>For an initial spin state \(a\lvert +z\rangle+b\lvert -z\rangle\), ideal branch weights are</p>
+          <div class="equation">
+            \[
+              P(+z)=|a|^2,
+              \qquad
+              P(-z)=|b|^2,
+              \qquad
+              |a|^2+|b|^2=1 .
+            \]
+          </div>
+          <p>The equal superposition used in the splitting demo has equal Born weights for the two branches.</p>
+        </div>
+        <div>
+          <h3>Bohmian guidance</h3>
+          <div class="equation">
+            \[
+              \mathbf v
+              =
+              \frac{\mathbf j}{\rho},
+              \qquad
+              \mathbf j
+              =
+              \frac{\hbar}{m}\operatorname{Im}
+              (\Psi^\dagger\nabla\Psi)
+              -\frac{q}{m}\mathbf A\,\rho
+              +
+              \frac{s\hbar}{m}
+              \nabla\times
+              (\Psi^\dagger\boldsymbol{\sigma}\Psi).
+            \]
+          </div>
+          <p>
+            The particle has one position and one continuous path, guided by the
+            gauge-covariant Pauli current of the full spinor. Equivalently, the
+            vector potential contributes \(-q\mathbf A/m\) directly to
+            \(\mathbf v=\mathbf j/\rho\).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="next-step" aria-labelledby="full-applet">
+      <h2 id="full-applet">Full Applets</h2>
+      <p>Open either simulation at its original scale in a separate browser tab.</p>
+      <div class="full-applet-links">
+        <a class="primary-button" href="full-applet.html" target="_blank" rel="noopener">Open Close-Up Applet</a>
+        <a class="primary-button" href="multiview-applet/index.html" target="_blank" rel="noopener">Open Rotating SG Applet</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      Adapted for Q-Ontic Lab from
+      <a href="https://github.com/anssiZander/BohmianSternGerlach3D-public" target="_blank" rel="noopener">BohmianSternGerlach3D-public</a>
+      by Anssi Zander.
     </div>
-    <div id="viewtools" aria-label="Camera view controls">
-      <canvas id="viewGizmo" width="104" height="76"></canvas>
-      <div class="view-buttons">
-        <button id="viewXY" type="button" title="Top XY view">XY</button>
-        <button id="viewXZ" type="button" title="Side XZ view">XZ</button>
-        <button id="viewYZ" type="button" title="Side YZ view">YZ</button>
-      </div>
-    </div>
-    <aside id="explain" class="closed" aria-label="Explanation panel">
-      <div class="panel-head">
-        <h3>Explanation</h3>
-        <button id="explainToggle" type="button" title="Open explanation">+</button>
-      </div>
-      <div id="explainBody">
-        <p>This simulation shows an up-polarized Pauli spinor wave packet inside a hard-walled three-dimensional box, together with Bohmian particles guided by the Pauli current. The glowing cloud is the spinor density. The SG controls add the Stern-Gerlach z-gradient for manual splitting.</p>
-        <h4>Wave</h4>
-        <p>The wave function is a two-component spinor. Its density is</p>
-        <div class="eq">
-          <math display="block">
-            <mrow>
-              <mi>&rho;</mi><mo>(</mo><mi mathvariant="bold">x</mi><mo>,</mo><mi>t</mi><mo>)</mo>
-              <mo>=</mo>
-              <msup><mi>&Psi;</mi><mo>&dagger;</mo></msup><mi>&Psi;</mi>
-            </mrow>
-          </math>
-        </div>
-        <p>The wave evolves according to the Pauli equation inside the box. The x faces are periodic, while y and z remain hard-walled. The SG option applies the magnetic field through the spin Zeeman term for qualitative Stern-Gerlach deflection.</p>
-        <div class="eq">
-          <math display="block">
-            <mrow>
-              <mi>i</mi><mi>&hbar;</mi><msub><mo>&PartialD;</mo><mi>t</mi></msub><mi>&Psi;</mi>
-              <mo>=</mo>
-              <mfenced open="[" close="]">
-                <mrow>
-                  <mo>-</mo>
-                  <mfrac><msup><mi>&hbar;</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>m</mi></mrow></mfrac>
-                  <msup><mo>&nabla;</mo><mn>2</mn></msup>
-                  <mo>-</mo>
-                  <mfrac><mi>&hbar;</mi><mrow><mn>2</mn><mi>m</mi></mrow></mfrac>
-                  <mi mathvariant="bold">&sigma;</mi><mo>&middot;</mo><mi mathvariant="bold">B</mi>
-                </mrow>
-              </mfenced>
-              <mi>&Psi;</mi>
-            </mrow>
-          </math>
-        </div>
-        <h4>Guidance</h4>
-        <p>The Bohmian velocity is based on the Pauli probability current divided by density.</p>
-        <div class="eq">
-          <math display="block">
-            <mrow>
-              <msub><mi mathvariant="bold">v</mi><mi>B</mi></msub>
-              <mo>=</mo>
-              <mfrac><mi mathvariant="bold">j</mi><mi>&rho;</mi></mfrac>
-            </mrow>
-          </math>
-        </div>
-        <div class="eq">
-          <math display="block">
-            <mrow>
-              <mi mathvariant="bold">j</mi>
-              <mo>=</mo>
-              <mfrac><mi>&hbar;</mi><mi>m</mi></mfrac>
-              <mi>Im</mi>
-              <mo>(</mo><msup><mi>&Psi;</mi><mo>&dagger;</mo></msup><mo>&nabla;</mo><mi>&Psi;</mi><mo>)</mo>
-            </mrow>
-          </math>
-        </div>
-        <p>The spin current uses the local Pauli spin density. For the default up-polarized packet it reduces to the familiar transverse curl around density gradients.</p>
-        <div class="eq">
-          <math display="block">
-            <mrow>
-              <mi mathvariant="bold">v</mi>
-              <mo>=</mo>
-              <mfrac><mi mathvariant="bold">j</mi><mi>&rho;</mi></mfrac>
-              <mo>+</mo>
-              <mfrac>
-                <mrow><mi>s</mi><mi>&hbar;</mi></mrow>
-                <mrow><mi>m</mi><mi>&rho;</mi></mrow>
-              </mfrac>
-              <mo>&nabla;</mo><mo>&times;</mo>
-              <mo>(</mo><msup><mi>&Psi;</mi><mo>&dagger;</mo></msup><mi mathvariant="bold">&sigma;</mi><mi>&Psi;</mi><mo>)</mo>
-            </mrow>
-          </math>
-        </div>
-      </div>
-    </aside>
-  </div>
-  <script type="module" src="./main.js"></script>
+  </footer>
+
+  <script>
+    const appletVisibilityObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) return;
+        const frame = entry.target.querySelector("iframe[src]");
+        frame?.contentWindow?.postMessage(
+          { type: "qontic:set-paused", paused: true },
+          window.location.origin
+        );
+      });
+    });
+
+    document.querySelectorAll(".applet-shell.is-inactive").forEach((shell) => {
+      const frame = shell.querySelector("iframe[data-src]");
+      const playButton = shell.querySelector(".applet-play");
+      playButton.addEventListener("click", () => {
+        if (!frame.hasAttribute("src")) frame.setAttribute("src", frame.dataset.src);
+        shell.classList.remove("is-inactive");
+        playButton.remove();
+        appletVisibilityObserver.observe(shell);
+      });
+    });
+  </script>
 </body>
 </html>

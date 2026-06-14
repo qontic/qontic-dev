@@ -56,6 +56,9 @@ const maxResByStorage = maxBaseResolutionForCells(maxWaveCellsByStorage);
 const maxResByDispatch = maxBaseResolutionForCells(device.limits.maxComputeWorkgroupsPerDimension * WAVE_WORKGROUP_SIZE);
 const rawMaxSimRes = Math.min(256, maxResByStorage, maxResByDispatch);
 const MAX_SIM_RES = Math.max(32, Math.floor(rawMaxSimRes / 4) * 4);
+const urlParams = new URLSearchParams(window.location.search);
+const preset = urlParams.get("preset");
+const isEmbedded = urlParams.get("embed") === "1";
 
 const params = {
   simRes: Math.min(128, MAX_SIM_RES),
@@ -106,6 +109,64 @@ const params = {
   paletteId: 4,
 };
 
+const embeddedBasePreset = {
+  simRes: Math.min(96, MAX_SIM_RES),
+  stepsPerFrame: 8,
+  cameraProjection: 0,
+  p0: 5.5,
+  packetSigma: 10.0,
+  spinS: 0.5,
+  sgGradient: DEFAULT_SG_GRADIENT,
+  showCloud: 1,
+  cloudGain: 0.05,
+  showPhase: 0,
+  showParticles: 1,
+  nParticles: 500,
+  dotSize: 10.0,
+  dotGain: 2.0,
+  showTrail: 1,
+  trailHalfLife: 0.5,
+};
+
+const PRESETS = {
+  "free-propagation": {
+    params: {
+      ...embeddedBasePreset,
+      initialSpin: 1,
+      sgFieldOn: 0,
+      sgGradient: 0,
+    },
+    adjustable: ["initialSpin","showCloud","nParticles", "showParticles"],
+  },
+  "spin-up": {
+    params: {
+      ...embeddedBasePreset,
+      initialSpin: 1,
+      sgFieldOn: 1,
+      sgGradient: DEFAULT_SG_GRADIENT,
+    },
+    adjustable: ["sgGradient", "showCloud", "showParticles", "showTrail"],
+  },
+  "spin-split": {
+    params: {
+      ...embeddedBasePreset,
+      initialSpin: 1,
+      sgFieldOn: 1,
+      sgGradient: DEFAULT_SG_GRADIENT,
+      nParticles: 1200,
+    },
+    adjustable: ["sgGradient", "nParticles", "showCloud", "showParticles", "showTrail"],
+  },
+};
+
+const presetDefinition = PRESETS[preset];
+const adjustableControls = new Set(presetDefinition?.adjustable ?? []);
+if (presetDefinition) Object.assign(params, presetDefinition.params);
+
+function isPresetLocked(key) {
+  return Boolean(presetDefinition) && !adjustableControls.has(key);
+}
+
 const PALETTE_NAMES = [
   "Nebula",
   "Synthwave",
@@ -155,6 +216,7 @@ function fmt(v) {
 }
 
 function addSlider(key, label, min, max, step, onChange = null) {
+  if (isPresetLocked(key)) return null;
   const row = document.createElement("div");
   row.className = "row";
 
@@ -190,6 +252,7 @@ function addSlider(key, label, min, max, step, onChange = null) {
 }
 
 function addToggleInt(key, label, onChange = null) {
+  if (isPresetLocked(key)) return null;
   const row = document.createElement("div");
   row.className = "row";
   const lab = document.createElement("label");
@@ -216,6 +279,7 @@ function addToggleInt(key, label, onChange = null) {
 }
 
 function addCycleButton(key, label, values, onChange = null) {
+  if (isPresetLocked(key)) return null;
   const row = document.createElement("div");
   row.className = "row";
 
@@ -250,6 +314,7 @@ function addCycleButton(key, label, values, onChange = null) {
 
 function addSectionHeader(label) {
   const header = document.createElement("div");
+  header.className = "control-section-header";
   header.style.marginTop = "12px";
   header.style.marginBottom = "8px";
   header.style.fontSize = "11px";
@@ -287,32 +352,44 @@ addSlider("cloudGain", "cloud density", 0.1, 2.0, 0.1);
 addToggleInt("showPhase", "show phase");
 
 addToggleInt("showParticles", "show particles");
-addSlider("nParticles", "particle count", 1, 5001, 100, () => rebuildParticles());
+addSlider("nParticles", "particle count", 1, 3001, 100, () => rebuildParticles());
 addSlider("dotSize", "particle size", 2.0, 26.0, 1);
 addSlider("dotGain", "particle brightness", 0.1, 5.0, 0.1);
 
 addToggleInt("showTrail", "draw trails");
 addSlider("trailHalfLife", "trail half-life", .1, 10.0, .1);
 
+document.querySelectorAll(".control-section-header").forEach((header) => {
+  const next = header.nextElementSibling;
+  if (!next || next.classList.contains("control-section-header")) header.remove();
+});
 
 document.getElementById("reset").onclick = () => resetAll();
 const pauseButton = document.getElementById("pause");
 function syncPauseButton() {
   pauseButton.textContent = paused ? "Resume" : "Pause";
 }
-pauseButton.onclick = () => {
-  paused = !paused;
+function setPaused(nextPaused) {
+  const next = Boolean(nextPaused);
+  if (paused === next) return;
+  paused = next;
   syncPauseButton();
   requestRedraw();
+}
+pauseButton.onclick = () => {
+  setPaused(!paused);
 };
+
+window.addEventListener("message", (event) => {
+  if (!isEmbedded || event.origin !== window.location.origin) return;
+  if (event.data?.type === "qontic:set-paused") setPaused(event.data.paused);
+});
 
 window.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() === "r") resetAll();
   if (e.key === " ") {
     e.preventDefault();
-    paused = !paused;
-    syncPauseButton();
-    requestRedraw();
+    setPaused(!paused);
   }
   handleCameraKey(e);
 });
@@ -1024,7 +1101,7 @@ function clampCameraDistance(distance) {
 }
 
 function syncCameraUi() {
-  cameraProjectionControl.sync();
+  cameraProjectionControl?.sync();
   for (const [key, btn] of Object.entries(viewButtons)) {
     if (!btn) continue;
     btn.classList.toggle("selected", params.cameraProjection === 1 && activeOrthoView === key);
@@ -1206,6 +1283,7 @@ canvas.addEventListener("pointercancel", (e) => {
 });
 
 canvas.addEventListener("wheel", (e) => {
+  if (isEmbedded) return;
   e.preventDefault();
   applyCameraZoomDelta(e.deltaY);
 }, { passive: false });

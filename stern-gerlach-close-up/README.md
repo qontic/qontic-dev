@@ -1,6 +1,13 @@
-# 3D Bohmian Particle in a Box
+# Stern-Gerlach Close Up
 
-WebGPU Bohmian mechanics simulation of a Gaussian wave packet in a closed 3D box.
+An educational Q-Ontic notebook and WebGPU Bohmian simulation of a Gaussian
+Pauli spinor passing through a Stern-Gerlach magnetic-field gradient.
+
+- `index.html` contains the notebook with three focused close-up demos and one
+  simplified pilot-wave Stern-Gerlach applet.
+- `full-applet.html` contains the original-scale applet and complete controls.
+- `multiview-applet/` contains the copied comparison applet. Its embedded mode
+  is restricted to the pilot-wave view, while its full page retains all views.
 
 The wave field is now an up-polarized two-component Pauli spinor advanced on a 3D grid stored in WebGPU storage buffers and updated with compute shaders. The tunnel is 1.5x taller in z than its x/y dimensions. The defaults favor cleaner reflection over speed: a higher grid resolution, a longer resolved de Broglie wavelength, and fourth-order finite-difference stencils for the Pauli Laplacian and particle guidance gradients. Bohmian particles are seeded from the same Gaussian density and guided by the Pauli current:
 

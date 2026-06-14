@@ -1,6 +1,10 @@
 # Bohmian Tunneling
 
-WebGL2 Bohmian mechanics Tunneling simulation with two selectable guiding laws.
+An educational Q-Ontic notebook and WebGL2 Bohmian tunneling simulation with
+focused embedded demonstrations and a separate full applet.
+
+- `index.html` contains the notebook.
+- `full-applet.html` contains the original-scale simulation and complete controls.
 
 - `Schrodinger`: `v = j / rho`
 - `Pauli spin-1/2 (+z)`: `v = j / rho + (hbar / (2 m rho)) * (d_y rho, -d_x rho)`
