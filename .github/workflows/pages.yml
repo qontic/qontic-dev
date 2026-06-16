@@ -47,22 +47,12 @@ jobs:
           mkdir -p _site/measurement
           cp -r measurement/dist/* _site/measurement/
 
-          # Publish the analytical double-slit app as a clean self-contained directory.
-          mkdir -p _site/double-slit/js _site/double-slit/css
-          cp qsf-v1.html _site/double-slit/index.html
-          cp js/palette.js _site/double-slit/js/
-          cp js/double-slit.js _site/double-slit/js/
-          cp js/precompute-worker.js _site/double-slit/js/
-          cp css/palette.css _site/double-slit/css/
-          cp css/qsf-style.css _site/double-slit/css/
-
+          
           # Point the homepage card at the clean public app directory.
           python3 - <<'PY'
           from pathlib import Path
           path = Path('_site/index.html')
           html = path.read_text(encoding='utf-8')
-          html = html.replace("url:'qsf-v1.html'", "url:'double-slit/'")
-          html = html.replace('url:"qsf-v1.html"', 'url:"double-slit/"')
           rule = '.sim-card[hidden]{display:none!important}'
           if rule not in html:
               html = html.replace('.sim-card h3{', rule + '.sim-card h3{')
