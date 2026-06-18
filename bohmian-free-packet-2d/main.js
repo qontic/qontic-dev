@@ -38,22 +38,23 @@ const params = {
 
   showParticles: 1,
   nParticles: 100,
-  dotSize: 12.0,
+  dotSize: 16.0,
   dotSigma: 0.28,
   dotGain: 1.,
 
   showTrail: 1,
-  trailHalfLife: 10.0,
-  trailVisGain: 1.,
-  trailVisGamma: 1,
+  trailHalfLife: 30.0,
+  trailVisGain: 0.5,
+  trailVisGamma: 0.6,
   trailStampGain: 0.55,
-  trailWidth: 7.0,
+  trailWidth: 6.0,
   trailBlendMode: 1,
 
   paletteId: 5,
 };
 
 const urlParams = new URLSearchParams(window.location.search);
+const isEmbedded = urlParams.get("embed") === "1";
 const preset = urlParams.get("preset");
 
 const embeddedBasePreset = {
@@ -69,17 +70,17 @@ const embeddedBasePreset = {
   guidingMode: 0,
   boundaryMode: 0,
   nParticles: 100,
-  dotSize: 12.0,
+  dotSize: 16.0,
   dotGain: 1.0,
   showTrail: 1,
-  trailHalfLife: 10.0,
-  trailWidth: 7.0,
+  trailHalfLife: 30.0,
+  trailWidth: 6.0,
 };
 
 const spreadingPreset = {
   ...embeddedBasePreset,
   nParticles: 1,
-  dotSize: 14.0,
+  dotSize: 16.0,
   trailWidth: 5.0,
   trailHalfLife: 5.0,
 };
@@ -88,7 +89,7 @@ const ensemblePreset = {
   ...embeddedBasePreset,
   nParticles: 500,
   showPhase: 1,
-  dotSize: 7.0,
+  dotSize: 9.0,
   trailWidth: 4.0,
   trailHalfLife: 3.0,
 };
@@ -99,7 +100,7 @@ const splitPreset = {
   p0: .9,
   gaussianSeparation: 100.0,
   nParticles: 500,
-  dotSize: 6.0,
+  dotSize: 7.0,
   trailWidth: 4.0,
   trailHalfLife: 5.0,
 };
@@ -426,11 +427,12 @@ if (!isControlFixed("boundaryMode")) {
 
 addSectionHeader("Visual Parameters");
 addToggleInt("showPhase", "show phase");
-addLinkedToggleInt(["showParticles", "showTrail"], "show particles");
+addToggleInt("showParticles", "show particles");
 addSlider("nParticles", "particle count", 1, 3000, 1, () => resetAll());
 addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
 addSlider("dotGain", "particle brightness", 0.1, 3.0, 0.1);
 
+addToggleInt("showTrail", "draw trails");
 addSlider("trailHalfLife", "trail half-life", 1.0, 100.0, 1.0);
 //addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
 //addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
@@ -442,14 +444,30 @@ addSlider("trailWidth", "trail width (px)", 3, 10.0, 1);
 removeEmptySectionHeaders();
 
 document.getElementById("reset").onclick = () => resetAll();
-document.getElementById("pause").onclick = (e) => {
-  paused = !paused;
-  e.target.textContent = paused ? "Resume" : "Pause";
-};
+const pauseButton = document.getElementById("pause");
+
+function setPaused(nextPaused) {
+  paused = Boolean(nextPaused);
+  pauseButton.textContent = paused ? "Resume" : "Pause";
+}
+
+function togglePause() {
+  setPaused(!paused);
+}
+
+pauseButton.onclick = togglePause;
 window.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() === "r") resetAll();
-  if (e.key === " ") paused = !paused;
+  if (e.key === " ") togglePause();
 });
+
+if (isEmbedded) {
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) return;
+    if (event.data?.type !== "qontic:set-paused" || !event.data.paused) return;
+    setPaused(true);
+  });
+}
 
 const uiBody = document.getElementById("uibody");
 const minBtn = document.getElementById("minui");
@@ -631,7 +649,6 @@ function buildPrograms() {
     uPointSize: u(progPartView, "uPointSize"),
     uDotSigma: u(progPartView, "uDotSigma"),
     uDotGain: u(progPartView, "uDotGain"),
-    uPaletteId: u(progPartView, "uPaletteId"),
   };
 
   U.partStamp = {
@@ -653,7 +670,6 @@ function buildPrograms() {
     uDensity: u(progDensityRender, "uDensity"),
     uGain: u(progDensityRender, "uGain"),
     uGamma: u(progDensityRender, "uGamma"),
-    uPaletteId: u(progDensityRender, "uPaletteId"),
     uBlendMode: u(progDensityRender, "uBlendMode"),
   };
 }
@@ -949,7 +965,7 @@ function render() {
 
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 
-  if (params.showParticles) {
+  if (params.showTrail) {
     gl.enable(gl.BLEND);
 
     if (params.trailBlendMode === 0) {
@@ -973,7 +989,6 @@ function render() {
 
     gl.uniform1f(U.densityRender.uGain, params.trailVisGain);
     gl.uniform1f(U.densityRender.uGamma, params.trailVisGamma);
-    gl.uniform1i(U.densityRender.uPaletteId, params.paletteId | 0);
     gl.uniform1i(U.densityRender.uBlendMode, params.trailBlendMode | 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -983,7 +998,7 @@ function render() {
 
   if (params.showParticles) {
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     gl.useProgram(progPartView);
     gl.bindVertexArray(vaoParticles);
@@ -992,7 +1007,6 @@ function render() {
     gl.uniform1f(U.partView.uPointSize, params.dotSize);
     gl.uniform1f(U.partView.uDotSigma, params.dotSigma);
     gl.uniform1f(U.partView.uDotGain, params.dotGain);
-    gl.uniform1i(U.partView.uPaletteId, params.paletteId | 0);
 
     gl.drawArrays(gl.POINTS, 0, Math.floor(params.nParticles));
 

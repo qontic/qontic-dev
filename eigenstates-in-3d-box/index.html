@@ -441,6 +441,17 @@
   </footer>
 
   <script>
+    const appletVisibilityObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) return;
+        const frame = entry.target.querySelector("iframe[src]");
+        frame?.contentWindow?.postMessage(
+          { type: "qontic:set-paused", paused: true },
+          window.location.origin
+        );
+      });
+    });
+
     document.querySelectorAll(".applet-shell.is-inactive").forEach((shell) => {
       const frame = shell.querySelector("iframe[data-src]");
       const playButton = shell.querySelector(".applet-play");
@@ -448,6 +459,7 @@
         if (!frame.hasAttribute("src")) frame.setAttribute("src", frame.dataset.src);
         shell.classList.remove("is-inactive");
         playButton.remove();
+        appletVisibilityObserver.observe(shell);
       });
     });
   </script>
