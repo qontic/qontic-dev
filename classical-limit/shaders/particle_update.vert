@@ -18,8 +18,7 @@ uniform float uVelClamp;
 
 vec2 samplePsiBilinear(vec2 xPx, int boundaryMode) {
   vec2 simResF = vec2(uSimRes);
-  
-  // Apply boundary conditions to the sample position
+
   if (boundaryMode == 1) {
     xPx = mod(xPx, simResF);
   } else {
@@ -31,9 +30,10 @@ vec2 samplePsiBilinear(vec2 xPx, int boundaryMode) {
   vec2 f = xPx - x0;
 
   ivec2 p00 = ivec2(x0);
-  
-  // For periodic boundaries, wrap indices; for reflecting, clamp
-  ivec2 p10, p01, p11;
+  ivec2 p10;
+  ivec2 p01;
+  ivec2 p11;
+
   if (boundaryMode == 1) {
     p10 = ivec2(mod(vec2(p00) + vec2(1.0, 0.0), simResF));
     p01 = ivec2(mod(vec2(p00) + vec2(0.0, 1.0), simResF));
@@ -52,8 +52,14 @@ vec2 samplePsiBilinear(vec2 xPx, int boundaryMode) {
   return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
-float crossPsi(vec2 fromPsi, vec2 toPsi) {
-  return fromPsi.x * toPsi.y - fromPsi.y * toPsi.x;
+vec2 schrodingerVelocity(vec2 psi, vec2 dpsidx, vec2 dpsidy, float rhoEff) {
+  float a = psi.x;
+  float b = psi.y;
+
+  float jx = (uHBAR / uMass) * (a * dpsidx.y - b * dpsidx.x);
+  float jy = (uHBAR / uMass) * (a * dpsidy.y - b * dpsidy.x);
+
+  return vec2(jx, jy) / rhoEff;
 }
 
 vec2 guidingVelocity(vec2 xPx, int boundaryMode) {
@@ -63,16 +69,13 @@ vec2 guidingVelocity(vec2 xPx, int boundaryMode) {
   vec2 psiN = samplePsiBilinear(xPx + vec2(0.0, 1.0), boundaryMode);
   vec2 psiS = samplePsiBilinear(xPx + vec2(0.0, -1.0), boundaryMode);
 
+  vec2 dpsidx = 0.5 * (psiE - psiW);
+  vec2 dpsidy = 0.5 * (psiN - psiS);
+
   float rho = dot(psi, psi);
-  if (rho < uRhoMin) return vec2(0.0);
+  float rhoEff = max(rho, uRhoMin);
 
-  vec2 current = vec2(
-    0.5 * (crossPsi(psiW, psi) + crossPsi(psi, psiE)),
-    0.5 * (crossPsi(psiS, psi) + crossPsi(psi, psiN))
-  );
-
-  vec2 v = (uHBAR / uMass) * current / rho;
-
+  vec2 v = schrodingerVelocity(psi, dpsidx, dpsidy, rhoEff);
   float sp = length(v);
   if (sp > uVelClamp) v *= (uVelClamp / sp);
 
@@ -98,9 +101,8 @@ vec2 applyPeriodicBC(vec2 xPx) {
 vec2 applyBoundaryConditions(vec2 xPx, int boundaryMode) {
   if (boundaryMode == 1) {
     return applyPeriodicBC(xPx);
-  } else {
-    return reflectIntoBox(xPx);
   }
+  return reflectIntoBox(xPx);
 }
 
 void main() {

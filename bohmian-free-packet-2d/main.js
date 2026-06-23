@@ -15,7 +15,7 @@ const params = {
   simScale: 0.5,
   stepsPerFrame: 5,
 
-  hbar: 1.0,
+  hbar: 6.0,
   mass: 1.0,
   p0: 2.0,
   dt: 0.04,

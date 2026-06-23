@@ -1,22 +1,47 @@
 const canvas = document.getElementById("c");
-const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
-if (!gl) throw new Error("WebGL2 not available.");
+const credit = document.getElementById("credit");
 
-gl.disable(gl.DEPTH_TEST);
-gl.disable(gl.CULL_FACE);
-
-const extFloatRT = gl.getExtension("EXT_color_buffer_float");
-if (!extFloatRT) {
-  alert("EXT_color_buffer_float missing. Use Chrome/Edge/Firefox desktop.\nThis demo needs float render targets.");
-  throw new Error("Missing EXT_color_buffer_float");
+function setStatus(message) {
+  if (credit) credit.textContent = message;
 }
 
+function failStartup(message) {
+  setStatus(message);
+  alert(message);
+  throw new Error(message);
+}
+
+if (!navigator.gpu) {
+  failStartup("WebGPU is not available. Use a current Chrome/Edge desktop build.");
+}
+
+setStatus("Requesting WebGPU adapter...");
+const adapter = await navigator.gpu.requestAdapter();
+if (!adapter) {
+  failStartup("No WebGPU adapter found. Enable WebGPU or try another browser/GPU.");
+}
+
+setStatus("Starting WebGPU device...");
+const device = await adapter.requestDevice();
+device.lost.then((info) => {
+  console.error("WebGPU device lost:", info);
+});
+
+const context = canvas.getContext("webgpu");
+if (!context) {
+  failStartup("Could not create a WebGPU canvas context.");
+}
+
+const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+const trailFormat = "rgba16float";
+
 const params = {
-  simScale: 0.5,
+  simScale: 1.0,
   stepsPerFrame: 6,
 
   classicality: 0.0,
   classicalSpeed: 2.0,
+  velocityAngleDeg: 0.0,
   packetSpread: 1.0,
 
   hbar: 6.0,
@@ -24,14 +49,14 @@ const params = {
   p0: 2.0,
   dt: 0.035,
 
-  packetX: 0.36,
+  packetX: 0.55,
   packetY: 0.5,
-  packetSigma: 24.0,
+  packetSigma: 30.0,
   doubleGaussian: 0,
   gaussianSeparation: 200.0,
 
   rhoMin: 1e-6,
-  velClamp: 160.0,
+  velClamp: 180.0,
   boundaryMode: 0,
 
   visGain: 20.0,
@@ -42,7 +67,7 @@ const params = {
   nParticles: 64,
   dotSize: 10.0,
   dotSigma: 0.28,
-  dotGain: 1.,
+  dotGain: 1.0,
 
   showTrail: 1,
   trailHalfLife: 18.0,
@@ -60,11 +85,13 @@ const isEmbedded = urlParams.get("embed") === "1";
 
 const CLASSICAL_LIMIT = {
   quantumHbar: 6.0,
-  classicalHbar: 0.35,
-  classicalGridWavenumber: 0.7,
-  maxGridWavenumber: 0.9,
-  quantumSigma: 24.0,
-  classicalSigma: 90.0,
+  classicalHbar: 0.12,
+  quantumHbarOverMass: 6.0,
+  classicalHbarOverMass: 0.9,
+  maxPhaseK: 1.08,
+  quantumSigma: 30.0,
+  classicalSigma: 140.0,
+  minSigma: 10.0,
 };
 
 function clamp01(x) {
@@ -80,15 +107,32 @@ function smooth01(t) {
   return t * t * (3 - 2 * t);
 }
 
+function clampViewCenter() {
+  if (viewState.zoom <= 1.0001) {
+    viewState.zoom = 1.0;
+    viewState.centerX = 0.5;
+    viewState.centerY = 0.5;
+    return;
+  }
+
+  const half = 0.5 / viewState.zoom;
+  viewState.centerX = Math.min(1 - half, Math.max(half, viewState.centerX));
+  viewState.centerY = Math.min(1 - half, Math.max(half, viewState.centerY));
+}
+
 function applyClassicalLimit() {
   const t = smooth01(params.classicality);
-  const requestedHbar = mix(CLASSICAL_LIMIT.quantumHbar, CLASSICAL_LIMIT.classicalHbar, t);
-  const quantumK = Math.min(CLASSICAL_LIMIT.maxGridWavenumber, params.classicalSpeed / CLASSICAL_LIMIT.quantumHbar);
-  const targetK = mix(quantumK, CLASSICAL_LIMIT.classicalGridWavenumber, t);
-  params.hbar = requestedHbar;
-  params.p0 = params.hbar * targetK;
-  params.mass = (params.hbar * Math.sin(targetK)) / params.classicalSpeed;
-  params.packetSigma = mix(CLASSICAL_LIMIT.quantumSigma, CLASSICAL_LIMIT.classicalSigma, t) * params.packetSpread;
+  const requestedAlpha = mix(CLASSICAL_LIMIT.quantumHbarOverMass, CLASSICAL_LIMIT.classicalHbarOverMass, t);
+  const minResolvedAlpha = params.classicalSpeed / CLASSICAL_LIMIT.maxPhaseK;
+  const hbarOverMass = Math.max(requestedAlpha, minResolvedAlpha);
+
+  params.hbar = mix(CLASSICAL_LIMIT.quantumHbar, CLASSICAL_LIMIT.classicalHbar, t);
+  params.mass = params.hbar / hbarOverMass;
+  params.p0 = params.classicalSpeed * params.mass;
+  params.packetSigma = Math.max(
+    CLASSICAL_LIMIT.minSigma,
+    mix(CLASSICAL_LIMIT.quantumSigma, CLASSICAL_LIMIT.classicalSigma, t) * params.packetSpread
+  );
   params.boundaryMode = 0;
 }
 
@@ -100,11 +144,23 @@ function classicalityLabel() {
 }
 
 let classicalReadout = null;
+let simW = 0;
+let simH = 0;
+const viewState = {
+  centerX: 0.5,
+  centerY: 0.5,
+  zoom: 1.0,
+};
 
 function updateClassicalReadout() {
   if (!classicalReadout) return;
+  const alpha = params.hbar / params.mass;
   const k = params.p0 / params.hbar;
-  classicalReadout.textContent = `hbar ${fmt(params.hbar)}, k ${fmt(k)}, width ${fmt(params.packetSigma)}`;
+  const wavelength = 2 * Math.PI / Math.max(1e-6, k);
+  const grid = simW > 0 ? `, grid ${simW}x${simH}` : "";
+  const zoom = viewState.zoom > 1.0001 ? `, zoom ${fmt(viewState.zoom)}x` : "";
+  classicalReadout.textContent =
+    `hbar ${fmt(params.hbar)}, hbar/m ${fmt(alpha)}, width ${fmt(params.packetSigma)}, lambda ${fmt(wavelength)}px, angle ${fmt(params.velocityAngleDeg)}deg${grid}${zoom}`;
 }
 
 const urlClassicality = parseFloat(urlParams.get("classicality"));
@@ -117,9 +173,14 @@ if (Number.isFinite(urlSpeed)) {
   params.classicalSpeed = Math.min(4.0, Math.max(0.5, urlSpeed));
 }
 
+const urlAngle = parseFloat(urlParams.get("angle"));
+if (Number.isFinite(urlAngle)) {
+  params.velocityAngleDeg = Math.min(90.0, Math.max(-90.0, urlAngle));
+}
+
 const urlSpread = parseFloat(urlParams.get("spread"));
 if (Number.isFinite(urlSpread)) {
-  params.packetSpread = Math.min(2.5, Math.max(0.4, urlSpread));
+  params.packetSpread = Math.min(3.5, Math.max(0.2, urlSpread));
 }
 
 applyClassicalLimit();
@@ -127,20 +188,6 @@ applyClassicalLimit();
 function isControlFixed(key) {
   return false;
 }
-
-const PALETTE_NAMES = [
-  "Nebula",
-  "Synthwave",
-  "Viridis-ish",
-  "Inferno-ish",
-  "Ice",
-  "Plasma Drift",
-  "Arctic Aurora",
-  "Solar Flare",
-  "Cosmic Dust",
-  "Neon Noir",
-  "Pastel Mirage"
-];
 
 let paused = false;
 
@@ -177,6 +224,9 @@ function addSlider(key, label, min, max, step, onChange = null) {
     params[key] = v;
     if (key === "classicalSpeed" || key === "packetSpread") {
       applyClassicalLimit();
+      updateUniforms();
+      updateClassicalReadout();
+    } else if (key === "velocityAngleDeg") {
       updateClassicalReadout();
     }
     val.textContent = fmt(v);
@@ -210,6 +260,7 @@ function addClassicalityControl() {
   input.addEventListener("input", () => {
     params.classicality = parseFloat(input.value);
     applyClassicalLimit();
+    updateUniforms();
     val.textContent = classicalityLabel();
     updateClassicalReadout();
   });
@@ -249,72 +300,8 @@ function addToggleInt(key, label, onChange = null) {
   btn.addEventListener("click", () => {
     params[key] = params[key] ? 0 : 1;
     btn.textContent = params[key] ? "ON" : "OFF";
+    updateUniforms();
     if (onChange) onChange(params[key]);
-  });
-
-  const val = document.createElement("div");
-  val.className = "val";
-  val.textContent = "";
-
-  row.appendChild(lab);
-  row.appendChild(btn);
-  row.appendChild(val);
-  controls.appendChild(row);
-}
-
-function addLinkedToggleInt(keys, label) {
-  if (keys.every((key) => isControlFixed(key))) return;
-
-  const row = document.createElement("div");
-  row.className = "row";
-
-  const lab = document.createElement("label");
-  lab.textContent = label;
-
-  const btn = document.createElement("button");
-  btn.style.flex = "1";
-
-  const setValue = (value) => {
-    for (const key of keys) params[key] = value;
-    btn.textContent = value ? "ON" : "OFF";
-  };
-
-  setValue(keys.some((key) => params[key]) ? 1 : 0);
-  btn.addEventListener("click", () => {
-    setValue(params[keys[0]] ? 0 : 1);
-  });
-
-  const val = document.createElement("div");
-  val.className = "val";
-  val.textContent = "";
-
-  row.appendChild(lab);
-  row.appendChild(btn);
-  row.appendChild(val);
-  controls.appendChild(row);
-}
-
-function addCycleButton(key, label, values, onChange = null) {
-  if (isControlFixed(key)) return;
-
-  const row = document.createElement("div");
-  row.className = "row";
-
-  const lab = document.createElement("label");
-  lab.textContent = label;
-
-  const btn = document.createElement("button");
-  btn.style.flex = "1";
-
-  const sync = () => {
-    btn.textContent = values[params[key] | 0] ?? values[0];
-  };
-
-  sync();
-  btn.addEventListener("click", () => {
-    params[key] = (params[key] + 1) % values.length;
-    sync();
-    if (onChange) onChange(params[key] | 0);
   });
 
   const val = document.createElement("div");
@@ -365,32 +352,31 @@ addSlider("classicalSpeed", "drift speed", 0.5, 4.0, 0.1, () => {
   resetAll();
   updateClassicalReadout();
 });
-addSlider("packetSpread", "packet spread", 0.4, 2.5, 0.05, () => {
+addSlider("velocityAngleDeg", "velocity angle", -90.0, 90.0, 1.0, () => {
+  resetAll();
+  updateClassicalReadout();
+});
+addSlider("packetSpread", "packet spread", 0.2, 3.5, 0.05, () => {
   applyClassicalLimit();
   resetAll();
   updateClassicalReadout();
 });
 
 addSectionHeader("Performance");
-addSlider("simScale", "sim scale", 0.25, 1.0, 0.05, () => rebuildSimulation());
+addSlider("simScale", "sim scale", 0.5, 2.0, 0.05, () => rebuildSimulation());
 addSlider("stepsPerFrame", "Steps/frame", 1, 51, 5);
-addSlider("dt", "dt", 0.01, 0.04, 0.005);
+addSlider("dt", "dt", 0.005, 0.04, 0.005);
 
 addSectionHeader("Visual Parameters");
 addToggleInt("showPhase", "show phase");
 addToggleInt("showParticles", "show particles");
-addSlider("nParticles", "particle count", 1, 100, 1, () => resetAll());
+addSlider("nParticles", "particle count", 1, 300, 1, () => resetAll());
 addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
 addSlider("dotGain", "particle brightness", 0.1, 3.0, 0.1);
 
 addToggleInt("showTrail", "draw trails");
 addSlider("trailHalfLife", "trail half-life", 1.0, 100.0, 1.0);
-//addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
-//addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
 addSlider("trailWidth", "trail width (px)", 3, 10.0, 1);
-
-//addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
-//addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
 
 removeEmptySectionHeaders();
 
@@ -431,271 +417,821 @@ minBtn.onclick = () => {
   minBtn.textContent = uiMinimized ? "+" : "-";
 };
 
-function compile(type, src) {
-  const sh = gl.createShader(type);
-  gl.shaderSource(sh, src);
-  gl.compileShader(sh);
-  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-    console.error(src);
-    throw new Error(gl.getShaderInfoLog(sh));
+canvas.addEventListener("wheel", (event) => {
+  event.preventDefault();
+
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+
+  const mouseUvX = (event.clientX - rect.left) / rect.width;
+  const mouseUvY = (event.clientY - rect.top) / rect.height;
+  const oldZoom = viewState.zoom;
+  const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+  const newZoom = Math.min(32.0, Math.max(1.0, oldZoom * zoomFactor));
+
+  const worldX = viewState.centerX + (mouseUvX - 0.5) / oldZoom;
+  const worldY = viewState.centerY + (mouseUvY - 0.5) / oldZoom;
+  viewState.zoom = newZoom;
+  viewState.centerX = worldX - (mouseUvX - 0.5) / newZoom;
+  viewState.centerY = worldY - (mouseUvY - 0.5) / newZoom;
+  clampViewCenter();
+
+  updateUniforms();
+  clearTrails();
+  updateClassicalReadout();
+}, { passive: false });
+
+canvas.addEventListener("dblclick", () => {
+  viewState.zoom = 1.0;
+  viewState.centerX = 0.5;
+  viewState.centerY = 0.5;
+  updateUniforms();
+  clearTrails();
+  updateClassicalReadout();
+});
+
+const PARAM_FLOATS = 40;
+const paramsArray = new Float32Array(PARAM_FLOATS);
+const uniformBuffer = device.createBuffer({
+  size: PARAM_FLOATS * 4,
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+});
+
+let waveBuffers = [];
+let waveFlip = 0;
+
+let particleBuffers = [];
+let particleFlip = 0;
+
+let trailTextures = [];
+let trailFlip = 0;
+
+let bindGroupsReady = false;
+
+const commonWGSL = /* wgsl */`
+struct Params {
+  simSize: vec2<f32>,
+  canvasSize: vec2<f32>,
+  hbar: f32,
+  mass: f32,
+  p0: f32,
+  dt: f32,
+  packetPos: vec2<f32>,
+  packetSigma: f32,
+  gaussianSep: f32,
+  doubleGaussian: f32,
+  boundaryMode: f32,
+  nParticles: f32,
+  rhoMin: f32,
+  velClamp: f32,
+  visGain: f32,
+  visGamma: f32,
+  showPhase: f32,
+  dotSize: f32,
+  dotSigma: f32,
+  dotGain: f32,
+  stampGain: f32,
+  trailWidth: f32,
+  trailFade: f32,
+  trailGain: f32,
+  trailGamma: f32,
+  trailBlendMode: f32,
+  paletteId: f32,
+  _pad0: vec2<f32>,
+  viewCenter: vec2<f32>,
+  packetDir: vec2<f32>,
+  viewScale: f32,
+  _pad1: f32,
+  _pad2: vec2<f32>,
+}
+
+const PI = 3.14159265359;
+const TAU = 6.28318530718;
+
+fn simW(params: Params) -> u32 {
+  return max(1u, u32(params.simSize.x));
+}
+
+fn simH(params: Params) -> u32 {
+  return max(1u, u32(params.simSize.y));
+}
+
+fn cellIndex(params: Params, x: u32, y: u32) -> u32 {
+  return y * simW(params) + x;
+}
+
+fn wrapI(v: i32, size: i32) -> i32 {
+  return ((v % size) + size) % size;
+}
+
+fn wrapF(v: f32, size: f32) -> f32 {
+  return v - floor(v / size) * size;
+}
+
+fn cis(a: f32) -> vec2<f32> {
+  return vec2<f32>(cos(a), sin(a));
+}
+
+fn sqr(x: f32) -> f32 {
+  return x * x;
+}
+
+fn schrodingerRHS(params: Params, psi: vec2<f32>, lapPsi: vec2<f32>) -> vec2<f32> {
+  let cLap = params.hbar / (2.0 * params.mass);
+  return vec2<f32>(-cLap * lapPsi.y, cLap * lapPsi.x);
+}
+
+fn reflectIntoBox(params: Params, xIn: vec2<f32>) -> vec2<f32> {
+  var x = xIn;
+  let maxX = params.simSize - vec2<f32>(1.0, 1.0);
+  if (x.x < 0.0) { x.x = -x.x; }
+  if (x.x > maxX.x) { x.x = 2.0 * maxX.x - x.x; }
+  if (x.y < 0.0) { x.y = -x.y; }
+  if (x.y > maxX.y) { x.y = 2.0 * maxX.y - x.y; }
+  return clamp(x, vec2<f32>(0.0, 0.0), maxX);
+}
+
+fn applyBoundary(params: Params, xIn: vec2<f32>) -> vec2<f32> {
+  if (i32(params.boundaryMode + 0.5) == 1) {
+    return vec2<f32>(wrapF(xIn.x, params.simSize.x), wrapF(xIn.y, params.simSize.y));
   }
-  return sh;
+  return reflectIntoBox(params, xIn);
 }
 
-function link(vs, fs, tfVaryings = null) {
-  const prog = gl.createProgram();
-  gl.attachShader(prog, vs);
-  gl.attachShader(prog, fs);
-  if (tfVaryings) gl.transformFeedbackVaryings(prog, tfVaryings, gl.INTERLEAVED_ATTRIBS);
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(prog));
+struct FullscreenOut {
+  @builtin(position) pos: vec4<f32>,
+  @location(0) uv: vec2<f32>,
+}
+
+@vertex
+fn fullscreenVS(@builtin(vertex_index) vertexIndex: u32) -> FullscreenOut {
+  var pos = array<vec2<f32>, 3>(
+    vec2<f32>(-1.0, -1.0),
+    vec2<f32>( 3.0, -1.0),
+    vec2<f32>(-1.0,  3.0)
+  );
+  var out: FullscreenOut;
+  let p = pos[vertexIndex];
+  out.pos = vec4<f32>(p, 0.0, 1.0);
+  out.uv = vec2<f32>(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5);
+  return out;
+}
+`;
+
+const waveInitWGSL = /* wgsl */`
+${commonWGSL}
+
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var<storage, read_write> waveA: array<vec4<f32>>;
+@group(0) @binding(2) var<storage, read_write> waveB: array<vec4<f32>>;
+
+fn kineticEnergy() -> f32 {
+  return 0.5 * sqr(params.p0) / params.mass;
+}
+
+fn initialPacketAtPx(xPx: vec2<f32>, t: f32) -> vec2<f32> {
+  let x0 = params.packetPos * params.simSize;
+  let k = params.p0 / params.hbar;
+  let dir = params.packetDir;
+  let phaseTime = -kineticEnergy() * t / params.hbar;
+
+  if (i32(params.doubleGaussian + 0.5) != 0) {
+    let sep = params.gaussianSep * 0.5;
+    let d1 = xPx - x0 - vec2<f32>(0.0, -sep);
+    let d2 = xPx - x0 - vec2<f32>(0.0,  sep);
+    let amp1 = exp(-dot(d1, d1) / (2.0 * sqr(params.packetSigma)));
+    let amp2 = exp(-dot(d2, d2) / (2.0 * sqr(params.packetSigma)));
+    let psi1 = amp1 * cis(k * dot(dir, d1) + phaseTime);
+    let psi2 = amp2 * cis(k * dot(dir, d2) + phaseTime);
+    return (psi1 + psi2) / sqrt(2.0);
   }
-  return prog;
+
+  let d = xPx - x0;
+  let amp = exp(-dot(d, d) / (2.0 * sqr(params.packetSigma)));
+  return amp * cis(k * dot(dir, d) + phaseTime);
 }
 
-function makeTexFloat32(w, h) {
-  const t = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, t);
+@compute @workgroup_size(16, 16)
+fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
+  if (gid.x >= simW(params) || gid.y >= simH(params)) {
+    return;
+  }
 
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  let xPx = vec2<f32>(f32(gid.x), f32(gid.y));
+  let psi0 = initialPacketAtPx(xPx, 0.0);
+  let psiE = initialPacketAtPx(xPx + vec2<f32>( 1.0, 0.0), 0.0);
+  let psiW = initialPacketAtPx(xPx + vec2<f32>(-1.0, 0.0), 0.0);
+  let psiN = initialPacketAtPx(xPx + vec2<f32>(0.0,  1.0), 0.0);
+  let psiS = initialPacketAtPx(xPx + vec2<f32>(0.0, -1.0), 0.0);
+  let lap0 = psiE + psiW + psiN + psiS - 4.0 * psi0;
+  let rhs0 = schrodingerRHS(params, psi0, lap0);
+  let psiPrev = psi0 - params.dt * rhs0;
+  let state = vec4<f32>(psi0, psiPrev);
+  let idx = cellIndex(params, gid.x, gid.y);
+  waveA[idx] = state;
+  waveB[idx] = state;
+}
+`;
 
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+const waveStepWGSL = /* wgsl */`
+${commonWGSL}
 
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
-  gl.bindTexture(gl.TEXTURE_2D, null);
-  return t;
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var<storage, read> waveSrc: array<vec4<f32>>;
+@group(0) @binding(2) var<storage, read_write> waveDst: array<vec4<f32>>;
+
+fn fetchPsi(q: vec2<i32>) -> vec2<f32> {
+  let w = i32(simW(params));
+  let h = i32(simH(params));
+  if (i32(params.boundaryMode + 0.5) == 1) {
+    let x = u32(wrapI(q.x, w));
+    let y = u32(wrapI(q.y, h));
+    return waveSrc[cellIndex(params, x, y)].xy;
+  }
+  if (q.x < 0 || q.y < 0 || q.x >= w || q.y >= h) {
+    return vec2<f32>(0.0, 0.0);
+  }
+  return waveSrc[cellIndex(params, u32(q.x), u32(q.y))].xy;
 }
 
-function makeTexRGBA16F(w, h) {
-  const t = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, t);
+@compute @workgroup_size(16, 16)
+fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
+  if (gid.x >= simW(params) || gid.y >= simH(params)) {
+    return;
+  }
 
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  let p = vec2<i32>(i32(gid.x), i32(gid.y));
+  let state = waveSrc[cellIndex(params, gid.x, gid.y)];
+  let psi = state.xy;
+  let psiPrev = state.zw;
+  let psiE = fetchPsi(p + vec2<i32>( 1,  0));
+  let psiW = fetchPsi(p + vec2<i32>(-1,  0));
+  let psiN = fetchPsi(p + vec2<i32>( 0,  1));
+  let psiS = fetchPsi(p + vec2<i32>( 0, -1));
+  let lapPsi = psiE + psiW + psiN + psiS - 4.0 * psi;
+  let rhs = schrodingerRHS(params, psi, lapPsi);
+  let psiNext = psiPrev + 2.0 * params.dt * rhs;
+  waveDst[cellIndex(params, gid.x, gid.y)] = vec4<f32>(psiNext, psi);
+}
+`;
 
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+const particleUpdateWGSL = /* wgsl */`
+${commonWGSL}
 
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var<storage, read> wave: array<vec4<f32>>;
+@group(0) @binding(2) var<storage, read> particleSrc: array<vec4<f32>>;
+@group(0) @binding(3) var<storage, read_write> particleDst: array<vec4<f32>>;
 
-  gl.bindTexture(gl.TEXTURE_2D, null);
-  return t;
+fn loadPsi(x: u32, y: u32) -> vec2<f32> {
+  return wave[cellIndex(params, x, y)].xy;
 }
 
-function makeFBO(tex) {
-  const f = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, f);
-  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  if (ok !== gl.FRAMEBUFFER_COMPLETE) throw new Error("FBO incomplete: " + ok);
-  return f;
+fn samplePsiBilinear(xIn: vec2<f32>, boundaryMode: i32) -> vec2<f32> {
+  var xPx = xIn;
+  let size = params.simSize;
+  if (boundaryMode == 1) {
+    xPx = vec2<f32>(wrapF(xPx.x, size.x), wrapF(xPx.y, size.y));
+  } else {
+    xPx = clamp(xPx, vec2<f32>(0.0, 0.0), size - vec2<f32>(1.0001, 1.0001));
+  }
+
+  let x0f = floor(xPx);
+  let f = xPx - x0f;
+  let p00 = vec2<u32>(x0f);
+  var p10: vec2<u32>;
+  var p01: vec2<u32>;
+  var p11: vec2<u32>;
+
+  if (boundaryMode == 1) {
+    p10 = vec2<u32>(u32(wrapI(i32(p00.x) + 1, i32(simW(params)))), p00.y);
+    p01 = vec2<u32>(p00.x, u32(wrapI(i32(p00.y) + 1, i32(simH(params)))));
+    p11 = vec2<u32>(p10.x, p01.y);
+  } else {
+    p10 = vec2<u32>(min(p00.x + 1u, simW(params) - 1u), p00.y);
+    p01 = vec2<u32>(p00.x, min(p00.y + 1u, simH(params) - 1u));
+    p11 = vec2<u32>(p10.x, p01.y);
+  }
+
+  let a = loadPsi(p00.x, p00.y);
+  let b = loadPsi(p10.x, p10.y);
+  let c = loadPsi(p01.x, p01.y);
+  let d = loadPsi(p11.x, p11.y);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
-function u(prog, name) { return gl.getUniformLocation(prog, name); }
-
-async function loadText(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
-  return await r.text();
+fn schrodingerVelocity(psi: vec2<f32>, dpsidx: vec2<f32>, dpsidy: vec2<f32>, rhoEff: f32) -> vec2<f32> {
+  let a = psi.x;
+  let b = psi.y;
+  let jx = (params.hbar / params.mass) * (a * dpsidx.y - b * dpsidx.x);
+  let jy = (params.hbar / params.mass) * (a * dpsidy.y - b * dpsidy.x);
+  return vec2<f32>(jx, jy) / rhoEff;
 }
 
-const SH = {};
-async function loadShaders() {
-  const base = "./shaders/";
-  const files = [
-    "fullscreen.vert",
-    "wave_init.frag",
-    "wave_step.frag",
-    "wave_render.frag",
-    "particle_update.vert",
-    "particle_update.frag",
-    "particle_render.vert",
-    "particle_render.frag",
-    "particle_stamp.frag",
-    "density_step.frag",
-    "density_render.frag",
-  ];
-  await Promise.all(files.map(async (f) => { SH[f] = await loadText(base + f); }));
+fn guidingVelocity(xPx: vec2<f32>, boundaryMode: i32) -> vec2<f32> {
+  let psi = samplePsiBilinear(xPx, boundaryMode);
+  let psiE = samplePsiBilinear(xPx + vec2<f32>( 1.0,  0.0), boundaryMode);
+  let psiW = samplePsiBilinear(xPx + vec2<f32>(-1.0,  0.0), boundaryMode);
+  let psiN = samplePsiBilinear(xPx + vec2<f32>( 0.0,  1.0), boundaryMode);
+  let psiS = samplePsiBilinear(xPx + vec2<f32>( 0.0, -1.0), boundaryMode);
+  let dpsidx = 0.5 * (psiE - psiW);
+  let dpsidy = 0.5 * (psiN - psiS);
+  let rho = dot(psi, psi);
+  let rhoEff = max(rho, params.rhoMin);
+  var v = schrodingerVelocity(psi, dpsidx, dpsidy, rhoEff);
+  let sp = length(v);
+  if (sp > params.velClamp) {
+    v *= params.velClamp / sp;
+  }
+  return v;
 }
 
-let progWaveInit, progWaveStep, progWaveRender;
-let progPartUpdate, progPartView, progPartStamp;
-let progDensityStep, progDensityRender;
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
+  let i = gid.x;
+  if (i >= u32(params.nParticles)) {
+    return;
+  }
 
-let U = {};
+  let state = particleSrc[i];
+  var x = state.xy;
+  let mode = state.z;
+  if (mode < 0.5 || mode > 1.5) {
+    particleDst[i] = state;
+    return;
+  }
 
-function buildPrograms() {
-  const vsFull = compile(gl.VERTEX_SHADER, SH["fullscreen.vert"]);
+  let boundaryMode = i32(params.boundaryMode + 0.5);
+  x = applyBoundary(params, x);
+  let v1 = guidingVelocity(x, boundaryMode);
+  let xm = applyBoundary(params, x + 0.5 * params.dt * v1);
+  let v2 = guidingVelocity(xm, boundaryMode);
+  let xn = applyBoundary(params, x + params.dt * v2);
+  particleDst[i] = vec4<f32>(xn, 1.0, 0.0);
+}
+`;
 
-  progWaveInit   = link(vsFull, compile(gl.FRAGMENT_SHADER, SH["wave_init.frag"]));
-  progWaveStep   = link(vsFull, compile(gl.FRAGMENT_SHADER, SH["wave_step.frag"]));
-  progWaveRender = link(vsFull, compile(gl.FRAGMENT_SHADER, SH["wave_render.frag"]));
+const waveRenderWGSL = /* wgsl */`
+${commonWGSL}
 
-  progPartUpdate = link(
-    compile(gl.VERTEX_SHADER, SH["particle_update.vert"]),
-    compile(gl.FRAGMENT_SHADER, SH["particle_update.frag"]),
-    ["vState"]
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var<storage, read> wave: array<vec4<f32>>;
+
+fn palette(t: f32, a: vec3<f32>, b: vec3<f32>, c: vec3<f32>, d: vec3<f32>) -> vec3<f32> {
+  return a + b * cos(TAU * (c * t + d));
+}
+
+fn paletteColor(idIn: i32, t: f32) -> vec3<f32> {
+  var id = idIn;
+  if (id == 5 && params.showPhase < 0.5) {
+    id = 2;
+  }
+
+  var a: vec3<f32>;
+  var b: vec3<f32>;
+  var c = vec3<f32>(1.0, 1.0, 1.0);
+  var d: vec3<f32>;
+
+  if (id == 0) {
+    a = vec3<f32>(0.08,0.07,0.12); b = vec3<f32>(0.55,0.50,0.70); d = vec3<f32>(0.00,0.15,0.35);
+  } else if (id == 1) {
+    a = vec3<f32>(0.06,0.02,0.10); b = vec3<f32>(0.85,0.35,0.95); d = vec3<f32>(0.00,0.10,0.25);
+  } else if (id == 2) {
+    a = vec3<f32>(0.22,0.32,0.28); b = vec3<f32>(0.40,0.45,0.35); d = vec3<f32>(0.15,0.55,0.75);
+  } else if (id == 3) {
+    a = vec3<f32>(0.10,0.02,0.02); b = vec3<f32>(0.90,0.45,0.20); d = vec3<f32>(0.00,0.08,0.20);
+  } else if (id == 4) {
+    a = vec3<f32>(0.02,0.05,0.08); b = vec3<f32>(0.40,0.70,0.85); d = vec3<f32>(0.10,0.30,0.55);
+  } else if (id == 5) {
+    a = vec3<f32>(0.10,0.02,0.12); b = vec3<f32>(0.75,0.15,0.90); d = vec3<f32>(0.00,0.10,0.30);
+  } else if (id == 6) {
+    a = vec3<f32>(0.05,0.15,0.15); b = vec3<f32>(0.20,0.80,0.60); d = vec3<f32>(0.10,0.40,0.20);
+  } else if (id == 7) {
+    a = vec3<f32>(0.15,0.05,0.00); b = vec3<f32>(0.95,0.50,0.10); d = vec3<f32>(0.00,0.05,0.15);
+  } else if (id == 8) {
+    a = vec3<f32>(0.20,0.15,0.10); b = vec3<f32>(0.60,0.50,0.30); d = vec3<f32>(0.10,0.30,0.25);
+  } else if (id == 9) {
+    a = vec3<f32>(0.02,0.02,0.02); b = vec3<f32>(0.00,0.80,0.80); d = vec3<f32>(0.90,0.10,0.90);
+  } else {
+    a = vec3<f32>(0.75,0.70,0.80); b = vec3<f32>(0.60,0.85,0.70); d = vec3<f32>(0.10,0.20,0.30);
+  }
+
+  return palette(t, a, b, c, d);
+}
+
+@fragment
+fn fs(in: FullscreenOut) -> @location(0) vec4<f32> {
+  let qView = params.viewCenter + (in.uv - vec2<f32>(0.5, 0.5)) / params.viewScale;
+  if (qView.x < 0.0 || qView.y < 0.0 || qView.x >= 1.0 || qView.y >= 1.0) {
+    return vec4<f32>(0.0, 0.0, 0.0, 1.0);
+  }
+  let q = clamp(qView, vec2<f32>(0.0, 0.0), vec2<f32>(0.999999, 0.999999));
+  let coord = vec2<u32>(q * params.simSize);
+  let psi = wave[cellIndex(params, coord.x, coord.y)].xy;
+  let rho = dot(psi, psi);
+  var intensity = 1.0 - exp(-params.visGain * rho);
+  intensity = pow(clamp(intensity, 0.0, 1.0), params.visGamma);
+
+  var col: vec3<f32>;
+  if (params.showPhase > 0.5) {
+    let ph = atan2(psi.y, psi.x);
+    let t = fract((ph + PI) / TAU);
+    col = paletteColor(i32(params.paletteId + 0.5), t) * intensity;
+  } else {
+    col = paletteColor(i32(params.paletteId + 0.5), intensity) * intensity;
+  }
+
+  return vec4<f32>(col, 1.0);
+}
+`;
+
+const particleRenderWGSL = /* wgsl */`
+${commonWGSL}
+
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var<storage, read> particles: array<vec4<f32>>;
+
+struct ParticleOut {
+  @builtin(position) pos: vec4<f32>,
+  @location(0) local: vec2<f32>,
+  @location(1) alive: f32,
+}
+
+@vertex
+fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> ParticleOut {
+  var corners = array<vec2<f32>, 6>(
+    vec2<f32>(-1.0, -1.0),
+    vec2<f32>( 1.0, -1.0),
+    vec2<f32>(-1.0,  1.0),
+    vec2<f32>(-1.0,  1.0),
+    vec2<f32>( 1.0, -1.0),
+    vec2<f32>( 1.0,  1.0)
   );
-  progPartView = link(
-    compile(gl.VERTEX_SHADER, SH["particle_render.vert"]),
-    compile(gl.FRAGMENT_SHADER, SH["particle_render.frag"])
-  );
-  progPartStamp = link(
-    compile(gl.VERTEX_SHADER, SH["particle_render.vert"]),
-    compile(gl.FRAGMENT_SHADER, SH["particle_stamp.frag"])
-  );
 
-  progDensityStep = link(vsFull, compile(gl.FRAGMENT_SHADER, SH["density_step.frag"]));
-  progDensityRender = link(vsFull, compile(gl.FRAGMENT_SHADER, SH["density_render.frag"]));
+  let local = corners[vertexIndex];
+  let state = particles[instanceIndex];
+  let simUv = state.xy / params.simSize;
+  let screenUv = (simUv - params.viewCenter) * params.viewScale + vec2<f32>(0.5, 0.5);
+  var ndc = vec2<f32>(screenUv.x * 2.0 - 1.0, 1.0 - screenUv.y * 2.0);
+  let pixelOffset = local * params.dotSize * 0.5;
+  ndc += vec2<f32>(2.0 * pixelOffset.x / params.canvasSize.x, -2.0 * pixelOffset.y / params.canvasSize.y);
 
-  U.waveInit = {
-    uSimRes: u(progWaveInit, "uSimRes"),
-    uHBAR: u(progWaveInit, "uHBAR"),
-    uMass: u(progWaveInit, "uMass"),
-    uP0: u(progWaveInit, "uP0"),
-    uDT: u(progWaveInit, "uDT"),
-    uPacketPosFrac: u(progWaveInit, "uPacketPosFrac"),
-    uPacketSigmaPx: u(progWaveInit, "uPacketSigmaPx"),
-    uDoubleGaussian: u(progWaveInit, "uDoubleGaussian"),
-    uGaussianSeparation: u(progWaveInit, "uGaussianSeparation"),
-  };
-
-  U.waveStep = {
-    uState: u(progWaveStep, "uState"),
-    uSimRes: u(progWaveStep, "uSimRes"),
-    uHBAR: u(progWaveStep, "uHBAR"),
-    uMass: u(progWaveStep, "uMass"),
-    uDT: u(progWaveStep, "uDT"),
-    uBoundaryMode: u(progWaveStep, "uBoundaryMode"),
-  };
-
-  U.waveRender = {
-    uState: u(progWaveRender, "uState"),
-    uSimRes: u(progWaveRender, "uSimRes"),
-    uVisGain: u(progWaveRender, "uVisGain"),
-    uVisGamma: u(progWaveRender, "uVisGamma"),
-    uShowPhase: u(progWaveRender, "uShowPhase"),
-    uPaletteId: u(progWaveRender, "uPaletteId"),
-  };
-
-  U.partUpdate = {
-    uState: u(progPartUpdate, "uState"),
-    uSimRes: u(progPartUpdate, "uSimRes"),
-    uHBAR: u(progPartUpdate, "uHBAR"),
-    uMass: u(progPartUpdate, "uMass"),
-    uDT: u(progPartUpdate, "uDT"),
-    uRhoMin: u(progPartUpdate, "uRhoMin"),
-    uVelClamp: u(progPartUpdate, "uVelClamp"),
-    uBoundaryMode: u(progPartUpdate, "uBoundaryMode"),
-  };
-
-  U.partView = {
-    uSimRes: u(progPartView, "uSimRes"),
-    uPointSize: u(progPartView, "uPointSize"),
-    uDotSigma: u(progPartView, "uDotSigma"),
-    uDotGain: u(progPartView, "uDotGain"),
-  };
-
-  U.partStamp = {
-    uSimRes: u(progPartStamp, "uSimRes"),
-    uPointSize: u(progPartStamp, "uPointSize"),
-    uDotSigma: u(progPartStamp, "uDotSigma"),
-    uDotGain: u(progPartStamp, "uDotGain"),
-    uStampGain: u(progPartStamp, "uStampGain"),
-    uNumParticles: u(progPartStamp, "uNumParticles"),
-    uTrailWidth: u(progPartStamp, "uTrailWidth"),
-  };
-
-  U.densityStep = {
-    uPrev: u(progDensityStep, "uPrev"),
-    uFade: u(progDensityStep, "uFade"),
-  };
-
-  U.densityRender = {
-    uDensity: u(progDensityRender, "uDensity"),
-    uGain: u(progDensityRender, "uGain"),
-    uGamma: u(progDensityRender, "uGamma"),
-    uBlendMode: u(progDensityRender, "uBlendMode"),
-  };
+  var out: ParticleOut;
+  out.pos = vec4<f32>(ndc, 0.0, 1.0);
+  out.local = local;
+  out.alive = state.z;
+  return out;
 }
 
-const vaoEmpty = gl.createVertexArray();
+fn particleColor() -> vec3<f32> {
+  let a = vec3<f32>(0.08, 0.06, 0.02);
+  let b = vec3<f32>(1.00, 0.90, 0.40);
+  let d = vec3<f32>(0.08, 0.18, 0.28);
+  return max(a + b * cos(TAU * (vec3<f32>(0.85, 0.85, 0.85) + d)), vec3<f32>(0.0, 0.0, 0.0));
+}
 
-let simW = 0, simH = 0;
-let texA = null, texB = null, fboA = null, fboB = null, flip = 0;
+@fragment
+fn fs(in: ParticleOut) -> @location(0) vec4<f32> {
+  if (in.alive < 0.5) {
+    discard;
+  }
+  let r2 = dot(in.local, in.local);
+  if (r2 > 1.0) {
+    discard;
+  }
 
-let particleSrc = null, particleDst = null, vaoParticles = null, tf = null;
+  let particleCol = particleColor();
+  let softness = clamp(params.dotSigma, 0.08, 0.65);
+  let halo = exp(-r2 / softness) * (1.0 - smoothstep(0.72, 1.0, r2));
+  let body = 1.0 - smoothstep(0.16, 0.72, r2);
+  let core = 1.0 - smoothstep(0.0, 0.13, r2);
 
-let densW = 0, densH = 0;
-let densTexA = null, densTexB = null, densFboA = null, densFboB = null, densFlip = 0;
+  var col = mix(particleCol * 0.72, particleCol * 1.18, body);
+  col = mix(col, vec3<f32>(1.0, 0.98, 0.88), core * 0.92);
+
+  var alpha = params.dotGain * (11.72 * halo + 0.78 * body + 0.28 * core);
+  alpha = clamp(alpha, 0.0, 0.92);
+  return vec4<f32>(col, alpha);
+}
+`;
+
+const trailFadeWGSL = /* wgsl */`
+${commonWGSL}
+
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var trailSrc: texture_2d<f32>;
+
+@fragment
+fn fs(in: FullscreenOut) -> @location(0) vec4<f32> {
+  let q = clamp(in.uv, vec2<f32>(0.0, 0.0), vec2<f32>(0.999999, 0.999999));
+  let coord = vec2<i32>(q * params.canvasSize);
+  let prev = max(textureLoad(trailSrc, coord, 0), vec4<f32>(0.0, 0.0, 0.0, 0.0));
+  return prev * params.trailFade;
+}
+`;
+
+const particleStampWGSL = /* wgsl */`
+${commonWGSL}
+
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var<storage, read> particles: array<vec4<f32>>;
+
+struct ParticleOut {
+  @builtin(position) pos: vec4<f32>,
+  @location(0) local: vec2<f32>,
+  @location(1) alive: f32,
+}
+
+@vertex
+fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> ParticleOut {
+  var corners = array<vec2<f32>, 6>(
+    vec2<f32>(-1.0, -1.0),
+    vec2<f32>( 1.0, -1.0),
+    vec2<f32>(-1.0,  1.0),
+    vec2<f32>(-1.0,  1.0),
+    vec2<f32>( 1.0, -1.0),
+    vec2<f32>( 1.0,  1.0)
+  );
+
+  let local = corners[vertexIndex];
+  let state = particles[instanceIndex];
+  let simUv = state.xy / params.simSize;
+  let screenUv = (simUv - params.viewCenter) * params.viewScale + vec2<f32>(0.5, 0.5);
+  let canvasPos = screenUv * params.canvasSize;
+  let pixelOffset = local * params.trailWidth * 0.5;
+  let stamped = canvasPos + pixelOffset;
+  var ndc = vec2<f32>(
+    stamped.x / params.canvasSize.x * 2.0 - 1.0,
+    1.0 - stamped.y / params.canvasSize.y * 2.0
+  );
+
+  var out: ParticleOut;
+  out.pos = vec4<f32>(ndc, 0.0, 1.0);
+  out.local = local;
+  out.alive = state.z;
+  return out;
+}
+
+@fragment
+fn fs(in: ParticleOut) -> @location(0) vec4<f32> {
+  if (in.alive < 0.5) {
+    discard;
+  }
+  let r = length(in.local);
+  if (r > 1.0) {
+    discard;
+  }
+
+  let edge = smoothstep(1.0, 0.84, r);
+  let s = max(params.dotSigma, 1e-4);
+  let blur = exp(-(r * r) / s);
+  let alpha = clamp(params.dotGain * params.stampGain * blur * edge, 0.0, 1.0);
+  return vec4<f32>(1.0, 1.0, 0.0, alpha);
+}
+`;
+
+const trailRenderWGSL = /* wgsl */`
+${commonWGSL}
+
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var trailTex: texture_2d<f32>;
+
+@fragment
+fn fs(in: FullscreenOut) -> @location(0) vec4<f32> {
+  let q = clamp(in.uv, vec2<f32>(0.0, 0.0), vec2<f32>(0.999999, 0.999999));
+  let coord = vec2<i32>(q * params.canvasSize);
+  let dacc = max(textureLoad(trailTex, coord, 0), vec4<f32>(0.0, 0.0, 0.0, 0.0));
+  let density = max(max(dacc.r, dacc.g), dacc.b);
+  let exposure = params.trailGain * density;
+  var value = 1.0 - exp(-exposure);
+  value = pow(clamp(value, 0.0, 1.0), params.trailGamma);
+
+  var col = vec3<f32>(1.0, 1.0, 0.0);
+  let crowded = smoothstep(1.0, 3.0, exposure);
+  let oversaturated = smoothstep(3.0, 5.0, exposure);
+  col = mix(col, vec3<f32>(1.0, 0.55, 0.08), 0.45 * crowded);
+  col = mix(col, vec3<f32>(1.0, 0.35, 0.62), 0.30 * oversaturated);
+  return vec4<f32>(col, value);
+}
+`;
+
+function createShaderModule(label, code) {
+  return device.createShaderModule({ label, code });
+}
+
+const waveInitPipeline = device.createComputePipeline({
+  label: "wave init",
+  layout: "auto",
+  compute: { module: createShaderModule("wave init wgsl", waveInitWGSL), entryPoint: "main" },
+});
+
+const waveStepPipeline = device.createComputePipeline({
+  label: "wave step",
+  layout: "auto",
+  compute: { module: createShaderModule("wave step wgsl", waveStepWGSL), entryPoint: "main" },
+});
+
+const particleUpdatePipeline = device.createComputePipeline({
+  label: "particle update",
+  layout: "auto",
+  compute: { module: createShaderModule("particle update wgsl", particleUpdateWGSL), entryPoint: "main" },
+});
+
+const waveRenderPipeline = device.createRenderPipeline({
+  label: "wave render",
+  layout: "auto",
+  vertex: { module: createShaderModule("wave render wgsl", waveRenderWGSL), entryPoint: "fullscreenVS" },
+  fragment: {
+    module: createShaderModule("wave render wgsl fragment", waveRenderWGSL),
+    entryPoint: "fs",
+    targets: [{ format: presentationFormat }],
+  },
+  primitive: { topology: "triangle-list" },
+});
+
+const particleRenderPipeline = device.createRenderPipeline({
+  label: "particle render",
+  layout: "auto",
+  vertex: { module: createShaderModule("particle render wgsl", particleRenderWGSL), entryPoint: "vs" },
+  fragment: {
+    module: createShaderModule("particle render wgsl fragment", particleRenderWGSL),
+    entryPoint: "fs",
+    targets: [{
+      format: presentationFormat,
+      blend: {
+        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+        alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
+      },
+    }],
+  },
+  primitive: { topology: "triangle-list" },
+});
+
+const trailFadePipeline = device.createRenderPipeline({
+  label: "trail fade",
+  layout: "auto",
+  vertex: { module: createShaderModule("trail fade wgsl", trailFadeWGSL), entryPoint: "fullscreenVS" },
+  fragment: {
+    module: createShaderModule("trail fade wgsl fragment", trailFadeWGSL),
+    entryPoint: "fs",
+    targets: [{ format: trailFormat }],
+  },
+  primitive: { topology: "triangle-list" },
+});
+
+const particleStampPipeline = device.createRenderPipeline({
+  label: "particle stamp",
+  layout: "auto",
+  vertex: { module: createShaderModule("particle stamp wgsl", particleStampWGSL), entryPoint: "vs" },
+  fragment: {
+    module: createShaderModule("particle stamp wgsl fragment", particleStampWGSL),
+    entryPoint: "fs",
+    targets: [{
+      format: trailFormat,
+      blend: {
+        color: { srcFactor: "src-alpha", dstFactor: "one", operation: "add" },
+        alpha: { srcFactor: "one", dstFactor: "one", operation: "add" },
+      },
+    }],
+  },
+  primitive: { topology: "triangle-list" },
+});
+
+const trailRenderPipeline = device.createRenderPipeline({
+  label: "trail render",
+  layout: "auto",
+  vertex: { module: createShaderModule("trail render wgsl", trailRenderWGSL), entryPoint: "fullscreenVS" },
+  fragment: {
+    module: createShaderModule("trail render wgsl fragment", trailRenderWGSL),
+    entryPoint: "fs",
+    targets: [{
+      format: presentationFormat,
+      blend: {
+        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+        alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
+      },
+    }],
+  },
+  primitive: { topology: "triangle-list" },
+});
+
+let waveInitBindGroup = null;
+let waveStepBindGroups = [];
+let waveRenderBindGroups = [];
+let particleUpdateBindGroups = [];
+let particleRenderBindGroups = [];
+let particleStampBindGroups = [];
+let trailFadeBindGroups = [];
+let trailRenderBindGroups = [];
 
 function resizeCanvas() {
   const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  const w = Math.floor(canvas.clientWidth * dpr);
-  const h = Math.floor(canvas.clientHeight * dpr);
-  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+  const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+  const changed = canvas.width !== w || canvas.height !== h;
+  if (changed) {
+    canvas.width = w;
+    canvas.height = h;
+    context.configure({
+      device,
+      format: presentationFormat,
+      alphaMode: "opaque",
+    });
+  }
+  return changed;
 }
 
-function setWaveInitUniforms() {
-  gl.uniform2i(U.waveInit.uSimRes, simW, simH);
-  gl.uniform1f(U.waveInit.uHBAR, params.hbar);
-  gl.uniform1f(U.waveInit.uMass, params.mass);
-  gl.uniform1f(U.waveInit.uP0, params.p0);
-  gl.uniform1f(U.waveInit.uDT, params.dt);
-
-  gl.uniform2f(U.waveInit.uPacketPosFrac, params.packetX, params.packetY);
-  gl.uniform1f(U.waveInit.uPacketSigmaPx, params.packetSigma);
-  gl.uniform1i(U.waveInit.uDoubleGaussian, params.doubleGaussian | 0);
-  gl.uniform1f(U.waveInit.uGaussianSeparation, params.gaussianSeparation);
+function maxCellsForWaveBuffer() {
+  const maxStorageBytes = device.limits.maxStorageBufferBindingSize || (128 * 1024 * 1024);
+  return Math.max(4096, Math.floor(maxStorageBytes / 16) - 1024);
 }
 
-function setWaveStepUniforms(srcTex) {
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, srcTex);
-  gl.uniform1i(U.waveStep.uState, 0);
+function computeSimulationSize() {
+  const maxDim = device.limits.maxTextureDimension2D || 8192;
+  let w = Math.max(64, Math.floor(canvas.width * params.simScale));
+  let h = Math.max(64, Math.floor(canvas.height * params.simScale));
 
-  gl.uniform2i(U.waveStep.uSimRes, simW, simH);
-  gl.uniform1f(U.waveStep.uHBAR, params.hbar);
-  gl.uniform1f(U.waveStep.uMass, params.mass);
-  gl.uniform1f(U.waveStep.uDT, params.dt);
-  gl.uniform1i(U.waveStep.uBoundaryMode, params.boundaryMode | 0);
+  const dimScale = Math.min(1, maxDim / Math.max(w, h));
+  w = Math.max(64, Math.floor(w * dimScale));
+  h = Math.max(64, Math.floor(h * dimScale));
+
+  const maxCells = maxCellsForWaveBuffer();
+  const cells = w * h;
+  if (cells > maxCells) {
+    const s = Math.sqrt(maxCells / cells);
+    w = Math.max(64, Math.floor(w * s));
+    h = Math.max(64, Math.floor(h * s));
+  }
+
+  return { w, h };
 }
 
-function resetWave() {
-  gl.bindVertexArray(vaoEmpty);
-  gl.viewport(0, 0, simW, simH);
-
-  gl.useProgram(progWaveInit);
-  setWaveInitUniforms();
-
-  gl.bindFramebuffer(gl.FRAMEBUFFER, fboA);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-  gl.bindFramebuffer(gl.FRAMEBUFFER, fboB);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  flip = 0;
+function createStorageBuffer(label, byteLength, data = null) {
+  const buffer = device.createBuffer({
+    label,
+    size: Math.max(4, byteLength),
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+  if (data) {
+    device.queue.writeBuffer(buffer, 0, data);
+  }
+  return buffer;
 }
 
-function waveStep() {
-  const src = flip ? texB : texA;
-  const dst = flip ? fboA : fboB;
+function destroyBuffer(buffer) {
+  if (buffer) buffer.destroy();
+}
 
-  gl.useProgram(progWaveStep);
-  setWaveStepUniforms(src);
+function destroyTexture(texture) {
+  if (texture) texture.destroy();
+}
 
-  gl.bindVertexArray(vaoEmpty);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, dst);
-  gl.viewport(0, 0, simW, simH);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+function updateUniforms() {
+  const steps = Math.floor(params.stepsPerFrame);
+  const fade = fadeFromHalfLife(params.trailHalfLife, params.dt * steps);
 
-  flip = 1 - flip;
+  paramsArray[0] = simW;
+  paramsArray[1] = simH;
+  paramsArray[2] = canvas.width;
+  paramsArray[3] = canvas.height;
+  paramsArray[4] = params.hbar;
+  paramsArray[5] = params.mass;
+  paramsArray[6] = params.p0;
+  paramsArray[7] = params.dt;
+  paramsArray[8] = params.packetX;
+  paramsArray[9] = params.packetY;
+  paramsArray[10] = params.packetSigma;
+  paramsArray[11] = params.gaussianSeparation;
+  paramsArray[12] = params.doubleGaussian;
+  paramsArray[13] = params.boundaryMode;
+  paramsArray[14] = Math.floor(params.nParticles);
+  paramsArray[15] = params.rhoMin;
+  paramsArray[16] = params.velClamp;
+  paramsArray[17] = params.visGain;
+  paramsArray[18] = params.visGamma;
+  paramsArray[19] = params.showPhase;
+  paramsArray[20] = params.dotSize;
+  paramsArray[21] = params.dotSigma;
+  paramsArray[22] = params.dotGain;
+  paramsArray[23] = params.trailStampGain;
+  paramsArray[24] = params.trailWidth;
+  paramsArray[25] = fade;
+  paramsArray[26] = params.trailVisGain;
+  paramsArray[27] = params.trailVisGamma;
+  paramsArray[28] = params.trailBlendMode;
+  paramsArray[29] = params.paletteId;
+  paramsArray[30] = 0;
+  paramsArray[31] = 0;
+  paramsArray[32] = viewState.centerX;
+  paramsArray[33] = viewState.centerY;
+  const angleRad = params.velocityAngleDeg * Math.PI / 180;
+  paramsArray[34] = Math.cos(angleRad);
+  paramsArray[35] = -Math.sin(angleRad);
+  paramsArray[36] = viewState.zoom;
+  paramsArray[37] = 0;
+  paramsArray[38] = 0;
+  paramsArray[39] = 0;
+  device.queue.writeBuffer(uniformBuffer, 0, paramsArray);
 }
 
 function randn() {
@@ -706,37 +1242,29 @@ function randn() {
 }
 
 function rebuildParticles() {
+  destroyBuffer(particleBuffers[0]);
+  destroyBuffer(particleBuffers[1]);
+
   const n = Math.floor(params.nParticles);
-
-  if (particleSrc) gl.deleteBuffer(particleSrc);
-  if (particleDst) gl.deleteBuffer(particleDst);
-  if (vaoParticles) gl.deleteVertexArray(vaoParticles);
-  if (tf) gl.deleteTransformFeedback(tf);
-
-  particleSrc = gl.createBuffer();
-  particleDst = gl.createBuffer();
-
   const data = new Float32Array(n * 4);
-
   const sigma1D = params.packetSigma / Math.sqrt(2);
   const x0 = params.packetX * simW;
   const y0 = params.packetY * simH;
 
   for (let i = 0; i < n; i++) {
-    let x, y;
-    
+    let x;
+    let y;
+
     if (params.doubleGaussian) {
-      // Randomly choose which gaussian to sample from (50/50)
       const useFirst = Math.random() < 0.5;
-      const sep = params.gaussianSeparation / 2; // offset amount
-      
+      const sep = params.gaussianSeparation / 2;
       x = x0 + randn() * sigma1D;
       y = y0 + randn() * sigma1D + (useFirst ? -sep : sep);
     } else {
       x = x0 + randn() * sigma1D;
       y = y0 + randn() * sigma1D;
     }
-    
+
     x = Math.max(0, Math.min(simW - 1, x));
     y = Math.max(0, Math.min(simH - 1, y));
     data[i * 4 + 0] = x;
@@ -745,282 +1273,300 @@ function rebuildParticles() {
     data[i * 4 + 3] = 0.0;
   }
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, particleSrc);
-  gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, particleDst);
-  gl.bufferData(gl.ARRAY_BUFFER, data.byteLength, gl.DYNAMIC_DRAW);
-
-  vaoParticles = gl.createVertexArray();
-  gl.bindVertexArray(vaoParticles);
-  gl.bindBuffer(gl.ARRAY_BUFFER, particleSrc);
-  gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
-  gl.bindVertexArray(null);
-
-  tf = gl.createTransformFeedback();
+  particleBuffers = [
+    createStorageBuffer("particle A", data.byteLength, data),
+    createStorageBuffer("particle B", data.byteLength, data),
+  ];
+  particleFlip = 0;
+  rebuildBindGroups();
 }
 
-function particleUpdate() {
-  const n = Math.floor(params.nParticles);
-  const waveTex = flip ? texB : texA;
-
-  gl.useProgram(progPartUpdate);
-
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, waveTex);
-  gl.uniform1i(U.partUpdate.uState, 0);
-
-  gl.uniform2i(U.partUpdate.uSimRes, simW, simH);
-  gl.uniform1f(U.partUpdate.uHBAR, params.hbar);
-  gl.uniform1f(U.partUpdate.uMass, params.mass);
-  gl.uniform1f(U.partUpdate.uDT, params.dt);
-
-  gl.uniform1f(U.partUpdate.uRhoMin, params.rhoMin);
-  gl.uniform1f(U.partUpdate.uVelClamp, params.velClamp);
-  gl.uniform1i(U.partUpdate.uBoundaryMode, params.boundaryMode | 0);
-
-  gl.bindVertexArray(vaoParticles);
-
-  gl.enable(gl.RASTERIZER_DISCARD);
-  gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
-  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, particleDst);
-
-  gl.beginTransformFeedback(gl.POINTS);
-  gl.drawArrays(gl.POINTS, 0, n);
-  gl.endTransformFeedback();
-
-  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
-  gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
-  gl.disable(gl.RASTERIZER_DISCARD);
-
-  [particleSrc, particleDst] = [particleDst, particleSrc];
-  gl.bindBuffer(gl.ARRAY_BUFFER, particleSrc);
-  gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
-  gl.bindVertexArray(null);
+function createTrailTexture(label) {
+  return device.createTexture({
+    label,
+    size: [canvas.width, canvas.height],
+    format: trailFormat,
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
 }
 
-const LN2 = Math.log(2);
+function rebuildTrailTextures() {
+  destroyTexture(trailTextures[0]);
+  destroyTexture(trailTextures[1]);
+  trailTextures = [createTrailTexture("trail A"), createTrailTexture("trail B")];
+  trailFlip = 0;
+  rebuildBindGroups();
+  clearTrails();
+}
+
+function rebuildWaveBuffers() {
+  destroyBuffer(waveBuffers[0]);
+  destroyBuffer(waveBuffers[1]);
+
+  const waveByteLength = simW * simH * 4 * 4;
+  waveBuffers = [
+    createStorageBuffer("wave A", waveByteLength),
+    createStorageBuffer("wave B", waveByteLength),
+  ];
+  waveFlip = 0;
+}
+
+function rebuildBindGroups() {
+  if (!waveBuffers[0] || !waveBuffers[1] || !particleBuffers[0] || !particleBuffers[1] || !trailTextures[0] || !trailTextures[1]) {
+    bindGroupsReady = false;
+    return;
+  }
+
+  waveInitBindGroup = device.createBindGroup({
+    label: "wave init bind group",
+    layout: waveInitPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: { buffer: waveBuffers[0] } },
+      { binding: 2, resource: { buffer: waveBuffers[1] } },
+    ],
+  });
+
+  waveStepBindGroups = [0, 1].map((src) => device.createBindGroup({
+    label: `wave step ${src}`,
+    layout: waveStepPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: { buffer: waveBuffers[src] } },
+      { binding: 2, resource: { buffer: waveBuffers[1 - src] } },
+    ],
+  }));
+
+  waveRenderBindGroups = [0, 1].map((src) => device.createBindGroup({
+    label: `wave render ${src}`,
+    layout: waveRenderPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: { buffer: waveBuffers[src] } },
+    ],
+  }));
+
+  particleUpdateBindGroups = [0, 1].map((waveIndex) => [0, 1].map((particleIndex) => device.createBindGroup({
+    label: `particle update wave ${waveIndex} particle ${particleIndex}`,
+    layout: particleUpdatePipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: { buffer: waveBuffers[waveIndex] } },
+      { binding: 2, resource: { buffer: particleBuffers[particleIndex] } },
+      { binding: 3, resource: { buffer: particleBuffers[1 - particleIndex] } },
+    ],
+  })));
+
+  particleRenderBindGroups = [0, 1].map((particleIndex) => device.createBindGroup({
+    label: `particle render ${particleIndex}`,
+    layout: particleRenderPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: { buffer: particleBuffers[particleIndex] } },
+    ],
+  }));
+
+  particleStampBindGroups = [0, 1].map((particleIndex) => device.createBindGroup({
+    label: `particle stamp ${particleIndex}`,
+    layout: particleStampPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: { buffer: particleBuffers[particleIndex] } },
+    ],
+  }));
+
+  trailFadeBindGroups = [0, 1].map((src) => device.createBindGroup({
+    label: `trail fade ${src}`,
+    layout: trailFadePipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: trailTextures[src].createView() },
+    ],
+  }));
+
+  trailRenderBindGroups = [0, 1].map((src) => device.createBindGroup({
+    label: `trail render ${src}`,
+    layout: trailRenderPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: trailTextures[src].createView() },
+    ],
+  }));
+
+  bindGroupsReady = true;
+}
+
+function resetWave() {
+  if (!bindGroupsReady) return;
+  updateUniforms();
+  const encoder = device.createCommandEncoder({ label: "reset wave encoder" });
+  const pass = encoder.beginComputePass({ label: "reset wave pass" });
+  pass.setPipeline(waveInitPipeline);
+  pass.setBindGroup(0, waveInitBindGroup);
+  pass.dispatchWorkgroups(Math.ceil(simW / 16), Math.ceil(simH / 16));
+  pass.end();
+  waveFlip = 0;
+  device.queue.submit([encoder.finish()]);
+}
+
+function clearTrails() {
+  if (!trailTextures[0] || !trailTextures[1]) return;
+  const encoder = device.createCommandEncoder({ label: "clear trails encoder" });
+  for (const texture of trailTextures) {
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [{
+        view: texture.createView(),
+        loadOp: "clear",
+        clearValue: { r: 0, g: 0, b: 0, a: 0 },
+        storeOp: "store",
+      }],
+    });
+    pass.end();
+  }
+  trailFlip = 0;
+  device.queue.submit([encoder.finish()]);
+}
+
 function fadeFromHalfLife(halfLife, dtTotal) {
   if (halfLife <= 0) return 0.0;
-  return Math.exp(-LN2 * (dtTotal / halfLife));
+  return Math.exp(-Math.log(2) * (dtTotal / halfLife));
 }
 
-function rebuildDensity() {
-  if (densTexA) gl.deleteTexture(densTexA);
-  if (densTexB) gl.deleteTexture(densTexB);
-  if (densFboA) gl.deleteFramebuffer(densFboA);
-  if (densFboB) gl.deleteFramebuffer(densFboB);
+function stepSimulation(encoder) {
+  const steps = Math.floor(params.stepsPerFrame);
+  const n = Math.floor(params.nParticles);
+  const pass = encoder.beginComputePass({ label: "simulation step" });
 
-  densW = canvas.width;
-  densH = canvas.height;
+  for (let i = 0; i < steps; i++) {
+    pass.setPipeline(waveStepPipeline);
+    pass.setBindGroup(0, waveStepBindGroups[waveFlip]);
+    pass.dispatchWorkgroups(Math.ceil(simW / 16), Math.ceil(simH / 16));
+    waveFlip = 1 - waveFlip;
 
-  densTexA = makeTexRGBA16F(densW, densH);
-  densTexB = makeTexRGBA16F(densW, densH);
-  densFboA = makeFBO(densTexA);
-  densFboB = makeFBO(densTexB);
-  densFlip = 0;
+    pass.setPipeline(particleUpdatePipeline);
+    pass.setBindGroup(0, particleUpdateBindGroups[waveFlip][particleFlip]);
+    pass.dispatchWorkgroups(Math.ceil(n / 64));
+    particleFlip = 1 - particleFlip;
+  }
 
-  clearDensity();
+  pass.end();
 }
 
-function clearDensity() {
-  gl.bindFramebuffer(gl.FRAMEBUFFER, densFboA);
-  gl.viewport(0, 0, densW, densH);
-  gl.clearColor(0, 0, 0, 0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+function stepTrails(encoder) {
+  const n = Math.floor(params.nParticles);
+  const src = trailFlip;
+  const dst = 1 - trailFlip;
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, densFboB);
-  gl.viewport(0, 0, densW, densH);
-  gl.clearColor(0, 0, 0, 0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+  let pass = encoder.beginRenderPass({
+    label: "trail fade",
+    colorAttachments: [{
+      view: trailTextures[dst].createView(),
+      loadOp: "clear",
+      clearValue: { r: 0, g: 0, b: 0, a: 0 },
+      storeOp: "store",
+    }],
+  });
+  pass.setPipeline(trailFadePipeline);
+  pass.setBindGroup(0, trailFadeBindGroups[src]);
+  pass.draw(3);
+  pass.end();
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  densFlip = 0;
+  pass = encoder.beginRenderPass({
+    label: "trail stamp",
+    colorAttachments: [{
+      view: trailTextures[dst].createView(),
+      loadOp: "load",
+      storeOp: "store",
+    }],
+  });
+  pass.setPipeline(particleStampPipeline);
+  pass.setBindGroup(0, particleStampBindGroups[particleFlip]);
+  pass.draw(6, n);
+  pass.end();
+
+  trailFlip = dst;
 }
 
-function densityStepAndStamp() {
-  const dtTotal = params.dt * Math.floor(params.stepsPerFrame);
+function render(encoder) {
+  const n = Math.floor(params.nParticles);
+  const view = context.getCurrentTexture().createView();
+  const pass = encoder.beginRenderPass({
+    label: "main render",
+    colorAttachments: [{
+      view,
+      loadOp: "clear",
+      clearValue: { r: 0, g: 0, b: 0, a: 1 },
+      storeOp: "store",
+    }],
+  });
 
-  const src = densFlip ? densTexB : densTexA;
-  const dstFbo = densFlip ? densFboA : densFboB;
-
-  const fade = fadeFromHalfLife(params.trailHalfLife, dtTotal);
-
-  gl.useProgram(progDensityStep);
-  gl.bindVertexArray(vaoEmpty);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, dstFbo);
-  gl.viewport(0, 0, densW, densH);
-
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, src);
-  gl.uniform1i(U.densityStep.uPrev, 0);
-  gl.uniform1f(U.densityStep.uFade, fade);
-
-  gl.disable(gl.BLEND);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-  gl.colorMask(true, false, false, false);
-
-  gl.useProgram(progPartStamp);
-  gl.bindVertexArray(vaoParticles);
-
-  gl.uniform2i(U.partStamp.uSimRes, simW, simH);
-  gl.uniform1f(U.partStamp.uPointSize, params.dotSize);
-  gl.uniform1f(U.partStamp.uDotSigma, params.dotSigma);
-  gl.uniform1f(U.partStamp.uDotGain, params.dotGain);
-  gl.uniform1f(U.partStamp.uStampGain, params.trailStampGain);
-  gl.uniform1i(U.partStamp.uNumParticles, params.nParticles);
-  gl.uniform1f(U.partStamp.uTrailWidth, params.trailWidth);
-
-  gl.drawArrays(gl.POINTS, 0, Math.floor(params.nParticles));
-
-  gl.colorMask(true, true, true, true);
-  gl.disable(gl.BLEND);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  gl.bindVertexArray(null);
-
-  densFlip = 1 - densFlip;
-}
-
-function render() {
-  const waveTex = flip ? texB : texA;
-  const densTex = densFlip ? densTexB : densTexA;
-
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  gl.viewport(0, 0, canvas.width, canvas.height);
-
-  gl.disable(gl.BLEND);
-  gl.clearColor(0, 0, 0, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-
-  gl.useProgram(progWaveRender);
-  gl.bindVertexArray(vaoEmpty);
-
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, waveTex);
-  gl.uniform1i(U.waveRender.uState, 0);
-
-  gl.uniform2i(U.waveRender.uSimRes, simW, simH);
-  gl.uniform1f(U.waveRender.uVisGain, params.visGain);
-  gl.uniform1f(U.waveRender.uVisGamma, params.visGamma);
-  gl.uniform1f(U.waveRender.uShowPhase, params.showPhase);
-
-  gl.uniform1i(U.waveRender.uPaletteId, params.paletteId | 0);
-
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  pass.setPipeline(waveRenderPipeline);
+  pass.setBindGroup(0, waveRenderBindGroups[waveFlip]);
+  pass.draw(3);
 
   if (params.showTrail) {
-    gl.enable(gl.BLEND);
-
-    if (params.trailBlendMode === 0) {
-
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    } else if (params.trailBlendMode === 1) {
-
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_COLOR);
-    } else if (params.trailBlendMode === 2) {
-
-      gl.blendFunc(gl.ONE, gl.ONE);
-
-    }
-
-    gl.useProgram(progDensityRender);
-    gl.bindVertexArray(vaoEmpty);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, densTex);
-    gl.uniform1i(U.densityRender.uDensity, 0);
-
-    gl.uniform1f(U.densityRender.uGain, params.trailVisGain);
-    gl.uniform1f(U.densityRender.uGamma, params.trailVisGamma);
-    gl.uniform1i(U.densityRender.uBlendMode, params.trailBlendMode | 0);
-
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-    gl.disable(gl.BLEND);
+    pass.setPipeline(trailRenderPipeline);
+    pass.setBindGroup(0, trailRenderBindGroups[trailFlip]);
+    pass.draw(3);
   }
 
   if (params.showParticles) {
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-    gl.useProgram(progPartView);
-    gl.bindVertexArray(vaoParticles);
-
-    gl.uniform2i(U.partView.uSimRes, simW, simH);
-    gl.uniform1f(U.partView.uPointSize, params.dotSize);
-    gl.uniform1f(U.partView.uDotSigma, params.dotSigma);
-    gl.uniform1f(U.partView.uDotGain, params.dotGain);
-
-    gl.drawArrays(gl.POINTS, 0, Math.floor(params.nParticles));
-
-    gl.disable(gl.BLEND);
-    gl.bindVertexArray(null);
+    pass.setPipeline(particleRenderPipeline);
+    pass.setBindGroup(0, particleRenderBindGroups[particleFlip]);
+    pass.draw(6, n);
   }
+
+  pass.end();
 }
 
 function rebuildSimulation() {
   resizeCanvas();
   applyClassicalLimit();
-  updateClassicalReadout();
 
-  if (texA) gl.deleteTexture(texA);
-  if (texB) gl.deleteTexture(texB);
-  if (fboA) gl.deleteFramebuffer(fboA);
-  if (fboB) gl.deleteFramebuffer(fboB);
+  const size = computeSimulationSize();
+  simW = size.w;
+  simH = size.h;
 
-  simW = Math.max(64, Math.floor(canvas.width * params.simScale));
-  simH = Math.max(64, Math.floor(canvas.height * params.simScale));
-
-  texA = makeTexFloat32(simW, simH);
-  texB = makeTexFloat32(simW, simH);
-  fboA = makeFBO(texA);
-  fboB = makeFBO(texB);
-  flip = 0;
-
-  resetWave();
+  rebuildWaveBuffers();
+  rebuildTrailTextures();
   rebuildParticles();
-  rebuildDensity();
+  rebuildBindGroups();
+  resetWave();
+  clearTrails();
+  updateUniforms();
+  updateClassicalReadout();
 }
 
 function resetAll() {
   applyClassicalLimit();
-  updateClassicalReadout();
+  updateUniforms();
   resetWave();
   rebuildParticles();
-  clearDensity();
+  clearTrails();
+  updateClassicalReadout();
 }
 
 window.addEventListener("resize", () => rebuildSimulation());
 
-async function main() {
-  await loadShaders();
-  buildPrograms();
-  rebuildSimulation();
+function frame() {
+  const changed = resizeCanvas();
+  if (changed) {
+    rebuildSimulation();
+    requestAnimationFrame(frame);
+    return;
+  }
 
-  params.trailHalfLife*=0.99;
-
-  requestAnimationFrame(function loop() {
-    resizeCanvas();
-
-    if (!paused) {
-      const steps = Math.floor(params.stepsPerFrame);
-      for (let i = 0; i < steps; i++) {
-        waveStep();
-        particleUpdate();
-      }
-      densityStepAndStamp();
-    }
-
-    render();
-    requestAnimationFrame(loop);
-  });
+  updateUniforms();
+  const encoder = device.createCommandEncoder({ label: "frame encoder" });
+  if (!paused) {
+    stepSimulation(encoder);
+    stepTrails(encoder);
+  }
+  render(encoder);
+  device.queue.submit([encoder.finish()]);
+  requestAnimationFrame(frame);
 }
 
-main().catch(err => {
-  console.error(err);
-  alert(String(err));
-});
+rebuildSimulation();
+setStatus("Q-Ontic Lab classical-limit WebGPU applet");
+requestAnimationFrame(frame);
