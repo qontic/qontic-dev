@@ -36,22 +36,22 @@ const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const trailFormat = "rgba16float";
 
 const params = {
-  simScale: 1.0,
-  stepsPerFrame: 15,
+  simScale: 2.0,
+  stepsPerFrame: 120,
 
   classicality: 0.0,
-  classicalSpeed: 2.0,
+  classicalSpeed: 4.0,
   velocityAngleDeg: 45.0,
   packetSpread: 1.0,
 
-  hbar: 6.0,
+  hbar: 12.0,
   mass: 1.0,
-  p0: 2.0,
-  dt: 0.04,
+  p0: 4.0,
+  dt: 0.005,
 
   packetX: 0.55,
   packetY: 0.5,
-  packetSigma: 24.0,
+  packetSigma: 72.0,
   doubleGaussian: 0,
   gaussianSeparation: 200.0,
 
@@ -91,30 +91,52 @@ const REGIME_PRESETS = {
     label: "Quantum packet",
     switchLabel: "Use classical preset",
     classicality: 0.0,
-    speed: 2.0,
-    hbar: 6.0,
-    hbarOverMass: 6.0,
-    packetSigma: 24.0,
+    simScale: 2.0,
+    showPhase: 1,
+    speed: 4.0,
+    hbar: 12.0,
+    hbarOverMass: 36.0,
+    packetSigma: 72.0,
     densityMaskLow: 0.0,
     densityMaskHigh: 0.0,
-    dt: 0.04,
-    stepsPerFrame: 15,
+    dt: 0.005,
+    stepsPerFrame: 120,
   },
   classical: {
     id: "classical",
     label: "Classical packet",
+    switchLabel: "Use recording preset",
+    classicality: 1.0,
+    simScale: 2.0,
+    showPhase: 1,
+    speed: 4.0,
+    hbar: 0.12,
+    hbarOverMass: 8.0,
+    packetSigma: 64.0,
+    densityMaskLow: 0.00005,
+    densityMaskHigh: 0.0008,
+    dt: 0.025,
+    stepsPerFrame: 25,
+  },
+  "recording-classical": {
+    id: "recording-classical",
+    label: "Recording classical",
     switchLabel: "Use quantum preset",
     classicality: 1.0,
-    speed: 2.0,
-    hbar: 0.06,
-    hbarOverMass: 1.5,
-    packetSigma: 24.0,
-    densityMaskLow: 0.0002,
-    densityMaskHigh: 0.002,
-    dt: 0.15,
-    stepsPerFrame: 4,
+    simScale: 2.0,
+    showPhase: 0,
+    speed: 1.2,
+    hbar: 0.012,
+    hbarOverMass: 0.8,
+    packetSigma: 48.0,
+    densityMaskLow: 0.001,
+    densityMaskHigh: 0.01,
+    dt: 0.08,
+    stepsPerFrame: 40,
   },
 };
+
+const PRESET_ORDER = ["quantum", "classical", "recording-classical"];
 
 function clamp01(x) {
   return Math.min(1, Math.max(0, x));
@@ -136,13 +158,15 @@ function clampViewCenter() {
 let activePresetId = "quantum";
 let presetButton = null;
 let presetNameReadout = null;
+const controlSetters = new Map();
 
 function getActivePreset() {
   return REGIME_PRESETS[activePresetId] || REGIME_PRESETS.quantum;
 }
 
 function nextPresetId() {
-  return activePresetId === "quantum" ? "classical" : "quantum";
+  const index = PRESET_ORDER.indexOf(activePresetId);
+  return PRESET_ORDER[(index + 1) % PRESET_ORDER.length];
 }
 
 function syncPresetUI() {
@@ -154,6 +178,9 @@ function syncPresetUI() {
   if (presetNameReadout) {
     presetNameReadout.textContent = preset.label;
   }
+  for (const setter of controlSetters.values()) {
+    setter();
+  }
 }
 
 function applyRegimePreset(presetId = activePresetId) {
@@ -161,6 +188,8 @@ function applyRegimePreset(presetId = activePresetId) {
   activePresetId = preset.id;
 
   params.classicality = preset.classicality;
+  params.simScale = preset.simScale;
+  params.showPhase = preset.showPhase;
   params.classicalSpeed = preset.speed;
   params.packetSpread = 1.0;
   params.hbar = preset.hbar;
@@ -185,8 +214,14 @@ const viewState = {
 };
 
 const urlMode = (urlParams.get("mode") || "").toLowerCase();
-if (urlMode === "classical" || urlMode === "quantum") {
-  activePresetId = urlMode;
+const modeAliases = {
+  recording: "recording-classical",
+  "deep-classical": "recording-classical",
+  "ultra-classical": "recording-classical",
+};
+const requestedMode = modeAliases[urlMode] || urlMode;
+if (REGIME_PRESETS[requestedMode]) {
+  activePresetId = requestedMode;
 } else {
   const urlClassicality = parseFloat(urlParams.get("classicality"));
   if (Number.isFinite(urlClassicality)) {
@@ -234,6 +269,10 @@ function addSlider(key, label, min, max, step, onChange = null) {
   const val = document.createElement("div");
   val.className = "val";
   val.textContent = fmt(params[key]);
+  controlSetters.set(key, () => {
+    input.value = params[key];
+    val.textContent = fmt(params[key]);
+  });
 
   input.addEventListener("input", () => {
     const v = parseFloat(input.value);
@@ -262,7 +301,7 @@ function addPresetControl() {
   presetButton = document.createElement("button");
   presetButton.addEventListener("click", () => {
     applyRegimePreset(nextPresetId());
-    resetAll();
+    rebuildSimulation();
   });
 
   row.appendChild(lab);
@@ -283,6 +322,9 @@ function addToggleInt(key, label, onChange = null) {
   const btn = document.createElement("button");
   btn.style.flex = "1";
   btn.textContent = params[key] ? "ON" : "OFF";
+  controlSetters.set(key, () => {
+    btn.textContent = params[key] ? "ON" : "OFF";
+  });
   btn.addEventListener("click", () => {
     params[key] = params[key] ? 0 : 1;
     btn.textContent = params[key] ? "ON" : "OFF";
