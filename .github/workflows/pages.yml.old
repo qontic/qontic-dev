@@ -1,0 +1,122 @@
+name: Deploy static site to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install measurement dependencies
+        working-directory: apps/comparative/measurement
+        run: npm install
+
+      - name: Build measurement app
+        working-directory: apps/comparative/measurement
+        run: npm run build
+
+      - name: Prepare static site
+        run: |
+          mkdir -p _site
+          rsync -av --exclude='_site' --exclude='.git' --exclude='measurement/node_modules' ./ ./_site/
+          rm -rf _site/apps/comparative/measurement
+          mkdir -p _site/apps/comparative/measurement
+          cp -r apps/comparative/measurement/dist/* _site/apps/comparative/measurement/
+
+          
+          # Point the homepage card at the clean public app directory.
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('_site/index.html')
+          html = path.read_text(encoding='utf-8')
+          rule = '.sim-card[hidden]{display:none!important}'
+          if rule not in html:
+              html = html.replace('.sim-card h3{', rule + '.sim-card h3{')
+          path.write_text(html, encoding='utf-8')
+          PY
+
+          # The double-slit notebook and its embedded applets are maintained in this repo.
+          # The initial rsync above already copied the complete bohmian-double-slit-webgl folder.
+
+          # Authorized reuse: Anssi Zander gave permission to copy these demos.
+          git clone --depth 1 https://github.com/anssiZander/BohmianTunneling.git /tmp/BohmianTunneling
+          rm -rf _site/bohmian-tunneling
+          mkdir -p _site/bohmian-tunneling
+          cp -r /tmp/BohmianTunneling/* _site/bohmian-tunneling/
+
+          # The free-packet notebook and its embedded applets are maintained in this repo.
+          # The initial rsync above already copied the complete bohmian-free-packet-2d folder.
+
+          # The delayed-choice notebook and its embedded applets are maintained in this repo.
+          # The initial rsync above already copied the complete delayed-choice folder.
+
+          git clone --depth 1 https://github.com/anssiZander/Bohmian-Free-3D.git /tmp/Bohmian-Free-3D
+          rm -rf _site/bohmian-free-particle-box-3d
+          mkdir -p _site/bohmian-free-particle-box-3d
+          cp -r /tmp/Bohmian-Free-3D/* _site/bohmian-free-particle-box-3d/
+
+          python3 - <<'PY'
+          from pathlib import Path
+          demos = {
+              'bohmian-tunneling': ('BohmianTunneling', 'Bohmian Tunneling'),
+              'bohmian-free-particle-box-3d': ('Bohmian-Free-3D', 'Bohmian Free 3D'),
+          }
+          style = """
+          <style>
+            #qontic-credit { position:absolute; right:12px; bottom:10px; z-index:9999; color:rgba(255,255,255,0.74); background:rgba(0,0,0,0.42); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:6px 9px; font:11px/1.35 system-ui,sans-serif; backdrop-filter:blur(5px); }
+            #qontic-credit a { color:#9fd0ff; text-decoration:none; }
+            #qontic-credit a:hover { text-decoration:underline; }
+          </style>
+          """
+          for slug, (repo, title) in demos.items():
+              path = Path('_site') / slug / 'index.html'
+              html = path.read_text(encoding='utf-8')
+              if 'id="qontic-credit"' in html:
+                  continue
+              credit = f"""
+          {style}
+          <div id="qontic-credit">
+            Adapted for Q-Ontic Lab from
+            <a href="https://github.com/anssiZander/{repo}" target="_blank" rel="noopener">{title}</a>
+            by Anssi Zander, used with permission.
+          </div>
+          """
+              html = html.replace('</body>', credit + '\n</body>')
+              path.write_text(html, encoding='utf-8')
+          PY
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

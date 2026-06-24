@@ -1,82 +1,527 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Q-Ontic Lab — Interactive Quantum Simulations</title>
-  <!-- Google tag (GA4) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-3XMW6RES7N"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-3XMW6RES7N');
-</script>
-  <meta name="description" content="Q-Ontic Lab: interactive quantum simulations for comparative exploration of Copenhagen, pilot-wave, and Many-Worlds interpretations. Free browser-based tools for research, teaching, and outreach." />
-  <meta name="keywords" content="quantum simulation, quantum mechanics, Copenhagen interpretation, pilot-wave theory, Bohmian mechanics, Many-Worlds, double-slit, Stern-Gerlach, hydrogen atom, Bell inequality, quantum measurement, interactive education" />
-  <meta name="robots" content="index,follow,max-image-preview:large" />
-  <link rel="canonical" href="http://qonticlab.rice.edu/" />
-  <meta property="og:site_name" content="Q-Ontic Lab" />
-  <meta property="og:title" content="Q-Ontic Lab — Interactive Quantum Simulations" />
-  <meta property="og:description" content="Browser-based quantum simulations comparing Copenhagen, pilot-wave, and Many-Worlds interpretations. Free tools for research, teaching, and outreach." />
-  <meta property="og:url" content="http://qonticlab.rice.edu/" />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Q-Ontic Lab — Interactive Quantum Simulations" />
-  <meta name="twitter:description" content="Browser-based quantum simulations comparing Copenhagen, pilot-wave, and Many-Worlds interpretations." />
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"WebSite","name":"Q-Ontic Lab","url":"http://qonticlab.rice.edu/","description":"Interactive quantum simulations for comparative exploration of interpretations of quantum mechanics.","author":{"@type":"Person","email":"yepes@rice.edu"}}
-  </script>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚛</text></svg>" />
-  <link rel="stylesheet" href="css/main-style.css" />
+
+  <meta name="description" content="Q-Ontic Lab develops interactive quantum simulations and notebooks for comparing different representations of quantum mechanics, including multiview and pilot-wave approaches." />
+
   <style>
-    body{font-family:"Segoe UI",sans-serif;margin:0;padding:0;background:#f9f9f9;color:#333}header{background:#003366;color:white;padding:2rem;text-align:center}header h1{margin:0;font-size:2.5rem}.subtitle{font-size:1.2rem;margin-top:.5rem}main{max-width:1100px;margin:2rem auto;padding:0 1rem}.intro{margin-bottom:2rem}.controls{display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:.9rem;margin:0 0 1.5rem;align-items:end}.control-field label{display:block;color:#003366;font-size:.85rem;font-weight:700;margin:0 0 .35rem}#category-filter,#search{width:100%;padding:.65rem 1rem;font-size:1rem;border:1px solid #bcc8de;border-radius:6px;box-sizing:border-box;background:#fff;color:#222}#category-filter:focus,#search:focus{outline:2px solid #0055aa;border-color:#0055aa}.section-heading{color:#003366;font-size:1.4rem;margin:2rem 0 .35rem;padding-bottom:.3rem;border-bottom:2px solid #dde3ee}#category-description{margin:0 0 1rem;color:#555;line-height:1.55}.sim-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.25rem}.sim-card{background:#fff;border:1px solid #dde3ee;border-radius:8px;padding:1.2rem 1.4rem 1rem;box-shadow:0 1px 4px rgba(0,0,51,.07);display:flex;flex-direction:column}.sim-card h3{margin:0 0 .35rem;color:#003366;font-size:1.05rem}.sim-card p{margin:0 0 .8rem;font-size:.9rem;line-height:1.55;flex:1}.button{display:inline-block;margin-top:.5rem;padding:.6rem 1rem;background:#0055aa;color:white;text-decoration:none;border-radius:4px}.button:hover{background:#003f7f}.tags{margin-bottom:.5rem}.tag{display:inline-block;font-size:.72rem;padding:1px 7px;border-radius:3px;margin:0 3px 4px 0;font-weight:600}.tag-live{background:#d4edda;color:#155724}.tag-topic{background:#e8ecf7;color:#003366}#no-results{display:none;color:#666;font-style:italic;grid-column:1/-1}footer{background:#eee;padding:1.5rem;text-align:center;font-size:.9rem;color:#555}footer a{color:#0055aa}@media(max-width:700px){.controls{grid-template-columns:1fr}}
+    :root {
+      --blue: #003366;
+      --blue2: #0055aa;
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --border: #dbe3f0;
+      --text: #263238;
+      --muted: #5f6b7a;
+      --green: #d4edda;
+      --green-text: #155724;
+      --pilot: #ede7f6;
+      --pilot-text: #4527a0;
+      --multi: #e3f2fd;
+      --multi-text: #0d47a1;
+      --note: #fff3cd;
+      --note-text: #856404;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    header {
+      background: linear-gradient(135deg, #00264d, #004080);
+      color: white;
+      padding: 3rem 1.5rem;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2.7rem;
+      letter-spacing: 0.02em;
+    }
+
+    header p {
+      max-width: 760px;
+      margin: 0.75rem auto 0;
+      font-size: 1.15rem;
+      opacity: 0.94;
+    }
+
+    nav {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    nav .inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0.7rem 1rem;
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+    }
+
+    nav a {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 0.35rem 0.55rem;
+      border-radius: 5px;
+    }
+
+    nav a:hover {
+      background: #eef4fb;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 2rem auto 3rem;
+      padding: 0 1rem;
+    }
+
+    .intro {
+      max-width: 920px;
+      margin: 0 auto 2.2rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 1.02rem;
+    }
+
+    .featured {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 18px rgba(0, 30, 80, 0.06);
+    }
+
+    .featured h2 {
+      margin-top: 0;
+    }
+
+    .section {
+      margin: 2.5rem 0;
+    }
+
+    .section-header {
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.4rem;
+    }
+
+    .section-header h2 {
+      color: var(--blue);
+      margin: 0;
+      font-size: 1.55rem;
+    }
+
+    .section-header p {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(315px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.15rem 1.25rem;
+      box-shadow: 0 2px 10px rgba(0, 30, 80, 0.05);
+      display: flex;
+      flex-direction: column;
+      min-height: 210px;
+    }
+
+    .card h3 {
+      margin: 0 0 0.45rem;
+      color: var(--blue);
+      font-size: 1.08rem;
+    }
+
+    .card p {
+      margin: 0.5rem 0 1rem;
+      color: #3f4a56;
+      font-size: 0.93rem;
+      flex: 1;
+    }
+
+    .tags {
+      margin-bottom: 0.2rem;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin: 0 4px 4px 0;
+    }
+
+    .tag-live {
+      background: var(--green);
+      color: var(--green-text);
+    }
+
+    .tag-multi {
+      background: var(--multi);
+      color: var(--multi-text);
+    }
+
+    .tag-pilot {
+      background: var(--pilot);
+      color: var(--pilot-text);
+    }
+
+    .tag-note {
+      background: var(--note);
+      color: var(--note-text);
+    }
+
+    .button {
+      display: inline-block;
+      align-self: flex-start;
+      background: var(--blue2);
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      padding: 0.55rem 0.9rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .button:hover {
+      background: #003f7f;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    footer {
+      background: #e9edf3;
+      color: #52606d;
+      padding: 1.6rem;
+      text-align: center;
+      font-size: 0.92rem;
+    }
+
+    footer a {
+      color: var(--blue2);
+    }
+
+    @media (max-width: 800px) {
+      header h1 {
+        font-size: 2.1rem;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
+
 <body>
-<header><h1>Q-Ontic Lab</h1><p class="subtitle">Interactive quantum simulations for representational comparison</p></header>
-<main>
-  <section class="intro"><p>The Q-Ontic Lab develops interactive quantum simulations designed to support comparative exploration of different representational frameworks in quantum mechanics. Rather than endorsing a single interpretation, the Lab focuses on how alternative visual and conceptual representations of empirically equivalent dynamics shape explanation, intuition, and reasoning. The tools are intended for research, teaching, and outreach.</p></section>
-  <div class="controls" aria-label="Simulation filters">
-    <div class="control-field"><label for="category-filter">View</label><select id="category-filter" aria-label="Choose simulation category"><option value="all" selected>All simulations</option><option value="multi">Multiview: various interpretations</option><option value="pilot">Pilot-wave dynamics</option></select></div>
-    <div class="control-field"><label for="search">Search</label><input id="search" type="search" placeholder="Search simulations…" aria-label="Search simulations" autocomplete="off" /></div>
+
+<header>
+  <h1>Q-Ontic Lab</h1>
+  <p>
+    Interactive quantum simulations and notebooks for comparing alternative
+    representations of quantum mechanics.
+  </p>
+</header>
+
+<nav>
+  <div class="inner">
+    <a href="#comparative">Comparative Apps</a>
+    <a href="#pilot-wave">Pilot-Wave Apps</a>
+    <a href="#notebooks">Notebooks</a>
+    <a href="#research">Research</a>
+    <a href="collaborators.html">Team</a>
   </div>
-  <h2 class="section-heading" id="heading-live">All Simulations</h2>
-  <p id="category-description">All currently available Q-Ontic simulations, including multiview comparison tools and specialized pilot-wave visualizations.</p>
-  <div class="sim-grid" id="grid-live"><p id="no-results">No simulations match your search.</p></div>
+</nav>
+
+<main>
+
+  <section class="intro">
+    <p>
+      Q-Ontic Lab develops browser-based tools for exploring how different
+      quantum representations describe the same physical phenomena. The project
+      distinguishes between standalone simulation apps and interactive notebooks:
+      apps are designed for immediate exploration, while notebooks combine
+      explanation, context, and embedded simulations.
+    </p>
+  </section>
+
+  <section class="featured" id="featured">
+    <h2>Featured App: Analytical Double-Slit Simulation</h2>
+    <p>
+      A multiview simulation of the double-slit experiment comparing wavefunction
+      evolution, collapse-style detection, pilot-wave trajectories, and
+      branching-style descriptions.
+    </p>
+    <a class="button" href="apps/comparative/double-slit-analytical/">Launch Featured App</a>
+  </section>
+
+  <section class="section" id="comparative">
+    <div class="section-header">
+      <h2>Comparative Apps</h2>
+      <p>
+        Standalone simulations that compare multiple quantum representations or
+        interpretations side by side.
+      </p>
+    </div>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Double-Slit Experiment — Analytical</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-multi">Comparative</span>
+        </div>
+        <p>
+          Analytical double-slit simulation comparing collapse, pilot-wave, and
+          branching-style descriptions.
+        </p>
+        <a class="button" href="apps/comparative/double-slit-analytical/">Launch</a>
+      </article>
+
+      <article class="card">
+        <h3>Stern-Gerlach Experiment — 3D</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-multi">Comparative</span>
+        </div>
+        <p>
+          Spin-1/2 particle through an inhomogeneous magnetic field with
+          collapse, pilot-wave, and branching views.
+        </p>
+        <a class="button" href="apps/comparative/stern-gerlach/">Launch</a>
+      </article>
+
+      <article class="card">
+        <h3>Bell Experiment — Entanglement</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-multi">Comparative</span>
+        </div>
+        <p>
+          Entangled spin-pair simulation with angle-dependent correlations and
+          contrasting representations of nonlocal dependence.
+        </p>
+        <a class="button" href="apps/comparative/bell-experiment/">Launch</a>
+      </article>
+
+      <article class="card">
+        <h3>Quantum Measurement with Detector</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-multi">Comparative</span>
+        </div>
+        <p>
+          Detector-coupled tunneling simulation with explicit measurement
+          back-action and outcome statistics.
+        </p>
+        <a class="button" href="apps/comparative/measurement/">Launch</a>
+      </article>
+
+      <article class="card">
+        <h3>Free Particle — Gaussian Packet</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-multi">Comparative</span>
+        </div>
+        <p>
+          Free Gaussian wave packet with screen detection and alternative
+          representational views of the same event.
+        </p>
+        <a class="button" href="apps/comparative/free-particle/free-particle.html">Launch</a>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="pilot-wave">
+    <div class="section-header">
+      <h2>Pilot-Wave Apps</h2>
+      <p>
+        Standalone trajectory-focused simulations for exploring pilot-wave
+        dynamics, guidance laws, and wave-packet motion.
+      </p>
+    </div>
+
+    <div class="grid">
+
+      <article class="card">
+        <h3>Double-Slit Experiment — Numerical</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-pilot">Pilot-wave</span>
+        </div>
+        <p>
+          GPU-based numerical wave-packet propagation through a double slit with
+          trajectory visualization.
+        </p>
+        <a class="button" href="apps/pilot-wave/double-slit-numerical/">Launch</a>
+      </article>
+
+      <article class="card">
+        <h3>Pilot-Wave Tunneling — WebGL2</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-pilot">Pilot-wave</span>
+        </div>
+        <p>
+          Pilot-wave tunneling simulation showing guided trajectories and
+          wave-packet dynamics. Adapted from work by Anssi Zander.
+        </p>
+        <a class="button" href="apps/pilot-wave/tunneling/">Launch</a>
+      </article>
+
+
+      <article class="card">
+        <h3>Hydrogen Atom</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-pilot">Pilot-wave</span>
+        </div>
+        <p>
+          Hydrogen orbital visualization with trajectory-oriented pilot-wave
+          structure.
+        </p>
+        <a class="button" href="apps/pilot-wave/hydrogen-atom/hydrogen-3d.html">Launch</a>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="notebooks">
+    <div class="section-header">
+      <h2>Interactive Notebooks</h2>
+      <p>
+        Longer explanatory pages that combine narrative, context, and embedded
+        interactive demonstrations.
+      </p>
+    </div>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Pilot-Wave Double Slit </h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-pilot">Pilot-wave</span>
+        </div>
+        <p>
+          WebGL2 double-slit simulation with Schrödinger and Pauli spin-1/2
+          guidance laws. Adapted from work by Anssi Zander.
+        </p>
+        <a class="button" href="notebooks/double-slit-webgl/">Open Notebook</a>
+      </article>
+
+      <article class="card">
+        <h3>Pilot-Wave Free Packet — 2D</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-pilot">Pilot-wave</span>
+        </div>
+        <p>
+          Two-dimensional free-packet spreading with pilot-wave trajectory
+          guidance. Adapted from work by Anssi Zander.
+        </p>
+        <a class="button" href="notebooks/free-packet-2d/">Open Notebook</a>
+      </article>
+
+      <article class="card">
+        <h3>Pilot-Wave Particle in a Box — 3D</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-pilot">Pilot-wave</span>
+        </div>
+        <p>
+          Three-dimensional particle-in-a-box visualization with guided
+          trajectories and interactive camera controls.
+        </p>
+        <a class="button" href="notebooks/particle-box-3d/">Open Notebook</a>
+      </article>
+
+
+
+      <article class="card">
+        <h3>Delayed-Choice Notebook</h3>
+        <div class="tags">
+          <span class="tag tag-live">Live</span>
+          <span class="tag tag-note">Notebook</span>
+        </div>
+        <p>
+          Interactive notebook on delayed-choice interferometry and alternative
+          representations of the experiment.
+        </p>
+        <a class="button" href="notebooks/delayed-choice/">Open Notebook</a>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="research">
+    <div class="section-header">
+      <h2>Research and Project Information</h2>
+      <p>
+        Q-Ontic Lab is a research and education project on visual representation,
+        interpretation, and reasoning in quantum mechanics.
+      </p>
+    </div>
+
+    <div class="two-col">
+      <article class="card">
+        <h3>Team and Collaborators</h3>
+        <p>
+          Meet the researchers, students, and collaborators contributing to the
+          Q-Ontic Lab.
+        </p>
+        <a class="button" href="collaborators.html">View Team</a>
+      </article>
+
+      <article class="card">
+        <h3>Source Code</h3>
+        <p>
+          The simulations and notebooks are developed as open browser-based tools.
+        </p>
+        <a class="button" href="https://github.com/qontic/qontic">GitHub Repository</a>
+      </article>
+    </div>
+  </section>
+
 </main>
-<footer><p>The Q-Ontic Lab supports research, teaching, and outreach on quantum mechanics through interactive visualization and representational comparison.</p><p><a href="collaborators.html">Meet the team</a> &nbsp;·&nbsp; Contact: <a href="mailto:yepes@rice.edu">yepes@rice.edu</a></p></footer>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZWF6YQM0YV"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-ZWF6YQM0YV');gtag('event','page_view',{page_title:document.title,page_location:window.location.href,page_path:window.location.pathname});</script>
-<script>
-(function(){'use strict';
-const CATEGORY_COPY={multi:{heading:'Multiview Quantum Simulations',description:'Compare how different interpretations or representational views describe the same quantum phenomena.'},pilot:{heading:'Pilot-Wave Dynamics',description:'Trajectory-focused simulations for exploring pilot-wave dynamics, guidance laws, and wave-packet motion.'},all:{heading:'All Simulations',description:'All currently available Q-Ontic simulations, including multiview comparison tools and specialized pilot-wave visualizations.'}};
-function statusTag(status){return status==='live'?'<span class="tag tag-live">Live</span>':''}function topicTags(tags){return tags.map(t=>`<span class="tag tag-topic">${t}</span>`).join('')}function buildCard(app){return `<div class="sim-card" data-slug="${app.slug}" data-category="${app.category}" data-search="${[app.title,...app.tags,app.description,app.category].join(' ').toLowerCase()}"><h3>${app.title}</h3><div class="tags">${statusTag(app.status)}${topicTags(app.tags)}</div><p>${app.description}</p><a class="button" href="${app.url}" data-slug="${app.slug}">Launch</a></div>`}
-function injectStructuredData(apps){const items=apps.filter(a=>a.status==='live'&&a.url).map((a,i)=>({'@type':'ListItem',position:i+1,url:'http://qonticlab.rice.edu/'+a.url,name:a.title}));const ld={'@context':'https://schema.org','@type':'ItemList',name:'Q-Ontic Lab Simulations',description:'Interactive quantum simulations comparing Copenhagen, pilot-wave, and Many-Worlds interpretations.',numberOfItems:items.length,itemListElement:items};const s=document.createElement('script');s.type='application/ld+json';s.textContent=JSON.stringify(ld);document.head.appendChild(s)}
-function render(apps){const grid=document.getElementById('grid-live');const noResults=document.getElementById('no-results');grid.innerHTML=noResults.outerHTML+apps.map(buildCard).join('');injectStructuredData(apps);document.querySelectorAll('a.button[data-slug]').forEach(link=>{link.addEventListener('click',function(){if(typeof gtag==='function'){gtag('event','app_launch',{app_name:this.closest('.sim-card').querySelector('h3').textContent.trim(),app_slug:this.dataset.slug})}})})}
-function applyFilters(){const selected=document.getElementById('category-filter').value;const query=document.getElementById('search').value.trim().toLowerCase();const copy=CATEGORY_COPY[selected]||CATEGORY_COPY.all;document.getElementById('heading-live').textContent=copy.heading;document.getElementById('category-description').textContent=copy.description;let anyVisible=false;document.querySelectorAll('.sim-card').forEach(card=>{const categoryMatch=selected==='all'||selected===card.dataset.category;const searchMatch=!query||card.dataset.search.includes(query);const visible=categoryMatch&&searchMatch;card.hidden=!visible;if(visible)anyVisible=true});document.getElementById('no-results').style.display=anyVisible?'none':'block'}
-const APPS=[
-{title:'Double-Slit Experiment — Analytical',slug:'double-slit-analytical',status:'live',category:'multi',url:'double-slit-analytical/index.html',tags:['Multiview','Wave interference','Born rule'],description:'Explore the double-slit experiment with an analytically computed wavefunction. Visualise Copenhagen collapse, pilot-wave trajectories, and Many-Worlds branching side by side.'},
-{title:'Stern-Gerlach Experiment — 3D',slug:'stern-gerlach',status:'live',category:'multi',url:'stern-gerlach/',tags:['Multiview','Spin-½','Measurement','3D'],description:'Full 3D simulation of a spin-½ particle traversing an inhomogeneous magnetic field. Compare Copenhagen collapse, pilot-wave trajectories, and Many-Worlds branching, with a live Born-rule histogram.'},
-{title:'Free Particle — Gaussian Wave Packet',slug:'free-particle',status:'live',category:'multi',url:'free-particle/free-particle.html',tags:['Multiview','Wave packets','Detector'],description:'Animated 2D Gaussian wave packet freely propagating and detected at a screen. Compare Copenhagen collapse, pilot-wave trajectories, and Many-Worlds branching.'},
-{title:'Quantum Measurement with Detector',slug:'measurement',status:'live',category:'multi',url:'measurement/',tags:['Multiview','Measurement','Detector coupling'],description:'Detector-coupled tunneling simulation comparing Collapse/Copenhagen, Pilot-Wave, and Many-Worlds pictures, with explicit detector back-action and outcome statistics.'},
-{title:'Bell Experiment — Entanglement',slug:'bell-experiment',status:'live',category:'multi',url:'bell-experiment/',tags:['Multiview','Entanglement','Non-locality','Spin-½'],description:'Interactive Bell-pair simulation with angle-dependent correlations, detector-distance timing, and side-by-side Collapse/Copenhagen and pilot-wave visualizations, including non-local wave updates.'},
-{title:'Double-Slit Experiment — Numerical',slug:'double-slit-numerical',status:'live',category:'pilot',url:'2slit-wavepacket/',tags:['Pilot-wave dynamics','Wave packets','GPU simulation'],description:'Real-time GPU simulation of a Gaussian wave packet propagating through a double slit, including wave dynamics and trajectory visualization.'},
-{title:'Pilot-Wave Double Slit — WebGL2',slug:'bohmian-double-slit-webgl',status:'live',category:'pilot',url:'bohmian-double-slit-webgl/',tags:['Pilot-wave dynamics','WebGL2','Spin guidance'],description:'WebGL2 double-slit simulation with selectable Schrödinger and Pauli spin-1/2 guiding laws. Adapted for Q-Ontic Lab from Anssi Zander’s BohmianDoubleSlit demo, with permission and attribution.'},
-{title:'Pilot-Wave Tunneling — WebGL2',slug:'tunneling-webgl',status:'live',category:'pilot',url:'tunneling-webgl/',tags:['Pilot-wave dynamics','Tunneling','WebGL2'],description:'WebGL2 tunneling simulation with pilot-wave trajectories and wave-packet dynamics. Adapted for Q-Ontic Lab from Anssi Zander’s BohmianTunneling demo, with permission and attribution.'},
-{title:'Pilot-Wave Free Packet — 2D',slug:'bohmian-free-packet-2d',status:'live',category:'pilot',url:'bohmian-free-packet-2d/',tags:['Pilot-wave dynamics','Free particle','WebGL2'],description:'Two-dimensional pilot-wave free-packet simulation showing wave-packet spreading and guided trajectories. Adapted for Q-Ontic Lab from Anssi Zander’s Bohmian-Free-Packet demo, with permission and attribution.'},
-{title:'Delayed Choice',slug:'delayed-choice',status:'live',category:'pilot',url:'delayed-choice/',tags:['Pilot-wave dynamics','Delayed choice','Interferometry','WebGL2'],description:'Bohmian delayed-choice notebook with a balanced splitter, guided trajectories, detector statistics, and an in-flight detector choice.'},
-{title:'Eigenstates in 3D Box',slug:'eigenstates-in-3d-box',status:'live',category:'pilot',url:'eigenstates-in-3d-box/',tags:['Pilot-wave dynamics','Eigenstates','3D','WebGPU'],description:'Three-dimensional particle-in-a-box notebook with eigenstate density, nodal surfaces, Pauli spin current, and Bohmian trajectories.'},
-{title:'Pilot-Wave Stern-Gerlach Close Up',slug:'stern-gerlach-close-up',status:'live',category:'pilot',url:'stern-gerlach-close-up/',tags:['Pilot-wave dynamics','Stern-Gerlach','3D','Spin guidance'],description:'Three-dimensional Stern-Gerlach visualization with Pauli spinor dynamics, guided trajectories, and interactive camera controls.'},
-{title:'Hydrogen Atom',slug:'hydrogen-atom',status:'live',category:'pilot',url:'hydrogen-atom/hydrogen-3d.html',tags:['Pilot-wave dynamics','Orbitals','3D'],description:'Interactive 3D visualization of hydrogen orbitals and trajectory-oriented pilot-wave structure.'}
-];
-render(APPS);
-const categoryFilter=document.getElementById('category-filter');
-const params=new URLSearchParams(window.location.search);
-const requestedView=params.get('view');
-const initialView=(requestedView&&CATEGORY_COPY[requestedView])?requestedView:'all';
-categoryFilter.value=initialView;
-categoryFilter.addEventListener('change',applyFilters);document.getElementById('search').addEventListener('input',applyFilters);applyFilters();
-}());
-</script>
+
+<footer>
+  <p>
+    Q-Ontic Lab · Interactive quantum simulations for research, teaching, and outreach.
+  </p>
+  <p>
+    Contact: <a href="mailto:yepes@rice.edu">yepes@rice.edu</a>
+  </p>
+</footer>
+
 </body>
 </html>
