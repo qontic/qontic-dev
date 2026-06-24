@@ -42,6 +42,7 @@ const params = {
   classicality: 0.0,
   classicalSpeed: 8.0,
   velocityAngleDeg: 45.0,
+  particleSeed: 1,
   packetSpread: 1.0,
 
   hbar: 24.0,
@@ -63,6 +64,8 @@ const params = {
   visGamma: 0.5,
   densityMaskLow: 0.0,
   densityMaskHigh: 0.0,
+  showWave: 1,
+  particleMode: 0,
   showPhase: 1,
 
   showParticles: 1,
@@ -72,7 +75,7 @@ const params = {
   dotGain: 1.0,
 
   showTrail: 1,
-  trailHalfLife: 108.0,
+  trailHalfLife: 158.0,
   trailVisGain: 0.5,
   trailVisGamma: 0.6,
   trailStampGain: 0.55,
@@ -89,9 +92,11 @@ const REGIME_PRESETS = {
   quantum: {
     id: "quantum",
     label: "Quantum packet",
-    switchLabel: "Use classical preset",
+    shortLabel: "Quantum",
     classicality: 0.0,
     simScale: 1.0,
+    showWave: 1,
+    particleMode: 0,
     showPhase: 1,
     speed: 8.0,
     hbar: 24.0,
@@ -104,39 +109,64 @@ const REGIME_PRESETS = {
   },
   classical: {
     id: "classical",
-    label: "Classical packet",
-    switchLabel: "Use recording preset",
+    label: "Semi-Quantum",
+    shortLabel: "Semi-Quantum",
     classicality: 1.0,
-    simScale: 2.0,
+    simScale: 3.0,
+    showWave: 1,
+    particleMode: 0,
     showPhase: 1,
     speed: 4.0,
-    hbar: 0.12,
-    hbarOverMass: 8.0,
-    packetSigma: 64.0,
-    densityMaskLow: 0.00005,
-    densityMaskHigh: 0.0008,
-    dt: 0.025,
+    hbar: 0.18,
+    hbarOverMass: 12.0,
+    packetSigma: 96.0,
+    densityMaskLow: 0.00003,
+    densityMaskHigh: 0.0006,
+    dt: 0.018,
     stepsPerFrame: 25,
   },
   "recording-classical": {
     id: "recording-classical",
-    label: "Recording classical",
-    switchLabel: "Use quantum preset",
+    label: "Semi-Classical",
+    shortLabel: "Semi-Classical",
     classicality: 1.0,
-    simScale: 2.0,
+    simScale: 4.0,
+    showWave: 1,
+    particleMode: 0,
     showPhase: 1,
-    speed: 1.2,
+    speed: 2.0,
+    hbar: 0.03,
+    hbarOverMass: 4.0,
+    packetSigma: 64.0,
+    densityMaskLow: 0.0008,
+    densityMaskHigh: 0.006,
+    dt: 0.05,
+    stepsPerFrame: 25,
+  },
+  "classical-particle": {
+    id: "classical-particle",
+    label: "Classical",
+    shortLabel: "Classical",
+    classicality: 1.0,
+    simScale: 1.0,
+    showWave: 0,
+    particleMode: 1,
+    showPhase: 0,
+    speed: 10.0,
     hbar: 0.012,
     hbarOverMass: 0.8,
-    packetSigma: 48.0,
-    densityMaskLow: 0.001,
-    densityMaskHigh: 0.01,
-    dt: 0.08,
-    stepsPerFrame: 40,
+    packetSigma: 24.0,
+    densityMaskLow: 1.0,
+    densityMaskHigh: 1.0,
+    dt: 0.05,
+    stepsPerFrame: 5,
+    nParticles: 1,
+    showParticles: 1,
+    showTrail: 1,
   },
 };
 
-const PRESET_ORDER = ["quantum", "classical", "recording-classical"];
+const PRESET_ORDER = ["quantum", "classical", "recording-classical", "classical-particle"];
 
 function clamp01(x) {
   return Math.min(1, Math.max(0, x));
@@ -156,27 +186,21 @@ function clampViewCenter() {
 }
 
 let activePresetId = "quantum";
-let presetButton = null;
 let presetNameReadout = null;
+const presetButtons = new Map();
 const controlSetters = new Map();
 
 function getActivePreset() {
   return REGIME_PRESETS[activePresetId] || REGIME_PRESETS.quantum;
 }
 
-function nextPresetId() {
-  const index = PRESET_ORDER.indexOf(activePresetId);
-  return PRESET_ORDER[(index + 1) % PRESET_ORDER.length];
-}
-
 function syncPresetUI() {
   const preset = getActivePreset();
-  if (presetButton) {
-    presetButton.textContent = preset.switchLabel;
-    presetButton.title = `Active: ${preset.label}`;
-  }
   if (presetNameReadout) {
-    presetNameReadout.textContent = preset.label;
+    presetNameReadout.textContent = `version: ${preset.label}`;
+  }
+  for (const [id, button] of presetButtons) {
+    button.classList.toggle("selected", id === activePresetId);
   }
   for (const setter of controlSetters.values()) {
     setter();
@@ -189,6 +213,8 @@ function applyRegimePreset(presetId = activePresetId) {
 
   params.classicality = preset.classicality;
   params.simScale = preset.simScale;
+  params.showWave = preset.showWave;
+  params.particleMode = preset.particleMode;
   params.showPhase = preset.showPhase;
   params.classicalSpeed = preset.speed;
   params.packetSpread = 1.0;
@@ -202,6 +228,9 @@ function applyRegimePreset(presetId = activePresetId) {
   params.stepsPerFrame = preset.stepsPerFrame;
   params.boundaryMode = 0;
   params.doubleGaussian = 0;
+  if (preset.nParticles !== undefined) params.nParticles = preset.nParticles;
+  if (preset.showParticles !== undefined) params.showParticles = preset.showParticles;
+  if (preset.showTrail !== undefined) params.showTrail = preset.showTrail;
   syncPresetUI();
 }
 
@@ -218,6 +247,9 @@ const modeAliases = {
   recording: "recording-classical",
   "deep-classical": "recording-classical",
   "ultra-classical": "recording-classical",
+  particle: "classical-particle",
+  "hard-wall": "classical-particle",
+  "pure-classical": "classical-particle",
 };
 const requestedMode = modeAliases[urlMode] || urlMode;
 if (REGIME_PRESETS[requestedMode]) {
@@ -234,6 +266,11 @@ applyRegimePreset();
 const urlAngle = parseFloat(urlParams.get("angle"));
 if (Number.isFinite(urlAngle)) {
   params.velocityAngleDeg = Math.min(90.0, Math.max(-90.0, urlAngle));
+}
+
+const urlSeed = parseInt(urlParams.get("seed"), 10);
+if (Number.isFinite(urlSeed)) {
+  params.particleSeed = Math.max(1, Math.min(999999, urlSeed));
 }
 
 function isControlFixed(key) {
@@ -306,6 +343,51 @@ function addSlider(key, label, min, max, step, onChange = null) {
   controls.appendChild(row);
 }
 
+function addNumberInput(key, label, min, max, step, onChange = null) {
+  if (isControlFixed(key)) return;
+
+  const row = document.createElement("div");
+  row.className = "row";
+
+  const lab = document.createElement("label");
+  lab.textContent = label;
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = min;
+  input.max = max;
+  input.step = step;
+  input.value = params[key];
+  input.style.flex = "1";
+  input.style.minWidth = "0";
+  input.style.background = "rgba(5,16,36,0.72)";
+  input.style.border = "1px solid rgba(132,192,255,0.26)";
+  input.style.borderRadius = "6px";
+  input.style.color = "#fff";
+  input.style.padding = "6px 8px";
+
+  const val = document.createElement("div");
+  val.className = "val";
+  val.textContent = "";
+
+  controlSetters.set(key, () => {
+    input.value = params[key];
+  });
+
+  input.addEventListener("change", () => {
+    const parsed = parseInt(input.value, 10);
+    const v = Number.isFinite(parsed) ? Math.max(min, Math.min(max, parsed)) : params[key];
+    params[key] = v;
+    input.value = v;
+    if (onChange) onChange();
+  });
+
+  row.appendChild(lab);
+  row.appendChild(input);
+  row.appendChild(val);
+  controls.appendChild(row);
+}
+
 function addPresetControl() {
   const row = document.createElement("div");
   row.className = "row mode-row";
@@ -313,14 +395,24 @@ function addPresetControl() {
   const lab = document.createElement("label");
   presetNameReadout = lab;
 
-  presetButton = document.createElement("button");
-  presetButton.addEventListener("click", () => {
-    applyRegimePreset(nextPresetId());
-    rebuildSimulation();
-  });
+  const group = document.createElement("div");
+  group.className = "toggle-group";
+  for (const id of PRESET_ORDER) {
+    const preset = REGIME_PRESETS[id];
+    const button = document.createElement("button");
+    button.textContent = preset.shortLabel || preset.label;
+    button.title = preset.label;
+    button.addEventListener("click", () => {
+      if (activePresetId === id) return;
+      applyRegimePreset(id);
+      rebuildSimulation();
+    });
+    presetButtons.set(id, button);
+    group.appendChild(button);
+  }
 
   row.appendChild(lab);
-  row.appendChild(presetButton);
+  row.appendChild(group);
   controls.appendChild(row);
 
   syncPresetUI();
@@ -393,6 +485,7 @@ addPresetControl();
 addSlider("velocityAngleDeg", "velocity angle", -90.0, 90.0, 1.0, () => {
   resetAll();
 });
+addNumberInput("particleSeed", "particle seed", 1, 999999, 1, () => resetAll());
 
 addSectionHeader("Visual Parameters");
 addToggleInt("showPhase", "show phase");
@@ -690,8 +783,9 @@ struct Params {
   viewCenter: vec2<f32>,
   packetDir: vec2<f32>,
   viewScale: f32,
-  _pad1: f32,
-  _pad2: vec2<f32>,
+  showWave: f32,
+  particleMode: f32,
+  _pad2: f32,
 }
 
 const PI = 3.14159265359;
@@ -943,6 +1037,33 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let state = particleSrc[i];
   var x = state.xy;
   let mode = state.z;
+  if (params.particleMode > 0.5) {
+    var v = state.zw;
+    if (length(v) < 1.0e-4) {
+      v = (params.p0 / params.mass) * params.packetDir;
+    }
+
+    let maxX = params.simSize - vec2<f32>(1.0, 1.0);
+    var xn = x + params.dt * v;
+    if (xn.x < 0.0) {
+      xn.x = -xn.x;
+      v.x = -v.x;
+    } else if (xn.x > maxX.x) {
+      xn.x = 2.0 * maxX.x - xn.x;
+      v.x = -v.x;
+    }
+    if (xn.y < 0.0) {
+      xn.y = -xn.y;
+      v.y = -v.y;
+    } else if (xn.y > maxX.y) {
+      xn.y = 2.0 * maxX.y - xn.y;
+      v.y = -v.y;
+    }
+
+    particleDst[i] = vec4<f32>(clamp(xn, vec2<f32>(0.0, 0.0), maxX), v);
+    return;
+  }
+
   if (mode < 0.5 || mode > 1.5) {
     particleDst[i] = state;
     return;
@@ -1069,7 +1190,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
   var out: ParticleOut;
   out.pos = vec4<f32>(ndc, 0.0, 1.0);
   out.local = local;
-  out.alive = state.z;
+  out.alive = select(state.z, 1.0, params.particleMode > 0.5);
   return out;
 }
 
@@ -1158,7 +1279,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
   var out: ParticleOut;
   out.pos = vec4<f32>(ndc, 0.0, 1.0);
   out.local = local;
-  out.alive = state.z;
+  out.alive = select(state.z, 1.0, params.particleMode > 0.5);
   return out;
 }
 
@@ -1418,16 +1539,27 @@ function updateUniforms() {
   paramsArray[34] = Math.cos(angleRad);
   paramsArray[35] = -Math.sin(angleRad);
   paramsArray[36] = viewState.zoom;
-  paramsArray[37] = 0;
-  paramsArray[38] = 0;
+  paramsArray[37] = params.showWave;
+  paramsArray[38] = params.particleMode;
   paramsArray[39] = 0;
   device.queue.writeBuffer(uniformBuffer, 0, paramsArray);
 }
 
-function randn() {
+function seededRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6D2B79F5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function randn(rng) {
   let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
+  while (u === 0) u = rng();
+  while (v === 0) v = rng();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
@@ -1440,27 +1572,35 @@ function rebuildParticles() {
   const sigma1D = params.packetSigma / Math.sqrt(2);
   const x0 = params.packetX * simW;
   const y0 = params.packetY * simH;
+  const angleRad = params.velocityAngleDeg * Math.PI / 180;
+  const vx = params.classicalSpeed * Math.cos(angleRad);
+  const vy = -params.classicalSpeed * Math.sin(angleRad);
+  const seed = Math.max(1, Math.floor(params.particleSeed)) >>> 0;
+  const rng = seededRandom(seed);
 
   for (let i = 0; i < n; i++) {
     let x;
     let y;
 
-    if (params.doubleGaussian) {
-      const useFirst = Math.random() < 0.5;
+    if (params.particleMode > 0.5) {
+      x = x0 + randn(rng) * sigma1D;
+      y = y0 + randn(rng) * sigma1D;
+    } else if (params.doubleGaussian) {
+      const useFirst = rng() < 0.5;
       const sep = params.gaussianSeparation / 2;
-      x = x0 + randn() * sigma1D;
-      y = y0 + randn() * sigma1D + (useFirst ? -sep : sep);
+      x = x0 + randn(rng) * sigma1D;
+      y = y0 + randn(rng) * sigma1D + (useFirst ? -sep : sep);
     } else {
-      x = x0 + randn() * sigma1D;
-      y = y0 + randn() * sigma1D;
+      x = x0 + randn(rng) * sigma1D;
+      y = y0 + randn(rng) * sigma1D;
     }
 
     x = Math.max(0, Math.min(simW - 1, x));
     y = Math.max(0, Math.min(simH - 1, y));
     data[i * 4 + 0] = x;
     data[i * 4 + 1] = y;
-    data[i * 4 + 2] = 1.0;
-    data[i * 4 + 3] = 0.0;
+    data[i * 4 + 2] = params.particleMode > 0.5 ? vx : 1.0;
+    data[i * 4 + 3] = params.particleMode > 0.5 ? vy : 0.0;
   }
 
   particleBuffers = [
@@ -1628,10 +1768,12 @@ function stepSimulation(encoder) {
   const pass = encoder.beginComputePass({ label: "simulation step" });
 
   for (let i = 0; i < steps; i++) {
-    pass.setPipeline(waveStepPipeline);
-    pass.setBindGroup(0, waveStepBindGroups[waveFlip]);
-    pass.dispatchWorkgroups(Math.ceil(simW / 16), Math.ceil(simH / 16));
-    waveFlip = 1 - waveFlip;
+    if (params.particleMode < 0.5) {
+      pass.setPipeline(waveStepPipeline);
+      pass.setBindGroup(0, waveStepBindGroups[waveFlip]);
+      pass.dispatchWorkgroups(Math.ceil(simW / 16), Math.ceil(simH / 16));
+      waveFlip = 1 - waveFlip;
+    }
 
     pass.setPipeline(particleUpdatePipeline);
     pass.setBindGroup(0, particleUpdateBindGroups[waveFlip][particleFlip]);
@@ -1690,9 +1832,11 @@ function render(encoder) {
     }],
   });
 
-  pass.setPipeline(waveRenderPipeline);
-  pass.setBindGroup(0, waveRenderBindGroups[waveFlip]);
-  pass.draw(3);
+  if (params.showWave) {
+    pass.setPipeline(waveRenderPipeline);
+    pass.setBindGroup(0, waveRenderBindGroups[waveFlip]);
+    pass.draw(3);
+  }
 
   if (params.showTrail) {
     pass.setPipeline(trailRenderPipeline);
