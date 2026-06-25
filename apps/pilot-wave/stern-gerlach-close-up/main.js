@@ -9,13 +9,16 @@ if (!navigator.gpu) {
 let adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
 if (!adapter) adapter = await navigator.gpu.requestAdapter({ powerPreference: "low-power" });
 if (!adapter) adapter = await navigator.gpu.requestAdapter();
+if (!adapter) adapter = await navigator.gpu.requestAdapter({ forceFallbackAdapter: true });
 if (!adapter) {
   const secure = window.isSecureContext ? "yes" : "no";
   const host = location.host;
+  const ua = navigator.userAgent;
   const cause = [
     `No WebGPU adapter found (secureContext=${secure}, host=${host}).`,
     "Likely causes: hardware acceleration disabled, remote desktop/software rendering,",
-    "browser policy/flags, or unsupported GPU/driver."
+    "browser policy/flags, or unsupported GPU/driver.",
+    `UA: ${ua}`
   ].join(" ");
   alert(cause);
   throw new Error(cause);
