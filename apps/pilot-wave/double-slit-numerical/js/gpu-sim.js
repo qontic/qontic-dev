@@ -257,13 +257,21 @@ export class GPUSim {
     const ext = gl.getExtension('EXT_color_buffer_float');
     if (!ext) throw new Error('EXT_color_buffer_float not supported (GPU driver may not support float render targets)');
     // Log renderer info for diagnostics
+    this._rendererVendor = null;
+    this._rendererName = null;
+    this._softwareRenderer = false;
+
     const dbg = gl.getExtension('WEBGL_debug_renderer_info');
     if (dbg) {
       const vendor   = gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL);
       const renderer = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+      this._rendererVendor = vendor;
+      this._rendererName = renderer;
       console.info(`[GPUSim] WebGL2 renderer: ${vendor} / ${renderer}`);
-      if (/SwiftShader|llvmpipe|softpipe|Microsoft Basic/i.test(renderer))
-        throw new Error(`Software renderer detected (${renderer}) — GPU driver not accelerating WebGL`);
+      if (/SwiftShader|llvmpipe|softpipe|Microsoft Basic/i.test(renderer)) {
+        this._softwareRenderer = true;
+        console.warn(`[GPUSim] Software WebGL renderer detected: ${renderer}`);
+      }
     }
     this.gl = gl;
 
