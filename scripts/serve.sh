@@ -43,7 +43,7 @@ rsync -a --exclude='_site' --exclude='archive' --exclude='dev' \
   --exclude='*/node_modules' --exclude='*/src' --exclude='*/dist' \
   --exclude='*.jsx' --exclude='*.ts' --exclude='*.tsx' \
   --exclude='vite.config.*' --exclude='package*.json' \
-  --exclude='serve.sh' --exclude='deploy.sh' --exclude='*.sh' \
+  --exclude='serve.sh' --exclude='*.sh' \
   "$REPO_ROOT/" "$SITE/"
 
 # Overlay each Vite app's dist/ over its slot in _site/
