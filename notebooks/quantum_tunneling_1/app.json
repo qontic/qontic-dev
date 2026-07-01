@@ -3,6 +3,6 @@
   "type": "notebook",
   "category": "comparative",
   "description": "A guided 1D tunneling notebook with fixed-scale complex-state plots, probability current, packet-averaged transmission, localized detector events, and an orthodox versus pilot-wave comparison.",
-  "tags": ["Notebook", "Tunneling", "Pilot-wave", "Orthodox quantum mechanics", "Wave packets"],
+  "tags": ["Notebook", "Tunneling", "Pilot-wave", "Wave packets"],
   "entry": "index.html"
 }
