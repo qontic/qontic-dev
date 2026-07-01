@@ -1,0 +1,8 @@
+{
+  "title": "Double-Slit: Orthodox and Bohmian Mechanics (Tentative)",
+  "type": "notebook",
+  "category": "pilot-wave",
+  "description": "An interactive comparison of orthodox quantum mechanics and Bohmian pilot-wave mechanics in the double-slit experiment.",
+  "tags": ["Notebook", "Quantum Mechanics", "Double Slit", "Pilot-Wave"],
+  "entry": "index.html"
+}
