@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quantum Tunneling Notebook — Orthodox and Pilot-Wave Accounts</title>
+<style>
+:root{
+  --page:#f4f6fb; --paper:#fff; --paper2:#f8fafc; --canvas:#071020;
+  --text:#172033; --muted:#5f6b80; --accent:#2563eb; --accent-soft:#e8f0ff;
+  --line:#d7deeb; --line2:#e7ebf3; --cyan:#4fc3ff; --blue:#2563eb;
+  --gold:#ffd24d; --orange:#ff9966; --green:#54e0a0; --red:#ff6b6b;
+  --font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:var(--page);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5}
+.page{max-width:1380px;margin:0 auto;padding:18px}
+.header{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:18px 20px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;box-shadow:0 10px 28px rgba(15,23,42,.06)}
+h1{margin:0;color:#111827;font-size:25px;font-weight:760;letter-spacing:-.02em}.header p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:910px}
+.nav{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.nav a{color:#334155;text-decoration:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:13px}.nav a:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.section{margin-top:18px;border:1px solid var(--line);background:var(--paper);border-radius:14px;overflow:hidden;box-shadow:0 10px 24px rgba(15,23,42,.055)}
+.section-head{padding:16px 18px;border-bottom:1px solid var(--line2);background:var(--paper)}.section-head h2{margin:0;color:#111827;font-size:18px;font-weight:730}.section-head p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:980px}
+.detail-text{margin-top:8px;max-width:980px;color:#334155;font-size:14px;line-height:1.56}.detail-text p{margin:7px 0}.detail-text strong,.interpretation-list strong{color:#111827}
+.section-body{display:grid;grid-template-columns:minmax(0,1fr) 306px;gap:14px;padding:14px;align-items:start}
+.canvas-card{position:relative;border:1px solid #111827;background:var(--canvas);border-radius:12px;overflow:hidden;min-height:500px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);contain:layout paint}.canvas-card.full{min-height:700px}
+canvas{display:block;width:100%;height:500px}.canvas-card.full canvas{height:700px}
+.note-overlay{position:absolute;left:12px;top:12px;max-width:min(690px,calc(100% - 24px));background:rgba(7,16,32,.79);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:8px 10px;color:#c7dfff;font-size:12px;line-height:1.38;pointer-events:none}
+.legend{position:absolute;left:12px;bottom:12px;display:flex;gap:10px;flex-wrap:wrap;background:rgba(7,16,32,.79);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:7px 9px;font-size:12px;color:#dbeafe;pointer-events:none}.sw{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,.28);vertical-align:-1px;margin-right:4px}
+.controls{border:1px solid var(--line);background:var(--paper2);border-radius:12px;padding:12px}.row{margin:0 0 12px}.row label{display:flex;justify-content:space-between;gap:10px;color:#334155;font-size:12px;margin-bottom:6px;font-weight:680}.row label span:last-child{color:#0f172a;font-weight:610}input[type=range]{width:100%;accent-color:var(--accent)}
+select{width:100%;background:#fff;color:#172033;border:1px solid var(--line);border-radius:9px;padding:8px 9px;font-family:var(--font);font-size:14px}.checks{display:grid;grid-template-columns:1fr;gap:8px;margin:8px 0 12px;color:#334155;font-size:13px}.checks input{accent-color:var(--accent)}
+.readout,.equation,.interp-box,.callout{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;color:#334155;font-size:13px;line-height:1.5;margin-top:10px}.equation{font-family:Georgia,"Times New Roman",serif;font-size:16px;line-height:1.65;color:#172033}.math-display{text-align:center}.eq-note{margin-top:6px;color:var(--muted);font-family:var(--font);font-size:12px;text-align:center}
+.button{width:100%;border:1px solid #1d4ed8;background:#fff;color:#1d4ed8;border-radius:9px;padding:8px 9px;font:680 13px var(--font);cursor:pointer;margin-top:7px}.button:hover{background:var(--accent-soft)}.button.secondary{border-color:var(--line);color:#334155}.button.warn{border-color:#c2410c;color:#c2410c}.button.warn:hover{background:#fff7ed}
+.derivation{margin-top:10px;border:1px solid var(--line);background:#fff;border-radius:10px;overflow:hidden}.derivation summary{cursor:pointer;padding:10px 12px;color:#1e3a8a;font-weight:710;font-size:13px;background:var(--accent-soft)}.derivation summary:hover{background:#dfeaff}.derivation-body{padding:11px 12px;color:#334155;font-size:13px;line-height:1.55}.derivation-body p{margin:6px 0}.derivation-body .math-display{margin:8px 0;padding:7px;background:var(--paper2);border:1px solid var(--line2);border-radius:8px}
+.interpretation-list{display:grid;grid-template-columns:1fr;gap:9px;margin-top:10px}.interp-item{border:1px solid var(--line2);background:var(--paper2);border-radius:10px;padding:12px;color:#334155;font-size:14px;line-height:1.55}.interp-item h3{margin:0 0 6px;color:#111827;font-size:14px}.interp-detail{display:none}.interp-detail.active{display:block}
+.pill{display:inline-block;padding:2px 7px;border-radius:999px;border:1px solid var(--line);font-size:11px;font-weight:700;margin:2px 4px 2px 0}.pill.quantum{color:#1d4ed8;background:#eff6ff;border-color:#bfdbfe}.pill.pilot{color:#6d28d9;background:#f5f3ff;border-color:#ddd6fe}.pill.numeric{color:#047857;background:#ecfdf5;border-color:#a7f3d0}
+.footer{margin:14px 0 0;border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:12px;color:var(--muted);font-size:13px}
+@media(max-width:980px){.header{grid-template-columns:1fr}.nav{justify-content:flex-start}.section-body{grid-template-columns:1fr}.canvas-card,.canvas-card.full{min-height:470px}canvas,.canvas-card.full canvas{height:470px}}
+@media(max-width:640px){.page{padding:10px}.header{padding:14px}.section-head{padding:14px}.section-body{padding:10px;gap:10px}.canvas-card,.canvas-card.full{min-height:360px}canvas,.canvas-card.full canvas{height:360px}.controls{width:100%}.nav a{font-size:12px;padding:6px 8px}.note-overlay{font-size:11px;max-width:calc(100% - 20px)}}
+@media(max-width:430px){.canvas-card,.canvas-card.full{min-height:320px}canvas,.canvas-card.full canvas{height:320px}.legend{left:8px;bottom:8px;font-size:11px;gap:7px}.readout,.equation,.interp-box{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="header">
+  <div>
+    <h1>Quantum Tunneling Notebook</h1>
+    <p>Explore a one-dimensional square barrier through two empirically equivalent accounts: an orthodox wavefunction-first account and a pilot-wave account with a definite particle configuration guided by the same wavefunction.</p>
+  </div>
+  <nav class="nav">
+    <a href="#part1">1. Classical limit</a><a href="#part2">2. Wave evolution</a><a href="#part3">3. Evanescence</a><a href="#part4">4. Transmission</a><a href="#part5">5. Outcomes</a><a href="#part6">6. Interpretations</a><a href="#full">Full applet</a>
+  </nav>
+</header>
+
+<section class="section" id="part1">
+  <div class="section-head">
+    <h2>1. Begin with the classical prediction</h2>
+    <p>A classical particle with total energy <em>E</em> below a barrier of height <em>V</em><sub>0</sub> cannot enter the barrier. Quantum mechanics changes that prediction because the state is a wavefunction, not just a point in phase space.</p>
+    <div class="detail-text"><p>Throughout this notebook, <strong>ℏ = m = 1</strong>. The central momentum is <em>k</em><sub>0</sub>, so the incident central energy is <em>E</em><sub>0</sub> = <em>k</em><sub>0</sub><sup>2</sup>/2. The rendered state is a normalizable Gaussian packet, not a literal infinite plane wave.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Orange: square potential V(x). Blue: incident central energy E₀. When E₀&lt;V₀, the classical prediction is R=1 and T=0. The rest of this notebook shows why the quantum calculation differs.</div></div>
+    <div class="controls">
+      <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" type="range" min="1.10" max="3.40" step="0.02" value="2.00"></div>
+      <div class="row"><label><span>Barrier height V₀</span><span data-label="v0"></span></label><input data-param="v0" type="range" min="0.40" max="5.50" step="0.05" value="2.80"></div>
+      <div class="row"><label><span>Barrier width a</span><span data-label="a"></span></label><input data-param="a" type="range" min="0.30" max="3.50" step="0.05" value="1.20"></div>
+      <div class="readout" id="s1Read"></div>
+      <div class="equation math-display">E₀ = k₀²/2<br>V(x) = V₀ for |x| ≤ a/2, and 0 otherwise<div class="eq-note">The barrier has finite width a, so the quantum wavefunction can extend across it.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part2">
+  <div class="section-head">
+    <h2>2. The Schrödinger equation evolves a complex packet</h2>
+    <p>The initial state is a Gaussian packet moving to the right. The visualization solves the one-dimensional time-dependent Schrödinger equation numerically with the same square barrier shown above.</p>
+    <div class="detail-text"><p>Re ψ, Im ψ, and ρ(x,t)=|ψ|² are overlaid in one shared spatial plot. Their vertical display scales are fixed for the entire run, so spreading and attenuation remain visible. The cyan/blue wavefunction curves and the gold density curve use <strong>different fixed display normalizations</strong>, so compare their shapes and evolution rather than their plotted heights. Re ψ and Im ψ are useful components of a complex state, but neither is separately observable: a global phase rotation changes them while leaving ρ, j, and all detector probabilities unchanged.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c2"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j inset</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div></div></div>
+    <div class="controls">
+      <div class="row"><label><span>Evolution time</span><span data-time-label></span></label><input data-time type="range" min="0" max="100" step="1" value="0"></div>
+      <div class="row"><label><span>Display global phase φ</span><span data-label="phase"></span></label><input data-phase type="range" min="-180" max="180" step="5" value="0"></div>
+      <div class="checks"><label><input data-show="re" type="checkbox" checked> Re ψ</label><label><input data-show="im" type="checkbox" checked> Im ψ</label><label><input data-show="rho" type="checkbox" checked> Probability density</label><label><input data-show="current" type="checkbox"> Probability current j</label></div>
+      <button class="button" data-action="play">Pause evolution</button><button class="button secondary" data-action="reset">Restart packet</button>
+      <div class="readout" id="s2Read"></div>
+      <details class="derivation"><summary>What calculation is actually being performed?</summary><div class="derivation-body"><p>The notebook evolves ψ with a finite-difference Crank–Nicolson step. For the closed finite grid used here, this is norm-conserving up to numerical roundoff:</p><div class="math-display">i ∂ψ/∂t = [−½∂²/∂x² + V(x)]ψ<br>(I + iΔtH/2)ψⁿ⁺¹ = (I − iΔtH/2)ψⁿ</div><p>The numerical detector estimate is taken from a boundary-safe, separated snapshot: the readout reports both residual barrier probability and total norm. Part 4 compares the numerical packet with both T(E₀) and the momentum-averaged packet prediction.</p></div></details>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part3">
+  <div class="section-head">
+    <h2>3. Below the barrier, the local wave is evanescent</h2>
+    <p>For a stationary component with E&lt;V₀, the wave number inside the barrier becomes imaginary: k→iκ. The resulting spatial dependence is exponential rather than oscillatory.</p>
+    <div class="detail-text"><p>This does <strong>not</strong> mean the packet simply vanishes at the first edge. A finite barrier supports a nonzero amplitude at its far edge. That surviving amplitude is the source of the transmitted packet.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c3"></canvas><div class="note-overlay">The time control is placed near the collision. The numerical Re ψ, Im ψ, and ρ=|ψ|² remain combined in one plot. The dashed orange line is only a local stationary-state density guide exp[−2κ(x+a/2)].</div></div>
+    <div class="controls">
+      <div class="row"><label><span>Collision-time view</span><span data-collision-label></span></label><input data-collision type="range" min="-35" max="35" step="1" value="0"></div>
+      <div class="row"><label><span>Packet width σ</span><span data-label="sigma"></span></label><input data-param="sigma" type="range" min="0.80" max="2.20" step="0.05" value="1.75"></div>
+      <div class="equation math-display">κ = √[2(V₀−E₀)] &nbsp; for E₀&lt;V₀<br>ψ<sub>II</sub>(x) = A e<sup>κx</sup> + B e<sup>−κx</sup><div class="eq-note">A single decaying exponential alone carries no probability current. The physical barrier solution contains both exponentials with complex coefficients fixed by matching at both edges.</div></div>
+      <div class="readout" id="s3Read"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part4">
+  <div class="section-head">
+    <h2>4. Transmission is controlled by barrier width and energy</h2>
+    <p>For a monochromatic incident wave, a finite square barrier has an exact transmission coefficient. Below the barrier it is exponentially small for a thick or high barrier, but not generically zero.</p>
+    <div class="detail-text"><p>The green curve is the exact stationary-plane-wave result. A finite Gaussian packet contains a range of wave numbers, so its appropriate comparison is the cyan momentum average <em>∫|ψ̃(k)|²T(k²/2)dk</em>, not only the gold single-energy value T(E₀). A narrower momentum distribution makes the two benchmarks converge.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c4"></canvas><div class="legend"><div><span class="sw" style="background:#54e0a0"></span>Exact plane-wave T(E)</div><div><span class="sw" style="background:#ffd24d"></span>T(E₀)</div><div><span class="sw" style="background:#4fc3ff"></span>packet average</div><div><span class="sw" style="background:#ff9966"></span>barrier height V₀</div></div></div>
+    <div class="controls">
+      <div class="row"><label><span>Barrier height V₀</span><span data-label="v0"></span></label><input data-param="v0" type="range" min="0.40" max="5.50" step="0.05" value="2.80"></div>
+      <div class="row"><label><span>Barrier width a</span><span data-label="a"></span></label><input data-param="a" type="range" min="0.30" max="3.50" step="0.05" value="1.20"></div>
+      <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" type="range" min="1.10" max="3.40" step="0.02" value="2.00"></div>
+      <div class="equation math-display">T = [1 + V₀²sinh²(κa)/(4E(V₀−E))]<sup>−1</sup>, &nbsp; E&lt;V₀<div class="eq-note">For E&gt;V₀, sinh(κa) is replaced by sin(qa), with q=√[2(E−V₀)]. The packet prediction averages this expression over the initial momentum distribution.</div></div>
+      <div class="readout" id="s4Read"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part5">
+  <div class="section-head">
+    <h2>5. One detection at a time; a frequency after many runs</h2>
+    <p>Do not read the final split packet as many particles in one experiment. First prepare <em>one</em> identical packet, then record <em>one</em> localized detector position. Repeating that preparation builds a frequency record.</p>
+    <div class="detail-text"><p><strong>Reading the canvas from top to bottom:</strong> (1) the gold late-time density specifies the probability of a detector position; (2) every red or green dot is one independent experimental run sampled from that density; (3) the lower bars compare the observed fractions with the quantum prediction. A dot is <strong>not</strong> a particle trajectory and the collection of dots is <strong>not</strong> one simultaneous multi-particle snapshot.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c5"></canvas></div>
+    <div class="controls">
+      <div class="row"><label><span>Independent preparations to add</span><span id="trialNLabel">100</span></label><input id="trialN" type="range" min="10" max="500" step="10" value="100"></div>
+      <button class="button" data-action="fire-one">Run one preparation</button>
+      <button class="button" data-action="fire">Add selected independent preparations</button>
+      <button class="button secondary" data-action="clear-trials">Clear detector record</button>
+      <div class="readout" id="s5Read"></div>
+      <div class="callout"><span class="pill quantum">Orthodox</span><span class="pill pilot">Pilot-wave</span><span class="pill numeric">Shared prediction</span><br>Both accounts predict the same detector frequencies when the Bohmian initial configuration is distributed according to |ψ|². The interpretations differ in the story assigned between preparation and detection—not in this histogram.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part6">
+  <div class="section-head">
+    <h2>6. The wavefunction prediction is shared; the ontological story changes</h2>
+    <p>Both choices use the same Schrödinger equation, barrier potential, density, current, and detector statistics. They disagree about whether an unobserved particle has a definite configuration throughout the experiment.</p>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c6"></canvas><div class="note-overlay" id="interpNote">Interpretation note</div></div>
+    <div class="controls">
+      <div class="row"><label><span>Interpretation</span><span id="interpLabel">Orthodox interpretation</span></label><select id="interpretation"><option value="orthodox" selected>Orthodox interpretation</option><option value="bohmian">Pilot-wave / Bohmian mechanics</option></select></div>
+      <div class="row"><label><span>Evolution time</span><span data-time-label></span></label><input data-time type="range" min="0" max="100" step="1" value="0"></div>
+      <div class="checks"><label><input data-show="re" type="checkbox" checked> Re ψ</label><label><input data-show="im" type="checkbox" checked> Im ψ</label><label><input data-show="rho" type="checkbox" checked> Probability density</label><label><input data-show="current" type="checkbox"> Probability current j</label><label id="guidanceRow"><input id="showGuidance" type="checkbox" checked> Show equilibrium Bohmian sample paths</label></div>
+      <div class="interp-box" id="s6Read"></div>
+      <div class="interpretation-list">
+        <div class="interp-item interp-detail active" data-interp="orthodox"><h3>Orthodox interpretation</h3><p>ψ is a probability amplitude. It evolves unitarily before measurement; a detector event is localized and has probabilities given by the Born rule. This presentation does not add a definite, measurement-independent particle path to the state description. Re ψ and Im ψ are display components whose split depends on a global phase convention.</p></div>
+        <div class="interp-item interp-detail" data-interp="bohmian"><h3>Pilot-wave / Bohmian mechanics</h3><p>The ontology includes both ψ and one actual particle configuration X(t) in each run. For a spinless one-dimensional particle, the guiding law is <strong>dX/dt = j/ρ</strong>, where j=Im(ψ*∂<sub>x</sub>ψ) in ℏ=m=1 units. The gold curves show a <strong>sampled equilibrium ensemble</strong> of configurations, obtained by the equivalent 1D cumulative-probability construction; they are not multiple particles in one run and not classical guesses.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="full">
+  <div class="section-head">
+    <h2>Full interactive applet</h2>
+    <p>Change the incident packet and barrier, then compare the fixed-scale complex components and density in one shared plot, optional probability-current inset, packet-averaged and numerical transmission, localized detector outcomes, and—only in pilot-wave mode—an equilibrium sample of guided configurations.</p>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card full"><canvas id="cFull"></canvas><div class="note-overlay" id="fullNote">Full model note</div><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div><div id="pathLegend"><span class="sw" style="background:#f7c948"></span>equilibrium configuration sample</div></div></div>
+    <div class="controls">
+      <div class="row"><label><span>Interpretation</span><span id="fInterpLabel">Orthodox interpretation</span></label><select id="fInterpretation"><option value="orthodox" selected>Orthodox interpretation</option><option value="bohmian">Pilot-wave / Bohmian mechanics</option></select></div>
+      <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" type="range" min="1.10" max="3.40" step="0.02" value="2.00"></div>
+      <div class="row"><label><span>Barrier height V₀</span><span data-label="v0"></span></label><input data-param="v0" type="range" min="0.40" max="5.50" step="0.05" value="2.80"></div>
+      <div class="row"><label><span>Barrier width a</span><span data-label="a"></span></label><input data-param="a" type="range" min="0.30" max="3.50" step="0.05" value="1.20"></div>
+      <div class="row"><label><span>Packet width σ</span><span data-label="sigma"></span></label><input data-param="sigma" type="range" min="0.80" max="2.20" step="0.05" value="1.75"></div>
+      <div class="row"><label><span>Animation speed</span><span data-label="speed"></span></label><input data-param="speed" type="range" min="0.20" max="2.25" step="0.05" value="0.85"></div>
+      <div class="row"><label><span>Evolution time</span><span data-time-label></span></label><input data-time type="range" min="0" max="100" step="1" value="0"></div>
+      <div class="row"><label><span>Display global phase φ</span><span data-label="phase"></span></label><input data-phase type="range" min="-180" max="180" step="5" value="0"></div>
+      <div class="checks"><label><input data-show="re" type="checkbox" checked> Re ψ</label><label><input data-show="im" type="checkbox" checked> Im ψ</label><label><input data-show="rho" type="checkbox" checked> Probability density</label><label><input data-show="current" type="checkbox"> Probability current j</label><label id="fGuidanceRow"><input id="fShowGuidance" type="checkbox" checked> Equilibrium Bohmian sample paths</label></div>
+      <button class="button" data-action="play">Pause evolution</button><button class="button secondary" data-action="reset">Restart packet</button><button class="button secondary" data-action="fire">Add detector trials</button><button class="button warn" data-action="recommend">Load under-barrier example</button>
+      <div class="readout" id="fRead"></div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">By Mark Hattarki</div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ----------------------------- core model ----------------------------- */
+const C = {
+  bg:"#071020", grid:"rgba(153,194,255,.13)", ink:"#dbeafe", muted:"rgba(191,228,255,.76)",
+  cyan:"#4fc3ff", blue:"#2563eb", gold:"#ffd24d", orange:"#ff9966", green:"#54e0a0", red:"#ff6b6b",
+  phase:"#c084fc", white:"#f8fafc"
+};
+const params = { k0:2.00, v0:2.80, a:1.20, sigma:1.75, speed:0.85 };
+const view = { re:true, im:true, rho:true, current:false, interpretation:"orthodox", guidance:true, phase:0 };
+const sim = { playing:true, time:0, last:performance.now(), lastRender:0, trials:[], lastTrial:null, rebuilding:false, pending:null };
+let engine = null;
+
+function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
+function sq(x){ return x*x; }
+function fmt(x,n=2){ return Number(x).toFixed(n); }
+function energy(p=params){ return 0.5*p.k0*p.k0; }
+function kappa(p=params){ return Math.sqrt(Math.max(0,2*(p.v0-energy(p)))); }
+function gaussianDeltaK(p=params){ return 1/(2*Math.max(p.sigma,1e-9)); }
+function phaseRadians(){ return view.phase*Math.PI/180; }
+
+function planeTransmission(E,V,a){
+  if(E<=1e-10) return 0;
+  if(Math.abs(E-V)<1e-7) return 1/(1 + V*V*a*a/(2*E));
+  if(E<V){
+    const kap=Math.sqrt(2*(V-E));
+    const s=Math.sinh(kap*a);
+    return 1/(1+(V*V*s*s)/(4*E*(V-E)));
+  }
+  const q=Math.sqrt(2*(E-V));
+  const s=Math.sin(q*a);
+  return 1/(1+(V*V*s*s)/(4*E*(E-V)));
+}
+
+// Momentum-average appropriate to the normalized initial Gaussian packet:
+// |psi~(k)|^2 is proportional to exp[-2 sigma^2 (k-k0)^2].
+function packetTransmission(p=params){
+  const dk=gaussianDeltaK(p);
+  const lo=Math.max(0,p.k0-8*dk);
+  const hi=p.k0+8*dk;
+  const n=800; // even: Simpson quadrature
+  const h=(hi-lo)/n;
+  let numerator=0, denominator=0;
+  for(let i=0;i<=n;i++){
+    const k=lo+i*h;
+    const weight=Math.exp(-2*sq(p.sigma)*sq(k-p.k0));
+    const coeff=(i===0||i===n)?1:(i%2?4:2);
+    denominator+=coeff*weight;
+    numerator+=coeff*weight*planeTransmission(0.5*k*k,p.v0,p.a);
+  }
+  return numerator/Math.max(denominator,1e-14);
+}
+
+class TDSEngine {
+  constructor(p){
+    this.p={...p};
+    // dx = 0.05 matches the width control increment. The barrier edge cells are
+    // cell-averaged, so sub-cell changes in a still alter the numerical potential.
+    this.N=1441;
+    this.xmin=-36;
+    this.xmax=36;
+    this.dx=(this.xmax-this.xmin)/(this.N-1);
+    this.x=new Float64Array(this.N);
+    this.V=new Float64Array(this.N);
+    this.x0=-11.0;
+    const left=-p.a/2, right=p.a/2;
+    for(let i=0;i<this.N;i++){
+      const x=this.xmin+i*this.dx;
+      this.x[i]=x;
+      const cellL=x-this.dx/2, cellR=x+this.dx/2;
+      const overlap=Math.max(0,Math.min(cellR,right)-Math.max(cellL,left));
+      this.V[i]=p.v0*overlap/this.dx;
+    }
+    const arrival=(left-this.x0)/Math.max(p.k0,.45);
+    this.tMax=clamp(arrival+Math.max(6.5,3.0*p.sigma+2.5),9.0,18.0);
+    this.dt=0.006;
+    this.snapshots=301;
+    this.steps=Math.ceil(this.tMax/this.dt);
+    this.stride=Math.max(1,Math.ceil(this.steps/(this.snapshots-1)));
+    this.frames=[];
+    this._run();
+    this._derive();
+  }
+
+  _normalise(re,im){
+    let norm=0;
+    for(let i=0;i<this.N;i++) norm+=(re[i]*re[i]+im[i]*im[i])*this.dx;
+    const s=1/Math.sqrt(Math.max(norm,1e-20));
+    for(let i=0;i<this.N;i++){ re[i]*=s; im[i]*=s; }
+  }
+
+  _snapshot(re,im,t){
+    const r=new Float32Array(re), q=new Float32Array(im), cdf=new Float32Array(this.N);
+    let norm=0, edge=0;
+    for(let i=0;i<this.N;i++){
+      const rho=(r[i]*r[i]+q[i]*q[i]);
+      norm+=rho*this.dx;
+      if(Math.abs(this.x[i])>32) edge+=rho*this.dx;
+      cdf[i]=norm;
+    }
+    const inv=1/Math.max(norm,1e-14);
+    for(let i=0;i<this.N;i++) cdf[i]*=inv;
+    this.frames.push({t,r,i:q,cdf,norm,edge});
+  }
+
+  _run(){
+    const N=this.N, M=N-2, dx=this.dx, p=this.p;
+    let re=new Float64Array(N), im=new Float64Array(N);
+    for(let j=0;j<N;j++){
+      const x=this.x[j];
+      const g=Math.exp(-sq(x-this.x0)/(4*sq(p.sigma)));
+      re[j]=g*Math.cos(p.k0*x);
+      im[j]=g*Math.sin(p.k0*x);
+    }
+    this._normalise(re,im);
+    this._snapshot(re,im,0);
+
+    const invdx2=1/(dx*dx);
+    const aoff=-this.dt*0.25*invdx2;
+    const boff= this.dt*0.25*invdx2;
+    const cpR=new Float64Array(M), cpI=new Float64Array(M), dpR=new Float64Array(M), dpI=new Float64Array(M);
+    let nextR=new Float64Array(N), nextI=new Float64Array(N);
+    let time=0;
+    for(let step=1;step<=this.steps;step++){
+      for(let n=0;n<M;n++){
+        const j=n+1, hdiag=invdx2+this.V[j], adi=this.dt*0.5*hdiag;
+        const pr=re[j], pi=im[j];
+        const lr=re[j-1]+re[j+1], li=im[j-1]+im[j+1];
+        // b = (I - i dt H/2) psi. In real/imaginary components:
+        // (1 - i adi)(pr+i pi) + i boff (left+right).
+        let br=pr+adi*pi-boff*li;
+        let bi=pi-adi*pr+boff*lr;
+        let denR=1, denI=adi; // diagonal of A = I + i dt H/2
+        if(n>0){
+          denR -= -aoff*cpI[n-1];
+          denI -=  aoff*cpR[n-1];
+          br   -= -aoff*dpI[n-1];
+          bi   -=  aoff*dpR[n-1];
+        }
+        const den2=denR*denR+denI*denI;
+        if(n<M-1){
+          cpR[n]=(aoff*denI)/den2;
+          cpI[n]=(aoff*denR)/den2;
+        }
+        dpR[n]=(br*denR+bi*denI)/den2;
+        dpI[n]=(bi*denR-br*denI)/den2;
+      }
+      nextR[0]=nextI[0]=nextR[N-1]=nextI[N-1]=0;
+      nextR[N-2]=dpR[M-1]; nextI[N-2]=dpI[M-1];
+      for(let n=M-2;n>=0;n--){
+        const j=n+1;
+        const pr=cpR[n]*nextR[j+1]-cpI[n]*nextI[j+1];
+        const pi=cpR[n]*nextI[j+1]+cpI[n]*nextR[j+1];
+        nextR[j]=dpR[n]-pr;
+        nextI[j]=dpI[n]-pi;
+      }
+      [re,nextR]=[nextR,re]; [im,nextI]=[nextI,im];
+      time=step*this.dt;
+      if(step%this.stride===0 || step===this.steps) this._snapshot(re,im,time);
+    }
+    this.tMax=this.frames[this.frames.length-1].t;
+  }
+
+  _regions(frame){
+    const left=-this.p.a/2, right=this.p.a/2;
+    let L=0,R=0,inside=0;
+    for(let i=0;i<this.N;i++){
+      const rho=frame.r[i]*frame.r[i]+frame.i[i]*frame.i[i];
+      if(this.x[i]<left) L+=rho*this.dx;
+      else if(this.x[i]>right) R+=rho*this.dx;
+      else inside+=rho*this.dx;
+    }
+    const norm=Math.max(L+R+inside,1e-14);
+    return { L:L/norm, R:R/norm, inside:inside/norm, norm:frame.norm, edge:frame.edge/norm };
+  }
+
+  _derive(){
+    this.Tplane=planeTransmission(energy(this.p),this.p.v0,this.p.a);
+    this.Tpacket=packetTransmission(this.p);
+    this.collisionTime=clamp(((-this.p.a/2-this.x0)/Math.max(this.p.k0,.45))+0.55*this.p.sigma,0,this.tMax);
+
+    let best=null;
+    const earliest=this.collisionTime+Math.max(1.0,0.55*this.p.sigma);
+    this.frameStats=this.frames.map(frame=>this._regions(frame));
+    for(let i=0;i<this.frames.length;i++){
+      const frame=this.frames[i], s=this.frameStats[i];
+      if(frame.t<earliest || s.edge>2e-4) continue;
+      const score=s.inside+25*s.edge;
+      if(!best || score<best.score) best={i,score};
+    }
+    if(!best){
+      let i=this.frames.length-1;
+      best={i,score:this.frameStats[i].inside+25*this.frameStats[i].edge};
+    }
+    this.measureIndex=best.i;
+    this.measureFrame=this.frames[this.measureIndex];
+    this.measureStats=this.frameStats[this.measureIndex];
+    this.tMeasure=this.measureFrame.t;
+    this.Tnum=this.measureStats.R;
+    this.Rnum=this.measureStats.L;
+    this.inside=this.measureStats.inside;
+    this.edge=this.measureStats.edge;
+    this.Tdetector=this.Tnum/Math.max(this.Tnum+this.Rnum,1e-14);
+    this.ready=this.edge<2e-4 && this.inside<Math.max(1e-4,0.05*this.Tpacket);
+    this.normMaxDeviation=Math.max(...this.frames.map(f=>Math.abs(f.norm-1)));
+
+    this.ampRef=1e-7;
+    this.rhoRef=1e-8;
+    this.currentRef=1e-8;
+    for(const frame of this.frames){
+      for(let i=0;i<this.N;i++){
+        this.ampRef=Math.max(this.ampRef,Math.abs(frame.r[i]),Math.abs(frame.i[i]));
+        this.rhoRef=Math.max(this.rhoRef,frame.r[i]*frame.r[i]+frame.i[i]*frame.i[i]);
+      }
+      for(let i=1;i<this.N-1;i++){
+        const dr=(frame.r[i+1]-frame.r[i-1])/(2*this.dx);
+        const di=(frame.i[i+1]-frame.i[i-1])/(2*this.dx);
+        const j=frame.r[i]*di-frame.i[i]*dr;
+        this.currentRef=Math.max(this.currentRef,Math.abs(j));
+      }
+    }
+
+    this.trajectories=[];
+    const qs=[.025,.07,.12,.17,.22,.27,.32,.37,.42,.47,.52,.57,.62,.67,.72,.77,.82,.87,.92,.97];
+    for(const q of qs){
+      const path=[];
+      for(const frame of this.frames) path.push(this.inverseCDF(frame.cdf,q));
+      this.trajectories.push({q,path});
+    }
+  }
+
+  inverseCDF(cdf,q){
+    let lo=0,hi=this.N-1;
+    while(lo<hi){
+      const mid=(lo+hi)>>1;
+      if(cdf[mid]<q) lo=mid+1; else hi=mid;
+    }
+    const i=lo;
+    if(i===0) return this.x[0];
+    const c0=cdf[i-1], c1=cdf[i], f=(q-c0)/Math.max(c1-c0,1e-12);
+    return this.x[i-1]+f*this.dx;
+  }
+
+  frameAt(t){
+    const f=clamp(t,0,this.tMax);
+    let lo=0,hi=this.frames.length-1;
+    while(lo<hi){
+      const mid=Math.ceil((lo+hi)/2);
+      if(this.frames[mid].t<=f) lo=mid; else hi=mid-1;
+    }
+    const a=this.frames[lo], b=this.frames[Math.min(lo+1,this.frames.length-1)];
+    const u=(b===a)?0:(f-a.t)/Math.max(b.t-a.t,1e-12);
+    return {a,b,u,index:lo,t:f};
+  }
+
+  component(state,i){
+    return {
+      re:state.a.r[i]*(1-state.u)+state.b.r[i]*state.u,
+      im:state.a.i[i]*(1-state.u)+state.b.i[i]*state.u
+    };
+  }
+
+  currentAt(state,i){
+    const j=clamp(i,1,this.N-2);
+    const c=this.component(state,j);
+    const l=this.component(state,j-1);
+    const r=this.component(state,j+1);
+    const dre=(r.re-l.re)/(2*this.dx);
+    const dim=(r.im-l.im)/(2*this.dx);
+    const rho=c.re*c.re+c.im*c.im;
+    if(rho<1e-8*this.rhoRef) return 0;
+    return c.re*dim-c.im*dre;
+  }
+
+  trajectoryX(tr,state){
+    const i=state.index, j=Math.min(i+1,tr.path.length-1);
+    return tr.path[i]*(1-state.u)+tr.path[j]*state.u;
+  }
+
+  normAt(state){ return state.a.norm*(1-state.u)+state.b.norm*state.u; }
+
+  sampleDetectorPosition(){
+    const left=-this.p.a/2,right=this.p.a/2, frame=this.measureFrame;
+    for(let attempt=0;attempt<50;attempt++){
+      const x=this.inverseCDF(frame.cdf,Math.random());
+      if(x<left || x>right) return x;
+    }
+    return this.inverseCDF(frame.cdf,Math.random());
+  }
+}
+
+/* --------------------------- canvas drawing --------------------------- */
+function canvasContext(canvas){
+  const rect=canvas.getBoundingClientRect(), dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=Math.max(1,Math.round(rect.width)), h=Math.max(1,Math.round(rect.height));
+  if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){
+    canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+  }
+  const ctx=canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+function clear(ctx,w,h){
+  ctx.clearRect(0,0,w,h); ctx.fillStyle=C.bg; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle=C.grid; ctx.lineWidth=1;
+  for(let i=0;i<=12;i++){ const x=i*w/12; ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke(); }
+  for(let j=0;j<=8;j++){ const y=j*h/8; ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke(); }
+}
+function text(ctx,txt,x,y,color=C.ink,font="12px system-ui",align="left"){
+  ctx.fillStyle=color;ctx.font=font;ctx.textAlign=align;ctx.fillText(txt,x,y);
+}
+function line(ctx,pts,color,width=1.5,dash=[]){
+  if(!pts.length) return;
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();
+  pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.restore();
+}
+function plotBox(ctx,w,h,{left=54,right=20,top=42,bottom=58}={}){
+  const box={x:left,y:top,w:w-left-right,h:h-top-bottom};
+  ctx.strokeStyle="rgba(219,234,254,.45)";ctx.lineWidth=1;ctx.strokeRect(box.x,box.y,box.w,box.h);
+  return box;
+}
+function subBox(ctx,box,y,h,label){
+  const b={x:box.x+1,y,w:box.w-2,h};
+  ctx.strokeStyle="rgba(219,234,254,.27)";ctx.lineWidth=1;ctx.strokeRect(b.x,b.y,b.w,b.h);
+  text(ctx,label,b.x+7,b.y+15,C.muted,"700 10px system-ui");
+  return b;
+}
+function xPix(x,box){ return box.x+(x-engine.xmin)/(engine.xmax-engine.xmin)*box.w; }
+function rotateDisplay(re,im){
+  const phi=phaseRadians(), c=Math.cos(phi), s=Math.sin(phi);
+  return {re:re*c-im*s, im:re*s+im*c};
+}
+function drawXLabels(ctx,box){
+  const y=box.y+box.h+17;
+  text(ctx,"−36",box.x,y,C.muted,"10px system-ui");
+  text(ctx,"0",xPix(0,box),y,C.muted,"10px system-ui","center");
+  text(ctx,"36",box.x+box.w,y,C.muted,"10px system-ui","right");
+  text(ctx,"x",box.x+box.w,y-14,C.muted,"10px system-ui","right");
+}
+function drawClassicalPotential(ctx,box,base,energyLine=true){
+  const xL=xPix(-params.a/2,box), xR=xPix(params.a/2,box);
+  const potentialScale=Math.min(26,box.h*.30/Math.max(params.v0,1));
+  const hh=params.v0*potentialScale;
+  ctx.fillStyle="rgba(255,153,102,.22)";ctx.fillRect(xL,base-hh,xR-xL,hh);
+  ctx.strokeStyle=C.orange;ctx.lineWidth=2;ctx.strokeRect(xL,base-hh,xR-xL,hh);
+  text(ctx,"V₀",xL+5,base-hh-8,C.orange,"700 12px system-ui");
+  if(energyLine){
+    const E=energy(),ey=base-E*potentialScale;
+    ctx.save();ctx.strokeStyle="rgba(79,195,255,.9)";ctx.setLineDash([6,5]);ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(box.x,ey);ctx.lineTo(box.x+box.w,ey);ctx.stroke();ctx.restore();
+    text(ctx,"E₀",box.x+5,ey-7,C.cyan,"700 12px system-ui");
+  }
+  return {xL,xR,potentialScale};
+}
+function drawPotentialDensity(ctx,box,base){
+  const xL=xPix(-params.a/2,box),xR=xPix(params.a/2,box);
+  const displayMax=6.0;
+  const pScale=box.h*.56/displayMax;
+  const h=params.v0*pScale;
+  ctx.fillStyle="rgba(255,153,102,.21)";ctx.fillRect(xL,base-h,xR-xL,h);
+  ctx.strokeStyle=C.orange;ctx.lineWidth=1.5;ctx.strokeRect(xL,base-h,xR-xL,h);
+  text(ctx,"V₀",xL+4,base-h-5,C.orange,"700 10px system-ui");
+  const E=energy(),ey=base-E*pScale;
+  ctx.save();ctx.strokeStyle="rgba(79,195,255,.78)";ctx.setLineDash([5,4]);ctx.lineWidth=1.05;ctx.beginPath();ctx.moveTo(box.x,ey);ctx.lineTo(box.x+box.w,ey);ctx.stroke();ctx.restore();
+  text(ctx,"E₀",box.x+3,ey-5,C.cyan,"700 10px system-ui");
+  return {xL,xR,pScale};
+}
+function drawClassicAxes(ctx,box,base){
+  ctx.strokeStyle="rgba(219,234,254,.75)";ctx.lineWidth=1.25;ctx.beginPath();ctx.moveTo(box.x,base);ctx.lineTo(box.x+box.w,base);ctx.stroke();
+  text(ctx,"x",box.x+box.w-4,base-8,C.muted,"12px system-ui","right");
+  text(ctx,"−36",box.x,base+20,C.muted,"11px system-ui");
+  text(ctx,"0",xPix(0,box),base+20,C.muted,"11px system-ui","center");
+  text(ctx,"36",box.x+box.w,base+20,C.muted,"11px system-ui","right");
+}
+
+// Re/Im and density share one x-axis and one common plot. Their display scales are
+// fixed for the whole run, but separate, because ψ and |ψ|² have different units.
+function drawPacket(ctx,w,h,t,opts={}){
+  const box=opts.box||plotBox(ctx,w,h,{left:52,right:18,top:48,bottom:58});
+  const state=engine.frameAt(t);
+  const showRe=opts.re??view.re, showIm=opts.im??view.im, showRho=opts.rho??view.rho;
+  const showCurrent=opts.current??view.current;
+  const base=box.y+box.h*.78;
+  const ampScale=box.h*.25/engine.ampRef;
+  const rhoScale=box.h*.47/engine.rhoRef;
+
+  // One shared zero/reference axis. Potential and density are conventionally drawn
+  // upward from it; Re and Im are signed excursions about it.
+  ctx.strokeStyle="rgba(219,234,254,.38)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(box.x,base);ctx.lineTo(box.x+box.w,base);ctx.stroke();
+  drawPotentialDensity(ctx,box,base);
+
+  if(showRho){
+    const pts=[];
+    for(let i=0;i<engine.N;i++){
+      const z=engine.component(state,i),rho=z.re*z.re+z.im*z.im;
+      pts.push([xPix(engine.x[i],box),base-rho*rhoScale]);
+    }
+    line(ctx,pts,C.gold,2.2);
+  }
+  if(showRe){
+    const pts=[];
+    for(let i=0;i<engine.N;i++){
+      const z=engine.component(state,i),d=rotateDisplay(z.re,z.im);
+      pts.push([xPix(engine.x[i],box),base-d.re*ampScale]);
+    }
+    line(ctx,pts,C.cyan,1.55);
+  }
+  if(showIm){
+    const pts=[];
+    for(let i=0;i<engine.N;i++){
+      const z=engine.component(state,i),d=rotateDisplay(z.re,z.im);
+      pts.push([xPix(engine.x[i],box),base-d.im*ampScale]);
+    }
+    line(ctx,pts,C.blue,1.45);
+  }
+
+  // Current remains available, but as a small inset so it does not split the main state view.
+  let currentBox=null;
+  if(showCurrent){
+    const iw=Math.max(160,box.w*.34), ih=Math.min(68,Math.max(48,box.h*.20));
+    currentBox={x:box.x+7,y:box.y+28,w:iw,h:ih};
+    ctx.fillStyle="rgba(7,16,32,.86)";ctx.fillRect(currentBox.x,currentBox.y,currentBox.w,currentBox.h);
+    ctx.strokeStyle="rgba(84,224,160,.48)";ctx.lineWidth=1;ctx.strokeRect(currentBox.x,currentBox.y,currentBox.w,currentBox.h);
+    const currentBase=currentBox.y+currentBox.h*.60;
+    ctx.strokeStyle="rgba(219,234,254,.28)";ctx.beginPath();ctx.moveTo(currentBox.x,currentBase);ctx.lineTo(currentBox.x+currentBox.w,currentBase);ctx.stroke();
+    const currentScale=currentBox.h*.31/engine.currentRef;
+    const pts=[];
+    for(let i=0;i<engine.N;i++) pts.push([xPix(engine.x[i],currentBox),currentBase-engine.currentAt(state,i)*currentScale]);
+    line(ctx,pts,C.green,1.35);
+    text(ctx,"probability current j(x,t)",currentBox.x+6,currentBox.y+14,C.green,"700 10px system-ui");
+    text(ctx,"rightward +",currentBox.x+currentBox.w-6,currentBox.y+14,C.green,"700 10px system-ui","right");
+  }
+
+  text(ctx,"fixed display scales: ψ and ρ are normalized separately",box.x+7,box.y+15,C.muted,"700 10px system-ui");
+  text(ctx,`display phase φ = ${fmt(view.phase,0)}°`,box.x+box.w-7,box.y+15,C.phase,"700 10px system-ui","right");
+  drawXLabels(ctx,box);
+  text(ctx,`t = ${fmt(t,2)}   |   ||ψ||² = ${fmt(engine.normAt(state),8)}`,box.x,box.y-16,C.muted,"12px system-ui");
+  return {box,currentBox,state,base,ampScale,rhoScale};
+}
+
+function drawBohmian(ctx,packet){
+  const {box,currentBox,state}=packet;
+  const bx=box.x+box.w*.56, by=box.y+28, bw=box.w*.41, bh=Math.min(126,Math.max(92,box.h*.31));
+  ctx.fillStyle="rgba(7,16,32,.88)";ctx.fillRect(bx,by,bw,bh);ctx.strokeStyle="rgba(255,210,77,.45)";ctx.strokeRect(bx,by,bw,bh);
+  text(ctx,"equilibrium ensemble of X(t)",bx+8,by+16,"rgba(255,235,166,.96)","700 10px system-ui");
+  text(ctx,"one run has one configuration",bx+8,by+30,C.muted,"10px system-ui");
+  const px=x=>bx+6+(x-engine.xmin)/(engine.xmax-engine.xmin)*(bw-12);
+  const py=tt=>by+39+tt/engine.tMax*(bh-45);
+  for(const tr of engine.trajectories){
+    const pts=[];
+    for(let n=0;n<=state.index;n++) pts.push([px(tr.path[n]),py(engine.frames[n].t)]);
+    pts.push([px(engine.trajectoryX(tr,state)),py(state.t)]);
+    line(ctx,pts,"rgba(255,210,77,.56)",.85);
+  }
+  ctx.save();ctx.strokeStyle="rgba(84,224,160,.7)";ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(px(params.a/2),by+37);ctx.lineTo(px(params.a/2),by+bh-5);ctx.stroke();ctx.restore();
+  for(const tr of engine.trajectories){
+    const x=engine.trajectoryX(tr,state);
+    ctx.fillStyle=C.gold;ctx.beginPath();ctx.arc(px(x),py(state.t),1.8,0,Math.PI*2);ctx.fill();
+  }
+
+  // The configuration strip stays inside the single combined plot, not on ψ itself.
+  const y=box.y+box.h-8;
+  ctx.fillStyle="rgba(7,16,32,.78)";ctx.fillRect(box.x+1,y-12,box.w-2,14);
+  ctx.strokeStyle="rgba(255,210,77,.45)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(box.x+1,y);ctx.lineTo(box.x+box.w-1,y);ctx.stroke();
+  text(ctx,"sample X(t)",box.x+4,y-14,"rgba(255,235,166,.92)","700 10px system-ui");
+  for(const tr of engine.trajectories){
+    const x=engine.trajectoryX(tr,state), final=tr.path[tr.path.length-1], col=final>params.a/2?C.green:C.red;
+    ctx.fillStyle=col;ctx.strokeStyle="rgba(7,16,32,.85)";ctx.lineWidth=1;ctx.beginPath();ctx.arc(xPix(x,box),y,3.1,0,Math.PI*2);ctx.fill();ctx.stroke();
+  }
+}
+
+function drawClassical(canvas){
+  const {ctx,w,h}=canvasContext(canvas);clear(ctx,w,h);
+  const box=plotBox(ctx,w,h,{left:58,right:22,top:50,bottom:70}),base=box.y+box.h*.70;
+  const pot=drawClassicalPotential(ctx,box,base,true);drawClassicAxes(ctx,box,base);
+  const E=energy(), under=E<params.v0;
+  const x0=xPix(-13,box), ex=xPix(-params.a/2,box), ey=base-E*pot.potentialScale;
+  ctx.fillStyle=under?C.red:C.green;ctx.strokeStyle=under?C.red:C.green;ctx.lineWidth=3;ctx.beginPath();ctx.arc(x0,ey,7,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.save();ctx.strokeStyle=under?C.red:C.green;ctx.setLineDash([7,5]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x0+9,ey);ctx.lineTo(ex-4,ey);ctx.stroke();ctx.restore();
+  if(under){
+    text(ctx,"classical point reaches a turning point",xPix(-15.5,box),box.y+40,C.red,"700 13px system-ui");
+    text(ctx,"classical T = 0",xPix(7,box),box.y+78,C.red,"700 16px system-ui");
+  } else {
+    text(ctx,"classical point crosses the barrier",xPix(-15.5,box),box.y+40,C.green,"700 13px system-ui");
+    text(ctx,"classical crossing allowed",xPix(7,box),box.y+78,C.green,"700 16px system-ui");
+    ctx.save();ctx.strokeStyle=C.green;ctx.setLineDash([7,5]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ex+4,ey);ctx.lineTo(xPix(16,box),ey);ctx.stroke();ctx.restore();
+  }
+}
+
+function drawEvanescent(canvas){
+  const {ctx,w,h}=canvasContext(canvas);clear(ctx,w,h);
+  const offset=Number(document.querySelector("[data-collision]")?.value||0)/100*engine.tMax;
+  const t=clamp(engine.collisionTime+offset,0,engine.tMax);
+  const o=drawPacket(ctx,w,h,t,{re:true,im:true,rho:true,current:view.current,guide:false});
+  if(energy()<params.v0){
+    const left=-params.a/2,right=params.a/2,kap=kappa();
+    const z=engine.component(o.state,Math.round((left-engine.xmin)/engine.dx));
+    const rho0=z.re*z.re+z.im*z.im;
+    const pts=[];
+    for(let n=0;n<=80;n++){
+      const x=left+(right-left)*n/80;
+      const g=rho0*Math.exp(-2*kap*(x-left));
+      pts.push([xPix(x,o.box),o.base-g*o.rhoScale]);
+    }
+    line(ctx,pts,C.orange,1.65,[6,5]);
+    text(ctx,"local exp(−2κx) density guide",o.box.x+7,o.box.y+27,C.orange,"700 10px system-ui");
+    text(ctx,`κ = ${fmt(kap,2)}`,o.box.x+o.box.w-7,o.box.y+27,C.orange,"700 10px system-ui","right");
+  } else {
+    text(ctx,"E₀ ≥ V₀: the interior component is oscillatory, not evanescent.",w*.5,78,C.green,"700 13px system-ui","center");
+  }
+}
+
+function drawTransmission(canvas){
+  const {ctx,w,h}=canvasContext(canvas);clear(ctx,w,h);
+  const box=plotBox(ctx,w,h,{left:56,right:24,top:52,bottom:58});
+  const xE=E=>box.x+(E-.05)/(6.2-.05)*box.w;
+  const yT=T=>box.y+box.h-(T*.92+.04)*box.h;
+  ctx.strokeStyle="rgba(219,234,254,.75)";ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(box.x,box.y+box.h);ctx.lineTo(box.x+box.w,box.y+box.h);ctx.moveTo(box.x,box.y);ctx.lineTo(box.x,box.y+box.h);ctx.stroke();
+  for(let j=0;j<=4;j++){
+    const y=box.y+box.h*j/4;ctx.strokeStyle="rgba(153,194,255,.15)";ctx.beginPath();ctx.moveTo(box.x,y);ctx.lineTo(box.x+box.w,y);ctx.stroke();
+    text(ctx,fmt(1-j/4,2),box.x-8,y+4,C.muted,"11px system-ui","right");
+  }
+  const pts=[];
+  for(let n=0;n<=480;n++){ const E=.05+6.15*n/480; pts.push([xE(E),yT(planeTransmission(E,params.v0,params.a))]); }
+  line(ctx,pts,C.green,2.25);
+  const Vx=xE(params.v0);ctx.save();ctx.strokeStyle=C.orange;ctx.setLineDash([6,4]);ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(Vx,box.y);ctx.lineTo(Vx,box.y+box.h);ctx.stroke();ctx.restore();text(ctx,"V₀",Vx+4,box.y+15,C.orange,"700 12px system-ui");
+  const E=energy(),T0=engine.Tplane,Ex=xE(E),Ey=yT(T0);
+  ctx.fillStyle=C.gold;ctx.strokeStyle="rgba(7,16,32,.85)";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(Ex,Ey,5,0,Math.PI*2);ctx.fill();ctx.stroke();
+  text(ctx,`T(E₀)=${fmt(T0,3)}`,Ex,Ey-12,C.gold,"700 11px system-ui","center");
+  const ybar=yT(engine.Tpacket);ctx.save();ctx.strokeStyle=C.cyan;ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(box.x,ybar);ctx.lineTo(box.x+box.w,ybar);ctx.stroke();ctx.restore();
+  text(ctx,`packet average = ${fmt(engine.Tpacket,3)}`,box.x+box.w-4,ybar-5,C.cyan,"700 11px system-ui","right");
+  text(ctx,"incident energy E",box.x+box.w,box.y+box.h+33,C.muted,"12px system-ui","right");text(ctx,"T(E)",box.x+4,box.y-17,C.muted,"12px system-ui");
+}
+
+function drawTrials(canvas){
+  const {ctx,w,h}=canvasContext(canvas); clear(ctx,w,h);
+  const box=plotBox(ctx,w,h,{left:52,right:22,top:48,bottom:46});
+  const count=sim.trials.length;
+  const trans=sim.trials.filter(v=>v.transmitted).length;
+  const refl=count-trans;
+  const expectedT=engine.Tdetector, expectedR=1-expectedT;
+  const leftEdge=xPix(-params.a/2,box), rightEdge=xPix(params.a/2,box);
+  const frame=engine.measureFrame;
+
+  // --- 1. Probability density at the chosen separated measurement time ---
+  const densityY=box.y+28;
+  const densityH=Math.max(90,Math.min(124,box.h*.29));
+  const densityBase=densityY+densityH-14;
+  text(ctx,"1. Separated final density: this gold curve sets the probabilities",box.x+7,box.y+15,C.gold,"700 11px system-ui");
+  ctx.fillStyle="rgba(255,107,107,.075)";ctx.fillRect(box.x+1,densityY,leftEdge-box.x-1,densityH);
+  ctx.fillStyle="rgba(255,153,102,.055)";ctx.fillRect(leftEdge,densityY,rightEdge-leftEdge,densityH);
+  ctx.fillStyle="rgba(84,224,160,.075)";ctx.fillRect(rightEdge,densityY,box.x+box.w-rightEdge-1,densityH);
+  ctx.strokeStyle="rgba(219,234,254,.24)";ctx.lineWidth=1;ctx.strokeRect(box.x+1,densityY,box.w-2,densityH);
+  let maxRho=1e-14;
+  for(let i=0;i<engine.N;i++) maxRho=Math.max(maxRho,frame.r[i]*frame.r[i]+frame.i[i]*frame.i[i]);
+  const densityScale=(densityH-31)/maxRho;
+  const area=[];
+  area.push([box.x+1,densityBase]);
+  for(let i=0;i<engine.N;i++){
+    const rho=frame.r[i]*frame.r[i]+frame.i[i]*frame.i[i];
+    area.push([xPix(engine.x[i],box),densityBase-rho*densityScale]);
+  }
+  area.push([box.x+box.w-1,densityBase]);
+  ctx.save();ctx.beginPath();area.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle="rgba(255,210,77,.18)";ctx.fill();ctx.restore();
+  line(ctx,area.slice(1,-1),C.gold,2.15);
+  ctx.save();ctx.strokeStyle="rgba(219,234,254,.48)";ctx.setLineDash([4,4]);ctx.lineWidth=1;
+  [leftEdge,rightEdge].forEach(x=>{ctx.beginPath();ctx.moveTo(x,densityY);ctx.lineTo(x,densityBase+2);ctx.stroke();});ctx.restore();
+  text(ctx,`left detector  P(L)=${fmt(expectedR,3)}`, (box.x+leftEdge)/2,densityY+densityH-3,C.red,"700 10px system-ui","center");
+  text(ctx,"barrier region",(leftEdge+rightEdge)/2,densityY+15,C.orange,"700 10px system-ui","center");
+  text(ctx,`right detector  P(R)=${fmt(expectedT,3)}`, (rightEdge+box.x+box.w)/2,densityY+densityH-3,C.green,"700 10px system-ui","center");
+
+  // --- 2. A visual log of independent detector clicks ---
+  const sampleY=densityY+densityH+31;
+  const sampleH=Math.max(62,Math.min(82,box.h*.19));
+  text(ctx,"2. Each dot below = one fresh preparation and one localized detector click",box.x+7,sampleY-12,C.ink,"700 11px system-ui");
+  ctx.fillStyle="rgba(7,16,32,.66)";ctx.fillRect(box.x+1,sampleY,box.w-2,sampleH);
+  ctx.strokeStyle="rgba(219,234,254,.27)";ctx.lineWidth=1;ctx.strokeRect(box.x+1,sampleY,box.w-2,sampleH);
+  ctx.save();ctx.strokeStyle="rgba(219,234,254,.30)";ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(leftEdge,sampleY);ctx.lineTo(leftEdge,sampleY+sampleH);ctx.moveTo(rightEdge,sampleY);ctx.lineTo(rightEdge,sampleY+sampleH);ctx.stroke();ctx.restore();
+  if(!count){
+    text(ctx,"No runs recorded yet. Click “Run one preparation” to generate one detector event.",box.x+box.w/2,sampleY+sampleH/2+4,C.muted,"12px system-ui","center");
+  }else{
+    for(let i=0;i<count;i++){
+      const trial=sim.trials[i];
+      const y=sampleY+13+(i%8)*Math.max(5,(sampleH-20)/8);
+      ctx.fillStyle=trial.transmitted?C.green:C.red;ctx.globalAlpha=.82;ctx.beginPath();ctx.arc(xPix(trial.x,box),y,1.85,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    }
+    if(sim.lastTrial){
+      const latestIndex=count-1;
+      const y=sampleY+13+(latestIndex%8)*Math.max(5,(sampleH-20)/8);
+      const x=xPix(sim.lastTrial.x,box);
+      ctx.save();ctx.strokeStyle=sim.lastTrial.transmitted?C.green:C.red;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,5.0,0,Math.PI*2);ctx.stroke();ctx.restore();
+      text(ctx,`latest: ${sim.lastTrial.transmitted?"right / transmitted":"left / reflected"} detector`,box.x+box.w-7,sampleY+14,sim.lastTrial.transmitted?C.green:C.red,"700 10px system-ui","right");
+    }
+  }
+
+  // --- 3. Frequencies versus the fixed prediction ---
+  const chartY=sampleY+sampleH+34;
+  const base=box.y+box.h-32;
+  const maxH=Math.max(54,base-chartY-12);
+  const leftX=box.x+box.w*.27, rightX=box.x+box.w*.73;
+  const obsR=count?refl/count:0, obsT=count?trans/count:0;
+  text(ctx,"3. Count the clicks: observed frequency approaches the predicted probability",box.x+7,chartY-13,C.ink,"700 11px system-ui");
+  [[leftX,expectedR,C.red,"L"],[rightX,expectedT,C.green,"R"]].forEach(([cx,p,col,label])=>{
+    const hPred=maxH*p;
+    ctx.save();ctx.strokeStyle=col;ctx.globalAlpha=.72;ctx.setLineDash([5,4]);ctx.lineWidth=1.45;ctx.strokeRect(cx-42,base-hPred,84,hPred);ctx.restore();
+    text(ctx,`prediction ${label}: ${fmt(p,3)}`,cx,base-hPred-8,col,"700 10px system-ui","center");
+  });
+  [[leftX,obsR,C.red,"left / reflected"],[rightX,obsT,C.green,"right / transmitted"]].forEach(([cx,p,col,label])=>{
+    const bh=maxH*p;
+    ctx.fillStyle=col==C.red?"rgba(255,107,107,.33)":"rgba(84,224,160,.33)";ctx.fillRect(cx-34,base-bh,68,bh);
+    ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.strokeRect(cx-34,base-bh,68,bh);
+    text(ctx,`${label}`,cx,base+19,col,"700 11px system-ui","center");
+    text(ctx,count?`observed ${fmt(p,3)}`:"observed —",cx,base+34,C.ink,"700 10px system-ui","center");
+  });
+  text(ctx,count?`n = ${count} independent preparations`:`n = 0 independent preparations`,box.x+box.w/2,box.y+box.h-5,C.gold,"700 11px system-ui","center");
+}
+function drawInterpretation(canvas,full=false){
+  const {ctx,w,h}=canvasContext(canvas);clear(ctx,w,h);
+  const note=view.interpretation==="orthodox"
+    ? "Orthodox: ψ is the pre-measurement state; the drawing adds no unmeasured particle path."
+    : "Pilot-wave: the same ψ guides one X(t) per run; gold curves show an equilibrium ensemble, not many particles in one run.";
+  const packet=drawPacket(ctx,w,h,sim.time,{current:view.current});
+  if(view.interpretation==="bohmian" && view.guidance) drawBohmian(ctx,packet);
+  if(view.interpretation==="orthodox"){
+    const box={x:packet.box.x+packet.box.w*.59,y:packet.box.y+31,w:packet.box.w*.38,h:Math.min(100,packet.box.h-34)};
+    ctx.fillStyle="rgba(7,16,32,.88)";ctx.fillRect(box.x,box.y,box.w,box.h);ctx.strokeStyle="rgba(79,195,255,.48)";ctx.strokeRect(box.x,box.y,box.w,box.h);
+    text(ctx,"ORTHODOX ACCOUNT",box.x+9,box.y+18,C.cyan,"700 10px system-ui");
+    text(ctx,"ψ is the complete state before detection.",box.x+9,box.y+39,C.ink,"11px system-ui");
+    text(ctx,"ρ=|ψ|² gives detector probabilities.",box.x+9,box.y+58,C.ink,"11px system-ui");
+    text(ctx,"No unobserved X(t) is added.",box.x+9,box.y+78,C.gold,"700 11px system-ui");
+  }
+  return note;
+}
+function drawFull(canvas){
+  const note=drawInterpretation(canvas,true);
+  document.getElementById("fullNote").textContent=note;
+}
+
+function renderAll(){
+  if(!engine) return;
+  drawClassical(document.getElementById("c1"));
+  {
+    const c=document.getElementById("c2"),q=canvasContext(c);clear(q.ctx,q.w,q.h);drawPacket(q.ctx,q.w,q.h,sim.time,{});
+  }
+  drawEvanescent(document.getElementById("c3"));
+  drawTransmission(document.getElementById("c4"));
+  drawTrials(document.getElementById("c5"));
+  {
+    const c=document.getElementById("c6"),q=canvasContext(c);clear(q.ctx,q.w,q.h);const note=drawInterpretation(c,false);document.getElementById("interpNote").textContent=note;
+  }
+  drawFull(document.getElementById("cFull"));
+  updateReadouts();
+}
+
+/* ------------------------------ interface ----------------------------- */
+function syncInputs(){
+  document.querySelectorAll("[data-param]").forEach(el=>{ el.value=params[el.dataset.param]; });
+  document.querySelectorAll("[data-phase]").forEach(el=>{ if(document.activeElement!==el) el.value=view.phase; });
+  document.querySelectorAll("[data-label='k0']").forEach(e=>e.textContent=`${fmt(params.k0,2)}  →  E₀=${fmt(energy(),2)}`);
+  document.querySelectorAll("[data-label='v0']").forEach(e=>e.textContent=fmt(params.v0,2));
+  document.querySelectorAll("[data-label='a']").forEach(e=>e.textContent=fmt(params.a,2));
+  document.querySelectorAll("[data-label='sigma']").forEach(e=>e.textContent=fmt(params.sigma,2));
+  document.querySelectorAll("[data-label='speed']").forEach(e=>e.textContent=`${fmt(params.speed,2)}×`);
+  document.querySelectorAll("[data-label='phase']").forEach(e=>e.textContent=`${fmt(view.phase,0)}°`);
+  const percent=Math.round(100*sim.time/Math.max(engine?.tMax||1,1));
+  document.querySelectorAll("[data-time]").forEach(e=>{ if(document.activeElement!==e) e.value=percent; });
+  document.querySelectorAll("[data-time-label]").forEach(e=>e.textContent=`${fmt(sim.time,2)} / ${fmt(engine?.tMax||0,2)}`);
+  const collisionInput=document.querySelector("[data-collision]");
+  if(collisionInput){
+    const shift=Number(collisionInput.value)/100*engine.tMax;
+    document.querySelectorAll("[data-collision-label]").forEach(e=>e.textContent=`t = ${fmt(clamp(engine.collisionTime+shift,0,engine.tMax),2)}`);
+  }
+  document.querySelectorAll("#interpretation,#fInterpretation").forEach(e=>{ if(document.activeElement!==e) e.value=view.interpretation; });
+  const interpName=view.interpretation==="bohmian"?"Pilot-wave / Bohmian mechanics":"Orthodox interpretation";
+  ["interpLabel","fInterpLabel"].forEach(id=>document.getElementById(id).textContent=interpName);
+  document.querySelectorAll(".interp-detail").forEach(el=>el.classList.toggle("active",el.dataset.interp===view.interpretation));
+  document.getElementById("guidanceRow").style.display=view.interpretation==="bohmian"?"flex":"none";
+  document.getElementById("fGuidanceRow").style.display=view.interpretation==="bohmian"?"flex":"none";
+  document.getElementById("pathLegend").style.display=view.interpretation==="bohmian"?"block":"none";
+  document.querySelectorAll("[data-show]").forEach(el=>{ el.checked=!!view[el.dataset.show]; });
+  document.getElementById("showGuidance").checked=view.guidance;
+  document.getElementById("fShowGuidance").checked=view.guidance;
+  document.querySelectorAll("[data-action='play']").forEach(b=>b.textContent=sim.playing?"Pause evolution":"Resume evolution");
+  document.getElementById("trialNLabel").textContent=document.getElementById("trialN").value;
+}
+
+function diagnosticsHTML(){
+  const state=engine.frameAt(sim.time);
+  return `grid Δx=${fmt(engine.dx,3)}, Δt=${fmt(engine.dt,3)}; ||ψ||²=${fmt(engine.normAt(state),8)}; max |Δnorm|=${engine.normMaxDeviation.toExponential(1)}`;
+}
+function updateReadouts(){
+  if(!engine) return;
+  const E=energy(),under=E<params.v0,Tp=engine.Tplane,Tbar=engine.Tpacket,Tn=engine.Tnum;
+  const status=engine.ready
+    ? `<span style="color:#047857"><b>Separated-state measurement ready.</b></span>`
+    : `<span style="color:#b45309"><b>Measurement is not fully separated; use the result as a finite-time estimate.</b></span>`;
+  document.getElementById("s1Read").innerHTML=
+    `E₀ = <b>${fmt(E,3)}</b> &nbsp; | &nbsp; V₀ = <b>${fmt(params.v0,3)}</b><br>`+
+    `${under?`Classical prediction: <b style="color:#b91c1c">cannot enter barrier</b>.`:`Classical prediction: <b style="color:#047857">crossing allowed</b>.`}<br>`+
+    `Plane-wave T(E₀)=<b>${fmt(Tp,4)}</b>; packet-averaged prediction=<b>${fmt(Tbar,4)}</b>.`;
+  document.getElementById("s2Read").innerHTML=
+    `Re ψ, Im ψ, and ρ=|ψ|² are combined in one spatial plot. Their <b>fixed</b> display scales are distinct, so compare shapes and evolution rather than vertical heights; only Re ψ and Im ψ rotate under display phase φ.<br>`+
+    `When enabled, j=Im(ψ*∂ₓψ) appears in a compact inset. ${diagnosticsHTML()}`;
+  const kapp=under?kappa():0;
+  document.getElementById("s3Read").innerHTML=under
+    ? `E₀&lt;V₀, so κ = <b>${fmt(kapp,3)}</b>; characteristic amplitude-decay length 1/κ = <b>${fmt(1/Math.max(kapp,1e-12),3)}</b>. The dashed guide is local and does not replace the matched two-exponential barrier solution.`
+    : `E₀≥V₀, so the interior solution is oscillatory. Change k₀ or V₀ to enter the under-barrier regime.`;
+  document.getElementById("s4Read").innerHTML=
+    `At E₀=${fmt(E,3)}: plane-wave T(E₀)=<b>${fmt(Tp,4)}</b>.<br>`+
+    `Gaussian-packet average ∫|ψ̃(k)|²T(k²/2)dk = <b>${fmt(Tbar,4)}</b> (Δk=${fmt(gaussianDeltaK(),3)}).<br>`+
+    `Numerical separated-state estimate: T=<b>${fmt(Tn,4)}</b>, R=<b>${fmt(engine.Rnum,4)}</b>, P<sub>barrier</sub>=${fmt(engine.inside,5)} at t=${fmt(engine.tMeasure,2)}. ${status}`;
+  const n=sim.trials.length,tr=sim.trials.filter(v=>v.transmitted).length;
+  const latest=sim.lastTrial
+    ? `Latest independent run: <b style="color:${sim.lastTrial.transmitted?"#047857":"#b91c1c"}">${sim.lastTrial.transmitted?"right / transmitted":"left / reflected"}</b> detector at x=${fmt(sim.lastTrial.x,2)}.`
+    : `No detector event has been sampled yet.`;
+  document.getElementById("s5Read").innerHTML=
+    `<b>How to read this experiment:</b><br>`+
+    `1. The separated density sets P(L)=<b>${fmt(1-engine.Tdetector,3)}</b> and P(R)=<b>${fmt(engine.Tdetector,3)}</b>.<br>`+
+    `2. Each dot is one <em>separate</em> packet preparation and one sampled detector position.<br>`+
+    `3. After n=<b>${n}</b> runs, the observed right frequency is <b>${n?fmt(tr/n,3):"—"}</b>.<br>`+
+    `${latest}`;
+  const mode=view.interpretation==="bohmian"
+    ? `ψ and a <em>single</em> configuration X(t) are postulated in each run. The gold curves are a sampled equilibrium ensemble. In one dimension, their cumulative-probability construction is equivalent to dX/dt=j/ρ wherever ρ is nonzero.`
+    : `Only ψ is drawn as the pre-measurement state. Detector probabilities are obtained from ρ=|ψ|²; Re ψ and Im ψ are display components, not separately observable quantities.`;
+  document.getElementById("s6Read").innerHTML=mode;
+  document.getElementById("fRead").innerHTML=
+    `E₀=${fmt(E,3)} &nbsp; V₀=${fmt(params.v0,3)} &nbsp; a=${fmt(params.a,2)}<br>`+
+    `${under?`under-barrier regime: κ=${fmt(kapp,3)}`:`above-barrier regime`}<br>`+
+    `T(E₀)=<b>${fmt(Tp,4)}</b> &nbsp; packet average=<b>${fmt(Tbar,4)}</b> &nbsp; numerical T=<b>${fmt(Tn,4)}</b><br>`+
+    `measurement t=${fmt(engine.tMeasure,2)}, P<sub>barrier</sub>=${fmt(engine.inside,5)}; detector record: ${n} trials.`;
+}
+function requestRebuild(){
+  clearTimeout(sim.pending); sim.rebuilding=true;
+  sim.pending=setTimeout(()=>{
+    engine=new TDSEngine(params);
+    sim.time=0;sim.trials=[];sim.rebuilding=false;
+    syncInputs();renderAll();
+  },180);
+}
+function fireTrials(n=Number(document.getElementById("trialN").value)){
+  if(!engine) return;
+  let latest=null;
+  for(let i=0;i<n;i++){
+    const x=engine.sampleDetectorPosition();
+    latest={x,transmitted:x>params.a/2};
+    sim.trials.push(latest);
+  }
+  sim.lastTrial=latest;
+  renderAll();
+}
+function loadRecommended(){
+  Object.assign(params,{k0:2.00,v0:2.80,a:1.20,sigma:1.75,speed:.85});
+  view.interpretation="bohmian";view.guidance=true;view.phase=0;sim.playing=true;requestRebuild();
+}
+
+document.querySelectorAll("[data-param]").forEach(el=>{
+  el.addEventListener("input",()=>{
+    params[el.dataset.param]=Number(el.value);
+    syncInputs();
+    if(el.dataset.param==="speed") renderAll(); else requestRebuild();
+  });
+});
+document.querySelectorAll("[data-phase]").forEach(el=>el.addEventListener("input",()=>{
+  view.phase=Number(el.value);syncInputs();renderAll();
+}));
+document.querySelectorAll("[data-time]").forEach(el=>el.addEventListener("input",()=>{
+  sim.playing=false;sim.time=Number(el.value)/100*engine.tMax;syncInputs();renderAll();
+}));
+document.querySelectorAll("[data-show]").forEach(el=>el.addEventListener("change",()=>{
+  view[el.dataset.show]=el.checked;syncInputs();renderAll();
+}));
+document.querySelectorAll("[data-collision]").forEach(el=>el.addEventListener("input",()=>{syncInputs();renderAll();}));
+document.querySelectorAll("#interpretation,#fInterpretation").forEach(el=>el.addEventListener("change",()=>{
+  view.interpretation=el.value;syncInputs();renderAll();
+}));
+["showGuidance","fShowGuidance"].forEach(id=>document.getElementById(id).addEventListener("change",e=>{view.guidance=e.target.checked;syncInputs();renderAll();}));
+document.getElementById("trialN").addEventListener("input",()=>{document.getElementById("trialNLabel").textContent=document.getElementById("trialN").value;});
+document.querySelectorAll("[data-action]").forEach(btn=>btn.addEventListener("click",()=>{
+  const a=btn.dataset.action;
+  if(a==="play") sim.playing=!sim.playing;
+  if(a==="reset"){sim.playing=true;sim.time=0;}
+  if(a==="fire-one") fireTrials(1);
+  if(a==="fire") fireTrials();
+  if(a==="clear-trials"){ sim.trials=[]; sim.lastTrial=null; }
+  if(a==="recommend") loadRecommended();
+  syncInputs();renderAll();
+}));
+window.addEventListener("resize",()=>renderAll());
+window.addEventListener("keydown",e=>{
+  if(["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName)) return;
+  if(e.key===" "){e.preventDefault();sim.playing=!sim.playing;syncInputs();renderAll();}
+  if(e.key.toLowerCase()==="r"){sim.time=0;sim.playing=true;syncInputs();renderAll();}
+});
+function tick(now){
+  const dt=Math.min(.05,(now-sim.last)/1000);sim.last=now;
+  if(engine&&sim.playing&&!sim.rebuilding){
+    sim.time+=dt*params.speed;
+    if(sim.time>engine.tMax) sim.time=0;
+  }
+  if(engine && (sim.playing ? now-sim.lastRender>33 : false)){
+    sim.lastRender=now;syncInputs();renderAll();
+  }
+  requestAnimationFrame(tick);
+}
+engine=new TDSEngine(params);
+syncInputs();renderAll();requestAnimationFrame(tick);
+})();
+
+</script>
+</body>
+</html>
