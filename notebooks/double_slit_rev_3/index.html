@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Two-Slit Experiment Notebook</title>
+<title>Quantum Potential Well Notebook</title>
 <style>
 :root{--page:#f4f6fb;--paper:#ffffff;--paper2:#f8fafc;--canvas:#071020;--text:#172033;--muted:#5f6b80;--accent:#2563eb;--accent-soft:#e8f0ff;--line:#d7deeb;--line2:#e7ebf3;--sim-ink:#bfe4ff;--font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--page);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.48}.page{max-width:1380px;margin:0 auto;padding:18px}
@@ -11,10 +11,10 @@
 h1{margin:0;color:#111827;font-size:25px;font-weight:750}.header p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:900px}.nav{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.nav a{color:#334155;text-decoration:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:13px}.nav a:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .section{margin-top:18px;border:1px solid var(--line);background:var(--paper);border-radius:14px;overflow:hidden;box-shadow:0 10px 24px rgba(15,23,42,.055)}.section-head{padding:16px 18px;border-bottom:1px solid var(--line2);background:var(--paper)}.section-head h2{margin:0;color:#111827;font-size:18px;font-weight:720}.section-head p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:960px}.detail-text{margin-top:8px;max-width:960px;color:#334155;font-size:14px;line-height:1.52}.detail-text p{margin:7px 0}.detail-text strong,.interpretation-list strong{color:#111827}
 .section-body{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;padding:14px;align-items:start}.canvas-card{position:relative;border:1px solid #111827;background:var(--canvas);border-radius:12px;overflow:hidden;min-height:500px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);contain:layout paint}.canvas-card.full{min-height:650px}canvas{display:block;width:100%;height:500px}.canvas-card.full canvas{height:650px}
-.note-overlay{position:absolute;left:12px;top:12px;max-width:min(660px,calc(100% - 24px));background:rgba(7,16,32,.78);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:8px 10px;color:#c7dfff;font-size:12px;line-height:1.35;pointer-events:none}.legend{position:absolute;left:12px;bottom:12px;display:flex;gap:10px;flex-wrap:wrap;background:rgba(7,16,32,.78);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:7px 9px;font-size:12px;color:#dbeafe}.sw{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,.25);vertical-align:-1px;margin-right:4px}
-.controls{border:1px solid var(--line);background:var(--paper2);border-radius:12px;padding:12px}.row{margin:0 0 12px}.row label{display:flex;justify-content:space-between;gap:10px;color:#334155;font-size:12px;margin-bottom:6px;font-weight:650}.row label span:last-child{color:#0f172a;font-weight:600}input[type=range]{width:100%;accent-color:var(--accent)}select{width:100%;background:#fff;color:#172033;border:1px solid var(--line);border-radius:9px;padding:8px 9px;font-family:var(--font);font-size:14px}.checks{display:grid;grid-template-columns:1fr;gap:8px;margin:8px 0 12px;color:#334155;font-size:13px}.checks input{accent-color:var(--accent)}.readout,.equation,.interp-box{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;color:#334155;font-size:13px;line-height:1.5;margin-top:10px}.equation{font-family:Georgia,"Times New Roman",serif;font-size:17px;line-height:1.65;color:#172033}.math-display{font-family:"Cambria Math",STIX Two Math,Georgia,"Times New Roman",serif;text-align:center}.math-display math{font-size:1.18rem;display:block;margin:.1rem auto}.eq-note{margin-top:6px;color:var(--muted);font-family:var(--font);font-size:12px;text-align:center}.control-note{margin:3px 0 10px;color:var(--muted);font-size:12px;line-height:1.38}.is-hidden{display:none!important}.is-disabled{opacity:.5;pointer-events:none}
+.note-overlay{position:absolute;left:12px;top:12px;max-width:min(640px,calc(100% - 24px));background:rgba(7,16,32,.78);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:8px 10px;color:#c7dfff;font-size:12px;line-height:1.35;pointer-events:none}.legend{position:absolute;left:12px;bottom:12px;display:flex;gap:10px;flex-wrap:wrap;background:rgba(7,16,32,.78);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:7px 9px;font-size:12px;color:#dbeafe}.sw{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,.25);vertical-align:-1px;margin-right:4px}
+.controls{border:1px solid var(--line);background:var(--paper2);border-radius:12px;padding:12px}.row{margin:0 0 12px}.row label{display:flex;justify-content:space-between;gap:10px;color:#334155;font-size:12px;margin-bottom:6px;font-weight:650}.row label span:last-child{color:#0f172a;font-weight:600}input[type=range]{width:100%;accent-color:var(--accent)}select{width:100%;background:#fff;color:#172033;border:1px solid var(--line);border-radius:9px;padding:8px 9px;font-family:var(--font);font-size:14px}.checks{display:grid;grid-template-columns:1fr;gap:8px;margin:8px 0 12px;color:#334155;font-size:13px}.checks input{accent-color:var(--accent)}.readout,.equation,.interp-box{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;color:#334155;font-size:13px;line-height:1.5;margin-top:10px}.equation{font-family:Georgia,"Times New Roman",serif;font-size:17px;line-height:1.65;color:#172033}.math-display{font-family:"Cambria Math",STIX Two Math,Georgia,"Times New Roman",serif;text-align:center}.math-display math{font-size:1.18rem;display:block;margin:.1rem auto}.part2-normalized-equation{display:flex;flex-direction:column;align-items:center;text-align:center}.part2-normalized-equation>math{display:block;margin:.1rem auto;text-align:center}.part2-schrodinger-equation{font-size:clamp(11.5px,1.02vw,13px)!important;line-height:1.42;letter-spacing:0;white-space:normal!important;text-align:center}.part2-schrodinger-formula{display:block;white-space:nowrap;text-align:center}.part2-schrodinger-note{max-width:260px;margin:8px auto 0;white-space:normal!important;line-height:1.38;text-align:center;font-size:12px}.eq-note{margin-top:6px;color:var(--muted);font-family:var(--font);font-size:12px;text-align:center}.control-note{margin:3px 0 10px;color:var(--muted);font-size:12px;line-height:1.38}.is-hidden{display:none!important}.is-disabled{opacity:.5;pointer-events:none}
 .button{width:100%;border:1px solid #1d4ed8;background:#fff;color:#1d4ed8;border-radius:9px;padding:8px 9px;font:650 13px var(--font);cursor:pointer}.button:hover{background:var(--accent-soft)}.button.secondary{border-color:var(--line);color:#334155}.derivation{margin-top:10px;border:1px solid var(--line);background:#fff;border-radius:10px;overflow:hidden}.derivation summary{cursor:pointer;padding:10px 12px;color:#1e3a8a;font-weight:700;font-size:13px;background:var(--accent-soft)}.derivation summary:hover{background:#dfeaff}.derivation-body{padding:11px 12px;color:#334155;font-size:13px;line-height:1.55}.derivation-body p{margin:6px 0}.derivation-body .math-display{margin:8px 0;padding:7px;background:var(--paper2);border:1px solid var(--line2);border-radius:8px}.interpretation-list{display:grid;grid-template-columns:1fr;gap:9px;margin-top:10px}.interp-item{border:1px solid var(--line2);background:var(--paper2);border-radius:10px;padding:12px;color:#334155;font-size:14px;line-height:1.55}.interp-item h3{margin:0 0 6px;color:#111827;font-size:14px}.interp-detail{display:none}.interp-detail.active{display:block}.footer{margin:14px 0 0;border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:12px;color:var(--muted);font-size:13px}
-@media(max-width:980px){.header{grid-template-columns:1fr}.nav{justify-content:flex-start}.section-body{grid-template-columns:1fr}.canvas-card,.canvas-card.full{min-height:470px}canvas,.canvas-card.full canvas{height:470px}}
+@media(max-width:980px){.header{grid-template-columns:1fr}.nav{justify-content:flex-start}.section-body{grid-template-columns:1fr}.steps{grid-template-columns:1fr}.canvas-card,.canvas-card.full{min-height:470px}canvas,.canvas-card.full canvas{height:470px}}
 @media(max-width:640px){.page{padding:10px}.header{padding:14px}.section-head{padding:14px}.section-body{padding:10px;gap:10px}.canvas-card,.canvas-card.full{min-height:360px}canvas,.canvas-card.full canvas{height:360px}.controls{width:100%}.nav a{font-size:12px;padding:6px 8px}.note-overlay{font-size:11px;max-width:calc(100% - 20px)}}
 @media(max-width:430px){.canvas-card,.canvas-card.full{min-height:320px}canvas,.canvas-card.full canvas{height:320px}.legend{left:8px;bottom:8px;font-size:11px;gap:7px}.readout,.equation,.interp-box{font-size:12px}}
 </style>
@@ -22,861 +22,515 @@ h1{margin:0;color:#111827;font-size:25px;font-weight:750}.header p{margin:6px 0 
 <body>
 <div class="page">
 <header class="header">
-<div><h1>Two-Slit Experiment Notebook</h1><p>A self-contained optical two-slit notebook at laboratory scale. The wavelength is set in nanometres, slit dimensions are micrometres, and the detector is centimetres away. Photon energy is calculated from <em>E</em><sub>γ</sub>=<em>hc</em>/<em>λ</em>.</p></div>
-<nav class="nav"><a href="#part1">1. Geometry</a><a href="#part2">2. Phase</a><a href="#part3">3. Energy</a><a href="#part4">4. Amplitude</a><a href="#part5">5. Diffraction</a><a href="#part6">6. Coherence</a><a href="#part7">7. Interpretations</a><a href="#full">Full applet</a></nav>
+<div><h1>Quantum Potential Well Notebook</h1><p>Explore a one-dimensional quantum well through two empirically equivalent accounts: an orthodox wavefunction-first account and a pilot-wave account with a definite particle configuration guided by the same wavefunction. Compare infinite and finite confinement, discrete bound states, and superpositions using the same Schrödinger dynamics.</p></div>
+<nav class="nav"><a href="#part1">1. Well</a><a href="#part2">2. Boundary</a><a href="#part3">3. Energies</a><a href="#part5">5. Finite well</a><a href="#part6">6. Superposition</a><a href="#part7">7. Interpretations</a><a href="#full">Full applet</a></nav>
 </header>
 
-<section class="section" id="part1"><div class="section-head"><h2>1. Start with the apparatus</h2><p>A monochromatic light source prepares a coherent optical field, a barrier contains two finite slits, and a distant screen records positions. This panel shows a scalar-wave intensity field only; it is not a literal trajectory picture.</p><div class="detail-text"><p>The slit separation <em>d</em> changes the phase difference between the two alternatives. The slit width <em>a</em> controls the diffraction envelope. The barrier itself stays fixed while the controls change physical parameters.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Cyan field: relative coherent intensity |Ψ(x,z)|² from a finite-aperture scalar Huygens model. Orange: opaque barrier with two slits. Bright white panel: detection screen.</div></div><div class="controls"><div class="row"><label><span>Wavelength λ</span><span id="s1ELbl">532 nm · 2.33 eV</span></label><input id="s1E" type="range" min="350" max="750" step="1" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="s1DLbl">50.0 μm</span></label><input id="s1D" type="range" min="40" max="100" step="1" value="50"/></div><div class="row"><label><span>Slit width a</span><span id="s1ALbl">10.0 μm</span></label><input id="s1A" type="range" min="2" max="30" step="0.5" value="10"/></div><div class="row"><label><span>Screen distance L</span><span id="s1LLbl">50 cm</span></label><input id="s1L" type="range" min="20" max="150" step="1" value="50"/></div><div class="readout" id="s1Read"></div></div></div></section>
+<section class="section" id="part1"><div class="section-head"><h2>1. Start with the potential landscape</h2><p>The orange curve is the potential energy <em>V</em>(<em>x</em>). Inside the well we set <em>V</em>=0. A finite exterior has <em>V</em>=<em>V</em><sub>0</sub>; an infinite exterior is shown as an ideal impenetrable wall.</p><div class="detail-text"><p>This panel deliberately shows only the potential. Wavefunctions and finite-well tails appear later, after the boundary conditions are established.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Potential only: orange is V(x); the green bracket marks the confinement width L.</div></div><div class="controls"><div class="row"><label><span>Well type</span><span id="s1TypeLbl">Infinite</span></label><select id="s1Type"><option value="infinite">Infinite square well</option><option value="finite">Finite square well</option></select></div><div class="row" id="s1VRow"><label><span>Barrier V₀</span><span id="s1VLbl">12.0 eV</span></label><input id="s1V" type="range" min="0.25" max="40" step="0.25" value="12"/></div><div class="readout" id="s1Read"></div></div></div></section>
 
-<section class="section" id="part2"><div class="section-head"><h2>2. Path difference becomes phase difference</h2><p>At one selected location on the screen, the two paths have lengths <em>r</em><sub>1</sub> and <em>r</em><sub>2</sub>. Their difference sets the relative phase and determines whether the amplitudes reinforce or cancel.</p><div class="detail-text"><p><strong>Prediction:</strong> move the selected screen point until the two phasors point in opposite directions. What happens to the local detection probability?</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c2"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>upper-slit amplitude</div><div><span class="sw" style="background:#2563eb"></span>lower-slit amplitude</div><div><span class="sw" style="background:#ffd24d"></span>sum</div></div></div><div class="controls"><div class="row"><label><span>Screen coordinate x</span><span id="s2Xlbl">0 μm</span></label><input id="s2X" type="range" min="-30000" max="30000" step="10" value="0"/></div><div class="row"><label><span>Wavelength λ</span><span id="s2ELbl">532 nm · 2.33 eV</span></label><input id="s2E" type="range" min="350" max="750" step="1" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="s2DLbl">50.0 μm</span></label><input id="s2D" type="range" min="40" max="100" step="1" value="50"/></div><div class="row"><label><span>Screen distance L</span><span id="s2LLbl">50 cm</span></label><input id="s2L" type="range" min="20" max="150" step="1" value="50"/></div><div class="equation math-display"><math display="block"><mrow><mi>Δ</mi><mi>φ</mi><mo>=</mo><mi>k</mi><mo>(</mo><msub><mi>r</mi><mn>1</mn></msub><mo>−</mo><msub><mi>r</mi><mn>2</mn></msub><mo>)</mo><mo>,</mo><mspace width="0.4em"/><mi>k</mi><mo>=</mo><mfrac><mrow><mn>2</mn><mi>π</mi></mrow><mi>λ</mi></mfrac></mrow></math><div class="eq-note">The probability depends on the squared magnitude of the amplitude sum.</div></div><div class="readout" id="s2Read"></div></div></div></section>
+<section class="section" id="part2"><div class="section-head"><h2>2. Boundary conditions select standing waves</h2><p>The infinite-well endpoints force ψ(−<em>L</em>/2)=ψ(<em>L</em>/2)=0. Only whole-number half-wavelength patterns satisfy both constraints.</p><div class="detail-text"><p><strong>Prediction:</strong> before moving the slider to <em>n</em>=4, decide how many interior nodes you expect. Then check the plotted state.</p><p>The potential V(x) is the orange curve throughout the notebook. Separating the time and space dependence of the equation below leads to the discrete energies in Part 3 and the finite-well matching conditions in Part 5.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c2"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re Ψ</div><div><span class="sw" style="background:#2563eb"></span>Im Ψ</div><div><span class="sw" style="background:#ffd24d"></span>|Ψ|²</div></div></div><div class="controls"><div class="row"><label><span>Quantum number n</span><span id="s2nLbl">1</span></label><input id="s2n" type="range" min="1" max="8" step="1" value="1"/></div><div class="row"><label><span>Animation rate</span><span id="s2SpeedLbl">0.002 fs/ms</span></label><input id="s2Speed" type="range" min="0" max="0.050" step="0.0005" value="0.002"/></div><div class="checks"><label><input id="s2Re" type="checkbox" checked/> Re Ψ</label><label><input id="s2Im" type="checkbox"/> Im Ψ</label><label><input id="s2Prob" type="checkbox" checked/> |Ψ|²</label></div><div class="equation math-display part2-normalized-equation" style="font-size:11px"><math display="block" style="font-size:0.82rem"><mrow><msub><mi>ψ</mi><mi>n</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msqrt><mfrac><mn>2</mn><mi>L</mi></mfrac></msqrt><mi>sin</mi><mo>[</mo><mfrac><mrow><mi>n</mi><mi>π</mi><mo>(</mo><mi>x</mi><mo>+</mo><mi>L</mi><mo>/</mo><mn>2</mn><mo>)</mo></mrow><mi>L</mi></mfrac><mo>]</mo></mrow></math><div class="eq-note">Normalized spatial eigenfunction of the infinite square well.</div><div class="math-display" style="font-size:0.78rem;margin-top:8px">Re Ψ<sub>n</sub>(x,t)=ψ<sub>n</sub>(x) cos(E<sub>n</sub>t/ℏ)<br/>Im Ψ<sub>n</sub>(x,t)=−ψ<sub>n</sub>(x) sin(E<sub>n</sub>t/ℏ)</div><div class="eq-note">These are the components of Ψ<sub>n</sub>(x,t)=ψ<sub>n</sub>(x)e<sup>−iE<sub>n</sub>t/ℏ</sup>.</div></div><div class="equation math-display part2-schrodinger-equation"><div class="part2-schrodinger-formula">iℏ ∂Ψ/∂t = [−ℏ²/(2m) ∂²/∂x² + V(x)] Ψ</div><div class="eq-note part2-schrodinger-note">The time-dependent Schrödinger equation governs every animated wave. In Part 3 it gives the energy eigenvalue equation; in Part 5 it gives finite-well bound tails or above-barrier scattering.</div></div><div class="readout" id="s2Read"></div></div></div></section>
 
-<section class="section" id="part3"><div class="section-head"><h2>3. de Broglie wavelength and photon energy</h2><p>Every quantum object obeys the de Broglie relation <em>λ</em>=<em>h</em>/<em>p</em>. For light, <em>p</em>=<em>E</em><sub>γ</sub>/<em>c</em>, so the same relation becomes <em>E</em><sub>γ</sub>=<em>hc</em>/<em>λ</em>. Shorter wavelengths therefore carry larger photon energies.</p><div class="detail-text"><p>This optical notebook uses the photon form of the de Broglie relation. A particle-mass parameter is not used because photons are massless.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c3"></canvas><div class="note-overlay">Curve: photon energy versus optical de Broglie wavelength. Green marker: selected laboratory wavelength.</div></div><div class="controls"><div class="row"><label><span>Wavelength λ</span><span id="s3ELbl">532 nm · 2.33 eV</span></label><input id="s3E" type="range" min="350" max="750" step="1" value="532"/></div><div class="equation math-display"><math display="block"><mrow><mi>λ</mi><mo>=</mo><mfrac><mi>h</mi><mi>p</mi></mfrac><mo>,</mo><mspace width="0.55em"/><msub><mi>E</mi><mi>γ</mi></msub><mo>=</mo><mfrac><mrow><mi>h</mi><mi>c</mi></mrow><mi>λ</mi></mfrac></mrow></math><div class="eq-note">For photons, p=Eγ/c converts the de Broglie relation into Eγ=hc/λ.</div></div><div class="readout" id="s3Read"></div></div></div></section>
+<section class="section" id="part3"><div class="section-head"><h2>3. The allowed energies are discrete</h2><p>Boundary-compatible standing waves have discrete wave numbers and therefore discrete energies. The displayed level heights use their actual values on the eV axis.</p></div><div class="section-body"><div class="canvas-card"><canvas id="c3"></canvas><div class="note-overlay">Optional wave overlay uses the selected state’s actual energy line.</div></div><div class="controls"><div class="row"><label><span>Selected n</span><span id="s3nLbl">1</span></label><input id="s3n" type="range" min="1" max="14" step="1" value="1"/></div><div class="row"><label><span>Width L</span><span id="s3LLbl">4.00 nm</span></label><input id="s3L" type="range" min="2" max="8" step="0.05" value="4"/></div><div class="row"><label><span>Mass m/m₀</span><span id="s3mLbl">1.00</span></label><input id="s3Mass" type="range" min="0.3" max="3" step="0.01" value="1"/></div><div class="row"><label><span>Animation rate</span><span id="s3SpeedLbl">0.002 fs/ms</span></label><input id="s3Speed" type="range" min="0" max="0.050" step="0.0005" value="0.002"/></div><div class="checks"><label><input id="s3Re" type="checkbox"/> Re Ψ overlay</label><label><input id="s3Im" type="checkbox"/> Im Ψ overlay</label><label><input id="s3Prob" type="checkbox"/> |Ψ|² overlay</label></div><div class="equation math-display"><math display="block"><mrow><msub><mi>E</mi><mi>n</mi></msub><mo>=</mo><mfrac><mrow><msup><mi>n</mi><mn>2</mn></msup><msup><mi>π</mi><mn>2</mn></msup><msup><mi>ℏ</mi><mn>2</mn></msup></mrow><mrow><mn>2</mn><mi>m</mi><msup><mi>L</mi><mn>2</mn></msup></mrow></mfrac></mrow></math><div class="eq-note">Energy of the nth infinite-well eigenstate.</div></div><details class="derivation"><summary>Show the boundary-condition derivation</summary><div class="derivation-body"><p>Separating Ψ(x,t)=ψ(x)e<sup>−iEt/ℏ</sup> in the time-dependent equation from Part 2 gives the time-independent Schrödinger equation. Inside an infinite well, V=0:</p><div class="math-display"><math display="block"><mrow><mo>−</mo><mfrac><msup><mi>ℏ</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>m</mi></mrow></mfrac><mfrac><mrow><msup><mi>d</mi><mn>2</mn></msup><mi>ψ</mi></mrow><mrow><mi>d</mi><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac><mo>=</mo><mi>E</mi><mi>ψ</mi></mrow></math></div><p>The left wall removes the cosine part, leaving ψ(x)=A sin[k(x+L/2)]. The right wall requires sin(kL)=0, so k=nπ/L. The n=0 choice gives ψ=0 everywhere, not a physical normalized state; therefore n=1,2,3,… .</p><div class="math-display"><math display="block" style="font-size:0.82rem"><mrow><mi>k</mi><mo>=</mo><mfrac><mrow><mi>n</mi><mi>π</mi></mrow><mi>L</mi></mfrac><mo>,</mo><mspace width="0.4em"/><msub><mi>E</mi><mi>n</mi></msub><mo>=</mo><mfrac><mrow><msup><mi>ℏ</mi><mn>2</mn></msup><msup><mi>k</mi><mn>2</mn></msup></mrow><mrow><mn>2</mn><mi>m</mi></mrow></mfrac></mrow></math></div><p>Quantization is the requirement that the wave fit both walls.</p></div></details><div class="readout" id="s3Read"></div></div></div></section>
 
-<section class="section" id="part4"><div class="section-head"><h2>4. Repeated detections build the probability pattern</h2><p>At the screen, the two optical amplitudes add as complex numbers. Re Ψ and Im Ψ evolve with a common global phase; |Ψ|² gives the relative detection pattern for a coherent monochromatic field.</p><div class="detail-text"><p>Each gold bar counts localized detections in one finite-width screen pixel. A single photon gives one localized event; after many independent trials, the accumulated counts approach the smooth probability pattern.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c4"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re Ψ</div><div><span class="sw" style="background:#2563eb"></span>Im Ψ</div><div><span class="sw" style="background:#ffd24d"></span>screen curve</div><div><span class="sw" style="background:#f7c948"></span>accumulated detections</div></div></div><div class="controls"><div class="row"><label><span>Wavelength λ</span><span id="s4ELbl">532 nm · 2.33 eV</span></label><input id="s4E" type="range" min="350" max="750" step="1" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="s4DLbl">50.0 μm</span></label><input id="s4D" type="range" min="40" max="100" step="1" value="50"/></div><div class="row"><label><span>Slit width a</span><span id="s4ALbl">10.0 μm</span></label><input id="s4A" type="range" min="2" max="30" step="0.5" value="10"/></div><div class="row"><label><span>Screen distance L</span><span id="s4LLbl">50 cm</span></label><input id="s4L" type="range" min="20" max="150" step="1" value="50"/></div><div class="row"><label><span>Animation rate</span><span id="s4SpeedLbl">0.0020 fs/ms</span></label><input id="s4Speed" type="range" min="0" max="0.0200" step="0.0002" value="0.0020"/></div><div class="row"><label><span>Detector pixel width Δx</span><span id="s4PixelLbl">200 μm</span></label><input id="s4Pixel" type="range" min="50" max="1000" step="50" value="200"/></div><div class="row"><label><span>Screen curve</span><span id="s4DisplayLbl">Normalized P(x)</span></label><select id="s4Display"><option value="probability" selected>Normalized detection probability P(x)</option><option value="intensity">Relative intensity |Ψ|²</option></select></div><div class="checks"><label><input id="s4Re" type="checkbox" checked/> Re Ψ</label><label><input id="s4Im" type="checkbox"/> Im Ψ</label><label><input id="s4Prob" type="checkbox" checked/> screen curve</label></div><button class="button" id="s4Resample" type="button">Add 160 detections</button><button class="button secondary" id="s4Reset" type="button">Clear detections</button><div class="control-note">Changing the optical settings starts a new detector run. The plotted curve and the event sampling use the same finite-aperture screen distribution.</div><div class="readout" id="s4Read"></div></div></div></section>
+<section class="section" id="part5"><div class="section-head"><h2>5. A finite well has bound states and above-barrier scattering</h2><p>For E&lt;V₀, the wavefunction is oscillatory inside and exponentially decaying outside. For E&gt;V₀, a wave incident from the left is partly reflected and transmitted through the finite well.</p><div class="detail-text"><p>The bound-state model solves even and odd matching conditions and normalizes over all x. The scattering model solves continuity of Ψ and dΨ/dx at both well edges and reports the flux coefficients R and T.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c5"></canvas><div class="legend"><div><span class="sw" style="background:#ff9966"></span>V(x)</div><div><span class="sw" style="background:#d7efff"></span>bound E</div><div><span class="sw" style="background:#4fc3ff"></span>Re Ψ</div><div><span class="sw" style="background:#2563eb"></span>Im Ψ</div><div><span class="sw" style="background:#ffd24d"></span>|Ψ|² / relative density</div></div></div><div class="controls"><div class="row" id="s5nRow"><label><span>State index n</span><span id="s5nLbl">1</span></label><input id="s5n" type="range" min="1" max="14" step="1" value="1"/></div><div class="control-note" id="s5StateNote"></div><div class="row"><label><span>Width L</span><span id="s5LLbl">4.00 nm</span></label><input id="s5L" type="range" min="2" max="8" step="0.05" value="4"/></div><div class="row"><label><span>Barrier V₀</span><span id="s5VLbl">12.0 eV</span></label><input id="s5V" type="range" min="0.25" max="40" step="0.25" value="12"/></div><div class="row"><label><span>Mass m/m₀</span><span id="s5MassLbl">1.00</span></label><input id="s5Mass" type="range" min="0.3" max="3" step="0.01" value="1"/></div><div class="row"><label><span>Animation rate</span><span id="s5SpeedLbl">0.002 fs/ms</span></label><input id="s5Speed" type="range" min="0" max="0.050" step="0.0005" value="0.002"/></div><div class="checks"><label><input id="s5Re" type="checkbox" checked/> Re Ψ</label><label><input id="s5Im" type="checkbox"/> Im Ψ</label><label><input id="s5Prob" type="checkbox" checked/> |Ψ|²</label></div><div class="readout" id="s5Read"></div></div></div></section>
 
-<section class="section" id="part5"><div class="section-head"><h2>5. Finite slit width supplies a diffraction envelope</h2><p>A two-slit pattern is not a pure cosine. Each slit has nonzero width, so the single-slit diffraction envelope modulates the interference fringes.</p><div class="detail-text"><p>The displayed formula is the far-field guide: the slit width <em>a</em> sets the envelope and the separation <em>d</em> sets the rapid fringe spacing. This graph keeps a fixed physical detector span of ±20 mm, so changing <em>λ</em> or <em>L</em> visibly moves the fringes and envelope across the same screen coordinates. The calculation uses the finite-aperture Huygens field.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c5"></canvas><div class="legend"><div><span class="sw" style="background:#ffd24d"></span>two-slit |Ψ|²</div><div><span class="sw" style="background:#ff9966"></span>single-slit envelope</div><div><span class="sw" style="background:#4fc3ff"></span>upper slit only</div></div></div><div class="controls"><div class="row"><label><span>Wavelength λ</span><span id="s5ELbl">532 nm · 2.33 eV</span></label><input id="s5E" type="range" min="350" max="750" step="1" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="s5DLbl">50.0 μm</span></label><input id="s5D" type="range" min="40" max="100" step="1" value="50"/></div><div class="row"><label><span>Slit width a</span><span id="s5ALbl">10.0 μm</span></label><input id="s5A" type="range" min="2" max="30" step="0.5" value="10"/></div><div class="row"><label><span>Screen distance L</span><span id="s5LLbl">50 cm</span></label><input id="s5L" type="range" min="20" max="150" step="1" value="50"/></div><div class="equation math-display"><math display="block"><mrow><mi>I</mi><mo>(</mo><mi>θ</mi><mo>)</mo><mo>∝</mo><msup><mrow><mfrac><mrow><mi>sin</mi><mi>β</mi></mrow><mi>β</mi></mfrac></mrow><mn>2</mn></msup><msup><mrow><mi>cos</mi><mi>δ</mi></mrow><mn>2</mn></msup></mrow></math><div class="eq-note">β=(πa/λ)sinθ and δ=(πd/λ)sinθ.</div></div><div class="readout" id="s5Read"></div></div></div></section>
+<section class="section" id="part6"><div class="section-head"><h2>6. Superpositions can create time-dependent density</h2><p>A single eigenstate has a time-independent density. Combining eigenstates introduces a relative phase; the interference term can make |Ψ|² and the probability current evolve.</p></div><div class="section-body"><div class="canvas-card"><canvas id="c6"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re Ψ</div><div><span class="sw" style="background:#2563eb"></span>Im Ψ</div><div><span class="sw" style="background:#ffd24d"></span>|Ψ|²</div></div></div><div class="controls"><div class="row"><label><span>State mode</span><span id="s6ModeLbl">Superposition</span></label><select id="s6Mode"><option value="eigen">Single eigenstate</option><option value="super" selected>Two-state superposition</option></select></div><div class="row"><label><span>n</span><span id="s6nLbl">1</span></label><input id="s6n" type="range" min="1" max="14" step="1" value="1"/></div><div class="row" id="s6MRow"><label><span>m</span><span id="s6mLbl">2</span></label><input id="s6m" type="range" min="1" max="14" step="1" value="2"/></div><div class="row" id="s6MixRow"><label><span>|cₘ|²</span><span id="s6MixLbl">0.35</span></label><input id="s6Mix" type="range" min="0" max="1" step="0.01" value="0.35"/></div><div class="row"><label><span>Animation rate</span><span id="s6SpeedLbl">0.002 fs/ms</span></label><input id="s6Speed" type="range" min="0" max="0.050" step="0.0005" value="0.002"/></div><div class="checks"><label><input id="s6Re" type="checkbox" checked/> Re Ψ</label><label><input id="s6Im" type="checkbox"/> Im Ψ</label><label><input id="s6Prob" type="checkbox" checked/> |Ψ|²</label></div><div class="readout" id="s6Read"></div></div></div></section>
 
-<section class="section" id="part6"><div class="section-head"><h2>6. Which-path information reduces interference</h2><p>Coherence is the survival of a stable relative phase between the fields from the two slits. When that phase is randomized by environmental coupling, source bandwidth, path marking, or averaging, the interference cross term is reduced.</p><div class="detail-text"><p>The coherence factor <em>γ</em> rescales only the interference cross term: γ=1 is fully coherent and γ=0 is the incoherent sum of two single-slit intensities. It does not change the wavelength, slit geometry, or fringe locations. This graph uses the same fixed ±20 mm detector span as Part 5, so changing <em>λ</em> or <em>L</em> visibly changes the pattern while changing γ reduces contrast.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c6"></canvas><div class="legend"><div><span class="sw" style="background:#ffd24d"></span>reduced-coherence density</div><div><span class="sw" style="background:#ff9966"></span>fully coherent reference</div><div><span class="sw" style="background:#60a5fa"></span>incoherent sum</div></div></div><div class="controls"><div class="row"><label><span>Coherence γ</span><span id="s6GammaLbl">1.00</span></label><input id="s6Gamma" type="range" min="0" max="1" step="0.01" value="1"/></div><div class="row"><label><span>Wavelength λ</span><span id="s6ELbl">532 nm · 2.33 eV</span></label><input id="s6E" type="range" min="350" max="750" step="1" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="s6DLbl">50.0 μm</span></label><input id="s6D" type="range" min="40" max="100" step="1" value="50"/></div><div class="row"><label><span>Slit width a</span><span id="s6ALbl">10.0 μm</span></label><input id="s6A" type="range" min="2" max="30" step="0.5" value="10"/></div><div class="row"><label><span>Screen distance L</span><span id="s6LLbl">50 cm</span></label><input id="s6L" type="range" min="20" max="150" step="1" value="50"/></div><div class="equation math-display" style="font-size:12px"><math display="block" style="font-size:0.92rem"><mrow><msub><mi>I</mi><mi>γ</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>I</mi><mn>1</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>+</mo><msub><mi>I</mi><mn>2</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>+</mo><mn>2</mn><mi>γ</mi><mi>Re</mi><mo>[</mo><msub><mi>A</mi><mn>1</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo><msubsup><mi>A</mi><mn>2</mn><mo>*</mo></msubsup><mo>(</mo><mi>x</mi><mo>)</mo><mo>]</mo></mrow></math><div class="eq-note">γ multiplies the interference term only. The orange and blue curves are the γ=1 and γ=0 limits.</div></div><div class="readout" id="s6Read"></div></div></div></section>
+<section class="section" id="part7"><div class="section-head"><h2>7. Orthodox and Bohmian accounts use the same calculated wavefunction</h2><p>The interpretation changes the account of measurement and configuration, not the Schrödinger evolution or energy spectrum. The default superposition has nonzero current, so the Bohmian view begins with visible guidance motion.</p><div class="detail-text"><p>Gold dots in the Bohmian view are independent configurations sampled from |Ψ(x,t)|². Larger gold markers follow dX/dt=j/|Ψ|². They represent distinct identically prepared one-particle systems, not multiple particles in one well.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c7"></canvas><div class="note-overlay" id="interpNote">Interpretation note</div></div><div class="controls"><div class="row"><label><span>Interpretation</span><span id="s7InterpLbl">Orthodox interpretation</span></label><select id="s7Interp"><option value="copenhagen">Orthodox interpretation</option><option value="bohmian">Bohmian mechanics</option></select></div><div class="row"><label><span>State mode</span><span id="s7ModeLbl">Two-state superposition</span></label><select id="s7Mode"><option value="eigen">Single eigenstate</option><option value="super" selected>Two-state superposition</option></select></div><div class="row"><label><span>n</span><span id="s7nLbl">1</span></label><input id="s7n" type="range" min="1" max="14" step="1" value="1"/></div><div class="row" id="s7MRow"><label><span>m</span><span id="s7mLbl">2</span></label><input id="s7m" type="range" min="1" max="14" step="1" value="2"/></div><div class="row" id="s7MixRow"><label><span>|cₘ|²</span><span id="s7MixLbl">0.35</span></label><input id="s7Mix" type="range" min="0" max="1" step="0.01" value="0.35"/></div><div class="row" id="s7PhaseRow"><label><span>Relative phase</span><span id="s7PhaseLbl">0.75 rad</span></label><input id="s7Phase" type="range" min="0" max="6.2832" step="0.01" value="0.75"/></div><div class="row"><label><span>Animation rate</span><span id="s7SpeedLbl">0.002 fs/ms</span></label><input id="s7Speed" type="range" min="0" max="0.050" step="0.0005" value="0.002"/></div><div class="checks"><label><input id="s7Re" type="checkbox" checked/> Re Ψ</label><label><input id="s7Im" type="checkbox"/> Im Ψ</label><label><input id="s7Prob" type="checkbox" checked/> |Ψ|²</label></div><div class="row is-hidden" id="s7SampleRow"><button class="button" id="s7Resample" type="button">Resample 120 Bohmian configurations</button><div class="control-note">Gold dots are independent configurations sampled from the displayed |Ψ(x,t)|² distribution.</div></div><div class="interp-box" id="s7Read"></div><div class="interpretation-list"><div class="interp-item interp-detail active" data-interp="copenhagen"><h3>Orthodox interpretation</h3><p>Ψ is a probability amplitude. The Born rule states that |Ψ|² gives the density of possible position-measurement outcomes. No additional particle position is assigned between measurements by this interpretation.</p></div><div class="interp-item interp-detail" data-interp="bohmian"><h3>Bohmian mechanics</h3><p>Ψ guides a definite configuration through v=j/|Ψ|². Gold dots represent separate possible positions across an ensemble of identically prepared one-particle systems. In a single real energy eigenstate, j=0 and every configuration is stationary; a superposition gives nonzero guidance flow.</p></div></div></div></div></div></section>
 
-<section class="section" id="part7"><div class="section-head"><h2>7. Orthodox and Bohmian accounts use the same calculated pattern</h2><p>The calculated screen probability distribution is unchanged. The interpretations differ in whether they treat an unmeasured particle as having a definite position and path.</p></div><div class="section-body"><div class="canvas-card"><canvas id="c7"></canvas><div class="note-overlay" id="interpNote">Interpretation note</div></div><div class="controls"><div class="row"><label><span>Interpretation</span><span id="s7InterpLbl">Orthodox interpretation</span></label><select id="s7Interp"><option value="orthodox" selected>Orthodox interpretation</option><option value="bohmian">Bohmian mechanics</option></select></div><div class="row"><label><span>Wavelength λ</span><span id="s7ELbl">532 nm · 2.33 eV</span></label><input id="s7E" type="range" min="350" max="750" step="1" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="s7DLbl">50.0 μm</span></label><input id="s7D" type="range" min="40" max="100" step="1" value="50"/></div><div class="row"><label><span>Slit width a</span><span id="s7ALbl">10.0 μm</span></label><input id="s7A" type="range" min="2" max="30" step="0.5" value="10"/></div><div class="row"><label><span>Screen distance L</span><span id="s7LLbl">50 cm</span></label><input id="s7L" type="range" min="20" max="150" step="1" value="50"/></div><div class="row"><label><span>Animation rate</span><span id="s7SpeedLbl">0.0020 fs/ms</span></label><input id="s7Speed" type="range" min="0" max="0.020" step="0.0002" value="0.002"/></div><div class="checks"><label><input id="s7Re" type="checkbox" checked/> Re Ψ</label><label><input id="s7Im" type="checkbox"/> Im Ψ</label><label><input id="s7Prob" type="checkbox" checked/> |Ψ|² on screen</label></div><div class="interp-box" id="s7Read"></div><div class="interpretation-list"><div class="interp-item interp-detail active" data-interp="orthodox"><h3>Orthodox interpretation</h3><p>Ψ is a probability amplitude. The Born rule assigns the screen density |Ψ|². A detection is localized, but this interpretation does not assign a definite unobserved path from source to screen.</p></div><div class="interp-item interp-detail" data-interp="bohmian"><h3>Bohmian mechanics</h3><p>Bohmian mechanics supplements the wavefunction with definite particle configurations guided by the wave. For this optical scalar-field model, the gold curves use the calculated scalar current as an optical guidance analogue. The incoming source-to-slit segments are schematic preparation paths; the post-slit curves are forward current-transport paths derived from the longitudinal scalar current. This is not a complete relativistic Bohmian photon theory.</p></div></div></div></div></section>
-
-<section class="section" id="full"><div class="section-head"><h2>Full interactive applet</h2><p>Combine geometry, wavelength, photon energy, coherence, and either the orthodox or Bohmian interpretation. The full applet shows the apparatus above and the screen amplitude/probability plot below.</p></div><div class="section-body"><div class="canvas-card full"><canvas id="cFull"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re Ψ</div><div><span class="sw" style="background:#2563eb"></span>Im Ψ</div><div><span class="sw" style="background:#ffd24d"></span>|Ψ|²</div><div><span class="sw" style="background:#f7c948"></span>Bohmian paths + markers</div></div></div><div class="controls"><div class="row"><label><span>Open slits</span><span id="fOpenLbl">Two</span></label><select id="fOpen"><option value="two" selected>Two slits</option><option value="upper">Upper slit only</option><option value="lower">Lower slit only</option></select></div><div class="row"><label><span>Wavelength λ</span><span id="fELbl">532 nm · 2.33 eV</span></label><input id="fE" type="range" min="350" max="750" step="1" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="fDLbl">50.0 μm</span></label><input id="fD" type="range" min="40" max="100" step="1" value="50"/></div><div class="row"><label><span>Slit width a</span><span id="fALbl">10.0 μm</span></label><input id="fA" type="range" min="2" max="30" step="0.5" value="10"/></div><div class="row"><label><span>Screen distance L</span><span id="fLLbl">50 cm</span></label><input id="fL" type="range" min="20" max="150" step="1" value="50"/></div><div class="row"><label><span>Coherence γ</span><span id="fGammaLbl">1.00</span></label><input id="fGamma" type="range" min="0" max="1" step="0.01" value="1"/></div><div class="row"><label><span>Animation rate</span><span id="fSpeedLbl">0.0020 fs/ms</span></label><input id="fSpeed" type="range" min="0" max="0.020" step="0.0002" value="0.002"/></div><div class="row"><label><span>Interpretation</span><span id="fInterpLbl">Orthodox interpretation</span></label><select id="fInterp"><option value="orthodox" selected>Orthodox interpretation</option><option value="bohmian">Bohmian mechanics</option></select></div><div class="checks"><label><input id="fRe" type="checkbox" checked/> Re Ψ</label><label><input id="fIm" type="checkbox"/> Im Ψ</label><label><input id="fProb" type="checkbox" checked/> |Ψ|²</label><label id="fGuidanceRow"><input id="fGuidance" type="checkbox" checked/> Bohmian current-flow paths</label></div><button class="button secondary" id="fReset" type="button">Reset recommended example</button><div class="readout" id="fRead"></div></div></div></section>
-<div class="footer">Self-contained HTML/CSS/JavaScript. Screen plots, the apparatus field, and Bohmian scalar-current paths use the same finite-aperture scalar Huygens propagation model at laboratory-scale geometry. No external scripts, images, or CDNs are required.</div>
+<section class="section" id="full"><div class="section-head"><h2>Full interactive applet</h2><p>Combine well type, state, mass, wave display, and interpretation. For a finite well, the state-index slider first selects normalized bound eigenstates and then explicitly labeled above-barrier continuum samples.</p></div><div class="section-body"><div class="canvas-card full"><canvas id="cFull"></canvas><div class="legend"><div><span class="sw" style="background:#ff9966"></span>V(x)</div><div><span class="sw" style="background:#54e0a0"></span>bound E</div><div><span class="sw" style="background:#ff6b6b"></span>scattering E</div><div><span class="sw" style="background:#4fc3ff"></span>Re Ψ</div><div><span class="sw" style="background:#2563eb"></span>Im Ψ</div><div><span class="sw" style="background:#ffd24d"></span>|Ψ|² / relative density</div></div></div><div class="controls"><div class="row"><label><span>Well type</span><span id="fTypeLbl">Infinite</span></label><select id="fType"><option value="infinite">Infinite square well</option><option value="finite">Finite square well</option></select></div><div class="row" id="fVRow"><label><span>Barrier V₀</span><span id="fVLbl">12.0 eV</span></label><input id="fV" type="range" min="0.25" max="40" step="0.25" value="12"/></div><div class="row" id="fModeRow"><label><span>State mode</span><span id="fModeLbl">Eigenstate</span></label><select id="fMode"><option value="eigen" selected>Single eigenstate</option><option value="super">Two-state superposition</option></select></div><div class="row" id="fNRow"><label><span>State index n</span><span id="fnLbl">1</span></label><input id="fn" type="range" min="1" max="14" step="1" value="1"/></div><div class="control-note is-hidden" id="fStateNote"></div><div class="row" id="fMRow"><label><span>m</span><span id="fmLbl">2</span></label><input id="fm" type="range" min="1" max="14" step="1" value="2"/></div><div class="row"><label><span>Width L</span><span id="fLLbl">4.00 nm</span></label><input id="fL" type="range" min="2" max="8" step="0.05" value="4"/></div><div class="row"><label><span>Mass m/m₀</span><span id="fMassLbl">1.00</span></label><input id="fMass" type="range" min="0.3" max="3" step="0.01" value="1"/></div><div class="row" id="fMixRow"><label><span>|cₘ|²</span><span id="fMixLbl">0.35</span></label><input id="fMix" type="range" min="0" max="1" step="0.01" value="0.35"/></div><div class="row" id="fPhaseRow"><label><span>Relative phase</span><span id="fPhaseLbl">0.75 rad</span></label><input id="fPhase" type="range" min="0" max="6.2832" step="0.01" value="0.75"/></div><div class="row"><label><span>Animation rate</span><span id="fSpeedLbl">0.002 fs/ms</span></label><input id="fSpeed" type="range" min="0" max="0.050" step="0.0005" value="0.002"/></div><div class="row"><label><span>Interpretation</span><span id="fInterpLbl">Orthodox interpretation</span></label><select id="fInterp"><option value="copenhagen">Orthodox interpretation</option><option value="bohmian">Bohmian mechanics</option></select></div><div class="checks"><label><input id="fRe" type="checkbox"/> Re Ψ</label><label><input id="fIm" type="checkbox"/> Im Ψ</label><label><input id="fProb" type="checkbox" checked/> |Ψ|²</label><label id="fGuidanceRow"><input id="fGuidance" type="checkbox" checked/> Guidance arrows</label></div><div class="row is-hidden" id="fSampleRow"><button class="button" id="fResample" type="button">Resample 120 Bohmian configurations</button><div class="control-note">Gold dots are independent configurations sampled from the displayed normalizable |Ψ(x,t)|² distribution.</div></div><button class="button secondary" id="fReset" type="button">Reset recommended example</button><div class="readout" id="fRead"></div></div></div></section>
+<div class="footer">Made by Mark Hattarki at Rice University.</div>
 </div>
 <script>
-/* Pure 1D/2D optical two-slit engine. Internal geometry: nm; photon energy: eV; time: fs. */
-const TwoSlitEngine = (() => {
+/* Pure 1D square-well physics engine. Units: eV, nm, fs. */
+const QMWellEngine = (() => {
   'use strict';
-  const HBAR = 0.6582119569;     // ħ in eV fs
-  const HC_EV_NM = 1239.841984;  // h c in eV nm
-  const TWO_PI = 2*Math.PI;
-  // Fixed Gauss–Legendre nodes for the finite-aperture Huygens integral.
-  const GLX=[-0.9951872199970213,-0.9747285559713095,-0.9382745520027328,-0.8864155270044011,-0.8200019859739029,-0.7401241915785544,-0.6480936519369755,-0.5454214713888396,-0.4337935076260451,-0.3150426796961634,-0.1911188674736163,-0.06405689286260563,0.06405689286260563,0.1911188674736163,0.3150426796961634,0.4337935076260451,0.5454214713888396,0.6480936519369755,0.7401241915785544,0.8200019859739029,0.8864155270044011,0.9382745520027328,0.9747285559713095,0.9951872199970213];
-  const GLW=[0.01234122979998869,0.02853138862893356,0.04427743881741941,0.05929858491543636,0.07334648141108016,0.0861901615319532,0.09761865210411393,0.10744427011596557,0.11550566805372552,0.1216704729278033,0.12583745634682825,0.12793819534675202,0.12793819534675202,0.12583745634682825,0.1216704729278033,0.11550566805372552,0.10744427011596557,0.09761865210411393,0.0861901615319532,0.07334648141108016,0.05929858491543636,0.04427743881741941,0.02853138862893356,0.01234122979998869];
-  const screenScaleCache=new Map();
 
-  function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
-  function wavelength(E){ return HC_EV_NM/Math.max(1e-12,E); }
-  function k(E){ return TWO_PI/wavelength(E); }
-  function sinc(u){ return Math.abs(u)<1e-8?1:Math.sin(u)/u; }
-  function geometryKey(p){ return [p.E,p.d,p.a,p.L].map(v=>Number(v).toPrecision(13)).join('|'); }
-  function screenHalfWidth(p){
-    const lambda=wavelength(p.E);
-    const fringe=lambda*p.L/Math.max(p.d,1e-6);
-    // Optical laboratory screen coordinate, in nm internally: 0.2 mm to 50 mm half-width.
-    return clamp(Math.max(2.0e5,3.5*fringe,3.0*p.d),2.0e5,50.0e6);
-  }
-  function phaseAtScreen(x,p,timeFs){
-    const theta=Math.atan2(x,p.L);
-    const sinTheta=Math.sin(theta);
-    const kk=k(p.E);
-    const envelope=sinc(0.5*kk*p.a*sinTheta);
-    const pathPhase=0.5*kk*p.d*sinTheta;
-    const globalPhase=-p.E*timeFs/HBAR;
-    return {theta,sinTheta,envelope,pathPhase,globalPhase};
-  }
-  function complexFromPolar(amp,phase){ return {re:amp*Math.cos(phase),im:amp*Math.sin(phase)}; }
-  function add(a,b){ return {re:a.re+b.re,im:a.im+b.im}; }
-  function norm2(c){ return c.re*c.re+c.im*c.im; }
-  function rotate(c,phase){ const cs=Math.cos(phase),sn=Math.sin(phase); return {re:c.re*cs-c.im*sn,im:c.re*sn+c.im*cs}; }
+  const HB2 = 0.0380998212;       // ħ²/(2 m0), eV·nm²
+  const HBAR = 0.6582119569;      // ħ, eV·fs
+  const finiteCache = new Map();
 
-  // Scalar Huygens propagation through one finite rectangular slit, evaluated by quadrature.
-  // The two-dimensional cross-section omits a common physical prefactor, which cancels in all
-  // normalized intensities and probability-flow calculations.
-  function apertureField(x,z,center,p,derivatives=false){
-    const kk=k(p.E), zz=Math.max(1e-6,z), halfA=.5*p.a;
-    let re=0,im=0,dreX=0,dimX=0,dreZ=0,dimZ=0;
-    for(let i=0;i<GLX.length;i++){
-      const y=center+halfA*GLX[i];
-      const dx=x-y;
-      const r2=dx*dx+zz*zz;
-      const r=Math.sqrt(r2);
-      const amp=1/Math.sqrt(r);
-      const phase=kk*r;
-      const cs=Math.cos(phase),sn=Math.sin(phase);
-      const w=halfA*GLW[i];
-      const ar=w*amp;
-      re+=ar*cs; im+=ar*sn;
-      if(derivatives){
-        const ampX=-0.5*dx*amp/r2;
-        const ampZ=-0.5*zz*amp/r2;
-        const phaseX=kk*dx/r;
-        const phaseZ=kk*zz/r;
-        dreX+=w*(ampX*cs-ar/w*phaseX*sn);
-        dimX+=w*(ampX*sn+ar/w*phaseX*cs);
-        dreZ+=w*(ampZ*cs-ar/w*phaseZ*sn);
-        dimZ+=w*(ampZ*sn+ar/w*phaseZ*cs);
+  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+  function alpha(mass = 1) { return HB2 / Math.max(1e-9, mass); }
+  function energyInfinite(n, L, mass = 1) {
+    return alpha(mass) * Math.pow(n * Math.PI / L, 2);
+  }
+  function c(re = 0, im = 0) { return { re, im }; }
+  function cadd(a, b) { return c(a.re + b.re, a.im + b.im); }
+  function csub(a, b) { return c(a.re - b.re, a.im - b.im); }
+  function cscale(a, q) { return c(a.re * q, a.im * q); }
+  function cmul(a, b) { return c(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re); }
+  function cdiv(a, b) { const d=b.re*b.re+b.im*b.im; return d>1e-30?c((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d):c(0,0); }
+  function cis(q) { return c(Math.cos(q), Math.sin(q)); }
+  function cabs2(a) { return a.re*a.re+a.im*a.im; }
+
+  function bisect(f, lo, hi, iterations = 100) {
+    let flo = f(lo);
+    let fhi = f(hi);
+    if (!Number.isFinite(flo) || !Number.isFinite(fhi) || flo === 0 || fhi === 0 || flo * fhi > 0) return null;
+    for (let i = 0; i < iterations; i++) {
+      const mid = 0.5 * (lo + hi);
+      const fm = f(mid);
+      if (!Number.isFinite(fm)) return null;
+      if (Math.abs(fm) < 1e-13 || 0.5 * (hi - lo) < 1e-13) return mid;
+      if (flo * fm <= 0) {
+        hi = mid;
+        fhi = fm;
+      } else {
+        lo = mid;
+        flo = fm;
       }
     }
-    return derivatives?{re,im,dreX,dimX,dreZ,dimZ}:{re,im};
+    return 0.5 * (lo + hi);
   }
-  function screenScale(p){
-    const key=geometryKey(p);
-    if(screenScaleCache.has(key))return screenScaleCache.get(key);
-    const center=apertureField(0,p.L,p.d/2,p,false);
-    const mag=Math.hypot(center.re,center.im);
-    const s=.5/Math.max(mag,1e-30);
-    screenScaleCache.set(key,s);
-    if(screenScaleCache.size>72)screenScaleCache.delete(screenScaleCache.keys().next().value);
-    return s;
-  }
-  function slitAmplitudes(x,p,timeFs){
-    const scale=screenScale(p),globalPhase=-p.E*timeFs/HBAR;
-    const upperRaw=apertureField(x,p.L,p.d/2,p,false);
-    const lowerRaw=apertureField(x,p.L,-p.d/2,p,false);
-    const upper=rotate({re:scale*upperRaw.re,im:scale*upperRaw.im},globalPhase);
-    const lower=rotate({re:scale*lowerRaw.re,im:scale*lowerRaw.im},globalPhase);
-    const q=phaseAtScreen(x,p,timeFs);
-    return {upper,lower,q};
-  }
-  function screenState(x,p,timeFs){
-    const s=slitAmplitudes(x,p,timeFs);
-    let coherent;
-    if(p.open==='upper') coherent=s.upper;
-    else if(p.open==='lower') coherent=s.lower;
-    else coherent=add(s.upper,s.lower);
-    const iUpper=norm2(s.upper),iLower=norm2(s.lower);
-    const cross=2*(s.upper.re*s.lower.re+s.upper.im*s.lower.im);
-    let rho;
-    if(p.open==='two')rho=iUpper+iLower+clamp(p.gamma,0,1)*cross;
-    else rho=norm2(coherent);
-    return {re:coherent.re,im:coherent.im,rho:Math.max(0,rho),upper:s.upper,lower:s.lower,envelope:s.q.envelope,pathPhase:s.q.pathPhase};
-  }
-  function screenGrid(p,timeFs,N){
-    N=N||520;
-    const half=screenHalfWidth(p),arr=[];
-    for(let i=0;i<N;i++){
-      const x=-half+2*half*i/(N-1),s=screenState(x,p,timeFs);
-      arr.push({x,re:s.re,im:s.im,rho:s.rho});
+
+  function finiteBoundStates(L, V0, mass = 1) {
+    const cleanL = Math.max(1e-6, Number(L));
+    const cleanV = Math.max(1e-9, Number(V0));
+    const cleanM = Math.max(1e-6, Number(mass));
+    const key = [cleanL.toFixed(8), cleanV.toFixed(8), cleanM.toFixed(8)].join('|');
+    if (finiteCache.has(key)) return finiteCache.get(key);
+
+    const a = cleanL / 2;
+    const A = alpha(cleanM);
+    const z0 = a * Math.sqrt(cleanV / A);
+    const eps = 1e-10;
+    const states = [];
+
+    function makeState(z, parity, residual) {
+      const k = z / a;
+      const E = A * k * k;
+      const kappa = Math.sqrt(Math.max(0, cleanV / A - k * k));
+      const edge = parity === 'even' ? Math.cos(k * a) : Math.sin(k * a);
+      const insideIntegral = parity === 'even'
+        ? a + Math.sin(2 * k * a) / (2 * k)
+        : a - Math.sin(2 * k * a) / (2 * k);
+      const outsideIntegral = (edge * edge) / Math.max(kappa, 1e-14);
+      const norm = 1 / Math.sqrt(Math.max(insideIntegral + outsideIntegral, 1e-15));
+      return { parity, z, z0, a, k, kappa, E, edge, norm, residual };
     }
-    arr.ampScale=1;arr.probScale=1;arr.half=half;
-    return arr;
-  }
-  function singleEnvelopeRho(x,p){ return screenState(x,Object.assign({},p,{open:'upper',gamma:1}),0).rho; }
-  function coherentRho(x,p){ return screenState(x,Object.assign({},p,{gamma:1,open:'two'}),0).rho; }
-  function incoherentRho(x,p){ return screenState(x,Object.assign({},p,{gamma:0,open:'two'}),0).rho; }
-  function screenCDF(p,timeFs,N){
-    N=N||1800;
-    const half=screenHalfWidth(p),xs=new Array(N),cdf=new Array(N);
-    let total=0,prev=screenState(-half,p,timeFs).rho;
-    xs[0]=-half;cdf[0]=0;
-    for(let i=1;i<N;i++){
-      const x=-half+2*half*i/(N-1),rho=screenState(x,p,timeFs).rho;
-      total+=.5*(rho+prev)*(x-xs[i-1]);xs[i]=x;cdf[i]=total;prev=rho;
+
+    // Each parity equation has one root in the indicated tangent/cotangent interval.
+    for (let r = 0; ; r++) {
+      const base = r * Math.PI;
+      let anyInterval = false;
+
+      // Even states: z tan z = sqrt(z0² - z²), z in (rπ, rπ + π/2).
+      let lo = base + eps;
+      let hi = Math.min(base + Math.PI / 2 - eps, z0 - eps);
+      if (lo < hi) {
+        anyInterval = true;
+        const f = z => z * Math.tan(z) - Math.sqrt(Math.max(0, z0 * z0 - z * z));
+        const root = bisect(f, lo, hi);
+        if (root !== null) states.push(makeState(root, 'even', f(root)));
+      }
+
+      // Odd states: -z cot z = sqrt(z0² - z²), z in (rπ + π/2, (r+1)π).
+      lo = base + Math.PI / 2 + eps;
+      hi = Math.min((r + 1) * Math.PI - eps, z0 - eps);
+      if (lo < hi) {
+        anyInterval = true;
+        const f = z => -z / Math.tan(z) - Math.sqrt(Math.max(0, z0 * z0 - z * z));
+        const root = bisect(f, lo, hi);
+        if (root !== null) states.push(makeState(root, 'odd', f(root)));
+      }
+
+      if (!anyInterval && base > z0) break;
+      if (r > 2000) break;
     }
-    if(total<=0)return{xs,cdf:cdf.map(()=>0),total:0};
-    for(let i=0;i<N;i++)cdf[i]/=total;
-    return{xs,cdf,total};
+
+    states.sort((u, v) => u.E - v.E);
+    states.forEach((s, i) => { s.n = i + 1; });
+    finiteCache.set(key, states);
+    return states;
   }
-  function cdfQuantile(data,q){
-    const xs=data.xs,cdf=data.cdf,target=clamp(q,0,1);let lo=0,hi=cdf.length-1;
-    while(hi-lo>1){const mid=(lo+hi)>>1;if(cdf[mid]<target)lo=mid;else hi=mid;}
-    const c0=cdf[lo],c1=cdf[hi],t=Math.abs(c1-c0)<1e-14?0:(target-c0)/(c1-c0);
-    return xs[lo]+t*(xs[hi]-xs[lo]);
+
+  function finiteState(n, L, V0, mass = 1) {
+    return finiteBoundStates(L, V0, mass)[Math.max(0, Math.floor(n) - 1)] || null;
   }
-  function samplePositions(p,count,seed,timeFs){
-    const data=screenCDF(p,timeFs,1400),out=[];let state=(seed>>>0)||1;
-    function rnd(){state=(1664525*state+1013904223)>>>0;return state/4294967296;}
-    for(let i=0;i<count;i++)out.push(cdfQuantile(data,rnd()));
+  function scatterEnergy(p) { return Math.max(p.V0*Math.max(1.000001,Number(p.scatterRatio)||1.5),p.V0+1e-8); }
+  function scatteringState(L,V0,mass=1,ratio=1.5) {
+    const ell=Math.max(1e-8,Number(L)), vv=Math.max(1e-9,Number(V0)), mm=Math.max(1e-8,Number(mass));
+    const E=Math.max(vv*Math.max(1.000001,Number(ratio)||1.5),vv+1e-8), aa=alpha(mm), q=Math.sqrt((E-vv)/aa), k=Math.sqrt(E/aa), sn=Math.sin(k*ell), cs=Math.cos(k*ell);
+    const D=c((q*q+k*k)*sn,2*q*k*cs), r=cdiv(c((q*q-k*k)*sn,0),D), t=cdiv(c(0,2*q*k),D), one=c(1,0);
+    const A=cscale(cadd(cadd(one,r),cscale(csub(one,r),q/k)),.5), B=cscale(csub(cadd(one,r),cscale(csub(one,r),q/k)),.5);
+    return {L:ell,a:ell/2,V0:vv,mass:mm,E,q,k,r,t,A,B,R:cabs2(r),T:cabs2(t)};
+  }
+  function scatteringWave(x,state) {
+    const a=state.a; let psi,dpsi;
+    if(x<-a){ const inc=cis(state.q*(x+a)), ref=cmul(state.r,cis(-state.q*(x+a))); psi=cadd(inc,ref); dpsi=cadd(c(-state.q*inc.im,state.q*inc.re),c(state.q*ref.im,-state.q*ref.re)); }
+    else if(x<=a){ const y=x+a, f=cmul(state.A,cis(state.k*y)), b=cmul(state.B,cis(-state.k*y)); psi=cadd(f,b); dpsi=cadd(c(-state.k*f.im,state.k*f.re),c(state.k*b.im,-state.k*b.re)); }
+    else { psi=cmul(state.t,cis(state.q*(x-a))); dpsi=c(-state.q*psi.im,state.q*psi.re); }
+    return {re:psi.re,im:psi.im,dre:dpsi.re,dim:dpsi.im};
+  }
+
+  function finitePhi(x, state) {
+    if (!state) return 0;
+    const ax = Math.abs(x);
+    if (ax <= state.a) {
+      return state.norm * (state.parity === 'even' ? Math.cos(state.k * x) : Math.sin(state.k * x));
+    }
+    const sign = x >= 0 ? 1 : -1;
+    const outerParity = state.parity === 'even' ? 1 : sign;
+    return state.norm * state.edge * outerParity * Math.exp(-state.kappa * (ax - state.a));
+  }
+
+  function finitePhiDerivative(x, state) {
+    if (!state) return 0;
+    const ax = Math.abs(x);
+    if (ax < state.a) {
+      return state.norm * (state.parity === 'even' ? -state.k * Math.sin(state.k * x) : state.k * Math.cos(state.k * x));
+    }
+    const sign = x >= 0 ? 1 : -1;
+    if (state.parity === 'even') {
+      return -state.norm * state.edge * state.kappa * sign * Math.exp(-state.kappa * (ax - state.a));
+    }
+    // Odd outer branch: sign(x) A sin(ka) exp[-κ(|x|-a)]
+    // Its derivative is -A sin(ka) κ exp[-κ(|x|-a)] on both outer sides.
+    return -state.norm * state.edge * state.kappa * Math.exp(-state.kappa * (ax - state.a));
+  }
+
+  function infinitePhi(x, n, L) {
+    if (Math.abs(x) > L / 2) return 0;
+    return Math.sqrt(2 / L) * Math.sin(n * Math.PI * (x + L / 2) / L);
+  }
+
+  function infinitePhiDerivative(x, n, L) {
+    if (Math.abs(x) > L / 2) return 0;
+    return Math.sqrt(2 / L) * (n * Math.PI / L) * Math.cos(n * Math.PI * (x + L / 2) / L);
+  }
+
+  function stateEnergy(p, n) {
+    if (p.type === 'finite') { if(p.kind==='scatter') return scatterEnergy(p); const ss=finiteState(n,p.L,p.V0,p.mass); return ss?ss.E:NaN; }
+    return energyInfinite(n,p.L,p.mass);
+  }
+
+  function spatialPhi(x, p, n) {
+    if (p.type === 'finite') { if(p.kind==='scatter') return scatteringWave(x,scatteringState(p.L,p.V0,p.mass,p.scatterRatio)).re; return finitePhi(x,finiteState(n,p.L,p.V0,p.mass)); }
+    return infinitePhi(x,n,p.L);
+  }
+
+  function spatialPhiDerivative(x, p, n) {
+    if (p.type === 'finite') { if(p.kind==='scatter') return scatteringWave(x,scatteringState(p.L,p.V0,p.mass,p.scatterRatio)).dre; return finitePhiDerivative(x,finiteState(n,p.L,p.V0,p.mass)); }
+    return infinitePhiDerivative(x,n,p.L);
+  }
+
+  function spatialMax(p, n) {
+    if(p.type==='finite') { if(p.kind==='scatter'){const ss=scatteringState(p.L,p.V0,p.mass,p.scatterRatio);return Math.max(1+Math.sqrt(ss.R),Math.hypot(ss.A.re,ss.A.im)+Math.hypot(ss.B.re,ss.B.im),Math.sqrt(ss.T));} const ss=finiteState(n,p.L,p.V0,p.mass);return ss?Math.abs(ss.norm):1e-12; }
+    return Math.sqrt(2/p.L);
+  }
+
+  function components(p) {
+    const n=p.n,m=p.m||(n===1?2:1); if(p.type==='finite'&&p.kind==='scatter')return[{n:'scatter',coeff:1,phase0:0}];
+    if(p.mode!=='super')return[{n,coeff:1,phase0:0}]; const q=clamp(Number.isFinite(p.mix)?p.mix:.35,0,1); return[{n,coeff:Math.sqrt(1-q),phase0:0},{n:m,coeff:Math.sqrt(q),phase0:Number.isFinite(p.relativePhase)?p.relativePhase:0}];
+  }
+
+  function waveWithDerivative(x, p, timeFs) {
+    if(p.type==='finite'&&p.kind==='scatter'){
+      const ss=scatteringState(p.L,p.V0,p.mass,p.scatterRatio), sp=scatteringWave(x,ss), th=-ss.E*timeFs/HBAR, cs=Math.cos(th), sn=Math.sin(th);
+      const re=sp.re*cs-sp.im*sn, im=sp.re*sn+sp.im*cs, dre=sp.dre*cs-sp.dim*sn, dim=sp.dre*sn+sp.dim*cs, rho=re*re+im*im;
+      return {re,im,dre,dim,rho,j:(2*alpha(p.mass)/HBAR)*(re*dim-im*dre)};
+    }
+    let re=0,im=0,dre=0,dim=0; for(const cc of components(p)){const E=stateEnergy(p,cc.n);if(!Number.isFinite(E))continue;const phi=spatialPhi(x,p,cc.n),dphi=spatialPhiDerivative(x,p,cc.n),ph=-E*timeFs/HBAR+cc.phase0,cs=Math.cos(ph),sn=Math.sin(ph);re+=cc.coeff*phi*cs;im+=cc.coeff*phi*sn;dre+=cc.coeff*dphi*cs;dim+=cc.coeff*dphi*sn;}
+    const rho=re*re+im*im;return{re,im,dre,dim,rho,j:(2*alpha(p.mass)/HBAR)*(re*dim-im*dre)};
+  }
+
+  function fixedAmplitudeScale(p) { if(p.type==='finite'&&p.kind==='scatter')return Math.max(spatialMax(p,p.n),1e-10); return components(p).reduce((sum,cc)=>sum+Math.abs(cc.coeff)*spatialMax(p,cc.n),0); }
+
+  function finiteVisibleExtent(p) {
+    const a=p.L/2; if(p.type!=='finite')return a; if(p.kind==='scatter')return Math.max(a+p.L,1.65*p.L);
+    const ks=components(p).map(cc=>finiteState(cc.n,p.L,p.V0,p.mass)).filter(Boolean).map(ss=>ss.kappa).filter(q=>q>1e-10); if(!ks.length)return a+2; return a+Math.min(16,Math.max(1.2,8/Math.min(...ks)));
+  }
+
+  function densityCDF(p, timeFs, samples = 1600) {
+    const extent = finiteVisibleExtent(p);
+    const xmin = -extent, xmax = extent;
+    const xs = new Array(samples);
+    const cdf = new Array(samples);
+    let total = 0;
+    let prevRho = waveWithDerivative(xmin, p, timeFs).rho;
+    xs[0] = xmin;
+    cdf[0] = 0;
+    for (let i = 1; i < samples; i++) {
+      const x = xmin + (xmax - xmin) * i / (samples - 1);
+      const rho = waveWithDerivative(x, p, timeFs).rho;
+      total += 0.5 * (rho + prevRho) * (x - xs[i - 1]);
+      xs[i] = x;
+      cdf[i] = total;
+      prevRho = rho;
+    }
+    if (total <= 0) return { xs, cdf: cdf.map(() => 0), total: 0 };
+    for (let i = 0; i < samples; i++) cdf[i] /= total;
+    return { xs, cdf, total };
+  }
+
+  function cdfQuantile(cdfData, q) {
+    const { xs, cdf } = cdfData;
+    if (!cdf.length) return 0;
+    const target = clamp(q, 0, 1);
+    let lo = 0, hi = cdf.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (cdf[mid] < target) lo = mid; else hi = mid;
+    }
+    const c0 = cdf[lo], c1 = cdf[hi];
+    const t = Math.abs(c1 - c0) < 1e-14 ? 0 : (target - c0) / (c1 - c0);
+    return xs[lo] + t * (xs[hi] - xs[lo]);
+  }
+
+  function quantilePositions(p, count, timeFs = 0) {
+    const cdf = densityCDF(p, timeFs);
+    const out = [];
+    for (let i = 0; i < count; i++) out.push(cdfQuantile(cdf, (i + 0.5) / count));
     return out;
   }
-  function pointField(x,z,p){
-    const upper=apertureField(x,z,p.d/2,p,false),lower=apertureField(x,z,-p.d/2,p,false);
-    if(p.open==='upper')return{re:upper.re,im:upper.im,i:norm2(upper),upper,lower};
-    if(p.open==='lower')return{re:lower.re,im:lower.im,i:norm2(lower),upper,lower};
-    const cross=2*(upper.re*lower.re+upper.im*lower.im),re=upper.re+lower.re,im=upper.im+lower.im;
-    return{re,im,i:Math.max(0,norm2(upper)+norm2(lower)+clamp(p.gamma,0,1)*cross),upper,lower};
+
+  function velocityAt(x, p, timeFs) {
+    const s = waveWithDerivative(x, p, timeFs);
+    if (s.rho < 1e-12) return 0;
+    return s.j / s.rho;
   }
-  function pointFieldDerivative(x,z,p){
-    const upper=apertureField(x,z,p.d/2,p,true),lower=apertureField(x,z,-p.d/2,p,true);
-    if(p.open==='upper')return upper;
-    if(p.open==='lower')return lower;
-    return{re:upper.re+lower.re,im:upper.im+lower.im,dreX:upper.dreX+lower.dreX,dimX:upper.dimX+lower.dimX,dreZ:upper.dreZ+lower.dreZ,dimZ:upper.dimZ+lower.dimZ};
+
+  function beatPeriodFs(p) {
+    if (p.mode !== 'super') return Infinity;
+    const c = components(p);
+    if (c.length < 2) return Infinity;
+    const dE = Math.abs(stateEnergy(p, c[1].n) - stateEnergy(p, c[0].n));
+    return dE > 1e-12 ? 2 * Math.PI * HBAR / dE : Infinity;
   }
-  function fieldCurrent(x,z,p){
-    const u=pointFieldDerivative(x,z,p);
-    return {jx:u.re*u.dimX-u.im*u.dreX,jz:u.re*u.dimZ-u.im*u.dreZ};
+
+  function rk4Step(x, t, dt, p, left, right) {
+    const f = (xx, tt) => velocityAt(clamp(xx, left, right), p, tt);
+    const k1 = f(x, t);
+    const k2 = f(x + 0.5 * dt * k1, t + 0.5 * dt);
+    const k3 = f(x + 0.5 * dt * k2, t + 0.5 * dt);
+    const k4 = f(x + dt * k3, t + dt);
+    return clamp(x + dt * (k1 + 2 * k2 + 2 * k3 + k4) / 6, left, right);
   }
-  function fieldSlope(x,z,p){
-    const j=fieldCurrent(x,z,p);
-    if(!Number.isFinite(j.jx)||!Number.isFinite(j.jz)||j.jz<=1e-14)return 0;
-    return clamp(j.jx/j.jz,-1.5,1.5);
-  }
-  function rk4X(x,z,dz,p,bound){
-    const f=(xx,zz)=>fieldSlope(clamp(xx,-bound,bound),zz,p);
-    const k1=f(x,z),k2=f(x+.5*dz*k1,z+.5*dz),k3=f(x+.5*dz*k2,z+.5*dz),k4=f(x+dz*k3,z+dz);
-    return clamp(x+dz*(k1+2*k2+2*k3+k4)/6,-bound,bound);
-  }
-  function transverseCDF(z,p,samples,bound){
-    const xs=new Array(samples),cdf=new Array(samples);
-    let total=0,prev=pointField(-bound,z,p).i;
-    xs[0]=-bound;cdf[0]=0;
-    for(let i=1;i<samples;i++){
-      const x=-bound+2*bound*i/(samples-1),rho=pointField(x,z,p).i;
-      total+=.5*(rho+prev)*(x-xs[i-1]);xs[i]=x;cdf[i]=total;prev=rho;
+
+  function trajectory(seed, p, targetTimeFs, sampleCount = 18) {
+    const extent = finiteVisibleExtent(p);
+    const left = -extent + 1e-5, right = extent - 1e-5;
+    const history = [];
+    if ((p.mode !== 'super' && p.kind !== 'scatter') || targetTimeFs <= 0) {
+      for (let i = 0; i < sampleCount; i++) history.push(clamp(seed, left, right));
+      return history;
     }
-    if(total<=0)return{xs,cdf:cdf.map(()=>0),total:0};
-    for(let i=0;i<samples;i++)cdf[i]/=total;
-    return{xs,cdf,total};
-  }
-  // Seed the paths in the physical slit apertures, then carry fixed cumulative
-  // probability labels through the propagated field.  The adaptive transverse
-  // range resolves the micrometre-scale apertures near the barrier and expands
-  // to the displayed detector width at the screen.  This prevents the initial
-  // quantiles from being sampled on a millimetre-scale detector grid.
-  function apertureSeeds(p,count){
-    const halfA=.5*p.a;
-    const intervals=[[-.5*p.d-halfA,-.5*p.d+halfA],[.5*p.d-halfA,.5*p.d+halfA]];
-    const total=2*p.a;
-    const seeds=[];
-    for(let i=0;i<count;i++){
-      let target=((i+.5)/count)*total;
-      for(const interval of intervals){
-        const width=interval[1]-interval[0];
-        if(target<=width){seeds.push(interval[0]+target);break;}
-        target-=width;
+    let x = clamp(seed, left, right);
+    let t = 0;
+    const targets = Array.from({ length: sampleCount }, (_, i) => targetTimeFs * i / Math.max(1, sampleCount - 1));
+    for (const goal of targets) {
+      while (t < goal - 1e-10) {
+        const remaining = goal - t;
+        const dt = Math.min(0.20, remaining);
+        x = rk4Step(x, t, dt, p, left, right);
+        t += dt;
       }
+      history.push(x);
     }
-    return seeds;
+    return history;
   }
-  function flowBoundAtZ(p,z){
-    const apertureHalf=.5*(p.d+p.a);
-    const detectorHalf=screenHalfWidth(p);
-    const diffractionHalf=apertureHalf+5.5*wavelength(p.E)*z/Math.max(p.a,1e-9);
-    const transportHalf=apertureHalf+(detectorHalf-apertureHalf)*clamp(z/Math.max(p.L,1),0,1);
-    return Math.min(detectorHalf,Math.max(apertureHalf*1.04,diffractionHalf,transportHalf));
-  }
-  // For a forward detector view, transport equal cumulative labels of the
-  // longitudinal scalar current j_z across successive planes. This uses the
-  // calculated current field while avoiding misleading backtracking near nodes.
-  function longitudinalFluxCDF(z,p,samples,bound){
-    const xs=new Array(samples),cdf=new Array(samples);
-    let total=0;
-    const fluxAt=x=>{const j=fieldCurrent(x,z,p).jz;return Number.isFinite(j)&&j>0?j:0;};
-    let prev=fluxAt(-bound);xs[0]=-bound;cdf[0]=0;
-    for(let i=1;i<samples;i++){
-      const x=-bound+2*bound*i/(samples-1),flux=fluxAt(x);
-      total+=.5*(flux+prev)*(x-xs[i-1]);xs[i]=x;cdf[i]=total;prev=flux;
-    }
-    if(total<=0)return{xs,cdf:cdf.map(()=>0),total:0};
-    for(let i=0;i<samples;i++)cdf[i]/=total;
-    return{xs,cdf,total};
-  }
-  function streamlines(p,count){
-    if(p.open!=='two'||p.gamma<.999)return[];
-    const steps=74,paths=Array.from({length:count},()=>[]);
-    const qs=Array.from({length:count},(_,i)=>(i+.5)/count),seeds=apertureSeeds(p,count);
-    const startZ=Math.min(p.L*.02,Math.max(80*wavelength(p.E),4*p.a));
-    const expK=5.8,expDen=Math.exp(expK)-1;
-    for(let i=0;i<count;i++)paths[i].push([seeds[i],0]);
-    for(let j=0;j<steps;j++){
-      const u=j/Math.max(1,steps-1);
-      const z=startZ+(p.L-startZ)*(Math.exp(expK*u)-1)/expDen;
-      const flux=longitudinalFluxCDF(z,p,224,flowBoundAtZ(p,z));
-      for(let i=0;i<count;i++)paths[i].push([cdfQuantile(flux,qs[i]),z]);
-    }
-    for(let i=0;i<count;i++)paths[i].seed=seeds[i];
-    return paths;
-  }
-  return {HBAR,HC_EV_NM,k,wavelength,sinc,screenHalfWidth,phaseAtScreen,slitAmplitudes,screenState,screenGrid,singleEnvelopeRho,coherentRho,incoherentRho,screenCDF,cdfQuantile,samplePositions,pointField,pointFieldDerivative,fieldCurrent,fieldSlope,transverseCDF,longitudinalFluxCDF,streamlines,clamp};
+
+  return {
+    HB2, HBAR, alpha, clamp,
+    energyInfinite, finiteBoundStates, finiteState, finitePhi, finitePhiDerivative,
+    scatterEnergy, scatteringState, scatteringWave,
+    infinitePhi, infinitePhiDerivative,
+    stateEnergy, spatialPhi, spatialPhiDerivative, spatialMax,
+    components, waveWithDerivative, fixedAmplitudeScale,
+    finiteVisibleExtent, densityCDF, cdfQuantile, quantilePositions,
+    velocityAt, beatPeriodFs, trajectory
+  };
 })();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = QMWellEngine;
+
 </script>
 <script>
 (() => {
 'use strict';
-const $=id=>document.getElementById(id);
-const all=sel=>Array.from(document.querySelectorAll(sel));
-const Q=TwoSlitEngine;
-const C={ink:'#bfe4ff',accent:'#ff9966',yellow:'#ffd24d',cyan:'#4fc3ff',green:'#54e0a0',im:'#2563eb',red:'#ff6b6b',blue:'#60a5fa'};
-let clockMs=0,last=performance.now(),lastDraw=0,detectionNonce=1;
-const DEFAULT_SPEED=.002;
-const INTERP={
-  orthodox:{name:'Orthodox interpretation',overlay:'Orthodox view: |Ψ|² gives screen-detection probabilities; no unobserved path is assigned.'},
-  bohmian:{name:'Bohmian mechanics',overlay:'Bohmian view: source-to-slit markers feed into scalar-current guidance paths.'}
+const $ = id => document.getElementById(id);
+const all = sel => Array.from(document.querySelectorAll(sel));
+const Q = QMWellEngine;
+const C = {ink:'#bfe4ff', accent:'#ff9966', yellow:'#ffd24d', cyan:'#4fc3ff', green:'#54e0a0', im:'#2563eb', red:'#ff6b6b'};
+const NMAX = 14;
+const DEFAULT_SPEED = 0.002; // fs per browser ms; display-control unit is explicit.
+let clockMs = 0;
+let last = performance.now();
+let lastDraw = 0;
+let detectionNonce = 1;
+const INTERP = {
+  copenhagen:{name:'Orthodox interpretation',overlay:'Orthodox view: |Ψ|² gives position-measurement probabilities.'},
+  bohmian:{name:'Bohmian mechanics',overlay:'Bohmian view: Ψ guides definite configurations through the probability current.'}
 };
-const fieldCache=new Map();
-const streamCache=new Map();
-const screenGridCache=new Map();
-const frontGridCache=new Map();
-const detectionCache=new Map();
-const visualGeometry=new Map();
-const pilotLaunchEpoch=new Map();
-const PART4_DETECTOR_HALF_NM=2.0e7; // fixed ±20 mm detector for cumulative events
-const part4Accumulator={key:null,pixelNm:0,counts:[],total:0};
-const FRONT_DETECTOR_HALF_NM=2.0e7; // fixed ±20 mm front-view detector extent
-const PART56_DETECTOR_HALF_NM=2.0e7; // fixed ±20 mm graph span so λ and L move visible features
-let interactionUntil=0;
-let geometrySnap=false;
-let interactionTimer=null;
-function cachePut(cache,key,value,limit){
-  cache.set(key,value);
-  if(cache.size>limit)cache.delete(cache.keys().next().value);
-  return value;
-}
-function modelKey(p){
-  return [p.E,p.d,p.a,p.L,p.open,p.gamma].map(v=>Number(v).toPrecision(13)).join('|');
-}
-function cachedScreenGrid(p,N){
-  const key='screen|'+modelKey(p)+'|'+N;
-  if(screenGridCache.has(key))return screenGridCache.get(key);
-  return cachePut(screenGridCache,key,Q.screenGrid(p,0,N),72);
-}
-function cachedDetectionPositions(p,count,seed){
-  const key='samples|'+modelKey(p)+'|'+count+'|'+seed;
-  if(detectionCache.has(key))return detectionCache.get(key);
-  return cachePut(detectionCache,key,Q.samplePositions(p,count,seed,0),48);
-}
-function screenCDFOnSpan(p,half,N=1500){
-  const xs=new Array(N),cdf=new Array(N);
-  let total=0,prev=Q.screenState(-half,p,0).rho;
-  xs[0]=-half;cdf[0]=0;
-  for(let i=1;i<N;i++){
-    const x=-half+2*half*i/(N-1),rho=Q.screenState(x,p,0).rho;
-    total+=.5*(rho+prev)*(x-xs[i-1]);xs[i]=x;cdf[i]=total;prev=rho;
-  }
-  if(total<=0)return{xs,cdf:cdf.map(()=>0),total:0};
-  for(let i=0;i<N;i++)cdf[i]/=total;
-  return{xs,cdf,total};
-}
-function samplePositionsOnSpan(p,count,seed,half=PART4_DETECTOR_HALF_NM){
-  const cdf=screenCDFOnSpan(p,half,1500),out=[];let state=(seed>>>0)||1;
-  function rnd(){state=(1664525*state+1013904223)>>>0;return state/4294967296;}
-  for(let i=0;i<count;i++)out.push(Q.cdfQuantile(cdf,rnd()));
-  return out;
-}
-function cachedScreenGridOnSpan(p,N,half){
-  const key='screen-fixed|'+modelKey(p)+'|'+N+'|'+Number(half).toPrecision(13);
-  if(screenGridCache.has(key))return screenGridCache.get(key);
-  const grid=[];
-  for(let i=0;i<N;i++){
-    const x=-half+2*half*i/(N-1);
-    const s=Q.screenState(x,p,0);
-    grid.push({x,re:s.re,im:s.im,rho:s.rho});
-  }
-  grid.ampScale=1;grid.probScale=1;grid.half=half;
-  return cachePut(screenGridCache,key,grid,72);
-}
-function markInteraction(){
-  interactionUntil=performance.now()+620;
-  geometrySnap=false;
-  clearTimeout(interactionTimer);
-  interactionTimer=setTimeout(()=>{
-    interactionUntil=0;
-    geometrySnap=true;
-    drawVisible();
-    geometrySnap=false;
-  },640);
-}
-function animatedGeometry(key,p){
-  const now=performance.now();
-  let s=visualGeometry.get(key);
-  if(!s){s={Lcm:p.Lcm,last:now};visualGeometry.set(key,s);}
-  if(geometrySnap){
-    s.Lcm=p.Lcm;
-    s.last=now;
-  }else{
-    const dt=Math.min(80,Math.max(0,now-s.last));
-    const blend=1-Math.exp(-dt/135);
-    s.Lcm+=(p.Lcm-s.Lcm)*blend;
-    s.last=now;
-  }
-  // Only the screen distance is animated. Slit geometry remains at the exact
-  // slider values so the finite-aperture field stays registered to the shown slits.
-  return Object.assign({},p,{Lcm:s.Lcm,L:s.Lcm*1e7});
-}
-
-function cachedStreamlines(p,count){
-  const key=[Math.round(p.E*1000),Math.round(p.d/500),Math.round(p.a/250),Math.round(p.Lcm*10),p.open,Math.round(p.gamma*100),count].join('|');
-  if(streamCache.has(key))return streamCache.get(key);
-  const paths=Q.streamlines(p,count);
-  streamCache.set(key,paths);
-  if(streamCache.size>24)streamCache.delete(streamCache.keys().next().value);
-  return paths;
-}
-function val(id){const e=$(id);if(!e)return null;if(e.type==='checkbox')return e.checked;if(e.tagName==='SELECT')return e.value;return Number(e.value);}
-function txt(id,v){const e=$(id);if(e)e.textContent=String(v);}
-function html(id,v){const e=$(id);if(e)e.innerHTML=String(v);}
+function value(id){ const e=$(id); if(!e) return null; if(e.type==='checkbox') return e.checked; if(e.tagName==='SELECT') return e.value; return Number(e.value); }
+function setText(id, v){ const e=$(id); if(e) e.textContent=String(v); }
+function setHTML(id, v){ const e=$(id); if(e) e.innerHTML=String(v); }
+function show(id, flag){ const e=$(id); if(e) e.classList.toggle('is-hidden', !flag); }
+function disabled(id, flag){ const e=$(id); if(e){ e.disabled=flag; const row=e.closest('.row') || e.closest('label'); if(row) row.classList.toggle('is-disabled', !!flag); } }
 function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function speedText(s){return s===0?'Paused':Number(s).toFixed(4)+' fs/ms';}
 function isMobile(){return window.matchMedia('(max-width:700px)').matches;}
 function dpr(){return isMobile()?1:Math.min(window.devicePixelRatio||1,2);}
-function speedText(s){
-  if(s===0)return 'Paused';
-  const v=Number(s);
-  return Math.abs(v)<1e-4?v.toExponential(1)+' fs/ms':v.toFixed(4)+' fs/ms';
+function timeFs(p){
+  return clockMs*(Number.isFinite(p.speed)?p.speed:DEFAULT_SPEED);
 }
-function timeFs(p){return clockMs*(Number.isFinite(p.speed)?p.speed:DEFAULT_SPEED);}
-function fmtLambda(lambdaNm){return lambdaNm.toFixed(0)+' nm';}
-function fmtScreenLength(xNm){const ax=Math.abs(xNm);if(ax>=1e6)return(xNm/1e6).toFixed(2)+' mm';if(ax>=1000)return(xNm/1000).toFixed(2)+' μm';return xNm.toFixed(1)+' nm';}
-function params(lambdaNm,dUm,aUm,Lcm,open,gamma,speed){
-  const lam=Math.max(1e-6,Number(lambdaNm));
-  const slitD=Math.max(1e-9,Number(dUm));
-  const slitA=Math.max(1e-9,Number(aUm));
-  const screenCm=Math.max(1e-9,Number(Lcm));
-  return{lambdaNm:lam,E:Q.HC_EV_NM/lam,d:slitD*1000,a:slitA*1000,L:screenCm*1e7,Lcm:screenCm,mass:1,open:open||'two',gamma:Number.isFinite(Number(gamma))?Number(gamma):1,speed:Number.isFinite(Number(speed))?Number(speed):DEFAULT_SPEED};
+function makeParams(type,L,V0,mass,n,mode='eigen',m=2,mix=.35,relativePhase=.75,speed=DEFAULT_SPEED,kind='bound',scatterRatio=1.5){return {type,L,V0,mass,n,mode,m,mix,relativePhase,speed,kind,scatterRatio};}
+function finiteCount(p){return Q.finiteBoundStates(p.L,p.V0,p.mass).length;}
+function clampFiniteN(inputId, p){if(p.type!=='finite')return;const e=$(inputId);if(!e)return;const max=Math.max(1,Math.min(NMAX,finiteCount(p)));e.max=max;if(Number(e.value)>max)e.value=max;}
+function finiteIndexState(p){
+  const count=finiteCount(p);
+  const continuumIndex=Math.max(0,Math.floor(p.n)-count);
+  p.kind=continuumIndex>0?'scatter':'bound';
+  p.scatterRatio=p.kind==='scatter'?1.02+.12*(continuumIndex-1):1.5;
+  // A fixed, conservative width prevents near-threshold bound tails from being clipped.
+  const ref=Object.assign({},p,{V0:.25,n:1,mode:'eigen',m:2,kind:'bound'});
+  p.fixedXExtent=p.kind==='scatter'?Math.max(1.65*p.L,Q.finiteVisibleExtent(ref)):Q.finiteVisibleExtent(ref);
+  return{count,continuumIndex};
 }
-function setLabels(prefix,p){
-  txt(prefix+'ELbl',p.lambdaNm.toFixed(0)+' nm · '+p.E.toFixed(2)+' eV');
-  if($(prefix+'DLbl'))txt(prefix+'DLbl',(p.d/1000).toFixed(1)+' μm');
-  if($(prefix+'ALbl'))txt(prefix+'ALbl',(p.a/1000).toFixed(1)+' μm');
-  if($(prefix+'LLbl'))txt(prefix+'LLbl',p.Lcm.toFixed(0)+' cm');
-  if($(prefix+'SpeedLbl'))txt(prefix+'SpeedLbl',speedText(p.speed));
-  if($(prefix+'GammaLbl'))txt(prefix+'GammaLbl',p.gamma.toFixed(2));
+function updateFiniteRanges(){
+  const s5n=$('s5n');if(s5n){s5n.min=1;s5n.max=NMAX;}
+  const fN=$('fn'),fM=$('fm');
+  if(fN){fN.min=1;fN.max=NMAX;}
+  const type=value('fType');
+  if(type==='finite'){
+    const preview=makeParams('finite',value('fL'),value('fV'),value('fMass'),value('fn'),value('fMode'),value('fm'),value('fMix'),value('fPhase'),value('fSpeed'));
+    const info=finiteIndexState(preview);
+    if(fM)fM.max=info.continuumIndex>0?NMAX:Math.max(1,Math.min(NMAX,info.count));
+  }else if(fM)fM.max=NMAX;
 }
-function setup(id){const c=$(id),r=c.getBoundingClientRect(),s=dpr(),w=Math.max(1,Math.floor(r.width*s)),h=Math.max(1,Math.floor(r.height*s));if(c.width!==w||c.height!==h){c.width=w;c.height=h;}const ctx=c.getContext('2d');ctx.setTransform(s,0,0,s,0,0);return{ctx,W:r.width,H:r.height};}
+function syncControls(){
+  show('s1VRow',value('s1Type')==='finite');
+  const super6=value('s6Mode')==='super';['s6MRow','s6MixRow'].forEach(id=>show(id,super6));
+  const super7=value('s7Mode')==='super';['s7MRow','s7MixRow','s7PhaseRow'].forEach(id=>show(id,super7));
+  show('s7SampleRow',value('s7Interp')==='bohmian');
+  updateFiniteRanges();
+  const fullFinite=value('fType')==='finite';
+  let fullInfo=null;
+  if(fullFinite){
+    const preview=makeParams('finite',value('fL'),value('fV'),value('fMass'),value('fn'),value('fMode'),value('fm'),value('fMix'),value('fPhase'),value('fSpeed'));
+    fullInfo=finiteIndexState(preview);
+  }
+  const scatter=!!(fullFinite&&fullInfo&&fullInfo.continuumIndex>0);
+  const fullCount=fullFinite&&fullInfo?fullInfo.count:NMAX;
+  show('fVRow',fullFinite);
+  show('fStateNote',fullFinite);
+  show('fModeRow',!scatter);
+  const superOption=$('fMode').querySelector?$('fMode').querySelector('option[value="super"]'):null;
+  if(superOption)superOption.disabled=fullFinite&&!scatter&&fullCount<2;
+  if((scatter||(fullFinite&&!scatter&&fullCount<2))&&value('fMode')==='super')$('fMode').value='eigen';
+  const superF=!scatter&&value('fMode')==='super';
+  ['fMRow','fMixRow','fPhaseRow'].forEach(id=>show(id,superF));
+  const dbb=value('fInterp')==='bohmian';
+  disabled('fGuidance',!dbb);
+  // A continuum scattering eigenfunction is not globally normalizable, so no finite-window |Ψ|² samples are presented.
+  show('fSampleRow',dbb&&!scatter);
+}
+function setup(id){const c=$(id), r=c.getBoundingClientRect(), scale=dpr();const w=Math.max(1,Math.floor(r.width*scale)),h=Math.max(1,Math.floor(r.height*scale));if(c.width!==w||c.height!==h){c.width=w;c.height=h;}const ctx=c.getContext('2d');ctx.setTransform(scale,0,0,scale,0,0);return{ctx,W:r.width,H:r.height};}
+function extentFor(p){if(Number.isFinite(p.fixedXExtent))return p.fixedXExtent;return p.type==='finite'?Q.finiteVisibleExtent(p):Math.max(5.05,p.L*0.95);}
+function makeMap(W,H,p,{labels=false,eMax=null}={}){const m={l:74,r:labels?190:34,t:50,b:82};const plotW=Math.max(50,W-m.l-m.r),plotH=Math.max(50,H-m.t-m.b);const xExtent=extentFor(p);let top=eMax;if(!Number.isFinite(top)){if(p.type==='finite')top=Math.max(p.V0*1.13,Q.stateEnergy(p,p.n)*1.15,0.4);else top=Math.max(Q.energyInfinite(NMAX,p.L,p.mass)*1.12,0.3);}const bottom=-0.07*top;return{x:x=>m.l+(x+xExtent)/(2*xExtent)*plotW,y:e=>m.t+(top-e)/(top-bottom)*plotH,m,plotW,plotH,W,H,xExtent,eMax:top,eMin:bottom,labelX:W-m.r+12};}
 function clear(ctx,W,H){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#08122d');g.addColorStop(1,'#071020');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
-function drawSceneAxes(ctx,W,H){ctx.save();ctx.strokeStyle='rgba(123,178,255,.16)';ctx.lineWidth=1;for(let i=0;i<=10;i++){const x=56+(W-90)*i/10;ctx.beginPath();ctx.moveTo(x,42);ctx.lineTo(x,H-56);ctx.stroke();}for(let j=0;j<=7;j++){const y=42+(H-98)*j/7;ctx.beginPath();ctx.moveTo(56,y);ctx.lineTo(W-34,y);ctx.stroke();}ctx.restore();}
-function sceneCoords(W,H,p){
-  const compact=W<620;
-  const wallX=W*.405;
-  // Direct pixels-per-centimetre mapping: screen separation from the barrier is
-  // proportional to the selected physical distance across the 0–150 cm range.
-  const reserve=compact?70:112;
-  const usableRun=Math.max(36,W-wallX-reserve);
-  const pxPerCm=usableRun/150;
-  const screenX=wallX+clamp(p.Lcm,0,150)*pxPerCm;
-  return{W,H,sourceX:W*.115,wallX,screenX,cy:H*.51,top:52,bottom:H-66,screenTop:H*.17,screenBottom:H*.85};
-}
-function xToSceneY(x,p,c){const half=Q.screenHalfWidth(p);return c.cy-x/half*(c.screenBottom-c.screenTop)/2;}
-function frontPanelY(x,c){const half=FRONT_DETECTOR_HALF_NM;return c.cy-clamp(x/half,-1,1)*(c.screenBottom-c.screenTop)/2;}
-function frontScreenGrid(p,N=300){
-  const key='front|'+modelKey(p)+'|'+N;
-  if(frontGridCache.has(key))return frontGridCache.get(key);
-  const out=[];
-  for(let i=0;i<N;i++){
-    const x=-FRONT_DETECTOR_HALF_NM+2*FRONT_DETECTOR_HALF_NM*i/(N-1);
-    const s=Q.screenState(x,p,0);
-    out.push({x,rho:s.rho});
-  }
-  return cachePut(frontGridCache,key,out,48);
-}
-
-function zToSceneX(z,p,c){return c.wallX+(c.screenX-c.wallX)*z/p.L;}
-function path(ctx,pts,color,width,alpha,dash){if(!pts.length)return;ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width||2;ctx.globalAlpha=alpha===undefined?1:alpha;ctx.setLineDash(dash||[]);ctx.beginPath();for(let i=0;i<pts.length;i++){if(i)ctx.lineTo(pts[i][0],pts[i][1]);else ctx.moveTo(pts[i][0],pts[i][1]);}ctx.stroke();ctx.restore();}
-function slitSceneGeometry(p,c){
-  // One shared local scale maps finite-aperture coordinates to the barrier.
-  // Consequently, the drawn slit centres and edges are the same coordinates
-  // used to launch the cyan coherent-density field and Huygens guides.
-  const apertureSpan=Math.max(1,c.bottom-c.top);
-  const maxSeparationNm=100000; // 100 μm: the maximum slider value.
-  const pxPerNm=(apertureSpan*.36)/maxSeparationNm;
-  const separationPx=p.d*pxPerNm;
-  const slitPx=p.a*pxPerNm;
-  return{
-    upperY:c.cy-separationPx/2,
-    lowerY:c.cy+separationPx/2,
-    actualUpper:c.cy-separationPx/2,
-    actualLower:c.cy+separationPx/2,
-    slitPx,
-    pxPerNm,
-    visualized:false
-  };
-}
-function fieldDisplayScale(p,c,g,z){
-  const span=(c.screenBottom-c.screenTop)/2;
-  const etaSlit=Math.max(.015,Math.abs(c.cy-g.upperY)/span);
-  const slitScale=p.d/(2*etaSlit);
-  const screenScale=Q.screenHalfWidth(p);
-  const u=clamp(z/Math.max(p.L,1),0,1);
-  return slitScale+(screenScale-slitScale)*u;
-}
-function fieldSceneY(x,z,p,c,g){
-  const span=(c.screenBottom-c.screenTop)/2;
-  return c.cy-(x/fieldDisplayScale(p,c,g,z))*span;
-}
-function drawFieldImage(ctx,p,c,g){
-  // During a slider drag, rasterize the same finite-aperture field at a lower display
-  // resolution, then restore the full-resolution raster after the interaction settles.
-  const interactive=performance.now()<interactionUntil;
-  const cols=interactive?(isMobile()?72:104):(isMobile()?105:170);
-  const rows=interactive?(isMobile()?82:112):(isMobile()?120:175);
-  const gStep=interactive?8:1;
-  const key=[Math.round(p.E*1000),Math.round(p.d/500),Math.round(p.a/250),Math.round(p.Lcm*10),Math.round(p.gamma*100),p.open,Math.round(g.upperY/gStep),Math.round(g.lowerY/gStep),cols,rows].join('|');
-  let cached=fieldCache.get(key);
-  if(!cached){
-    const off=document.createElement('canvas');off.width=cols;off.height=rows;const octx=off.getContext('2d');const im=octx.createImageData(cols,rows);let maxI=0;const raw=new Float32Array(cols*rows);
-    const lambda=Q.wavelength(p.E);
-    const fresnelStart=8*p.a*p.a/Math.max(lambda,1e-9);
-    const startZ=Math.min(p.L*.08,Math.max(12*p.a,fresnelStart,p.L*.0005));
-    for(let iy=0;iy<rows;iy++)for(let ix=0;ix<cols;ix++){
-      const frac=ix/(cols-1),z=startZ+(p.L-startZ)*frac;
-      const eta=1-2*iy/(rows-1);
-      const x=eta*fieldDisplayScale(p,c,g,z);
-      const s=Q.pointField(x,z,p);const k=iy*cols+ix;raw[k]=s.i;maxI=Math.max(maxI,s.i);
-    }
-    maxI=Math.max(maxI,1e-12);
-    for(let i=0;i<raw.length;i++){
-      const v=Math.pow(Math.min(1,raw[i]/maxI),.34);
-      const r=Math.round(3+24*v),gg=Math.round(26+188*v),b=Math.round(58+196*v);
-      im.data[4*i]=r;im.data[4*i+1]=gg;im.data[4*i+2]=b;im.data[4*i+3]=244;
-    }
-    octx.putImageData(im,0,0);cached=cachePut(fieldCache,key,off,24);
-  }
-  ctx.save();ctx.imageSmoothingEnabled=true;ctx.globalAlpha=.98;ctx.drawImage(cached,c.wallX+3,c.top+6,c.screenX-c.wallX-6,c.bottom-c.top-12);ctx.restore();
-}
-
-function drawPreparedIncidentWave(ctx,p,c,g){
-  const slits=p.open==='upper'?[g.upperY]:p.open==='lower'?[g.lowerY]:[g.upperY,g.lowerY];
+function axes(ctx,map){ctx.save();ctx.strokeStyle='rgba(123,178,255,.16)';ctx.lineWidth=1;for(let i=0;i<=10;i++){const x=map.m.l+map.plotW*i/10;ctx.beginPath();ctx.moveTo(x,map.m.t);ctx.lineTo(x,map.m.t+map.plotH);ctx.stroke();}for(let j=0;j<=8;j++){const y=map.m.t+map.plotH*j/8;ctx.beginPath();ctx.moveTo(map.m.l,y);ctx.lineTo(map.m.l+map.plotW,y);ctx.stroke();}ctx.strokeStyle='rgba(191,228,255,.75)';ctx.beginPath();ctx.moveTo(map.m.l,map.m.t+map.plotH);ctx.lineTo(map.m.l+map.plotW,map.m.t+map.plotH);ctx.moveTo(map.m.l,map.m.t);ctx.lineTo(map.m.l,map.m.t+map.plotH);ctx.stroke();ctx.fillStyle=C.ink;ctx.font='12px Arial';ctx.fillText('x position (nm)',map.m.l+map.plotW/2-58,map.m.t+map.plotH+38);ctx.save();ctx.translate(26,map.m.t+map.plotH/2+71);ctx.rotate(-Math.PI/2);ctx.fillText('potential / state energy (eV)',0,0);ctx.restore();ctx.restore();}
+function drawPotential(ctx,map,p){const a=p.L/2, xL=map.x(-a),xR=map.x(a),y0=map.y(0),yTop=map.m.t+4,yBottom=map.y(map.eMin);ctx.save();ctx.fillStyle='rgba(79,195,255,.045)';ctx.fillRect(xL,yTop,xR-xL,yBottom-yTop);if(p.type==='infinite'){ctx.fillStyle='rgba(255,153,102,.24)';ctx.fillRect(map.m.l,yTop,xL-map.m.l,yBottom-yTop);ctx.fillRect(xR,yTop,map.m.l+map.plotW-xR,yBottom-yTop);ctx.strokeStyle=C.accent;ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(xL,yTop);ctx.lineTo(xL,yBottom);ctx.moveTo(xR,yTop);ctx.lineTo(xR,yBottom);ctx.stroke();ctx.fillStyle=C.accent;ctx.font='bold 12px Arial';ctx.fillText('∞ wall',xL+8,yTop+24);ctx.fillText('∞ wall',xR+8,yTop+24);}else{const yV=map.y(p.V0);ctx.fillStyle='rgba(255,153,102,.15)';ctx.fillRect(map.m.l,yV,xL-map.m.l,yBottom-yV);ctx.fillRect(xR,yV,map.m.l+map.plotW-xR,yBottom-yV);ctx.strokeStyle=C.accent;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(map.m.l,yV);ctx.lineTo(xL,yV);ctx.lineTo(xL,y0);ctx.lineTo(xR,y0);ctx.lineTo(xR,yV);ctx.lineTo(map.m.l+map.plotW,yV);ctx.stroke();ctx.fillStyle=C.accent;ctx.font='bold 12px Arial';ctx.fillText('V₀ = '+p.V0.toFixed(2)+' eV',map.m.l+8,Math.max(map.m.t+18,yV-10));}
+ctx.strokeStyle=C.accent;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(xL,y0);ctx.lineTo(xR,y0);ctx.stroke();ctx.fillStyle=C.accent;ctx.font='bold 12px Arial';ctx.fillText('V(x)',map.m.l+8,Math.max(map.m.t+16,y0-10));const by=Math.min(map.m.t+map.plotH-22,y0+30);ctx.strokeStyle='rgba(191,228,255,.88)';ctx.lineWidth=1.7;ctx.beginPath();ctx.moveTo(xL,by);ctx.lineTo(xR,by);ctx.moveTo(xL,by-7);ctx.lineTo(xL,by+7);ctx.moveTo(xR,by-7);ctx.lineTo(xR,by+7);ctx.stroke();ctx.fillStyle='#d7efff';ctx.font='bold 12px Arial';const label='L = '+p.L.toFixed(2)+' nm';const tw=ctx.measureText(label).width;ctx.fillText(label,(xL+xR)/2-tw/2,by-10);ctx.restore();}
+function line(ctx,pts,color,width=2,alpha=1,dash=[]){if(!pts.length)return;ctx.save();ctx.strokeStyle=color;ctx.globalAlpha=alpha;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.restore();}
+function levelsFor(p){if(p.type==='finite'){const rows=Q.finiteBoundStates(p.L,p.V0,p.mass).slice(0,NMAX).map(ss=>({n:ss.n,E:ss.E}));if(p.kind==='scatter')rows.push({n:'scat',E:Q.scatterEnergy(p),scatter:true});return rows;}return Array.from({length:NMAX},(_,i)=>({n:i+1,E:Q.energyInfinite(i+1,p.L,p.mass)}));}
+function drawLevels(ctx,map,p,{labels=true,markM=false}={}){
+  const rows=levelsFor(p).map(r=>({...r,y:map.y(r.E),selected:r.scatter||r.n===p.n,selectedM:markM&&p.mode==='super'&&r.n===p.m}));
   ctx.save();
-  ctx.lineCap='round';
-  for(const y of slits){
-    const grad=ctx.createLinearGradient(c.sourceX,c.cy,c.wallX,y);
-    grad.addColorStop(0,'rgba(79,195,255,.14)');
-    grad.addColorStop(1,'rgba(79,195,255,.62)');
-    ctx.strokeStyle=grad;ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(c.sourceX+16,c.cy);ctx.lineTo(c.wallX-13,y);ctx.stroke();
+  for(const r of rows){
+    const color=r.scatter?C.red:(r.selected?C.green:(r.selectedM?'#60a5fa':'rgba(215,239,255,.54)'));
+    ctx.strokeStyle=color;
+    ctx.lineWidth=r.selected||r.selectedM?3:1.35;
+    ctx.setLineDash(r.scatter?[7,4]:(r.selected||r.selectedM?[7,4]:[]));
+    ctx.beginPath();
+    ctx.moveTo(r.scatter?map.x(-map.xExtent):map.x(-p.L/2),r.y);
+    ctx.lineTo(r.scatter?map.x(map.xExtent):map.x(p.L/2),r.y);
+    ctx.stroke();ctx.setLineDash([]);
   }
-  for(let r=16;r<Math.max(68,c.wallX-c.sourceX-16);r+=18){
-    ctx.strokeStyle='rgba(79,195,255,.18)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(c.sourceX,c.cy,r,-0.42,0.42);ctx.stroke();
-  }
-  ctx.restore();
-}
-function drawOutgoingWavefronts(ctx,p,c,g){
-  const slitCenters=[];
-  if(p.open!=='lower')slitCenters.push(p.d/2);
-  if(p.open!=='upper')slitCenters.push(-p.d/2);
-  const half=Q.screenHalfWidth(p),lambda=Q.wavelength(p.E);
-  // The displayed guides are separated by an integer number of de Broglie wavelengths.
-  const guideCount=8;
-  const cyclesPerGuide=Math.max(1,Math.round((p.L/(guideCount+1))/lambda));
-  const spacing=cyclesPerGuide*lambda;
-  const first=Math.max(spacing,Math.max(12*p.a,p.L*.0005));
-  ctx.save();
-  ctx.beginPath();ctx.rect(c.wallX+2,c.top+6,c.screenX-c.wallX-8,c.bottom-c.top-12);ctx.clip();
-  ctx.lineWidth=1.3;
-  for(const slitX of slitCenters){
-    for(let r=first;r<p.L*1.001;r+=spacing){
-      const pts=[];
-      for(let i=0;i<=132;i++){
-        const x=-half+2*half*i/132;
-        const dx=x-slitX;
-        if(Math.abs(dx)>r)continue;
-        const z=Math.sqrt(Math.max(0,r*r-dx*dx));
-        if(z<1||z>p.L)continue;
-        pts.push([zToSceneX(z,p,c),fieldSceneY(x,z,p,c,g)]);
-      }
-      if(pts.length>2)path(ctx,pts,'rgba(157,222,255,.36)',1.3,.98);
+  if(labels){
+    const showRows=rows.filter(r=>r.scatter||r.selected||r.selectedM||(Number.isFinite(r.n)&&Math.abs(r.n-p.n)<=2));
+    let prior=-Infinity;
+    for(const r of showRows){
+      let ly=Math.max(map.m.t+11,Math.min(map.m.t+map.plotH-11,r.y));ly=Math.max(ly,prior+18);prior=ly;
+      const label=r.scatter?`continuum E=${r.E.toFixed(4)} eV`:(r.selectedM?`m=${r.n}   E=${r.E.toFixed(4)} eV`:`n=${r.n}   E=${r.E.toFixed(4)} eV`);
+      ctx.font='bold 12px Arial';const w=ctx.measureText(label).width;
+      ctx.fillStyle='rgba(8,18,45,.84)';ctx.fillRect(map.labelX-4,ly-9,w+8,18);
+      ctx.fillStyle=r.scatter?C.red:(r.selected?C.green:(r.selectedM?'#60a5fa':'#d7efff'));
+      ctx.fillText(label,map.labelX,ly+4);
     }
   }
   ctx.restore();
 }
-function drawScreenPanel(ctx,p,c,showIntensity=true){
-  ctx.save();
-  const x=c.screenX,top=c.screenTop,bottom=c.screenBottom,h=bottom-top;
-  ctx.shadowColor='rgba(215,239,255,.60)';ctx.shadowBlur=10;
-  ctx.fillStyle='rgba(215,239,255,.18)';ctx.fillRect(x-7,top,14,h);
-  ctx.strokeStyle='rgba(238,248,255,.98)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();
-  ctx.shadowBlur=0;
-  ctx.strokeStyle='rgba(215,239,255,.52)';ctx.lineWidth=1;
-  for(let j=0;j<=10;j++){const y=top+h*j/10;ctx.beginPath();ctx.moveTo(x-9,y);ctx.lineTo(x+9,y);ctx.stroke();}
-  ctx.fillStyle=C.ink;ctx.font='bold 12px Arial';ctx.fillText('screen',x-22,top-10);
-  if(showIntensity){
-    // A front-facing projection of the same screen density makes the interference profile legible.
-    const gap=c.W<620?18:34;
-    const desiredW=c.W<620?48:66;
-    const faceW=Math.min(desiredW,Math.max(36,c.W-c.screenX-gap-10));
-    const faceX=Math.min(c.screenX+gap,c.W-faceW-10);
-    ctx.fillStyle='rgba(7,16,32,.72)';ctx.fillRect(faceX-2,top-2,faceW+4,h+4);
-    ctx.strokeStyle='rgba(238,248,255,.94)';ctx.lineWidth=1.4;ctx.strokeRect(faceX-2,top-2,faceW+4,h+4);
-    const grid=frontScreenGrid(p,300);
-    for(let i=0;i<grid.length-1;i++){
-      const y0=frontPanelY(grid[i].x,c),y1=frontPanelY(grid[i+1].x,c);
-      const v=clamp(grid[i].rho,0,1),alpha=.12+.88*Math.sqrt(v);
-      ctx.fillStyle='rgba(255,210,77,'+alpha.toFixed(3)+')';
-      ctx.fillRect(faceX,Math.min(y0,y1),faceW,Math.max(1,Math.abs(y1-y0)+1));
-    }
-    ctx.fillStyle=C.ink;ctx.font='bold 11px Arial';ctx.fillText('front-view |Ψ|² · ±20 mm',faceX,top-24);
-  }
-  ctx.restore();
-}
-function drawBarrierScreenSource(ctx,p,c,g=slitSceneGeometry(p,c),showIntensity=true){
-  drawPreparedIncidentWave(ctx,p,c,g);
-  drawOutgoingWavefronts(ctx,p,c,g);
-  ctx.save();
-  const wallW=18,x=c.wallX-wallW/2;
-  const slots=[g.upperY,g.lowerY].sort((a,b)=>a-b).map(y=>({top:y-g.slitPx/2,bottom:y+g.slitPx/2,mid:y}));
-  ctx.fillStyle='rgba(255,153,102,.54)';
-  ctx.fillRect(x,c.top,wallW,Math.max(0,slots[0].top-c.top));
-  ctx.fillRect(x,slots[0].bottom,wallW,Math.max(0,slots[1].top-slots[0].bottom));
-  ctx.fillRect(x,slots[1].bottom,wallW,Math.max(0,c.bottom-slots[1].bottom));
-  ctx.strokeStyle=C.accent;ctx.lineWidth=3;
-  ctx.beginPath();
-  ctx.moveTo(c.wallX,c.top);ctx.lineTo(c.wallX,slots[0].top);
-  ctx.moveTo(c.wallX,slots[0].bottom);ctx.lineTo(c.wallX,slots[1].top);
-  ctx.moveTo(c.wallX,slots[1].bottom);ctx.lineTo(c.wallX,c.bottom);
-  ctx.stroke();
-  for(const s of slots){
-    ctx.fillStyle='rgba(7,16,32,.92)';ctx.fillRect(x-1,s.top,wallW+2,s.bottom-s.top);
-    ctx.strokeStyle='rgba(191,228,255,.95)';ctx.lineWidth=1.8;ctx.strokeRect(x-1,s.top,wallW+2,s.bottom-s.top);
-    ctx.fillStyle='rgba(79,195,255,.36)';ctx.beginPath();ctx.arc(c.wallX,s.mid,Math.max(4,g.slitPx*.22),0,Math.PI*2);ctx.fill();
-  }
-  ctx.fillStyle='rgba(79,195,255,.22)';ctx.beginPath();ctx.arc(c.sourceX,c.cy,18,0,Math.PI*2);ctx.fill();ctx.strokeStyle=C.cyan;ctx.lineWidth=2;ctx.beginPath();ctx.arc(c.sourceX,c.cy,11,0,Math.PI*2);ctx.stroke();
-  ctx.fillStyle=C.ink;ctx.font='bold 12px Arial';ctx.fillText('source',c.sourceX-19,c.cy+34);ctx.fillText('two-slit barrier',c.wallX-45,c.top+16);
-  if(g.visualized){ctx.font='11px Arial';ctx.fillStyle='rgba(215,239,255,.82)';ctx.fillText('slit openings enlarged visually',c.wallX-58,c.bottom+18);}
-  ctx.restore();
-  drawScreenPanel(ctx,p,c,showIntensity);
-}
-function drawMovingPilotParticles(ctx,p,c,g,paths,launchKey='pilot'){
-  if(!paths.length)return;
-  const visualRate=Math.max(0,p.speed/DEFAULT_SPEED),epochKey=launchKey+'|'+modelKey(p);
-  let epoch=pilotLaunchEpoch.get(epochKey);
-  if(epoch===undefined){epoch=clockMs;pilotLaunchEpoch.set(epochKey,epoch);if(pilotLaunchEpoch.size>20)pilotLaunchEpoch.delete(pilotLaunchEpoch.keys().next().value);}
-  const u=((clockMs-epoch)*visualRate/5200)%1,sourceFraction=.24;
-  ctx.save();ctx.lineCap='round';
-  for(let i=0;i<paths.length;i++){
-    const pathData=paths[i],slotY=fieldSceneY(pathData.seed,0,p,c,g);
-    let px,py;
-    if(u<sourceFraction){
-      const t=u/sourceFraction;
-      px=c.sourceX+t*(c.wallX-11-c.sourceX);py=c.cy+t*(slotY-c.cy);
-    }else{
-      const w=(u-sourceFraction)/(1-sourceFraction),v=w*(pathData.length-1),j=Math.min(pathData.length-2,Math.max(0,Math.floor(v))),f=v-j;
-      const q0=pathData[j],q1=pathData[j+1],x=q0[0]+f*(q1[0]-q0[0]),z=q0[1]+f*(q1[1]-q0[1]);
-      px=zToSceneX(z,p,c);py=fieldSceneY(x,z,p,c,g);
-    }
-    const halo=ctx.createRadialGradient(px,py,1,px,py,10);halo.addColorStop(0,'rgba(255,210,77,.68)');halo.addColorStop(1,'rgba(255,210,77,0)');
-    ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,10,0,2*Math.PI);ctx.fill();ctx.fillStyle=C.yellow;ctx.strokeStyle='rgba(7,16,32,.96)';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(px,py,4.4,0,2*Math.PI);ctx.fill();ctx.stroke();
-  }
-  ctx.fillStyle='rgba(255,222,134,.96)';ctx.font='bold 11px Arial';ctx.fillText('each marker: source → slit → scalar-current transport path',c.sourceX+4,c.bottom-14);ctx.restore();
-}
-
-function drawApparatus(ctx,W,H,p,{field=true,streamlines=false,showScreenPattern=true,pilotParticles=false,visualP=null,particleKey='pilot'}={}){
-  const distanceP=visualP||p;
-  drawSceneAxes(ctx,W,H);
-  // distanceP changes only L during the display transition; p remains the exact
-  // optical model. Slit locations therefore stay identical for barrier, field,
-  // Huygens guides, and probability-flow paths at every animation frame.
-  const c=sceneCoords(W,H,distanceP),g=slitSceneGeometry(p,c);
-  if(field)drawFieldImage(ctx,p,c,g);
-  drawBarrierScreenSource(ctx,p,c,g,showScreenPattern);
-  if(streamlines){
-    const paths=cachedStreamlines(p,14);
-    ctx.save();ctx.lineWidth=1.7;ctx.globalAlpha=.92;
-    for(let i=0;i<paths.length;i++){
-      const pts=paths[i];
-      const mapped=pts.map(q=>[zToSceneX(q[1],p,c),fieldSceneY(q[0],q[1],p,c,g)]);
-      path(ctx,mapped,'rgba(247,201,72,'+(0.56+0.34*(i%3)/2).toFixed(3)+')',1.7,.92);
-    }
-    ctx.restore();
-    if(pilotParticles)drawMovingPilotParticles(ctx,p,c,g,paths,particleKey);
-  }
-  return c;
-}
-
-function screenMap(W,H,half){const m={l:64,r:34,t:48,b:74};const pw=Math.max(50,W-m.l-m.r),ph=Math.max(50,H-m.t-m.b);return{x:x=>m.l+(x+half)/(2*half)*pw,y:y=>m.t+(1-y)*ph,m,pw,ph,W,H,half};}
-function drawScreenAxes(ctx,map,title){ctx.save();ctx.strokeStyle='rgba(123,178,255,.16)';ctx.lineWidth=1;for(let i=0;i<=10;i++){const x=map.m.l+map.pw*i/10;ctx.beginPath();ctx.moveTo(x,map.m.t);ctx.lineTo(x,map.m.t+map.ph);ctx.stroke();}for(let j=0;j<=8;j++){const y=map.m.t+map.ph*j/8;ctx.beginPath();ctx.moveTo(map.m.l,y);ctx.lineTo(map.m.l+map.pw,y);ctx.stroke();}ctx.strokeStyle='rgba(191,228,255,.75)';ctx.beginPath();ctx.moveTo(map.m.l,map.m.t+map.ph);ctx.lineTo(map.m.l+map.pw,map.m.t+map.ph);ctx.moveTo(map.m.l,map.m.t);ctx.lineTo(map.m.l,map.m.t+map.ph);ctx.stroke();ctx.fillStyle=C.ink;ctx.font='12px Arial';const xlabel=map.xLabel||'screen coordinate x (μm)';ctx.fillText(xlabel,map.m.l+map.pw/2-(map.xLabel?'83':'65'),map.m.t+map.ph+38);if(map.fixedDetector){for(const mm of [-20,-10,0,10,20])ctx.fillText(String(mm),map.x(mm*1e6)-7,map.m.t+map.ph+18);}ctx.save();ctx.translate(21,map.m.t+map.ph/2+72);ctx.rotate(-Math.PI/2);ctx.fillText(map.yLabel||'relative amplitude / density',0,0);ctx.restore();if(title){ctx.font='bold 13px Arial';ctx.fillText(title,map.m.l,map.m.t-17);}ctx.restore();}
-function drawScreenWave(ctx,map,p,opt){
-  opt=opt||{};
-  const grid=cachedScreenGrid(p,opt.samples||520),base=opt.base!==undefined?opt.base:.61;
-  const re=opt.re!==false,im=!!opt.im,prob=opt.prob!==false;
-  // The screen field is stationary apart from one global phase. Reusing the exact
-  // t=0 finite-aperture amplitudes and rotating them is algebraically identical to
-  // reevaluating the Huygens integral at every frame.
-  const phase=-p.E*timeFs(p)/Q.HBAR,cs=Math.cos(phase),sn=Math.sin(phase);
-  if(re)path(ctx,grid.map(s=>[map.x(s.x),map.y(base+(s.re*cs-s.im*sn)*.28)]),C.cyan,2.2,.96);
-  if(im)path(ctx,grid.map(s=>[map.x(s.x),map.y(base+(s.re*sn+s.im*cs)*.28)]),C.im,2.2,.96);
-  if(prob){const pts=grid.map(s=>[map.x(s.x),map.y(base+s.rho*.54)]);path(ctx,pts,C.yellow,2.4,.98);ctx.save();ctx.globalAlpha=.10;ctx.fillStyle=C.yellow;ctx.beginPath();ctx.moveTo(pts[0][0],map.y(base));for(const pt of pts)ctx.lineTo(pt[0],pt[1]);ctx.lineTo(pts[pts.length-1][0],map.y(base));ctx.closePath();ctx.fill();ctx.restore();}
-  return grid;
-}
-
-function part4AccumulatorKey(p){return [p.lambdaNm,p.d,p.a,p.Lcm,p.pixelNm].map(v=>Number(v).toPrecision(10)).join('|');}
-function ensurePart4AccumulatorNoAdd(p){
-  const key=part4AccumulatorKey(p),width=Math.max(1,p.pixelNm),bins=Math.max(1,Math.ceil(2*PART4_DETECTOR_HALF_NM/width));
-  if(part4Accumulator.key!==key){part4Accumulator.key=key;part4Accumulator.pixelNm=width;part4Accumulator.counts=Array(bins).fill(0);part4Accumulator.total=0;}
-}
-function addPart4Detections(p,count){
-  ensurePart4AccumulatorNoAdd(p);
-  const xs=samplePositionsOnSpan(p,count,0x9e3779b9+(++detectionNonce)*31),w=part4Accumulator.pixelNm;
-  for(const x of xs){const bin=clamp(Math.floor((x+PART4_DETECTOR_HALF_NM)/w),0,part4Accumulator.counts.length-1);part4Accumulator.counts[bin]++;part4Accumulator.total++;}
-}
-function ensurePart4Accumulator(p){
-  if(part4Accumulator.key!==part4AccumulatorKey(p)){ensurePart4AccumulatorNoAdd(p);addPart4Detections(p,160);}
-}
-function resetPart4Accumulator(p){ensurePart4AccumulatorNoAdd(p);part4Accumulator.counts.fill(0);part4Accumulator.total=0;}
-function drawPart4ScreenWave(ctx,map,p,opt){
-  const grid=cachedScreenGridOnSpan(p,opt.samples||560,map.half),base=opt.base===undefined?.35:opt.base;
-  const phase=-p.E*timeFs(p)/Q.HBAR,cs=Math.cos(phase),sn=Math.sin(phase);
-  if(opt.re)path(ctx,grid.map(s=>[map.x(s.x),map.y(base+(s.re*cs-s.im*sn)*.28)]),C.cyan,2.2,.96);
-  if(opt.im)path(ctx,grid.map(s=>[map.x(s.x),map.y(base+(s.re*sn+s.im*cs)*.28)]),C.im,2.2,.96);
-  let integral=0;for(let i=1;i<grid.length;i++)integral+=.5*(grid[i].rho+grid[i-1].rho)*(grid[i].x-grid[i-1].x);
-  const values=grid.map(s=>opt.display==='probability'?s.rho/Math.max(integral,1e-30):s.rho);
-  const peak=Math.max(...values,1e-30);
-  if(opt.prob){const pts=grid.map((s,i)=>[map.x(s.x),map.y(base+values[i]/peak*.54)]);path(ctx,pts,C.yellow,2.4,.98);ctx.save();ctx.globalAlpha=.10;ctx.fillStyle=C.yellow;ctx.beginPath();ctx.moveTo(pts[0][0],map.y(base));for(const pt of pts)ctx.lineTo(pt[0],pt[1]);ctx.lineTo(pts[pts.length-1][0],map.y(base));ctx.closePath();ctx.fill();ctx.restore();}
-  return {grid,integral};
-}
-function drawDetectionDots(ctx,map,p){
-  ensurePart4Accumulator(p);
-  const a=part4Accumulator,maxCount=Math.max(1,...a.counts),base=.055,band=.18;
-  ctx.save();ctx.globalAlpha=.84;ctx.fillStyle='rgba(247,201,72,.88)';
-  for(let i=0;i<a.counts.length;i++){
-    const left=-PART4_DETECTOR_HALF_NM+i*a.pixelNm,right=Math.min(PART4_DETECTOR_HALF_NM,left+a.pixelNm),h=band*a.counts[i]/maxCount;
-    ctx.fillRect(map.x(left),map.y(base+h),Math.max(1,map.x(right)-map.x(left)),map.y(base)-map.y(base+h));
-  }
-  ctx.fillStyle='#f7c948';ctx.font='bold 12px Arial';ctx.fillText(a.total+' accumulated detections in '+a.counts.length+' detector pixels',map.m.l+8,map.y(.29));ctx.restore();
-}
-
-function drawEnergyWavelength(ctx,W,H,p){
-  clear(ctx,W,H);
-  const m={l:82,r:48,t:52,b:78},pw=W-m.l-m.r,ph=H-m.t-m.b;
-  const lambdaMin=350,lambdaMax=750,eMin=Q.HC_EV_NM/lambdaMax,eMax=Q.HC_EV_NM/lambdaMin;
-  const x=lambda=>m.l+(lambda-lambdaMin)/(lambdaMax-lambdaMin)*pw;
-  const y=E=>m.t+(eMax-E)/(eMax-eMin)*ph;
-  ctx.save();ctx.strokeStyle='rgba(123,178,255,.16)';ctx.lineWidth=1;
-  for(let i=0;i<=8;i++){const xx=m.l+pw*i/8;ctx.beginPath();ctx.moveTo(xx,m.t);ctx.lineTo(xx,m.t+ph);ctx.stroke();}
-  for(let j=0;j<=8;j++){const yy=m.t+ph*j/8;ctx.beginPath();ctx.moveTo(m.l,yy);ctx.lineTo(m.l+pw,yy);ctx.stroke();}
-  ctx.strokeStyle='rgba(191,228,255,.75)';ctx.beginPath();ctx.moveTo(m.l,m.t);ctx.lineTo(m.l,m.t+ph);ctx.lineTo(m.l+pw,m.t+ph);ctx.stroke();
-  const pts=[];for(let i=0;i<=520;i++){const lambda=lambdaMin+(lambdaMax-lambdaMin)*i/520;pts.push([x(lambda),y(Q.HC_EV_NM/lambda)]);}path(ctx,pts,C.cyan,2.7,.98);
-  ctx.setLineDash([7,4]);ctx.strokeStyle=C.green;ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(x(p.lambdaNm),m.t);ctx.lineTo(x(p.lambdaNm),m.t+ph);ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle=C.green;ctx.beginPath();ctx.arc(x(p.lambdaNm),y(p.E),5,0,2*Math.PI);ctx.fill();
-  ctx.fillStyle=C.ink;ctx.font='12px Arial';
-  for(const lambda of [350,450,550,650,750])ctx.fillText(String(lambda),x(lambda)-10,m.t+ph+20);
-  for(let j=0;j<=4;j++){const E=eMin+(eMax-eMin)*j/4;ctx.fillText(E.toFixed(2),m.l-41,y(E)+4);}
-  ctx.fillText('wavelength λ (nm)',m.l+pw/2-47,m.t+ph+43);
-  ctx.save();ctx.translate(24,m.t+ph/2+55);ctx.rotate(-Math.PI/2);ctx.fillText('photon energy Eγ (eV)',0,0);ctx.restore();
-  ctx.font='bold 13px Arial';ctx.fillText('Eγ(λ) for the incident light',m.l,m.t-18);
-  ctx.fillStyle=C.green;ctx.fillText('λ = '+p.lambdaNm.toFixed(0)+' nm, Eγ = '+p.E.toFixed(2)+' eV',x(p.lambdaNm)+10,Math.max(m.t+16,y(p.E)-12));
-  ctx.restore();
-}
-function drawPart1(){const p=params(val('s1E'),val('s1D'),val('s1A'),val('s1L'),'two',1,DEFAULT_SPEED),v=animatedGeometry('part1',p);setLabels('s1',p);const o=setup('c1');clear(o.ctx,o.W,o.H);drawApparatus(o.ctx,o.W,o.H,p,{field:true,streamlines:false,showScreenPattern:true,visualP:v});const lambda=Q.wavelength(p.E),fringe=lambda*p.L/p.d,F=Math.pow(p.d+p.a,2)/(lambda*p.L);txt('s1Read','λ = '+fmtLambda(lambda)+'; Eγ = '+p.E.toFixed(2)+' eV. Near the screen center, the estimated fringe spacing is λL/d ≈ '+fmtScreenLength(fringe)+'. Finite-aperture propagation is active (F = '+F.toFixed(3)+').');}
-function drawPart2(){
-  const p=params(val('s2E'),val('s2D'),10,val('s2L'),'two',1,DEFAULT_SPEED),v=animatedGeometry('part2',p),xUm=val('s2X'),x=xUm*1000;
-  setLabels('s2',p);txt('s2Xlbl',xUm.toFixed(0)+' μm');
-  const o=setup('c2');clear(o.ctx,o.W,o.H);const ctx=o.ctx,W=o.W,H=o.H,c=sceneCoords(W,H,v),g=slitSceneGeometry(p,c);
-  drawSceneAxes(ctx,W,H);drawBarrierScreenSource(ctx,p,c,g,true);
-  const yDet=xToSceneY(x,p,c),yUp=g.upperY,yLo=g.lowerY;
-  path(ctx,[[c.wallX,yUp],[c.screenX,yDet]],C.cyan,2.1,.95);path(ctx,[[c.wallX,yLo],[c.screenX,yDet]],C.im,2.1,.95);
-  ctx.save();ctx.fillStyle=C.yellow;ctx.beginPath();ctx.arc(c.screenX,yDet,5,0,2*Math.PI);ctx.fill();ctx.fillStyle=C.ink;ctx.font='bold 12px Arial';ctx.fillText('selected screen point',c.screenX-108,yDet-10);ctx.restore();
-  const rU=Math.hypot(p.L,x-p.d/2),rL=Math.hypot(p.L,x+p.d/2),dR=rU-rL,k=Q.k(p.E),dPhi=k*dR,phase=((dPhi%(2*Math.PI))+2*Math.PI)%(2*Math.PI);const cx=W*.73,cy=H*.30,R=48;
-  ctx.save();ctx.strokeStyle='rgba(191,228,255,.52)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,R,0,2*Math.PI);ctx.stroke();
-  const a1={x:Math.cos(k*rU),y:-Math.sin(k*rU)},a2={x:Math.cos(k*rL),y:-Math.sin(k*rL)},sum={x:a1.x+a2.x,y:a1.y+a2.y};
-  function arrow(vv,color,label,yoff){ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+R*.7*vv.x,cy+R*.7*vv.y);ctx.stroke();ctx.fillText(label,cx+R*.74*vv.x+4,cy+R*.74*vv.y+yoff);}
-  ctx.font='bold 12px Arial';arrow(a1,C.cyan,'A₁',-4);arrow(a2,C.im,'A₂',12);arrow(sum,C.yellow,'A₁+A₂',-8);ctx.fillStyle=C.ink;ctx.fillText('phasors at screen point',cx-54,cy+R+27);ctx.restore();
-  const constructive=Math.cos(dPhi)>0;txt('s2Read','Δr = '+fmtScreenLength(dR)+'; Δφ = '+dPhi.toFixed(3)+' rad ('+phase.toFixed(3)+' mod 2π). The local interference is '+(constructive?'more constructive':'more destructive')+'.');
-}
-
-function drawPart3(){const p=params(val('s3E'),50,10,50,'two',1,DEFAULT_SPEED);setLabels('s3',p);const o=setup('c3');drawEnergyWavelength(o.ctx,o.W,o.H,p);const lambda=Q.wavelength(p.E),kk=Q.k(p.E),momentum=Q.HC_EV_NM/(lambda);txt('s3Read','All quantum waves obey λ = h/p. For this photon, p = Eγ/c, so λ = hc/Eγ. At λ = '+fmtLambda(lambda)+', Eγ = '+p.E.toFixed(2)+' eV, p = '+momentum.toFixed(4)+' eV/c, and k = '+kk.toFixed(5)+' nm⁻¹.');}
-function drawPart4(){
-  const p=params(val('s4E'),val('s4D'),val('s4A'),val('s4L'),'two',1,val('s4Speed'));p.pixelNm=val('s4Pixel')*1000;
-  setLabels('s4',p);txt('s4PixelLbl',(p.pixelNm/1000).toFixed(0)+' μm');
-  const display=val('s4Display');txt('s4DisplayLbl',display==='probability'?'Normalized P(x)':'Relative |Ψ|²');
-  const o=setup('c4');clear(o.ctx,o.W,o.H);const map=screenMap(o.W,o.H,PART4_DETECTOR_HALF_NM);map.fixedDetector=true;map.xLabel='screen coordinate x (mm)';map.yLabel=display==='probability'?'relative probability density':'relative amplitude / intensity';
-  drawScreenAxes(o.ctx,map,display==='probability'?'accumulating detections on a fixed ±20 mm screen':'relative screen intensity on a fixed ±20 mm screen');
-  drawPart4ScreenWave(o.ctx,map,p,{re:val('s4Re'),im:val('s4Im'),prob:val('s4Prob'),base:.35,display});drawDetectionDots(o.ctx,map,p);
-  const a=part4Accumulator;txt('s4Read',(display==='probability'?'The yellow curve is P(x), obtained by normalizing |Ψ|² over the displayed detector.':'The yellow curve is the relative |Ψ|² pattern; it is normalized only for display.')+' The gold histogram contains '+a.total+' independent detections in '+a.counts.length+' pixels.');
-}
+function sampleWave(p,N=440){if(isMobile())N=Math.min(N,260);const extent=extentFor(p), out=[];for(let i=0;i<N;i++){const x=-extent+2*extent*i/(N-1),s=Q.waveWithDerivative(x,p,timeFs(p));out.push({x,re:s.re,im:s.im,prob:s.rho});}out.scale=Math.max(Q.fixedAmplitudeScale(p),1e-10);out.probScale=Math.max(out.scale*out.scale,1e-12);return out;}
+function drawWave(ctx,map,p,{baseY,re=true,im=false,prob=true,amp=70,pamp=90,tails=null,samples=440}={}){const arr=sampleWave(p,samples);const tailFlag=tails===null?p.type==='finite':tails;const visible=arr.filter(s=>tailFlag||Math.abs(s.x)<=p.L/2+1e-9);if(re)line(ctx,visible.map(s=>[map.x(s.x),baseY-s.re/arr.scale*amp]),C.cyan,2.2,.96);if(im)line(ctx,visible.map(s=>[map.x(s.x),baseY-s.im/arr.scale*amp]),C.im,2.2,.96);if(prob){const pts=visible.map(s=>[map.x(s.x),baseY-s.prob/arr.probScale*pamp]);line(ctx,pts,C.yellow,2.4,.98);ctx.save();ctx.globalAlpha=.10;ctx.fillStyle=C.yellow;ctx.beginPath();ctx.moveTo(pts[0][0],baseY);pts.forEach(pt=>ctx.lineTo(pt[0],pt[1]));ctx.lineTo(pts.at(-1)[0],baseY);ctx.closePath();ctx.fill();ctx.restore();}return arr;}
+function drawTitle(ctx,map,title){ctx.save();ctx.fillStyle=C.ink;ctx.font='bold 13px Arial';ctx.fillText(title,map.m.l,map.m.t-18);ctx.restore();}
+function buildCanvas(id,p,{labels=false,eMax=null}={}){const o=setup(id);clear(o.ctx,o.W,o.H);const map=makeMap(o.W,o.H,p,{labels,eMax});axes(o.ctx,map);drawPotential(o.ctx,map,p);return{...o,map};}
+function drawConfinementGuide(ctx,map,p){const xL=map.x(-p.L/2),xR=map.x(p.L/2),y=map.m.t+42;ctx.save();ctx.strokeStyle='rgba(84,224,160,.9)';ctx.setLineDash([5,4]);ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(xL,y);ctx.lineTo(xR,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=C.green;ctx.font='bold 12px Arial';ctx.fillText('confinement region',xL+8,y-9);ctx.restore();}
+function drawConfigurationSamples(ctx,map,p,{count=120,emphasis=false}={}){if(p.kind==='scatter')return;const cdf=Q.densityCDF(p,timeFs(p),1000),y0=map.m.t+map.plotH-22;ctx.save();for(let i=0;i<count;i++){const r=fract(Math.sin((i+1)*12.9898+detectionNonce*78.233)*43758.5453),x=Q.cdfQuantile(cdf,r),y=y0-(i%6)*3.1;ctx.fillStyle=emphasis?'rgba(247,201,72,.92)':'rgba(247,201,72,.82)';ctx.beginPath();ctx.arc(map.x(x),y,emphasis?1.8:1.55,0,2*Math.PI);ctx.fill();}ctx.fillStyle='#f7c948';ctx.font=emphasis?'bold 12px Arial':'12px Arial';ctx.fillText('120 independent configurations sampled from |Ψ(x,t)|²',map.x(-p.L/2)+8,y0-25);ctx.restore();}
+function fract(x){return x-Math.floor(x);}
+function drawGuidance(ctx,map,p){const y=map.m.t+map.plotH-110;ctx.save();ctx.strokeStyle='rgba(215,239,255,.88)';ctx.fillStyle='rgba(215,239,255,.95)';ctx.lineWidth=1.7;for(let k=0;k<13;k++){const x=-p.L/2+p.L*(k+.5)/13;const v=Q.velocityAt(x,p,timeFs(p));const s=Math.tanh(v*1.4);const px=map.x(x),len=7+22*Math.abs(s),dir=Math.abs(s)<.035?0:Math.sign(s);if(dir===0){ctx.beginPath();ctx.arc(px,y,2.8,0,2*Math.PI);ctx.fill();}else{const x1=px-dir*len/2,x2=px+dir*len/2;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();ctx.beginPath();ctx.moveTo(x2,y);ctx.lineTo(x2-dir*5,y-4);ctx.lineTo(x2-dir*5,y+4);ctx.closePath();ctx.fill();}}ctx.restore();}
+function drawBohmianParticles(ctx,map,p,emphasis=false){if(p.kind==='scatter')return;const moving=p.mode==='super',count=emphasis?9:7,trailSteps=emphasis?20:15,laneY=map.m.t+map.plotH-(emphasis?126:114),t=timeFs(p),seeds=Q.quantilePositions(p,count,0);ctx.save();ctx.lineCap='round';ctx.lineJoin='round';for(const seed of seeds){const hist=moving?Q.trajectory(seed,p,t,trailSteps):Array(trailSteps).fill(seed);ctx.strokeStyle=emphasis?'rgba(255,210,77,.86)':'rgba(255,210,77,.66)';ctx.lineWidth=emphasis?3.2:2.1;ctx.beginPath();hist.forEach((x,i)=>{const yy=laneY-(trailSteps-1-i)*(emphasis?1:.75);if(i)ctx.lineTo(map.x(x),yy);else ctx.moveTo(map.x(x),yy);});ctx.stroke();const px=map.x(hist.at(-1));if(emphasis){ctx.fillStyle='rgba(255,210,77,.18)';ctx.beginPath();ctx.arc(px,laneY,15,0,2*Math.PI);ctx.fill();ctx.strokeStyle='rgba(255,210,77,.72)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,laneY,11,0,2*Math.PI);ctx.stroke();}ctx.fillStyle=C.yellow;ctx.strokeStyle='rgba(7,16,32,.98)';ctx.lineWidth=emphasis?2.4:1.8;ctx.beginPath();ctx.arc(px,laneY,emphasis?8.1:5.8,0,2*Math.PI);ctx.fill();ctx.stroke();}ctx.fillStyle='#d7efff';ctx.font=emphasis?'bold 13px Arial':'bold 12px Arial';ctx.fillText(p.kind==='scatter'?'above-barrier scattering: directed current guides configurations':(moving?'ensemble of guided positions: trajectories solve dX/dt = j/|Ψ|²':'single real eigenstate: j = 0, positions stationary'),map.x(-p.L/2)+8,laneY-(emphasis?42:31));ctx.restore();}
+function stateLine(p){if(p.type==='finite'&&p.kind==='scatter'){const ss=Q.scatteringState(p.L,p.V0,p.mass,p.scatterRatio);return `Above-barrier scattering: E=${ss.E.toFixed(4)} eV, R=${ss.R.toFixed(3)}, T=${ss.T.toFixed(3)}`;}const e=Q.stateEnergy(p,p.n);return p.mode==='super'?`State: superposition n=${p.n}, m=${p.m}; Eₙ=${e.toFixed(4)} eV`:`State: eigenstate n=${p.n}, Eₙ=${e.toFixed(4)} eV`;}
+function drawPart1(){const p=makeParams(value('s1Type'),4,value('s1V'),1,1);setText('s1TypeLbl',p.type==='finite'?'Finite':'Infinite');setText('s1VLbl',p.V0.toFixed(1)+' eV');const o=buildCanvas('c1',p,{eMax:40});drawConfinementGuide(o.ctx,o.map,p);setText('s1Read',p.type==='infinite'?'Infinite walls impose ψ=0 at the boundaries.':'Finite barriers have V=V₀ outside the well; later, bound states will have exponential tails there.');}
+function drawPart2(){const p=makeParams('infinite',4,12,1,value('s2n'),'eigen',2,.35,.75,value('s2Speed'));setText('s2nLbl',p.n);setText('s2SpeedLbl',speedText(p.speed));const o=buildCanvas('c2',p,{eMax:Math.max(Q.energyInfinite(8,4)*1.2,.2)});drawTitle(o.ctx,o.map,'Re Ψ and Im Ψ share one standing-wave envelope');const base=o.map.m.t+o.map.plotH*.56;drawWave(o.ctx,o.map,p,{baseY:base,re:value('s2Re'),im:value('s2Im'),prob:value('s2Prob'),amp:95,pamp:95});const nodes=p.n-1;setText('s2Read',`n=${p.n}: there are ${nodes===0?'zero':nodes} interior ${nodes===1?'node':'nodes'}.`);}
+function drawPart3(){const p=makeParams('infinite',value('s3L'),12,value('s3Mass'),value('s3n'),'eigen',2,.35,.75,value('s3Speed'));setText('s3nLbl',p.n);setText('s3LLbl',p.L.toFixed(2)+' nm');setText('s3mLbl',p.mass.toFixed(2));setText('s3SpeedLbl',speedText(p.speed));const o=buildCanvas('c3',p,{labels:true,eMax:Q.energyInfinite(NMAX,p.L,p.mass)*1.12});drawLevels(o.ctx,o.map,p,{labels:true});const base=o.map.y(Q.stateEnergy(p,p.n));drawWave(o.ctx,o.map,p,{baseY:base,re:value('s3Re'),im:value('s3Im'),prob:value('s3Prob'),amp:56,pamp:78,tails:false});setText('s3Read',`Selected E${p.n}=${Q.energyInfinite(p.n,p.L,p.mass).toFixed(4)} eV. The orange floor is V=0 eV; every displayed bound-state level lies above it.`);}
 function drawPart5(){
-  const p=params(val('s5E'),val('s5D'),val('s5A'),val('s5L'),'two',1,DEFAULT_SPEED);
-  setLabels('s5',p);
-  const o=setup('c5');clear(o.ctx,o.W,o.H);
-  const half=PART56_DETECTOR_HALF_NM,map=screenMap(o.W,o.H,half);
-  drawScreenAxes(o.ctx,map,'two-slit fringes on a fixed ±20 mm detector');
-  const N=620,
-    twoGrid=cachedScreenGridOnSpan(p,N,half),
-    singleGrid=cachedScreenGridOnSpan(Object.assign({},p,{open:'upper',gamma:1}),N,half),
-    two=[],env=[],single=[];
-  let peak=1;
-  for(let i=0;i<N;i++)peak=Math.max(peak,twoGrid[i].rho,4*singleGrid[i].rho);
-  const baseline=.08,top=.90,displayScale=(top-baseline)/peak;
-  for(let i=0;i<N;i++){
-    const x=twoGrid[i].x;
-    two.push([map.x(x),map.y(baseline+twoGrid[i].rho*displayScale)]);
-    env.push([map.x(x),map.y(baseline+4*singleGrid[i].rho*displayScale)]);
-    single.push([map.x(x),map.y(baseline+singleGrid[i].rho*displayScale)]);
+  const p=makeParams('finite',value('s5L'),value('s5V'),value('s5Mass'),value('s5n'),'eigen',2,.35,.75,value('s5Speed'));
+  const {count,continuumIndex}=finiteIndexState(p);
+  setText('s5nLbl',p.n);setText('s5LLbl',p.L.toFixed(2)+' nm');setText('s5VLbl',p.V0.toFixed(2)+' eV');setText('s5MassLbl',p.mass.toFixed(2));setText('s5SpeedLbl',speedText(p.speed));
+  setText('s5StateNote',p.kind==='bound'?`n=1–${count} select normalized bound eigenstates. Larger n selects an above-barrier scattering sample.`:`n=${p.n} is a continuum sample above the ${count} bound states; it is not an additional discrete level.`);
+  const selected=Q.stateEnergy(p,p.n),o=buildCanvas('c5',p,{labels:true,eMax:Math.max(p.V0*1.12,selected*1.18,.3)});
+  drawLevels(o.ctx,o.map,p,{labels:true});drawWave(o.ctx,o.map,p,{baseY:o.map.y(selected),re:value('s5Re'),im:value('s5Im'),prob:value('s5Prob'),amp:58,pamp:92,tails:true});
+  if(p.kind==='scatter'){
+    const ss=Q.scatteringState(p.L,p.V0,p.mass,p.scatterRatio);
+    setText('s5Read',`Continuum sample ${continuumIndex}: unit-amplitude wave incident from the left with total E=${ss.E.toFixed(5)} eV > V₀. R=${ss.R.toFixed(5)}, T=${ss.T.toFixed(5)}, R+T=${(ss.R+ss.T).toFixed(5)}. The yellow curve is relative stationary density, not a normalizable bound-state probability density.`);
+  }else{
+    const ss=Q.finiteState(p.n,p.L,p.V0,p.mass);
+    setText('s5Read',`Exact finite-well root: E${p.n}=${ss.E.toFixed(5)} eV (${ss.parity} parity). This well supports ${count} bound state${count===1?'':'s'}; the notebook exposes the lowest ${Math.min(NMAX,count)}. The exterior tail decays with κ=${ss.kappa.toFixed(3)} nm⁻¹.`);
   }
-  o.ctx.save();o.ctx.beginPath();o.ctx.rect(map.m.l,map.m.t,map.pw,map.ph);o.ctx.clip();
-  path(o.ctx,two,C.yellow,2.5,.98);path(o.ctx,env,C.accent,2,.85,[7,4]);path(o.ctx,single,C.cyan,1.7,.78);
-  o.ctx.restore();
-  const lambda=Q.wavelength(p.E),fringe=lambda*p.L/p.d,firstMin=lambda*p.L/p.a;
-  txt('s5Read','Fixed detector span: ±20.0 mm. λ = '+fmtLambda(lambda)+'; Eγ = '+p.E.toFixed(2)+' eV. Central fringe spacing is approximately λL/d = '+fmtScreenLength(fringe)+', and the first single-slit envelope minimum is near ±λL/a = ±'+fmtScreenLength(firstMin)+'. Changing λ or L now moves those features across the same screen coordinates.');
 }
-
-function drawPart6(){
-  const p=params(val('s6E'),val('s6D'),val('s6A'),val('s6L'),'two',val('s6Gamma'),DEFAULT_SPEED);
-  setLabels('s6',p);
-  const o=setup('c6');clear(o.ctx,o.W,o.H);
-  const half=PART56_DETECTOR_HALF_NM,map=screenMap(o.W,o.H,half);
-  drawScreenAxes(o.ctx,map,'coherence changes contrast, not fringe positions');
-  const N=620,
-    curGrid=cachedScreenGridOnSpan(p,N,half),
-    cohGrid=cachedScreenGridOnSpan(Object.assign({},p,{gamma:1,open:'two'}),N,half),
-    incGrid=cachedScreenGridOnSpan(Object.assign({},p,{gamma:0,open:'two'}),N,half),
-    cur=[],coh=[],inc=[];
-  const baseline=.08,scale=.72;
-  for(let i=0;i<N;i++){
-    const x=curGrid[i].x;
-    cur.push([map.x(x),map.y(baseline+curGrid[i].rho*scale)]);
-    coh.push([map.x(x),map.y(baseline+cohGrid[i].rho*scale)]);
-    inc.push([map.x(x),map.y(baseline+incGrid[i].rho*scale)]);
-  }
-  o.ctx.save();o.ctx.beginPath();o.ctx.rect(map.m.l,map.m.t,map.pw,map.ph);o.ctx.clip();
-  path(o.ctx,coh,C.accent,1.8,.76,[7,4]);path(o.ctx,inc,C.blue,1.8,.82,[3,4]);path(o.ctx,cur,C.yellow,2.6,.98);
-  o.ctx.restore();
-  const center=Q.screenState(0,p,0).rho;
-  const lambda=Q.wavelength(p.E),fringe=lambda*p.L/p.d;
-  const idealD=Math.sqrt(Math.max(0,1-p.gamma*p.gamma));
-  txt('s6Read','Fixed detector span: ±20.0 mm. γ='+p.gamma.toFixed(2)+' preserves '+(100*p.gamma).toFixed(0)+'% of the interference cross term. Yellow is Iγ, orange is the fully coherent γ=1 reference, and blue is the γ=0 incoherent sum. At the central maximum, this normalized model gives Iγ(0)='+center.toFixed(3)+' = (1+γ)/2. λL/d = '+fmtScreenLength(fringe)+' sets the fringe spacing; γ changes contrast without moving the fringe locations. The idealized relation D=√(1−γ²)='+idealD.toFixed(2)+' applies only to an equally weighted, pure two-path marker model and is not used to compute the curves.');
+function displayModeValues(prefix){return{mode:value(prefix+'Mode'),n:value(prefix+'n'),m:value(prefix+'m'),mix:value(prefix+'Mix'),relativePhase:prefix==='s6'?0.75:value(prefix+'Phase'),speed:value(prefix+'Speed')};}
+function drawPart6(){const d=displayModeValues('s6');const p=makeParams('infinite',4,12,1,d.n,d.mode,d.m,d.mix,d.relativePhase,d.speed);if(p.mode==='super'&&p.m===p.n){$('s6m').value=p.n<NMAX?p.n+1:p.n-1;p.m=value('s6m');}setText('s6ModeLbl',p.mode==='super'?'Superposition':'Single eigenstate');setText('s6nLbl',p.n);setText('s6mLbl',p.m);setText('s6MixLbl',p.mix.toFixed(2));setText('s6SpeedLbl',speedText(p.speed));const o=buildCanvas('c6',p,{labels:true,eMax:Q.energyInfinite(NMAX,4)*1.12});drawLevels(o.ctx,o.map,p,{labels:true,markM:true});const base=p.mode==='super'?o.map.y(.5*(Q.stateEnergy(p,p.n)+Q.stateEnergy(p,p.m))):o.map.y(Q.stateEnergy(p,p.n));drawWave(o.ctx,o.map,p,{baseY:base,re:value('s6Re'),im:value('s6Im'),prob:value('s6Prob'),amp:62,pamp:92,tails:false});const dE=p.mode==='super'?Math.abs(Q.stateEnergy(p,p.m)-Q.stateEnergy(p,p.n)):0;setHTML('s6Read',p.mode==='super'?`<strong>Superposition:</strong> changing |c<sub>m</sub>|² changes the component weights; changing the relative phase changes the initial interference pattern. The density repeats with beat period ${(2*Math.PI*Q.HBAR/dE).toFixed(2)} fs.`:`<strong>Single eigenstate:</strong> the global phase rotates, but |Ψ|² and the current remain time independent.`);}
+function drawPart7(){const interp=value('s7Interp'),d=displayModeValues('s7'),p=makeParams('infinite',4,12,1,d.n,d.mode,d.m,d.mix,d.relativePhase,d.speed);if(p.mode==='super'&&p.m===p.n){$('s7m').value=p.n<NMAX?p.n+1:p.n-1;p.m=value('s7m');}all('#part7 .interp-detail').forEach(e=>e.classList.toggle('active',e.dataset.interp===interp));setText('s7InterpLbl',INTERP[interp].name);setText('s7ModeLbl',p.mode==='super'?'Two-state superposition':'Single eigenstate');setText('s7nLbl',p.n);setText('s7mLbl',p.m);setText('s7MixLbl',p.mix.toFixed(2));setText('s7PhaseLbl',p.relativePhase.toFixed(2)+' rad');setText('s7SpeedLbl',speedText(p.speed));const En=Q.stateEnergy(p,p.n),Em=p.mode==='super'?Q.stateEnergy(p,p.m):En,o=buildCanvas('c7',p,{eMax:Math.max(Q.energyInfinite(6,4),En,Em)*1.35}),base=clamp(o.map.y(p.mode==='super'?.5*(En+Em):En),o.map.m.t+88,o.map.m.t+o.map.plotH*.56),arr=drawWave(o.ctx,o.map,p,{baseY:base,re:value('s7Re'),im:value('s7Im'),prob:value('s7Prob'),amp:72,pamp:92,tails:false});drawTitle(o.ctx,o.map,stateLine(p));if(interp==='bohmian'){drawGuidance(o.ctx,o.map,p,arr);drawBohmianParticles(o.ctx,o.map,p,true);drawConfigurationSamples(o.ctx,o.map,p,{count:120,emphasis:true});}$('interpNote').textContent=INTERP[interp].overlay+' '+stateLine(p)+'.';setHTML('s7Read','<strong>'+stateLine(p)+'</strong>'+(interp==='bohmian'?' The panel includes a configuration ensemble sampled from |Ψ(x,t)|².':''));}
+function fullParams(){
+  const p=makeParams(value('fType'),value('fL'),value('fV'),value('fMass'),value('fn'),value('fMode'),value('fm'),value('fMix'),value('fPhase'),value('fSpeed'));
+  if(p.type==='finite')finiteIndexState(p);
+  return p;
 }
-
-function drawPart7(){
-  const interp=val('s7Interp'),p=params(val('s7E'),val('s7D'),val('s7A'),val('s7L'),'two',1,val('s7Speed')),v=animatedGeometry('part7',p);
-  setLabels('s7',p);txt('s7InterpLbl',INTERP[interp].name);all('#part7 .interp-detail').forEach(e=>e.classList.toggle('active',e.dataset.interp===interp));
-  const o=setup('c7');clear(o.ctx,o.W,o.H);drawApparatus(o.ctx,o.W,o.H,p,{field:true,streamlines:interp==='bohmian',pilotParticles:interp==='bohmian',showScreenPattern:val('s7Prob'),visualP:v,particleKey:'part7'});
-  const lambda=Q.wavelength(p.E);$('interpNote').textContent=INTERP[interp].overlay+' λ='+fmtLambda(lambda)+'; Eγ='+p.E.toFixed(2)+' eV; d='+(p.d/1000).toFixed(1)+' μm.';
-  html('s7Read',interp==='bohmian'?'<strong>Bohmian mechanics view:</strong> the synchronized gold markers leave the source, pass through physical slit openings, then follow forward scalar-current transport paths. The source-to-slit segments are a schematic preparation step; the post-slit paths come from the calculated finite-aperture field.':'<strong>Orthodox view:</strong> |Ψ|² predicts the distribution of repeated localized detections. No definite path is drawn between source and screen.');
-}
-
-function fullParams(){return params(val('fE'),val('fD'),val('fA'),val('fL'),val('fOpen'),val('fGamma'),val('fSpeed'));}
-function syncControls(){const dbb=val('fInterp')==='bohmian';const p=fullParams();const guide=$('fGuidance');guide.disabled=!dbb;guide.closest('label').classList.toggle('is-disabled',!dbb);if(dbb){if(p.open!=='two'){$('fOpen').value='two';p.open='two';}if(p.gamma<.999){$('fGamma').value=1;p.gamma=1;}}}
 function drawFull(){
-  const p=fullParams(),v=animatedGeometry('full',p),interp=val('fInterp');
-  setLabels('f',p);txt('fOpenLbl',p.open==='two'?'Two':p.open==='upper'?'Upper only':'Lower only');txt('fInterpLbl',INTERP[interp].name);
-  const o=setup('cFull');clear(o.ctx,o.W,o.H);const ctx=o.ctx,W=o.W,H=o.H;const divider=H*.53;
-  ctx.save();ctx.beginPath();ctx.rect(0,0,W,divider);ctx.clip();drawApparatus(ctx,W,divider,p,{field:true,streamlines:interp==='bohmian'&&val('fGuidance'),pilotParticles:interp==='bohmian'&&val('fGuidance'),showScreenPattern:val('fProb'),visualP:v,particleKey:'full'});ctx.restore();
-  ctx.save();ctx.strokeStyle='rgba(191,228,255,.36)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(18,divider);ctx.lineTo(W-18,divider);ctx.stroke();ctx.restore();
-  const map=screenMap(W,H-divider,Q.screenHalfWidth(p));map.m.t+=divider;map.H=H;map.m.b=38;map.ph=H-map.m.t-map.m.b;drawScreenAxes(ctx,map,'screen amplitude and probability');
-  const canComplex=p.gamma>.999||p.open!=='two';drawScreenWave(ctx,map,p,{re:val('fRe'),im:val('fIm'),prob:val('fProb'),base:.33,samples:540});
-  if(!canComplex&&(val('fRe')||val('fIm'))){ctx.save();ctx.fillStyle='rgba(255,210,77,.95)';ctx.font='12px Arial';ctx.fillText('At γ<1, Re/Im trace the coherent amplitude; total |Ψ|² follows the reduced-coherence density matrix.',map.m.l+8,map.m.t+18);ctx.restore();}
-  const lambda=Q.wavelength(p.E);const F=Math.pow(p.d+p.a,2)/(lambda*p.L);txt('fRead',INTERP[interp].overlay+' λ='+fmtLambda(lambda)+'; Eγ='+p.E.toFixed(2)+' eV; F='+F.toFixed(3)+'. '+(interp==='bohmian'?'Pure two-slit coherence is enforced. Gold markers move from source to slit, then along forward scalar-current transport paths.':'The screen density follows the selected slit and coherence settings; no definite unobserved path is displayed.'));
+  let p=fullParams();
+  const finiteInfo=p.type==='finite'?finiteIndexState(p):null;
+  const scatter=!!(finiteInfo&&finiteInfo.continuumIndex>0);
+  const bound=p.type==='finite'&&!scatter;
+  const max=bound?Math.max(1,Math.min(NMAX,finiteInfo.count)):NMAX;
+  if(scatter){p.mode='eigen';$('fMode').value='eigen';}
+  if(bound&&max<2&&p.mode==='super'){$('fMode').value='eigen';p.mode='eigen';}
+  if(bound&&p.mode==='super'&&p.m>max){$('fm').value=max;p.m=max;}
+  if(bound&&p.mode==='super'&&p.m===p.n){$('fm').value=p.n<max?p.n+1:Math.max(1,p.n-1);p.m=value('fm');}
+  const interp=value('fInterp');
+  setText('fTypeLbl',p.type==='finite'?'Finite':'Infinite');
+  setText('fModeLbl',p.mode==='super'?'Superposition':'Eigenstate');setText('fnLbl',p.n);setText('fmLbl',p.m);setText('fLLbl',p.L.toFixed(2)+' nm');setText('fVLbl',p.V0.toFixed(2)+' eV');setText('fMassLbl',p.mass.toFixed(2));setText('fMixLbl',p.mix.toFixed(2));setText('fPhaseLbl',p.relativePhase.toFixed(2)+' rad');setText('fSpeedLbl',speedText(p.speed));setText('fInterpLbl',INTERP[interp].name);
+  if(p.type==='finite')setText('fStateNote',scatter?`n=${p.n} is a continuum sample above the ${finiteInfo.count} bound states; it is not an additional discrete level.`:`n=1–${finiteInfo.count} select normalized bound eigenstates. Larger n selects an above-barrier scattering sample.`);
+  const E=Q.stateEnergy(p,p.n),o=buildCanvas('cFull',p,{labels:true,eMax:p.type==='finite'?Math.max(p.V0*1.12,E*1.2,.3):Q.energyInfinite(NMAX,p.L,p.mass)*1.12});
+  drawLevels(o.ctx,o.map,p,{labels:true,markM:true});
+  const base=p.mode==='super'?o.map.y(.5*(Q.stateEnergy(p,p.n)+Q.stateEnergy(p,p.m))):o.map.y(E);
+  const arr=drawWave(o.ctx,o.map,p,{baseY:base,re:value('fRe'),im:value('fIm'),prob:value('fProb'),amp:74,pamp:100,tails:p.type==='finite',samples:520});
+  if(interp==='bohmian'){
+    if(value('fGuidance'))drawGuidance(o.ctx,o.map,p,arr);
+    if(!scatter){drawBohmianParticles(o.ctx,o.map,p,false);drawConfigurationSamples(o.ctx,o.map,p,{count:120,emphasis:false});}
+  }
+  if(scatter){
+    const ss=Q.scatteringState(p.L,p.V0,p.mass,p.scatterRatio);
+    setText('fRead',`${INTERP[interp].overlay} Above-barrier continuum sample: E=${ss.E.toFixed(5)} eV, R=${ss.R.toFixed(4)}, T=${ss.T.toFixed(4)}, R+T=${(ss.R+ss.T).toFixed(4)}. The yellow curve is a relative stationary density. Bohmian finite-window configuration samples are omitted because this scattering eigenfunction is not globally normalizable.`);
+  }else{
+    setText('fRead',`${INTERP[interp].overlay} Selected E${p.n}=${E.toFixed(5)} eV.${interp==='bohmian'?(p.mode==='eigen'?' The configurations are stationary because j=0.':' The configuration positions evolve using dX/dt=j/|Ψ|².'):' The interpretation changes the account of measurement, not the spectral calculation.'}`);
+  }
 }
-
-const drawers={part1:drawPart1,part2:drawPart2,part3:drawPart3,part4:drawPart4,part5:drawPart5,part6:drawPart6,part7:drawPart7,full:drawFull};
-const active={};Object.keys(drawers).forEach(id=>active[id]=false);active.part1=true;
-function drawVisible(){
-  syncControls();
-  for(const id of Object.keys(drawers))if(active[id])drawers[id]();
-}
-function setupVisibility(){
-  if(!('IntersectionObserver'in window)){Object.keys(drawers).forEach(id=>active[id]=true);return;}
-  const obs=new IntersectionObserver(entries=>entries.forEach(e=>{
-    active[e.target.id]=e.isIntersecting;
-    if(e.isIntersecting)drawers[e.target.id]();
-  }),{rootMargin:'280px 0px',threshold:.01});
-  Object.keys(drawers).forEach(id=>obs.observe($(id)));
-}
-function sectionAnimating(id,now){
-  if(now<interactionUntil)return true;
-  if(id==='part4')return val('s4Speed')>0&&(val('s4Re')||val('s4Im'));
-  if(id==='part7')return val('s7Interp')==='bohmian'&&val('s7Speed')>0;
-  if(id==='full')return val('fInterp')==='bohmian'&&val('fGuidance')&&val('fSpeed')>0;
-  return false;
-}
-function drawAnimated(now){
-  for(const id of Object.keys(drawers))if(active[id]&&sectionAnimating(id,now))drawers[id]();
-}
-function recommended(){const v={fOpen:'two',fE:532,fD:50,fA:10,fL:50,fGamma:1,fSpeed:.002,fInterp:'bohmian'};Object.keys(v).forEach(k=>{$(k).value=v[k];});$('fRe').checked=true;$('fIm').checked=true;$('fProb').checked=true;$('fGuidance').checked=true;markInteraction();drawVisible();}
-all('input,select').forEach(e=>e.addEventListener('input',()=>{markInteraction();drawVisible();}));
-$('s4Resample').addEventListener('click',()=>{const p=params(val('s4E'),val('s4D'),val('s4A'),val('s4L'),'two',1,val('s4Speed'));p.pixelNm=val('s4Pixel')*1000;addPart4Detections(p,160);drawPart4();});
-$('s4Reset').addEventListener('click',()=>{const p=params(val('s4E'),val('s4D'),val('s4A'),val('s4L'),'two',1,val('s4Speed'));p.pixelNm=val('s4Pixel')*1000;resetPart4Accumulator(p);drawPart4();});
-$('fReset').addEventListener('click',recommended);
-let resizeTimer=null;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>drawVisible(),140);});
-setupVisibility();drawVisible();
-function loop(now){
-  const dt=now-last;last=now;clockMs+=dt;
-  const fps=isMobile()?30:60;
-  if(!document.hidden&&now-lastDraw>=1000/fps){lastDraw=now;drawAnimated(now);}
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-
+const drawers={part1:drawPart1,part2:drawPart2,part3:drawPart3,part5:drawPart5,part6:drawPart6,part7:drawPart7,full:drawFull};const active={};Object.keys(drawers).forEach(id=>active[id]=true);function drawVisible(force=false){syncControls();for(const id of Object.keys(drawers))if(force||active[id])drawers[id]();}
+function setupVisibility(){if(!('IntersectionObserver'in window))return;const ob=new IntersectionObserver(entries=>entries.forEach(e=>{active[e.target.id]=e.isIntersecting;if(e.isIntersecting)drawers[e.target.id]();}),{rootMargin:'520px 0px',threshold:.01});Object.keys(drawers).forEach(id=>ob.observe($(id)));}
+function recommended(){const values={fType:'infinite',fV:12,fMode:'super',fn:1,fm:2,fL:4,fMass:1,fMix:.35,fPhase:.75,fSpeed:.002,fInterp:'bohmian'};Object.entries(values).forEach(([id,v])=>{$(id).value=v;});$('fRe').checked=true;$('fIm').checked=true;$('fProb').checked=true;$('fGuidance').checked=true;drawVisible(true);}
+all('input,select').forEach(e=>e.addEventListener('input',()=>drawVisible(true)));$('s7Resample').addEventListener('click',()=>{detectionNonce++;drawPart7();});$('fResample').addEventListener('click',()=>{detectionNonce++;drawFull();});$('fReset').addEventListener('click',recommended);let timer=null;window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>drawVisible(true),140);});setupVisibility();drawVisible(true);function loop(now){const dt=now-last;last=now;clockMs+=dt;const fps=isMobile()?30:45;if(!document.hidden&&now-lastDraw>=1000/fps){lastDraw=now;drawVisible(false);}requestAnimationFrame(loop);}requestAnimationFrame(loop);
 })();
 </script>
 </body>
