@@ -1,7 +1,23 @@
 (function () {
   const mainHref = '../../../index.html';
 
+  function loadQSFAnalytics() {
+    if (document.querySelector('script[data-qsf-analytics="true"]')) return;
+
+    const currentScript = document.currentScript;
+    const src = currentScript && currentScript.src ? currentScript.src : '';
+    const base = src ? src.replace(/back-home\.js(?:\?.*)?$/, '') : '../../../shared/';
+
+    const script = document.createElement('script');
+    script.src = base + 'qsf-analytics.js';
+    script.defer = true;
+    script.dataset.qsfAnalytics = 'true';
+    document.head.appendChild(script);
+  }
+
   function init() {
+    loadQSFAnalytics();
+
     if (new URLSearchParams(window.location.search).get('embed') === '1') return;
     if (document.getElementById('qontic-back-home')) return;
 
