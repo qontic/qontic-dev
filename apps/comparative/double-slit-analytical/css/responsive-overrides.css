@@ -1,0 +1,166 @@
+/* Responsive layout overrides for tablet and portrait devices.
+   Loaded after qsf-style.css so the original simulation styling remains intact. */
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#superContainer,
+#mainContainer,
+.main-container,
+#canvas-wrapper,
+#canvas-container {
+  max-width: 100%;
+}
+
+#superContainer {
+  width: min(100%, 1280px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#superContainer > .ui-tabs-panel {
+  overflow-x: hidden;
+}
+
+.main-container {
+  min-width: 0;
+}
+
+#leftPanel {
+  flex: 0 0 360px;
+  min-width: 280px;
+  max-width: 380px;
+}
+
+#canvas-wrapper {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#view-label,
+#shortcut-hint {
+  max-width: 100%;
+}
+
+#canvas-container {
+  width: min(800px, 100%) !important;
+  height: auto !important;
+  aspect-ratio: 4 / 3;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#canvas-container canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+#experiment-bar {
+  flex-wrap: wrap;
+}
+
+#experiment-bar button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* iPad portrait / compact desktop: stack controls over simulation. */
+@media (max-width: 1180px) {
+  body {
+    padding: 8px;
+  }
+
+  #superContainer {
+    width: 100%;
+  }
+
+  #superContainer > .ui-tabs-panel {
+    padding: 12px;
+  }
+
+  .main-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  #leftPanel {
+    width: 100% !important;
+    height: auto !important;
+    flex: 0 0 auto;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  #psiTabs {
+    max-height: none;
+  }
+
+  #psiTabs .ui-tabs-panel {
+    max-height: 34vh;
+  }
+
+  #canvas-wrapper {
+    width: 100%;
+  }
+
+  #canvas-container {
+    width: min(100%, calc(100vw - 40px)) !important;
+    max-height: min(72vh, 768px);
+  }
+
+  .ui-resizable-e,
+  .ui-resizable-s,
+  .ui-resizable-se {
+    display: none !important;
+  }
+
+  .qontic-back-home {
+    max-width: calc(100vw - 24px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Small tablets and phones: make controls more compact. */
+@media (max-width: 760px) {
+  #superContainer > .ui-tabs-panel {
+    padding: 8px;
+  }
+
+  #experiment-bar {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  #experiment-bar button {
+    flex: 1 1 30%;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  #psiTabs .ui-tabs-nav {
+    flex-wrap: wrap;
+  }
+
+  #psiTabs .ui-tabs-nav li {
+    flex: 1 1 25%;
+    min-width: 72px;
+  }
+
+  #psiTabs .ui-tabs-panel {
+    max-height: 42vh;
+  }
+
+  .info-layout {
+    flex-direction: column;
+  }
+}
