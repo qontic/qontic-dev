@@ -15,6 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
     <script src="js/double-slit.js"></script>
+    <script src="js/double-slit-init-guard.js"></script>
     <link rel="stylesheet" href="css/qsf-style.css">
     <link rel="stylesheet" href="css/responsive-overrides.css">
     <script defer src="../../../shared/back-home.js"></script>
@@ -70,7 +71,7 @@
                     <span class="material-icons tab-icon" aria-hidden="true">functions</span>
                     <span class="tab-label">Math</span>
                 </a></li>
-      	    <li class="tab-physics advanced-tab"><a href="#particle-parameter-container" title="Physics">
+       	    <li class="tab-physics advanced-tab"><a href="#particle-parameter-container" title="Physics">
                     <svg class="tab-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
                         <circle cx="12" cy="12" r="2.5" fill="currentColor" />
                         <ellipse cx="12" cy="12" rx="8" ry="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
@@ -218,164 +219,61 @@
                 <label for="potentialHeight" data-tip="Barrier potential height used in the setup model.">Barrier V</label>
                 <input type="range" id="potentialHeight" min="0" max="200" step="1" value="50">
                 <input type="number" id="potentialHeightVal" min="0" max="200" step="1" value="50">
-                <select id="potentialHeight-units"><option value="eV">eV</option></select>
-            </div>
-            <div id="setupControls" class="button-group">
-                <button id="setupToggleSlits">Both Slits</button>
-                <button id="setupToggleWhichPath">No Detector</button>
-                <button id="setupToggleView">Collapse</button>
+                <select id="potentialHeight-units"><option value="meV">meV</option></select>
             </div>
         </div>
         <div id="graphics-parameter-container" class="container">
-            <p>Graphics</p>
-            <div class="input-group">
-                <label for="animationStep" data-tip="Simulation speed multiplier. Larger values advance the animation faster.">Sim. Speed</label>
-                <input type="range" id="animationStep" min="1" max="400" step="1" value="100">
-                <input type="number" id="animationStepVal" min="1" max="400" step="1" value="100">
-                <select id="animationStep-units"><option value="x">x</option></select>
-            </div>
-            <div class="input-group">
-                <label for="drawEvery" data-tip="Draw every Nth trajectory point. Larger values are faster but less detailed.">Draw Every</label>
-                <input type="range" id="drawEvery" min="1" max="20" step="1" value="4">
-                <input type="number" id="drawEveryVal" min="1" max="20" step="1" value="4">
-                <select id="drawEvery-units"><option value="">steps</option></select>
-            </div>
-            <div class="input-group">
-                <label for="trajWidth" data-tip="Visual line width for particle trajectories.">Traj. Width</label>
-                <input type="range" id="trajWidth" min="0.2" max="4" step="0.1" value="1.0">
-                <input type="number" id="trajWidthVal" min="0.2" max="4" step="0.1" value="1.0">
-                <select id="trajWidth-units"><option value="px">px</option></select>
-            </div>
-            <div class="input-group">
-                <label for="particleRadius" data-tip="Displayed particle marker radius.">Particle R.</label>
-                <input type="range" id="particleRadius" min="1" max="8" step="0.5" value="3">
-                <input type="number" id="particleRadiusVal" min="1" max="8" step="0.5" value="3">
-                <select id="particleRadius-units"><option value="px">px</option></select>
-            </div>
-            <div class="input-group">
-                <label for="waveResolution" data-tip="Wave rendering resolution. Higher values are smoother but slower.">Wave Res.</label>
-                <input type="range" id="waveResolution" min="0.4" max="1.5" step="0.1" value="0.8">
-                <input type="number" id="waveResolutionVal" min="0.4" max="1.5" step="0.1" value="0.8">
-                <select id="waveResolution-units"><option value="">scale</option></select>
-            </div>
-            <div class="input-group">
-                <label for="waveFunctionOption" data-tip="Choose which part of the wavefunction visualization to display.">Wave</label>
-                <select id="waveFunctionOption">
-                    <option value="phase" selected>Ψ phase</option>
-                    <option value="probability">|Ψ|² probability</option>
-                    <option value="logprob">log |Ψ|²</option>
-                    <option value="real">Re Ψ</option>
-                    <option value="imag">Im Ψ</option>
-                    <option value="qpotential">Q potential</option>
-                </select>
-            </div>
-            <div class="wave-range-box">
-                <div id="waveRangeLabel" class="opacity-box-title">Wave color range</div>
-                <div class="input-group">
-                    <label for="waveRangeMin">Min</label>
-                    <input type="range" id="waveRangeMin" min="0" max="1" step="0.01" value="0">
-                    <input type="number" id="waveRangeMinVal" min="0" max="1" step="0.01" value="0">
-                </div>
-                <div class="input-group">
-                    <label for="waveRangeMax">Max</label>
-                    <input type="range" id="waveRangeMax" min="0.1" max="10" step="0.01" value="1">
-                    <input type="number" id="waveRangeMaxVal" min="0.1" max="10" step="0.01" value="1">
-                </div>
-            </div>
-            <div class="opacity-box">
-                <div class="opacity-box-title">Opacity</div>
-                <div class="input-group">
-                    <label for="waveOpacity">Wave</label>
-                    <input type="range" id="waveOpacity" min="0" max="1" step="0.01" value="1">
-                    <input type="number" id="waveOpacityVal" min="0" max="1" step="0.01" value="1">
-                </div>
-                <div class="input-group">
-                    <label for="trajOpacity">Traj.</label>
-                    <input type="range" id="trajOpacity" min="0" max="1" step="0.01" value="1">
-                    <input type="number" id="trajOpacityVal" min="0" max="1" step="0.01" value="1">
-                </div>
-                <div class="input-group">
-                    <label for="particleOpacity">Particles</label>
-                    <input type="range" id="particleOpacity" min="0" max="1" step="0.01" value="1">
-                    <input type="number" id="particleOpacityVal" min="0" max="1" step="0.01" value="1">
-                </div>
-            </div>
+        <p>Graphics Parameters</p>
+        <div class="input-group">
+            <label for="paletteSelect" data-tip="Color map used to display the wave field.">Palette</label>
+            <select id="paletteSelect">
+                <option>Blue</option>
+                <option>Gray</option>
+                <option>Green</option>
+                <option>Red</option>
+                <option>Yellow</option>
+                <option>Inferno</option>
+                <option>Spectral</option>
+                <option>RdYlBu</option>
+            </select>
+        </div>
+        <div id="palettePopup"></div>
         </div>
         <div id="view-style-container" class="container">
-            <p>View Style</p>
-            <div class="input-group">
-                <label for="showGrid">Grid</label>
-                <input type="checkbox" id="showGrid">
-            </div>
-            <div class="input-group">
-                <label for="showScale">Scale</label>
-                <input type="checkbox" id="showScale" checked>
-            </div>
-            <div class="input-group">
-                <label for="showLegend">Legend</label>
-                <input type="checkbox" id="showLegend" checked>
-            </div>
-            <div class="input-group">
-                <label for="phaseColormap">Phase Map</label>
-                <input type="checkbox" id="phaseColormap" checked>
-            </div>
+        <p>View Options</p>
+        <div class="checkbox-grid">
+            <label><input type="checkbox" id="plot_hits" checked> Hits</label>
+            <label><input type="checkbox" id="plot_particles" checked> Particles</label>
+            <label><input type="checkbox" id="plot_trajectories" checked> Trajectories</label>
+            <label><input type="checkbox" id="plot_screen" checked> Screen</label>
+            <label><input type="checkbox" id="plot_detector" checked> Detector</label>
+            <label><input type="checkbox" id="plot_scales" checked> Scales</label>
+            <label><input type="checkbox" id="plot_wave" checked> Wave</label>
+            <label><input type="checkbox" id="plot_sensor" checked> Sensor</label>
+            <label><input type="checkbox" id="plot_palette" checked> Palette</label>
+            <label><input type="checkbox" id="hit_prob" checked> Probability curve</label>
+            <label><input type="checkbox" id="wave-continous" checked> Continuous wave</label>
         </div>
-     </div>
-     <div id="Info">
-        <div class="info-layout">
-          <div class="info-metrics">
-            <table>
-              <tr data-tip="Elapsed simulated time since launch."><td class="label">Time</td><td id="time" class="value">0 fs</td></tr>
-              <tr data-tip="Mean speed associated with the chosen momentum and particle mass."><td class="label">Speed</td><td id="speed" class="value">0</td></tr>
-              <tr data-tip="de Broglie wavelength λ = h/p for the selected particle momentum."><td class="label">λ</td><td id="lambda" class="value">0</td></tr>
-              <tr data-tip="Total number of particles detected on the screen."><td class="label">Detected</td><td id="detected" class="value">0</td></tr>
-              <tr data-tip="Many-Worlds: effective number of branches currently visualized."><td class="label manyworlds-only">Branches</td><td id="branchCount" class="value manyworlds-only">—</td></tr>
-              <tr data-tip="Many-Worlds: spread between visual outcome branches."><td class="label manyworlds-only">Branch spread</td><td id="branchSpreadInfo" class="value manyworlds-only">—</td></tr>
-              <tr data-tip="Current effective slit configuration: both slits or one slit only."><td class="label advanced-info">Slits</td><td id="slitsInfo" class="value advanced-info">Both</td></tr>
-              <tr data-tip="Whether a which-path detector is active at a slit."><td class="label advanced-info">Which-path</td><td id="whichPathInfo" class="value advanced-info">Off</td></tr>
-              <tr data-tip="Current representational view: Collapse, Pilot-Wave, or Many-Worlds."><td class="label advanced-info">View</td><td id="viewInfo" class="value advanced-info">Collapse</td></tr>
-            </table>
-          </div>
-          <div class="info-controls">
-            <button id="startButton">Start</button>
-            <button id="resetButton">Reset</button>
-          </div>
         </div>
-     </div>
-     </div>
-     <div id="canvas-wrapper">
-        <div id="view-label">Collapse</div>
-        <div id="canvas-container" data-tip="Main simulation view. The colored field shows the wave display; red paths show particle trajectories in Pilot-Wave view; the screen histogram appears at right.">
-            <canvas id="waveCanvas"></canvas>
-            <canvas id="setupCanvas"></canvas>
-            <canvas id="partCanvas"></canvas>
+      </div>
+      </div>
+      <div id="rightPanel">
+        <h3 id="viewTitle">Collapse</h3>
+        <div id="simulationCanvasContainer">
+          <canvas id="setupCanvas" width="900" height="600"></canvas>
+          <canvas id="waveCanvas" width="900" height="600"></canvas>
+          <canvas id="partCanvas" width="900" height="600"></canvas>
+          <canvas id="paletteCanvas" width="45" height="600"></canvas>
+          <canvas id="detectorCanvas" width="90" height="600"></canvas>
         </div>
-        <div id="shortcut-hint">Space: play/pause · R: reset · S: screenshot · V: cycle view · W: cycle wave display</div>
-     </div>
-   </div>
-   <div id="footer" style="width:100%; text-align:center; margin-top: 16px; color:var(--text-muted); font-size:12px;">
-      Quantum Simulation Framework v1.0
-   </div>
+        <div class="hint-line">Space: play/pause · R: reset · S: screenshot · V: cycle view · W: cycle wave display</div>
+      </div>
+    </div>
   </div>
-  <div id="rationale">
-  <article style="max-width: 900px; margin: 0 auto; line-height: 1.6; color: var(--text-primary);">
-    <h1>Quantum Double-Slit Experiment: Why it Matters</h1>
-    <p>
-      The double-slit experiment is one of the clearest demonstrations that quantum systems cannot be understood as ordinary classical particles moving through one slit or the other. When both slits are open and no which-path measurement is made, single particles gradually build up an interference pattern. When a which-path detector is introduced, that pattern disappears.
-    </p>
-    <p>
-      This simulation lets you compare three different representational views of the same experimental situation. In the <strong>Collapse</strong> view, the wavefunction evolves and then detection events are sampled from the probability density. In the <strong>Pilot-Wave</strong> view, particles follow definite trajectories guided by the wave. In the <strong>Many-Worlds</strong> view, the wave continues to branch into multiple outcome components rather than collapsing.
-    </p>
-    <p>
-      These views agree on the basic detection statistics, but they suggest very different microscopic stories about what is happening between preparation and measurement. The purpose of the simulation is not to decide between them, but to make the representational differences visible.
-    </p>
-  </article>
+  <div id="rationale" class="container">
+    <h2>Rationale</h2>
+    <p>This simulation compares several common visual representations of the quantum double-slit experiment.</p>
   </div>
   </div>
-  <div id="colorPickerModal">
-    <h3>Select Color</h3>
-    <div class="palette" id="palette"></div>
-  </div>
-  <div id="overlay"></div>
 </body>
 </html>
