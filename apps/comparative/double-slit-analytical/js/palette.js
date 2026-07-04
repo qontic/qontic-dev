@@ -1,30 +1,4 @@
 // palette.js
-// Narrow compatibility guard for double-slit parameter unit arrays.
-// Some browsers can briefly report an empty/null value for a newly-created
-// <select>; the simulation's scaleValue() expects a matching unit object.
-// If Array.find() is used on a unit-definition array and no match is found,
-// fall back to the first unit rather than letting initialization crash.
-(function () {
-  const nativeFind = Array.prototype.find;
-  if (nativeFind && !Array.prototype.__qsfUnitFindGuard) {
-    Object.defineProperty(Array.prototype, '__qsfUnitFindGuard', {
-      value: true,
-      configurable: false,
-      enumerable: false
-    });
-    Array.prototype.find = function (predicate, thisArg) {
-      const result = nativeFind.call(this, predicate, thisArg);
-      if (result !== undefined) return result;
-      if (this.length > 0 && this[0] &&
-          Object.prototype.hasOwnProperty.call(this[0], 'scale') &&
-          Object.prototype.hasOwnProperty.call(this[0], 'value')) {
-        return this[0];
-      }
-      return result;
-    };
-  }
-})();
-
 window.paletteModule = (function () {
   const palettes = {
     Gray:   [ '#717171', '#8D8D8D', '#AAAAAA', '#C6C6C6', '#E2E2E2' ],
