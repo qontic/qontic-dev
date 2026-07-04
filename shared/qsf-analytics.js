@@ -39,20 +39,20 @@
     if (!hasGtag()) {
       window.gtag = function () { window.dataLayer.push(arguments); };
       window.gtag('js', new Date());
-      window.gtag('config', MEASUREMENT_ID);
     }
 
     if (!document.querySelector('script[data-qsf-gtag="true"]') &&
-        !document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
+        !document.querySelector('script[src*="googletagmanager.com/gtag/js?id=' + MEASUREMENT_ID + '"]')) {
       const script = document.createElement('script');
       script.async = true;
       script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(MEASUREMENT_ID);
       script.dataset.qsfGtag = 'true';
       script.onload = flushPendingEvents;
       document.head.appendChild(script);
-    } else {
-      window.setTimeout(flushPendingEvents, 0);
     }
+
+    window.gtag('config', MEASUREMENT_ID);
+    window.setTimeout(flushPendingEvents, 0);
   }
 
   function cleanValue(value) {
@@ -64,7 +64,8 @@
     const payload = Object.assign({
       demo_id: DEFAULT_DEMO_ID,
       demo_title: DEFAULT_DEMO_TITLE,
-      page_path: window.location.pathname
+      page_path: window.location.pathname,
+      send_to: MEASUREMENT_ID
     }, params || {});
 
     const debounceKey = eventName + ':' + JSON.stringify(payload);
