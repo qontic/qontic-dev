@@ -16,6 +16,7 @@
     <script src="js/palette.js"></script>
     <script src="js/double-slit.js"></script>
     <link rel="stylesheet" href="css/qsf-style.css">
+    <link rel="stylesheet" href="css/responsive-overrides.css">
     <script defer src="../../../shared/back-home.js"></script>
 </head>
 <body>
@@ -62,460 +63,319 @@
         </div>
         <ul>
             <li class="tab-basics"><a href="#basics-container" title="Basics">
-                  <span class="material-icons tab-icon" aria-hidden="true">tune</span>
-                  <span class="tab-label">Basics</span>
+                    <span class="material-icons tab-icon" aria-hidden="true">tune</span>
+                    <span class="tab-label">Basics</span>
                 </a></li>
             <li class="tab-math"><a href="#math-container" title="Math">
-                  <span class="material-icons tab-icon" aria-hidden="true">functions</span>
-                  <span class="tab-label">Math</span>
+                    <span class="material-icons tab-icon" aria-hidden="true">functions</span>
+                    <span class="tab-label">Math</span>
                 </a></li>
       	    <li class="tab-physics advanced-tab"><a href="#particle-parameter-container" title="Physics">
-                  <svg class="tab-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-                    <!-- nucleus -->
-                    <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.3" stroke="currentColor" stroke-width="1.1"/>
-                    <!-- three stylized orbits -->
-                    <ellipse cx="12" cy="12" rx="8" ry="4" fill="none" stroke="currentColor" stroke-width="1"/>
-                    <ellipse cx="12" cy="12" rx="8" ry="4" fill="none" stroke="currentColor" stroke-width="1" transform="rotate(60 12 12)"/>
-                    <ellipse cx="12" cy="12" rx="8" ry="4" fill="none" stroke="currentColor" stroke-width="1" transform="rotate(120 12 12)"/>
-                    <!-- small electrons -->
-                    <circle cx="19" cy="12" r="1.2" fill="#f59e0b"/>
-                    <circle cx="8" cy="5" r="1.2" fill="#f59e0b"/>
-                    <circle cx="7" cy="18" r="1.2" fill="#f59e0b"/>
-                  </svg>
-                  <span class="tab-label">Physics</span>
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+                        <ellipse cx="12" cy="12" rx="8" ry="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        <ellipse cx="12" cy="12" rx="8" ry="3.2" fill="none" stroke="currentColor" stroke-width="1.8" transform="rotate(60 12 12)" />
+                        <ellipse cx="12" cy="12" rx="8" ry="3.2" fill="none" stroke="currentColor" stroke-width="1.8" transform="rotate(-60 12 12)" />
+                    </svg>
+                    <span class="tab-label">Physics</span>
                 </a></li>
-            <li class="tab-setup advanced-tab"><a href="#detector-parameter-container" title="Setup">
-                  <span class="material-icons tab-icon" aria-hidden="true">build</span>
-                  <span class="tab-label">Setup</span>
+            <li class="tab-setup advanced-tab"><a href="#setup-parameter-container" title="Setup">
+                    <span class="material-icons tab-icon" aria-hidden="true">architecture</span>
+                    <span class="tab-label">Setup</span>
                 </a></li>
             <li class="tab-graphics advanced-tab"><a href="#graphics-parameter-container" title="Graphics">
-                  <span class="material-icons tab-icon" aria-hidden="true">bar_chart</span>
-                  <span class="tab-label">Graph</span>
+                    <span class="material-icons tab-icon" aria-hidden="true">palette</span>
+                    <span class="tab-label">Graphics</span>
                 </a></li>
-      	    <!-- Views tab removed; view cycling is in Basics and Setup tabs -->
+            <li class="tab-views advanced-tab"><a href="#view-style-container" title="Views">
+                    <span class="material-icons tab-icon" aria-hidden="true">visibility</span>
+                    <span class="tab-label">Views</span>
+                </a></li>
         </ul>
-        <!-- ===== BASICS TAB ===== -->
-        <div id="basics-container" style="padding-top: 12px;">
-          <!-- Key physics parameters -->
-          <div class="basics-section">
-            <div class="wave-range-box" style="margin-bottom: 6px;">
-              <div class="input-group">
-                <label data-tip="What to show for the wave visualization" for="basicsWaveFunctionOption">Show:</label>
+        <div id="basics-container">
+            <div class="basics-section">
+                <div class="basics-section-label">Wave display</div>
                 <select id="basicsWaveFunctionOption">
-                  <option value="Phase">&Psi; phase</option>
-                  <option value="Psi2">|&Psi;|&sup2;</option>
-                  <option value="LogPsi2">log(|&Psi;|&sup2;)</option>
-                  <option value="QPotential">sgn(Q)log(|Q|)</option>
+                    <option value="phase" selected>Ψ phase</option>
+                    <option value="probability">|Ψ|² probability</option>
+                    <option value="logprob">log |Ψ|²</option>
+                    <option value="real">Re Ψ</option>
+                    <option value="imag">Im Ψ</option>
+                    <option value="qpotential">Q potential</option>
                 </select>
-              </div>
             </div>
-            <div id="basics-params">
-              <!-- Wavelength and Slit Sep. sliders will be moved here by JS -->
+            <div class="basics-section">
+                <div class="basics-section-label">Timing</div>
+                <div class="input-group">
+                    <label for="animationStep">Sim. Speed</label>
+                    <input type="range" id="basicsAnimationStep" min="1" max="400" step="1" value="100">
+                    <input type="number" id="basicsAnimationStepVal" min="1" max="400" step="1" value="100">
+                    <span>×</span>
+                </div>
             </div>
-          </div>
-
-          <!-- Theme + Advanced toggle row -->
-          <div class="basics-advanced-toggle">
-            <button id="themeToggleBasics" class="theme-toggle-btn" onclick="toggleTheme()" data-tip="Switch between dark and light color themes.">
-              <span class="material-icons" style="font-size: 16px;">dark_mode</span>
-              <span class="theme-toggle-label">Dark Theme</span>
-            </button>
-            <button id="advancedToggle" class="theme-toggle-btn" data-tip="Show or hide advanced tabs (Physics, Setup, Graphics).">
-              <span class="material-icons" style="font-size: 16px;">tune</span>
-              <span id="advancedToggleLabel">Advanced</span>
-            </button>
-          </div>
+            <div class="basics-section">
+                <div class="basics-section-label">View controls</div>
+                <div class="basics-btn-row">
+                    <button id="basicsToggleSlits">Both Slits</button>
+                    <button id="basicsToggleWhichPath">No Detector</button>
+                    <button id="basicsToggleView">Collapse</button>
+                </div>
+            </div>
+            <div class="basics-advanced-toggle">
+                <button id="advancedToggle" class="theme-toggle-btn" title="Show advanced controls">
+                    <span class="material-icons" style="font-size: 16px;">expand_more</span>
+                    <span>Advanced</span>
+                </button>
+                <button id="themeToggle" class="theme-toggle-btn" title="Toggle dark/light theme">
+                    <span class="material-icons" style="font-size: 16px;">dark_mode</span>
+                    <span class="theme-toggle-label">Dark Theme</span>
+                </button>
+            </div>
         </div>
-
-	<div id="detector-parameter-container" style="padding-top: 12px;">
-	    <!-- Mirror slider: slit separation (synced with original) -->
-	    <div id="setup-mirror-sliders" style="margin-bottom: 10px;"></div>
-	    <!-- Wave visibility controls for detector mode -->
-	    <div id="detectorWaveControls" style="display: none; margin-bottom: 10px; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-input);">
-	      <div style="font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">Wave Controls</div>
-	      
-	      <!-- Wave 1 controls -->
-	      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-	        <input type="checkbox" id="showWaveSlit1" checked>
-	        <label for="showWaveSlit1" style="width: 55px; color: var(--text-primary);">Wave 1</label>
-	        <input type="range" id="wave1Opacity" min="0" max="100" value="50" style="width: 80px;">
-	        <span id="wave1OpacityVal" style="width: 30px; font-size: 11px; color: var(--text-primary);">50%</span>
-	        <canvas data-tip="Select Palette for Wave 1" id="openPalette1Btn" width="40" height="16" style="cursor: pointer; border: 1px solid var(--border-color); border-radius: 2px;"></canvas>
-	      </div>
-	      
-	      <!-- Wave 2 controls -->
-	      <div style="display: flex; align-items: center; gap: 8px;">
-	        <input type="checkbox" id="showWaveSlit2" checked>
-	        <label for="showWaveSlit2" style="width: 55px; color: var(--text-primary);">Wave 2</label>
-	        <input type="range" id="wave2Opacity" min="0" max="100" value="50" style="width: 80px;">
-	        <span id="wave2OpacityVal" style="width: 30px; font-size: 11px; color: var(--text-primary);">50%</span>
-	        <canvas data-tip="Select Palette for Wave 2" id="openPalette2Btn" width="40" height="16" style="cursor: pointer; border: 1px solid var(--border-color); border-radius: 2px;"></canvas>
-	      </div>
-	    </div>
-	</div>
-
-        <!-- Math / Formulas tab -->
-        <div id="math-container" style="padding-top: 6px;">
-
-          <h3 style="margin: 0 0 6px 0; font-size: 1.05em; color: var(--text-primary);">Wave Function</h3>
-
-          <div style="margin-bottom: 6px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 2px;">Domain 1 &mdash; Before the wall</div>
-            <div id="mathDomain1" style="padding: 4px 8px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-x: auto;"></div>
-          </div>
-
-          <div style="margin-bottom: 6px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 2px;">Domain 2 &mdash; After the wall</div>
-            <div id="mathDomain2" style="padding: 4px 8px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-x: auto;"></div>
-          </div>
-
-          <div id="mathDetectorNote" style="display: none; margin-bottom: 6px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 2px;">Detector state</div>
-            <div id="mathDetectorExplain" style="padding: 4px 8px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-x: auto; font-size: 0.88em; color: var(--text-primary); line-height: 1.5;"></div>
-          </div>
-
-          <div id="mathBohmSection" style="margin-bottom: 6px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 2px;">Particle velocity</div>
-            <div id="mathBohmV" style="padding: 4px 8px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-x: auto;"></div>
-          </div>
-
-          <div style="font-size: 0.82em; color: var(--text-muted); line-height: 1.4;">
-            <div id="mathLegend"></div>
-          </div>
+        <div id="particle-parameter-container" class="container">
+        <p>Particle Parameters </p>
+        <div class="input-group">
+            <label for="sigmax" data-tip="σx: initial packet width in the x-direction (transverse). Larger σx means a wider beam and finer momentum spread.">σx</label>
+            <input type="range" id="sigmax" min="20" max="300" step="1" value="70">
+            <input type="number" id="sigmaxVal" min="20" max="300" step="1" value="70">
+            <select id="sigmax-units"><option value="nm">nm</option></select>
         </div>
-
-        <div id="particle-parameter-container">
-          <div id="manyBranchesInfo" style="margin-bottom: 6px;">
-            <button id="resampleHitsButton" class="branch-button" style="font-size: 12px; padding: 5px 10px;">Resample</button>
-            <button id="resetBranches" class="branch-button" style="font-size: 12px; padding: 5px 10px;">Reset</button>
-          </div>
-          <div class="wave-range-box">
-            <div class="input-group">
-              <label data-tip="What to show for the wave visualization" for="waveFunctionOption">Show:</label>
-              <select id="waveFunctionOption">
-	        <option value="Phase">&Psi; phase</option>
-	        <option value="Psi2">|&Psi;|&sup2;</option>
-	        <option value="LogPsi2">log(|&Psi;|&sup2;)</option>
-	        <option value="QPotential">sgn(Q)log(|Q|)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="input-group bohmian-only">
-            <label data-tip="Whether the wave function is shown continous or for each particle" for="wave-type">Continuous:</label>
-            <input id="wave-continous" type="checkbox" checked>
-          </div>
-
-          <div class="input-group bohmian-only">
-            <label data-tip="If checked, particles are effectively generated from detector-wall hits so all trajectories terminate on the wall. If unchecked, particles are emitted from the source and can reach the detector or escape through the upper/lower boundaries." for="onlyWallMode">Only wall hits:</label>
-            <input id="onlyWallMode" type="checkbox">
-          </div>
-
-          <div class="input-group particle-second-line bohmian-only">
-            <label data-tip="Particle distribution from the source" for="Source">Source:</label>
+        <div class="input-group">
+            <label for="sigmay" data-tip="σy: initial packet width in the y-direction (along propagation). It controls longitudinal packet length.">σy</label>
+            <input type="range" id="sigmay" min="20" max="300" step="1" value="70">
+            <input type="number" id="sigmayVal" min="20" max="300" step="1" value="70">
+            <select id="sigmay-units"><option value="nm">nm</option></select>
+        </div>
+        <div class="input-group">
+            <label for="p" data-tip="Mean momentum of the incident particle packet. Increasing p makes the particles faster and shortens the de Broglie wavelength.">p</label>
+            <input type="range" id="p" min="0.01" max="0.1" step="0.001" value="0.04">
+            <input type="number" id="pVal" min="0.01" max="0.1" step="0.001" value="0.04">
+            <select id="p-units"><option value="keV/c">keV/c</option></select>
+        </div>
+        <div class="input-group">
+            <label for="particleMass" data-tip="Particle mass. Electron is the default. Heavier masses change the de Broglie wavelength and spreading.">Mass</label>
+            <input type="range" id="particleMass" min="0.1" max="10" step="0.1" value="1.0">
+            <input type="number" id="particleMassVal" min="0.1" max="10" step="0.1" value="1.0">
+            <select id="particleMass-units"><option value="mₑ">mₑ</option></select>
+        </div>
+        <div class="input-group">
+            <label for="particleCount" data-tip="Number of simulated particles launched. More particles give a smoother detection pattern but run more slowly.">Particles</label>
+            <input type="range" id="particleCount" min="100" max="2000" step="50" value="400">
+            <input type="number" id="particleCountVal" min="100" max="2000" step="50" value="400">
+            <select id="particleCount-units"><option value="">count</option></select>
+        </div>
+        <div class="input-group">
+            <label for="branchWorlds" data-tip="Many-Worlds branch count: number of simultaneous outcome branches shown in the branching view.">Branches</label>
+            <input type="range" id="branchWorlds" min="2" max="12" step="1" value="5">
+            <input type="number" id="branchWorldsVal" min="2" max="12" step="1" value="5">
+            <select id="branchWorlds-units"><option value="">worlds</option></select>
+        </div>
+        <div class="input-group">
+            <label for="branchSpread" data-tip="Branch spread: visual separation between Many-Worlds branches after the detector.">Spread</label>
+            <input type="range" id="branchSpread" min="0" max="60" step="1" value="20">
+            <input type="number" id="branchSpreadVal" min="0" max="60" step="1" value="20">
+            <select id="branchSpread-units"><option value="px">px</option></select>
+        </div>
+        <div class="input-group">
+            <label for="sourceOption" data-tip="Initial source state: single Gaussian packet or coherent superposition of packets aimed at the slits.">Source</label>
             <select id="sourceOption">
-              <option value="slits">Slits</option>
-              <option value="isotropic">Isotropic</option>
-            </select>&nbsp;
-            <select id="particleType">
-              <option value="electron">Electron</option>
-              <option value="neutron">Neutron</option>
-              <!--<option value="photon">Photon</option>-->
+                <option value="gaussian">Single Gaussian</option>
+                <option value="two_packet">Two packets</option>
             </select>
+        </div>
+        </div>
+        <div id="math-container" class="container">
+        <p style="margin-bottom:8px; font-weight:600; color:var(--text-secondary);">Current calculation</p>
+        <div id="mathFormula" style="min-height:80px; padding:8px; background:var(--bg-tertiary); border-radius:var(--radius-sm);"></div>
+        </div>
+        <div id="setup-parameter-container" class="container">
+            <p>Experiment Setup</p>
+            <div class="input-group">
+                <label for="slitSeparation" data-tip="Distance between the centers of the two slits. Larger separation makes the interference fringes narrower.">Slit Sep.</label>
+                <input type="range" id="slitSeparation" min="50" max="300" step="1" value="200">
+                <input type="number" id="slitSeparationVal" min="50" max="300" step="1" value="200">
+                <select id="slitSeparation-units"><option value="nm">nm</option></select>
+            </div>
+            <div class="input-group">
+                <label for="slitWidth" data-tip="Width of each slit opening. Wider slits reduce diffraction; narrower slits increase spreading.">Slit Width</label>
+                <input type="range" id="slitWidth" min="5" max="80" step="1" value="20">
+                <input type="number" id="slitWidthVal" min="5" max="80" step="1" value="20">
+                <select id="slitWidth-units"><option value="nm">nm</option></select>
+            </div>
+            <div class="input-group">
+                <label for="barrierWidth" data-tip="Thickness of the barrier containing the slits.">Barrier W.</label>
+                <input type="range" id="barrierWidth" min="5" max="60" step="1" value="10">
+                <input type="number" id="barrierWidthVal" min="5" max="60" step="1" value="10">
+                <select id="barrierWidth-units"><option value="nm">nm</option></select>
+            </div>
+            <div class="input-group">
+                <label for="detectorSize" data-tip="Size of the which-path detector region at a slit.">Det. Size</label>
+                <input type="range" id="detectorSize" min="5" max="60" step="1" value="20">
+                <input type="number" id="detectorSizeVal" min="5" max="60" step="1" value="20">
+                <select id="detectorSize-units"><option value="nm">nm</option></select>
+            </div>
+            <div class="input-group">
+                <label for="potentialHeight" data-tip="Barrier potential height used in the setup model.">Barrier V</label>
+                <input type="range" id="potentialHeight" min="0" max="200" step="1" value="50">
+                <input type="number" id="potentialHeightVal" min="0" max="200" step="1" value="50">
+                <select id="potentialHeight-units"><option value="eV">eV</option></select>
+            </div>
+            <div id="setupControls" class="button-group">
+                <button id="setupToggleSlits">Both Slits</button>
+                <button id="setupToggleWhichPath">No Detector</button>
+                <button id="setupToggleView">Collapse</button>
+            </div>
+        </div>
+        <div id="graphics-parameter-container" class="container">
+            <p>Graphics</p>
+            <div class="input-group">
+                <label for="animationStep" data-tip="Simulation speed multiplier. Larger values advance the animation faster.">Sim. Speed</label>
+                <input type="range" id="animationStep" min="1" max="400" step="1" value="100">
+                <input type="number" id="animationStepVal" min="1" max="400" step="1" value="100">
+                <select id="animationStep-units"><option value="x">x</option></select>
+            </div>
+            <div class="input-group">
+                <label for="drawEvery" data-tip="Draw every Nth trajectory point. Larger values are faster but less detailed.">Draw Every</label>
+                <input type="range" id="drawEvery" min="1" max="20" step="1" value="4">
+                <input type="number" id="drawEveryVal" min="1" max="20" step="1" value="4">
+                <select id="drawEvery-units"><option value="">steps</option></select>
+            </div>
+            <div class="input-group">
+                <label for="trajWidth" data-tip="Visual line width for particle trajectories.">Traj. Width</label>
+                <input type="range" id="trajWidth" min="0.2" max="4" step="0.1" value="1.0">
+                <input type="number" id="trajWidthVal" min="0.2" max="4" step="0.1" value="1.0">
+                <select id="trajWidth-units"><option value="px">px</option></select>
+            </div>
+            <div class="input-group">
+                <label for="particleRadius" data-tip="Displayed particle marker radius.">Particle R.</label>
+                <input type="range" id="particleRadius" min="1" max="8" step="0.5" value="3">
+                <input type="number" id="particleRadiusVal" min="1" max="8" step="0.5" value="3">
+                <select id="particleRadius-units"><option value="px">px</option></select>
+            </div>
+            <div class="input-group">
+                <label for="waveResolution" data-tip="Wave rendering resolution. Higher values are smoother but slower.">Wave Res.</label>
+                <input type="range" id="waveResolution" min="0.4" max="1.5" step="0.1" value="0.8">
+                <input type="number" id="waveResolutionVal" min="0.4" max="1.5" step="0.1" value="0.8">
+                <select id="waveResolution-units"><option value="">scale</option></select>
+            </div>
+            <div class="input-group">
+                <label for="waveFunctionOption" data-tip="Choose which part of the wavefunction visualization to display.">Wave</label>
+                <select id="waveFunctionOption">
+                    <option value="phase" selected>Ψ phase</option>
+                    <option value="probability">|Ψ|² probability</option>
+                    <option value="logprob">log |Ψ|²</option>
+                    <option value="real">Re Ψ</option>
+                    <option value="imag">Im Ψ</option>
+                    <option value="qpotential">Q potential</option>
+                </select>
+            </div>
+            <div class="wave-range-box">
+                <div id="waveRangeLabel" class="opacity-box-title">Wave color range</div>
+                <div class="input-group">
+                    <label for="waveRangeMin">Min</label>
+                    <input type="range" id="waveRangeMin" min="0" max="1" step="0.01" value="0">
+                    <input type="number" id="waveRangeMinVal" min="0" max="1" step="0.01" value="0">
+                </div>
+                <div class="input-group">
+                    <label for="waveRangeMax">Max</label>
+                    <input type="range" id="waveRangeMax" min="0.1" max="10" step="0.01" value="1">
+                    <input type="number" id="waveRangeMaxVal" min="0.1" max="10" step="0.01" value="1">
+                </div>
+            </div>
+            <div class="opacity-box">
+                <div class="opacity-box-title">Opacity</div>
+                <div class="input-group">
+                    <label for="waveOpacity">Wave</label>
+                    <input type="range" id="waveOpacity" min="0" max="1" step="0.01" value="1">
+                    <input type="number" id="waveOpacityVal" min="0" max="1" step="0.01" value="1">
+                </div>
+                <div class="input-group">
+                    <label for="trajOpacity">Traj.</label>
+                    <input type="range" id="trajOpacity" min="0" max="1" step="0.01" value="1">
+                    <input type="number" id="trajOpacityVal" min="0" max="1" step="0.01" value="1">
+                </div>
+                <div class="input-group">
+                    <label for="particleOpacity">Particles</label>
+                    <input type="range" id="particleOpacity" min="0" max="1" step="0.01" value="1">
+                    <input type="number" id="particleOpacityVal" min="0" max="1" step="0.01" value="1">
+                </div>
+            </div>
+        </div>
+        <div id="view-style-container" class="container">
+            <p>View Style</p>
+            <div class="input-group">
+                <label for="showGrid">Grid</label>
+                <input type="checkbox" id="showGrid">
+            </div>
+            <div class="input-group">
+                <label for="showScale">Scale</label>
+                <input type="checkbox" id="showScale" checked>
+            </div>
+            <div class="input-group">
+                <label for="showLegend">Legend</label>
+                <input type="checkbox" id="showLegend" checked>
+            </div>
+            <div class="input-group">
+                <label for="phaseColormap">Phase Map</label>
+                <input type="checkbox" id="phaseColormap" checked>
+            </div>
+        </div>
+     </div>
+     <div id="Info">
+        <div class="info-layout">
+          <div class="info-metrics">
+            <table>
+              <tr data-tip="Elapsed simulated time since launch."><td class="label">Time</td><td id="time" class="value">0 fs</td></tr>
+              <tr data-tip="Mean speed associated with the chosen momentum and particle mass."><td class="label">Speed</td><td id="speed" class="value">0</td></tr>
+              <tr data-tip="de Broglie wavelength λ = h/p for the selected particle momentum."><td class="label">λ</td><td id="lambda" class="value">0</td></tr>
+              <tr data-tip="Total number of particles detected on the screen."><td class="label">Detected</td><td id="detected" class="value">0</td></tr>
+              <tr data-tip="Many-Worlds: effective number of branches currently visualized."><td class="label manyworlds-only">Branches</td><td id="branchCount" class="value manyworlds-only">—</td></tr>
+              <tr data-tip="Many-Worlds: spread between visual outcome branches."><td class="label manyworlds-only">Branch spread</td><td id="branchSpreadInfo" class="value manyworlds-only">—</td></tr>
+              <tr data-tip="Current effective slit configuration: both slits or one slit only."><td class="label advanced-info">Slits</td><td id="slitsInfo" class="value advanced-info">Both</td></tr>
+              <tr data-tip="Whether a which-path detector is active at a slit."><td class="label advanced-info">Which-path</td><td id="whichPathInfo" class="value advanced-info">Off</td></tr>
+              <tr data-tip="Current representational view: Collapse, Pilot-Wave, or Many-Worlds."><td class="label advanced-info">View</td><td id="viewInfo" class="value advanced-info">Collapse</td></tr>
+            </table>
           </div>
-          <!-- Mirror sliders: wavelength & sim speed (synced with originals) -->
-          <div id="physics-mirror-sliders" style="margin-top: 8px;"></div>
-        </div>
-        <div id="graphics-parameter-container">
-        <!-- Font Size Controls -->
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
-          <div style="display: flex; align-items: center; gap: 4px; color: var(--text-primary);">
-            <span>Font:</span>
-            <select id="fontTarget" style="padding: 2px 4px; font-size: 12px;">
-              <option value="controls">Controls</option>
-              <option value="info">Info</option>
-            </select>
-            <button onclick="changeFontSize(-1)" style="padding: 2px 8px; min-width: 28px;">−</button>
-            <span id="fontSizeDisplay" style="min-width: 35px; text-align: center;">14px</span>
-            <button onclick="changeFontSize(1)" style="padding: 2px 8px; min-width: 28px;">+</button>
+          <div class="info-controls">
+            <button id="startButton">Start</button>
+            <button id="resetButton">Reset</button>
           </div>
         </div>
-	<table>
-           <tr><Td><label data-tip="Whether to show the detector hit histogram. Their color can be selected." > <input type="checkbox" id="plot_hits" class='replot' checked> Hits  </label>
-	   <td><button id="hit-color" class="pick-color"></button>
-           <Td>&nbsp;&nbsp;&nbsp;&nbsp;
-           <Td><label data-tip="Whether to show the hits in a color band on the right. It simulates a film response. The film color can be selected"> <input type="checkbox" id="plot_sensor"  class='replot' checked> Sensor  </label>
-	   <td><button id="sensor-color" class="pick-color"></button>
-
-           <tr>
-	   <td><label data-tip="Whether to show the probability of detecting a hit in a particular position on the screen given by the square of the wave function. The line color can also be selected."> <input type="checkbox" id="hit_prob" class='replot' checked> Det. Prob.</label>
-	   <td><button id="prob-color" class="pick-color"></button>
-           <Td>
-	   <Td><label data-tip="Whether the dimensions on the top left are shown. Their color can be selected."><input type="checkbox" class='replot' id="plot_scales" checked> Scales </label>
-	   <td> <button id="scale-color" class="pick-color"></button>
-
-	   <Tr class="bohmian-only">
-           <Td><label data-tip="Whether trajectores are shown. Their color can be selected."> <input type="checkbox" id="plot_trajectories" class='replot' checked> Traj. </label>
-	   <td> <button id="traj-color" class="pick-color"></button>
-	   <Td>
-           <Td><label data-tip="Whether the particles are shown. Their color can be selected."> <input type="checkbox" id="plot_particles" class='replot' checked> Particles </label>
-	   <td> <button id="part-color" class="pick-color"></button>
-
-	   <tr>	   
-	  <Td><label data-tip="Whether the detector is shown. Its color can be selected."><input type="checkbox" id="plot_detector"  class='replot' checked> Detector</label>
-	   <td> <button  id="detector-color" class="pick-color"></button>
-	   <Td>	   
-	   <Td><label data-tip="Whether the screen with the slits is shown. Its color can be selected."><input type="checkbox" id="plot_screen" class='replot' checked>Screen</label> 
-	   <td> <button id="screen-color" class="pick-color"></button>
-
-          </tr>
-          <tr>
-           <td>
-             <label data-tip="Whether the wave or Q are shown. The palette of the image can be selected.">
-               <input type="checkbox" id="plot_wave" class="replot" checked> Psi
-             </label>
-           </td>
-           <td>
-             <canvas data-tip="Select Graph Palette" id="openPaletteBtn" width="50" height="20" style="position:static; margin: 0; vertical-align: top;"></canvas>
-           </td>
-	   <td></td>
-           <td>
-             <label data-tip="Whether the palette is shown.">
-               <input type="checkbox" id="plot_palette" checked> Palette
-             </label>
-           </td>
-          </tr>
-        </table>
+     </div>
+     </div>
+     <div id="canvas-wrapper">
+        <div id="view-label">Collapse</div>
+        <div id="canvas-container" data-tip="Main simulation view. The colored field shows the wave display; red paths show particle trajectories in Pilot-Wave view; the screen histogram appears at right.">
+            <canvas id="waveCanvas"></canvas>
+            <canvas id="setupCanvas"></canvas>
+            <canvas id="partCanvas"></canvas>
         </div>
-    </div>
-	
-    <div id="Info" class="container">
-     <div class="info-layout">
-     <div class="info-metrics">
-     <table>
-	      <tr data-tip="Elapsed simulation time since the start or last reset">
-               <td class="label">Sim. Time:</td>
-		      <td align=right class="value" id="systemTime">0</td><td>
-              </tr>
-              <tr data-tip="Elapsed real time (your clock) since the start or last reset">
-               <td class="label">Real Time:</td>
-	       <td align=right class="value" id="realTime">0</td><td> 
-             </tr>
-              <tr data-tip="Phase velocity of the quantum wave (ω/k)">
-               <td class="label">Wave Speed:</td>
-	       <td align=right class="value" id="waveSpeed">0</td><td> 
-             </tr>
-              <tr data-tip="Kinetic energy of particles based on de Broglie wavelength: E = h²/(2mλ²)">
-               <td class="label">Energy:</td>
-	       <td align=right class="value" id="particleEnergy">0</td><td> 
-             </tr>
-           <tr class="info-box" data-tip="Number of detector hits">
-               <td class="label">Hits:</td>
-               <td align=right class="value"><span id="nhits">0</span></td> 
-           </tr>
-           <tr class="info-box advanced-info" data-tip="Number of simulation steps completed">
-               <td class="label">Steps:</td>
-               <td align=right class="value"><span id="nSteps">0</span></td> 
-           </tr>
-           <tr class="info-box bohmian-only info-highlight" data-tip="Particles currently shown / maximum allowed">
-               <td class="label">Particles:</td>
-               <td align=right class="value"><span id="shownParticles">0</span> / <span id="maxParticlesDisplay">100</span></td> 
-           </tr>
-           <tr class="info-box manyworlds-only info-highlight" data-tip="Number of branches produced since the beginning of the simulation">
-               <td class="label">Branches:</td>
-               <td align=right class="value"><span id="infoBranchCount">1</span></td> 
-           </tr>
-           </table>
+        <div id="shortcut-hint">Space: play/pause · R: reset · S: screenshot · V: cycle view · W: cycle wave display</div>
      </div>
-     <div class="info-controls">
-     <button style="width:100px" id="startButton">Start</button>
-     <button style="width:100px" id="resetButton">Reset</button>
-     <fieldset class="advanced-info" style="margin-top: 8px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;">
-       <legend style="font-size: 14px; padding: 0 4px;">Timing (ms)</legend>
-       <table style="font-size: 14px; width: 100%;">
-         <tr>
-           <td data-tip="Average total time per simulation step">Step:</td>
-           <td align="right" id="stepTime">0</td>
-         </tr>
-       </table>
-     </fieldset>
-     </div>
-     </div>
-
-             </div>
-
-             </div><!-- end leftPanel -->
-
-             <div id="canvas-wrapper">
-             <div id="view-label">Collapse</div>
-             <div id="canvas-container">
-           <canvas id="setupCanvas" width="800" height="600"></canvas>
-           <canvas id="waveCanvas" width="800" height="600"></canvas>
-           <canvas id="partCanvas" width="800" height="600"></canvas>
-           <canvas id="paletteScaleCanvas" width="40" height="200" data-tip="Color palette scale. Drag the slider handles to adjust the displayed range." style="position: absolute; left: 0px; bottom: 50px; z-index: 10;"></canvas>
-           <!-- Vertical range slider next to palette -->
-           <div id="paletteRangeSlider" data-tip="Drag handles to adjust the wave value range mapped to the color palette" style="position: absolute; left: 42px; bottom: 58px; z-index: 11; height: 184px;"></div>
-           <span id="waveRangeLabel" style="position: absolute; left: 60px; bottom: 50px; z-index: 11; font-size: 10px; color: var(--text-muted); writing-mode: vertical-rl; text-orientation: mixed; pointer-events: none; height: 200px; display: flex; align-items: center; justify-content: center;"></span>
-           <canvas id="paletteScaleCanvas2" width="40" height="100" data-tip="Wave 2 (slit 2) color palette scale" style="position: absolute; left: 0px; bottom: 50px; z-index: 10; display: none;"></canvas>
-           <canvas id="paletteScaleCanvas1" width="40" height="100" data-tip="Wave 1 (slit 1) color palette scale" style="position: absolute; left: 0px; bottom: 150px; z-index: 10; display: none;"></canvas>
-             </div>
-             <div id="shortcut-hint">Space: play/pause · R: reset · S: screenshot · V: cycle view · W: cycle wave display</div>
-             </div>
-<!--
-    <div id="histo-info">
-       <div id="Phi1" class="histogram"></div>
-       <div id="Phi2" class="histogram"></div>
-    </div>
-
-    -->
-    <div id="controls">
-    </div>
-  <div id="overlay"></div>
+   </div>
+   <div id="footer" style="width:100%; text-align:center; margin-top: 16px; color:var(--text-muted); font-size:12px;">
+      Quantum Simulation Framework v1.0
+   </div>
+  </div>
+  <div id="rationale">
+  <article style="max-width: 900px; margin: 0 auto; line-height: 1.6; color: var(--text-primary);">
+    <h1>Quantum Double-Slit Experiment: Why it Matters</h1>
+    <p>
+      The double-slit experiment is one of the clearest demonstrations that quantum systems cannot be understood as ordinary classical particles moving through one slit or the other. When both slits are open and no which-path measurement is made, single particles gradually build up an interference pattern. When a which-path detector is introduced, that pattern disappears.
+    </p>
+    <p>
+      This simulation lets you compare three different representational views of the same experimental situation. In the <strong>Collapse</strong> view, the wavefunction evolves and then detection events are sampled from the probability density. In the <strong>Pilot-Wave</strong> view, particles follow definite trajectories guided by the wave. In the <strong>Many-Worlds</strong> view, the wave continues to branch into multiple outcome components rather than collapsing.
+    </p>
+    <p>
+      These views agree on the basic detection statistics, but they suggest very different microscopic stories about what is happening between preparation and measurement. The purpose of the simulation is not to decide between them, but to make the representational differences visible.
+    </p>
+  </article>
+  </div>
+  </div>
   <div id="colorPickerModal">
-    <h3>Select a Color</h3>
+    <h3>Select Color</h3>
     <div class="palette" id="palette"></div>
   </div>
-  </div>
-</div>
-  <div id="rationale">
-<p>
-  
-<article>
-    <header>
-    <h1>The Double-Slit Experiment</h1>
-    </header>
-
-
-    <p>The double-slit experiment was first performed by Thomas Young in 1801 to demonstrate the wave behavior of visible light. In 1927, at the advent of quantum mechanics, the experiment was reproduced with electrons, and since then, with atoms and ever larger molecules. The observations are qualitatively the same.</p>
-
-    <p>A beam of particles is directed at a plate with two small, parallel slits. On a detector screen behind, one observes an interference pattern, alternating bands of high and low intensity. Crucially, this interference pattern is created by the statistical distribution of individual impact points. If one sends in a single particle at a time, each produces a small dot on the screen in a seemingly random position. A large number of particles build up the interference pattern: alternating regions where many particles are detected and regions where few or none are.</p>
-
-    <p>Interference is a typical wave phenomenon: when two waves overlap, their amplitudes combine, so that in some places, the waves reinforce each other (<strong>constructive interference</strong>), while in others, they reduce or cancel each other (<strong>destructive interference</strong>). On the other hand, the individual dots appearing on the screen suggest the impact of localized particles rather than extended waves.</p>
-
-    <p>The double-slit experiment is therefore a key demonstration of the so-called <em>wave-particle duality</em>. The microscopic constituents of light and matter, photons, electrons, atoms, etc., exhibit both wave-like and particle-like properties.</p>
-
-<p>Different representational approaches motivate different explanatory narratives about the same interference pattern. This demo includes (i)&nbsp;<a href="#" class="view-link" data-view="bohmian">trajectory-based visualizations</a>, (ii)&nbsp;<a href="#" class="view-link" data-view="copenhagen">measurement-centered renderings</a>, and (iii)&nbsp;<a href="#" class="view-link" data-view="manyworlds">wave-only views</a>. These modes are intended to support comparison of explanatory strategies rather than to endorse a single interpretation.
-
-    <p style="font-size: 0.85em; color: var(--text-muted);">
-    <strong>Note:</strong> The screen must interact with the particles in order to detect them. The simulation ignores the effect of this interaction on the particle&lsquo;s wave function and trajectories. In most cases, this effect is small, but in principle, it could alter the trajectories, especially in situations where the detector screen is placed very close to the slits.</p>
-
-
-  </article>
-
-
-  </div>
-
-</div>
-</div>
-<!-- Popup -->
-<div id="palettePopup">
-  <h3>Select a Color Palette</h3>
-  <button id="closePopupBtn">Close</button>
-</div>
-
-<!-- Popup for Wave 1 palette -->
-<div id="palettePopup1" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-panel); border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 20px 24px; max-height: 80%; overflow-y: auto; box-shadow: var(--shadow-lg); z-index: 1001; min-width: 320px;">
-  <h3>Select Palette for Wave 1</h3>
-  <button id="closePopup1Btn" onclick="$('#palettePopup1').hide()">Close</button>
-</div>
-
-<!-- Popup for Wave 2 palette -->
-<div id="palettePopup2" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-panel); border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 20px 24px; max-height: 80%; overflow-y: auto; box-shadow: var(--shadow-lg); z-index: 1001; min-width: 320px;">
-  <h3>Select Palette for Wave 2</h3>
-  <button id="closePopup2Btn" onclick="$('#palettePopup2').hide()">Close</button>
-</div>
-
-<div id="versionInfo" style="text-align: center; font-size: 0.85em; color: var(--text-muted); margin-top: 16px; padding: 12px; border-top: 1px solid var(--border-color);"> Quantum Simulation Framework v1.0</div>
-<!-- Visitor counter removed to avoid browser warnings about
-  parser-blocking cross-site scripts injected via document.write. -->
-
-<script>
-  // Theme Toggle Functionality
-  function toggleTheme() {
-    const html = document.documentElement;
-    const currentTheme = html.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    updateThemeButtons();
-    // Re-render scales with updated theme colors
-    if (typeof renderSetup === 'function') {
-      renderSetup();
-    }
-  }
-
-  function updateThemeButtons() {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    document.querySelectorAll('.theme-toggle-btn').forEach(function(btn) {
-      var icon = btn.querySelector('.material-icons');
-      var label = btn.querySelector('.theme-toggle-label');
-      if (isDark) {
-        icon.textContent = 'light_mode';
-        label.textContent = 'Light Theme';
-      } else {
-        icon.textContent = 'dark_mode';
-        label.textContent = 'Dark Theme';
-      }
-    });
-  }
-
-  // Font Size Control
-  let controlsFontSize = 15;
-  let infoFontSize = 15;
-  
-  function changeFontSize(delta) {
-    const target = document.getElementById('fontTarget').value;
-    const display = document.getElementById('fontSizeDisplay');
-    
-    if (target === 'controls') {
-      controlsFontSize = Math.max(10, Math.min(20, controlsFontSize + delta));
-      document.documentElement.style.setProperty('--font-size-base', controlsFontSize + 'px');
-      document.documentElement.style.setProperty('--font-size-sm', (controlsFontSize - 1) + 'px');
-      document.documentElement.style.setProperty('--font-size-xs', (controlsFontSize - 2) + 'px');
-      display.textContent = controlsFontSize + 'px';
-      localStorage.setItem('controlsFontSize', controlsFontSize);
-    } else {
-      infoFontSize = Math.max(10, Math.min(20, infoFontSize + delta));
-      document.documentElement.style.setProperty('--font-size-info', infoFontSize + 'px');
-      display.textContent = infoFontSize + 'px';
-      localStorage.setItem('infoFontSize', infoFontSize);
-    }
-  }
-  
-  // Update display when target changes
-  document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('fontTarget').addEventListener('change', function() {
-      const display = document.getElementById('fontSizeDisplay');
-      display.textContent = (this.value === 'controls' ? controlsFontSize : infoFontSize) + 'px';
-    });
-  });
-
-  // Load saved preferences on page load
-  (function() {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    
-    const savedControlsFontSize = localStorage.getItem('controlsFontSize');
-    const savedInfoFontSize = localStorage.getItem('infoFontSize');
-    if (savedControlsFontSize) {
-      controlsFontSize = parseInt(savedControlsFontSize);
-    }
-    if (savedInfoFontSize) {
-      infoFontSize = parseInt(savedInfoFontSize);
-    }
-    
-    // Update UI after DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-      updateThemeButtons();
-      document.documentElement.style.setProperty('--font-size-base', controlsFontSize + 'px');
-      document.documentElement.style.setProperty('--font-size-sm', (controlsFontSize - 1) + 'px');
-      document.documentElement.style.setProperty('--font-size-xs', (controlsFontSize - 2) + 'px');
-      document.documentElement.style.setProperty('--font-size-info', infoFontSize + 'px');
-      const display = document.getElementById('fontSizeDisplay');
-      if (display) display.textContent = controlsFontSize + 'px';
-    });
-  })();
-</script>
-
+  <div id="overlay"></div>
 </body>
 </html>
