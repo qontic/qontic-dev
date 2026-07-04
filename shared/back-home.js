@@ -1,15 +1,27 @@
 (function () {
   const mainHref = '../../../index.html';
 
+  function sharedBasePath() {
+    const currentScript = document.currentScript;
+    const src = currentScript && currentScript.src ? currentScript.src : '';
+    return src ? src.replace(/back-home\.js(?:\?.*)?$/, '') : '../../../shared/';
+  }
+
+  function ensureFavicon() {
+    if (document.querySelector('link[rel~="icon"]')) return;
+
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/svg+xml';
+    link.href = sharedBasePath() + 'favicon.svg';
+    document.head.appendChild(link);
+  }
+
   function loadQSFAnalytics() {
     if (document.querySelector('script[data-qsf-analytics="true"]')) return;
 
-    const currentScript = document.currentScript;
-    const src = currentScript && currentScript.src ? currentScript.src : '';
-    const base = src ? src.replace(/back-home\.js(?:\?.*)?$/, '') : '../../../shared/';
-
     const script = document.createElement('script');
-    script.src = base + 'qsf-analytics.js';
+    script.src = sharedBasePath() + 'qsf-analytics.js';
     script.defer = true;
     script.dataset.qsfAnalytics = 'true';
     document.head.appendChild(script);
@@ -35,6 +47,7 @@
   }
 
   function init() {
+    ensureFavicon();
     patchThemeToggleButtons();
     loadQSFAnalytics();
 
