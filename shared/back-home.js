@@ -15,7 +15,27 @@
     document.head.appendChild(script);
   }
 
+  function patchThemeToggleButtons() {
+    document.querySelectorAll('.theme-toggle-btn').forEach(function (btn) {
+      if (!btn.querySelector('.material-icons')) {
+        const icon = document.createElement('span');
+        icon.className = 'material-icons';
+        icon.style.fontSize = '16px';
+        icon.textContent = 'dark_mode';
+        btn.insertBefore(icon, btn.firstChild);
+      }
+
+      if (!btn.querySelector('.theme-toggle-label')) {
+        const label = document.createElement('span');
+        label.className = 'theme-toggle-label';
+        label.textContent = btn.id === 'advancedToggle' ? 'Advanced' : 'Dark Theme';
+        btn.appendChild(label);
+      }
+    });
+  }
+
   function init() {
+    patchThemeToggleButtons();
     loadQSFAnalytics();
 
     if (new URLSearchParams(window.location.search).get('embed') === '1') return;
