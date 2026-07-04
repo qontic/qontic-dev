@@ -11,6 +11,30 @@
     'detector-distance': 400
   };
 
+  // Minimal unit-array fallback used only for arrays of unit definitions.
+  // The simulation's createParameterInput() reads selectedUnit.scale during
+  // document-ready initialization. On the current dev page, some select values
+  // can be reported as null before a selected option is established. In that
+  // case, use the first unit in that same unit array instead of crashing.
+  const nativeFind = Array.prototype.find;
+  if (nativeFind && !Array.prototype.__qsfUnitDefinitionFallback) {
+    Object.defineProperty(Array.prototype, '__qsfUnitDefinitionFallback', {
+      value: true,
+      configurable: false,
+      enumerable: false
+    });
+    Array.prototype.find = function guardedFind(predicate, thisArg) {
+      const result = nativeFind.call(this, predicate, thisArg);
+      if (result !== undefined) return result;
+      if (this.length > 0 && this[0] &&
+          Object.prototype.hasOwnProperty.call(this[0], 'value') &&
+          Object.prototype.hasOwnProperty.call(this[0], 'scale')) {
+        return this[0];
+      }
+      return result;
+    };
+  }
+
   // Old saved UI state can call updateParameter() during startup before all
   // generated controls are fully usable. Clear it for the dev build so startup
   // is deterministic while the layout/telemetry work is being tested.
