@@ -12,9 +12,11 @@
 (function () {
   'use strict';
 
+  const MEASUREMENT_ID = 'G-ZWF6YQM0YV';
   const DEFAULT_DEMO_ID = inferDemoId();
   const DEFAULT_DEMO_TITLE = document.title || DEFAULT_DEMO_ID;
   const EVENT_DEBOUNCE_MS = 250;
+  const pendingEvents = [];
   const lastEventTimes = new Map();
 
   function inferDemoId() {
@@ -31,14 +33,34 @@
     return typeof window.gtag === 'function';
   }
 
+  function ensureGtag() {
+    window.dataLayer = window.dataLayer || [];
+
+    if (!hasGtag()) {
+      window.gtag = function () { window.dataLayer.push(arguments); };
+      window.gtag('js', new Date());
+      window.gtag('config', MEASUREMENT_ID);
+    }
+
+    if (!document.querySelector('script[data-qsf-gtag="true"]') &&
+        !document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(MEASUREMENT_ID);
+      script.dataset.qsfGtag = 'true';
+      script.onload = flushPendingEvents;
+      document.head.appendChild(script);
+    } else {
+      window.setTimeout(flushPendingEvents, 0);
+    }
+  }
+
   function cleanValue(value) {
     if (value === null || value === undefined) return '';
     return String(value).trim().slice(0, 100);
   }
 
   function sendEvent(eventName, params) {
-    if (!hasGtag()) return;
-
     const payload = Object.assign({
       demo_id: DEFAULT_DEMO_ID,
       demo_title: DEFAULT_DEMO_TITLE,
@@ -50,7 +72,20 @@
     if ((lastEventTimes.get(debounceKey) || 0) + EVENT_DEBOUNCE_MS > now) return;
     lastEventTimes.set(debounceKey, now);
 
+    if (!hasGtag()) {
+      pendingEvents.push([eventName, payload]);
+      return;
+    }
+
     window.gtag('event', eventName, payload);
+  }
+
+  function flushPendingEvents() {
+    if (!hasGtag()) return;
+    while (pendingEvents.length > 0) {
+      const item = pendingEvents.shift();
+      window.gtag('event', item[0], item[1]);
+    }
   }
 
   function getControlLabel(el) {
@@ -158,6 +193,7 @@
   }
 
   function init() {
+    ensureGtag();
     sendEvent('qsf_demo_open', {
       demo_id: DEFAULT_DEMO_ID,
       demo_title: DEFAULT_DEMO_TITLE
