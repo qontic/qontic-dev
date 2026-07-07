@@ -1,3 +1,5 @@
+import { effectiveDt, initSimulationSpeedControl } from "../simulation-speed.js";
+
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
 if (!gl) throw new Error("WebGL2 not available.");
@@ -67,6 +69,7 @@ const DEFAULT_AUTO_RESTART_MOMENTUM = params.p0;
 const urlParams = new URLSearchParams(window.location.search);
 const isEmbedded = urlParams.get("embed") === "1";
 const preset = urlParams.get("preset");
+initSimulationSpeedControl({ visible: !isEmbedded });
 const oneParticlePreset = {
   dt: 0.02,
   simScale: 0.5,
@@ -171,6 +174,10 @@ function fmt(v) {
   const av = Math.abs(v);
   if (av >= 1000 || (av > 0 && av < 0.01)) return v.toExponential(2);
   return v.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function simulationDt() {
+  return effectiveDt(params.dt);
 }
 
 function addSlider(key, label, min, max, step, onChange = null) {
@@ -739,7 +746,7 @@ function setWaveInitUniforms() {
   gl.uniform1f(U.waveInit.uHBAR, params.hbar);
   gl.uniform1f(U.waveInit.uMass, params.mass);
   gl.uniform1f(U.waveInit.uP0, params.p0);
-  gl.uniform1f(U.waveInit.uDT, params.dt);
+  gl.uniform1f(U.waveInit.uDT, simulationDt());
 
   gl.uniform2f(U.waveInit.uPacketPosFrac, params.packetX, params.packetY);
   gl.uniform1f(U.waveInit.uPacketSigmaPx, params.packetSigma);
@@ -763,7 +770,7 @@ function setWaveStepUniforms(srcTex) {
   gl.uniform1f(U.waveStep.uHBAR, params.hbar);
   gl.uniform1f(U.waveStep.uMass, params.mass);
   gl.uniform1f(U.waveStep.uP0, params.p0);
-  gl.uniform1f(U.waveStep.uDT, params.dt);
+  gl.uniform1f(U.waveStep.uDT, simulationDt());
 
   gl.uniform1f(U.waveStep.uBarrierXFrac, params.barrierX);
   gl.uniform1f(U.waveStep.uBarrierThickPx, params.barrierThick);
@@ -872,7 +879,7 @@ function particleUpdate() {
   gl.uniform2i(U.partUpdate.uSimRes, simW, simH);
   gl.uniform1f(U.partUpdate.uHBAR, params.hbar);
   gl.uniform1f(U.partUpdate.uMass, params.mass);
-  gl.uniform1f(U.partUpdate.uDT, params.dt);
+  gl.uniform1f(U.partUpdate.uDT, simulationDt());
   gl.uniform1i(U.partUpdate.uGuidingMode, params.guidingMode | 0);
   gl.uniform1f(U.partUpdate.uSpinMagnitude, params.spinMagnitude);
   gl.uniform1f(U.partUpdate.uSpinSign, params.spinSign);
@@ -947,7 +954,7 @@ function clearDensity() {
 }
 
 function densityStepAndStamp() {
-  const dtTotal = params.dt * Math.floor(params.stepsPerFrame);
+  const dtTotal = simulationDt() * Math.floor(params.stepsPerFrame);
 
   const src = densFlip ? densTexB : densTexA;
   const dstFbo = densFlip ? densFboA : densFboB;

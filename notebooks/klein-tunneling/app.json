@@ -1,0 +1,8 @@
+{
+  "title": "Klein Tunneling - Notebook",
+  "type": "notebook",
+  "category": "pilot-wave",
+  "description": "Notebook-style presentation of relativistic Dirac Klein tunneling with 2D WebGL and 3D WebGPU simulations.",
+  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "3D", "Dirac", "Klein tunneling"],
+  "entry": "index.html"
+}

@@ -1,4 +1,4 @@
-import { effectiveDt, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, initSimulationSpeedControl } from "../../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 if (!navigator.gpu) {
@@ -34,22 +34,23 @@ if (!gpuContext) {
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const WAVE_WORKGROUP_SIZE = 256;
 const PARTICLE_WORKGROUP_SIZE = 128;
-const WAVE_CELL_BYTES = 32;
-const DEFAULT_SG_GRADIENT = 4.0;
-const TUNNEL_Z_SCALE = 2.0;
+const WAVE_CELL_BYTES = 64;
+const MIN_SIM_RES = 32;
+const TUNNEL_LENGTH_SCALE = 2;
+const SPECTRAL_SAFETY = 0.25;
 const maxWaveBytes = Math.min(device.limits.maxStorageBufferBindingSize, device.limits.maxBufferSize);
-const maxWaveCellsByStorage = Math.max(32 ** 3, Math.floor(maxWaveBytes / WAVE_CELL_BYTES));
+const maxWaveCellsByStorage = Math.max(voxelCountForBaseResolution(MIN_SIM_RES), Math.floor(maxWaveBytes / WAVE_CELL_BYTES));
 
-function zResolutionForBase(baseRes) {
-  return Math.max(1, Math.round(baseRes * TUNNEL_Z_SCALE));
+function tunnelLengthResolutionForBase(baseRes) {
+  return Math.max(2, Math.round((baseRes - 1) * TUNNEL_LENGTH_SCALE) + 1);
 }
 
 function voxelCountForBaseResolution(baseRes) {
-  return baseRes * baseRes * zResolutionForBase(baseRes);
+  return tunnelLengthResolutionForBase(baseRes) * baseRes * baseRes;
 }
 
 function maxBaseResolutionForCells(maxCells) {
-  let baseRes = Math.floor(Math.cbrt(maxCells / TUNNEL_Z_SCALE));
+  let baseRes = Math.floor(Math.cbrt(maxCells / TUNNEL_LENGTH_SCALE));
   while (baseRes > 1 && voxelCountForBaseResolution(baseRes) > maxCells) baseRes--;
   return baseRes;
 }
@@ -57,146 +58,90 @@ function maxBaseResolutionForCells(maxCells) {
 const maxResByStorage = maxBaseResolutionForCells(maxWaveCellsByStorage);
 const maxResByDispatch = maxBaseResolutionForCells(device.limits.maxComputeWorkgroupsPerDimension * WAVE_WORKGROUP_SIZE);
 const rawMaxSimRes = Math.min(256, maxResByStorage, maxResByDispatch);
-const MAX_SIM_RES = Math.max(32, Math.floor(rawMaxSimRes / 4) * 4);
+const MAX_SIM_RES = Math.max(MIN_SIM_RES, Math.floor(rawMaxSimRes / 4) * 4);
+const DEFAULT_PACKET_AZIMUTH_DEG = 0.0;
+const DEFAULT_PACKET_ELEVATION_DEG = 0.0;
+const DEFAULT_BRANCH_MIX_DEG = 0.0;
 const urlParams = new URLSearchParams(window.location.search);
-const preset = urlParams.get("preset");
 const isEmbedded = urlParams.get("embed") === "1";
 
 const params = {
-  simRes: Math.min(128, MAX_SIM_RES),
-  stepsPerFrame: 8,
+  simRes: Math.min(96, MAX_SIM_RES),
+  stepsPerFrame: 5,
   boxScale: 2.5,
   cameraProjection: 0,
 
-  hbar: 6.0,
-  mass: 1.0,
-  p0: 5.5,
-  dt: 0.01,
+  hbar: 1.0,
+  mass: 0.15,
+  diracC: 5.0,
+  packetK: 0.75,
+  dt: 0.004,
 
-  packetX: 0.25,
-  packetY: 0.5,
-  packetZ: 0.5,
+  packetX: 0.22,
+  packetY: 0.50,
+  packetZ: 0.50,
   packetSigma: 10.0,
+  spinAxis: 0,
 
-  nParticles: 500,
-  rhoMin: 1e-6,
-  velClamp: 80.0,
-  spinS: 0.5,
-  initialSpin: 1,
-  sgGradient: DEFAULT_SG_GRADIENT,
-  sgFieldOn: 1,
+  barrierHeight: 10.5,
+  barrierWidth: 18.0,
+  barrierCenter: 0.54,
 
-  cloudGain: .05,
-  cloudGamma: 0.7,
-  cloudLowBoost: 0.9,
-  cloudCutoff: 0.003,
-  cloudPointSize: 80.,
+  nParticles: 200,
+  rhoMin: 1e-12,
+  velClamp: 100.0,
+
+  cloudGain: 0.10,
+  cloudGamma: 0.70,
+  cloudLowBoost: 0.98,
+  cloudCutoff: 0.00015,
+  cloudPointSize: 70.0,
   showPhase: 0,
   showCloud: 1,
 
   showParticles: 1,
-  dotSize: 20.0,
+  dotSize: 15.0,
   dotSigma: 0.28,
-  dotGain: 3.0,
+  dotGain: 2.0,
 
   showTrail: 1,
-  trailHalfLife: 0.5,
+  trailHalfLife: .2,
   trailVisGain: 0.5,
-  trailVisGamma: 1,
+  trailVisGamma: 1.0,
   trailStampGain: 0.45,
-  trailWidth: 15.0,
+  trailWidth: 9.0,
   trailBlendMode: 2,
   densityScale: 0.5,
-
-  paletteId: 4,
 };
-
-const embeddedBasePreset = {
-  simRes: Math.min(96, MAX_SIM_RES),
-  stepsPerFrame: 8,
-  cameraProjection: 0,
-  p0: 5.5,
-  packetSigma: 10.0,
-  spinS: 0.5,
-  sgGradient: DEFAULT_SG_GRADIENT,
-  showCloud: 1,
-  cloudGain: 0.05,
-  showPhase: 0,
-  showParticles: 1,
-  nParticles: 500,
-  dotSize: 10.0,
-  dotGain: 2.0,
-  showTrail: 1,
-  trailHalfLife: 0.5,
-};
-
-const PRESETS = {
-  "free-propagation": {
-    params: {
-      ...embeddedBasePreset,
-      initialSpin: 1,
-      sgFieldOn: 0,
-      sgGradient: 0,
-    },
-    adjustable: ["initialSpin","showCloud","nParticles", "showParticles"],
-  },
-  "spin-up": {
-    params: {
-      ...embeddedBasePreset,
-      initialSpin: 1,
-      sgFieldOn: 1,
-      sgGradient: DEFAULT_SG_GRADIENT,
-    },
-    adjustable: ["sgGradient", "showCloud", "showParticles", "showTrail"],
-  },
-  "spin-split": {
-    params: {
-      ...embeddedBasePreset,
-      initialSpin: 1,
-      sgFieldOn: 1,
-      sgGradient: DEFAULT_SG_GRADIENT,
-      nParticles: 1200,
-    },
-    adjustable: ["sgGradient", "nParticles", "showCloud", "showParticles", "showTrail"],
-  },
-};
-
-const presetDefinition = PRESETS[preset];
-const adjustableControls = new Set(presetDefinition?.adjustable ?? []);
-if (presetDefinition) Object.assign(params, presetDefinition.params);
-
-function isPresetLocked(key) {
-  return Boolean(presetDefinition) && !adjustableControls.has(key);
-}
-
-const PALETTE_NAMES = [
-  "Nebula",
-  "Synthwave",
-  "Viridis-ish",
-  "Inferno-ish",
-  "Ice",
-  "Plasma Drift",
-  "Arctic Aurora",
-  "Solar Flare",
-  "Cosmic Dust",
-  "Neon Noir",
-  "Pastel Mirage"
-];
 
 const GUIDING_MODE_NAMES = [
-  "Pauli spinor"
+  "Dirac current"
 ];
 
-const INITIAL_SPIN_NAMES = [
-  "+Z",
-  "Up+Down"
-];
+const SPIN_AXIS_NAMES = ["+Z", "+X", "+Y"];
 
 const SCENE_SCREEN_OFFSET_X = 0.15;
 
 let paused = false;
 let redrawPending = true;
 const PAUSED_IDLE_MS = 180;
+const RECORDING_CONFIG = {
+  fps: 60,
+  videoBitsPerSecond: 14_000_000,
+  chunkMs: 1000,
+};
+const recordingState = {
+  recorder: null,
+  stream: null,
+  videoTrack: null,
+  chunks: [],
+  startedAt: 0,
+  mimeType: "",
+  finalizing: false,
+  lastUrl: null,
+  pendingBlob: null,
+  pendingFileName: "",
+};
 
 function requestRedraw() {
   redrawPending = true;
@@ -224,7 +169,6 @@ function fmt(v) {
 }
 
 function addSlider(key, label, min, max, step, onChange = null) {
-  if (isPresetLocked(key)) return null;
   const row = document.createElement("div");
   row.className = "row";
 
@@ -260,7 +204,6 @@ function addSlider(key, label, min, max, step, onChange = null) {
 }
 
 function addToggleInt(key, label, onChange = null) {
-  if (isPresetLocked(key)) return null;
   const row = document.createElement("div");
   row.className = "row";
   const lab = document.createElement("label");
@@ -287,7 +230,6 @@ function addToggleInt(key, label, onChange = null) {
 }
 
 function addCycleButton(key, label, values, onChange = null) {
-  if (isPresetLocked(key)) return null;
   const row = document.createElement("div");
   row.className = "row";
 
@@ -322,7 +264,6 @@ function addCycleButton(key, label, values, onChange = null) {
 
 function addSectionHeader(label) {
   const header = document.createElement("div");
-  header.className = "control-section-header";
   header.style.marginTop = "12px";
   header.style.marginBottom = "8px";
   header.style.fontSize = "11px";
@@ -334,9 +275,10 @@ function addSectionHeader(label) {
   controls.appendChild(header);
 }
 
-addSlider("simRes", "sim resolution", 64, MAX_SIM_RES, 4, () => rebuildSimulation());
-addSlider("stepsPerFrame", "Steps/frame", 1, 30, 1);
-addSlider("dt", "dt", 0.002, 0.02, 0.002);
+addSectionHeader("Simulation");
+addSlider("simRes", "grid resolution", MIN_SIM_RES, MAX_SIM_RES, 4, () => rebuildSimulation());
+addSlider("stepsPerFrame", "Steps/frame", 1, 16, 1);
+addSlider("dt", "dt", 0.001, 0.008, 0.0005);
 
 const cameraProjectionControl = addCycleButton("cameraProjection", "camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
@@ -344,63 +286,216 @@ const cameraProjectionControl = addCycleButton("cameraProjection", "camera view"
   requestTrailClear();
 });
 
-addSectionHeader("Physical Parameters");
-addSlider("p0", "momentum p", 0., 6.0, 0.1, () => resetAll());
+addSectionHeader("Dirac Packet");
+addSlider("diracC", "Dirac c", 1.0, 8.0, 0.1, () => resetAll());
+addSlider("mass", "mass", 0.02, 0.8, 0.01, () => resetAll());
+addSlider("packetK", "mean k", 0.15, 1.5, 0.01, () => resetAll());
+addSlider("packetSigma", "packet sigma", 4.0, 18.0, 0.5, () => resetAll());
+addCycleButton("spinAxis", "spin axis", ["+Z", "+X", "+Y"], () => resetAll());
 
-addSlider("packetSigma", "packet sigma", 4.0, 14.0, 0.5, () => resetAll());
-addSlider("spinS", "spin strength", 0.0, 2.0, 0.5);
-addCycleButton("initialSpin", "initial spin", INITIAL_SPIN_NAMES, () => resetAll());
-addToggleInt("sgFieldOn", "SG z-gradient", () => requestTrailClear());
-addSlider("sgGradient", "SG strength", 0.0, 9.9, 0.002, () => requestTrailClear());
-
+addSectionHeader("Potential Wall");
+addSlider("barrierHeight", "wall height", 0.0, 18.0, 0.1, () => resetAll());
+addSlider("barrierWidth", "wall width", 2.0, 48.0, 1.0, () => resetAll());
 
 addSectionHeader("Visual Parameters");
 addToggleInt("showCloud", "density cloud");
-addSlider("cloudGain", "cloud density", 0.1, 2.0, 0.1);
+addSlider("cloudGain", "cloud density", 0.01, 1.5, 0.01);
 addToggleInt("showPhase", "show phase");
-
 addToggleInt("showParticles", "show particles");
-addSlider("nParticles", "particle count", 1, 3001, 100, () => rebuildParticles());
+addSlider("nParticles", "particle count", 1, 5001, 100, () => rebuildParticles());
 addSlider("dotSize", "particle size", 2.0, 26.0, 1);
 addSlider("dotGain", "particle brightness", 0.1, 5.0, 0.1);
-
 addToggleInt("showTrail", "draw trails");
-addSlider("trailHalfLife", "trail half-life", .1, 10.0, .1);
-
-document.querySelectorAll(".control-section-header").forEach((header) => {
-  const next = header.nextElementSibling;
-  if (!next || next.classList.contains("control-section-header")) header.remove();
-});
+addSlider("trailHalfLife", "trail half-life", 0.1, 10.0, 0.1);
 
 document.getElementById("reset").onclick = () => resetAll();
 const pauseButton = document.getElementById("pause");
+const recordButton = document.getElementById("record");
 function syncPauseButton() {
   pauseButton.textContent = paused ? "Resume" : "Pause";
 }
-function setPaused(nextPaused) {
-  const next = Boolean(nextPaused);
-  if (paused === next) return;
-  paused = next;
+function setPausedState(nextPaused) {
+  paused = Boolean(nextPaused);
   syncPauseButton();
   requestRedraw();
 }
-pauseButton.onclick = () => {
-  setPaused(!paused);
-};
 
-window.addEventListener("message", (event) => {
-  if (!isEmbedded || event.origin !== window.location.origin) return;
-  if (event.data?.type === "qontic:set-paused") setPaused(event.data.paused);
-});
+pauseButton.onclick = () => setPausedState(!paused);
+
+function canRecordCanvas() {
+  return typeof MediaRecorder !== "undefined" && typeof canvas.captureStream === "function" && !!chooseRecordingMimeType();
+}
+
+function isRecording() {
+  return recordingState.recorder?.state === "recording";
+}
+
+function chooseRecordingMimeType() {
+  const candidates = [
+    "video/mp4;codecs=avc1.42E01E",
+    "video/mp4;codecs=avc1.640028",
+    "video/mp4;codecs=h264",
+    "video/mp4",
+  ];
+  return candidates.find(type => MediaRecorder.isTypeSupported?.(type)) || "";
+}
+
+function recordingFileName(startedAt = recordingState.startedAt) {
+  const stamp = new Date(startedAt || Date.now()).toISOString().replace(/[:.]/g, "-");
+  return `klein-tunneling3d-${stamp}.mp4`;
+}
+
+function syncRecordingButton() {
+  const recording = isRecording();
+  const supported = canRecordCanvas();
+  recordButton.textContent = recordingState.finalizing ? "Saving Recording..." : (recording ? "Stop Recording" : (recordingState.pendingBlob ? "Download Recording" : "Start Recording"));
+  recordButton.classList.toggle("recording", recording);
+  recordButton.disabled = recordingState.finalizing || (!recordingState.pendingBlob && !supported);
+  recordButton.title = recordingState.pendingBlob
+    ? "Download the most recent canvas-only MP4 recording."
+    : (supported ? "Records the WebGPU canvas at a fixed 60 fps; UI overlays are excluded." : "MP4 canvas recording is not supported by this browser.");
+}
+
+function toggleRecording() {
+  if (recordingState.pendingBlob && !isRecording()) downloadPendingRecording(true);
+  else if (isRecording()) stopRecording();
+  else startRecording();
+}
+
+function startRecording() {
+  if (!canRecordCanvas()) {
+    alert("MP4 canvas recording is not supported by this browser.");
+    syncRecordingButton();
+    return;
+  }
+  clearPendingRecording();
+
+  const mimeType = chooseRecordingMimeType();
+  const options = {
+    mimeType,
+    videoBitsPerSecond: RECORDING_CONFIG.videoBitsPerSecond,
+  };
+
+  let stream, recorder;
+  try {
+    stream = canvas.captureStream(RECORDING_CONFIG.fps);
+    recorder = new MediaRecorder(stream, options);
+  } catch (error) {
+    stream?.getTracks().forEach(track => track.stop());
+    alert(`Could not start MP4 recording: ${error.message}`);
+    syncRecordingButton();
+    return;
+  }
+
+  recordingState.recorder = recorder;
+  recordingState.stream = stream;
+  recordingState.videoTrack = stream.getVideoTracks()[0] || null;
+  recordingState.chunks = [];
+  recordingState.startedAt = Date.now();
+  recordingState.mimeType = recorder.mimeType || mimeType;
+  recordingState.finalizing = false;
+
+  recorder.ondataavailable = event => {
+    if (event.data && event.data.size > 0) recordingState.chunks.push(event.data);
+  };
+  recorder.onerror = event => {
+    console.error("Recording error:", event.error || event);
+    stopRecording();
+  };
+  recorder.onstop = finishRecordingDownload;
+  recorder.start(RECORDING_CONFIG.chunkMs);
+  requestRedraw();
+  syncRecordingButton();
+}
+
+function stopRecording() {
+  const recorder = recordingState.recorder;
+  if (!recorder || recorder.state === "inactive") return;
+  recordingState.finalizing = true;
+  syncRecordingButton();
+
+  try {
+    recorder.requestData();
+  } catch (error) {
+    console.warn("Could not flush recording data:", error);
+  }
+  recorder.stop();
+}
+
+function finishRecordingDownload() {
+  recordingState.stream?.getTracks().forEach(track => track.stop());
+  recordingState.stream = null;
+  recordingState.videoTrack = null;
+  const chunks = recordingState.chunks;
+  recordingState.chunks = [];
+
+  if (!chunks.length) {
+    recordingState.recorder = null;
+    recordingState.finalizing = false;
+    alert("No recording data was produced.");
+    syncRecordingButton();
+    return;
+  }
+
+  recordingState.pendingBlob = new Blob(chunks, { type: recordingState.mimeType || "video/mp4" });
+  recordingState.pendingFileName = recordingFileName();
+  recordingState.recorder = null;
+  recordingState.finalizing = false;
+  downloadPendingRecording(true);
+  syncRecordingButton();
+}
+
+function clearPendingRecording() {
+  if (recordingState.lastUrl) {
+    URL.revokeObjectURL(recordingState.lastUrl);
+    recordingState.lastUrl = null;
+  }
+  recordingState.pendingBlob = null;
+  recordingState.pendingFileName = "";
+}
+
+function downloadPendingRecording(clearAfterClick) {
+  if (!recordingState.pendingBlob) return;
+  if (!recordingState.lastUrl) {
+    recordingState.lastUrl = URL.createObjectURL(recordingState.pendingBlob);
+  }
+  const url = recordingState.lastUrl;
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = recordingState.pendingFileName || recordingFileName();
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  if (clearAfterClick) {
+    recordingState.pendingBlob = null;
+    recordingState.pendingFileName = "";
+    if (recordingState.lastUrl === url) recordingState.lastUrl = null;
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      syncRecordingButton();
+    }, 1000);
+  }
+}
+
+recordButton.onclick = toggleRecording;
+syncRecordingButton();
 
 window.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() === "r") resetAll();
   if (e.key === " ") {
     e.preventDefault();
-    setPaused(!paused);
+    setPausedState(!paused);
   }
   handleCameraKey(e);
 });
+
+if (isEmbedded) {
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) return;
+    if (event.data?.type !== "qontic:set-paused" || !event.data.paused) return;
+    setPausedState(true);
+  });
+}
 
 window.addEventListener("keyup", (e) => {
   handleCameraKeyUp(e);
@@ -426,6 +521,10 @@ if (explainPanel && explainToggle) {
     explainPanel.classList.toggle("closed", !explainOpen);
     explainToggle.textContent = explainOpen ? "-" : "+";
     explainToggle.title = explainOpen ? "Close explanation" : "Open explanation";
+    if (explainOpen) {
+      const explainBody = document.getElementById("explainBody");
+      if (explainBody) window.MathJax?.typesetPromise?.([explainBody])?.catch(() => {});
+    }
   };
 }
 
@@ -448,7 +547,6 @@ const trailUniformBuffer = device.createBuffer({
 
 const SHADER_FILES = {
   common: "./shaders/common.wgsl",
-  palette: "./shaders/palette.wgsl",
   waveInit: "./shaders/wave-init.wgsl",
   waveStep: "./shaders/wave-step.wgsl",
   particleUpdate: "./shaders/particle-update.wgsl",
@@ -482,7 +580,7 @@ async function loadShaders() {
     waveInit: parts.common + parts.waveInit,
     waveStep: parts.common + parts.waveStep,
     particleUpdate: parts.common + parts.particleUpdate,
-    cloud: parts.common + parts.palette + parts.cloud,
+    cloud: parts.common + parts.cloud,
     particleRender: parts.common + parts.particleRender,
     density: parts.common + parts.density,
     boxShell: parts.common + parts.boxShell,
@@ -606,7 +704,7 @@ function buildPipelines() {
   const densityModule = shaderModule("density", DENSITY_WGSL);
   const boxShellModule = shaderModule("box shell", BOX_SHELL_WGSL);
   const lineModule = shaderModule("line", LINE_WGSL);
-  const fieldLineModule = shaderModule("SG field lines", FIELD_LINE_WGSL);
+  const fieldLineModule = shaderModule("physical SG field lines", FIELD_LINE_WGSL);
   const detectorPlateModule = shaderModule("detector plate", DETECTOR_PLATE_WGSL);
 
   pipelineWaveInit = device.createComputePipeline({
@@ -757,7 +855,7 @@ function buildPipelines() {
   });
 
   pipelineFieldLine = device.createRenderPipeline({
-    label: "SG field line pipeline",
+    label: "physical SG field line pipeline",
     layout: "auto",
     vertex: {
       module: fieldLineModule,
@@ -903,46 +1001,104 @@ function dispatchCount(count, groupSize) {
   return Math.ceil(count / groupSize);
 }
 
+function barrierCenterGrid() {
+  return Math.max(0.05, Math.min(0.95, params.barrierCenter)) * Math.max(1, simW - 1);
+}
+
+function barrierWidthGrid() {
+  return Math.max(1.0, Math.min(Math.max(1, simW - 1), params.barrierWidth));
+}
+
+function barrierBoundsGrid() {
+  const center = barrierCenterGrid();
+  const half = 0.5 * barrierWidthGrid();
+  return {
+    left: Math.max(0, center - half),
+    right: Math.min(Math.max(1, simW - 1), center + half),
+  };
+}
+
+function resolvedBarrierHeightCap() {
+  const E = incidentEnergy();
+  const M = params.mass * params.diracC * params.diracC;
+  const kSafe = SPECTRAL_SAFETY * Math.PI;
+  const maxResolvedKinetic = Math.sqrt(M * M + (params.hbar * params.diracC * kSafe) ** 2);
+  return E + maxResolvedKinetic;
+}
+
+function effectiveBarrierHeight() {
+  return Math.min(params.barrierHeight, resolvedBarrierHeightCap());
+}
+
 function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, densitySizeScale = 1.0) {
   uniformData.fill(0);
   uniformData.set([simW, simH, simD, voxelCount], 0);
-  uniformData.set([params.hbar, params.mass, params.p0, simulationDt()], 4);
+  uniformData.set([params.hbar, params.mass, params.diracC, simulationDt()], 4);
   uniformData.set([params.packetX, params.packetY, params.packetZ, params.packetSigma], 8);
   uniformData.set([params.cloudGain, params.cloudGamma, params.cloudLowBoost, params.cloudCutoff], 12);
-  uniformData.set([params.cloudPointSize, params.showPhase, params.paletteId | 0, params.boxScale], 16);
-  uniformData.set([params.dotSize, params.dotSigma, params.dotGain, params.spinS], 20);
+  uniformData.set([params.cloudPointSize, params.showPhase, 0.0, params.boxScale], 16);
+  uniformData.set([params.dotSize, params.dotSigma, params.dotGain, 0.0], 20);
   uniformData.set([params.rhoMin, params.velClamp, Math.floor(params.nParticles), params.trailWidth], 24);
   uniformData.set([camera.eye[0], camera.eye[1], camera.eye[2], camera.distance], 28);
   uniformData.set([viewportW, viewportH, params.cameraProjection | 0, params.trailStampGain], 32);
-  uniformData.set([detectorPlateXGrid(), 1.0, 0.0, 0.0], 36);
+  uniformData.set([barrierCenterGrid(), barrierWidthGrid(), effectiveBarrierHeight(), 1.0], 36);
   uniformData.set([0.0, 0.0, 0.0, params.trailVisGain], 40);
   uniformData.set([params.trailVisGamma, params.trailBlendMode | 0, densityFade, densitySizeScale], 44);
-  const sgTint = params.sgFieldOn && params.sgGradient > 0 ? 1 : 0;
-  uniformData.set(sgTint ? [0.82, 0.34, 0.28, 0.30] : [0.38, 0.72, 0.68, 0.22], 48);
+  uniformData.set([0.38, 0.72, 0.68, 0.22], 48);
   const boxCenter = boxCenterWorld();
   uniformData.set([boxCenter[0], boxCenter[1], boxCenter[2], 0.0], 52);
-  const sgStrength = params.sgFieldOn ? params.sgGradient : 0.0;
-  uniformData.set([sgStrength, params.sgFieldOn ? 1.0 : 0.0, params.initialSpin | 0, 0.0], 56);
-  uniformData.set([visualPacketCenterX(), 0.0, 0.0, 0.0], 60);
+  uniformData.set([
+    params.packetK,
+    DEFAULT_PACKET_AZIMUTH_DEG * Math.PI / 180,
+    DEFAULT_PACKET_ELEVATION_DEG * Math.PI / 180,
+    DEFAULT_BRANCH_MIX_DEG * Math.PI / 180,
+  ], 56);
+  uniformData.set([params.spinAxis | 0, 0.0, 0.0, 0.0], 60);
   uniformData.set(camera.viewProj, 64);
   device.queue.writeBuffer(buffer, 0, uniformData);
 }
 
-function effectivePeriodicP0() {
-  if (simW <= 1 || params.hbar <= 0) return params.p0;
-  const period = simW - 1;
-  const mode = Math.round((params.p0 / params.hbar) * period / (2 * Math.PI));
-  return params.hbar * mode * 2 * Math.PI / period;
+function requestedKVector() {
+  const az = DEFAULT_PACKET_AZIMUTH_DEG * Math.PI / 180;
+  const el = DEFAULT_PACKET_ELEVATION_DEG * Math.PI / 180;
+  const ce = Math.cos(el);
+  return [
+    params.packetK * ce * Math.cos(az),
+    params.packetK * ce * Math.sin(az),
+    params.packetK * Math.sin(el),
+  ];
 }
 
-function visualPacketCenterX() {
-  if (simW <= 1) return 0;
-  const x0 = params.packetX * (simW - 1);
-  return x0 + (effectivePeriodicP0() / Math.max(1e-6, params.mass)) * simTime;
+function effectivePeriodicKVector() {
+  if (simW <= 1 || simH <= 1 || simD <= 1) return requestedKVector();
+  const req = requestedKVector();
+  const periods = [simW - 1, simH - 1, simD - 1];
+  return req.map((k, i) => {
+    const mode = Math.round(k * periods[i] / (2 * Math.PI));
+    return mode * 2 * Math.PI / periods[i];
+  });
 }
 
-function detectorPlateXGrid() {
-  return 2.0 * Math.max(1, simW - 1);
+function incidentEnergy() {
+  const k = effectivePeriodicKVector();
+  const p2 = params.hbar * params.hbar * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]);
+  const M = params.mass * params.diracC * params.diracC;
+  return Math.sqrt(M*M + params.diracC*params.diracC*p2);
+}
+
+function groupSpeed() {
+  const k = effectivePeriodicKVector();
+  const p = params.hbar * Math.hypot(k[0], k[1], k[2]);
+  return params.diracC * params.diracC * p / Math.max(incidentEnergy(), 1e-9);
+}
+
+function kleinRegimeText() {
+  const E = incidentEnergy();
+  const M = params.mass * params.diracC * params.diracC;
+  const V = effectiveBarrierHeight();
+  if (V < E - M) return "positive branch inside";
+  if (V < E + M) return "evanescent gap";
+  return "Klein zone";
 }
 
 function worldFromGrid(p) {
@@ -1047,12 +1203,19 @@ function boxCenterWorld() {
   ]);
 }
 
+const cameraPanOffset = [0, 0, 0];
+
 function cameraLookAtWorld() {
-  return worldFromGrid([
-    simW - 1,
+  const target = worldFromGrid([
+    0.5 * (simW - 1),
     0.5 * (simH - 1),
     0.5 * (simD - 1),
   ]);
+  return [
+    target[0] + cameraPanOffset[0],
+    target[1] + cameraPanOffset[1],
+    target[2] + cameraPanOffset[2],
+  ];
 }
 
 const cameraOrbit = {
@@ -1064,12 +1227,13 @@ const KEYBOARD_YAW_CENTER = -Math.PI * 0.5;
 const KEYBOARD_YAW_LIMIT = Math.PI * 0.5;
 const KEYBOARD_ORBIT_SPEED = .6;
 const KEYBOARD_ZOOM_SPEED = .5;
+const CAMERA_FOVY = 40 * Math.PI / 180;
 const cameraTarget = {
   yaw: cameraOrbit.yaw,
   pitch: cameraOrbit.pitch,
   distance: cameraOrbit.distance,
 };
-const CAMERA_EASE = 0.2;
+const CAMERA_EASE = 0.3;
 const ORTHO_VIEWS = {
   XY: { yaw: -Math.PI * 0.5, pitch: Math.PI * 0.5 },
   XZ: { yaw: -Math.PI * 0.5, pitch: 0 },
@@ -1078,9 +1242,10 @@ const ORTHO_VIEWS = {
 
 let activeOrthoView = null;
 
-let orbitPointer = null;
-let orbitLastX = 0;
-let orbitLastY = 0;
+let activeCameraPointer = null;
+let activeCameraDragMode = null;
+let cameraLastX = 0;
+let cameraLastY = 0;
 const pressedCameraKeys = new Set();
 
 function requestTrailClear() {
@@ -1109,7 +1274,7 @@ function clampCameraDistance(distance) {
 }
 
 function syncCameraUi() {
-  cameraProjectionControl?.sync();
+  cameraProjectionControl.sync();
   for (const [key, btn] of Object.entries(viewButtons)) {
     if (!btn) continue;
     btn.classList.toggle("selected", params.cameraProjection === 1 && activeOrthoView === key);
@@ -1147,6 +1312,12 @@ function syncCameraTargetToCurrent() {
   cameraTarget.yaw = cameraOrbit.yaw;
   cameraTarget.pitch = cameraOrbit.pitch;
   cameraTarget.distance = cameraOrbit.distance;
+}
+
+function resetCameraPan() {
+  cameraPanOffset[0] = 0;
+  cameraPanOffset[1] = 0;
+  cameraPanOffset[2] = 0;
 }
 
 function shortestAngleDelta(from, to) {
@@ -1198,6 +1369,19 @@ function applyCameraZoomDelta(deltaY) {
   const prevDistance = cameraTarget.distance;
   cameraTarget.distance = clampCameraDistance(cameraTarget.distance * zoom);
   if (cameraTarget.distance !== prevDistance) requestTrailClear();
+}
+
+function applyCameraPanDelta(dx, dy) {
+  if (dx === 0 && dy === 0) return;
+  const rect = canvas.getBoundingClientRect();
+  const unitsPerPixel = (2 * Math.tan(CAMERA_FOVY * 0.5) * cameraOrbit.distance) / Math.max(1, rect.height);
+  const basis = cameraBasis();
+  const rightScale = -dx * unitsPerPixel;
+  const upScale = dy * unitsPerPixel;
+  cameraPanOffset[0] += basis.right[0] * rightScale + basis.up[0] * upScale;
+  cameraPanOffset[1] += basis.right[1] * rightScale + basis.up[1] * upScale;
+  cameraPanOffset[2] += basis.right[2] * rightScale + basis.up[2] * upScale;
+  requestTrailClear();
 }
 
 function isTextEntryTarget(target) {
@@ -1261,37 +1445,44 @@ for (const [key, btn] of Object.entries(viewButtons)) {
 syncCameraUi();
 
 canvas.addEventListener("pointerdown", (e) => {
-  if (e.button !== 0) return;
-  orbitPointer = e.pointerId;
-  orbitLastX = e.clientX;
-  orbitLastY = e.clientY;
+  if (e.button !== 0 && e.button !== 1) return;
+  if (activeCameraPointer !== null) return;
+  e.preventDefault();
+  activeCameraPointer = e.pointerId;
+  activeCameraDragMode = e.button === 1 ? "pan" : "orbit";
+  cameraLastX = e.clientX;
+  cameraLastY = e.clientY;
   syncCameraTargetToCurrent();
   canvas.setPointerCapture(e.pointerId);
 });
 
 canvas.addEventListener("pointermove", (e) => {
-  if (orbitPointer !== e.pointerId) return;
-  const dx = e.clientX - orbitLastX;
-  const dy = e.clientY - orbitLastY;
-  orbitLastX = e.clientX;
-  orbitLastY = e.clientY;
-  applyCameraOrbitDelta(dx, dy);
+  if (activeCameraPointer !== e.pointerId) return;
+  const dx = e.clientX - cameraLastX;
+  const dy = e.clientY - cameraLastY;
+  cameraLastX = e.clientX;
+  cameraLastY = e.clientY;
+  if (activeCameraDragMode === "pan") applyCameraPanDelta(dx, dy);
+  else applyCameraOrbitDelta(dx, dy);
 });
 
-canvas.addEventListener("pointerup", (e) => {
-  if (orbitPointer !== e.pointerId) return;
-  canvas.releasePointerCapture(e.pointerId);
-  orbitPointer = null;
-});
+function endCameraDrag(e) {
+  if (activeCameraPointer !== e.pointerId) return;
+  if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+  activeCameraPointer = null;
+  activeCameraDragMode = null;
+}
 
-canvas.addEventListener("pointercancel", (e) => {
-  if (orbitPointer !== e.pointerId) return;
-  canvas.releasePointerCapture(e.pointerId);
-  orbitPointer = null;
+canvas.addEventListener("pointerup", endCameraDrag);
+canvas.addEventListener("pointercancel", endCameraDrag);
+canvas.addEventListener("mousedown", (e) => {
+  if (e.button === 1) e.preventDefault();
+});
+canvas.addEventListener("auxclick", (e) => {
+  if (e.button === 1) e.preventDefault();
 });
 
 canvas.addEventListener("wheel", (e) => {
-  if (isEmbedded) return;
   e.preventDefault();
   applyCameraZoomDelta(e.deltaY);
 }, { passive: false });
@@ -1316,14 +1507,13 @@ function cameraFrame() {
   ];
   const aspect = Math.max(1e-3, canvas.width / Math.max(1, canvas.height));
   const view = mat4LookAt(eye, target, up);
-  const fovy = 40 * Math.PI / 180;
   let proj;
   if ((params.cameraProjection | 0) === 1) {
-    const halfH = Math.tan(fovy * 0.5) * cameraOrbit.distance;
+    const halfH = Math.tan(CAMERA_FOVY * 0.5) * cameraOrbit.distance;
     const halfW = halfH * aspect;
     proj = mat4Orthographic(-halfW, halfW, -halfH, halfH, 0.04 * n, 8.0 * n);
   } else {
-    proj = mat4Perspective(fovy, aspect, 0.04 * n, 8.0 * n);
+    proj = mat4Perspective(CAMERA_FOVY, aspect, 0.04 * n, 8.0 * n);
   }
   const viewProj = mat4Mul(mat4ClipOffset(SCENE_SCREEN_OFFSET_X, 0), mat4Mul(proj, view));
   return {
@@ -1457,23 +1647,16 @@ function rebuildParticles() {
   destroyGpuResource(particleDst);
 
   const data = new Float32Array(n * 4);
-
   const sigma1D = params.packetSigma / Math.sqrt(2);
-  const x0 = params.packetX * (simW - 1);
-  const y0 = params.packetY * (simH - 1);
-  const z0 = params.packetZ * (simD - 1);
+  const periods = [simW - 1, simH - 1, simD - 1];
+  const center = [params.packetX * periods[0], params.packetY * periods[1], params.packetZ * periods[2]];
+  const wrap = (x, period) => ((x % period) + period) % period;
 
   for (let i = 0; i < n; i++) {
-    let x = x0 + randn() * sigma1D;
-    let y = y0 + randn() * sigma1D;
-    let z = z0 + randn() * sigma1D;
-    x = Math.max(0, Math.min(simW - 1, x));
-    y = Math.max(0, Math.min(simH - 1, y));
-    z = Math.max(0, Math.min(simD - 1, z));
-    data[i * 4 + 0] = x;
-    data[i * 4 + 1] = y;
-    data[i * 4 + 2] = z;
-    data[i * 4 + 3] = x;
+    data[i * 4 + 0] = wrap(center[0] + randn() * sigma1D, periods[0]);
+    data[i * 4 + 1] = wrap(center[1] + randn() * sigma1D, periods[1]);
+    data[i * 4 + 2] = wrap(center[2] + randn() * sigma1D, periods[2]);
+    data[i * 4 + 3] = 0;
   }
 
   particleSrc = makeBuffer("particle src", data, GPUBufferUsage.STORAGE);
@@ -1481,7 +1664,6 @@ function rebuildParticles() {
   particleFlip = 0;
   rebuildParticleBindGroups();
 }
-
 function particleUpdate(pass) {
   const n = Math.floor(params.nParticles);
   if (n <= 0) return;
@@ -1581,6 +1763,12 @@ function render(encoder, camera) {
     pass.draw(6, voxelCount);
   }
 
+  if (params.barrierHeight > 0) {
+    pass.setPipeline(pipelineDetectorPlate);
+    pass.setBindGroup(0, detectorPlateBindGroup);
+    pass.draw(12);
+  }
+
   if (params.showTrail && densityRenderBindGroups.length) {
     const mode = Math.max(0, Math.min(2, params.trailBlendMode | 0));
     const pipeline = mode === 0 ? pipelineDensityRenderAdd : (mode === 1 ? pipelineDensityRenderScreen : pipelineDensityRenderGlow);
@@ -1603,17 +1791,6 @@ function render(encoder, camera) {
     pass.draw(boxVertexCount);
   }
 
-  pass.setPipeline(pipelineDetectorPlate);
-  pass.setBindGroup(0, detectorPlateBindGroup);
-  pass.draw(6);
-
-  if (params.sgFieldOn && params.sgGradient > 0 && fieldLineBuffer && fieldLineVertexCount > 0) {
-    pass.setPipeline(pipelineFieldLine);
-    pass.setBindGroup(0, fieldLineBindGroup);
-    pass.setVertexBuffer(0, fieldLineBuffer);
-    pass.draw(fieldLineVertexCount);
-  }
-
   if (params.showParticles) {
     pass.setPipeline(pipelineParticleRender);
     pass.setBindGroup(0, particleRenderBindGroups[particleFlip]);
@@ -1624,18 +1801,39 @@ function render(encoder, camera) {
 }
 
 function guidingModeLabel() {
-  return `${GUIDING_MODE_NAMES[0]} ${INITIAL_SPIN_NAMES[params.initialSpin | 0] || INITIAL_SPIN_NAMES[0]}`;
+  return GUIDING_MODE_NAMES[0];
 }
 
 function updateStats() {
-  const pPeriodic = effectivePeriodicP0();
-  const lambda = pPeriodic > 1e-6 ? (2 * Math.PI * params.hbar / pPeriodic) : Infinity;
-  const lambdaText = Number.isFinite(lambda) ? fmt(lambda) : "inf";
-  const quality = lambda < 8 ? ` <span style="color:#ffb347">under-resolved</span>` : "";
-  const sgText = params.sgFieldOn && params.sgGradient > 0 ? fmt(params.sgGradient) : "off";
-  statsEl.innerHTML = `<b>Physics</b>: ${guidingModeLabel()} &nbsp; <b>SG grad</b>: ${sgText} &nbsp; <b>Grid</b>: ${simW}x${simH}x${simD} &nbsp; <b>Particles</b>: ${Math.floor(params.nParticles)} &nbsp; <b>lambda</b>: ${lambdaText}${quality}`;
+  const k = effectivePeriodicKVector();
+  const kmag = Math.hypot(k[0], k[1], k[2]);
+  const E = incidentEnergy();
+  const M = params.mass * params.diracC * params.diracC;
+  const Veff = effectiveBarrierHeight();
+  const clipped = Veff < params.barrierHeight - 1e-6;
+  const wPlus = 1.0;
+  const wMinus = 0.0;
+  const vg = groupSpeed();
+  const lambda = kmag > 1e-8 ? 2 * Math.PI / kmag : Infinity;
+  const barrierMomentum2 = Math.max(0, (Veff - E) * (Veff - E) - M * M);
+  const barrierK = Math.sqrt(barrierMomentum2) / Math.max(params.hbar * params.diracC, 1e-9);
+  const barrierLambda = barrierK > 1e-8 ? 2 * Math.PI / barrierK : Infinity;
+  const quality = Number.isFinite(barrierLambda) && barrierLambda < 4.5 ? ` <span style="color:#ffb347">near grid limit</span>` : "";
+  const bounds = barrierBoundsGrid();
+  statsEl.innerHTML =
+    `<b>Physics</b>: ${guidingModeLabel()} &nbsp; <b>Grid</b>: ${simW}³ &nbsp; <b>t</b>: ${fmt(simTime)}<br>` +
+    `<b>E₀</b>: ${fmt(E)} &nbsp; <b>mc²</b>: ${fmt(M)} &nbsp; <b>|v_g|</b>: ${fmt(vg)} &nbsp; <b>λ</b>: ${Number.isFinite(lambda) ? fmt(lambda) : "inf"}${quality}<br>` +
+    `<b>central mix</b>: P+≈${fmt(wPlus)} &nbsp; P−≈${fmt(wMinus)} &nbsp; <b>k</b>: (${fmt(k[0])}, ${fmt(k[1])}, ${fmt(k[2])})`;
+  statsEl.innerHTML =
+    `<b>Physics</b>: ${guidingModeLabel()} &nbsp; <b>Grid</b>: ${simW}^3 &nbsp; <b>t</b>: ${fmt(simTime)}<br>` +
+    `<b>E</b>: ${fmt(E)} &nbsp; <b>mc^2</b>: ${fmt(M)} &nbsp; <b>V</b>: ${fmt(Veff)}${clipped ? " clipped" : ""} &nbsp; <b>Klein V</b>: ${fmt(E + M)}<br>` +
+    `<b>Regime</b>: ${kleinRegimeText()} &nbsp; <b>spin</b>: ${SPIN_AXIS_NAMES[params.spinAxis | 0] ?? "+Z"} &nbsp; <b>|v_g|</b>: ${fmt(vg)} &nbsp; <b>lambda</b>: ${Number.isFinite(lambda) ? fmt(lambda) : "inf"}<br>` +
+    `<b>barrier lambda</b>: ${Number.isFinite(barrierLambda) ? fmt(barrierLambda) : "evanescent"}${quality} &nbsp; <b>wall x</b>: ${fmt(bounds.left)}..${fmt(bounds.right)}`;
+  statsEl.innerHTML = statsEl.innerHTML.replace(
+    /<b>Grid<\/b>: .*?&nbsp; <b>t<\/b>/,
+    `<b>Grid</b>: ${simW}x${simH}x${simD} &nbsp; <b>t</b>`
+  );
 }
-
 function rebuildBoxGeometry() {
   destroyGpuResource(boxBuffer);
   destroyGpuResource(boxShellBuffer);
@@ -1643,10 +1841,11 @@ function rebuildBoxGeometry() {
   const x0 = 0, y0 = 0, z0 = 0;
   const x1 = simW - 1, y1 = simH - 1, z1 = simD - 1;
   const edges = [
-    0, 1, 3, 2,
-    4, 5, 7, 6,
+    0,1, 1,2, 2,3, 3,0,
+    4,5, 5,6, 6,7, 7,4,
+    0,4, 1,5, 2,6, 3,7,
   ];
-  const copyOffsets = [-1, 0, 1];
+  const copyOffsets = [0];
   const corridorFade = (copy) => {
     const d = Math.abs(copy);
     if (d <= 2) return 1.0;
@@ -1717,7 +1916,7 @@ function rebuildBoxGeometry() {
   boxShellBuffer = makeBuffer("box shell vertices", new Float32Array(shellVerts), GPUBufferUsage.VERTEX);
 }
 
-function sgFieldDirectionGrid(p) {
+function physicalSgFieldDirectionGrid(p) {
   const centerY = 0.5 * (simH - 1);
   const centerZ = 0.5 * (simD - 1);
   const scale = Math.max(1, centerZ);
@@ -1751,10 +1950,10 @@ function pushFieldLineSegment(verts, a, b, fade) {
   pushVertex(1, 1);
 }
 
-function traceSgFieldLine(verts, start, sign, fade, step, maxSteps, margin) {
+function tracePhysicalSgFieldLine(verts, start, sign, fade, step, maxSteps, margin) {
   let p = start.slice();
   for (let i = 0; i < maxSteps; i++) {
-    const dir = sgFieldDirectionGrid(p);
+    const dir = physicalSgFieldDirectionGrid(p);
     if (!dir) break;
     const q = [
       p[0],
@@ -1794,8 +1993,8 @@ function rebuildMagneticFieldLines() {
       for (const zf of zFracs) {
         for (const yf of yFracs) {
           const start = [x, yf * yMax, zf * zMax];
-          traceSgFieldLine(verts, start, 1, fade, step, maxSteps, margin);
-          traceSgFieldLine(verts, start, -1, fade, step, maxSteps, margin);
+          tracePhysicalSgFieldLine(verts, start, 1, fade, step, maxSteps, margin);
+          tracePhysicalSgFieldLine(verts, start, -1, fade, step, maxSteps, margin);
         }
       }
     }
@@ -1803,21 +2002,22 @@ function rebuildMagneticFieldLines() {
 
   fieldLineVertexCount = verts.length / 9;
   if (fieldLineVertexCount > 0) {
-    fieldLineBuffer = makeBuffer("SG magnetic field line vertices", new Float32Array(verts), GPUBufferUsage.VERTEX);
+    fieldLineBuffer = makeBuffer("physical SG magnetic field line vertices", new Float32Array(verts), GPUBufferUsage.VERTEX);
   }
 }
 
 function rebuildSimulation() {
   resizeCanvas();
 
-  const n = Math.max(32, Math.min(MAX_SIM_RES, Math.floor(params.simRes)));
+  const n = Math.max(MIN_SIM_RES, Math.min(MAX_SIM_RES, Math.floor(params.simRes)));
   params.simRes = n;
-  simW = n;
+  simW = tunnelLengthResolutionForBase(n);
   simH = n;
-  simD = zResolutionForBase(n);
+  simD = n;
   voxelCount = simW * simH * simD;
   cameraOrbit.distance = 2.15 * Math.max(simW, simH, simD) * params.boxScale;
   cameraTarget.distance = cameraOrbit.distance;
+  resetCameraPan();
 
   deleteWaveTargets();
   const waveBytes = voxelCount * WAVE_CELL_BYTES;
@@ -1829,7 +2029,6 @@ function rebuildSimulation() {
   resetWave();
   rebuildParticles();
   rebuildBoxGeometry();
-  rebuildMagneticFieldLines();
   rebuildDensity();
 }
 
@@ -1858,7 +2057,8 @@ async function main() {
   let lastFrameTime = performance.now();
   requestAnimationFrame(function loop(now = performance.now()) {
     const wallDtSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
-    const dtSeconds = wallDtSeconds;
+    const recordingFrameActive = isRecording() && !recordingState.finalizing;
+    const dtSeconds = recordingFrameActive ? 1 / RECORDING_CONFIG.fps : wallDtSeconds;
     lastFrameTime = now;
     const resized = resizeCanvas();
     if (resized) rebuildDensity();
@@ -1868,7 +2068,7 @@ async function main() {
     if (cameraMoved) requestTrailClear();
 
     const cameraInputActive = hasActiveCameraKeys();
-    const shouldDraw = !paused || redrawPending || resized || cameraMoved || cameraInputActive || trailClearPending;
+    const shouldDraw = isRecording() || !paused || redrawPending || resized || cameraMoved || cameraInputActive || trailClearPending;
     if (!shouldDraw) {
       setTimeout(loop, PAUSED_IDLE_MS);
       return;
@@ -1886,8 +2086,8 @@ async function main() {
       const steps = Math.floor(params.stepsPerFrame);
       const compute = encoder.beginComputePass({ label: "simulation compute pass" });
       for (let i = 0; i < steps; i++) {
-        waveStep(compute);
         particleUpdate(compute);
+        waveStep(compute);
         simTime += simulationDt();
       }
       compute.end();
@@ -1900,7 +2100,7 @@ async function main() {
     updateStats();
     redrawPending = false;
 
-    if (paused && !cameraMoved && !cameraInputActive && !trailClearPending && !redrawPending) {
+    if (!isRecording() && paused && !cameraMoved && !cameraInputActive && !trailClearPending && !redrawPending) {
       setTimeout(loop, PAUSED_IDLE_MS);
     } else {
       requestAnimationFrame(loop);
