@@ -17,7 +17,7 @@ const gl = canvas.getContext("webgl2", {
   stencil: false,
   premultipliedAlpha: false,
 });
-if (!gl) throw new Error("WebGL2 is required for KleinTunneling2D.");
+if (!gl) throw new Error("WebGL2 is required for DiracPacketSplitting2D.");
 
 const controls = document.getElementById("controls");
 const statsEl = document.getElementById("stats");
@@ -39,43 +39,32 @@ const BOX_LY = 6.75;
 const DX = BOX_LX / NX;
 const DY = BOX_LY / NY;
 const HBAR = 1.0;
-const PACKET_X0 = 2.45;
-const ABSORB_WIDTH = 2.0;
-const ABSORB_STRENGTH = 65.0;
-const ABSORB_POWER = 4.0;
-const WALL_MARGIN = 0.85;
-const BARRIER_EDGE = 0.075;
-const SPECTRAL_SAFETY = 0.62;
+const PACKET_X0 = 0.5 * BOX_LX;
+const PACKET_Y0 = 0.5 * BOX_LY;
 const urlParams = new URLSearchParams(window.location.search);
 const isEmbedded = urlParams.get("embed") === "1";
 const debugEnabled = urlParams.has("debug");
 
 const params = {
   stepsPerFrame: 1,
-  dt: 0.001,
+  dt: 0.002,
   diracC: 6.0,
-  mass: 1.0,
+  mass: 0.5,
   packetK: 6.0,
   packetAngle: 0.0,
-  packetSigma: 0.55,
-  potentialHeight: 95.0,
-  barrierWidth: 1.10,
-  nParticles: 300,
-  densityGain: 7.,
+  packetSigma: 0.62,
+  mixAngleDeg: 90.0,
+  nParticles: 4000,
+  densityGain: 2.2,
   densityGamma: 0.55,
   amplitudeView: 0,
   showParticles: 1,
   showTrail: 1,
-  dotSize: 6,
-  trailLength: 12,
-  trailVisGain: 1.35,
-  trailVisGamma: 0.6,
-  trailStampGain: 0.55,
+  dotSize: 2.4,
 };
 
 let paused = false;
 let simTime = 0;
-let potentialDirty = true;
 let particleCount = 0;
 
 const ar = new Float64Array(SIZE);
@@ -85,8 +74,6 @@ const bi = new Float64Array(SIZE);
 const density = new Float64Array(SIZE);
 const velocityX = new Float64Array(SIZE);
 const velocityY = new Float64Array(SIZE);
-const potential = new Float64Array(SIZE);
-const absorber = new Float64Array(SIZE);
 const cdf = new Float64Array(SIZE);
 const kxValues = new Float64Array(NX);
 const kyValues = new Float64Array(NY);
@@ -119,16 +106,19 @@ let trailFormat = null;
 
 let diagnostics = {
   total: 1,
-  left: 1,
-  barrier: 0,
-  right: 0,
   maxRho: 1,
   aliveParticles: 0,
-  particleLeft: 0,
-  particleBarrier: 0,
-  particleRight: 0,
-  effectivePotential: 95.0,
-  potentialCap: 95.0,
+  particleForward: 0,
+  particleBackward: 0,
+  particleTransverse: 0,
+  centralPlus: 0.5,
+  centralMinus: 0.5,
+  spectralPlus: 0.5,
+  spectralMinus: 0.5,
+  meanKPlus: 0,
+  meanKMinus: 0,
+  meanEPlus: 0,
+  meanEMinus: 0,
 };
 
 for (let ix = 0; ix < NX; ix++) {
@@ -141,10 +131,18 @@ for (let iy = 0; iy < NY; iy++) {
   kyValues[iy] = TAU * mode / BOX_LY;
 }
 
-rebuildAbsorber();
-
 function index(ix, iy) {
   return iy * NX + ix;
+}
+
+function wrapIndex(i, n) {
+  i %= n;
+  return i < 0 ? i + n : i;
+}
+
+function wrapValue(x, length) {
+  x %= length;
+  return x < 0 ? x + length : x;
 }
 
 function fmt(v) {
@@ -152,30 +150,6 @@ function fmt(v) {
   if (av >= 1000 || (av > 0 && av < 0.01)) return v.toExponential(2);
   return v.toFixed(3).replace(/\.?0+$/, "");
 }
-
-function simulationDt() {
-  return effectiveDt(params.dt);
-}
-
-function rebuildAbsorber() {
-  const dt = simulationDt();
-  for (let iy = 0; iy < NY; iy++) {
-    const y = (iy + 0.5) * DY;
-    for (let ix = 0; ix < NX; ix++) {
-      const x = (ix + 0.5) * DX;
-      const edgeDist = Math.min(x, BOX_LX - x, y, BOX_LY - y);
-      let a = 1.0;
-      if (edgeDist < ABSORB_WIDTH) {
-        const s = (ABSORB_WIDTH - edgeDist) / ABSORB_WIDTH;
-        const ramp = s * s * (3.0 - 2.0 * s);
-        a = Math.exp(-ABSORB_STRENGTH * Math.pow(ramp, ABSORB_POWER) * dt);
-      }
-      absorber[index(ix, iy)] = a;
-    }
-  }
-}
-
-initSimulationSpeedControl({ visible: !isEmbedded, onChange: rebuildAbsorber });
 
 function addSectionHeader(label) {
   const header = document.createElement("div");
@@ -282,151 +256,118 @@ function addToggleChoice(key, label, offText, onText, onChange = null) {
 }
 
 addSectionHeader("Simulation");
-//addSlider("stepsPerFrame", "Steps/frame", 1, 5, 1);
-addSlider("dt", "dt", 0.0003, 0.002, 0.0001, rebuildAbsorber);
+addSlider("stepsPerFrame", "Steps/frame", 1, 5, 1);
+addSlider("dt", "dt", 0.0005, 0.008, 0.0005);
 
-addSectionHeader("Dirac Packet");
+addSectionHeader("Free Dirac Packet");
 addSlider("diracC", "Dirac c", 2.0, 12.0, 0.1, resetAll);
-addSlider("mass", "mass", 0.2, 2.0, 0.05, resetAll);
-addSlider("packetK", "packet k", 2.0, 10.0, 0.1, resetAll);
-addSlider("packetAngle", "angle deg", -35.0, 35.0, 1.0, resetAll);
-addSlider("packetSigma", "packet width", 0.30, 1.05, 0.01, resetAll);
-
-addSectionHeader("Potential Wall");
-addSlider("potentialHeight", "wall height", 0.0, 180.0, 1.0, updateWall, true);
-addSlider("barrierWidth", "wall width", 0.25, 2.6, 0.05, updateWall, true);
+addSlider("mass", "mass", 0.1, 2.0, 0.05, resetAll);
+addSlider("packetK", "mean k", 1.0, 12.0, 0.1, resetAll);
+addSlider("packetAngle", "k angle deg", -180.0, 180.0, 1.0, resetAll);
+addSlider("packetSigma", "packet width", 0.30, 1.40, 0.01, resetAll);
+addSlider("mixAngleDeg", "±E mix angle", 0.0, 180.0, 1.0, resetAll);
 
 addSectionHeader("Visual Parameters");
-//addSlider("densityGain", "density gain", 0.4, 8.0, 0.1);
-//addSlider("densityGamma", "density gamma", 0.25, 1.2, 0.05);
+addSlider("densityGain", "density gain", 0.4, 8.0, 0.1);
+addSlider("densityGamma", "density gamma", 0.25, 1.2, 0.05);
 addToggleChoice("amplitudeView", "amp view", "Total", "Lower");
 addToggleInt("showParticles", "show particles");
-
-addSlider("nParticles", "particle count", 1, 500, 10, resetAll);
-addSlider("dotSize", "particle size", 2.0, 10.0, 1);
 addToggleInt("showTrail", "draw trails", (value) => { if (!value) clearTrail(); });
-addSlider("trailLength", "trail length", 2.0, 40.0, 1);
-
-
-function barrierBounds() {
-  const width = Math.max(0.05, Math.min(BOX_LX - 2.0 * WALL_MARGIN, params.barrierWidth));
-  const center = 0.5 * BOX_LX;
-  return {
-    left: center - 0.5 * width,
-    right: center + 0.5 * width,
-  };
-}
+addSlider("nParticles", "particle count", 1000, 50000, 1000, rebuildParticles);
+addSlider("dotSize", "particle size", 1.0, 6.0, 0.2);
 
 function packetWaveVector() {
   const angle = params.packetAngle * PI / 180;
   return {
     kx: params.packetK * Math.cos(angle),
     ky: params.packetK * Math.sin(angle),
+    ux: Math.cos(angle),
+    uy: Math.sin(angle),
   };
 }
 
-function incidentEnergy() {
+function centralEnergy() {
   const c = Math.max(params.diracC, 1e-9);
   const m = Math.max(params.mass, 1e-9);
   const M = m * c * c;
-  const k = Math.max(params.packetK, 1e-9);
-  const ck = HBAR * c * k;
-  return Math.sqrt(ck * ck + M * M);
+  const p = HBAR * Math.max(params.packetK, 1e-12);
+  return Math.sqrt((c * p) ** 2 + M * M);
 }
 
-function resolvedPotentialCap() {
-  const c = Math.max(params.diracC, 1e-9);
-  const m = Math.max(params.mass, 1e-9);
-  const M = m * c * c;
-  const kSafe = SPECTRAL_SAFETY * PI / DX;
-  return incidentEnergy() + Math.sqrt(M * M + (HBAR * c * kSafe) ** 2);
+function asymptoticSpeed() {
+  const E = centralEnergy();
+  return HBAR * params.diracC * params.diracC * params.packetK / Math.max(E, 1e-12);
 }
 
-function effectivePotentialHeight() {
-  return Math.min(params.potentialHeight, resolvedPotentialCap());
-}
-
-function mixRgb(a, b, t) {
-  const u = Math.max(0, Math.min(1, t));
-  return [
-    a[0] + (b[0] - a[0]) * u,
-    a[1] + (b[1] - a[1]) * u,
-    a[2] + (b[2] - a[2]) * u,
-  ];
-}
-
-function barrierRegimeColor() {
-  const E = incidentEnergy();
-  const M = params.mass * params.diracC * params.diracC;
-  const V = effectivePotentialHeight();
-  const green = [0.20, 0.92, 0.36];
-  const red = [1.00, 0.12, 0.08];
-  const yellow = [1.00, 0.86, 0.12];
-
-  if (V < E) return green;
-  if (V < E + M) return red;
-
-  const excess = Math.max(0, V - (E + M));
-  const scale = Math.max(M, 0.25 * E, 1e-6);
-  const ease = 1 - Math.exp(-excess / scale);
-  return mixRgb(yellow, green, ease);
-}
-
-function updatePotential() {
-  const { left, right } = barrierBounds();
-  const edge = Math.max(0.02, BARRIER_EDGE);
-  const height = effectivePotentialHeight();
-  for (let iy = 0; iy < NY; iy++) {
-    for (let ix = 0; ix < NX; ix++) {
-      const x = (ix + 0.5) * DX;
-      const inside = 0.5 * (Math.tanh((x - left) / edge) - Math.tanh((x - right) / edge));
-      potential[index(ix, iy)] = height * inside;
-    }
-  }
-  potentialDirty = false;
-}
-
-function updateWall() {
-  potentialDirty = true;
-  updatePotential();
-  updateDensityVelocity();
-}
-
-function positiveEnergySpinor(kx, ky) {
-  const c = Math.max(params.diracC, 1e-9);
-  const m = Math.max(params.mass, 1e-9);
-  const M = m * c * c;
-  const ck = HBAR * c * Math.hypot(kx, ky);
-  const E = Math.sqrt(ck * ck + M * M);
-  const upper = Math.sqrt((E + M) / (2 * E));
-  const lowerCoeff = upper * HBAR * c / Math.max(E + M, 1e-12);
+function centralBranchWeights() {
+  const chi = params.mixAngleDeg * PI / 180;
   return {
-    upper,
-    lowerR: lowerCoeff * kx,
-    lowerI: lowerCoeff * ky,
+    plus: 0.5 * (1 + Math.cos(chi)),
+    minus: 0.5 * (1 - Math.cos(chi)),
+  };
+}
+
+function fixedInitialSpinor() {
+  // Central Dirac Hamiltonian direction h-hat.
+  const { ux, uy } = packetWaveVector();
+  const c = Math.max(params.diracC, 1e-9);
+  const M = Math.max(params.mass, 1e-9) * c * c;
+  const cp = HBAR * c * Math.max(params.packetK, 1e-12);
+  const E = Math.sqrt(cp * cp + M * M);
+  const q = cp / Math.max(E, 1e-12);
+  const r = M / Math.max(E, 1e-12);
+
+  const h = { x: q * ux, y: q * uy, z: r };
+  // Unit vector in the (k,z) plane orthogonal to h.
+  const p = { x: r * ux, y: r * uy, z: -q };
+  const chi = params.mixAngleDeg * PI / 180;
+  const cc = Math.cos(chi);
+  const ss = Math.sin(chi);
+
+  let nx = cc * h.x + ss * p.x;
+  let ny = cc * h.y + ss * p.y;
+  let nz = cc * h.z + ss * p.z;
+  const nn = Math.hypot(nx, ny, nz) || 1;
+  nx /= nn; ny /= nn; nz /= nn;
+
+  const upper = Math.sqrt(Math.max(0, 0.5 * (1 + nz)));
+  if (upper > 1e-10) {
+    return {
+      upperR: upper,
+      upperI: 0,
+      lowerR: nx / (2 * upper),
+      lowerI: ny / (2 * upper),
+      bloch: { x: nx, y: ny, z: nz },
+    };
+  }
+  return {
+    upperR: 0,
+    upperI: 0,
+    lowerR: 1,
+    lowerI: 0,
+    bloch: { x: 0, y: 0, z: -1 },
   };
 }
 
 function resetWave() {
   const { kx, ky } = packetWaveVector();
   const sigma = Math.max(params.packetSigma, 1e-4);
-  const spinor = positiveEnergySpinor(kx, ky);
-  const y0 = 0.5 * BOX_LY;
+  const spinor = fixedInitialSpinor();
 
   for (let iy = 0; iy < NY; iy++) {
     const y = (iy + 0.5) * DY;
     for (let ix = 0; ix < NX; ix++) {
       const x = (ix + 0.5) * DX;
       const dx = (x - PACKET_X0) / sigma;
-      const dy = (y - y0) / sigma;
+      const dy = (y - PACKET_Y0) / sigma;
       const env = Math.exp(-0.5 * (dx * dx + dy * dy));
-      const phase = kx * x + ky * (y - y0);
+      const phase = kx * (x - PACKET_X0) + ky * (y - PACKET_Y0);
       const cr = Math.cos(phase);
       const ci = Math.sin(phase);
       const k = index(ix, iy);
 
-      ar[k] = spinor.upper * env * cr;
-      ai[k] = spinor.upper * env * ci;
+      ar[k] = env * (spinor.upperR * cr - spinor.upperI * ci);
+      ai[k] = env * (spinor.upperR * ci + spinor.upperI * cr);
       br[k] = env * (spinor.lowerR * cr - spinor.lowerI * ci);
       bi[k] = env * (spinor.lowerR * ci + spinor.lowerI * cr);
     }
@@ -518,26 +459,7 @@ function fft2d(re, im, inverse) {
   }
 }
 
-function applyPotentialHalf(dt) {
-  const h = 0.5 * dt / HBAR;
-  for (let k = 0; k < SIZE; k++) {
-    const phase = -potential[k] * h;
-    const cr = Math.cos(phase);
-    const ci = Math.sin(phase);
-
-    let r = ar[k] * cr - ai[k] * ci;
-    let q = ar[k] * ci + ai[k] * cr;
-    ar[k] = r;
-    ai[k] = q;
-
-    r = br[k] * cr - bi[k] * ci;
-    q = br[k] * ci + bi[k] * cr;
-    br[k] = r;
-    bi[k] = q;
-  }
-}
-
-function applyKineticMass(dt) {
+function applyFreeDirac(dt) {
   const c = Math.max(params.diracC, 1e-9);
   const m = Math.max(params.mass, 1e-9);
   const M = m * c * c;
@@ -578,31 +500,73 @@ function applyKineticMass(dt) {
   fft2d(br, bi, true);
 }
 
-function applyAbsorber() {
-  for (let k = 0; k < SIZE; k++) {
-    const a = absorber[k];
-    ar[k] *= a;
-    ai[k] *= a;
-    br[k] *= a;
-    bi[k] *= a;
-  }
+function stepWave(dt) {
+  applyFreeDirac(dt);
 }
 
-function stepWave(dt) {
-  if (potentialDirty) updatePotential();
-  applyPotentialHalf(dt);
-  applyKineticMass(dt);
-  applyPotentialHalf(dt);
-  applyAbsorber();
+function computeSpectralDiagnostics() {
+  const srA = new Float64Array(ar);
+  const siA = new Float64Array(ai);
+  const srB = new Float64Array(br);
+  const siB = new Float64Array(bi);
+  fft2d(srA, siA, false);
+  fft2d(srB, siB, false);
+
+  const c = Math.max(params.diracC, 1e-9);
+  const M = Math.max(params.mass, 1e-9) * c * c;
+  const { ux, uy } = packetWaveVector();
+  let pPlus = 0;
+  let pMinus = 0;
+  let kPlus = 0;
+  let kMinus = 0;
+  let ePlus = 0;
+  let eMinus = 0;
+
+  for (let iy = 0; iy < NY; iy++) {
+    const ky = kyValues[iy];
+    for (let ix = 0; ix < NX; ix++) {
+      const k = index(ix, iy);
+      const kx = kxValues[ix];
+      const aR = srA[k];
+      const aI = siA[k];
+      const bR = srB[k];
+      const bI = siB[k];
+      const aa = aR * aR + aI * aI;
+      const bb = bR * bR + bI * bI;
+      const rho = aa + bb;
+      if (rho < 1e-30) continue;
+
+      const reAdB = aR * bR + aI * bI;
+      const imAdB = aR * bI - aI * bR;
+      const hx = HBAR * c * kx;
+      const hy = HBAR * c * ky;
+      const E = Math.sqrt(M * M + hx * hx + hy * hy);
+      const hExp = M * (aa - bb) + 2 * hx * reAdB + 2 * hy * imAdB;
+      const wp = Math.max(0, 0.5 * (rho + hExp / Math.max(E, 1e-12)));
+      const wm = Math.max(0, 0.5 * (rho - hExp / Math.max(E, 1e-12)));
+      const kPar = kx * ux + ky * uy;
+
+      pPlus += wp;
+      pMinus += wm;
+      kPlus += wp * kPar;
+      kMinus += wm * kPar;
+      ePlus += wp * E;
+      eMinus += wm * (-E);
+    }
+  }
+
+  const total = Math.max(pPlus + pMinus, 1e-30);
+  diagnostics.spectralPlus = pPlus / total;
+  diagnostics.spectralMinus = pMinus / total;
+  diagnostics.meanKPlus = kPlus / Math.max(pPlus, 1e-30);
+  diagnostics.meanKMinus = kMinus / Math.max(pMinus, 1e-30);
+  diagnostics.meanEPlus = ePlus / Math.max(pPlus, 1e-30);
+  diagnostics.meanEMinus = eMinus / Math.max(pMinus, 1e-30);
 }
 
 function updateDensityVelocity() {
-  const { left, right } = barrierBounds();
   const c = Math.max(params.diracC, 1e-9);
   let total = 0;
-  let leftProb = 0;
-  let barrierProb = 0;
-  let rightProb = 0;
   let maxRho = 0;
 
   for (let iy = 0; iy < NY; iy++) {
@@ -611,7 +575,6 @@ function updateDensityVelocity() {
       const rho = ar[k] * ar[k] + ai[k] * ai[k] + br[k] * br[k] + bi[k] * bi[k];
       const jx = 2 * c * (ar[k] * br[k] + ai[k] * bi[k]);
       const jy = 2 * c * (ar[k] * bi[k] - ai[k] * br[k]);
-      const x = (ix + 0.5) * DX;
       const p = rho * DX * DY;
 
       density[k] = rho;
@@ -619,38 +582,35 @@ function updateDensityVelocity() {
       velocityY[k] = jy / Math.max(rho, 1e-14);
       total += p;
       maxRho = Math.max(maxRho, rho);
-
-      if (x < left) leftProb += p;
-      else if (x > right) rightProb += p;
-      else barrierProb += p;
     }
   }
 
+  const { ux, uy } = packetWaveVector();
   let alive = 0;
-  let particleLeft = 0;
-  let particleBarrier = 0;
-  let particleRight = 0;
+  let particleForward = 0;
+  let particleBackward = 0;
+  let particleTransverse = 0;
+  const threshold = 0.02 * Math.max(params.diracC, 1e-9);
+
   for (let p = 0; p < particleCount; p++) {
     if (!particleAlive[p]) continue;
     alive++;
-    if (particleX[p] < left) particleLeft++;
-    else if (particleX[p] > right) particleRight++;
-    else particleBarrier++;
+    const v = sampleVelocity(particleX[p], particleY[p]);
+    const vp = v.x * ux + v.y * uy;
+    if (vp > threshold) particleForward++;
+    else if (vp < -threshold) particleBackward++;
+    else particleTransverse++;
   }
 
-  diagnostics = {
-    total,
-    left: leftProb,
-    barrier: barrierProb,
-    right: rightProb,
-    maxRho: Math.max(maxRho, 1e-12),
-    aliveParticles: alive,
-    particleLeft,
-    particleBarrier,
-    particleRight,
-    effectivePotential: effectivePotentialHeight(),
-    potentialCap: resolvedPotentialCap(),
-  };
+  const central = centralBranchWeights();
+  diagnostics.total = total;
+  diagnostics.maxRho = Math.max(maxRho, 1e-12);
+  diagnostics.aliveParticles = alive;
+  diagnostics.particleForward = particleForward;
+  diagnostics.particleBackward = particleBackward;
+  diagnostics.particleTransverse = particleTransverse;
+  diagnostics.centralPlus = central.plus;
+  diagnostics.centralMinus = central.minus;
 }
 
 function rebuildParticleBuffers() {
@@ -687,23 +647,33 @@ function rebuildParticles() {
   }
 
   clearTrail();
+  updateDensityVelocity();
 }
 
 function sampleVelocity(x, y) {
+  x = wrapValue(x, BOX_LX);
+  y = wrapValue(y, BOX_LY);
+
   const gx = x / DX - 0.5;
   const gy = y / DY - 0.5;
-  const ix = Math.max(0, Math.min(NX - 2, Math.floor(gx)));
-  const iy = Math.max(0, Math.min(NY - 2, Math.floor(gy)));
-  const fx = Math.max(0, Math.min(1, gx - ix));
-  const fy = Math.max(0, Math.min(1, gy - iy));
-  const k00 = index(ix, iy);
-  const k10 = k00 + 1;
-  const k01 = k00 + NX;
-  const k11 = k01 + 1;
+  const i0x = Math.floor(gx);
+  const i0y = Math.floor(gy);
+  const fx = gx - i0x;
+  const fy = gy - i0y;
+  const ix0 = wrapIndex(i0x, NX);
+  const ix1 = wrapIndex(i0x + 1, NX);
+  const iy0 = wrapIndex(i0y, NY);
+  const iy1 = wrapIndex(i0y + 1, NY);
+
+  const k00 = index(ix0, iy0);
+  const k10 = index(ix1, iy0);
+  const k01 = index(ix0, iy1);
+  const k11 = index(ix1, iy1);
   const w00 = (1 - fx) * (1 - fy);
   const w10 = fx * (1 - fy);
   const w01 = (1 - fx) * fy;
   const w11 = fx * fy;
+
   return {
     x: velocityX[k00] * w00 + velocityX[k10] * w10 + velocityX[k01] * w01 + velocityX[k11] * w11,
     y: velocityY[k00] * w00 + velocityY[k10] * w10 + velocityY[k01] * w01 + velocityY[k11] * w11,
@@ -717,23 +687,17 @@ function updateParticles(dt) {
     const x = particleX[p];
     const y = particleY[p];
     const v1 = sampleVelocity(x, y);
-    const mx = x + 0.5 * dt * v1.x;
-    const my = y + 0.5 * dt * v1.y;
+    const mx = wrapValue(x + 0.5 * dt * v1.x, BOX_LX);
+    const my = wrapValue(y + 0.5 * dt * v1.y, BOX_LY);
     const v2 = sampleVelocity(mx, my);
-    const nx = x + v2.x * dt;
-    const ny = y + v2.y * dt;
-    if (nx <= 0 || nx >= BOX_LX || ny <= 0 || ny >= BOX_LY) {
-      particleAlive[p] = 0;
-    } else {
-      particleX[p] = nx;
-      particleY[p] = ny;
-    }
+    particleX[p] = wrapValue(x + v2.x * dt, BOX_LX);
+    particleY[p] = wrapValue(y + v2.y * dt, BOX_LY);
   }
 }
 
 function updateSimulation() {
   const steps = Math.max(1, Math.floor(params.stepsPerFrame));
-  const dt = simulationDt();
+  const dt = effectiveDt(params.dt);
   for (let s = 0; s < steps; s++) {
     stepWave(dt);
     updateDensityVelocity();
@@ -917,8 +881,8 @@ function drawParticlePoints(program, trail = false) {
   if (!particleCount) return;
 
   const scale = particlePixelScale();
-  const pointSize = Math.max(2, params.dotSize * 2.35 * scale);
-  const trailSize = Math.max(1, pointSize * 0.7);
+  const pointSize = Math.max(1, params.dotSize * 5.2 * scale);
+  const trailSize = Math.max(1, params.dotSize * 7.8 * scale);
 
   gl.useProgram(program);
   gl.bindVertexArray(particleVao);
@@ -926,11 +890,11 @@ function drawParticlePoints(program, trail = false) {
   gl.uniform1f(gl.getUniformLocation(program, "uPointSize"), pointSize);
   gl.uniform1i(gl.getUniformLocation(program, "uNumParticles"), particleCount);
   gl.uniform1f(gl.getUniformLocation(program, "uTrailWidth"), trail ? trailSize : 0);
-  gl.uniform1f(gl.getUniformLocation(program, "uDotSigma"), trail ? 0.28 : 0.18);
-  gl.uniform1f(gl.getUniformLocation(program, "uDotGain"), trail ? 1.0 : 0.72);
+  gl.uniform1f(gl.getUniformLocation(program, "uDotSigma"), trail ? 0.11 : 0.24);
+  gl.uniform1f(gl.getUniformLocation(program, "uDotGain"), trail ? 0.95 : 0.085);
 
   const stampGain = gl.getUniformLocation(program, "uStampGain");
-  if (stampGain) gl.uniform1f(stampGain, params.trailStampGain);
+  if (stampGain !== null) gl.uniform1f(stampGain, 0.34);
 
   gl.drawArrays(gl.POINTS, 0, particleCount);
   gl.bindVertexArray(null);
@@ -950,8 +914,7 @@ function updateTrailTexture() {
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, trailTextures[src]);
   gl.uniform1i(gl.getUniformLocation(fadeProgram, "uTrail"), 0);
-  const fade = Math.exp(-1 / Math.max(1, params.trailLength));
-  gl.uniform1f(gl.getUniformLocation(fadeProgram, "uFade"), fade);
+  gl.uniform1f(gl.getUniformLocation(fadeProgram, "uFade"), 0.928);
   drawFullscreen(fadeProgram);
 
   if (params.showParticles && particleCount) {
@@ -967,7 +930,6 @@ function updateTrailTexture() {
 
 function render(advanceTrails = !paused) {
   resizeCanvas();
-  const { left, right } = barrierBounds();
 
   uploadDisplayDensity();
   if (params.showParticles) uploadParticleBuffer();
@@ -983,23 +945,17 @@ function render(advanceTrails = !paused) {
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, densityTexture);
   gl.uniform1i(gl.getUniformLocation(densityProgram, "uDensity"), 0);
-  gl.uniform2f(gl.getUniformLocation(densityProgram, "uBoxSize"), BOX_LX, BOX_LY);
-  gl.uniform2f(gl.getUniformLocation(densityProgram, "uBarrier"), left, right);
   gl.uniform1f(gl.getUniformLocation(densityProgram, "uDensityGain"), params.densityGain);
   gl.uniform1f(gl.getUniformLocation(densityProgram, "uDensityGamma"), params.densityGamma);
-  gl.uniform1f(gl.getUniformLocation(densityProgram, "uPotentialStrength"), effectivePotentialHeight() / 130);
-  gl.uniform3fv(gl.getUniformLocation(densityProgram, "uBarrierColor"), barrierRegimeColor());
   drawFullscreen(densityProgram);
 
   if (params.showTrail && trailTextures[trailReadIndex]) {
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_COLOR);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.useProgram(trailProgram);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, trailTextures[trailReadIndex]);
     gl.uniform1i(gl.getUniformLocation(trailProgram, "uTrail"), 0);
-    gl.uniform1f(gl.getUniformLocation(trailProgram, "uGain"), params.trailVisGain);
-    gl.uniform1f(gl.getUniformLocation(trailProgram, "uGamma"), params.trailVisGamma);
     drawFullscreen(trailProgram);
   }
 
@@ -1012,45 +968,31 @@ function render(advanceTrails = !paused) {
   gl.disable(gl.BLEND);
 }
 
-function regimeText() {
-  const E = incidentEnergy();
-  const M = params.mass * params.diracC * params.diracC;
-  const V = effectivePotentialHeight();
-  if (V < E) return "above barrier";
-  if (V < E + M) return "tunneling gap";
-  return "Klein zone";
-}
-
 function updateStats() {
-  if (!statsEl) return;
-  const E = incidentEnergy();
-  const M = params.mass * params.diracC * params.diracC;
-  const Veff = effectivePotentialHeight();
-  const clipped = Veff < params.potentialHeight - 1e-6;
+  const E0 = centralEnergy();
+  const v0 = asymptoticSpeed();
   statsEl.innerHTML =
-    `<b>E</b>: ${fmt(E)} &nbsp; <b>mc^2</b>: ${fmt(M)} &nbsp; ` +
-    `<b>V</b>: ${fmt(Veff)}${clipped ? ` clipped` : ""} &nbsp; <b>Klein V</b>: ${fmt(E + M)}<br>` +
-    `<b>Regime</b>: ${regimeText()} &nbsp; <b>t</b>: ${fmt(simTime)} &nbsp; ` +
-    `<b>view</b>: ${params.amplitudeView ? "Lower" : "Total"} &nbsp; ` +
-    `<b>alive</b>: ${diagnostics.aliveParticles}<br>` +
-    `<b>P</b>: ${fmt(diagnostics.total)} &nbsp; ` +
-    `<b>L</b>: ${fmt(diagnostics.left)} &nbsp; ` +
-    `<b>wall</b>: ${fmt(diagnostics.barrier)} &nbsp; ` +
-    `<b>R</b>: ${fmt(diagnostics.right)}`;
+    `<b>E0</b>: ${fmt(E0)} &nbsp; <b>v0</b>: ${fmt(v0)} &nbsp; <b>t</b>: ${fmt(simTime)}<br>` +
+    `<b>central w+</b>: ${fmt(diagnostics.centralPlus)} &nbsp; <b>w-</b>: ${fmt(diagnostics.centralMinus)}<br>` +
+    `<b>spectral P+</b>: ${fmt(diagnostics.spectralPlus)} &nbsp; <b>P-</b>: ${fmt(diagnostics.spectralMinus)}<br>` +
+    `<b>&lt;k∥&gt;+</b>: ${fmt(diagnostics.meanKPlus)} &nbsp; <b>&lt;k∥&gt;-</b>: ${fmt(diagnostics.meanKMinus)}<br>` +
+    `<b>particles v∥ + / -</b>: ${diagnostics.particleForward} / ${diagnostics.particleBackward} &nbsp; ` +
+    `<b>near 0</b>: ${diagnostics.particleTransverse}<br>` +
+    `<b>P</b>: ${fmt(diagnostics.total)} &nbsp; <b>BC</b>: periodic torus &nbsp; ` +
+    `<b>view</b>: ${params.amplitudeView ? "Lower" : "Total"}`;
 }
 
 function resetAll() {
   simTime = 0;
-  potentialDirty = true;
-  updatePotential();
   resetWave();
   updateDensityVelocity();
+  computeSpectralDiagnostics();
   rebuildParticles();
   updateStats();
 }
 
 function installDebugHooks() {
-  window.KleinTunneling2DTest = {
+  window.DiracPacketSplitting2DTest = {
     state() {
       return {
         paused,
@@ -1061,18 +1003,13 @@ function installDebugHooks() {
       };
     },
     setPaused(value) {
-      paused = Boolean(value);
-      pauseBtn.textContent = paused ? "Resume" : "Pause";
+      setPausedState(value);
       return this.state();
     },
     setParams(next, reset = false) {
       Object.assign(params, next);
-      potentialDirty = true;
       if (reset) resetAll();
-      else {
-        updatePotential();
-        updateStats();
-      }
+      else updateStats();
       return this.state();
     },
     reset() {
@@ -1131,11 +1068,11 @@ theoryToggle.addEventListener("click", () => {
   theoryPanel.classList.toggle("is-minimized", !open);
   theoryToggle.textContent = open ? "-" : "+";
   theoryToggle.setAttribute("aria-expanded", String(open));
-  if (open) window.MathJax?.typesetPromise?.([theoryBody])?.catch(() => {});
 });
 
 initWebGLRenderer();
 resizeCanvas();
+initSimulationSpeedControl({ visible: !isEmbedded });
 resetAll();
 if (debugEnabled) installDebugHooks();
 

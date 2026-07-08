@@ -35,9 +35,8 @@ const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const WAVE_WORKGROUP_SIZE = 256;
 const PARTICLE_WORKGROUP_SIZE = 128;
 const WAVE_CELL_BYTES = 64;
-const MIN_SIM_RES = 64;
+const MIN_SIM_RES = 32;
 const TUNNEL_LENGTH_SCALE = 2;
-const SPECTRAL_SAFETY = 0.25;
 const maxWaveBytes = Math.min(device.limits.maxStorageBufferBindingSize, device.limits.maxBufferSize);
 const maxWaveCellsByStorage = Math.max(voxelCountForBaseResolution(MIN_SIM_RES), Math.floor(maxWaveBytes / WAVE_CELL_BYTES));
 
@@ -61,13 +60,13 @@ const rawMaxSimRes = Math.min(256, maxResByStorage, maxResByDispatch);
 const MAX_SIM_RES = Math.max(MIN_SIM_RES, Math.floor(rawMaxSimRes / 4) * 4);
 const DEFAULT_PACKET_AZIMUTH_DEG = 0.0;
 const DEFAULT_PACKET_ELEVATION_DEG = 0.0;
-const DEFAULT_BRANCH_MIX_DEG = 0.0;
+const DEFAULT_BRANCH_MIX_DEG = 90.0;
 const urlParams = new URLSearchParams(window.location.search);
 const isEmbedded = urlParams.get("embed") === "1";
 
 const params = {
   simRes: Math.min(96, MAX_SIM_RES),
-  stepsPerFrame: 5,
+  stepsPerFrame: 6,
   boxScale: 2.5,
   cameraProjection: 0,
 
@@ -77,24 +76,19 @@ const params = {
   packetK: 0.75,
   dt: 0.004,
 
-  packetX: 0.22,
+  packetX: 0.50,
   packetY: 0.50,
   packetZ: 0.50,
   packetSigma: 10.0,
-  spinAxis: 0,
-
-  barrierHeight: 10.5,
-  barrierWidth: 18.0,
-  barrierCenter: 0.54,
 
   nParticles: 200,
-  rhoMin: 1e-12,
+  rhoMin: 1e-8,
   velClamp: 100.0,
 
-  cloudGain: 0.10,
+  cloudGain: 0.08,
   cloudGamma: 0.70,
-  cloudLowBoost: 0.98,
-  cloudCutoff: 0.00015,
+  cloudLowBoost: 0.90,
+  cloudCutoff: 0.003,
   cloudPointSize: 70.0,
   showPhase: 0,
   showCloud: 1,
@@ -118,19 +112,32 @@ const GUIDING_MODE_NAMES = [
   "Dirac current"
 ];
 
-const SPIN_AXIS_NAMES = ["+Z", "+X", "+Y"];
-
 const SCENE_SCREEN_OFFSET_X = 0.15;
 
 let paused = false;
 let redrawPending = true;
 const PAUSED_IDLE_MS = 180;
+const RECORDING_CONFIG = {
+  fps: 60,
+  videoBitsPerSecond: 14_000_000,
+  chunkMs: 1000,
+};
+const recordingState = {
+  recorder: null,
+  stream: null,
+  videoTrack: null,
+  chunks: [],
+  startedAt: 0,
+  mimeType: "",
+  finalizing: false,
+  lastUrl: null,
+  pendingBlob: null,
+  pendingFileName: "",
+};
 
 function requestRedraw() {
   redrawPending = true;
 }
-
-initSimulationSpeedControl({ visible: !isEmbedded, onChange: requestRedraw });
 
 function simulationDt() {
   return effectiveDt(params.dt);
@@ -269,16 +276,11 @@ const cameraProjectionControl = addCycleButton("cameraProjection", "camera view"
   requestTrailClear();
 });
 
-addSectionHeader("Dirac Packet");
+addSectionHeader("Free Dirac Packet");
 addSlider("diracC", "Dirac c", 1.0, 8.0, 0.1, () => resetAll());
 addSlider("mass", "mass", 0.02, 0.8, 0.01, () => resetAll());
 addSlider("packetK", "mean k", 0.15, 1.5, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 4.0, 18.0, 0.5, () => resetAll());
-addCycleButton("spinAxis", "spin axis", ["+Z", "+X", "+Y"], () => resetAll());
-
-addSectionHeader("Potential Wall");
-addSlider("barrierHeight", "wall height", 0.0, 18.0, 0.1, () => resetAll());
-addSlider("barrierWidth", "wall width", 2.0, 48.0, 1.0, () => resetAll());
 
 addSectionHeader("Visual Parameters");
 addToggleInt("showCloud", "density cloud");
@@ -293,6 +295,7 @@ addSlider("trailHalfLife", "trail half-life", 0.1, 10.0, 0.1);
 
 document.getElementById("reset").onclick = () => resetAll();
 const pauseButton = document.getElementById("pause");
+const recordButton = document.getElementById("record");
 function syncPauseButton() {
   pauseButton.textContent = paused ? "Resume" : "Pause";
 }
@@ -303,6 +306,164 @@ function setPausedState(nextPaused) {
 }
 
 pauseButton.onclick = () => setPausedState(!paused);
+
+function canRecordCanvas() {
+  return typeof MediaRecorder !== "undefined" && typeof canvas.captureStream === "function" && !!chooseRecordingMimeType();
+}
+
+function isRecording() {
+  return recordingState.recorder?.state === "recording";
+}
+
+function chooseRecordingMimeType() {
+  const candidates = [
+    "video/mp4;codecs=avc1.42E01E",
+    "video/mp4;codecs=avc1.640028",
+    "video/mp4;codecs=h264",
+    "video/mp4",
+  ];
+  return candidates.find(type => MediaRecorder.isTypeSupported?.(type)) || "";
+}
+
+function recordingFileName(startedAt = recordingState.startedAt) {
+  const stamp = new Date(startedAt || Date.now()).toISOString().replace(/[:.]/g, "-");
+  return `dirac-splitting3d-${stamp}.mp4`;
+}
+
+function syncRecordingButton() {
+  const recording = isRecording();
+  const supported = canRecordCanvas();
+  recordButton.textContent = recordingState.finalizing ? "Saving Recording..." : (recording ? "Stop Recording" : (recordingState.pendingBlob ? "Download Recording" : "Start Recording"));
+  recordButton.classList.toggle("recording", recording);
+  recordButton.disabled = recordingState.finalizing || (!recordingState.pendingBlob && !supported);
+  recordButton.title = recordingState.pendingBlob
+    ? "Download the most recent canvas-only MP4 recording."
+    : (supported ? "Records the WebGPU canvas at a fixed 60 fps; UI overlays are excluded." : "MP4 canvas recording is not supported by this browser.");
+}
+
+function toggleRecording() {
+  if (recordingState.pendingBlob && !isRecording()) downloadPendingRecording(true);
+  else if (isRecording()) stopRecording();
+  else startRecording();
+}
+
+function startRecording() {
+  if (!canRecordCanvas()) {
+    alert("MP4 canvas recording is not supported by this browser.");
+    syncRecordingButton();
+    return;
+  }
+  clearPendingRecording();
+
+  const mimeType = chooseRecordingMimeType();
+  const options = {
+    mimeType,
+    videoBitsPerSecond: RECORDING_CONFIG.videoBitsPerSecond,
+  };
+
+  let stream, recorder;
+  try {
+    stream = canvas.captureStream(RECORDING_CONFIG.fps);
+    recorder = new MediaRecorder(stream, options);
+  } catch (error) {
+    stream?.getTracks().forEach(track => track.stop());
+    alert(`Could not start MP4 recording: ${error.message}`);
+    syncRecordingButton();
+    return;
+  }
+
+  recordingState.recorder = recorder;
+  recordingState.stream = stream;
+  recordingState.videoTrack = stream.getVideoTracks()[0] || null;
+  recordingState.chunks = [];
+  recordingState.startedAt = Date.now();
+  recordingState.mimeType = recorder.mimeType || mimeType;
+  recordingState.finalizing = false;
+
+  recorder.ondataavailable = event => {
+    if (event.data && event.data.size > 0) recordingState.chunks.push(event.data);
+  };
+  recorder.onerror = event => {
+    console.error("Recording error:", event.error || event);
+    stopRecording();
+  };
+  recorder.onstop = finishRecordingDownload;
+  recorder.start(RECORDING_CONFIG.chunkMs);
+  requestRedraw();
+  syncRecordingButton();
+}
+
+function stopRecording() {
+  const recorder = recordingState.recorder;
+  if (!recorder || recorder.state === "inactive") return;
+  recordingState.finalizing = true;
+  syncRecordingButton();
+
+  try {
+    recorder.requestData();
+  } catch (error) {
+    console.warn("Could not flush recording data:", error);
+  }
+  recorder.stop();
+}
+
+function finishRecordingDownload() {
+  recordingState.stream?.getTracks().forEach(track => track.stop());
+  recordingState.stream = null;
+  recordingState.videoTrack = null;
+  const chunks = recordingState.chunks;
+  recordingState.chunks = [];
+
+  if (!chunks.length) {
+    recordingState.recorder = null;
+    recordingState.finalizing = false;
+    alert("No recording data was produced.");
+    syncRecordingButton();
+    return;
+  }
+
+  recordingState.pendingBlob = new Blob(chunks, { type: recordingState.mimeType || "video/mp4" });
+  recordingState.pendingFileName = recordingFileName();
+  recordingState.recorder = null;
+  recordingState.finalizing = false;
+  downloadPendingRecording(true);
+  syncRecordingButton();
+}
+
+function clearPendingRecording() {
+  if (recordingState.lastUrl) {
+    URL.revokeObjectURL(recordingState.lastUrl);
+    recordingState.lastUrl = null;
+  }
+  recordingState.pendingBlob = null;
+  recordingState.pendingFileName = "";
+}
+
+function downloadPendingRecording(clearAfterClick) {
+  if (!recordingState.pendingBlob) return;
+  if (!recordingState.lastUrl) {
+    recordingState.lastUrl = URL.createObjectURL(recordingState.pendingBlob);
+  }
+  const url = recordingState.lastUrl;
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = recordingState.pendingFileName || recordingFileName();
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  if (clearAfterClick) {
+    recordingState.pendingBlob = null;
+    recordingState.pendingFileName = "";
+    if (recordingState.lastUrl === url) recordingState.lastUrl = null;
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      syncRecordingButton();
+    }, 1000);
+  }
+}
+
+recordButton.onclick = toggleRecording;
+syncRecordingButton();
 
 window.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() === "r") resetAll();
@@ -320,6 +481,8 @@ if (isEmbedded) {
     setPausedState(true);
   });
 }
+
+initSimulationSpeedControl({ visible: !isEmbedded, onChange: requestRedraw });
 
 window.addEventListener("keyup", (e) => {
   handleCameraKeyUp(e);
@@ -345,10 +508,6 @@ if (explainPanel && explainToggle) {
     explainPanel.classList.toggle("closed", !explainOpen);
     explainToggle.textContent = explainOpen ? "-" : "+";
     explainToggle.title = explainOpen ? "Close explanation" : "Open explanation";
-    if (explainOpen) {
-      const explainBody = document.getElementById("explainBody");
-      if (explainBody) window.MathJax?.typesetPromise?.([explainBody])?.catch(() => {});
-    }
   };
 }
 
@@ -825,61 +984,6 @@ function dispatchCount(count, groupSize) {
   return Math.ceil(count / groupSize);
 }
 
-function barrierCenterGrid() {
-  return Math.max(0.05, Math.min(0.95, params.barrierCenter)) * Math.max(1, simW - 1);
-}
-
-function barrierWidthGrid() {
-  return Math.max(1.0, Math.min(Math.max(1, simW - 1), params.barrierWidth));
-}
-
-function barrierBoundsGrid() {
-  const center = barrierCenterGrid();
-  const half = 0.5 * barrierWidthGrid();
-  return {
-    left: Math.max(0, center - half),
-    right: Math.min(Math.max(1, simW - 1), center + half),
-  };
-}
-
-function resolvedBarrierHeightCap() {
-  const E = incidentEnergy();
-  const M = params.mass * params.diracC * params.diracC;
-  const kSafe = SPECTRAL_SAFETY * Math.PI;
-  const maxResolvedKinetic = Math.sqrt(M * M + (params.hbar * params.diracC * kSafe) ** 2);
-  return E + maxResolvedKinetic;
-}
-
-function effectiveBarrierHeight() {
-  return Math.min(params.barrierHeight, resolvedBarrierHeightCap());
-}
-
-function mixRgb(a, b, t) {
-  const u = Math.max(0, Math.min(1, t));
-  return [
-    a[0] + (b[0] - a[0]) * u,
-    a[1] + (b[1] - a[1]) * u,
-    a[2] + (b[2] - a[2]) * u,
-  ];
-}
-
-function barrierRegimeColor() {
-  const E = incidentEnergy();
-  const M = params.mass * params.diracC * params.diracC;
-  const V = effectiveBarrierHeight();
-  const green = [0.20, 0.92, 0.36];
-  const red = [1.00, 0.12, 0.08];
-  const yellow = [1.00, 0.86, 0.12];
-
-  if (V < E) return green;
-  if (V < E + M) return red;
-
-  const excess = Math.max(0, V - (E + M));
-  const scale = Math.max(M, 0.25 * E, 1e-6);
-  const ease = 1 - Math.exp(-excess / scale);
-  return mixRgb(yellow, green, ease);
-}
-
 function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, densitySizeScale = 1.0) {
   uniformData.fill(0);
   uniformData.set([simW, simH, simD, voxelCount], 0);
@@ -891,7 +995,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([params.rhoMin, params.velClamp, Math.floor(params.nParticles), params.trailWidth], 24);
   uniformData.set([camera.eye[0], camera.eye[1], camera.eye[2], camera.distance], 28);
   uniformData.set([viewportW, viewportH, params.cameraProjection | 0, params.trailStampGain], 32);
-  uniformData.set([barrierCenterGrid(), barrierWidthGrid(), effectiveBarrierHeight(), 1.0], 36);
+  uniformData.set([0.0, 0.0, 0.0, 0.0], 36);
   uniformData.set([0.0, 0.0, 0.0, params.trailVisGain], 40);
   uniformData.set([params.trailVisGamma, params.trailBlendMode | 0, densityFade, densitySizeScale], 44);
   uniformData.set([0.38, 0.72, 0.68, 0.22], 48);
@@ -903,7 +1007,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
     DEFAULT_PACKET_ELEVATION_DEG * Math.PI / 180,
     DEFAULT_BRANCH_MIX_DEG * Math.PI / 180,
   ], 56);
-  uniformData.set([params.spinAxis | 0, ...barrierRegimeColor()], 60);
+  uniformData.set([0.0, 0.0, 0.0, 0.0], 60);
   uniformData.set(camera.viewProj, 64);
   device.queue.writeBuffer(buffer, 0, uniformData);
 }
@@ -940,15 +1044,6 @@ function groupSpeed() {
   const k = effectivePeriodicKVector();
   const p = params.hbar * Math.hypot(k[0], k[1], k[2]);
   return params.diracC * params.diracC * p / Math.max(incidentEnergy(), 1e-9);
-}
-
-function kleinRegimeText() {
-  const E = incidentEnergy();
-  const M = params.mass * params.diracC * params.diracC;
-  const V = effectiveBarrierHeight();
-  if (V < E) return "above barrier";
-  if (V < E + M) return "tunneling gap";
-  return "Klein zone";
 }
 
 function worldFromGrid(p) {
@@ -1613,12 +1708,6 @@ function render(encoder, camera) {
     pass.draw(6, voxelCount);
   }
 
-  if (params.barrierHeight > 0) {
-    pass.setPipeline(pipelineDetectorPlate);
-    pass.setBindGroup(0, detectorPlateBindGroup);
-    pass.draw(36);
-  }
-
   if (params.showTrail && densityRenderBindGroups.length) {
     const mode = Math.max(0, Math.min(2, params.trailBlendMode | 0));
     const pipeline = mode === 0 ? pipelineDensityRenderAdd : (mode === 1 ? pipelineDensityRenderScreen : pipelineDensityRenderGlow);
@@ -1655,31 +1744,20 @@ function guidingModeLabel() {
 }
 
 function updateStats() {
-  if (!statsEl) return;
   const k = effectivePeriodicKVector();
   const kmag = Math.hypot(k[0], k[1], k[2]);
   const E = incidentEnergy();
   const M = params.mass * params.diracC * params.diracC;
-  const Veff = effectiveBarrierHeight();
-  const clipped = Veff < params.barrierHeight - 1e-6;
-  const wPlus = 1.0;
-  const wMinus = 0.0;
+  const chi = DEFAULT_BRANCH_MIX_DEG * Math.PI / 180;
+  const wPlus = 0.5 * (1 + Math.cos(chi));
+  const wMinus = 1 - wPlus;
   const vg = groupSpeed();
   const lambda = kmag > 1e-8 ? 2 * Math.PI / kmag : Infinity;
-  const barrierMomentum2 = Math.max(0, (Veff - E) * (Veff - E) - M * M);
-  const barrierK = Math.sqrt(barrierMomentum2) / Math.max(params.hbar * params.diracC, 1e-9);
-  const barrierLambda = barrierK > 1e-8 ? 2 * Math.PI / barrierK : Infinity;
-  const quality = Number.isFinite(barrierLambda) && barrierLambda < 4.5 ? ` <span style="color:#ffb347">near grid limit</span>` : "";
-  const bounds = barrierBoundsGrid();
+  const quality = Number.isFinite(lambda) && lambda < 8 ? ` <span style="color:#ffb347">under-resolved</span>` : "";
   statsEl.innerHTML =
     `<b>Physics</b>: ${guidingModeLabel()} &nbsp; <b>Grid</b>: ${simW}³ &nbsp; <b>t</b>: ${fmt(simTime)}<br>` +
     `<b>E₀</b>: ${fmt(E)} &nbsp; <b>mc²</b>: ${fmt(M)} &nbsp; <b>|v_g|</b>: ${fmt(vg)} &nbsp; <b>λ</b>: ${Number.isFinite(lambda) ? fmt(lambda) : "inf"}${quality}<br>` +
     `<b>central mix</b>: P+≈${fmt(wPlus)} &nbsp; P−≈${fmt(wMinus)} &nbsp; <b>k</b>: (${fmt(k[0])}, ${fmt(k[1])}, ${fmt(k[2])})`;
-  statsEl.innerHTML =
-    `<b>Physics</b>: ${guidingModeLabel()} &nbsp; <b>Grid</b>: ${simW}^3 &nbsp; <b>t</b>: ${fmt(simTime)}<br>` +
-    `<b>E</b>: ${fmt(E)} &nbsp; <b>mc^2</b>: ${fmt(M)} &nbsp; <b>V</b>: ${fmt(Veff)}${clipped ? " clipped" : ""} &nbsp; <b>Klein V</b>: ${fmt(E + M)}<br>` +
-    `<b>Regime</b>: ${kleinRegimeText()} &nbsp; <b>spin</b>: ${SPIN_AXIS_NAMES[params.spinAxis | 0] ?? "+Z"} &nbsp; <b>|v_g|</b>: ${fmt(vg)} &nbsp; <b>lambda</b>: ${Number.isFinite(lambda) ? fmt(lambda) : "inf"}<br>` +
-    `<b>barrier lambda</b>: ${Number.isFinite(barrierLambda) ? fmt(barrierLambda) : "evanescent"}${quality} &nbsp; <b>wall x</b>: ${fmt(bounds.left)}..${fmt(bounds.right)}`;
   statsEl.innerHTML = statsEl.innerHTML.replace(
     /<b>Grid<\/b>: .*?&nbsp; <b>t<\/b>/,
     `<b>Grid</b>: ${simW}x${simH}x${simD} &nbsp; <b>t</b>`
@@ -1908,7 +1986,8 @@ async function main() {
   let lastFrameTime = performance.now();
   requestAnimationFrame(function loop(now = performance.now()) {
     const wallDtSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
-    const dtSeconds = wallDtSeconds;
+    const recordingFrameActive = isRecording() && !recordingState.finalizing;
+    const dtSeconds = recordingFrameActive ? 1 / RECORDING_CONFIG.fps : wallDtSeconds;
     lastFrameTime = now;
     const resized = resizeCanvas();
     if (resized) rebuildDensity();
@@ -1918,7 +1997,7 @@ async function main() {
     if (cameraMoved) requestTrailClear();
 
     const cameraInputActive = hasActiveCameraKeys();
-    const shouldDraw = !paused || redrawPending || resized || cameraMoved || cameraInputActive || trailClearPending;
+    const shouldDraw = isRecording() || !paused || redrawPending || resized || cameraMoved || cameraInputActive || trailClearPending;
     if (!shouldDraw) {
       setTimeout(loop, PAUSED_IDLE_MS);
       return;
@@ -1936,8 +2015,8 @@ async function main() {
       const steps = Math.floor(params.stepsPerFrame);
       const compute = encoder.beginComputePass({ label: "simulation compute pass" });
       for (let i = 0; i < steps; i++) {
-        particleUpdate(compute);
         waveStep(compute);
+        particleUpdate(compute);
         simTime += simulationDt();
       }
       compute.end();
@@ -1950,7 +2029,7 @@ async function main() {
     updateStats();
     redrawPending = false;
 
-    if (paused && !cameraMoved && !cameraInputActive && !trailClearPending && !redrawPending) {
+    if (!isRecording() && paused && !cameraMoved && !cameraInputActive && !trailClearPending && !redrawPending) {
       setTimeout(loop, PAUSED_IDLE_MS);
     } else {
       requestAnimationFrame(loop);

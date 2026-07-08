@@ -38,7 +38,6 @@
     }
     button:hover { background:rgba(255,255,255,0.12); }
     button.selected { background:rgba(64,156,255,0.35); border-color:rgba(64,156,255,0.6); }
-    button.recording { background:rgba(210,62,62,0.35); border-color:rgba(255,100,100,0.65); }
     button:disabled { cursor:not-allowed; opacity:0.62; }
     .toggle-group { display:flex; gap:6px; flex:1; }
     .toggle-group button { flex:1; padding:6px 8px; font-size:11px; }
@@ -127,9 +126,7 @@
         <div class="btns">
           <button id="reset">Reset (R)</button>
           <button id="pause">Pause</button>
-          <button id="record">Start Recording</button>
         </div>
-        <div class="stat" id="stats"></div>
       </div>
     </div>
     <div id="viewtools" aria-label="Camera view controls">
@@ -157,7 +154,7 @@
             + mc^2\beta + V(\mathbf{x})\right]\psi
           \]
         </div>
-        <p>The initial packet is positive-energy at its central momentum and moves in the +x direction. The orange slab marks the potential barrier.</p>
+        <p>The initial packet is positive-energy at its central momentum and moves in the +x direction. The slab color marks the current barrier regime.</p>
         <h4>Klein zone</h4>
         <p>The interesting supercritical regime starts when the barrier height exceeds the incident energy plus rest energy.</p>
         <div class="eq">

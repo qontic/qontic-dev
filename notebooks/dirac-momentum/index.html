@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Klein Tunneling Notebook - Q-Ontic Lab</title>
-  <meta name="description" content="Notebook page combining 2D WebGL and 3D WebGPU Klein tunneling simulations of relativistic Dirac wave packets." />
+  <title>Dirac Momentum Notebook - Q-Ontic Lab</title>
+  <meta name="description" content="Notebook page combining 2D WebGL and 3D WebGPU free Dirac packet-splitting simulations." />
   <script src="../back-link.js"></script>
   <script type="module" src="../simulation-speed-host.js"></script>
   <script>
@@ -28,11 +28,11 @@
       --surface: #ffffff;
       --line: #dbe4f0;
       --cyan: #007f9f;
+      --teal: #1d7f72;
       --amber: #9a6818;
     }
 
     * { box-sizing: border-box; }
-
     html { scroll-behavior: smooth; }
 
     body {
@@ -177,70 +177,68 @@
       box-shadow: 0 8px 24px rgba(0, 0, 45, 0.14);
     }
 
-    .klein-visual {
+    .momentum-visual {
       position: absolute;
       inset: 0;
       display: grid;
-      grid-template-columns: 1fr 0.28fr 1fr;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
       align-items: center;
       padding: 2rem;
       background:
-        linear-gradient(90deg, rgba(9, 29, 57, 0.96), rgba(5, 12, 24, 0.98)),
+        linear-gradient(90deg, rgba(8, 31, 48, 0.96), rgba(5, 12, 24, 0.98)),
         repeating-linear-gradient(0deg, transparent 0 35px, rgba(125, 174, 255, 0.08) 36px);
     }
 
-    .klein-visual::before {
+    .momentum-visual::before {
       content: "";
       position: absolute;
-      top: 12%;
-      bottom: 12%;
-      left: 46%;
-      width: 8%;
-      border: 1px solid rgba(255, 190, 94, 0.66);
-      background: rgba(154, 104, 24, 0.42);
+      top: 50%;
+      right: 12%;
+      left: 12%;
+      height: 1px;
+      background: rgba(217, 230, 248, 0.22);
     }
 
-    .wave-band {
+    .branch {
       position: relative;
-      height: 92px;
-      border-top: 3px solid rgba(82, 197, 231, 0.9);
-      border-bottom: 3px solid rgba(82, 197, 231, 0.35);
-      transform: skewX(-12deg);
+      height: 96px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 28% 50%, rgba(89, 210, 233, 0.95), rgba(89, 210, 233, 0.12) 48%, transparent 70%);
+      filter: drop-shadow(0 0 16px rgba(89, 210, 233, 0.45));
     }
 
-    .wave-band::before,
-    .wave-band::after {
+    .branch::after {
       content: "";
       position: absolute;
-      left: 4%;
-      right: 4%;
+      top: 50%;
+      width: 42%;
       height: 3px;
-      background: rgba(82, 197, 231, 0.62);
+      background: rgba(217, 230, 248, 0.78);
     }
 
-    .wave-band::before { top: 28px; }
-    .wave-band::after { bottom: 28px; }
-
-    .wave-band.transmitted {
-      border-color: rgba(255, 214, 112, 0.9);
-      opacity: 0.82;
-      transform: skewX(12deg);
+    .branch.forward::after {
+      right: 5%;
+      transform: translateY(-50%);
     }
 
-    .wave-band.transmitted::before,
-    .wave-band.transmitted::after {
-      background: rgba(255, 214, 112, 0.64);
+    .branch.backward {
+      transform: scaleX(-1);
+      background:
+        radial-gradient(circle at 28% 50%, rgba(255, 198, 91, 0.95), rgba(255, 198, 91, 0.12) 48%, transparent 70%);
+      filter: drop-shadow(0 0 16px rgba(255, 198, 91, 0.42));
     }
 
-    .barrier-label {
-      position: relative;
-      z-index: 1;
-      justify-self: center;
+    .visual-label {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
       padding: 0.35rem 0.55rem;
-      border: 1px solid rgba(255, 226, 151, 0.7);
+      border: 1px solid rgba(217, 230, 248, 0.38);
       border-radius: 4px;
       background: rgba(7, 16, 31, 0.72);
-      color: #ffe6a6;
+      color: #d9e6f8;
       font: 700 0.88rem/1 "Segoe UI", system-ui, sans-serif;
     }
 
@@ -369,8 +367,6 @@
       gap: 1.4rem;
     }
 
-    .comparison-grid p:last-child { margin-bottom: 0; }
-
     .equation {
       margin: 1rem 0 1.15rem;
       padding: 0.85rem 1rem;
@@ -438,8 +434,7 @@
       .primary-button,
       .outline-button { width: 100%; }
       .header-image { min-height: 220px; }
-      .klein-visual { padding: 1.1rem; }
-      .barrier-label { font-size: 0.78rem; }
+      .momentum-visual { padding: 1.1rem; }
       .applet-stage { min-height: 620px; }
       .applet-frame { height: 620px; }
       .applet-play { font-size: 2.25rem; }
@@ -459,24 +454,24 @@
 
     <section class="page-hero" aria-labelledby="page-title">
       <p class="kicker">Educational notebook</p>
-      <h1 id="page-title">Klein Tunneling</h1>
-      <p>Relativistic Dirac wave packets at supercritical potential barriers in 2D and 3D.</p>
+      <h1 id="page-title">Dirac Momentum</h1>
+      <p>Free Dirac wave packets can split into positive- and negative-energy branches with the same central momentum but opposite group velocities.</p>
     </section>
 
     <section class="intro-grid" aria-label="Header visualization and section navigation">
-      <figure class="header-image" aria-label="Schematic of a Dirac wave packet crossing a potential barrier">
-        <div class="klein-visual" aria-hidden="true">
-          <div class="wave-band"></div>
-          <div class="barrier-label">V(x)</div>
-          <div class="wave-band transmitted"></div>
+      <figure class="header-image" aria-label="Schematic of two Dirac packet branches separating">
+        <div class="momentum-visual" aria-hidden="true">
+          <div class="branch backward"></div>
+          <div class="branch forward"></div>
+          <div class="visual-label">same p0, opposite branch velocity</div>
         </div>
       </figure>
 
       <aside class="note-box" aria-labelledby="sections-nav">
         <h2 id="sections-nav">Sections</h2>
         <ul class="note-list">
-          <li><a href="#two-d">2D Klein tunneling</a></li>
-          <li><a href="#three-d">3D Klein tunneling</a></li>
+          <li><a href="#two-d">2D Dirac momentum</a></li>
+          <li><a href="#three-d">3D Dirac momentum</a></li>
           <li><a href="#comparison">What to compare</a></li>
           <li><a href="#theory">Theory &amp; Equations</a></li>
           <li><a href="#full-applets">Standalone applets</a></li>
@@ -485,27 +480,27 @@
     </section>
 
     <section id="two-d" class="applet-section" aria-labelledby="two-d-title">
-      <h2 id="two-d-title">2D Klein Tunneling</h2>
+      <h2 id="two-d-title">2D Dirac Momentum</h2>
       <p>
-        A positive-energy Gaussian packet starts on the left and meets a vertical scalar
-        barrier. The 2D applet is the faster place to compare normal and oblique incidence,
-        and to track reflected, barrier, and transmitted probability.
+        The 2D applet evolves a two-component free Dirac packet in Fourier space. The initial
+        Gaussian is multiplied by a fixed spinor, so the packet can contain both positive- and
+        negative-energy spectral components.
       </p>
 
       <div class="applet-shell is-inactive">
-        <div class="applet-toolbar">2D WebGL Dirac packet</div>
+        <div class="applet-toolbar">2D WebGL free Dirac packet</div>
         <div class="applet-stage">
           <iframe
             class="applet-frame"
-            title="2D Klein tunneling simulation"
+            title="2D Dirac momentum packet simulation"
             data-src="2d/index.html?embed=1"
             allow="fullscreen"
           ></iframe>
-          <button class="applet-play" type="button" aria-label="Play 2D Klein tunneling simulation">Play</button>
+          <button class="applet-play" type="button" aria-label="Play 2D Dirac momentum simulation">Play</button>
         </div>
       </div>
       <p class="caption">
-        The yellow particles follow the full spinor current, \(\mathbf{v}=\mathbf{j}/\rho\).
+        The mix-angle control changes the central positive-/negative-energy branch weights.
       </p>
       <div class="applet-actions">
         <a class="primary-button" href="2d/index.html" target="_blank" rel="noopener">Open 2D Applet</a>
@@ -514,27 +509,26 @@
     </section>
 
     <section id="three-d" class="applet-section" aria-labelledby="three-d-title">
-      <h2 id="three-d-title">3D Klein Tunneling</h2>
+      <h2 id="three-d-title">3D Dirac Momentum</h2>
       <p>
-        The 3D applet uses a four-component Dirac spinor in a long tunnel, with camera
-        controls, density-cloud rendering, particle trails, and a finite scalar slab.
-        It uses WebGPU and is loaded only when activated.
+        The 3D applet extends the same packet-splitting setup to a four-component Dirac spinor.
+        It renders a density cloud and Bohmian trajectories in a periodic three-dimensional box.
       </p>
 
       <div class="applet-shell is-inactive">
-        <div class="applet-toolbar">3D WebGPU Dirac packet</div>
+        <div class="applet-toolbar">3D WebGPU free Dirac packet</div>
         <div class="applet-stage">
           <iframe
             class="applet-frame"
-            title="3D Klein tunneling simulation"
+            title="3D Dirac momentum packet simulation"
             data-src="3d/index.html?embed=1"
             allow="fullscreen"
           ></iframe>
-          <button class="applet-play" type="button" aria-label="Play 3D Klein tunneling simulation">Play</button>
+          <button class="applet-play" type="button" aria-label="Play 3D Dirac momentum simulation">Play</button>
         </div>
       </div>
       <p class="caption">
-        The 3D simulation is heavier than the 2D version; use a current Chrome or Edge browser with WebGPU.
+        The 3D simulation uses WebGPU and is loaded only when activated.
       </p>
       <div class="applet-actions">
         <a class="primary-button" href="3d/index.html" target="_blank" rel="noopener">Open 3D Applet</a>
@@ -546,20 +540,18 @@
       <h2 id="comparison-title">What To Compare</h2>
       <div class="comparison-grid">
         <div>
-          <h3>Barrier regimes</h3>
+          <h3>Energy branch versus momentum</h3>
           <p>
-            Below the rest-energy gap, the barrier behaves like an ordinary positive-energy
-            region. Inside the gap, transmission is evanescent. In the Klein zone,
-            \(V > E + mc^2\), the barrier supports negative-energy modes and transmitted
-            amplitude can reappear in a way that has no nonrelativistic analog.
+            For a narrow packet, the positive- and negative-energy branches can share the same
+            central momentum while their group velocities point in opposite directions.
           </p>
         </div>
         <div>
-          <h3>Grid resolution</h3>
+          <h3>2D and 3D behavior</h3>
           <p>
-            Very high supercritical walls create short wavelengths inside the barrier. Both
-            applets cap the effective wall height when that wavelength would be under-resolved;
-            the stats panel reports this clipping when it happens.
+            The 2D applet makes the branch populations and particle directions easy to read.
+            The 3D applet adds the full four-spinor geometry, camera controls, and density-cloud
+            rendering, but is heavier to run.
           </p>
         </div>
       </div>
@@ -568,36 +560,42 @@
     <section id="theory" aria-labelledby="theory-title">
       <h2 id="theory-title">Theory &amp; Equations</h2>
 
-      <h3>Dirac evolution</h3>
+      <h3>Free Dirac evolution</h3>
       <p>
-        The relativistic wave packet evolves under the Dirac equation with a scalar potential
-        barrier \(V(\mathbf{x})\).
+        The packet evolves without a scalar potential. In three dimensions the free Dirac equation is:
       </p>
       <div class="equation">
-        <span class="eq-label">Dirac equation</span>
+        <span class="eq-label">Free Dirac equation</span>
         \[
           i\hbar\frac{\partial\psi}{\partial t}
           =
           \left[-i\hbar c\,\boldsymbol{\alpha}\cdot\nabla
-          + mc^2\beta + V(\mathbf{x})\right]\psi .
+          + mc^2\beta\right]\psi .
         \]
       </div>
 
-      <h3>Klein zone</h3>
+      <h3>Branch velocities</h3>
       <p>
-        The supercritical regime begins when the barrier height is larger than the incident
-        total energy plus one rest energy.
+        The two free branches have opposite dispersion slopes. For the same momentum,
+        the sign of the energy branch reverses the group velocity.
       </p>
       <div class="equation">
-        <span class="eq-label">Supercritical barrier condition</span>
+        <span class="eq-label">Energy and group velocity</span>
         \[
-          V > E + mc^2 .
+          E_{\pm}(\mathbf{p})
+          =
+          \pm\sqrt{m^2c^4+c^2|\mathbf{p}|^2},
+          \qquad
+          \mathbf{v}_{g,\pm}
+          =
+          \pm
+          \frac{c^2\mathbf{p}}{\sqrt{m^2c^4+c^2|\mathbf{p}|^2}} .
         \]
       </div>
 
       <h3>Bohmian guidance</h3>
       <p>
-        The particle positions are guided by the Dirac current of the full spinor.
+        The particles in both applets are guided by the Dirac current of the full spinor field.
       </p>
       <div class="equation">
         <span class="eq-label">Dirac density and current</span>

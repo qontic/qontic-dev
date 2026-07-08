@@ -1,0 +1,8 @@
+{
+  "title": "Dirac Momentum - Notebook",
+  "type": "notebook",
+  "category": "pilot-wave",
+  "description": "Notebook-style presentation of free Dirac packet splitting and asymptotic momentum with 2D WebGL and 3D WebGPU simulations.",
+  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "3D", "Dirac", "Momentum", "Packet splitting"],
+  "entry": "index.html"
+}

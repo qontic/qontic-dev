@@ -19,12 +19,27 @@ fn vs(@builtin(vertex_index) vertexIndex: u32) -> BarrierOut {
 
   let maxP = uni.sim.xyz - vec3<f32>(1.0);
   let halfWidth = 0.5 * max(uni.detector.y, 0.0);
-  var side = -1.0;
-  if (face > 0u) {
+  let leftX = clamp(uni.detector.x - halfWidth, 0.0, maxP.x);
+  let rightX = clamp(uni.detector.x + halfWidth, 0.0, maxP.x);
+  let x = mix(leftX, rightX, yz.x);
+
+  var gridPos = vec3<f32>(x, yz.y * maxP.y, 0.0);
+  var side = 0.0;
+  if (face == 0u) {
+    gridPos = vec3<f32>(leftX, yz.x * maxP.y, yz.y * maxP.z);
+    side = -1.0;
+  } else if (face == 1u) {
+    gridPos = vec3<f32>(rightX, yz.x * maxP.y, yz.y * maxP.z);
     side = 1.0;
+  } else if (face == 2u) {
+    gridPos = vec3<f32>(x, 0.0, yz.y * maxP.z);
+  } else if (face == 3u) {
+    gridPos = vec3<f32>(x, maxP.y, yz.y * maxP.z);
+  } else if (face == 4u) {
+    gridPos = vec3<f32>(x, yz.y * maxP.y, 0.0);
+  } else {
+    gridPos = vec3<f32>(x, yz.y * maxP.y, maxP.z);
   }
-  let x = clamp(uni.detector.x + side * halfWidth, 0.0, maxP.x);
-  let gridPos = vec3<f32>(x, yz.x * maxP.y, yz.y * maxP.z);
 
   out.uv = yz;
   out.side = side;
@@ -40,10 +55,15 @@ fn fs(in: BarrierOut) -> @location(0) vec4<f32> {
   let gridZ = 1.0 - smoothstep(0.0, 0.012, abs(fract(in.uv.y * 9.0) - 0.5));
   let grid = max(gridY, gridZ);
   let strength = clamp(uni.detector.z / 14.0, 0.0, 1.0);
-  let faceTint = 0.82 + 0.10 * in.side;
-  let base = vec3<f32>(1.0, 0.38 + 0.22 * strength, 0.08) * faceTint;
-  let hot = vec3<f32>(1.0, 0.88, 0.44);
-  let color = mix(base, hot, max(border, 0.45 * grid));
-  let alpha = (0.09 + 0.22 * strength) + 0.26 * border + 0.075 * grid;
+  let plateFace = step(0.5, abs(in.side));
+  let faceTint = mix(0.58, 0.82 + 0.10 * in.side, plateFace);
+  let barrierColor = max(uni.visual2.yzw, vec3<f32>(0.0));
+  let base = barrierColor * faceTint;
+  let hot = mix(barrierColor, vec3<f32>(1.0, 1.0, 0.72), 0.45);
+  let detail = max(border, 0.45 * grid) * plateFace;
+  let color = mix(base, hot, detail);
+  let slabAlpha = 0.035 + 0.10 * strength;
+  let plateAlpha = (0.09 + 0.22 * strength) + 0.26 * border + 0.075 * grid;
+  let alpha = mix(slabAlpha, plateAlpha, plateFace);
   return vec4<f32>(color, clamp(alpha, 0.0, 0.68));
 }
