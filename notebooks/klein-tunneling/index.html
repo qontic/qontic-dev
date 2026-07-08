@@ -477,6 +477,7 @@
         <ul class="note-list">
           <li><a href="#two-d">2D Klein tunneling</a></li>
           <li><a href="#three-d">3D Klein tunneling</a></li>
+          <li><a href="#method-notes">Method notes</a></li>
           <li><a href="#comparison">What to compare</a></li>
           <li><a href="#theory">Theory &amp; Equations</a></li>
           <li><a href="#full-applets">Standalone applets</a></li>
@@ -485,11 +486,31 @@
     </section>
 
     <section id="two-d" class="applet-section" aria-labelledby="two-d-title">
-      <h2 id="two-d-title">2D Klein Tunneling</h2>
+      <h2 id="two-d-title">Klein Tunneling</h2>
       <p>
-        A positive-energy Gaussian packet starts on the left and meets a vertical scalar
-        barrier. The 2D applet is the faster place to compare normal and oblique incidence,
-        and to track reflected, barrier, and transmitted probability.
+        A positive-energy Gaussian packet starts on the left and meets a vertical potential
+        barrier. We start in 2D for simplicity and clarity.
+      </p>
+      <p>
+       You can adjust the potential strenght. For lowest values the packet has enough kinetic energy to at least partially cross
+       the barrier. In this case parti of the wave and a portion of the particles will be transmitter, while the rest
+       will be reflected.
+      </p>
+      <p>
+       The intermediate potential values are indicated by red color. For these a classical particle would not 
+       have enough energy to ever cross the barrier. But as you may know from basic quantum mechanics, 
+       there is still a small chance that an evanescent wave, and a bohmian particle with it, can pass through a thin enough wall.        
+      </p>
+      <p>
+       But now comes the surprise. What if we continue to increase the potential strenght? 
+       Even for a quantum wave, it would become ever more impossible to cross the barrier, right?        
+      </p>
+      <p>
+       Schrödinger woud say yes, but Dirac says no. (It was Oskar Klein who found this result in 1929.)
+       It turns out that for a potential strenght larger than the rest energy of the particle, 
+       the barrier can support negative-energy modes. It is of course a bit unclear what do "negavive-energy modes" mean, 
+       but at least from Bohmian perspective, probability current is probability current, 
+       and the particle can be guided through the barrier.
       </p>
 
       <div class="applet-shell is-inactive">
@@ -505,20 +526,29 @@
         </div>
       </div>
       <p class="caption">
-        The yellow particles follow the full spinor current, \(\mathbf{v}=\mathbf{j}/\rho\).
+        The bohmian particles follow the current even along "negative-energy" modes.
       </p>
-      <div class="applet-actions">
-        <a class="primary-button" href="2d/index.html" target="_blank" rel="noopener">Open 2D Applet</a>
-        <a class="outline-button" href="2d/README.md" target="_blank" rel="noopener">2D Notes</a>
-      </div>
+
+      <p>
+       This should be entirely counterintuitive! by raising the wall, or potential, it should not become easier to cross it, right?
+       But apparently it does. The classic interpretation is that the negative-energy modes are actually "holes" in the Dirac sea, and they can be interpreted as anti-particles.
+       The modern quantum field interpretation is that the Dirac equation is a single-particle limit of a quantum field theory, 
+       and the negative-energy modes are actually the creation of particle-antiparticle pairs.
+      </p>
+      <p>
+       Anyway, it is an interesting effect with profound implications for relativistic quantum mechanics.
+      </p>
+      
     </section>
 
     <section id="three-d" class="applet-section" aria-labelledby="three-d-title">
       <h2 id="three-d-title">3D Klein Tunneling</h2>
       <p>
-        The 3D applet uses a four-component Dirac spinor in a long tunnel, with camera
-        controls, density-cloud rendering, particle trails, and a finite scalar slab.
-        It uses WebGPU and is loaded only when activated.
+        The 3D version uses a four-component Dirac spinor in a tunnel. 
+        The boundary conditions are periodic for simplicity.
+      </p>
+      <p >
+        The 3D simulation is heavier than the 2D version.
       </p>
 
       <div class="applet-shell is-inactive">
@@ -534,36 +564,14 @@
         </div>
       </div>
       <p class="caption">
-        The 3D simulation is heavier than the 2D version; use a current Chrome or Edge browser with WebGPU.
+        Klein paradox, or tunneling, in 3D.
       </p>
-      <div class="applet-actions">
-        <a class="primary-button" href="3d/index.html" target="_blank" rel="noopener">Open 3D Applet</a>
-        <a class="outline-button" href="3d/README.md" target="_blank" rel="noopener">3D Notes</a>
-      </div>
+      
     </section>
 
-    <section id="comparison" aria-labelledby="comparison-title">
-      <h2 id="comparison-title">What To Compare</h2>
-      <div class="comparison-grid">
-        <div>
-          <h3>Barrier regimes</h3>
-          <p>
-            Below the rest-energy gap, the barrier behaves like an ordinary positive-energy
-            region. Inside the gap, transmission is evanescent. In the Klein zone,
-            \(V > E + mc^2\), the barrier supports negative-energy modes and transmitted
-            amplitude can reappear in a way that has no nonrelativistic analog.
-          </p>
-        </div>
-        <div>
-          <h3>Grid resolution</h3>
-          <p>
-            Very high supercritical walls create short wavelengths inside the barrier. Both
-            applets cap the effective wall height when that wavelength would be under-resolved;
-            the stats panel reports this clipping when it happens.
-          </p>
-        </div>
-      </div>
-    </section>
+    
+
+    
 
     <section id="theory" aria-labelledby="theory-title">
       <h2 id="theory-title">Theory &amp; Equations</h2>

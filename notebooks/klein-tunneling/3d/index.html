@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>KleinTunneling3D WebGPU</title>
+  <title>Klein Tunneling 3D</title>
   <script>
     window.MathJax = {
       tex: {
@@ -113,7 +113,7 @@
     <canvas id="c"></canvas>
     <div id="ui">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
-        <h3>KleinTunneling3D</h3>
+        <h3>Klein Tunneling 3D</h3>
         <button id="minui" title="Minimize/expand" style="
           width:34px; height:28px; padding:0; flex:0 0 auto;
           border-radius:8px; border:1px solid rgba(255,255,255,0.2);
@@ -143,7 +143,9 @@
         <button id="explainToggle" type="button" title="Open explanation">+</button>
       </div>
       <div id="explainBody">
-        <p>This WebGPU demo evolves a four-component Dirac wave packet in three spatial dimensions. The packet starts on the left and meets a finite scalar potential slab in the middle of the box.</p>
+        <p>This demo evolves a four-component Dirac wave packet in three spatial dimensions. 
+          The packet starts on the left and meets a finite scalar potential barrier in the middle.
+        Boundary conditions are periodic for simplicity.</p>
         <h4>Dirac model</h4>
         <p>The simulation uses the standard representation and a scalar potential V(x).</p>
         <div class="eq">
@@ -154,7 +156,8 @@
             + mc^2\beta + V(\mathbf{x})\right]\psi
           \]
         </div>
-        <p>The initial packet is positive-energy at its central momentum and moves in the +x direction. The slab color marks the current barrier regime.</p>
+        <p>The initial packet is positive-energy at its central momentum and moves in the +x direction. 
+          The slab color marks the current barrier regime.</p>
         <h4>Klein zone</h4>
         <p>The interesting supercritical regime starts when the barrier height exceeds the incident energy plus rest energy.</p>
         <div class="eq">

@@ -81,7 +81,7 @@ const params = {
   packetY: 0.50,
   packetZ: 0.50,
   packetSigma: 10.0,
-  spinAxis: 0,
+  spinAxis: 1,
 
   barrierHeight: 10.5,
   barrierWidth: 18.0,
@@ -91,7 +91,7 @@ const params = {
   rhoMin: 1e-12,
   velClamp: 100.0,
 
-  cloudGain: 0.10,
+  cloudGain: 0.20,
   cloudGamma: 0.70,
   cloudLowBoost: 0.98,
   cloudCutoff: 0.00015,
@@ -100,7 +100,7 @@ const params = {
   showCloud: 1,
 
   showParticles: 1,
-  dotSize: 15.0,
+  dotSize: 19.0,
   dotSigma: 0.28,
   dotGain: 2.0,
 
@@ -109,7 +109,7 @@ const params = {
   trailVisGain: 0.5,
   trailVisGamma: 1.0,
   trailStampGain: 0.45,
-  trailWidth: 9.0,
+  trailWidth: 15.0,
   trailBlendMode: 2,
   densityScale: 0.5,
 };
@@ -245,6 +245,52 @@ function addCycleButton(key, label, values, onChange = null) {
   return { button: btn, sync };
 }
 
+function addSegmentedButtons(key, label, values, onChange = null) {
+  const row = document.createElement("div");
+  row.className = "row mode-row";
+
+  const lab = document.createElement("label");
+  lab.textContent = label;
+
+  const group = document.createElement("div");
+  group.className = "toggle-group";
+  const options = values.map((value, index) => (
+    typeof value === "object" ? value : { label: value, value: index }
+  ));
+  const buttons = options.map((option) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = option.label;
+    btn.addEventListener("click", () => {
+      if ((params[key] | 0) === option.value) return;
+      params[key] = option.value;
+      sync();
+      if (onChange) onChange(option.value);
+      requestRedraw();
+    });
+    group.appendChild(btn);
+    return btn;
+  });
+
+  const sync = () => {
+    const selected = params[key] | 0;
+    buttons.forEach((btn, index) => {
+      btn.classList.toggle("selected", options[index].value === selected);
+    });
+  };
+
+  const val = document.createElement("div");
+  val.className = "val";
+  val.textContent = "";
+
+  row.appendChild(lab);
+  row.appendChild(group);
+  row.appendChild(val);
+  controls.appendChild(row);
+  sync();
+  return { buttons, sync };
+}
+
 function addSectionHeader(label) {
   const header = document.createElement("div");
   header.style.marginTop = "12px";
@@ -274,22 +320,26 @@ addSlider("diracC", "Dirac c", 1.0, 8.0, 0.1, () => resetAll());
 addSlider("mass", "mass", 0.02, 0.8, 0.01, () => resetAll());
 addSlider("packetK", "mean k", 0.15, 1.5, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 4.0, 18.0, 0.5, () => resetAll());
-addCycleButton("spinAxis", "spin axis", ["+Z", "+X", "+Y"], () => resetAll());
+addSegmentedButtons("spinAxis", "spin axis", [
+  { label: "X", value: 1 },
+  { label: "Y", value: 2 },
+  { label: "Z", value: 0 },
+], () => resetAll());
 
 addSectionHeader("Potential Wall");
-addSlider("barrierHeight", "wall height", 0.0, 18.0, 0.1, () => resetAll());
+addSlider("barrierHeight", "potential strength", 0.0, 18.0, 0.1, () => resetAll());
 addSlider("barrierWidth", "wall width", 2.0, 48.0, 1.0, () => resetAll());
 
 addSectionHeader("Visual Parameters");
 addToggleInt("showCloud", "density cloud");
-addSlider("cloudGain", "cloud density", 0.01, 1.5, 0.01);
+//addSlider("cloudGain", "cloud density", 0.01, 1.5, 0.01);
 addToggleInt("showPhase", "show phase");
 addToggleInt("showParticles", "show particles");
-addSlider("nParticles", "particle count", 1, 5001, 100, () => rebuildParticles());
+addSlider("nParticles", "particle count", 1, 500, 10, () => rebuildParticles());
 addSlider("dotSize", "particle size", 2.0, 26.0, 1);
 addSlider("dotGain", "particle brightness", 0.1, 5.0, 0.1);
 addToggleInt("showTrail", "draw trails");
-addSlider("trailHalfLife", "trail half-life", 0.1, 10.0, 0.1);
+addSlider("trailHalfLife", "trail length", 0.1, 4.0, 0.1);
 
 document.getElementById("reset").onclick = () => resetAll();
 const pauseButton = document.getElementById("pause");
@@ -1077,6 +1127,9 @@ const KEYBOARD_YAW_CENTER = -Math.PI * 0.5;
 const KEYBOARD_YAW_LIMIT = Math.PI * 0.5;
 const KEYBOARD_ORBIT_SPEED = .6;
 const KEYBOARD_ZOOM_SPEED = .5;
+const MOUSE_WHEEL_DELTA_PER_TICK = 100;
+const INITIAL_CAMERA_SCROLL_TICKS_CLOSER = 5;
+const INITIAL_CAMERA_DISTANCE_FACTOR = Math.exp(-INITIAL_CAMERA_SCROLL_TICKS_CLOSER * MOUSE_WHEEL_DELTA_PER_TICK * 0.001);
 const CAMERA_FOVY = 40 * Math.PI / 180;
 const cameraTarget = {
   yaw: cameraOrbit.yaw,
@@ -1866,7 +1919,7 @@ function rebuildSimulation() {
   simH = n;
   simD = n;
   voxelCount = simW * simH * simD;
-  cameraOrbit.distance = 2.15 * Math.max(simW, simH, simD) * params.boxScale;
+  cameraOrbit.distance = clampCameraDistance(2.15 * Math.max(simW, simH, simD) * params.boxScale * INITIAL_CAMERA_DISTANCE_FACTOR);
   cameraTarget.distance = cameraOrbit.distance;
   resetCameraPan();
 
