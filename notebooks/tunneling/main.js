@@ -1,4 +1,4 @@
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
@@ -134,6 +134,11 @@ if (presetDefinition) {
   Object.assign(params, presetDefinition.params);
 }
 
+const TRAIL_FADE_FRAME_DT = Math.max(
+  1e-12,
+  params.dt * Math.max(1, Math.floor(params.stepsPerFrame))
+);
+
 function isControlFixed(key) {
   return Boolean(presetDefinition) && !adjustableControls.has(key);
 }
@@ -152,11 +157,15 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.01 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 100 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
+}
+
+function trailFadeFrameDt() {
+  return TRAIL_FADE_FRAME_DT;
 }
 
 function addSlider(key, label, min, max, step, onChange = null) {
@@ -920,7 +929,7 @@ function clearDensity() {
 }
 
 function densityStepAndStamp() {
-  const dtTotal = simulationDt() * simulationStepsPerFrame();
+  const dtTotal = trailFadeFrameDt();
 
   const src = densFlip ? densTexB : densTexA;
   const dstFbo = densFlip ? densFboA : densFboB;
@@ -1230,7 +1239,11 @@ async function main() {
 
   params.trailHalfLife*=0.99;
 
-  requestAnimationFrame(function loop() {
+  let lastFrameTime = performance.now();
+  requestAnimationFrame(function loop(now = performance.now()) {
+    const frameSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
+    lastFrameTime = now;
+    setSimulationFrameDuration(frameSeconds);
     resizeCanvas();
 
     if (!paused) {

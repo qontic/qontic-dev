@@ -1,13 +1,12 @@
 const DEFAULT_SPEED = 1.0;
 const MIN_SPEED = 0.1;
-const MAX_SPEED = 4.0;
+const MAX_SPEED = 5.0;
+const TARGET_FRAME_SECONDS = 1 / 60;
+const MAX_FRAME_DURATION_SCALE = 3.0;
 
 const listeners = new Set();
 let currentSpeed = DEFAULT_SPEED;
-
-function clamp01(value) {
-  return Math.max(0, Math.min(1, value));
-}
+let currentFrameDurationScale = 1.0;
 
 function clampSpeed(value) {
   if (!Number.isFinite(value)) return DEFAULT_SPEED;
@@ -33,30 +32,32 @@ export function setSimulationSpeed(nextSpeed) {
   setCurrentSpeed(nextSpeed);
 }
 
-export function effectiveDt(baseDt, options = {}) {
-  const base = Number(baseDt);
-  if (!Number.isFinite(base)) return baseDt;
-  if (currentSpeed >= DEFAULT_SPEED) return base;
-
-  const minOption = Number(options.min);
-  const minDt = Number.isFinite(minOption) ? Math.max(0, Math.min(base, minOption)) : base * MIN_SPEED;
-  const t = clamp01((currentSpeed - MIN_SPEED) / (DEFAULT_SPEED - MIN_SPEED));
-  return minDt + (base - minDt) * t;
+export function setSimulationFrameDuration(seconds) {
+  const duration = Number(seconds);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    currentFrameDurationScale = 1.0;
+    return;
+  }
+  currentFrameDurationScale = Math.max(
+    1.0,
+    Math.min(MAX_FRAME_DURATION_SCALE, duration / TARGET_FRAME_SECONDS)
+  );
 }
 
-export function effectiveStepsPerFrame(baseSteps, options = {}) {
-  const minOption = Number(options.min);
-  const maxOption = Number(options.max);
-  const minSteps = Number.isFinite(minOption) ? Math.max(0, Math.floor(minOption)) : 0;
-  const base = Math.max(minSteps, Math.round(Number(baseSteps) || 0));
+export function effectiveDt(baseDt) {
+  const base = Number(baseDt);
+  if (!Number.isFinite(base)) return baseDt;
+  if (currentSpeed < DEFAULT_SPEED) return base * currentSpeed;
+  if (currentSpeed > DEFAULT_SPEED) return base * currentFrameDurationScale;
+  return base;
+}
+
+export function effectiveStepsPerFrame(baseSteps) {
+  const base = Math.max(0, Math.round(Number(baseSteps) || 0));
 
   if (currentSpeed <= DEFAULT_SPEED) return base;
 
-  const maxSteps = Number.isFinite(maxOption)
-    ? Math.max(base, Math.floor(maxOption))
-    : Math.max(base, Math.ceil(base * MAX_SPEED));
-  const t = clamp01((currentSpeed - DEFAULT_SPEED) / (MAX_SPEED - DEFAULT_SPEED));
-  return Math.max(base, Math.min(maxSteps, Math.ceil(base + (maxSteps - base) * t)));
+  return Math.max(base, Math.ceil(base * currentSpeed));
 }
 
 export function onSimulationSpeedChange(listener) {

@@ -1,4 +1,4 @@
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 if (!navigator.gpu) {
@@ -108,6 +108,11 @@ const params = {
   densityScale: 0.5,
 };
 
+const TRAIL_FADE_FRAME_DT = Math.max(
+  1e-12,
+  params.dt * Math.max(1, Math.floor(params.stepsPerFrame))
+);
+
 const GUIDING_MODE_NAMES = [
   "Dirac current"
 ];
@@ -123,11 +128,15 @@ function requestRedraw() {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.001 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 16 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
+}
+
+function trailFadeFrameDt() {
+  return TRAIL_FADE_FRAME_DT;
 }
 
 const controls = document.getElementById("controls");
@@ -1494,7 +1503,7 @@ function clearDensity() {
 
 function densityStepAndStamp(encoder, camera) {
   if (!densViewA || !densViewB) return;
-  const dtTotal = simulationDt() * simulationStepsPerFrame();
+  const dtTotal = trailFadeFrameDt();
   const sizeScale = densW / Math.max(1, canvas.width);
   const fade = fadeFromHalfLife(params.trailHalfLife, dtTotal);
   writeUniforms(trailUniformBuffer, camera, densW, densH, fade, sizeScale);
@@ -1815,6 +1824,7 @@ async function main() {
   requestAnimationFrame(function loop(now = performance.now()) {
     const dtSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
     lastFrameTime = now;
+    setSimulationFrameDuration(dtSeconds);
     const resized = resizeCanvas();
     if (resized) rebuildDensity();
 

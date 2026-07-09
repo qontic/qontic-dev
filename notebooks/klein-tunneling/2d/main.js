@@ -7,7 +7,7 @@ import {
   TRAIL_FADE_FRAG,
   TRAIL_RENDER_FRAG,
 } from "./shaders/sources.js";
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", {
@@ -154,11 +154,11 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.0003 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 5 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
 }
 
 function rebuildAbsorber() {
@@ -1143,7 +1143,11 @@ resizeCanvas();
 resetAll();
 if (debugEnabled) installDebugHooks();
 
-requestAnimationFrame(function loop() {
+let lastFrameTime = performance.now();
+requestAnimationFrame(function loop(now = performance.now()) {
+  const frameSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
+  lastFrameTime = now;
+  setSimulationFrameDuration(frameSeconds);
   if (!paused) updateSimulation();
   render();
   updateStats();

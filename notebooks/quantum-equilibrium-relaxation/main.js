@@ -1,4 +1,4 @@
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
@@ -104,6 +104,11 @@ if (activeDemoProfile) {
   Object.assign(params, activeDemoProfile.params);
 }
 
+const TRAIL_FADE_FRAME_DT = Math.max(
+  1e-12,
+  params.dt * Math.max(1, Math.floor(params.stepsPerFrame))
+);
+
 let paused = false;
 let simTime = 0;
 let particleCount = 0;
@@ -130,11 +135,15 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.00001 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 100 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
+}
+
+function trailFadeFrameDt() {
+  return TRAIL_FADE_FRAME_DT;
 }
 
 function selectedPreset() {
@@ -722,7 +731,7 @@ function updateSimulation() {
     particleUpdate();
     simTime += dt;
   }
-  densityStepAndStamp(steps * dt);
+  densityStepAndStamp(trailFadeFrameDt());
 }
 
 function render() {
@@ -940,7 +949,11 @@ async function main() {
   resetAll();
   if (debugEnabled) installDebugHooks();
 
-  requestAnimationFrame(function loop() {
+  let lastFrameTime = performance.now();
+  requestAnimationFrame(function loop(now = performance.now()) {
+    const frameSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
+    lastFrameTime = now;
+    setSimulationFrameDuration(frameSeconds);
     resizeCanvas();
     if (!paused) updateSimulation();
     render();

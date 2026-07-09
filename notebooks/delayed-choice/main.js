@@ -1,4 +1,4 @@
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const wrap = document.getElementById("wrap");
@@ -232,6 +232,11 @@ if (presetParams) {
   Object.assign(params, presetParams);
 }
 
+const TRAIL_FADE_FRAME_DT = Math.max(
+  1e-12,
+  params.dt * Math.max(1, Math.floor(params.stepsPerFrame))
+);
+
 function isControlFixed(key) {
   return Boolean(presetDefinition) && !adjustableControls.has(key);
 }
@@ -319,11 +324,15 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.01 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 100 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
+}
+
+function trailFadeFrameDt() {
+  return TRAIL_FADE_FRAME_DT;
 }
 
 function smooth01(t) {
@@ -1894,7 +1903,7 @@ function particleUpdate() {
 }
 
 // --------------------
-// Density fade from half-life (simulation time)
+// Density fade from half-life using one rendered-frame fade interval.
 // --------------------
 const LN2 = Math.log(2);
 function fadeFromHalfLife(halfLife, dtTotal) {
@@ -1939,7 +1948,7 @@ function clearDensity() {
 }
 
 function densityStepAndStamp() {
-  const dtTotal = simulationDt() * simulationStepsPerFrame();
+  const dtTotal = trailFadeFrameDt();
 
   const waveTex = flip ? texB : texA;
   const src = densFlip ? densTexB : densTexA;
@@ -2318,6 +2327,8 @@ async function main() {
 
   
   requestAnimationFrame(function loop(frameTime) {
+    const frameSeconds = Math.min(0.05, Math.max(0, (frameTime - previousFrameTime) / 1000));
+    setSimulationFrameDuration(frameSeconds);
     updateViewEasing(frameTime);
     syncDisplaySize();
 
