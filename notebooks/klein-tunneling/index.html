@@ -479,6 +479,7 @@
           <li><a href="#three-d">3D Klein tunneling</a></li>
           <li><a href="#method-notes">Method notes</a></li>
           <li><a href="#comparison">What to compare</a></li>
+          <li><a href="#explanation">Explanation</a></li>
           <li><a href="#theory">Theory &amp; Equations</a></li>
           <li><a href="#full-applets">Standalone applets</a></li>
         </ul>
@@ -573,6 +574,105 @@
 
     
 
+    <section id="explanation" aria-labelledby="explanation-title">
+      <h2 id="explanation-title">Explanation</h2>
+
+      <h3>The particle follows the Dirac current</h3>
+      <p>
+        Pilot-wave theory gives a concrete dynamical picture of Klein tunneling.
+        The relativistic Dirac equation allows for a nonzero current through the barrier region. 
+         As ever, the velocity of a bohmian particle
+        is determined by the current of the full Dirac spinor. Particles simply "sail through"
+        the barrier with the probability flow.
+      </p>
+
+      <h3>Why the barrier can become transmitting again</h3>
+      <p>
+        In the nonrelativistic Schr&ouml;dinger picture,
+        the relevant energy-momentum relation is:
+      </p>
+      <div class="equation">
+        <span class="eq-label">Classical energy-momentum relation</span>
+        \[
+           E - V_0 = \frac{p^2}{2m}.
+        \]
+      </div>
+      <p>
+        When the potential barrier high enough to \(E-V_0\) become negative, the momentum \(p\) becomes imaginary.
+        Classically this means the particle cannot cross the barrier. Quantum mechanically,
+         even in the Schr&ouml;dinger picture, the wave function still supports an evanescent wave,
+         which decays exponentially inside the barrier region.
+         There is some possibility of tunneling through but tunneling becomes ever smaller
+          as the barrier potential increases.
+        
+      <p>
+        The Dirac equation, on the contrary, is relativistic so the corresponding  energy-momentum relation is:
+      </p>
+      <div class="equation">
+        <span class="eq-label">Relativistic  energy-momentum relation</span>
+        \[
+          (E-V_0)^2 = p^2c^2 + m^2c^4.
+        \]
+      </div>
+      <p>
+        When the barrier potential is so high that \( E - V_0 < -mc^2. \) the momentum  \( p \) becomes real again! 
+        Such a supercritical barrier supports a propagating negative-energy branch.
+      </p>
+      <div class="equation">
+        <span class="eq-label">Negative-energy branch condition</span>
+        \[
+          E - V_0 < -mc^2.
+        \]
+      </div>
+      <p>
+        Counterintuitively, the barrier can become transmitting again, even though it is higher than before. Moreover,
+        the higher the barrier, the more negative-energy modes are supported, and the more transmitting channels are available.
+        An infinitely high barrier would be transparent to the Dirac packet.
+      </p>
+
+      <h3>Bohmian insights</h3>
+      <p>
+        The Bohmian trajectory is not determined by the classical force. The
+        particle responds to the whole spinor velocity field \( \mathbf{j}/\rho \). Even negative energy modes can contribute to the guidance, so
+        increasing the positive potential does not have to monotonically reduce the
+        forward velocity.
+      </p>
+      
+      
+      <p>
+        The useful intuition is that the high barrier reorganizes the spinor flow field.
+        After the supercritical channel opens, the Bohmian particles follow that reorganized current.
+      </p>
+      <div class="equation">
+        <span class="eq-label">Pilot-wave summary</span>
+        \[
+          \boxed{
+          \text{high barrier}
+          \to
+          \text{negative-energy propagating channel}
+          \to
+          \text{Dirac current crosses}
+          \to
+          \text{trajectories follow}
+          }.
+        \]
+      </div>
+
+      <h3>What this explains and doesn't explain</h3>
+      <p>
+        The deep reason the channel exists is still the relativistic Dirac spectrum.
+        Pilot-wave theory then says what an actual particle does in the resulting
+        spinor flow.
+      </p>
+      
+      <p>
+        For the full Klein paradox, where pair creation is physically important, a
+        one-particle Bohm-Dirac model is not the final story. A Bohmian quantum field
+        theory with variable particle number would be needed to make the pair-production
+        account literal.
+      </p>
+    </section>
+
     <section id="theory" aria-labelledby="theory-title">
       <h2 id="theory-title">Theory &amp; Equations</h2>
 
@@ -580,6 +680,7 @@
       <p>
         The relativistic wave packet evolves under the Dirac equation with a scalar potential
         barrier \(V(\mathbf{x})\).
+        The Dirac equation can be written in a non-covariant form similar to that of the Schrödinger equation:
       </p>
       <div class="equation">
         <span class="eq-label">Dirac equation</span>
@@ -588,6 +689,37 @@
           =
           \left[-i\hbar c\,\boldsymbol{\alpha}\cdot\nabla
           + mc^2\beta + V(\mathbf{x})\right]\psi .
+        \]
+      </div>
+      <p>
+        Here \(\psi(\mathbf{x},t)\) is the Dirac spinor, while
+        \(\boldsymbol{\alpha}=(\alpha_x,\alpha_y,\alpha_z)\) and \(\beta\)
+        are the Dirac matrices. In the standard Dirac representation,
+      </p>
+      <div class="equation">
+        <span class="eq-label">Spinor and matrix definitions</span>
+        \[
+          \psi=
+          \begin{pmatrix}
+            \psi_1\\ \psi_2\\ \psi_3\\ \psi_4
+          \end{pmatrix},
+          \qquad
+          \alpha_i=
+          \begin{pmatrix}
+            0 & \sigma_i\\
+            \sigma_i & 0
+          \end{pmatrix},
+          \qquad
+          \beta=
+          \begin{pmatrix}
+            I_2 & 0\\
+            0 & -I_2
+          \end{pmatrix},
+        \]
+        \[
+          i\in\{x,y,z\},
+          \qquad
+          \sigma_i \text{ are the Pauli matrices.}
         \]
       </div>
 
