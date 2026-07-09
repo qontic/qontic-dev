@@ -1,0 +1,14 @@
+{
+  "title": "Quantum Harmonic Oscillator Notebook",
+  "type": "notebook",
+  "category": "modern physics",
+  "description": "A learner-first notebook connecting classical simple harmonic motion to the quantum harmonic oscillator with energy levels, wavefunctions, zero-point motion, measurements, and interpretation comparisons.",
+  "tags": [
+    "Notebook",
+    "Modern Physics",
+    "Simple Harmonic Motion",
+    "Quantum Harmonic Oscillator",
+    "Wavefunctions"
+  ],
+  "entry": "index.html"
+}

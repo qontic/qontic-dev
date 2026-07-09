@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Michelson-Morley Experiment Notebook</title>
+<style>
+:root{--page:#f4f6fb;--paper:#ffffff;--paper2:#f8fafc;--canvas:#071020;--text:#172033;--muted:#5f6b80;--accent:#2563eb;--accent-soft:#e8f0ff;--line:#d7deeb;--line2:#e7ebf3;--sim-ink:#bfe4ff;--cyan:#4fc3ff;--blue:#2563eb;--gold:#ffd24d;--orange:#ff9966;--green:#54e0a0;--red:#ff6b6b;--font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--page);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5}.page{max-width:1380px;margin:0 auto;padding:18px}
+.header{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:18px 20px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;box-shadow:0 10px 28px rgba(15,23,42,.06)}
+h1{margin:0;color:#111827;font-size:25px;font-weight:760;letter-spacing:-.02em}.header p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:950px}.nav{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.nav a{color:#334155;text-decoration:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:13px}.nav a:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.section{margin-top:18px;border:1px solid var(--line);background:var(--paper);border-radius:14px;overflow:hidden;box-shadow:0 10px 24px rgba(15,23,42,.055)}.section-head{padding:16px 18px;border-bottom:1px solid var(--line2);background:var(--paper)}.section-head h2{margin:0;color:#111827;font-size:18px;font-weight:730}.section-head p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:980px}.detail-text{margin-top:8px;max-width:980px;color:#334155;font-size:14px;line-height:1.56}.detail-text p{margin:7px 0}.detail-text strong{color:#111827}
+.section-body{display:grid;grid-template-columns:minmax(0,1fr) 306px;gap:14px;padding:14px;align-items:start}.canvas-card{position:relative;border:1px solid #111827;background:var(--canvas);border-radius:12px;overflow:hidden;min-height:500px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);contain:layout paint}.canvas-card.full{min-height:700px}canvas{display:block;width:100%;height:500px}.canvas-card.full canvas{height:700px}.note-overlay{position:absolute;left:12px;top:12px;max-width:min(710px,calc(100% - 24px));background:rgba(7,16,32,.79);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:8px 10px;color:#c7dfff;font-size:12px;line-height:1.38;pointer-events:none}.legend{position:absolute;left:12px;bottom:12px;display:flex;gap:10px;flex-wrap:wrap;background:rgba(7,16,32,.79);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:7px 9px;font-size:12px;color:#dbeafe;pointer-events:none}.sw{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,.28);vertical-align:-1px;margin-right:4px}
+.controls{border:1px solid var(--line);background:var(--paper2);border-radius:12px;padding:12px}.row{margin:0 0 12px}.row label{display:flex;justify-content:space-between;gap:10px;color:#334155;font-size:12px;margin-bottom:6px;font-weight:680}.row label span:last-child{color:#0f172a;font-weight:610}input[type=range]{width:100%;accent-color:var(--accent)}select{width:100%;background:#fff;color:#172033;border:1px solid var(--line);border-radius:9px;padding:8px 9px;font-family:var(--font);font-size:14px}.checks{display:grid;grid-template-columns:1fr;gap:8px;margin:8px 0 12px;color:#334155;font-size:13px}.checks input{accent-color:var(--accent)}
+.readout,.equation,.interp-box,.callout,.predict,.math-link,.symbol-box{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;color:#334155;font-size:13px;line-height:1.5;margin-top:10px}.equation{font-family:Georgia,"Times New Roman",serif;font-size:16px;line-height:1.65;color:#172033}.math-display{text-align:center}.eq-note{margin-top:6px;color:var(--muted);font-family:var(--font);font-size:12px;text-align:center}.formula{font-size:17px;color:#111827}.formula .cyan{color:var(--cyan);font-weight:700}.formula .gold{color:#b88900;font-weight:700}.formula .orange{color:#c85a24;font-weight:700}.formula .green{color:#047857;font-weight:700}.formula .blue{color:#1d4ed8;font-weight:700}.formula .red{color:#b91c1c;font-weight:700}
+.math-link h3,.predict h3,.symbol-box h3{margin:0 0 6px;color:#111827;font-size:13px}.math-row{display:grid;grid-template-columns:82px 1fr;gap:8px;padding:5px 0;border-top:1px solid var(--line2)}.math-row:first-of-type{border-top:0}.math-row strong{color:#111827}.predict select{margin-top:7px}.predict button,.button{width:100%;border:1px solid #1d4ed8;background:#fff;color:#1d4ed8;border-radius:9px;padding:8px 9px;font:680 13px var(--font);cursor:pointer;margin-top:7px}.predict button:hover,.button:hover{background:var(--accent-soft)}.button.secondary{border-color:var(--line);color:#334155}.feedback{display:none;margin-top:8px;border-radius:8px;padding:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}.feedback.show{display:block}.mini{font-size:12px;color:var(--muted)}
+.derivation{margin-top:10px;border:1px solid var(--line);background:#fff;border-radius:10px;overflow:hidden}.derivation summary{cursor:pointer;padding:10px 12px;color:#1e3a8a;font-weight:710;font-size:13px;background:var(--accent-soft)}.derivation summary:hover{background:#dfeaff}.derivation-body{padding:11px 12px;color:#334155;font-size:13px;line-height:1.55}.derivation-body p{margin:6px 0}.derivation-body .math-display{margin:8px 0;padding:7px;background:var(--paper2);border:1px solid var(--line2);border-radius:8px}
+.interpretation-list{display:grid;grid-template-columns:1fr;gap:9px;margin-top:10px}.interp-item{border:1px solid var(--line2);background:var(--paper2);border-radius:10px;padding:12px;color:#334155;font-size:14px;line-height:1.55}.interp-item h3{margin:0 0 6px;color:#111827;font-size:14px}.footer{margin:14px 0 0;border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:12px;color:var(--muted);font-size:13px}.pill{display:inline-block;padding:2px 7px;border-radius:999px;border:1px solid var(--line);font-size:11px;font-weight:700;margin:2px 4px 2px 0}.pill.classical{color:#c2410c;background:#fff7ed;border-color:#fed7aa}.pill.modern{color:#1d4ed8;background:#eff6ff;border-color:#bfdbfe}.pill.experimental{color:#047857;background:#ecfdf5;border-color:#a7f3d0}
+@media(max-width:980px){.header{grid-template-columns:1fr}.nav{justify-content:flex-start}.section-body{grid-template-columns:1fr}.canvas-card,.canvas-card.full{min-height:470px}canvas,.canvas-card.full canvas{height:470px}}
+@media(max-width:640px){.page{padding:10px}.header{padding:14px}.section-head{padding:14px}.section-body{padding:10px;gap:10px}.canvas-card,.canvas-card.full{min-height:360px}canvas,.canvas-card.full canvas{height:360px}.controls{width:100%}.nav a{font-size:12px;padding:6px 8px}.note-overlay{font-size:11px;max-width:calc(100% - 20px)}.math-row{grid-template-columns:1fr}}
+@media(max-width:430px){.canvas-card,.canvas-card.full{min-height:320px}canvas,.canvas-card.full canvas{height:320px}.legend{left:8px;bottom:8px;font-size:11px;gap:7px}.readout,.equation,.interp-box{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="header">
+  <div>
+    <h1>Michelson-Morley Experiment Notebook</h1>
+    <p>Explore the Michelson-Morley experiment as a bridge from classical wave thinking to modern relativity. The notebook uses a learner-first pattern: apparatus, prediction, one equation, symbol meanings, data interpretation, and the modern conclusion.</p>
+  </div>
+  <nav class="nav">
+    <a href="#part1">1. Apparatus</a><a href="#part2">2. Ether prediction</a><a href="#part3">3. Fringes</a><a href="#part4">4. Rotation test</a><a href="#part5">5. Null result</a><a href="#part6">6. Relativity</a><a href="#part7">7. Interpretation</a><a href="#full">Full applet</a>
+  </nav>
+</header>
+
+<section class="section" id="part1">
+  <div class="section-head">
+    <h2>1. Start with the interferometer</h2>
+    <p>A Michelson interferometer splits one light beam into two perpendicular arms, reflects the beams from mirrors, and recombines them. If the two returning waves have different phases, the detector sees bright and dark interference fringes.</p>
+    <div class="detail-text"><p>The key idea is simple: <strong>the experiment compares two round-trip light travel times</strong>. The hard part is deciding what classical ether theory would predict and what nature actually does.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Cyan and blue: split light beams. Orange: beam splitter and mirrors. Gold: detector fringe signal made when the returning beams recombine.</div></div>
+    <div class="controls">
+      <div class="row"><label><span>Arm length L</span><span id="s1LLbl">11.0 m</span></label><input id="s1L" type="range" min="1" max="25" step="0.5" value="11"></div>
+      <div class="row"><label><span>Wavelength λ</span><span id="s1LamLbl">550 nm</span></label><input id="s1Lam" type="range" min="400" max="700" step="5" value="550"></div>
+      <div class="math-link"><h3>Math means this picture</h3><div class="formula"><span class="cyan">beam 1</span> + <span class="blue">beam 2</span> → <span class="gold">fringes</span></div><div class="math-row"><strong>On the plot</strong><span>The two colored paths are the two possible optical arms.</span></div><div class="math-row"><strong>Meaning</strong><span>The detector does not see each beam separately; it sees the result of recombining their waves.</span></div></div>
+      <div class="symbol-box"><h3>Symbols in this notebook</h3><div class="math-row"><strong>L</strong><span>effective length of each interferometer arm</span></div><div class="math-row"><strong>λ</strong><span>wavelength of the light</span></div><div class="math-row"><strong>v</strong><span>hypothetical speed through the ether, if an ether wind existed</span></div></div>
+      <div class="readout" id="s1Read"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part2">
+  <div class="section-head">
+    <h2>2. What would an ether wind predict?</h2>
+    <p>Before special relativity, many physicists imagined light as a wave traveling through a medium called the ether. If Earth moved through that medium, light should take slightly different times along the arm parallel to the ether wind and the arm perpendicular to it.</p>
+    <div class="detail-text"><p>This is the experiment’s central prediction check: a classical ether model predicts a small but measurable round-trip time difference. The modern result is that this expected shift is not observed.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c2"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>parallel arm time</div><div><span class="sw" style="background:#2563eb"></span>perpendicular arm time</div><div><span class="sw" style="background:#54e0a0"></span>time difference</div></div></div>
+    <div class="controls">
+      <div class="row"><label><span>Hypothetical ether speed v</span><span id="s2vLbl">30.0 km/s</span></label><input id="s2v" type="range" min="0" max="60" step="1" value="30"></div>
+      <div class="row"><label><span>Arm length L</span><span id="s2LLbl">11.0 m</span></label><input id="s2L" type="range" min="1" max="25" step="0.5" value="11"></div>
+      <div class="predict" data-answer="larger"><h3>Prediction check</h3><span>If the hypothetical ether speed v increases, what happens to the predicted time difference?</span><select><option value="">Choose one</option><option value="larger">It gets larger</option><option value="smaller">It gets smaller</option><option value="same">It stays the same</option></select><button type="button">Check prediction</button><div class="feedback">The predicted effect grows like v². Doubling v makes the predicted time difference four times larger.</div></div>
+      <div class="math-link"><h3>Math means this picture</h3><div class="formula">Δt ≈ <span class="orange">L</span><span class="green">v²</span>/c³</div><div class="math-row"><strong>On the plot</strong><span>The green bar is the predicted difference between the two round-trip times.</span></div><div class="math-row"><strong>Meaning</strong><span>A longer arm or faster ether wind would make the classical predicted difference easier to see.</span></div></div>
+      <details class="derivation"><summary>Show the round-trip time formulas</summary><div class="derivation-body"><p>In the classical ether model, the parallel and perpendicular round-trip times are:</p><div class="math-display">t<sub>parallel</sub> = L/(c−v) + L/(c+v)</div><div class="math-display">t<sub>perpendicular</sub> = 2L/√(c²−v²)</div><p>For v much smaller than c, their difference is approximately Δt ≈ Lv²/c³.</p></div></details>
+      <div class="readout" id="s2Read"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part3">
+  <div class="section-head">
+    <h2>3. A path difference becomes a phase difference</h2>
+    <p>The detector responds to phase, not to travel time directly. A tiny path difference can shift the bright and dark fringes because one returning wave may arrive slightly ahead of the other.</p>
+    <div class="detail-text"><p>For beginners, the important step is: <strong>path difference → phase difference → fringe shift</strong>. This is the same wave logic used in two-slit interference, but now the two paths are the interferometer arms.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c3"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>wave from arm A</div><div><span class="sw" style="background:#2563eb"></span>wave from arm B</div><div><span class="sw" style="background:#ffd24d"></span>detector fringes</div></div></div>
+    <div class="controls">
+      <div class="row"><label><span>Path difference Δℓ</span><span id="s3dLbl">0.00 λ</span></label><input id="s3d" type="range" min="-2" max="2" step="0.01" value="0"></div>
+      <div class="row"><label><span>Visibility</span><span id="s3visLbl">0.90</span></label><input id="s3vis" type="range" min="0" max="1" step="0.01" value="0.90"></div>
+      <div class="predict" data-answer="one"><h3>Prediction check</h3><span>How much path difference returns the same fringe pattern?</span><select><option value="">Choose one</option><option value="half">Half a wavelength</option><option value="one">One full wavelength</option><option value="random">Any small change</option></select><button type="button">Check prediction</button><div class="feedback">A one-wavelength path change adds 2π of phase, returning the same bright-dark pattern.</div></div>
+      <div class="math-link"><h3>Math means this picture</h3><div class="formula"><span class="green">Δφ</span> = 2π<span class="orange">Δℓ</span>/<span class="blue">λ</span></div><div class="math-row"><strong>On the plot</strong><span>Changing Δℓ shifts the gold fringe pattern left or right.</span></div><div class="math-row"><strong>Meaning</strong><span>One wavelength of extra path corresponds to one full phase cycle.</span></div></div>
+      <div class="readout" id="s3Read"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part4">
+  <div class="section-head">
+    <h2>4. Rotate the apparatus and look for a fringe shift</h2>
+    <p>If the ether-wind picture were correct, rotating the interferometer should swap which arm is more parallel to the wind. The predicted time difference would change with angle, producing a shift in the fringes.</p>
+    <div class="detail-text"><p>The crucial signature is not simply “there are fringes.” Fringes exist because the instrument is an interferometer. The predicted ether signal is a <strong>change in fringe position as the apparatus rotates</strong>.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c4"></canvas><div class="legend"><div><span class="sw" style="background:#ff9966"></span>classical ether prediction</div><div><span class="sw" style="background:#54e0a0"></span>null-result pattern</div><div><span class="sw" style="background:#ffd24d"></span>current angle</div></div></div>
+    <div class="controls">
+      <div class="row"><label><span>Rotation angle θ</span><span id="s4thetaLbl">0°</span></label><input id="s4theta" type="range" min="0" max="180" step="1" value="0"></div>
+      <div class="row"><label><span>Hypothetical ether speed v</span><span id="s4vLbl">30.0 km/s</span></label><input id="s4v" type="range" min="0" max="60" step="1" value="30"></div>
+      <div class="row"><label><span>Arm length L</span><span id="s4LLbl">11.0 m</span></label><input id="s4L" type="range" min="1" max="25" step="0.5" value="11"></div>
+      <div class="row"><label><span>Wavelength λ</span><span id="s4LamLbl">550 nm</span></label><input id="s4Lam" type="range" min="400" max="700" step="5" value="550"></div>
+      <div class="math-link"><h3>Math means this picture</h3><div class="formula">N(θ) ≈ [<span class="orange">L</span><span class="green">v²</span>/(<span class="blue">λ</span>c²)] cos(2θ)</div><div class="math-row"><strong>On the plot</strong><span>The orange curve is the fringe shift an ether-wind model predicts during rotation.</span></div><div class="math-row"><strong>Meaning</strong><span>The factor cos(2θ) means the pattern repeats after a 180° rotation and reverses after 90°.</span></div></div>
+      <div class="readout" id="s4Read"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part5">
+  <div class="section-head">
+    <h2>5. The null result: what was not seen?</h2>
+    <p>The experiment did not find the fringe shift expected from motion through a stationary ether. This result challenged the idea that light needed a mechanical medium with a preferred rest frame.</p>
+    <div class="detail-text"><p>A “null result” does not mean nothing happened on the screen. It means the specific predicted change—an orientation-dependent ether-wind fringe shift—was absent within experimental sensitivity.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c5"></canvas><div class="legend"><div><span class="sw" style="background:#ff9966"></span>predicted ether shift</div><div><span class="sw" style="background:#54e0a0"></span>observed null trend</div><div><span class="sw" style="background:#ff6b6b"></span>measurement scatter</div></div></div>
+    <div class="controls">
+      <div class="row"><label><span>Classroom noise level</span><span id="s5noiseLbl">0.05 fringes</span></label><input id="s5noise" type="range" min="0" max="0.15" step="0.01" value="0.05"></div>
+      <div class="row"><label><span>Show model</span><span id="s5modelLbl">Prediction + null data</span></label><select id="s5model"><option value="both" selected>Prediction + null data</option><option value="pred">Classical ether prediction only</option><option value="null">Null-result data only</option></select></div>
+      <div class="predict" data-answer="specific"><h3>Prediction check</h3><span>What makes this a null result?</span><select><option value="">Choose one</option><option value="blank">The screen had no light</option><option value="specific">The predicted rotation shift was not observed</option><option value="nointerference">There were no interference fringes</option></select><button type="button">Check prediction</button><div class="feedback">Correct idea: fringes can still exist. The missing signal is the orientation-dependent fringe shift predicted by an ether wind.</div></div>
+      <div class="math-link"><h3>Math means this picture</h3><div class="formula"><span class="orange">predicted shift</span> ≠ <span class="green">measured trend</span></div><div class="math-row"><strong>On the plot</strong><span>The orange curve wiggles with angle, but the green trend stays near zero.</span></div><div class="math-row"><strong>Meaning</strong><span>The data did not support the stationary-ether prediction.</span></div></div>
+      <div class="readout" id="s5Read"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part6">
+  <div class="section-head">
+    <h2>6. The modern relativity reading</h2>
+    <p>Special relativity replaces the ether-wind expectation with a new principle: the speed of light in vacuum is the same for all inertial observers. The Michelson-Morley result is one important experimental clue that this older classical picture needed revision.</p>
+    <div class="detail-text"><p>Historically, several ideas were proposed to explain the null result. In modern teaching, the experiment is often used to motivate why “relative to the ether” is not needed in the laws of physics.</p></div>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c6"></canvas><div class="legend"><div><span class="sw" style="background:#ff9966"></span>ether expectation</div><div><span class="sw" style="background:#4fc3ff"></span>same-c principle</div><div><span class="sw" style="background:#54e0a0"></span>round-trip comparison</div></div></div>
+    <div class="controls">
+      <div class="row"><label><span>Viewpoint</span><span id="s6viewLbl">Modern relativity</span></label><select id="s6view"><option value="relativity" selected>Modern relativity</option><option value="ether">Classical ether expectation</option><option value="lorentz">Lorentz-contraction bridge</option></select></div>
+      <div class="math-link"><h3>Math means this picture</h3><div class="formula"><span class="blue">c</span> is invariant</div><div class="math-row"><strong>On the plot</strong><span>The modern view compares the two arms without adding or subtracting an ether-wind speed from c.</span></div><div class="math-row"><strong>Meaning</strong><span>The result points toward no preferred ether rest frame for light propagation.</span></div></div>
+      <div class="interp-box" id="s6Read"></div>
+      <details class="derivation"><summary>Careful historical note</summary><div class="derivation-body"><p>The experiment alone is not the entire derivation of special relativity. It is one important result, together with Maxwell’s equations and other evidence, that made the old ether-wind picture difficult to keep.</p><p>The Lorentz-contraction idea was historically introduced before Einstein’s 1905 interpretation. Special relativity later made length contraction and time dilation consequences of spacetime structure rather than mechanical effects of motion through an ether.</p></div></details>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="part7">
+  <div class="section-head">
+    <h2>7. What conceptual difficulty did the experiment resolve?</h2>
+    <p>The Michelson-Morley experiment is valuable because it turns a philosophical-sounding question—“What is light moving relative to?”—into a measurable prediction. The missing fringe shift helped move physics away from a preferred ether frame.</p>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="c7"></canvas><div class="note-overlay" id="s7Note">Use the selector to compare three accounts.</div></div>
+    <div class="controls">
+      <div class="row"><label><span>Account</span><span id="s7accountLbl">Classical ether</span></label><select id="s7account"><option value="ether" selected>Classical ether account</option><option value="null">Experimental null result</option><option value="relativity">Modern relativity account</option></select></div>
+      <div class="interpretation-list">
+        <div class="interp-item"><h3>Classical ether account</h3><p>Light is treated like a wave in a mechanical medium. Motion through that medium should create an orientation-dependent travel-time difference.</p></div>
+        <div class="interp-item"><h3>Experimental lesson</h3><p>The expected orientation-dependent fringe shift was not found. The measurement challenged the idea of a detectable ether wind.</p></div>
+        <div class="interp-item"><h3>Modern relativity account</h3><p>The laws of physics do not require a preferred rest frame for light. Observers in inertial frames measure the same vacuum light speed c.</p></div>
+      </div>
+      <div class="readout" id="s7Read"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="full">
+  <div class="section-head">
+    <h2>Full interactive applet</h2>
+    <p>Combine the apparatus, classical ether prediction, fringe phase, rotation angle, and null-result comparison. Use it to connect the experimental setup to the modern physics conclusion.</p>
+  </div>
+  <div class="section-body">
+    <div class="canvas-card full"><canvas id="cFull"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>interferometer arms</div><div><span class="sw" style="background:#ff9966"></span>ether prediction</div><div><span class="sw" style="background:#54e0a0"></span>null trend</div><div><span class="sw" style="background:#ffd24d"></span>fringes</div></div></div>
+    <div class="controls">
+      <div class="row"><label><span>Rotation angle θ</span><span id="fThetaLbl">0°</span></label><input id="fTheta" type="range" min="0" max="180" step="1" value="0"></div>
+      <div class="row"><label><span>Hypothetical ether speed v</span><span id="fVLbl">30.0 km/s</span></label><input id="fV" type="range" min="0" max="60" step="1" value="30"></div>
+      <div class="row"><label><span>Arm length L</span><span id="fLLbl">11.0 m</span></label><input id="fL" type="range" min="1" max="25" step="0.5" value="11"></div>
+      <div class="row"><label><span>Wavelength λ</span><span id="fLamLbl">550 nm</span></label><input id="fLam" type="range" min="400" max="700" step="5" value="550"></div>
+      <div class="row"><label><span>Visibility</span><span id="fVisLbl">0.90</span></label><input id="fVis" type="range" min="0" max="1" step="0.01" value="0.90"></div>
+      <div class="row"><label><span>Display</span><span id="fModeLbl">Prediction + null result</span></label><select id="fMode"><option value="both" selected>Prediction + null result</option><option value="pred">Classical ether prediction</option><option value="null">Modern null trend</option></select></div>
+      <button class="button secondary" id="fReset" type="button">Reset recommended example</button>
+      <div class="readout" id="fRead"></div>
+    </div>
+  </div>
+</section>
+<div class="footer">Self-contained HTML/CSS/JavaScript. Made for beginner modern-physics students: each section ties an experimental picture to a small mathematical claim and a plain-language interpretation.</div>
+</div>
+<script>
+(function(){'use strict';
+const $=id=>document.getElementById(id); const all=s=>Array.from(document.querySelectorAll(s));
+const C0=299792458; const COL={cyan:'#4fc3ff',blue:'#2563eb',gold:'#ffd24d',orange:'#ff9966',green:'#54e0a0',red:'#ff6b6b',ink:'#bfe4ff'};
+let time=0,last=performance.now();
+function val(id){const e=$(id); if(!e)return 0; return e.tagName==='SELECT'?e.value:Number(e.value);} function txt(id,v){const e=$(id); if(e)e.textContent=String(v);} function html(id,v){const e=$(id); if(e)e.innerHTML=String(v);} function fmt(x,n=2){return Number(x).toFixed(n);} function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function dpr(){return Math.min(window.devicePixelRatio||1,2);} function setup(id){const c=$(id),r=c.getBoundingClientRect(),s=dpr();const w=Math.max(1,Math.floor(r.width*s)),h=Math.max(1,Math.floor(r.height*s));if(c.width!==w||c.height!==h){c.width=w;c.height=h;}const ctx=c.getContext('2d');ctx.setTransform(s,0,0,s,0,0);return{ctx,W:r.width,H:r.height};}
+function clear(ctx,W,H){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#08122d');g.addColorStop(1,'#071020');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);} function grid(ctx,W,H){ctx.save();ctx.strokeStyle='rgba(123,178,255,.14)';ctx.lineWidth=1;for(let i=0;i<=10;i++){const x=56+(W-90)*i/10;ctx.beginPath();ctx.moveTo(x,42);ctx.lineTo(x,H-56);ctx.stroke();}for(let j=0;j<=7;j++){const y=42+(H-98)*j/7;ctx.beginPath();ctx.moveTo(56,y);ctx.lineTo(W-34,y);ctx.stroke();}ctx.restore();}
+function params(prefix){return{L:val(prefix+'L')||11,lam:(val(prefix+'Lam')||550)*1e-9,v:(val(prefix+'V')||val(prefix+'v')||30)*1000,theta:(val(prefix+'Theta')||val(prefix+'theta')||0)*Math.PI/180,vis:val(prefix+'Vis')||val(prefix+'vis')||0.9};}
+function fringeAmp(p){return p.L*(p.v*p.v)/(p.lam*C0*C0);} function fringeAt(p,theta){return fringeAmp(p)*Math.cos(2*theta);} function rotatedShift(p){return 2*fringeAmp(p);} function pathMetersFromFringes(N,p){return N*p.lam;} function dtApprox(p){return p.L*p.v*p.v/(C0*C0*C0);} 
+function drawArrow(ctx,x1,y1,x2,y2,color,w=2){ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();const a=Math.atan2(y2-y1,x2-x1),s=8;ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-s*Math.cos(a-Math.PI/6),y2-s*Math.sin(a-Math.PI/6));ctx.lineTo(x2-s*Math.cos(a+Math.PI/6),y2-s*Math.sin(a+Math.PI/6));ctx.closePath();ctx.fill();ctx.restore();}
+function drawInterferometer(ctx,W,H,opt={}){const cx=W*.44,cy=H*.55,arm=Math.min(W,H)*.28,ang=opt.theta||0;ctx.save();ctx.translate(cx,cy);ctx.rotate(ang);ctx.strokeStyle='rgba(191,228,255,.25)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-arm,0);ctx.lineTo(arm,0);ctx.moveTo(0,-arm);ctx.lineTo(0,arm);ctx.stroke();ctx.lineCap='round';ctx.lineWidth=5;ctx.strokeStyle=COL.cyan;ctx.beginPath();ctx.moveTo(-arm*.9,0);ctx.lineTo(0,0);ctx.lineTo(arm*.82,0);ctx.stroke();ctx.strokeStyle=COL.blue;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-arm*.82);ctx.stroke();ctx.strokeStyle='rgba(79,195,255,.45)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(arm*.82,0);ctx.lineTo(0,0);ctx.lineTo(0,arm*.55);ctx.stroke();ctx.strokeStyle='rgba(37,99,235,.45)';ctx.beginPath();ctx.moveTo(0,-arm*.82);ctx.lineTo(0,0);ctx.lineTo(0,arm*.55);ctx.stroke();ctx.fillStyle=COL.orange;ctx.save();ctx.rotate(Math.PI/4);ctx.fillRect(-7,-28,14,56);ctx.restore();ctx.fillStyle='#dbeafe';ctx.fillRect(arm*.79,-18,10,36);ctx.fillRect(-18,-arm*.85,36,10);ctx.fillStyle=COL.gold;ctx.beginPath();ctx.arc(0,arm*.64,13,0,Math.PI*2);ctx.fill();ctx.restore();if(opt.wind){drawArrow(ctx,W*.08,H*.16,W*.32,H*.16,COL.green,3);ctx.fillStyle=COL.green;ctx.font='bold 13px Arial';ctx.fillText('hypothetical ether wind v',W*.09,H*.13);}ctx.fillStyle=COL.ink;ctx.font='13px Arial';ctx.fillText('light source',cx-arm*.92,cy+34);ctx.fillText('detector',cx+10,cy+arm*.21);}
+function drawFringes(ctx,x,y,w,h,shift=0,vis=.9){ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();for(let i=0;i<w;i++){const phase=2*Math.PI*(i/w*8-shift);const bright=.5+.5*vis*Math.cos(phase);const r=Math.round(20+235*bright),g=Math.round(25+205*bright),b=Math.round(45+100*bright);ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillRect(x+i,y,1,h);}ctx.strokeStyle='rgba(255,255,255,.55)';ctx.strokeRect(x,y,w,h);ctx.restore();}
+function drawBar(ctx,x,y,w,h,val,max,color,label){const hh=max>0?h*val/max:0;ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(x,y,w,h);ctx.fillStyle=color;ctx.fillRect(x,y+h-hh,w,hh);ctx.strokeStyle='rgba(191,228,255,.35)';ctx.strokeRect(x,y,w,h);ctx.fillStyle=COL.ink;ctx.font='12px Arial';ctx.fillText(label,x-4,y+h+18);}
+function drawAxesPlot(ctx,W,H,box){const {x,y,w,h}=box;ctx.save();ctx.strokeStyle='rgba(191,228,255,.65)';ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);ctx.strokeStyle='rgba(123,178,255,.16)';for(let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(x+w*i/6,y);ctx.lineTo(x+w*i/6,y+h);ctx.stroke();}for(let j=1;j<4;j++){ctx.beginPath();ctx.moveTo(x,y+h*j/4);ctx.lineTo(x+w,y+h*j/4);ctx.stroke();}ctx.fillStyle=COL.ink;ctx.font='12px Arial';ctx.fillText('rotation angle θ',x+w/2-42,y+h+32);ctx.save();ctx.translate(x-36,y+h/2+48);ctx.rotate(-Math.PI/2);ctx.fillText('fringe shift',0,0);ctx.restore();ctx.restore();}
+function drawRotationCurve(ctx,W,H,p,box,mode='both',theta=0){const amp=Math.max(0.08,fringeAmp(p));drawAxesPlot(ctx,W,H,box);ctx.save();ctx.beginPath();ctx.rect(box.x,box.y,box.w,box.h);ctx.clip();function X(th){return box.x+box.w*th/Math.PI;}function Y(N){return box.y+box.h/2-N/(amp*1.25)*box.h/2;}if(mode!=='null'){ctx.strokeStyle=COL.orange;ctx.lineWidth=3;ctx.beginPath();for(let i=0;i<=240;i++){const th=Math.PI*i/240,N=fringeAt(p,th);if(i)ctx.lineTo(X(th),Y(N));else ctx.moveTo(X(th),Y(N));}ctx.stroke();}if(mode!=='pred'){ctx.strokeStyle=COL.green;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(box.x,Y(0));ctx.lineTo(box.x+box.w,Y(0));ctx.stroke();}ctx.fillStyle=COL.gold;ctx.beginPath();ctx.arc(X(theta),Y(mode==='null'?0:fringeAt(p,theta)),6,0,Math.PI*2);ctx.fill();ctx.restore();ctx.fillStyle=COL.ink;ctx.font='12px Arial';ctx.fillText('0°',box.x-2,box.y+box.h+16);ctx.fillText('90°',box.x+box.w/2-12,box.y+box.h+16);ctx.fillText('180°',box.x+box.w-25,box.y+box.h+16);}
+function drawWaves(ctx,W,H,delta,vis){const y0=H*.30,y1=H*.48,y2=H*.70,x0=60,x1=W-45;ctx.save();ctx.lineWidth=2.5;ctx.strokeStyle=COL.cyan;ctx.beginPath();for(let i=0;i<=500;i++){const x=x0+(x1-x0)*i/500,y=y0+26*Math.sin(i/500*8*Math.PI);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);}ctx.stroke();ctx.strokeStyle=COL.blue;ctx.beginPath();for(let i=0;i<=500;i++){const x=x0+(x1-x0)*i/500,y=y1+26*Math.sin(i/500*8*Math.PI+2*Math.PI*delta);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);}ctx.stroke();ctx.fillStyle=COL.ink;ctx.font='13px Arial';ctx.fillText('returning wave A',x0,y0-36);ctx.fillText('returning wave B',x0,y1-36);drawFringes(ctx,x0,y2,x1-x0,70,delta,vis);ctx.fillStyle=COL.gold;ctx.fillText('detector fringe pattern',x0,y2+96);ctx.restore();}
+function labelCommon(prefix,p){txt(prefix+'LLbl',fmt(p.L,1)+' m');txt(prefix+'LamLbl',fmt(p.lam*1e9,0)+' nm');if($(prefix+'VLbl'))txt(prefix+'VLbl',fmt(p.v/1000,1)+' km/s');if($(prefix+'vLbl'))txt(prefix+'vLbl',fmt(p.v/1000,1)+' km/s');if($(prefix+'ThetaLbl'))txt(prefix+'ThetaLbl',fmt(p.theta*180/Math.PI,0)+'°');if($(prefix+'thetaLbl'))txt(prefix+'thetaLbl',fmt(p.theta*180/Math.PI,0)+'°');if($(prefix+'VisLbl'))txt(prefix+'VisLbl',fmt(p.vis,2));if($(prefix+'visLbl'))txt(prefix+'visLbl',fmt(p.vis,2));}
+function draw1(){const {ctx,W,H}=setup('c1');clear(ctx,W,H);grid(ctx,W,H);drawInterferometer(ctx,W,H);const p=params('s1');labelCommon('s1',p);drawFringes(ctx,W*.66,H*.23,W*.25,90,0,p.vis);html('s1Read',`<strong>Readout:</strong> L=${fmt(p.L,1)} m, λ=${fmt(p.lam*1e9,0)} nm. A path change of one wavelength shifts the phase by one full cycle.`);}
+function draw2(){const {ctx,W,H}=setup('c2');clear(ctx,W,H);grid(ctx,W,H);drawInterferometer(ctx,W,H,{wind:true});const p=params('s2');labelCommon('s2',p);const t0=2*p.L/C0,tpar=2*p.L*C0/(C0*C0-p.v*p.v),tperp=2*p.L/Math.sqrt(C0*C0-p.v*p.v),dt=tpar-tperp;const max=Math.max(tpar,tperp,t0)*1.02;drawBar(ctx,W*.64,H*.28,48,H*.44,tpar,max,COL.cyan,'parallel');drawBar(ctx,W*.74,H*.28,48,H*.44,tperp,max,COL.blue,'perp.');drawBar(ctx,W*.84,H*.28,48,H*.44,Math.abs(dt),Math.max(Math.abs(dt),dtApprox({L:p.L,v:60000})),COL.green,'Δt');html('s2Read',`<strong>Ether prediction:</strong> Δt ≈ ${dtApprox(p).toExponential(3)} s. The corresponding path difference is cΔt ≈ ${(C0*dtApprox(p)).toExponential(3)} m.`);}
+function draw3(){const {ctx,W,H}=setup('c3');clear(ctx,W,H);grid(ctx,W,H);const delta=val('s3d'),vis=val('s3vis');txt('s3dLbl',fmt(delta,2)+' λ');txt('s3visLbl',fmt(vis,2));drawWaves(ctx,W,H,delta,vis);html('s3Read',`<strong>Phase:</strong> Δφ = 2π(${fmt(delta,2)}) = ${fmt(2*Math.PI*delta,2)} radians. The visible fringe pattern has shifted by ${fmt(delta,2)} fringe spacings.`);}
+function draw4(){const {ctx,W,H}=setup('c4');clear(ctx,W,H);const p=params('s4');labelCommon('s4',p);drawInterferometer(ctx,W,H,{theta:p.theta,wind:true});drawRotationCurve(ctx,W,H,p,{x:W*.55,y:H*.18,w:W*.38,h:H*.58},'both',p.theta);html('s4Read',`<strong>Classical prediction:</strong> maximum shift from 90° rotation ≈ ${fmt(rotatedShift(p),3)} fringes. Current angle prediction: ${fmt(fringeAt(p,p.theta),3)} fringes.`);}
+function noisePoint(i,noise){const s=Math.sin(i*12.9898)*43758.5453;return (s-Math.floor(s)-0.5)*2*noise;}function draw5(){const {ctx,W,H}=setup('c5');clear(ctx,W,H);const p={L:11,lam:550e-9,v:30000,theta:0,vis:.9};const noise=val('s5noise'),mode=val('s5model');txt('s5noiseLbl',fmt(noise,2)+' fringes');txt('s5modelLbl',mode==='both'?'Prediction + null data':mode==='pred'?'Classical prediction only':'Null data only');const box={x:74,y:60,w:W-120,h:H-135};drawRotationCurve(ctx,W,H,p,box,mode,0);ctx.save();if(mode!=='pred'){ctx.fillStyle=COL.red;for(let i=0;i<=36;i++){const th=Math.PI*i/36;const x=box.x+box.w*th/Math.PI;const amp=Math.max(0.08,fringeAmp(p));const y=box.y+box.h/2-noisePoint(i,noise)/(amp*1.25)*box.h/2;ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();}}ctx.restore();html('s5Read',`<strong>Null-result reading:</strong> the observed trend stays near zero instead of following the classical ether curve. This is why the result mattered.`);}
+function draw6(){const {ctx,W,H}=setup('c6');clear(ctx,W,H);grid(ctx,W,H);const view=val('s6view');txt('s6viewLbl',view==='relativity'?'Modern relativity':view==='ether'?'Classical ether expectation':'Lorentz-contraction bridge');drawInterferometer(ctx,W,H,{wind:view!=='relativity'});ctx.save();ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(W*.58,H*.16,W*.34,H*.66);ctx.strokeStyle='rgba(191,228,255,.35)';ctx.strokeRect(W*.58,H*.16,W*.34,H*.66);ctx.fillStyle=COL.ink;ctx.font='bold 14px Arial';let title='Same light speed c';let lines=['No preferred ether rest frame is needed.','Both arms are analyzed with the same vacuum light speed.','The null result fits this new spacetime picture.'];if(view==='ether'){title='Classical ether expectation';lines=['Treat light like a wave in a stationary medium.','Add or subtract an ether-wind speed from c.','Predict an orientation-dependent fringe shift.'];}if(view==='lorentz'){title='Bridge idea: contraction';lines=['A contraction along the direction of motion can cancel the expected shift.','In special relativity, this becomes part of spacetime geometry.','It is not a mechanical squeeze by an ether.'];}ctx.fillText(title,W*.61,H*.23);ctx.font='13px Arial';lines.forEach((line,i)=>ctx.fillText('• '+line,W*.61,H*.29+i*28));ctx.restore();html('s6Read',`<strong>${title}:</strong> ${lines.join(' ')}`);}
+function draw7(){const {ctx,W,H}=setup('c7');clear(ctx,W,H);grid(ctx,W,H);const account=val('s7account');txt('s7accountLbl',account==='ether'?'Classical ether':account==='null'?'Experimental null result':'Modern relativity');let mode='both';if(account==='ether')mode='pred';if(account==='null')mode='null';const p={L:11,lam:550e-9,v:30000,theta:time*.25%(Math.PI),vis:.9};drawRotationCurve(ctx,W,H,p,{x:70,y:70,w:W-130,h:H-160},mode,p.theta);const note=account==='ether'?'Classical ether account: a detectable fringe shift should appear as the apparatus rotates.':account==='null'?'Experimental lesson: the expected rotation-dependent shift was absent within sensitivity.':'Modern relativity account: no preferred ether frame is required; c is invariant in inertial frames.';$('s7Note').textContent=note;html('s7Read',`<strong>Sense-making:</strong> ${note}`);}
+function drawFull(){const {ctx,W,H}=setup('cFull');clear(ctx,W,H);grid(ctx,W,H);const p=params('f');labelCommon('f',p);const mode=val('fMode');txt('fModeLbl',mode==='both'?'Prediction + null result':mode==='pred'?'Classical ether prediction':'Modern null trend');drawInterferometer(ctx,W,H,{theta:p.theta,wind:true});drawFringes(ctx,W*.62,H*.12,W*.32,84,mode==='null'?0:fringeAt(p,p.theta),p.vis);drawRotationCurve(ctx,W,H,p,{x:W*.55,y:H*.36,w:W*.40,h:H*.43},mode,p.theta);html('fRead',`<strong>Current prediction:</strong> N(θ)=${fmt(fringeAt(p,p.theta),3)} fringes. A 90° rotation would change the classical prediction by about ${fmt(rotatedShift(p),3)} fringes. The modern null trend stays near zero.`);}
+function initPredictions(){all('.predict').forEach(box=>{const btn=box.querySelector('button'),sel=box.querySelector('select'),fb=box.querySelector('.feedback');btn.addEventListener('click',()=>{if(!sel.value){fb.textContent='Choose an answer first, then check it.';fb.classList.add('show');return;}const original=fb.dataset.original||fb.textContent;fb.dataset.original=original;fb.textContent=(sel.value===box.dataset.answer?'Correct. ':'Good prediction to test. ')+original;fb.classList.add('show');});});}
+function bind(){all('input,select').forEach(e=>e.addEventListener('input',drawAll));$('fReset').addEventListener('click',()=>{['fTheta','fV','fL','fLam','fVis'].forEach((id,i)=>{$(id).value=[0,30,11,550,.9][i];});$('fMode').value='both';drawAll();});initPredictions();}
+function drawAll(){draw1();draw2();draw3();draw4();draw5();draw6();draw7();drawFull();}
+function loop(now){const dt=Math.min(80,now-last);last=now;time+=dt/1000;draw7();drawFull();requestAnimationFrame(loop);}window.addEventListener('resize',drawAll);bind();drawAll();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
