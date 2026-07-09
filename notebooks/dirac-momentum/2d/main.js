@@ -44,6 +44,7 @@ const PACKET_Y0 = 0.5 * BOX_LY;
 const urlParams = new URLSearchParams(window.location.search);
 const isEmbedded = urlParams.get("embed") === "1";
 const debugEnabled = urlParams.has("debug");
+if (isEmbedded) theoryPanel?.remove();
 
 const params = {
   stepsPerFrame: 1,
@@ -54,13 +55,17 @@ const params = {
   packetAngle: 0.0,
   packetSigma: 0.62,
   mixAngleDeg: 90.0,
-  nParticles: 4000,
+  nParticles: 500,
   densityGain: 2.2,
   densityGamma: 0.55,
   amplitudeView: 0,
   showParticles: 1,
   showTrail: 1,
-  dotSize: 2.4,
+  dotSize: 6,
+  trailLength: 12,
+  trailVisGain: 1.35,
+  trailVisGamma: 0.6,
+  trailStampGain: 0.55,
 };
 
 let paused = false;
@@ -273,8 +278,9 @@ addSlider("densityGamma", "density gamma", 0.25, 1.2, 0.05);
 addToggleChoice("amplitudeView", "amp view", "Total", "Lower");
 addToggleInt("showParticles", "show particles");
 addToggleInt("showTrail", "draw trails", (value) => { if (!value) clearTrail(); });
-addSlider("nParticles", "particle count", 1000, 50000, 1000, rebuildParticles);
-addSlider("dotSize", "particle size", 1.0, 6.0, 0.2);
+addSlider("nParticles", "particle count", 1, 2000, 10, rebuildParticles);
+addSlider("dotSize", "particle size", 2.0, 10.0, 1);
+addSlider("trailLength", "trail length", 2.0, 40.0, 1);
 
 function packetWaveVector() {
   const angle = params.packetAngle * PI / 180;
@@ -881,8 +887,8 @@ function drawParticlePoints(program, trail = false) {
   if (!particleCount) return;
 
   const scale = particlePixelScale();
-  const pointSize = Math.max(1, params.dotSize * 5.2 * scale);
-  const trailSize = Math.max(1, params.dotSize * 7.8 * scale);
+  const pointSize = Math.max(2, params.dotSize * 2.35 * scale);
+  const trailSize = Math.max(1, pointSize * 0.7);
 
   gl.useProgram(program);
   gl.bindVertexArray(particleVao);
@@ -890,11 +896,11 @@ function drawParticlePoints(program, trail = false) {
   gl.uniform1f(gl.getUniformLocation(program, "uPointSize"), pointSize);
   gl.uniform1i(gl.getUniformLocation(program, "uNumParticles"), particleCount);
   gl.uniform1f(gl.getUniformLocation(program, "uTrailWidth"), trail ? trailSize : 0);
-  gl.uniform1f(gl.getUniformLocation(program, "uDotSigma"), trail ? 0.11 : 0.24);
-  gl.uniform1f(gl.getUniformLocation(program, "uDotGain"), trail ? 0.95 : 0.085);
+  gl.uniform1f(gl.getUniformLocation(program, "uDotSigma"), trail ? 0.28 : 0.18);
+  gl.uniform1f(gl.getUniformLocation(program, "uDotGain"), trail ? 1.0 : 0.72);
 
   const stampGain = gl.getUniformLocation(program, "uStampGain");
-  if (stampGain !== null) gl.uniform1f(stampGain, 0.34);
+  if (stampGain !== null) gl.uniform1f(stampGain, params.trailStampGain);
 
   gl.drawArrays(gl.POINTS, 0, particleCount);
   gl.bindVertexArray(null);
@@ -914,7 +920,8 @@ function updateTrailTexture() {
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, trailTextures[src]);
   gl.uniform1i(gl.getUniformLocation(fadeProgram, "uTrail"), 0);
-  gl.uniform1f(gl.getUniformLocation(fadeProgram, "uFade"), 0.928);
+  const fade = Math.exp(-1 / Math.max(1, params.trailLength));
+  gl.uniform1f(gl.getUniformLocation(fadeProgram, "uFade"), fade);
   drawFullscreen(fadeProgram);
 
   if (params.showParticles && particleCount) {
@@ -951,11 +958,13 @@ function render(advanceTrails = !paused) {
 
   if (params.showTrail && trailTextures[trailReadIndex]) {
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_COLOR);
     gl.useProgram(trailProgram);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, trailTextures[trailReadIndex]);
     gl.uniform1i(gl.getUniformLocation(trailProgram, "uTrail"), 0);
+    gl.uniform1f(gl.getUniformLocation(trailProgram, "uGain"), params.trailVisGain);
+    gl.uniform1f(gl.getUniformLocation(trailProgram, "uGamma"), params.trailVisGamma);
     drawFullscreen(trailProgram);
   }
 
@@ -969,6 +978,7 @@ function render(advanceTrails = !paused) {
 }
 
 function updateStats() {
+  if (!statsEl) return;
   const E0 = centralEnergy();
   const v0 = asymptoticSpeed();
   statsEl.innerHTML =
@@ -1062,13 +1072,15 @@ minUiBtn.addEventListener("click", () => {
   minUiBtn.textContent = hidden ? "v" : "+";
 });
 
-theoryToggle.addEventListener("click", () => {
-  const open = theoryBody.hidden;
-  theoryBody.hidden = !open;
-  theoryPanel.classList.toggle("is-minimized", !open);
-  theoryToggle.textContent = open ? "-" : "+";
-  theoryToggle.setAttribute("aria-expanded", String(open));
-});
+if (theoryToggle && theoryBody && theoryPanel) {
+  theoryToggle.addEventListener("click", () => {
+    const open = theoryBody.hidden;
+    theoryBody.hidden = !open;
+    theoryPanel.classList.toggle("is-minimized", !open);
+    theoryToggle.textContent = open ? "-" : "+";
+    theoryToggle.setAttribute("aria-expanded", String(open));
+  });
+}
 
 initWebGLRenderer();
 resizeCanvas();

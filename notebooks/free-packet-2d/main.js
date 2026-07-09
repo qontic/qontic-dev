@@ -37,11 +37,12 @@ const params = {
 
   visGain: 20.0,
   visGamma: 0.5,
+  showWave: 1,
   showPhase: 1,
 
   showParticles: 1,
   nParticles: 100,
-  dotSize: 16.0,
+  dotSize: 20.0,
   dotSigma: 0.28,
   dotGain: 1.,
 
@@ -50,7 +51,6 @@ const params = {
   trailVisGain: 0.5,
   trailVisGamma: 0.6,
   trailStampGain: 0.55,
-  trailWidth: 6.0,
   trailBlendMode: 1,
 
   paletteId: 5,
@@ -79,14 +79,12 @@ const embeddedBasePreset = {
   dotGain: 1.0,
   showTrail: 1,
   trailHalfLife: 30.0,
-  trailWidth: 6.0,
 };
 
 const spreadingPreset = {
   ...embeddedBasePreset,
   nParticles: 1,
   dotSize: 16.0,
-  trailWidth: 5.0,
   trailHalfLife: 5.0,
 };
 
@@ -95,7 +93,6 @@ const ensemblePreset = {
   nParticles: 500,
   showPhase: 1,
   dotSize: 9.0,
-  trailWidth: 4.0,
   trailHalfLife: 3.0,
 };
 
@@ -106,7 +103,6 @@ const splitPreset = {
   gaussianSeparation: 100.0,
   nParticles: 500,
   dotSize: 7.0,
-  trailWidth: 4.0,
   trailHalfLife: 5.0,
 };
 
@@ -165,6 +161,14 @@ function fmt(v) {
 
 function simulationDt() {
   return effectiveDt(params.dt);
+}
+
+function packetDirection() {
+  const angleRad = params.packetAngleDeg * Math.PI / 180.0;
+  return {
+    x: Math.cos(angleRad),
+    y: Math.sin(angleRad),
+  };
 }
 
 function addSlider(key, label, min, max, step, onChange = null) {
@@ -336,7 +340,7 @@ addSlider("packetAngleDeg", "direction (deg)", -90.0, 90.0, 1.0, () => resetAll(
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
 addToggleInt("doubleGaussian", "split gaussian", () => resetAll());
 addSlider("gaussianSeparation", "split separation", 0.0, 300.0, 10.0, () => resetAll());
-addSlider("spinS", "spin s", 0.0, 2.0, 0.5);
+addSlider("spinS", "spin strength", 0.0, 2.0, 0.5);
 if (!isControlFixed("guidingMode")) {
   const row = document.createElement("div");
   row.className = "row mode-row";
@@ -371,14 +375,24 @@ if (!isControlFixed("guidingMode")) {
     resetAll();
   });
 
+  const btnClassical = document.createElement("button");
+  btnClassical.textContent = "Classical";
+  btnClassical.addEventListener("click", () => {
+    params.guidingMode = 3;
+    updateToggleButtons();
+    resetAll();
+  });
+
   group.appendChild(btnSchrodinger);
   group.appendChild(btnPauli);
   group.appendChild(btnPauliDown);
+  group.appendChild(btnClassical);
 
   function updateToggleButtons() {
     btnSchrodinger.classList.toggle("selected", params.guidingMode === 0);
     btnPauli.classList.toggle("selected", params.guidingMode === 1);
     btnPauliDown.classList.toggle("selected", params.guidingMode === 2);
+    btnClassical.classList.toggle("selected", params.guidingMode === 3);
   }
   updateToggleButtons();
 
@@ -436,17 +450,17 @@ if (!isControlFixed("boundaryMode")) {
 }
 
 addSectionHeader("Visual Parameters");
+addToggleInt("showWave", "show wave");
 addToggleInt("showPhase", "show phase");
 addToggleInt("showParticles", "show particles");
-addSlider("nParticles", "particle count", 1, 3000, 1, () => resetAll());
-addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
+addSlider("nParticles", "particle count", 1, 1000, 10, () => resetAll());
+addSlider("dotSize", "particle size", 2.0, 25.0, 1);
 addSlider("dotGain", "particle brightness", 0.1, 3.0, 0.1);
 
 addToggleInt("showTrail", "draw trails");
-addSlider("trailHalfLife", "trail half-life", 1.0, 100.0, 1.0);
+addSlider("trailHalfLife", "trail length", 1.0, 60.0, 1.0);
 //addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
 //addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
-addSlider("trailWidth", "trail width (px)", 3, 10.0, 1);
 
 //addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
 //addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
@@ -649,6 +663,7 @@ function buildPrograms() {
     uMass: u(progPartUpdate, "uMass"),
     uDT: u(progPartUpdate, "uDT"),
     uGuidingMode: u(progPartUpdate, "uGuidingMode"),
+    uClassicalVelocity: u(progPartUpdate, "uClassicalVelocity"),
     uSpinS: u(progPartUpdate, "uSpinS"),
     uRhoMin: u(progPartUpdate, "uRhoMin"),
     uVelClamp: u(progPartUpdate, "uVelClamp"),
@@ -707,8 +722,8 @@ function setWaveInitUniforms() {
   gl.uniform1f(U.waveInit.uHBAR, params.hbar);
   gl.uniform1f(U.waveInit.uMass, params.mass);
   gl.uniform1f(U.waveInit.uP0, params.p0);
-  const packetAngleRad = params.packetAngleDeg * Math.PI / 180.0;
-  gl.uniform2f(U.waveInit.uPacketDir, Math.cos(packetAngleRad), Math.sin(packetAngleRad));
+  const dir = packetDirection();
+  gl.uniform2f(U.waveInit.uPacketDir, dir.x, dir.y);
   gl.uniform1f(U.waveInit.uDT, simulationDt());
 
   gl.uniform2f(U.waveInit.uPacketPosFrac, params.packetX, params.packetY);
@@ -840,6 +855,9 @@ function particleUpdate() {
   gl.uniform1f(U.partUpdate.uMass, params.mass);
   gl.uniform1f(U.partUpdate.uDT, simulationDt());
   gl.uniform1i(U.partUpdate.uGuidingMode, params.guidingMode | 0);
+  const dir = packetDirection();
+  const classicalSpeed = params.p0 / Math.max(params.mass, 1e-9);
+  gl.uniform2f(U.partUpdate.uClassicalVelocity, classicalSpeed * dir.x, classicalSpeed * dir.y);
   gl.uniform1f(U.partUpdate.uSpinS, params.spinS);
 
   gl.uniform1f(U.partUpdate.uRhoMin, params.rhoMin);
@@ -939,7 +957,7 @@ function densityStepAndStamp() {
   gl.uniform1f(U.partStamp.uDotGain, params.dotGain);
   gl.uniform1f(U.partStamp.uStampGain, params.trailStampGain);
   gl.uniform1i(U.partStamp.uNumParticles, params.nParticles);
-  gl.uniform1f(U.partStamp.uTrailWidth, params.trailWidth);
+  gl.uniform1f(U.partStamp.uTrailWidth, Math.max(1.0, params.dotSize * 0.7));
 
   gl.drawArrays(gl.POINTS, 0, Math.floor(params.nParticles));
 
@@ -962,21 +980,23 @@ function render() {
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  gl.useProgram(progWaveRender);
-  gl.bindVertexArray(vaoEmpty);
+  if (params.showWave) {
+    gl.useProgram(progWaveRender);
+    gl.bindVertexArray(vaoEmpty);
 
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, waveTex);
-  gl.uniform1i(U.waveRender.uState, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, waveTex);
+    gl.uniform1i(U.waveRender.uState, 0);
 
-  gl.uniform2i(U.waveRender.uSimRes, simW, simH);
-  gl.uniform1f(U.waveRender.uVisGain, params.visGain);
-  gl.uniform1f(U.waveRender.uVisGamma, params.visGamma);
-  gl.uniform1f(U.waveRender.uShowPhase, params.showPhase);
+    gl.uniform2i(U.waveRender.uSimRes, simW, simH);
+    gl.uniform1f(U.waveRender.uVisGain, params.visGain);
+    gl.uniform1f(U.waveRender.uVisGamma, params.visGamma);
+    gl.uniform1f(U.waveRender.uShowPhase, params.showPhase);
 
-  gl.uniform1i(U.waveRender.uPaletteId, params.paletteId | 0);
+    gl.uniform1i(U.waveRender.uPaletteId, params.paletteId | 0);
 
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
 
   if (params.showTrail) {
     gl.enable(gl.BLEND);

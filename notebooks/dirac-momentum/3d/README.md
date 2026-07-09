@@ -41,7 +41,7 @@ The wave is advanced on the GPU with fourth-order centered spatial derivatives a
 
 ## Visual template
 
-The project retains the WebGPU camera, 3D density cloud, glowing yellow Bohmian particles, fading trails, box shell, orthographic view buttons, and recording workflow from the supplied Stern-Gerlach project, while replacing the Pauli/SG physics with free four-component Dirac dynamics.
+The project retains the WebGPU camera, 3D density cloud, glowing yellow Bohmian particles, fading trails, box shell, and orthographic view buttons from the supplied Stern-Gerlach project, while replacing the Pauli/SG physics with free four-component Dirac dynamics.
 
 ## Running
 

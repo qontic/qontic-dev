@@ -61,11 +61,23 @@ in vec2 vUv;
 out vec4 fragColor;
 
 uniform sampler2D uTrail;
+uniform float uGain;
+uniform float uGamma;
 
 void main() {
   vec4 trail = texture(uTrail, clamp(vUv, vec2(0.0), vec2(1.0)));
-  trail.a = clamp(trail.a, 0.0, 0.86);
-  fragColor = trail;
+  float density = max(max(trail.r, trail.g), trail.b);
+  float exposure = uGain * density;
+  float v = 1.0 - exp(-exposure);
+  v = pow(clamp(v, 0.0, 1.0), max(uGamma, 0.01));
+
+  vec3 col = vec3(1.0, 1.0, 0.0);
+  float crowded = smoothstep(1.0, 3.0, exposure);
+  float oversaturated = smoothstep(3.0, 5.0, exposure);
+  col = mix(col, vec3(1.0, 0.55, 0.08), 0.45 * crowded);
+  col = mix(col, vec3(1.0, 0.35, 0.62), 0.30 * oversaturated);
+
+  fragColor = vec4(col * v, 1.0);
 }`;
 
 export const PARTICLE_VERT = `#version 300 es

@@ -117,23 +117,6 @@ const SCENE_SCREEN_OFFSET_X = 0.15;
 let paused = false;
 let redrawPending = true;
 const PAUSED_IDLE_MS = 180;
-const RECORDING_CONFIG = {
-  fps: 60,
-  videoBitsPerSecond: 14_000_000,
-  chunkMs: 1000,
-};
-const recordingState = {
-  recorder: null,
-  stream: null,
-  videoTrack: null,
-  chunks: [],
-  startedAt: 0,
-  mimeType: "",
-  finalizing: false,
-  lastUrl: null,
-  pendingBlob: null,
-  pendingFileName: "",
-};
 
 function requestRedraw() {
   redrawPending = true;
@@ -295,7 +278,6 @@ addSlider("trailHalfLife", "trail half-life", 0.1, 10.0, 0.1);
 
 document.getElementById("reset").onclick = () => resetAll();
 const pauseButton = document.getElementById("pause");
-const recordButton = document.getElementById("record");
 function syncPauseButton() {
   pauseButton.textContent = paused ? "Resume" : "Pause";
 }
@@ -306,164 +288,6 @@ function setPausedState(nextPaused) {
 }
 
 pauseButton.onclick = () => setPausedState(!paused);
-
-function canRecordCanvas() {
-  return typeof MediaRecorder !== "undefined" && typeof canvas.captureStream === "function" && !!chooseRecordingMimeType();
-}
-
-function isRecording() {
-  return recordingState.recorder?.state === "recording";
-}
-
-function chooseRecordingMimeType() {
-  const candidates = [
-    "video/mp4;codecs=avc1.42E01E",
-    "video/mp4;codecs=avc1.640028",
-    "video/mp4;codecs=h264",
-    "video/mp4",
-  ];
-  return candidates.find(type => MediaRecorder.isTypeSupported?.(type)) || "";
-}
-
-function recordingFileName(startedAt = recordingState.startedAt) {
-  const stamp = new Date(startedAt || Date.now()).toISOString().replace(/[:.]/g, "-");
-  return `dirac-splitting3d-${stamp}.mp4`;
-}
-
-function syncRecordingButton() {
-  const recording = isRecording();
-  const supported = canRecordCanvas();
-  recordButton.textContent = recordingState.finalizing ? "Saving Recording..." : (recording ? "Stop Recording" : (recordingState.pendingBlob ? "Download Recording" : "Start Recording"));
-  recordButton.classList.toggle("recording", recording);
-  recordButton.disabled = recordingState.finalizing || (!recordingState.pendingBlob && !supported);
-  recordButton.title = recordingState.pendingBlob
-    ? "Download the most recent canvas-only MP4 recording."
-    : (supported ? "Records the WebGPU canvas at a fixed 60 fps; UI overlays are excluded." : "MP4 canvas recording is not supported by this browser.");
-}
-
-function toggleRecording() {
-  if (recordingState.pendingBlob && !isRecording()) downloadPendingRecording(true);
-  else if (isRecording()) stopRecording();
-  else startRecording();
-}
-
-function startRecording() {
-  if (!canRecordCanvas()) {
-    alert("MP4 canvas recording is not supported by this browser.");
-    syncRecordingButton();
-    return;
-  }
-  clearPendingRecording();
-
-  const mimeType = chooseRecordingMimeType();
-  const options = {
-    mimeType,
-    videoBitsPerSecond: RECORDING_CONFIG.videoBitsPerSecond,
-  };
-
-  let stream, recorder;
-  try {
-    stream = canvas.captureStream(RECORDING_CONFIG.fps);
-    recorder = new MediaRecorder(stream, options);
-  } catch (error) {
-    stream?.getTracks().forEach(track => track.stop());
-    alert(`Could not start MP4 recording: ${error.message}`);
-    syncRecordingButton();
-    return;
-  }
-
-  recordingState.recorder = recorder;
-  recordingState.stream = stream;
-  recordingState.videoTrack = stream.getVideoTracks()[0] || null;
-  recordingState.chunks = [];
-  recordingState.startedAt = Date.now();
-  recordingState.mimeType = recorder.mimeType || mimeType;
-  recordingState.finalizing = false;
-
-  recorder.ondataavailable = event => {
-    if (event.data && event.data.size > 0) recordingState.chunks.push(event.data);
-  };
-  recorder.onerror = event => {
-    console.error("Recording error:", event.error || event);
-    stopRecording();
-  };
-  recorder.onstop = finishRecordingDownload;
-  recorder.start(RECORDING_CONFIG.chunkMs);
-  requestRedraw();
-  syncRecordingButton();
-}
-
-function stopRecording() {
-  const recorder = recordingState.recorder;
-  if (!recorder || recorder.state === "inactive") return;
-  recordingState.finalizing = true;
-  syncRecordingButton();
-
-  try {
-    recorder.requestData();
-  } catch (error) {
-    console.warn("Could not flush recording data:", error);
-  }
-  recorder.stop();
-}
-
-function finishRecordingDownload() {
-  recordingState.stream?.getTracks().forEach(track => track.stop());
-  recordingState.stream = null;
-  recordingState.videoTrack = null;
-  const chunks = recordingState.chunks;
-  recordingState.chunks = [];
-
-  if (!chunks.length) {
-    recordingState.recorder = null;
-    recordingState.finalizing = false;
-    alert("No recording data was produced.");
-    syncRecordingButton();
-    return;
-  }
-
-  recordingState.pendingBlob = new Blob(chunks, { type: recordingState.mimeType || "video/mp4" });
-  recordingState.pendingFileName = recordingFileName();
-  recordingState.recorder = null;
-  recordingState.finalizing = false;
-  downloadPendingRecording(true);
-  syncRecordingButton();
-}
-
-function clearPendingRecording() {
-  if (recordingState.lastUrl) {
-    URL.revokeObjectURL(recordingState.lastUrl);
-    recordingState.lastUrl = null;
-  }
-  recordingState.pendingBlob = null;
-  recordingState.pendingFileName = "";
-}
-
-function downloadPendingRecording(clearAfterClick) {
-  if (!recordingState.pendingBlob) return;
-  if (!recordingState.lastUrl) {
-    recordingState.lastUrl = URL.createObjectURL(recordingState.pendingBlob);
-  }
-  const url = recordingState.lastUrl;
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = recordingState.pendingFileName || recordingFileName();
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  if (clearAfterClick) {
-    recordingState.pendingBlob = null;
-    recordingState.pendingFileName = "";
-    if (recordingState.lastUrl === url) recordingState.lastUrl = null;
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      syncRecordingButton();
-    }, 1000);
-  }
-}
-
-recordButton.onclick = toggleRecording;
-syncRecordingButton();
 
 window.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() === "r") resetAll();
@@ -1985,9 +1809,7 @@ async function main() {
 
   let lastFrameTime = performance.now();
   requestAnimationFrame(function loop(now = performance.now()) {
-    const wallDtSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
-    const recordingFrameActive = isRecording() && !recordingState.finalizing;
-    const dtSeconds = recordingFrameActive ? 1 / RECORDING_CONFIG.fps : wallDtSeconds;
+    const dtSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
     lastFrameTime = now;
     const resized = resizeCanvas();
     if (resized) rebuildDensity();
@@ -1997,7 +1819,7 @@ async function main() {
     if (cameraMoved) requestTrailClear();
 
     const cameraInputActive = hasActiveCameraKeys();
-    const shouldDraw = isRecording() || !paused || redrawPending || resized || cameraMoved || cameraInputActive || trailClearPending;
+    const shouldDraw = !paused || redrawPending || resized || cameraMoved || cameraInputActive || trailClearPending;
     if (!shouldDraw) {
       setTimeout(loop, PAUSED_IDLE_MS);
       return;
@@ -2029,7 +1851,7 @@ async function main() {
     updateStats();
     redrawPending = false;
 
-    if (!isRecording() && paused && !cameraMoved && !cameraInputActive && !trailClearPending && !redrawPending) {
+    if (paused && !cameraMoved && !cameraInputActive && !trailClearPending && !redrawPending) {
       setTimeout(loop, PAUSED_IDLE_MS);
     } else {
       requestAnimationFrame(loop);
