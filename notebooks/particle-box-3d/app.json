@@ -3,6 +3,6 @@
   "type": "notebook",
   "category": "pilot-wave",
   "description": "Notebook-style presentation of three-dimensional particle-in-a-box dynamics.",
-  "tags": ["Notebook", "Pilot-wave", "3D box"],
+  "tags": ["Notebook", "Pilot-wave", "GPU", "3D", "Spin", "Box eigenstates"],
   "entry": "index.html"
 }

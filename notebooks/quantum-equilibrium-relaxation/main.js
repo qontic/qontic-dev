@@ -1,3 +1,5 @@
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
+
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
 if (!gl) throw new Error("WebGL2 not available.");
@@ -28,6 +30,7 @@ const BOX_LY = 1.0;
 const EDGE_EPS = 1e-5;
 const urlParams = new URLSearchParams(window.location.search);
 const isEmbedded = urlParams.get("embed") === "1";
+initSimulationSpeedControl({ visible: !isEmbedded });
 
 function mode(nx, ny, amp = 1, phase = 0) {
   return { nx, ny, amp, phase, key: nx * nx + ny * ny };
@@ -56,7 +59,7 @@ const params = {
   wavePreset: 1,
   initDistribution: 2,
   initRectangleSize: 0.10,
-  nParticles: 100000,
+  nParticles: 50000,
   rhoMin: 1e-14,
   velClamp: 100.0,
   guidingMode: 1,
@@ -124,6 +127,14 @@ function fmt(v) {
   const av = Math.abs(v);
   if (av >= 1000 || (av > 0 && av < 0.01)) return v.toExponential(2);
   return v.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function simulationDt() {
+  return effectiveDt(params.dt, { min: 0.00001 });
+}
+
+function simulationStepsPerFrame() {
+  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 100 });
 }
 
 function selectedPreset() {
@@ -289,7 +300,7 @@ addSlider("visGamma", "density gamma", 0.25, 1.4, 0.05);
 addToggleInt("showPhase", "show phase");
 
 addToggleInt("showParticles", "show particles");
-addSlider("nParticles", "particle count", 10000, 200000, 10000, () => resetAll());
+addSlider("nParticles", "particle count", 10000, 100000, 10000, () => resetAll());
 addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
 addSlider("dotGain", "particle gain", 0.1, 3.0, 0.1);
 addToggleInt("showTrail", "draw trails");
@@ -635,7 +646,7 @@ function particleUpdate() {
   gl.uniform1f(U.partUpdate.uTime, simTime);
   gl.uniform1f(U.partUpdate.uHBAR, params.hbar);
   gl.uniform1f(U.partUpdate.uMass, params.mass);
-  gl.uniform1f(U.partUpdate.uDT, params.dt);
+  gl.uniform1f(U.partUpdate.uDT, simulationDt());
   gl.uniform2f(U.partUpdate.uBoxSize, BOX_LX, BOX_LY);
   gl.uniform1i(U.partUpdate.uGuidingMode, params.guidingMode | 0);
   gl.uniform1f(U.partUpdate.uSpinMagnitude, params.spinMagnitude);
@@ -705,8 +716,8 @@ function densityStepAndStamp(dtTotal) {
 }
 
 function updateSimulation() {
-  const steps = Math.max(1, Math.floor(params.stepsPerFrame));
-  const dt = params.dt;
+  const steps = simulationStepsPerFrame();
+  const dt = simulationDt();
   for (let s = 0; s < steps; s++) {
     particleUpdate();
     simTime += dt;

@@ -3,6 +3,6 @@
   "type": "notebook",
   "category": "pilot-wave",
   "description": "Notebook-style presentation of quantum equilibrium, non-equilibrium particle ensembles, and Bohmian relaxation in a two-dimensional box.",
-  "tags": ["Notebook", "Pilot-wave", "Quantum equilibrium", "2D box"],
+  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "Spin", "Quantum equilibrium"],
   "entry": "index.html"
 }

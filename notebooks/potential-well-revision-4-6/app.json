@@ -3,6 +3,6 @@
   "type": "notebook",
   "category": "comparative",
   "description": "Tentative notebook for 1D square-well quantum mechanics with interactive visual sections and full applet.",
-  "tags": ["Notebook", "Potential well", "Tentative"],
+  "tags": ["Notebook", "Pilot-wave", "1D", "No spin", "Potential well", "Tentative"],
   "entry": "index.html"
 }

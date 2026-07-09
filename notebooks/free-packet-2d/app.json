@@ -3,6 +3,6 @@
   "type": "notebook",
   "category": "pilot-wave",
   "description": "Notebook-style presentation of two-dimensional pilot-wave free-packet dynamics.",
-  "tags": ["Notebook", "Pilot-wave", "Free particle"],
+  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "Spin", "Free particle"],
   "entry": "index.html"
 }

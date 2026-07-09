@@ -1,3 +1,5 @@
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
+
 const canvas = document.getElementById("c");
 if (!navigator.gpu) {
   alert("WebGPU is not available. Use a current Chrome/Edge desktop browser with WebGPU enabled.");
@@ -93,9 +95,9 @@ const params = {
   showCloud: 1,
 
   showParticles: 1,
-  dotSize: 10.0,
+  dotSize: 20.0,
   dotSigma: 0.28,
-  dotGain: 2.0,
+  dotGain: 3.0,
 
   showTrail: 1,
   trailHalfLife: 0.5,
@@ -198,6 +200,16 @@ const PAUSED_IDLE_MS = 180;
 
 function requestRedraw() {
   redrawPending = true;
+}
+
+initSimulationSpeedControl({ visible: !isEmbedded, onChange: requestRedraw });
+
+function simulationDt() {
+  return effectiveDt(params.dt, { min: 0.002 });
+}
+
+function simulationStepsPerFrame() {
+  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 30 });
 }
 
 const controls = document.getElementById("controls");
@@ -898,7 +910,7 @@ function dispatchCount(count, groupSize) {
 function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, densitySizeScale = 1.0) {
   uniformData.fill(0);
   uniformData.set([simW, simH, simD, voxelCount], 0);
-  uniformData.set([params.hbar, params.mass, params.p0, params.dt], 4);
+  uniformData.set([params.hbar, params.mass, params.p0, simulationDt()], 4);
   uniformData.set([params.packetX, params.packetY, params.packetZ, params.packetSigma], 8);
   uniformData.set([params.cloudGain, params.cloudGamma, params.cloudLowBoost, params.cloudCutoff], 12);
   uniformData.set([params.cloudPointSize, params.showPhase, params.paletteId | 0, params.boxScale], 16);
@@ -1061,7 +1073,7 @@ const cameraTarget = {
   pitch: cameraOrbit.pitch,
   distance: cameraOrbit.distance,
 };
-const CAMERA_EASE = 0.1;
+const CAMERA_EASE = 0.2;
 const ORTHO_VIEWS = {
   XY: { yaw: -Math.PI * 0.5, pitch: Math.PI * 0.5 },
   XZ: { yaw: -Math.PI * 0.5, pitch: 0 },
@@ -1531,7 +1543,7 @@ function clearDensity() {
 
 function densityStepAndStamp(encoder, camera) {
   if (!densViewA || !densViewB) return;
-  const dtTotal = params.dt * Math.floor(params.stepsPerFrame);
+  const dtTotal = simulationDt() * simulationStepsPerFrame();
   const sizeScale = densW / Math.max(1, canvas.width);
   const fade = fadeFromHalfLife(params.trailHalfLife, dtTotal);
   writeUniforms(trailUniformBuffer, camera, densW, densH, fade, sizeScale);
@@ -1875,12 +1887,12 @@ async function main() {
     const encoder = device.createCommandEncoder({ label: "frame encoder" });
 
     if (!paused) {
-      const steps = Math.floor(params.stepsPerFrame);
+      const steps = simulationStepsPerFrame();
       const compute = encoder.beginComputePass({ label: "simulation compute pass" });
       for (let i = 0; i < steps; i++) {
         waveStep(compute);
         particleUpdate(compute);
-        simTime += params.dt;
+        simTime += simulationDt();
       }
       compute.end();
       if (params.showTrail) densityStepAndStamp(encoder, camera);

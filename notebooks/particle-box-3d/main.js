@@ -1,4 +1,5 @@
 import { createShaderSources } from "./shaders.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 if (!navigator.gpu) {
@@ -222,6 +223,16 @@ const infoOverlayCtx = infoOverlayCanvas.getContext("2d");
 
 function requestRedraw() {
   redrawPending = true;
+}
+
+initSimulationSpeedControl({ visible: !isEmbedded, onChange: requestRedraw });
+
+function simulationDt() {
+  return effectiveDt(params.dt, { min: 0.002 });
+}
+
+function simulationStepsPerFrame() {
+  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 30 });
 }
 
 const controls = document.getElementById("controls");
@@ -1192,7 +1203,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
     ? 0
     : (simTime * selectedEigenEnergy(mode) / Math.max(1e-6, params.hbar)) % (2 * Math.PI);
   uniformData.set([simW, simH, simD, voxelCount], 0);
-  uniformData.set([params.hbar, params.mass, stationaryPhase, params.dt], 4);
+  uniformData.set([params.hbar, params.mass, stationaryPhase, simulationDt()], 4);
   uniformData.set([params.cloudGain, params.cloudGamma, params.cloudLowBoost, params.cloudCutoff], 8);
   uniformData.set([params.cloudPointSize, params.showPhase, 0, params.boxScale], 12);
   uniformData.set([params.dotSize, params.dotSigma, params.dotGain, params.spinS], 16);
@@ -1828,7 +1839,7 @@ function clearDensity() {
 
 function densityStepAndStamp(encoder, camera) {
   if (!densViewA || !densViewB) return;
-  const dtTotal = params.dt * Math.floor(params.stepsPerFrame);
+  const dtTotal = simulationDt() * simulationStepsPerFrame();
   const sizeScale = densW / Math.max(1, canvas.width);
   const fade = fadeFromHalfLife(params.trailHalfLife, dtTotal);
   writeUniforms(trailUniformBuffer, camera, densW, densH, fade, sizeScale);
@@ -2428,7 +2439,7 @@ async function main() {
     const encoder = device.createCommandEncoder({ label: "frame encoder" });
 
     if (!paused) {
-      const steps = Math.floor(params.stepsPerFrame);
+      const steps = simulationStepsPerFrame();
       const updateWave = shouldUpdateWave();
       const updateParticles = shouldUpdateParticles();
       if (updateWave || updateParticles) {
@@ -2436,11 +2447,11 @@ async function main() {
         for (let i = 0; i < steps; i++) {
           if (updateWave) waveStep(compute);
           if (updateParticles) particleUpdate(compute);
-          simTime += params.dt;
+          simTime += simulationDt();
         }
         compute.end();
       } else {
-        simTime += params.dt * steps;
+        simTime += simulationDt() * steps;
       }
       if (params.showTrail) densityStepAndStamp(encoder, camera);
     }

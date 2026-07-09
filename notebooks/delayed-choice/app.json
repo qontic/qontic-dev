@@ -3,6 +3,6 @@
   "type": "notebook",
   "category": "foundations",
   "description": "Interactive notebook on delayed-choice interferometry and alternative representations of the experiment.",
-  "tags": ["Notebook", "Delayed choice", "Interferometry"],
+  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "Spin", "Delayed choice", "Interferometry"],
   "entry": "index.html"
 }
