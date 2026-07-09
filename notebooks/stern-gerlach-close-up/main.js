@@ -1,4 +1,4 @@
-import { effectiveDt, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 if (!navigator.gpu) {
@@ -205,7 +205,11 @@ function requestRedraw() {
 initSimulationSpeedControl({ visible: !isEmbedded, onChange: requestRedraw });
 
 function simulationDt() {
-  return effectiveDt(params.dt);
+  return effectiveDt(params.dt, { min: 0.002 });
+}
+
+function simulationStepsPerFrame() {
+  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 30 });
 }
 
 const controls = document.getElementById("controls");
@@ -1539,7 +1543,7 @@ function clearDensity() {
 
 function densityStepAndStamp(encoder, camera) {
   if (!densViewA || !densViewB) return;
-  const dtTotal = simulationDt() * Math.floor(params.stepsPerFrame);
+  const dtTotal = simulationDt() * simulationStepsPerFrame();
   const sizeScale = densW / Math.max(1, canvas.width);
   const fade = fadeFromHalfLife(params.trailHalfLife, dtTotal);
   writeUniforms(trailUniformBuffer, camera, densW, densH, fade, sizeScale);
@@ -1883,7 +1887,7 @@ async function main() {
     const encoder = device.createCommandEncoder({ label: "frame encoder" });
 
     if (!paused) {
-      const steps = Math.floor(params.stepsPerFrame);
+      const steps = simulationStepsPerFrame();
       const compute = encoder.beginComputePass({ label: "simulation compute pass" });
       for (let i = 0; i < steps; i++) {
         waveStep(compute);

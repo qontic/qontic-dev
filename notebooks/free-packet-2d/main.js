@@ -1,4 +1,4 @@
-import { effectiveDt, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
@@ -160,7 +160,11 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt);
+  return effectiveDt(params.dt, { min: 0.01 });
+}
+
+function simulationStepsPerFrame() {
+  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 51 });
 }
 
 function packetDirection() {
@@ -924,7 +928,7 @@ function clearDensity() {
 }
 
 function densityStepAndStamp() {
-  const dtTotal = simulationDt() * Math.floor(params.stepsPerFrame);
+  const dtTotal = simulationDt() * simulationStepsPerFrame();
 
   const src = densFlip ? densTexB : densTexA;
   const dstFbo = densFlip ? densFboA : densFboB;
@@ -1089,7 +1093,7 @@ async function main() {
     resizeCanvas();
 
     if (!paused) {
-      const steps = Math.floor(params.stepsPerFrame);
+      const steps = simulationStepsPerFrame();
       for (let i = 0; i < steps; i++) {
         waveStep();
         particleUpdate();

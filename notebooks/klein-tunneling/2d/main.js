@@ -7,7 +7,7 @@ import {
   TRAIL_FADE_FRAG,
   TRAIL_RENDER_FRAG,
 } from "./shaders/sources.js";
-import { effectiveDt, initSimulationSpeedControl } from "../../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", {
@@ -52,7 +52,7 @@ const debugEnabled = urlParams.has("debug");
 
 const params = {
   stepsPerFrame: 1,
-  dt: 0.001,
+  dt: 0.002,
   diracC: 6.0,
   mass: 1.0,
   packetK: 6.0,
@@ -154,7 +154,11 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt);
+  return effectiveDt(params.dt, { min: 0.0003 });
+}
+
+function simulationStepsPerFrame() {
+  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 5 });
 }
 
 function rebuildAbsorber() {
@@ -283,7 +287,7 @@ function addToggleChoice(key, label, offText, onText, onChange = null) {
 
 addSectionHeader("Simulation");
 //addSlider("stepsPerFrame", "Steps/frame", 1, 5, 1);
-addSlider("dt", "dt", 0.0003, 0.002, 0.0001, rebuildAbsorber);
+addSlider("dt", "dt", 0.0003, 0.004, 0.0001, rebuildAbsorber);
 
 addSectionHeader("Dirac Packet");
 addSlider("diracC", "Dirac c", 2.0, 12.0, 0.1, resetAll);
@@ -732,7 +736,7 @@ function updateParticles(dt) {
 }
 
 function updateSimulation() {
-  const steps = Math.max(1, Math.floor(params.stepsPerFrame));
+  const steps = simulationStepsPerFrame();
   const dt = simulationDt();
   for (let s = 0; s < steps; s++) {
     stepWave(dt);

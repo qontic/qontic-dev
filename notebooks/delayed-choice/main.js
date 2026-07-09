@@ -1,4 +1,4 @@
-import { effectiveDt, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const wrap = document.getElementById("wrap");
@@ -319,7 +319,11 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt);
+  return effectiveDt(params.dt, { min: 0.01 });
+}
+
+function simulationStepsPerFrame() {
+  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 100 });
 }
 
 function smooth01(t) {
@@ -1935,7 +1939,7 @@ function clearDensity() {
 }
 
 function densityStepAndStamp() {
-  const dtTotal = simulationDt() * Math.floor(params.stepsPerFrame);
+  const dtTotal = simulationDt() * simulationStepsPerFrame();
 
   const waveTex = flip ? texB : texA;
   const src = densFlip ? densTexB : densTexA;
@@ -2318,7 +2322,7 @@ async function main() {
     syncDisplaySize();
 
     if (!paused) {
-      const steps = Math.floor(params.stepsPerFrame);
+      const steps = simulationStepsPerFrame();
       for (let i = 0; i < steps; i++) {
         waveStep();
         particleUpdate();

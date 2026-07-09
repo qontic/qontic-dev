@@ -1,4 +1,4 @@
-import { effectiveDt, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
@@ -130,7 +130,11 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt);
+  return effectiveDt(params.dt, { min: 0.00001 });
+}
+
+function simulationStepsPerFrame() {
+  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 100 });
 }
 
 function selectedPreset() {
@@ -712,7 +716,7 @@ function densityStepAndStamp(dtTotal) {
 }
 
 function updateSimulation() {
-  const steps = Math.max(1, Math.floor(params.stepsPerFrame));
+  const steps = simulationStepsPerFrame();
   const dt = simulationDt();
   for (let s = 0; s < steps; s++) {
     particleUpdate();

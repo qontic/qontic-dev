@@ -7,7 +7,7 @@ import {
   TRAIL_FADE_FRAG,
   TRAIL_RENDER_FRAG,
 } from "./shaders/sources.js";
-import { effectiveDt, initSimulationSpeedControl } from "../../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", {
@@ -154,6 +154,14 @@ function fmt(v) {
   const av = Math.abs(v);
   if (av >= 1000 || (av > 0 && av < 0.01)) return v.toExponential(2);
   return v.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function simulationDt() {
+  return effectiveDt(params.dt, { min: 0.0005 });
+}
+
+function simulationStepsPerFrame() {
+  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 5 });
 }
 
 function addSectionHeader(label) {
@@ -702,8 +710,8 @@ function updateParticles(dt) {
 }
 
 function updateSimulation() {
-  const steps = Math.max(1, Math.floor(params.stepsPerFrame));
-  const dt = effectiveDt(params.dt);
+  const steps = simulationStepsPerFrame();
+  const dt = simulationDt();
   for (let s = 0; s < steps; s++) {
     stepWave(dt);
     updateDensityVelocity();
