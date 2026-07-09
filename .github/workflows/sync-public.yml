@@ -28,6 +28,61 @@ jobs:
             --exclude='.github/workflows/' \
             ./ public-qontic/
 
+      - name: Remove unapproved new notebooks and apps
+        run: |
+          python3 - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+
+          dev_root = Path('.')
+          public_root = Path('public-qontic')
+
+          def load_status(app_json: Path) -> str:
+              try:
+                  data = json.loads(app_json.read_text(encoding='utf-8'))
+              except Exception:
+                  return ''
+              return str(data.get('status', '')).strip().lower()
+
+          def candidate_dirs(root: Path):
+              for app_json in root.glob('notebooks/*/app.json'):
+                  yield app_json.parent.relative_to(root)
+              for app_json in root.glob('apps/*/*/app.json'):
+                  yield app_json.parent.relative_to(root)
+
+          removed = []
+          kept = []
+          for rel_dir in sorted(candidate_dirs(dev_root)):
+              dev_app_json = dev_root / rel_dir / 'app.json'
+              public_app_json = public_root / rel_dir / 'app.json'
+              status = load_status(dev_app_json)
+
+              existed_before_sync = public_app_json.exists()
+              approved = status == 'approved'
+
+              # Existing production items remain public unless explicitly marked draft/review/private.
+              # New items require status: approved before publication.
+              blocked_status = status in {'draft', 'review', 'private', 'do-not-publish', 'unapproved'}
+              should_publish = approved or (existed_before_sync and not blocked_status)
+
+              if should_publish:
+                  kept.append((str(rel_dir), status or 'existing'))
+              else:
+                  target = public_root / rel_dir
+                  if target.exists():
+                      shutil.rmtree(target)
+                  removed.append((str(rel_dir), status or 'missing-status'))
+
+          print('Production approval gate summary')
+          print('Kept:')
+          for path, status in kept:
+              print(f'  KEEP {path} [{status}]')
+          print('Removed / not published:')
+          for path, status in removed:
+              print(f'  SKIP {path} [{status}]')
+          PY
+
       - name: Commit and push changes
         working-directory: public-qontic
         run: |
@@ -42,5 +97,5 @@ jobs:
           fi
 
           SOURCE_SHA=$(git -C .. rev-parse --short HEAD)
-          git commit -m "Sync public qontic from qontic-dev (${SOURCE_SHA})"
+          git commit -m "Sync approved public qontic from qontic-dev (${SOURCE_SHA})"
           git push origin main
