@@ -11,9 +11,34 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.QONTIC_SYNC_TOKEN }}
 
-      - name: Push qontic-dev main to qontic main
+      - name: Check out public qontic
+        uses: actions/checkout@v4
+        with:
+          repository: qontic/qontic
+          token: ${{ secrets.QONTIC_SYNC_TOKEN }}
+          path: public-qontic
+          fetch-depth: 0
+
+      - name: Copy qontic-dev into qontic, excluding GitHub workflows
         run: |
-          git remote add public https://x-access-token:${{ secrets.QONTIC_SYNC_TOKEN }}@github.com/qontic/qontic.git
-          git push public main:main --force
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='public-qontic/' \
+            --exclude='.github/workflows/' \
+            ./ public-qontic/
+
+      - name: Commit and push changes
+        working-directory: public-qontic
+        run: |
+          git config user.name "qontic-sync"
+          git config user.email "qontic-sync@users.noreply.github.com"
+
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes to sync."
+            exit 0
+          fi
+
+          git add -A
+          git commit -m "Sync public qontic from qontic-dev"
+          git push origin main
