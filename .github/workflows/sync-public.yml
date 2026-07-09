@@ -34,11 +34,13 @@ jobs:
           git config user.name "qontic-sync"
           git config user.email "qontic-sync@users.noreply.github.com"
 
-          if git diff --quiet && git diff --cached --quiet; then
+          git add -A
+
+          if git diff --cached --quiet; then
             echo "No changes to sync."
             exit 0
           fi
 
-          git add -A
-          git commit -m "Sync public qontic from qontic-dev"
+          SOURCE_SHA=$(git -C .. rev-parse --short HEAD)
+          git commit -m "Sync public qontic from qontic-dev (${SOURCE_SHA})"
           git push origin main
