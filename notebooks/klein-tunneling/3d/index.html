@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Klein Tunneling 3D</title>
   <script>
+    if (new URLSearchParams(window.location.search).get("embed") === "1") {
+      document.documentElement.classList.add("is-embedded");
+    }
+  </script>
+  <script>
     window.MathJax = {
       tex: {
         inlineMath: [["\\(", "\\)"]],
@@ -106,13 +111,28 @@
     @media (max-width:900px) {
       #explain { width:34vw; min-width:240px; }
     }
+    html.is-embedded #explain {
+      display:none !important;
+    }
+    html.is-embedded #ui {
+      width:min(330px, calc(100vw - 24px));
+      max-height:calc(100vh - 24px);
+      overflow:auto;
+    }
+    html.is-embedded #viewtools {
+      left:auto;
+      right:12px;
+    }
+    @media (max-width:760px) {
+      html.is-embedded #viewtools { display:none; }
+    }
   </style>
 </head>
 <body>
   <div id="wrap">
     <canvas id="c"></canvas>
     <div id="ui">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+      <div class="applet-ui-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
         <h3>Klein Tunneling 3D</h3>
         <button id="minui" title="Minimize/expand" style="
           width:34px; height:28px; padding:0; flex:0 0 auto;
