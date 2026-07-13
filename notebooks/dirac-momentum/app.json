@@ -3,7 +3,17 @@
   "type": "notebook",
   "category": "pilot-wave",
   "description": "Momentum of Bohmian particles guided by a Dirac wave packet.",
-  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "3D", "Dirac", "Momentum", "Packet splitting"],
+  "tags": [
+    "Notebook",
+    "Pilot-wave",
+    "GPU",
+    "2D",
+    "3D",
+    "Dirac",
+    "Momentum",
+    "Packet splitting"
+  ],
   "entry": "index.html",
-  "hidden": true
+  "hidden": true,
+  "status": "draft"
 }

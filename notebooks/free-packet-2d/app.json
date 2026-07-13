@@ -3,6 +3,14 @@
   "type": "notebook",
   "category": "pilot-wave",
   "description": "Introduction to free particle quantum dynamics with pilot-wave visualization.",
-  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "Spin", "Free particle"],
-  "entry": "index.html"
+  "tags": [
+    "Notebook",
+    "Pilot-wave",
+    "GPU",
+    "2D",
+    "Spin",
+    "Free particle"
+  ],
+  "entry": "index.html",
+  "status": "approved"
 }

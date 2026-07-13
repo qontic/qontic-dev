@@ -3,6 +3,14 @@
   "type": "notebook",
   "category": "pilot-wave",
   "description": "Stern-Gerlach with Pilot wave theory. ",
-  "tags": ["Notebook", "Pilot-wave", "GPU", "3D", "Spin", "Stern-Gerlach"],
-  "entry": "index.html"
+  "tags": [
+    "Notebook",
+    "Pilot-wave",
+    "GPU",
+    "3D",
+    "Spin",
+    "Stern-Gerlach"
+  ],
+  "entry": "index.html",
+  "status": "approved"
 }

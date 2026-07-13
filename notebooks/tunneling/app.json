@@ -3,6 +3,14 @@
   "type": "notebook",
   "category": "pilot-wave",
   "description": "Tunneling with Pilot wave theory. Bohmian trajectories and wave-packet dynamics are shown.",
-  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "Spin", "Tunneling"],
-  "entry": "index.html"
+  "tags": [
+    "Notebook",
+    "Pilot-wave",
+    "GPU",
+    "2D",
+    "Spin",
+    "Tunneling"
+  ],
+  "entry": "index.html",
+  "status": "approved"
 }

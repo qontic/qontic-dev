@@ -3,6 +3,15 @@
   "type": "notebook",
   "category": "pilot-wave",
   "description": "Relativistic tunneling of a Dirac packet leads to counterintuitive behaviour called Klein tunneling/paradox.",
-  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "3D", "Dirac", "Klein tunneling"],
-  "entry": "index.html"
+  "tags": [
+    "Notebook",
+    "Pilot-wave",
+    "GPU",
+    "2D",
+    "3D",
+    "Dirac",
+    "Klein tunneling"
+  ],
+  "entry": "index.html",
+  "status": "draft"
 }

@@ -3,6 +3,13 @@
   "type": "notebook",
   "category": "modern physics",
   "description": "A learner-first modern physics notebook on the Michelson-Morley experiment, interferometry, classical ether predictions, the null result, and the transition toward special relativity.",
-  "tags": ["Notebook", "Michelson-Morley", "Interferometry", "Relativity", "Modern physics"],
-  "entry": "index.html"
+  "tags": [
+    "Notebook",
+    "Michelson-Morley",
+    "Interferometry",
+    "Relativity",
+    "Modern physics"
+  ],
+  "entry": "index.html",
+  "status": "draft"
 }
