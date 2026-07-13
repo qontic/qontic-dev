@@ -109,7 +109,6 @@ const params = {
   trailVisGain: 0.5,
   trailVisGamma: 1.0,
   trailStampGain: 0.45,
-  trailWidth: 15.0,
   trailBlendMode: 2,
   densityScale: 0.5,
 };
@@ -147,6 +146,10 @@ function simulationStepsPerFrame() {
 
 function trailFadeFrameDt() {
   return TRAIL_FADE_FRAME_DT;
+}
+
+function particleTrailWidth() {
+  return params.dotSize * 0.7;
 }
 
 const controls = document.getElementById("controls");
@@ -951,7 +954,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([params.cloudGain, params.cloudGamma, params.cloudLowBoost, params.cloudCutoff], 12);
   uniformData.set([params.cloudPointSize, params.showPhase, 0.0, params.boxScale], 16);
   uniformData.set([params.dotSize, params.dotSigma, params.dotGain, 0.0], 20);
-  uniformData.set([params.rhoMin, params.velClamp, Math.floor(params.nParticles), params.trailWidth], 24);
+  uniformData.set([params.rhoMin, params.velClamp, Math.floor(params.nParticles), particleTrailWidth()], 24);
   uniformData.set([camera.eye[0], camera.eye[1], camera.eye[2], camera.distance], 28);
   uniformData.set([viewportW, viewportH, params.cameraProjection | 0, params.trailStampGain], 32);
   uniformData.set([barrierCenterGrid(), barrierWidthGrid(), effectiveBarrierHeight(), 1.0], 36);

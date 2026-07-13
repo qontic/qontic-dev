@@ -55,7 +55,6 @@ const params = {
   trailVisGain: .5,
   trailVisGamma: .6,
   trailStampGain: 0.55,
-  trailWidth: 6.0,
   trailBlendMode: 1,
 
 };
@@ -82,7 +81,6 @@ const embeddedBasePreset = {
   trailHalfLife: 30.0,
   trailVisGain: 0.5,
   trailVisGamma: 0.6,
-  trailWidth: 6.0,
 };
 
 const PRESETS = {
@@ -121,7 +119,6 @@ const PRESETS = {
       dotSize: 3.0,
       showTrail: 0,
       trailHalfLife: 8.0,
-      trailWidth: 2.0,
     },
     adjustable: ["V0", "barrierThick", "nParticles"],
   },
@@ -166,6 +163,10 @@ function simulationStepsPerFrame() {
 
 function trailFadeFrameDt() {
   return TRAIL_FADE_FRAME_DT;
+}
+
+function particleTrailWidth() {
+  return params.dotSize * 0.7;
 }
 
 function addSlider(key, label, min, max, step, onChange = null) {
@@ -374,7 +375,6 @@ addToggleInt("showTrail", "draw trails");
 addSlider("trailHalfLife", "trail half-life", 1.0, 100.0, 1.0);
 //addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
 //addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
-addSlider("trailWidth", "trail width (px)", 1, 9.0, 1);
 
 //addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
 //addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
@@ -962,7 +962,7 @@ function densityStepAndStamp() {
   gl.uniform1f(U.partStamp.uDotGain, params.dotGain);
   gl.uniform1f(U.partStamp.uStampGain, params.trailStampGain);
   gl.uniform1i(U.partStamp.uNumParticles, params.nParticles);
-  gl.uniform1f(U.partStamp.uTrailWidth, params.trailWidth);
+  gl.uniform1f(U.partStamp.uTrailWidth, particleTrailWidth());
 
   gl.drawArrays(gl.POINTS, 0, Math.floor(params.nParticles));
 

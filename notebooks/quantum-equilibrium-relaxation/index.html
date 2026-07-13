@@ -357,7 +357,7 @@
 
     <section class="page-hero" aria-labelledby="page-title">
       <p class="kicker">Educational notebook</p>
-      <h1 id="page-title">Quantum Equilibrium Relaxation</h1>
+      <h1 id="page-title">Relaxation to Quantum Equilibrium </h1>
       <p>
         Does any Bohmian initial distribution relax towards the Born distribution?
       </p>
@@ -388,6 +388,7 @@
           <li><a href="#applet">The Born Distribution and Equivariance</a></li>
           <li><a href="#non-equilibrium">Non-equilibrium</a></li>
           <li><a href="#spin">Spin Mixing</a></li>
+          <li><a href="#discussion">Significance</a></li>
           <li><a href="#theory">Theory and Equations</a></li>
         </ul>
       </aside>
@@ -487,17 +488,56 @@
           </div>
         </div>
       </div>
+      </section>
+
+      <section id="discussion" >
+      <h2 > Summary </h2>
+      <p>
+        These tentative experiments suggest that the relaxation into quantum equilibrium
+        seems to happen naturally as soon as the wave is in a superposition of eigen states.
+        The more superpositions, the better the mixing. 
+        Adding spin-current into the guiding law also greatly increases the mixing.
+        
+        However, we also saw that for eigen states the mixing does not happen.  
+        For very simple superpositions of eigen states, the mixing happens but it is very slow.
+      </p>
+
+      <p>   
+        In any complex situation, the wave is expected to interact with the environment and 
+        become a superposition of many eigen states, so the relaxation would seem inevitable
+         and the quantum equilibrium to be a natual state in nature.
+         
+      </p>
+
+      <p>   
+        These simulation are not conclusive, but the results have been proven in with more 
+        rigorous mathematical arguments in the literature.
+      </p>
+      <h2 > Significance </h2>
 
       <p>
-        The question about quantum relaxation is interesting since, 
-        if the relaxation happens naturally, 
-        then we do not need to explain why the initial distribution (of a subsystem or even the whole universe)
-        happens to already obey the Born distribution.
-        
+        The question of spontaneous relaxation is philosophically important. 
+        It explains why the bohmian particles "happen to be distributed" according to the Born distribution,
+        which is an essential requirement for the Pilot wave theory to reproduce the same empirical predictions
+        as the standard quantum mechanics. 
+        Spontaneous relaxation means that the universe does not need to be in a quantum equilibrium at the beginning of time.
+      </p>
+
+      <p>
+        We can also turn the question around and ask: "Can we somehow find violations of the equilibrium?"
+        If we could, that would open a door to new physics.
+        First, it would prove Born's rule to be only an approximation. 
+        Second, it would mean faster than light signaling is possible,
+        since the non-local nature of the guiding law would become observable. Thus the theory of relativity
+        would be openly contradicted.
       </p>
       <p>
-        It also invites us to ask the question: "Can we somehow find violations of the equilibrium?"
-        If we can, that would open a door to all kinds of new physics.
+        There may indeed be at least two ways to find violations of the equilibrium. 
+        One is to look for them in the micro wave background of the early universe,
+        where the universe may not have had time to relax into the equilibrium. 
+        
+        The other is to look for them in black holes, where the particles may be trapped and unable to relax.
+        It is possible that gravity may be able to break the equilibrium.
       </p>
     </section>
 
@@ -596,6 +636,18 @@
   </footer>
 
   <script>
+    const appletVisibilityObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) return;
+        const frame = entry.target;
+        const targetOrigin = window.location.protocol === "file:" ? "*" : window.location.origin;
+        frame?.contentWindow?.postMessage(
+          { type: "qontic:set-paused", paused: true },
+          targetOrigin
+        );
+      });
+    }, { threshold: 0.05 });
+
     document.querySelectorAll(".applet-shell.is-inactive").forEach((shell) => {
       const frame = shell.querySelector("iframe[data-src]");
       const playButton = shell.querySelector(".applet-play");
@@ -606,6 +658,7 @@
         }
         shell.classList.remove("is-inactive");
         playButton.remove();
+        appletVisibilityObserver.observe(frame);
       });
     });
   </script>

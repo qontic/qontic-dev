@@ -107,7 +107,6 @@ const params = {
   trailVisGain: .3,
   trailVisGamma: 2,
   trailStampGain: 0.35,
-  trailWidth: 7.0,
   trailBlendMode: 1,
 };
 
@@ -140,7 +139,6 @@ const embeddedBasePreset = {
   trailHalfLife: 50,
   trailVisGain: 0.3,
   trailVisGamma: 2,
-  trailWidth: 7,
   detectorActive: 1,
 };
 
@@ -188,7 +186,6 @@ const PRESETS = {
       nParticles: 1,
       trailHalfLife: 190,
       dotSize: 15,
-      trailWidth: 11,
       trailVisGain: 0.9,
     },
     adjustable: ["p0"],
@@ -201,7 +198,6 @@ const PRESETS = {
       nParticles: 1200,
       dotSize: 5,
       trailHalfLife: 25,
-      trailWidth: 3,
       showTrail: 0,
     },
     adjustable: ["nParticles"],
@@ -213,7 +209,6 @@ const PRESETS = {
       nParticles: 800,
       dotSize: 6,
       trailHalfLife: 35,
-      trailWidth: 4,
       detectorActive: 0,
     },
     adjustable: ["nParticles"],
@@ -333,6 +328,10 @@ function simulationStepsPerFrame() {
 
 function trailFadeFrameDt() {
   return TRAIL_FADE_FRAME_DT;
+}
+
+function particleTrailWidth() {
+  return params.dotSize * 0.7;
 }
 
 function smooth01(t) {
@@ -593,7 +592,6 @@ addToggleInt("showTrail", "draw trails");
 addSlider("trailHalfLife", "trail half-life", 1.0, 150.0, 1.0);
 //addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
 //addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
-addSlider("trailWidth", "trail width (px)", 0.5, 10.0, 0.1);
 
 removeEmptySectionHeaders();
 if (presetDefinition && controls.children.length === 0 && !isEmbedded) {
@@ -1991,7 +1989,7 @@ function densityStepAndStamp() {
   gl.uniform1f(U.partStamp.uDotGain, params.dotGain);
   gl.uniform1f(U.partStamp.uStampGain, params.trailStampGain);
   gl.uniform1i(U.partStamp.uNumParticles, params.nParticles);
-  gl.uniform1f(U.partStamp.uTrailWidth, params.trailWidth);
+  gl.uniform1f(U.partStamp.uTrailWidth, particleTrailWidth());
   gl.uniform1i(U.partStamp.uRenderMode, PARTICLE_RENDER_ALL);
   setViewUniforms(U.partStamp, 0.5, 0.5, 1.0, false);
 
