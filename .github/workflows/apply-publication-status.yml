@@ -1,0 +1,91 @@
+name: Apply publication status request
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  apply:
+    if: startsWith(github.event.issue.title, '[publication-status] ')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check requester authorization
+        env:
+          ASSOCIATION: ${{ github.event.issue.author_association }}
+        run: |
+          case "$ASSOCIATION" in
+            OWNER|MEMBER|COLLABORATOR) ;;
+            *) echo "Unauthorized issue author association: $ASSOCIATION"; exit 1 ;;
+          esac
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply requested status
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          body = os.environ.get('ISSUE_BODY', '')
+          path_match = re.search(r'^path:\s*(.+?)\s*$', body, re.MULTILINE)
+          status_match = re.search(r'^status:\s*(draft|review|approved)\s*$', body, re.MULTILINE)
+          if not path_match or not status_match:
+              raise SystemExit('Issue body does not contain a valid path and status.')
+
+          rel_dir = path_match.group(1).strip()
+          status = status_match.group(1)
+          if not (rel_dir.startswith('notebooks/') or rel_dir.startswith('apps/')):
+              raise SystemExit(f'Invalid path: {rel_dir}')
+          if '..' in Path(rel_dir).parts:
+              raise SystemExit('Path traversal is not allowed.')
+
+          app_json = Path(rel_dir) / 'app.json'
+          if not app_json.is_file():
+              raise SystemExit(f'No app.json found at {app_json}')
+
+          data = json.loads(app_json.read_text(encoding='utf-8'))
+          old = str(data.get('status', 'missing'))
+          data['status'] = status
+          app_json.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+          print(f'Updated {app_json}: {old} -> {status}')
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "qontic-publication-manager"
+          git config user.email "qontic-publication-manager@users.noreply.github.com"
+          git add 'notebooks/*/app.json' 'apps/*/*/app.json'
+          if git diff --cached --quiet; then
+            echo "No change required."
+            exit 0
+          fi
+          git commit -m "Update publication status from issue #${{ github.event.issue.number }}"
+          git push origin main
+
+      - name: Close request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'Publication status updated successfully.'
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
