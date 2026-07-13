@@ -1,4 +1,4 @@
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const wrap = document.getElementById("wrap");
@@ -107,7 +107,6 @@ const params = {
   trailVisGain: .3,
   trailVisGamma: 2,
   trailStampGain: 0.35,
-  trailWidth: 7.0,
   trailBlendMode: 1,
 };
 
@@ -140,7 +139,6 @@ const embeddedBasePreset = {
   trailHalfLife: 50,
   trailVisGain: 0.3,
   trailVisGamma: 2,
-  trailWidth: 7,
   detectorActive: 1,
 };
 
@@ -188,7 +186,6 @@ const PRESETS = {
       nParticles: 1,
       trailHalfLife: 190,
       dotSize: 15,
-      trailWidth: 11,
       trailVisGain: 0.9,
     },
     adjustable: ["p0"],
@@ -201,7 +198,6 @@ const PRESETS = {
       nParticles: 1200,
       dotSize: 5,
       trailHalfLife: 25,
-      trailWidth: 3,
       showTrail: 0,
     },
     adjustable: ["nParticles"],
@@ -213,7 +209,6 @@ const PRESETS = {
       nParticles: 800,
       dotSize: 6,
       trailHalfLife: 35,
-      trailWidth: 4,
       detectorActive: 0,
     },
     adjustable: ["nParticles"],
@@ -231,6 +226,11 @@ if (!detectorControlEnabled) detectorToggleButton.style.display = "none";
 if (presetParams) {
   Object.assign(params, presetParams);
 }
+
+const TRAIL_FADE_FRAME_DT = Math.max(
+  1e-12,
+  params.dt * Math.max(1, Math.floor(params.stepsPerFrame))
+);
 
 function isControlFixed(key) {
   return Boolean(presetDefinition) && !adjustableControls.has(key);
@@ -319,11 +319,19 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.01 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 100 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
+}
+
+function trailFadeFrameDt() {
+  return TRAIL_FADE_FRAME_DT;
+}
+
+function particleTrailWidth() {
+  return params.dotSize * 0.7;
 }
 
 function smooth01(t) {
@@ -584,7 +592,6 @@ addToggleInt("showTrail", "draw trails");
 addSlider("trailHalfLife", "trail half-life", 1.0, 150.0, 1.0);
 //addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
 //addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
-addSlider("trailWidth", "trail width (px)", 0.5, 10.0, 0.1);
 
 removeEmptySectionHeaders();
 if (presetDefinition && controls.children.length === 0 && !isEmbedded) {
@@ -652,7 +659,7 @@ let uiMinimized = false;
 minBtn.onclick = () => {
   uiMinimized = !uiMinimized;
   uiBody.style.display = uiMinimized ? "none" : "block";
-  minBtn.textContent = uiMinimized ? ">" : "v";
+  minBtn.textContent = uiMinimized ? "+" : "-";
 };
 
 // --------------------
@@ -1894,7 +1901,7 @@ function particleUpdate() {
 }
 
 // --------------------
-// Density fade from half-life (simulation time)
+// Density fade from half-life using one rendered-frame fade interval.
 // --------------------
 const LN2 = Math.log(2);
 function fadeFromHalfLife(halfLife, dtTotal) {
@@ -1939,7 +1946,7 @@ function clearDensity() {
 }
 
 function densityStepAndStamp() {
-  const dtTotal = simulationDt() * simulationStepsPerFrame();
+  const dtTotal = trailFadeFrameDt();
 
   const waveTex = flip ? texB : texA;
   const src = densFlip ? densTexB : densTexA;
@@ -1982,7 +1989,7 @@ function densityStepAndStamp() {
   gl.uniform1f(U.partStamp.uDotGain, params.dotGain);
   gl.uniform1f(U.partStamp.uStampGain, params.trailStampGain);
   gl.uniform1i(U.partStamp.uNumParticles, params.nParticles);
-  gl.uniform1f(U.partStamp.uTrailWidth, params.trailWidth);
+  gl.uniform1f(U.partStamp.uTrailWidth, particleTrailWidth());
   gl.uniform1i(U.partStamp.uRenderMode, PARTICLE_RENDER_ALL);
   setViewUniforms(U.partStamp, 0.5, 0.5, 1.0, false);
 
@@ -2318,6 +2325,8 @@ async function main() {
 
   
   requestAnimationFrame(function loop(frameTime) {
+    const frameSeconds = Math.min(0.05, Math.max(0, (frameTime - previousFrameTime) / 1000));
+    setSimulationFrameDuration(frameSeconds);
     updateViewEasing(frameTime);
     syncDisplaySize();
 

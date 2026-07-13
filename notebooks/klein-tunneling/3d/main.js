@@ -1,4 +1,4 @@
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 if (!navigator.gpu) {
@@ -64,10 +64,20 @@ const DEFAULT_PACKET_ELEVATION_DEG = 0.0;
 const DEFAULT_BRANCH_MIX_DEG = 0.0;
 const urlParams = new URLSearchParams(window.location.search);
 const isEmbedded = urlParams.get("embed") === "1";
+const embeddedAdjustableControls = new Set([
+  "packetK",
+  "barrierHeight",
+  "showCloud",
+  "showParticles",
+]);
+
+function isControlFixed(key) {
+  return isEmbedded && !embeddedAdjustableControls.has(key);
+}
 
 const params = {
   simRes: Math.min(96, MAX_SIM_RES),
-  stepsPerFrame: 5,
+  stepsPerFrame: 1,
   boxScale: 2.5,
   cameraProjection: 0,
 
@@ -75,7 +85,7 @@ const params = {
   mass: 0.15,
   diracC: 5.0,
   packetK: 0.75,
-  dt: 0.004,
+  dt: 0.02,
 
   packetX: 0.22,
   packetY: 0.50,
@@ -109,10 +119,14 @@ const params = {
   trailVisGain: 0.5,
   trailVisGamma: 1.0,
   trailStampGain: 0.45,
-  trailWidth: 15.0,
   trailBlendMode: 2,
   densityScale: 0.5,
 };
+
+const TRAIL_FADE_FRAME_DT = Math.max(
+  1e-12,
+  params.dt * Math.max(1, Math.floor(params.stepsPerFrame))
+);
 
 const GUIDING_MODE_NAMES = [
   "Dirac current"
@@ -133,11 +147,19 @@ function requestRedraw() {
 initSimulationSpeedControl({ visible: !isEmbedded, onChange: requestRedraw });
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.001 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 16 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
+}
+
+function trailFadeFrameDt() {
+  return TRAIL_FADE_FRAME_DT;
+}
+
+function particleTrailWidth() {
+  return params.dotSize * 0.7;
 }
 
 const controls = document.getElementById("controls");
@@ -156,6 +178,7 @@ function fmt(v) {
 }
 
 function addSlider(key, label, min, max, step, onChange = null) {
+  if (isControlFixed(key)) return;
   const row = document.createElement("div");
   row.className = "row";
 
@@ -191,6 +214,7 @@ function addSlider(key, label, min, max, step, onChange = null) {
 }
 
 function addToggleInt(key, label, onChange = null) {
+  if (isControlFixed(key)) return;
   const row = document.createElement("div");
   row.className = "row";
   const lab = document.createElement("label");
@@ -217,6 +241,7 @@ function addToggleInt(key, label, onChange = null) {
 }
 
 function addCycleButton(key, label, values, onChange = null) {
+  if (isControlFixed(key)) return { button: null, sync() {} };
   const row = document.createElement("div");
   row.className = "row";
 
@@ -250,6 +275,7 @@ function addCycleButton(key, label, values, onChange = null) {
 }
 
 function addSegmentedButtons(key, label, values, onChange = null) {
+  if (isControlFixed(key)) return null;
   const row = document.createElement("div");
   row.className = "row mode-row";
 
@@ -297,6 +323,7 @@ function addSegmentedButtons(key, label, values, onChange = null) {
 
 function addSectionHeader(label) {
   const header = document.createElement("div");
+  header.className = "section-header";
   header.style.marginTop = "12px";
   header.style.marginBottom = "8px";
   header.style.fontSize = "11px";
@@ -308,10 +335,27 @@ function addSectionHeader(label) {
   controls.appendChild(header);
 }
 
+function removeEmptySectionHeaders() {
+  for (const header of controls.querySelectorAll(".section-header")) {
+    let sibling = header.nextElementSibling;
+    let hasControl = false;
+
+    while (sibling && !sibling.classList.contains("section-header")) {
+      if (sibling.classList.contains("row")) {
+        hasControl = true;
+        break;
+      }
+      sibling = sibling.nextElementSibling;
+    }
+
+    if (!hasControl) header.remove();
+  }
+}
+
 addSectionHeader("Simulation");
 addSlider("simRes", "grid resolution", MIN_SIM_RES, MAX_SIM_RES, 4, () => rebuildSimulation());
 addSlider("stepsPerFrame", "Steps/frame", 1, 16, 1);
-addSlider("dt", "dt", 0.001, 0.008, 0.0005);
+addSlider("dt", "dt", 0.001, 0.02, 0.0005);
 
 const cameraProjectionControl = addCycleButton("cameraProjection", "camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
@@ -322,7 +366,7 @@ const cameraProjectionControl = addCycleButton("cameraProjection", "camera view"
 addSectionHeader("Dirac Packet");
 addSlider("diracC", "Dirac c", 1.0, 8.0, 0.1, () => resetAll());
 addSlider("mass", "mass", 0.02, 0.8, 0.01, () => resetAll());
-addSlider("packetK", "mean k", 0.15, 1.5, 0.01, () => resetAll());
+addSlider("packetK", "mean k", 0.15, .8, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 4.0, 18.0, 0.5, () => resetAll());
 addSegmentedButtons("spinAxis", "spin axis", [
   { label: "X", value: 1 },
@@ -335,15 +379,18 @@ addSlider("barrierHeight", "potential strength", 0.0, 18.0, 0.1, () => resetAll(
 addSlider("barrierWidth", "wall width", 2.0, 48.0, 1.0, () => resetAll());
 
 addSectionHeader("Visual Parameters");
-addToggleInt("showCloud", "density cloud");
+addToggleInt("showCloud", "wave density");
 //addSlider("cloudGain", "cloud density", 0.01, 1.5, 0.01);
 addToggleInt("showPhase", "show phase");
-addToggleInt("showParticles", "show particles");
+addToggleInt("showParticles", "show particles", (value) => {
+  if (!value) requestTrailClear();
+});
 addSlider("nParticles", "particle count", 1, 500, 10, () => rebuildParticles());
 addSlider("dotSize", "particle size", 2.0, 26.0, 1);
-addSlider("dotGain", "particle brightness", 0.1, 5.0, 0.1);
+//addSlider("dotGain", "particle brightness", 0.1, 5.0, 0.1);
 addToggleInt("showTrail", "draw trails");
 addSlider("trailHalfLife", "trail length", 0.1, 4.0, 0.1);
+removeEmptySectionHeaders();
 
 document.getElementById("reset").onclick = () => resetAll();
 const pauseButton = document.getElementById("pause");
@@ -942,7 +989,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([params.cloudGain, params.cloudGamma, params.cloudLowBoost, params.cloudCutoff], 12);
   uniformData.set([params.cloudPointSize, params.showPhase, 0.0, params.boxScale], 16);
   uniformData.set([params.dotSize, params.dotSigma, params.dotGain, 0.0], 20);
-  uniformData.set([params.rhoMin, params.velClamp, Math.floor(params.nParticles), params.trailWidth], 24);
+  uniformData.set([params.rhoMin, params.velClamp, Math.floor(params.nParticles), particleTrailWidth()], 24);
   uniformData.set([camera.eye[0], camera.eye[1], camera.eye[2], camera.distance], 28);
   uniformData.set([viewportW, viewportH, params.cameraProjection | 0, params.trailStampGain], 32);
   uniformData.set([barrierCenterGrid(), barrierWidthGrid(), effectiveBarrierHeight(), 1.0], 36);
@@ -1628,7 +1675,7 @@ function clearDensity() {
 
 function densityStepAndStamp(encoder, camera) {
   if (!densViewA || !densViewB) return;
-  const dtTotal = simulationDt() * simulationStepsPerFrame();
+  const dtTotal = trailFadeFrameDt();
   const sizeScale = densW / Math.max(1, canvas.width);
   const fade = fadeFromHalfLife(params.trailHalfLife, dtTotal);
   writeUniforms(trailUniformBuffer, camera, densW, densH, fade, sizeScale);
@@ -1676,7 +1723,7 @@ function render(encoder, camera) {
     pass.draw(36);
   }
 
-  if (params.showTrail && densityRenderBindGroups.length) {
+  if (params.showParticles && params.showTrail && densityRenderBindGroups.length) {
     const mode = Math.max(0, Math.min(2, params.trailBlendMode | 0));
     const pipeline = mode === 0 ? pipelineDensityRenderAdd : (mode === 1 ? pipelineDensityRenderScreen : pipelineDensityRenderGlow);
     pass.setPipeline(pipeline);
@@ -1967,6 +2014,7 @@ async function main() {
     const wallDtSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
     const dtSeconds = wallDtSeconds;
     lastFrameTime = now;
+    setSimulationFrameDuration(dtSeconds);
     const resized = resizeCanvas();
     if (resized) rebuildDensity();
 
@@ -1998,7 +2046,7 @@ async function main() {
         simTime += simulationDt();
       }
       compute.end();
-      if (params.showTrail) densityStepAndStamp(encoder, camera);
+      if (params.showParticles && params.showTrail) densityStepAndStamp(encoder, camera);
     }
 
     writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);

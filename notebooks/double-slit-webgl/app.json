@@ -1,8 +1,8 @@
 {
-  "title": "Pilot-Wave Double Slit — WebGL2 Notebook",
+  "title": "Pilot-Wave Double Slit —  Notebook",
   "type": "notebook",
   "category": "pilot-wave",
-  "description": "Notebook-style presentation of a WebGL2 pilot-wave double-slit simulation.",
+  "description": "Classic double-slit experiment with real time pilot-wave visualization.",
   "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "Spin", "Double slit"],
   "entry": "index.html"
 }

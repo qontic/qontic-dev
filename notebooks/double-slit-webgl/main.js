@@ -1,4 +1,4 @@
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
@@ -58,7 +58,6 @@ const params = {
   trailVisGain: 1.,
   trailVisGamma: 1,
   trailStampGain: 0.55,
-  trailWidth: 5.0,
   trailBlendMode: 1,
 
   paletteId: 0,
@@ -91,7 +90,6 @@ const oneParticlePreset = {
   showParticles: 1,
   dotSize: 20.0,
   dotGain: 2.,
-  trailWidth: 15.0,
   trailVisGain: .3,
   trailHalfLife: 190.0,
   showTrail: 1,
@@ -101,7 +99,6 @@ const particleCountPreset = { ...oneParticlePreset };
 
 particleCountPreset.nParticles= 500,
 particleCountPreset.dotSize = 7.0;
-particleCountPreset.trailWidth = 5.0;
 particleCountPreset.trailVisGain = .5;
 particleCountPreset.trailGamma = .5;
 particleCountPreset.trailHalfLife = 19.0;
@@ -111,7 +108,6 @@ equivariancePreset.showPhase = 0;
 equivariancePreset.nParticles = 5000;
 equivariancePreset.dotSize = 4.0;
 equivariancePreset.dotGain = 0.6;
-equivariancePreset.trailWidth = 1.0;
 equivariancePreset.trailVisGain = 0.2;
 equivariancePreset.trailHalfLife = 5.0;
 
@@ -141,6 +137,11 @@ const fixedControls = new Set(
 if (presetParams) {
   Object.assign(params, presetParams);
 }
+
+const TRAIL_FADE_FRAME_DT = Math.max(
+  1e-12,
+  params.dt * Math.max(1, Math.floor(params.stepsPerFrame))
+);
 
 function isControlFixed(key) {
   if (adjustableControls.has(key)) return false;
@@ -177,11 +178,19 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.01 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 100 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
+}
+
+function trailFadeFrameDt() {
+  return TRAIL_FADE_FRAME_DT;
+}
+
+function particleTrailWidth() {
+  return params.dotSize * 0.7;
 }
 
 function addSlider(key, label, min, max, step, onChange = null) {
@@ -378,7 +387,6 @@ addToggleInt("showTrail", "draw trails");
 addSlider("trailHalfLife", "trail half-life", 1.0, 150.0, 1.0);
 //addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
 //addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
-addSlider("trailWidth", "trail width (px)", 0.5, 10.0, 0.1);
 
 //addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
 //addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
@@ -958,7 +966,7 @@ function clearDensity() {
 }
 
 function densityStepAndStamp() {
-  const dtTotal = simulationDt() * simulationStepsPerFrame();
+  const dtTotal = trailFadeFrameDt();
 
   const src = densFlip ? densTexB : densTexA;
   const dstFbo = densFlip ? densFboA : densFboB;
@@ -991,7 +999,7 @@ function densityStepAndStamp() {
   gl.uniform1f(U.partStamp.uDotGain, params.dotGain);
   gl.uniform1f(U.partStamp.uStampGain, params.trailStampGain);
   gl.uniform1i(U.partStamp.uNumParticles, params.nParticles);
-  gl.uniform1f(U.partStamp.uTrailWidth, params.trailWidth);
+  gl.uniform1f(U.partStamp.uTrailWidth, particleTrailWidth());
 
   gl.drawArrays(gl.POINTS, 0, Math.floor(params.nParticles));
 
@@ -1325,7 +1333,11 @@ async function main() {
 
   params.trailHalfLife*=0.99;
 
-  requestAnimationFrame(function loop() {
+  let lastFrameTime = performance.now();
+  requestAnimationFrame(function loop(now = performance.now()) {
+    const frameSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
+    lastFrameTime = now;
+    setSimulationFrameDuration(frameSeconds);
     if (!frameRecordingActive) {
       drawSimulationFrame(!paused);
     }

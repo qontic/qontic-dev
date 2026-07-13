@@ -1,4 +1,4 @@
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
@@ -65,8 +65,8 @@ const params = {
   guidingMode: 1,
   spinMagnitude: 0.5,
 
-  visGain: 2.0,
-  visGamma: 0.5,
+  visGain: 5.0,
+  visGamma: 0.8,
   showPhase: 0,
 
   showParticles: 1,
@@ -79,7 +79,6 @@ const params = {
   trailVisGain: 0.5,
   trailVisGamma: 0.6,
   trailStampGain: 0.55,
-  trailWidth: 3.0,
   trailBlendMode: 1,
 };
 
@@ -103,6 +102,11 @@ const activeDemoProfile = EMBEDDED_DEMOS[activeDemo] || null;
 if (activeDemoProfile) {
   Object.assign(params, activeDemoProfile.params);
 }
+
+const TRAIL_FADE_FRAME_DT = Math.max(
+  1e-12,
+  params.dt * Math.max(1, Math.floor(params.stepsPerFrame))
+);
 
 let paused = false;
 let simTime = 0;
@@ -130,11 +134,19 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.00001 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 100 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
+}
+
+function trailFadeFrameDt() {
+  return TRAIL_FADE_FRAME_DT;
+}
+
+function particleTrailWidth() {
+  return params.dotSize * 0.7;
 }
 
 function selectedPreset() {
@@ -282,10 +294,9 @@ function addSectionHeader(label, keys = []) {
 }
 
 addSectionHeader("Simulation", ["stepsPerFrame", "dt", "integratorSubsteps", "velClamp"]);
-addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
-addSlider("dt", "dt", 0.00001, 0.001, 0.00001);
-addSlider("integratorSubsteps", "ODE substeps", 1, 16, 1);
-addSlider("velClamp", "max speed", 0.0, 100.0, 1.0);
+addSlider("stepsPerFrame", "Steps/frame", 1, 30, 1);
+addSlider("dt", "dt",  0.001, 0.01, 0.001);
+
 
 addSectionHeader("Physical Parameters", ["wavePreset", "guidingMode", "spinMagnitude", "initDistribution", "initRectangleSize"]);
 addSegmentedControl("wavePreset", "state", WAVE_PRESETS.map((p) => p.short), () => resetAll());
@@ -294,18 +305,17 @@ addSlider("spinMagnitude", "spin strength", 0.0, 2.0, 0.05);
 addSegmentedControl("initDistribution", "init particles", INIT_DISTRIBUTIONS, () => resetAll());
 addSlider("initRectangleSize", "square size", 0.05, 0.90, 0.01, () => rebuildParticles());
 
-addSectionHeader("Visual Parameters", ["visGain", "visGamma", "showPhase", "showParticles", "nParticles", "dotSize", "dotGain", "showTrail", "trailHalfLife", "trailWidth"]);
-addSlider("visGain", "density gain", 1.0, 40.0, 1.0);
-addSlider("visGamma", "density gamma", 0.25, 1.4, 0.05);
+addSectionHeader("Visual Parameters", ["visGain", "visGamma", "showPhase", "showParticles", "nParticles", "dotSize", "dotGain", "showTrail", "trailHalfLife"]);
+//addSlider("visGain", "density gain", 1.0, 40.0, 1.0);
+//addSlider("visGamma", "density gamma", 0.25, 1.4, 0.05);
 addToggleInt("showPhase", "show phase");
 
 addToggleInt("showParticles", "show particles");
 addSlider("nParticles", "particle count", 10000, 100000, 10000, () => resetAll());
 addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
-addSlider("dotGain", "particle gain", 0.1, 3.0, 0.1);
+//addSlider("dotGain", "particle gain", 0.1, 3.0, 0.1);
 addToggleInt("showTrail", "draw trails");
-addSlider("trailHalfLife", "trail half-life", .001, .01, .001);
-addSlider("trailWidth", "trail width", 1.0, 9.0, 1.0);
+addSlider("trailHalfLife", "trail length", .001, .01, .001);
 
 function waveAt(x, y, t, withGradient = false) {
   const preset = selectedPreset();
@@ -701,7 +711,7 @@ function densityStepAndStamp(dtTotal) {
   gl.uniform2f(U.partStamp.uBoxSize, BOX_LX, BOX_LY);
   gl.uniform1f(U.partStamp.uPointSize, params.dotSize);
   gl.uniform1i(U.partStamp.uNumParticles, particleCount);
-  gl.uniform1f(U.partStamp.uTrailWidth, params.trailWidth);
+  gl.uniform1f(U.partStamp.uTrailWidth, particleTrailWidth());
   gl.uniform1f(U.partStamp.uDotSigma, params.dotSigma);
   gl.uniform1f(U.partStamp.uDotGain, params.dotGain);
   gl.uniform1f(U.partStamp.uStampGain, params.trailStampGain);
@@ -722,7 +732,7 @@ function updateSimulation() {
     particleUpdate();
     simTime += dt;
   }
-  densityStepAndStamp(steps * dt);
+  densityStepAndStamp(trailFadeFrameDt());
 }
 
 function render() {
@@ -871,8 +881,7 @@ function installDebugHooks() {
       };
     },
     setPaused(value) {
-      paused = Boolean(value);
-      pauseBtn.textContent = paused ? "Resume" : "Pause";
+      setPaused(value);
       return this.state();
     },
     setParams(next, reset = false) {
@@ -900,10 +909,23 @@ function installDebugHooks() {
 }
 
 resetBtn.addEventListener("click", resetAll);
-pauseBtn.addEventListener("click", () => {
-  paused = !paused;
+function setPaused(value) {
+  paused = Boolean(value);
   pauseBtn.textContent = paused ? "Resume" : "Pause";
+}
+
+pauseBtn.addEventListener("click", () => {
+  setPaused(!paused);
 });
+
+if (isEmbedded) {
+  window.addEventListener("message", (event) => {
+    if (event.source !== window.parent) return;
+    if (window.location.protocol !== "file:" && event.origin !== window.location.origin) return;
+    if (event.data?.type !== "qontic:set-paused") return;
+    setPaused(event.data.paused);
+  });
+}
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "r" || event.key === "R") resetAll();
@@ -921,7 +943,7 @@ window.addEventListener("resize", () => {
 minUiBtn.addEventListener("click", () => {
   const hidden = uiBody.hidden;
   uiBody.hidden = !hidden;
-  minUiBtn.textContent = hidden ? "v" : "+";
+  minUiBtn.textContent = hidden ? "-" : "+";
 });
 
 theoryToggle.addEventListener("click", () => {
@@ -940,7 +962,11 @@ async function main() {
   resetAll();
   if (debugEnabled) installDebugHooks();
 
-  requestAnimationFrame(function loop() {
+  let lastFrameTime = performance.now();
+  requestAnimationFrame(function loop(now = performance.now()) {
+    const frameSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
+    lastFrameTime = now;
+    setSimulationFrameDuration(frameSeconds);
     resizeCanvas();
     if (!paused) updateSimulation();
     render();

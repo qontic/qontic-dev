@@ -1,6 +1,6 @@
 const DEFAULT_SPEED = 1.0;
 const MIN_SPEED = 0.1;
-const MAX_SPEED = 4.0;
+const MAX_SPEED = 5.0;
 const SPEED_STEP = 0.05;
 
 function clampSpeed(value) {

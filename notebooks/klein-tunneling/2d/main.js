@@ -7,7 +7,7 @@ import {
   TRAIL_FADE_FRAG,
   TRAIL_RENDER_FRAG,
 } from "./shaders/sources.js";
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl } from "../../simulation-speed.js";
+import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration } from "../../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", {
@@ -49,10 +49,19 @@ const SPECTRAL_SAFETY = 0.62;
 const urlParams = new URLSearchParams(window.location.search);
 const isEmbedded = urlParams.get("embed") === "1";
 const debugEnabled = urlParams.has("debug");
+const embeddedAdjustableControls = new Set([
+  "packetK",
+  "potentialHeight",
+  "showParticles",
+  "nParticles",]);
+
+function isControlFixed(key) {
+  return isEmbedded && !embeddedAdjustableControls.has(key);
+}
 
 const params = {
   stepsPerFrame: 1,
-  dt: 0.002,
+  dt: 0.005,
   diracC: 6.0,
   mass: 1.0,
   packetK: 6.0,
@@ -62,7 +71,7 @@ const params = {
   barrierWidth: 1.10,
   nParticles: 300,
   densityGain: 7.,
-  densityGamma: 0.55,
+  densityGamma: 0.8,
   amplitudeView: 0,
   showParticles: 1,
   showTrail: 1,
@@ -154,11 +163,11 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt, { min: 0.0003 });
+  return effectiveDt(params.dt);
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame, { min: 1, max: 5 });
+  return effectiveStepsPerFrame(params.stepsPerFrame);
 }
 
 function rebuildAbsorber() {
@@ -183,6 +192,7 @@ initSimulationSpeedControl({ visible: !isEmbedded, onChange: rebuildAbsorber });
 
 function addSectionHeader(label) {
   const header = document.createElement("div");
+  header.className = "section-header";
   header.style.marginTop = "12px";
   header.style.marginBottom = "8px";
   header.style.fontSize = "11px";
@@ -195,6 +205,7 @@ function addSectionHeader(label) {
 }
 
 function addSlider(key, label, min, max, step, onChange = null, live = false) {
+  if (isControlFixed(key)) return;
   const row = document.createElement("div");
   row.className = "row";
 
@@ -232,6 +243,7 @@ function addSlider(key, label, min, max, step, onChange = null, live = false) {
 }
 
 function addToggleInt(key, label, onChange = null) {
+  if (isControlFixed(key)) return;
   const row = document.createElement("div");
   row.className = "row no-value";
 
@@ -259,6 +271,7 @@ function addToggleInt(key, label, onChange = null) {
 }
 
 function addToggleChoice(key, label, offText, onText, onChange = null) {
+  if (isControlFixed(key)) return;
   const row = document.createElement("div");
   row.className = "row no-value";
 
@@ -285,6 +298,23 @@ function addToggleChoice(key, label, offText, onText, onChange = null) {
   controls.appendChild(row);
 }
 
+function removeEmptySectionHeaders() {
+  for (const header of controls.querySelectorAll(".section-header")) {
+    let sibling = header.nextElementSibling;
+    let hasControl = false;
+
+    while (sibling && !sibling.classList.contains("section-header")) {
+      if (sibling.classList.contains("row")) {
+        hasControl = true;
+        break;
+      }
+      sibling = sibling.nextElementSibling;
+    }
+
+    if (!hasControl) header.remove();
+  }
+}
+
 addSectionHeader("Simulation");
 //addSlider("stepsPerFrame", "Steps/frame", 1, 5, 1);
 addSlider("dt", "dt", 0.0003, 0.004, 0.0001, rebuildAbsorber);
@@ -292,12 +322,12 @@ addSlider("dt", "dt", 0.0003, 0.004, 0.0001, rebuildAbsorber);
 addSectionHeader("Dirac Packet");
 addSlider("diracC", "Dirac c", 2.0, 12.0, 0.1, resetAll);
 addSlider("mass", "mass", 0.2, 2.0, 0.05, resetAll);
-addSlider("packetK", "packet k", 2.0, 10.0, 0.1, resetAll);
+addSlider("packetK", "mean k", 2.0, 10.0, 0.1, resetAll);
 addSlider("packetAngle", "angle deg", -35.0, 35.0, 1.0, resetAll);
 addSlider("packetSigma", "packet width", 0.30, 1.05, 0.01, resetAll);
 
 addSectionHeader("Potential Wall");
-addSlider("potentialHeight", "wall height", 0.0, 180.0, 1.0, updateWall, true);
+addSlider("potentialHeight", "potential strength", 0.0, 180.0, 1.0, updateWall, true);
 addSlider("barrierWidth", "wall width", 0.25, 2.6, 0.05, updateWall, true);
 
 addSectionHeader("Visual Parameters");
@@ -310,6 +340,7 @@ addSlider("nParticles", "particle count", 1, 500, 10, resetAll);
 addSlider("dotSize", "particle size", 2.0, 10.0, 1);
 addToggleInt("showTrail", "draw trails", (value) => { if (!value) clearTrail(); });
 addSlider("trailLength", "trail length", 2.0, 40.0, 1);
+removeEmptySectionHeaders();
 
 
 function barrierBounds() {
@@ -1126,7 +1157,7 @@ window.addEventListener("resize", () => {
 minUiBtn.addEventListener("click", () => {
   const hidden = uiBody.hidden;
   uiBody.hidden = !hidden;
-  minUiBtn.textContent = hidden ? "v" : "+";
+  minUiBtn.textContent = hidden ? "-" : "+";
 });
 
 theoryToggle.addEventListener("click", () => {
@@ -1143,7 +1174,11 @@ resizeCanvas();
 resetAll();
 if (debugEnabled) installDebugHooks();
 
-requestAnimationFrame(function loop() {
+let lastFrameTime = performance.now();
+requestAnimationFrame(function loop(now = performance.now()) {
+  const frameSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
+  lastFrameTime = now;
+  setSimulationFrameDuration(frameSeconds);
   if (!paused) updateSimulation();
   render();
   updateStats();

@@ -92,25 +92,32 @@ uniform float uTrailWidth;
 
 out float vAlive;
 out float vParticleId;
+out float vTrackSlot;
 
 void main() {
   vAlive = aState.z;
   vParticleId = float(gl_VertexID) / float(max(uNumParticles, 1));
+  vTrackSlot = aState.w;
   vec2 uv = aState.xy / uBoxSize;
   gl_Position = vec4(uv * 2.0 - 1.0, 0.0, 1.0);
-  gl_PointSize = uTrailWidth > 0.0 ? uTrailWidth : uPointSize;
+  float selectedScale = (aState.w > 0.5 && uTrailWidth <= 0.0) ? 1.6 : 1.0;
+  gl_PointSize = (uTrailWidth > 0.0 ? uTrailWidth : uPointSize) * selectedScale;
 }`;
 
 export const PARTICLE_FRAG = `#version 300 es
 precision highp float;
 
 in float vAlive;
+in float vTrackSlot;
 out vec4 fragColor;
 
 uniform float uDotSigma;
 uniform float uDotGain;
 
 vec3 particleColor() {
+  if(vTrackSlot > 2.5) return vec3(1.0, 0.70, 0.30);
+  if(vTrackSlot > 1.5) return vec3(1.0, 0.47, 0.79);
+  if(vTrackSlot > 0.5) return vec3(0.34, 0.85, 1.0);
   vec3 a = vec3(0.08, 0.06, 0.02);
   vec3 b = vec3(1.00, 0.90, 0.40);
   vec3 d = vec3(0.08, 0.18, 0.28);

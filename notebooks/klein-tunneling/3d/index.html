@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Klein Tunneling 3D</title>
   <script>
+    const initialUrlParams = new URLSearchParams(window.location.search);
+    if (initialUrlParams.get("embed") === "1") {
+      document.documentElement.classList.add("is-embedded");
+    }
+    if (initialUrlParams.get("capture") === "header") {
+      document.documentElement.classList.add("is-header-capture");
+    }
+  </script>
+  <script>
     window.MathJax = {
       tex: {
         inlineMath: [["\\(", "\\)"]],
@@ -106,13 +115,33 @@
     @media (max-width:900px) {
       #explain { width:34vw; min-width:240px; }
     }
+    html.is-embedded #explain {
+      display:none !important;
+    }
+    html.is-embedded #ui {
+      width:min(330px, calc(100vw - 24px));
+      max-height:calc(100vh - 24px);
+      overflow:auto;
+    }
+    html.is-embedded #viewtools {
+      left:auto;
+      right:12px;
+    }
+    @media (max-width:760px) {
+      html.is-embedded #viewtools { display:none; }
+    }
+    html.is-header-capture #ui,
+    html.is-header-capture #viewtools,
+    html.is-header-capture #explain {
+      display:none !important;
+    }
   </style>
 </head>
 <body>
   <div id="wrap">
     <canvas id="c"></canvas>
     <div id="ui">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+      <div class="applet-ui-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
         <h3>Klein Tunneling 3D</h3>
         <button id="minui" title="Minimize/expand" style="
           width:34px; height:28px; padding:0; flex:0 0 auto;

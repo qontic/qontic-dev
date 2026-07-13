@@ -6,6 +6,11 @@
   <title>Klein Tunneling 2D</title>
   <link rel="icon" href="data:," />
   <script>
+    if (new URLSearchParams(window.location.search).get("embed") === "1") {
+      document.documentElement.classList.add("is-embedded");
+    }
+  </script>
+  <script>
     window.MathJax = {
       tex: {
         inlineMath: [["\\(", "\\)"]],
@@ -80,20 +85,28 @@
       #theory { top:auto; bottom:12px; width:calc(100vw - 48px); }
       #theory.is-minimized { width:160px; }
     }
+    html.is-embedded #theory {
+      display:none !important;
+    }
+    html.is-embedded #ui {
+      width:min(370px, calc(100vw - 24px));
+      max-height:calc(100vh - 24px);
+      overflow:auto;
+    }
   </style>
 </head>
 <body>
   <div id="wrap">
     <canvas id="c"></canvas>
     <div id="ui">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+      <div class="applet-ui-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
         <h3>Klein Tunneling 2D</h3>
         <button id="minui" title="Minimize/expand" style="
           width:34px; height:28px; padding:0; flex:0 0 auto;
           border-radius:8px; border:1px solid rgba(132,192,255,0.26);
           background:rgba(68,130,210,0.14); color:#fff; cursor:pointer;
           display:flex; align-items:center; justify-content:center; font-size:16px; line-height:1;
-        ">v</button>
+        ">-</button>
       </div>
       <div id="uibody">
         <div id="controls"></div>
