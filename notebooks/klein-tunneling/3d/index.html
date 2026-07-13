@@ -5,8 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Klein Tunneling 3D</title>
   <script>
-    if (new URLSearchParams(window.location.search).get("embed") === "1") {
+    const initialUrlParams = new URLSearchParams(window.location.search);
+    if (initialUrlParams.get("embed") === "1") {
       document.documentElement.classList.add("is-embedded");
+    }
+    if (initialUrlParams.get("capture") === "header") {
+      document.documentElement.classList.add("is-header-capture");
     }
   </script>
   <script>
@@ -125,6 +129,11 @@
     }
     @media (max-width:760px) {
       html.is-embedded #viewtools { display:none; }
+    }
+    html.is-header-capture #ui,
+    html.is-header-capture #viewtools,
+    html.is-header-capture #explain {
+      display:none !important;
     }
   </style>
 </head>

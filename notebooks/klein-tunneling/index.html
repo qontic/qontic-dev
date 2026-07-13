@@ -177,71 +177,13 @@
       box-shadow: 0 8px 24px rgba(0, 0, 45, 0.14);
     }
 
-    .klein-visual {
+    .header-image img {
       position: absolute;
       inset: 0;
-      display: grid;
-      grid-template-columns: 1fr 0.28fr 1fr;
-      align-items: center;
-      padding: 2rem;
-      background:
-        linear-gradient(90deg, rgba(9, 29, 57, 0.96), rgba(5, 12, 24, 0.98)),
-        repeating-linear-gradient(0deg, transparent 0 35px, rgba(125, 174, 255, 0.08) 36px);
-    }
-
-    .klein-visual::before {
-      content: "";
-      position: absolute;
-      top: 12%;
-      bottom: 12%;
-      left: 46%;
-      width: 8%;
-      border: 1px solid rgba(255, 190, 94, 0.66);
-      background: rgba(154, 104, 24, 0.42);
-    }
-
-    .wave-band {
-      position: relative;
-      height: 92px;
-      border-top: 3px solid rgba(82, 197, 231, 0.9);
-      border-bottom: 3px solid rgba(82, 197, 231, 0.35);
-      transform: skewX(-12deg);
-    }
-
-    .wave-band::before,
-    .wave-band::after {
-      content: "";
-      position: absolute;
-      left: 4%;
-      right: 4%;
-      height: 3px;
-      background: rgba(82, 197, 231, 0.62);
-    }
-
-    .wave-band::before { top: 28px; }
-    .wave-band::after { bottom: 28px; }
-
-    .wave-band.transmitted {
-      border-color: rgba(255, 214, 112, 0.9);
-      opacity: 0.82;
-      transform: skewX(12deg);
-    }
-
-    .wave-band.transmitted::before,
-    .wave-band.transmitted::after {
-      background: rgba(255, 214, 112, 0.64);
-    }
-
-    .barrier-label {
-      position: relative;
-      z-index: 1;
-      justify-self: center;
-      padding: 0.35rem 0.55rem;
-      border: 1px solid rgba(255, 226, 151, 0.7);
-      border-radius: 4px;
-      background: rgba(7, 16, 31, 0.72);
-      color: #ffe6a6;
-      font: 700 0.88rem/1 "Segoe UI", system-ui, sans-serif;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .note-box {
@@ -303,16 +245,7 @@
     .applet-stage {
       position: relative;
       min-height: 650px;
-      background: #000;
-    }
-
-    .applet-stage::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(90deg, rgba(4, 13, 27, 0.96), rgba(5, 10, 18, 0.86)),
-        repeating-linear-gradient(90deg, transparent 0 72px, rgba(85, 199, 231, 0.08) 73px);
+      background: #000 center / cover no-repeat;
     }
 
     .applet-frame {
@@ -464,12 +397,8 @@
     </section>
 
     <section class="intro-grid" aria-label="Header visualization and section navigation">
-      <figure class="header-image" aria-label="Schematic of a Dirac wave packet crossing a potential barrier">
-        <div class="klein-visual" aria-hidden="true">
-          <div class="wave-band"></div>
-          <div class="barrier-label">V(x)</div>
-          <div class="wave-band transmitted"></div>
-        </div>
+      <figure class="header-image">
+        <img src="headerImage.png" alt="Three-dimensional Klein tunneling simulation with a Dirac packet crossing a potential barrier" />
       </figure>
 
       <aside class="note-box" aria-labelledby="sections-nav">
@@ -516,7 +445,7 @@
 
       <div class="applet-shell is-inactive">
         <div class="applet-toolbar">2D Dirac packet</div>
-        <div class="applet-stage">
+        <div class="applet-stage" style="background-image: url('kleinTunneling2DPoster.png');">
           <iframe
             class="applet-frame"
             title="2D Klein tunneling simulation"
@@ -527,7 +456,7 @@
         </div>
       </div>
       <p class="caption">
-        The bohmian particles follow the current even along "negative-energy" modes.
+        Counterintuitively, by increasing the potential the wall becomes more transparent to the Dirac particle.
       </p>
 
       <p>
@@ -554,7 +483,7 @@
 
       <div class="applet-shell is-inactive">
         <div class="applet-toolbar">3D Dirac packet </div>
-        <div class="applet-stage">
+        <div class="applet-stage" style="background-image: url('kleinTunneling3DPoster.png');">
           <iframe
             class="applet-frame"
             title="3D Klein tunneling simulation"

@@ -659,7 +659,7 @@ let uiMinimized = false;
 minBtn.onclick = () => {
   uiMinimized = !uiMinimized;
   uiBody.style.display = uiMinimized ? "none" : "block";
-  minBtn.textContent = uiMinimized ? ">" : "v";
+  minBtn.textContent = uiMinimized ? "+" : "-";
 };
 
 // --------------------

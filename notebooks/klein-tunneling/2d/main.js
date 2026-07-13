@@ -1157,7 +1157,7 @@ window.addEventListener("resize", () => {
 minUiBtn.addEventListener("click", () => {
   const hidden = uiBody.hidden;
   uiBody.hidden = !hidden;
-  minUiBtn.textContent = hidden ? "v" : "+";
+  minUiBtn.textContent = hidden ? "-" : "+";
 });
 
 theoryToggle.addEventListener("click", () => {
