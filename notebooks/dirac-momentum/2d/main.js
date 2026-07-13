@@ -28,34 +28,65 @@ const uiBody = document.getElementById("uibody");
 const theoryPanel = document.getElementById("theory");
 const theoryBody = document.getElementById("theorybody");
 const theoryToggle = document.getElementById("mintheory");
+const analysisPanel = document.getElementById("analysis");
+const analysisBody = document.getElementById("analysisbody");
+const analysisToggle = document.getElementById("minanalysis");
+const analysisStatusEl = document.getElementById("analysisstatus");
+const trajectoryTab = document.getElementById("trajectorytab");
+const distributionTab = document.getElementById("distributiontab");
+const trajectoryPage = document.getElementById("trajectorypage");
+const distributionPage = document.getElementById("distributionpage");
+
+const chartCanvases = {
+  trajectoryVelocity: document.getElementById("trajectoryvelocity"),
+  trajectoryMomentum: document.getElementById("trajectorymomentum"),
+  trajectoryEnergy: document.getElementById("trajectoryenergy"),
+  histVelocity: document.getElementById("histvelocity"),
+  histMomentum: document.getElementById("histmomentum"),
+  histEnergy: document.getElementById("histenergy"),
+};
 
 const PI = Math.PI;
 const TAU = 2 * Math.PI;
-const NX = 256;
-const NY = 128;
-const SIZE = NX * NY;
-const BOX_LX = 12.0;
-const BOX_LY = 6.75;
-const DX = BOX_LX / NX;
-const DY = BOX_LY / NY;
+const BASE_NX = 256;
+const BASE_NY = 128;
+const PAPER_NY = 32;
+const BASE_BOX_LX = 12.0;
+const BASE_BOX_LY = 6.75;
+const GRID_SCALES = [1, 2, 4];
 const HBAR = 1.0;
-const PACKET_X0 = 0.5 * BOX_LX;
-const PACKET_Y0 = 0.5 * BOX_LY;
+const HISTOGRAM_BINS = 48;
+const MIN_SCALAR_RATIO = 0.06;
+const MAX_HISTORY_SAMPLES = 1200;
+const MAX_HISTORY_SAMPLE_DT = 0.012;
+const TRACK_COLORS = ["#57d8ff", "#ff78ca", "#ffb34d"];
+let NX = BASE_NX;
+let NY = PAPER_NY;
+let SIZE = NX * NY;
+let BOX_LX = BASE_BOX_LX;
+let BOX_LY = BASE_BOX_LY;
+let DX = BOX_LX / NX;
+let DY = BOX_LY / NY;
+let PACKET_X0 = 0.5 * BOX_LX;
+let PACKET_Y0 = 0.5 * BOX_LY;
 const urlParams = new URLSearchParams(window.location.search);
 const isEmbedded = urlParams.get("embed") === "1";
 const debugEnabled = urlParams.has("debug");
 if (isEmbedded) theoryPanel?.remove();
 
 const params = {
-  stepsPerFrame: 1,
-  dt: 0.002,
-  diracC: 6.0,
-  mass: 0.5,
-  packetK: 6.0,
+  simScale: 2,
+  paperMode: 1,
+  stepsPerFrame: 3,
+  dt: 0.004,
+  diracC: 1.0,
+  mass: 3.0,
+  packetK: 10.0,
   packetAngle: 0.0,
-  packetSigma: 0.62,
-  mixAngleDeg: 90.0,
-  nParticles: 500,
+  packetSigma: 1.0,
+  theta0Deg: 90.0,
+  omega0Deg: 0.0,
+  nParticles: 900,
   densityGain: 2.2,
   densityGamma: 0.55,
   amplitudeView: 0,
@@ -72,25 +103,27 @@ let paused = false;
 let simTime = 0;
 let particleCount = 0;
 
-const ar = new Float64Array(SIZE);
-const ai = new Float64Array(SIZE);
-const br = new Float64Array(SIZE);
-const bi = new Float64Array(SIZE);
-const density = new Float64Array(SIZE);
-const velocityX = new Float64Array(SIZE);
-const velocityY = new Float64Array(SIZE);
-const cdf = new Float64Array(SIZE);
-const kxValues = new Float64Array(NX);
-const kyValues = new Float64Array(NY);
+let ar = new Float64Array(0);
+let ai = new Float64Array(0);
+let br = new Float64Array(0);
+let bi = new Float64Array(0);
+let density = new Float64Array(0);
+let cdf = new Float64Array(0);
+let kxValues = new Float64Array(0);
+let kyValues = new Float64Array(0);
+let tempR = new Float64Array(0);
+let tempI = new Float64Array(0);
 
-const tempR = new Float64Array(Math.max(NX, NY));
-const tempI = new Float64Array(Math.max(NX, NY));
-
-let particleX = new Float32Array(0);
-let particleY = new Float32Array(0);
+let particleX = new Float64Array(0);
+let particleY = new Float64Array(0);
 let particleAlive = new Uint8Array(0);
+let particleInitialX = new Float64Array(0);
+let particleInitialY = new Float64Array(0);
+let particleUnwrappedX = new Float64Array(0);
+let particleUnwrappedY = new Float64Array(0);
+let particleTrackSlot = new Uint8Array(0);
 
-const displayDensityUpload = new Float32Array(SIZE);
+let displayDensityUpload = new Float32Array(0);
 
 let fullscreenVao = null;
 let densityProgram = null;
@@ -109,6 +142,31 @@ let trailWidth = 0;
 let trailHeight = 0;
 let trailFormat = null;
 
+let analysisView = "distributions";
+let lastAnalysisDraw = -Infinity;
+let lastHistoryTime = -Infinity;
+let trackedParticleIds = [];
+let trajectoryHistory = [];
+let canonicalMomentumHistogram = new Float64Array(HISTOGRAM_BINS);
+let ensembleHistograms = {
+  velocity: new Float64Array(HISTOGRAM_BINS),
+  momentum: new Float64Array(HISTOGRAM_BINS),
+  energy: new Float64Array(HISTOGRAM_BINS),
+};
+let ensembleAnalysis = {
+  valid: 0,
+  total: 0,
+  momentumMean: NaN,
+  momentumVariance: NaN,
+  velocityMean: NaN,
+  velocityVariance: NaN,
+  energyMean: NaN,
+  energyVariance: NaN,
+  momentumInRange: 0,
+  energyInRange: 0,
+};
+let canonicalAnalysis = { mean: NaN, variance: NaN };
+
 let diagnostics = {
   total: 1,
   maxRho: 1,
@@ -126,16 +184,6 @@ let diagnostics = {
   meanEMinus: 0,
 };
 
-for (let ix = 0; ix < NX; ix++) {
-  const mode = ix < NX / 2 ? ix : ix - NX;
-  kxValues[ix] = TAU * mode / BOX_LX;
-}
-
-for (let iy = 0; iy < NY; iy++) {
-  const mode = iy < NY / 2 ? iy : iy - NY;
-  kyValues[iy] = TAU * mode / BOX_LY;
-}
-
 function index(ix, iy) {
   return iy * NX + ix;
 }
@@ -150,10 +198,83 @@ function wrapValue(x, length) {
   return x < 0 ? x + length : x;
 }
 
+function configureSimulationGrid() {
+  const requestedScale = Number(params.simScale);
+  const scale = GRID_SCALES.includes(requestedScale) ? requestedScale : 2;
+  params.simScale = scale;
+
+  NX = BASE_NX * scale;
+  NY = params.paperMode ? PAPER_NY : BASE_NY * scale;
+  SIZE = NX * NY;
+  BOX_LX = BASE_BOX_LX * scale;
+  BOX_LY = BASE_BOX_LY * scale;
+  DX = BOX_LX / NX;
+  DY = BOX_LY / NY;
+  PACKET_X0 = 0.5 * BOX_LX;
+  PACKET_Y0 = 0.5 * BOX_LY;
+
+  const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+  if (NX > maxTextureSize || NY > maxTextureSize) {
+    throw new Error(`Simulation grid ${NX}x${NY} exceeds WebGL texture limit ${maxTextureSize}.`);
+  }
+
+  ar = new Float64Array(SIZE);
+  ai = new Float64Array(SIZE);
+  br = new Float64Array(SIZE);
+  bi = new Float64Array(SIZE);
+  density = new Float64Array(SIZE);
+  cdf = new Float64Array(SIZE);
+  kxValues = new Float64Array(NX);
+  kyValues = new Float64Array(NY);
+  tempR = new Float64Array(Math.max(NX, NY));
+  tempI = new Float64Array(Math.max(NX, NY));
+  displayDensityUpload = new Float32Array(SIZE);
+
+  for (let ix = 0; ix < NX; ix++) {
+    const mode = ix < NX / 2 ? ix : ix - NX;
+    kxValues[ix] = TAU * mode / BOX_LX;
+  }
+  for (let iy = 0; iy < NY; iy++) {
+    const mode = iy < NY / 2 ? iy : iy - NY;
+    kyValues[iy] = TAU * mode / BOX_LY;
+  }
+
+  if (densityTexture) {
+    gl.bindTexture(gl.TEXTURE_2D, densityTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, NX, NY, 0, gl.RED, gl.FLOAT, null);
+  }
+}
+
+function rebuildSimulationGrid() {
+  configureSimulationGrid();
+  resetAll();
+  syncModeControls();
+}
+
 function fmt(v) {
+  if (!Number.isFinite(v)) return "undefined";
   const av = Math.abs(v);
   if (av >= 1000 || (av > 0 && av < 0.01)) return v.toExponential(2);
   return v.toFixed(3).replace(/\.?0+$/, "");
+}
+
+configureSimulationGrid();
+
+const controlRefs = new Map();
+
+function syncControlValues() {
+  for (const sync of controlRefs.values()) sync();
+  syncModeControls();
+}
+
+function syncModeControls() {
+  const angleControl = document.querySelector('[data-control="packetAngle"]');
+  if (!angleControl) return;
+  const input = angleControl.querySelector("input");
+  const disabled = Boolean(params.paperMode);
+  if (input) input.disabled = disabled;
+  angleControl.classList.toggle("is-disabled", disabled);
+  angleControl.title = disabled ? "Paper mode fixes the mean wave vector along x." : "Mean momentum direction in the 2D extension.";
 }
 
 function simulationDt() {
@@ -180,6 +301,7 @@ function addSectionHeader(label) {
 function addSlider(key, label, min, max, step, onChange = null, live = false) {
   const row = document.createElement("div");
   row.className = "row";
+  row.dataset.control = key;
 
   const lab = document.createElement("label");
   lab.textContent = label;
@@ -212,11 +334,17 @@ function addSlider(key, label, min, max, step, onChange = null, live = false) {
   row.appendChild(input);
   row.appendChild(val);
   controls.appendChild(row);
+
+  controlRefs.set(key, () => {
+    input.value = params[key];
+    val.textContent = fmt(Number(params[key]));
+  });
 }
 
 function addToggleInt(key, label, onChange = null) {
   const row = document.createElement("div");
   row.className = "row no-value";
+  row.dataset.control = key;
 
   const lab = document.createElement("label");
   lab.textContent = label;
@@ -239,11 +367,14 @@ function addToggleInt(key, label, onChange = null) {
   row.appendChild(btn);
   row.appendChild(val);
   controls.appendChild(row);
+
+  controlRefs.set(key, sync);
 }
 
 function addToggleChoice(key, label, offText, onText, onChange = null) {
   const row = document.createElement("div");
   row.className = "row no-value";
+  row.dataset.control = key;
 
   const lab = document.createElement("label");
   lab.textContent = label;
@@ -266,19 +397,105 @@ function addToggleChoice(key, label, offText, onText, onChange = null) {
   row.appendChild(btn);
   row.appendChild(val);
   controls.appendChild(row);
+
+  controlRefs.set(key, sync);
+}
+
+function addSelect(key, label, options, onChange = null) {
+  const row = document.createElement("div");
+  row.className = "row no-value";
+  row.dataset.control = key;
+
+  const lab = document.createElement("label");
+  lab.textContent = label;
+  const select = document.createElement("select");
+  for (const option of options) {
+    const element = document.createElement("option");
+    element.value = String(option.value);
+    element.textContent = option.label;
+    select.appendChild(element);
+  }
+  const sync = () => { select.value = String(params[key]); };
+  sync();
+  select.addEventListener("change", () => {
+    const option = options.find((candidate) => String(candidate.value) === select.value);
+    params[key] = option ? option.value : options[0].value;
+    if (onChange) onChange(params[key]);
+    updateStats();
+  });
+
+  const val = document.createElement("div");
+  val.className = "val";
+  row.appendChild(lab);
+  row.appendChild(select);
+  row.appendChild(val);
+  controls.appendChild(row);
+  controlRefs.set(key, sync);
+}
+
+function addAction(label, buttonText, action) {
+  const row = document.createElement("div");
+  row.className = "row no-value";
+  const lab = document.createElement("label");
+  lab.textContent = label;
+  const button = document.createElement("button");
+  button.textContent = buttonText;
+  button.addEventListener("click", action);
+  const val = document.createElement("div");
+  val.className = "val";
+  row.appendChild(lab);
+  row.appendChild(button);
+  row.appendChild(val);
+  controls.appendChild(row);
+}
+
+function applyPaperPreset() {
+  Object.assign(params, {
+    simScale: 2,
+    paperMode: 1,
+    stepsPerFrame: 3,
+    dt: 0.004,
+    diracC: 1,
+    mass: 3,
+    packetK: 10,
+    packetAngle: 0,
+    packetSigma: 1,
+    theta0Deg: 90,
+    omega0Deg: 0,
+    nParticles: 900,
+  });
+  syncControlValues();
+  rebuildSimulationGrid();
+}
+
+function handlePaperModeChange(enabled) {
+  if (!enabled) {
+    if (params.simScale > 1) params.simScale = 1;
+    params.stepsPerFrame = 1;
+  }
+  syncControlValues();
+  rebuildSimulationGrid();
 }
 
 addSectionHeader("Simulation");
-addSlider("stepsPerFrame", "Steps/frame", 1, 5, 1);
+addSelect("simScale", "simulation scale", [
+  { value: 1, label: "1x - compact" },
+  { value: 2, label: "2x - detailed" },
+  { value: 4, label: "4x - CPU stress" },
+], rebuildSimulationGrid);
+addSlider("stepsPerFrame", "Steps/frame", 1, 6, 1);
 addSlider("dt", "dt", 0.0005, 0.008, 0.0005);
 
-addSectionHeader("Free Dirac Packet");
-addSlider("diracC", "Dirac c", 2.0, 12.0, 0.1, resetAll);
-addSlider("mass", "mass", 0.1, 2.0, 0.05, resetAll);
-addSlider("packetK", "mean k", 1.0, 12.0, 0.1, resetAll);
-addSlider("packetAngle", "k angle deg", -180.0, 180.0, 1.0, resetAll);
-addSlider("packetSigma", "packet width", 0.30, 1.40, 0.01, resetAll);
-addSlider("mixAngleDeg", "±E mix angle", 0.0, 180.0, 1.0, resetAll);
+addSectionHeader("Paper Experiment");
+addToggleInt("paperMode", "1D paper mode", handlePaperModeChange);
+addAction("recommended setup", "Apply paper preset", applyPaperPreset);
+addSlider("diracC", "Dirac c", 0.5, 6.0, 0.1, resetAll);
+addSlider("mass", "mass", 0.1, 6.0, 0.05, resetAll);
+addSlider("packetK", "mean k0", 1.0, 16.0, 0.1, resetAll);
+addSlider("packetAngle", "2D k angle deg", -180.0, 180.0, 1.0, resetAll);
+addSlider("packetSigma", "packet sigma", 0.40, 2.0, 0.02, resetAll);
+addSlider("theta0Deg", "initial theta0", 0.0, 180.0, 1.0, resetAll);
+addSlider("omega0Deg", "initial omega0", -180.0, 180.0, 1.0, resetAll);
 
 addSectionHeader("Visual Parameters");
 addSlider("densityGain", "density gain", 0.4, 8.0, 0.1);
@@ -286,12 +503,13 @@ addSlider("densityGamma", "density gamma", 0.25, 1.2, 0.05);
 addToggleChoice("amplitudeView", "amp view", "Total", "Lower");
 addToggleInt("showParticles", "show particles");
 addToggleInt("showTrail", "draw trails", (value) => { if (!value) clearTrail(); });
-addSlider("nParticles", "particle count", 1, 2000, 10, rebuildParticles);
+addSlider("nParticles", "particle count", 50, 3000, 50, rebuildParticles);
 addSlider("dotSize", "particle size", 2.0, 10.0, 1);
 addSlider("trailLength", "trail length", 2.0, 40.0, 1);
+syncModeControls();
 
 function packetWaveVector() {
-  const angle = params.packetAngle * PI / 180;
+  const angle = (params.paperMode ? 0 : params.packetAngle) * PI / 180;
   return {
     kx: params.packetK * Math.cos(angle),
     ky: params.packetK * Math.sin(angle),
@@ -313,34 +531,81 @@ function asymptoticSpeed() {
   return HBAR * params.diracC * params.diracC * params.packetK / Math.max(E, 1e-12);
 }
 
-function centralBranchWeights() {
-  const chi = params.mixAngleDeg * PI / 180;
+function analysisRanges() {
+  const c = Math.max(params.diracC, 1e-9);
+  const m = Math.max(params.mass, 1e-9);
+  const p0 = HBAR * params.packetK;
+  const sigmaP = params.paperMode
+    ? HBAR / (2 * Math.max(params.packetSigma, 1e-9))
+    : HBAR / (Math.sqrt(2) * Math.max(params.packetSigma, 1e-9));
+  const momentumRadius = Math.max(5 * sigmaP, 1.5 * Math.abs(p0), 2 * m * c);
+  const E0 = centralEnergy();
   return {
-    plus: 0.5 * (1 + Math.cos(chi)),
-    minus: 0.5 * (1 - Math.cos(chi)),
+    velocity: [-1.05 * c, 1.05 * c],
+    momentum: [p0 - momentumRadius, p0 + momentumRadius],
+    energy: [-1.35 * E0, 1.35 * E0],
   };
 }
 
-function fixedInitialSpinor() {
-  // Central Dirac Hamiltonian direction h-hat.
+function spatialProbabilitySigma() {
+  return params.paperMode ? params.packetSigma : params.packetSigma / Math.sqrt(2);
+}
+
+function separationTime() {
+  return Math.sqrt(2) * spatialProbabilitySigma() / Math.max(asymptoticSpeed(), 1e-12);
+}
+
+function cleanWindowTime() {
+  const margin = 3 * spatialProbabilitySigma();
+  const longitudinalDistance = 0.5 * BOX_LX - margin;
+  const transverseDistance = params.paperMode ? Infinity : 0.5 * BOX_LY - margin;
+  const distance = Math.min(longitudinalDistance, transverseDistance);
+  return Math.max(0, distance) / Math.max(params.diracC, 1e-12);
+}
+
+function historySampleDt() {
+  const zitterbewegungPeriod = PI * HBAR / Math.max(centralEnergy(), 1e-12);
+  return Math.min(MAX_HISTORY_SAMPLE_DT, zitterbewegungPeriod / 16);
+}
+
+function histogramIndex(value, range) {
+  const f = (value - range[0]) / Math.max(range[1] - range[0], 1e-12);
+  const bin = Math.floor(f * HISTOGRAM_BINS);
+  return bin >= 0 && bin < HISTOGRAM_BINS ? bin : -1;
+}
+
+function centralBranchWeights() {
+  const spinor = fixedInitialSpinor();
   const { ux, uy } = packetWaveVector();
   const c = Math.max(params.diracC, 1e-9);
   const M = Math.max(params.mass, 1e-9) * c * c;
   const cp = HBAR * c * Math.max(params.packetK, 1e-12);
   const E = Math.sqrt(cp * cp + M * M);
-  const q = cp / Math.max(E, 1e-12);
-  const r = M / Math.max(E, 1e-12);
+  const projection = (
+    cp * ux * spinor.bloch.x
+    + cp * uy * spinor.bloch.y
+    + M * spinor.bloch.z
+  ) / Math.max(E, 1e-12);
+  const plus = 0.5 * (1 + Math.max(-1, Math.min(1, projection)));
+  return {
+    plus,
+    minus: 1 - plus,
+  };
+}
 
-  const h = { x: q * ux, y: q * uy, z: r };
-  // Unit vector in the (k,z) plane orthogonal to h.
-  const p = { x: r * ux, y: r * uy, z: -q };
-  const chi = params.mixAngleDeg * PI / 180;
-  const cc = Math.cos(chi);
-  const ss = Math.sin(chi);
-
-  let nx = cc * h.x + ss * p.x;
-  let ny = cc * h.y + ss * p.y;
-  let nz = cc * h.z + ss * p.z;
+function fixedInitialSpinor() {
+  // Paper-angle convention in this representation:
+  // n_parallel = cos(theta), n_perp = sin(theta) sin(omega),
+  // beta expectation = sin(theta) cos(omega). In 1D paper mode the
+  // perpendicular Bloch component is internal and particle motion is locked to x.
+  const { ux, uy } = packetWaveVector();
+  const theta = params.theta0Deg * PI / 180;
+  const omega = params.omega0Deg * PI / 180;
+  const nParallel = Math.cos(theta);
+  const nPerpendicular = Math.sin(theta) * Math.sin(omega);
+  let nx = nParallel * ux - nPerpendicular * uy;
+  let ny = nParallel * uy + nPerpendicular * ux;
+  let nz = Math.sin(theta) * Math.cos(omega);
   const nn = Math.hypot(nx, ny, nz) || 1;
   nx /= nn; ny /= nn; nz /= nn;
 
@@ -367,14 +632,15 @@ function resetWave() {
   const { kx, ky } = packetWaveVector();
   const sigma = Math.max(params.packetSigma, 1e-4);
   const spinor = fixedInitialSpinor();
+  const exponentScale = params.paperMode ? -0.25 : -0.5;
 
   for (let iy = 0; iy < NY; iy++) {
     const y = (iy + 0.5) * DY;
     for (let ix = 0; ix < NX; ix++) {
       const x = (ix + 0.5) * DX;
       const dx = (x - PACKET_X0) / sigma;
-      const dy = (y - PACKET_Y0) / sigma;
-      const env = Math.exp(-0.5 * (dx * dx + dy * dy));
+      const dy = params.paperMode ? 0 : (y - PACKET_Y0) / sigma;
+      const env = Math.exp(exponentScale * (dx * dx + dy * dy));
       const phase = kx * (x - PACKET_X0) + ky * (y - PACKET_Y0);
       const cr = Math.cos(phase);
       const ci = Math.sin(phase);
@@ -535,6 +801,11 @@ function computeSpectralDiagnostics() {
   let kMinus = 0;
   let ePlus = 0;
   let eMinus = 0;
+  let canonicalWeight = 0;
+  let canonicalP = 0;
+  let canonicalP2 = 0;
+  const momentumRange = analysisRanges().momentum;
+  canonicalMomentumHistogram.fill(0);
 
   for (let iy = 0; iy < NY; iy++) {
     const ky = kyValues[iy];
@@ -559,6 +830,7 @@ function computeSpectralDiagnostics() {
       const wp = Math.max(0, 0.5 * (rho + hExp / Math.max(E, 1e-12)));
       const wm = Math.max(0, 0.5 * (rho - hExp / Math.max(E, 1e-12)));
       const kPar = kx * ux + ky * uy;
+      const pPar = HBAR * kPar;
 
       pPlus += wp;
       pMinus += wm;
@@ -566,6 +838,11 @@ function computeSpectralDiagnostics() {
       kMinus += wm * kPar;
       ePlus += wp * E;
       eMinus += wm * (-E);
+      canonicalWeight += rho;
+      canonicalP += rho * pPar;
+      canonicalP2 += rho * pPar * pPar;
+      const bin = histogramIndex(pPar, momentumRange);
+      if (bin >= 0) canonicalMomentumHistogram[bin] += rho;
     }
   }
 
@@ -576,10 +853,13 @@ function computeSpectralDiagnostics() {
   diagnostics.meanKMinus = kMinus / Math.max(pMinus, 1e-30);
   diagnostics.meanEPlus = ePlus / Math.max(pPlus, 1e-30);
   diagnostics.meanEMinus = eMinus / Math.max(pMinus, 1e-30);
+  const canonicalNorm = Math.max(canonicalWeight, 1e-30);
+  for (let i = 0; i < HISTOGRAM_BINS; i++) canonicalMomentumHistogram[i] /= canonicalNorm;
+  canonicalAnalysis.mean = canonicalP / canonicalNorm;
+  canonicalAnalysis.variance = Math.max(0, canonicalP2 / canonicalNorm - canonicalAnalysis.mean ** 2);
 }
 
-function updateDensityVelocity() {
-  const c = Math.max(params.diracC, 1e-9);
+function updateDensity() {
   let total = 0;
   let maxRho = 0;
 
@@ -587,55 +867,35 @@ function updateDensityVelocity() {
     for (let ix = 0; ix < NX; ix++) {
       const k = index(ix, iy);
       const rho = ar[k] * ar[k] + ai[k] * ai[k] + br[k] * br[k] + bi[k] * bi[k];
-      const jx = 2 * c * (ar[k] * br[k] + ai[k] * bi[k]);
-      const jy = 2 * c * (ar[k] * bi[k] - ai[k] * br[k]);
       const p = rho * DX * DY;
 
       density[k] = rho;
-      velocityX[k] = jx / Math.max(rho, 1e-14);
-      velocityY[k] = jy / Math.max(rho, 1e-14);
       total += p;
       maxRho = Math.max(maxRho, rho);
     }
   }
 
-  const { ux, uy } = packetWaveVector();
-  let alive = 0;
-  let particleForward = 0;
-  let particleBackward = 0;
-  let particleTransverse = 0;
-  const threshold = 0.02 * Math.max(params.diracC, 1e-9);
-
-  for (let p = 0; p < particleCount; p++) {
-    if (!particleAlive[p]) continue;
-    alive++;
-    const v = sampleVelocity(particleX[p], particleY[p]);
-    const vp = v.x * ux + v.y * uy;
-    if (vp > threshold) particleForward++;
-    else if (vp < -threshold) particleBackward++;
-    else particleTransverse++;
-  }
-
   const central = centralBranchWeights();
   diagnostics.total = total;
   diagnostics.maxRho = Math.max(maxRho, 1e-12);
-  diagnostics.aliveParticles = alive;
-  diagnostics.particleForward = particleForward;
-  diagnostics.particleBackward = particleBackward;
-  diagnostics.particleTransverse = particleTransverse;
   diagnostics.centralPlus = central.plus;
   diagnostics.centralMinus = central.minus;
 }
 
 function rebuildParticleBuffers() {
   particleCount = Math.max(0, Math.floor(params.nParticles));
-  particleX = new Float32Array(particleCount);
-  particleY = new Float32Array(particleCount);
+  particleX = new Float64Array(particleCount);
+  particleY = new Float64Array(particleCount);
   particleAlive = new Uint8Array(particleCount);
+  particleInitialX = new Float64Array(particleCount);
+  particleInitialY = new Float64Array(particleCount);
+  particleUnwrappedX = new Float64Array(particleCount);
+  particleUnwrappedY = new Float64Array(particleCount);
+  particleTrackSlot = new Uint8Array(particleCount);
 }
 
 function rebuildParticles() {
-  updateDensityVelocity();
+  updateDensity();
   rebuildParticleBuffers();
 
   let sum = 0;
@@ -657,17 +917,30 @@ function rebuildParticles() {
     const iy = Math.floor(lo / NX);
     particleX[p] = (ix + Math.random()) * DX;
     particleY[p] = (iy + Math.random()) * DY;
+    particleInitialX[p] = particleX[p];
+    particleInitialY[p] = particleY[p];
+    particleUnwrappedX[p] = particleX[p];
+    particleUnwrappedY[p] = particleY[p];
     particleAlive[p] = 1;
   }
 
+  resetTrajectoryTracking();
   clearTrail();
-  updateDensityVelocity();
+  updateDensity();
 }
 
 function sampleVelocity(x, y) {
+  const { rho, blochX, blochY } = sampleBilinears(x, y);
+  const c = Math.max(params.diracC, 1e-9);
+  return {
+    x: c * blochX / Math.max(rho, 1e-30),
+    y: params.paperMode ? 0 : c * blochY / Math.max(rho, 1e-30),
+  };
+}
+
+function sampleBilinears(x, y) {
   x = wrapValue(x, BOX_LX);
   y = wrapValue(y, BOX_LY);
-
   const gx = x / DX - 0.5;
   const gy = y / DY - 0.5;
   const i0x = Math.floor(gx);
@@ -678,7 +951,6 @@ function sampleVelocity(x, y) {
   const ix1 = wrapIndex(i0x + 1, NX);
   const iy0 = wrapIndex(i0y, NY);
   const iy1 = wrapIndex(i0y + 1, NY);
-
   const k00 = index(ix0, iy0);
   const k10 = index(ix1, iy0);
   const k01 = index(ix0, iy1);
@@ -688,10 +960,107 @@ function sampleVelocity(x, y) {
   const w01 = (1 - fx) * fy;
   const w11 = fx * fy;
 
+  const aa00 = ar[k00] * ar[k00] + ai[k00] * ai[k00];
+  const aa10 = ar[k10] * ar[k10] + ai[k10] * ai[k10];
+  const aa01 = ar[k01] * ar[k01] + ai[k01] * ai[k01];
+  const aa11 = ar[k11] * ar[k11] + ai[k11] * ai[k11];
+  const bb00 = br[k00] * br[k00] + bi[k00] * bi[k00];
+  const bb10 = br[k10] * br[k10] + bi[k10] * bi[k10];
+  const bb01 = br[k01] * br[k01] + bi[k01] * bi[k01];
+  const bb11 = br[k11] * br[k11] + bi[k11] * bi[k11];
+  const rho = (aa00 + bb00) * w00 + (aa10 + bb10) * w10 + (aa01 + bb01) * w01 + (aa11 + bb11) * w11;
+  const scalar = (aa00 - bb00) * w00 + (aa10 - bb10) * w10 + (aa01 - bb01) * w01 + (aa11 - bb11) * w11;
+  const blochX = 2 * (
+    (ar[k00] * br[k00] + ai[k00] * bi[k00]) * w00
+    + (ar[k10] * br[k10] + ai[k10] * bi[k10]) * w10
+    + (ar[k01] * br[k01] + ai[k01] * bi[k01]) * w01
+    + (ar[k11] * br[k11] + ai[k11] * bi[k11]) * w11
+  );
+  const blochY = 2 * (
+    (ar[k00] * bi[k00] - ai[k00] * br[k00]) * w00
+    + (ar[k10] * bi[k10] - ai[k10] * br[k10]) * w10
+    + (ar[k01] * bi[k01] - ai[k01] * br[k01]) * w01
+    + (ar[k11] * bi[k11] - ai[k11] * br[k11]) * w11
+  );
+  return { rho, blochX, blochY, scalar };
+}
+
+function sampleBohmianObservables(x, y) {
+  const { rho, blochX, blochY, scalar } = sampleBilinears(x, y);
+  const { ux, uy } = packetWaveVector();
+  const longitudinal = blochX * ux + blochY * uy;
+  const c = Math.max(params.diracC, 1e-9);
+  const m = Math.max(params.mass, 1e-9);
+  const scalarRatio = scalar / Math.max(rho, 1e-30);
+  const velocity = c * longitudinal / Math.max(rho, 1e-30);
+  const densityValid = rho > diagnostics.maxRho * 1e-8;
+  const scalarValid = Math.abs(scalarRatio) >= MIN_SCALAR_RATIO;
+  const valid = densityValid && scalarValid;
+  const energy = valid ? m * c * c * rho / scalar : NaN;
+  const momentum = valid ? m * c * longitudinal / scalar : NaN;
   return {
-    x: velocityX[k00] * w00 + velocityX[k10] * w10 + velocityX[k01] * w01 + velocityX[k11] * w11,
-    y: velocityY[k00] * w00 + velocityY[k10] * w10 + velocityY[k01] * w01 + velocityY[k11] * w11,
+    rho,
+    scalarRatio,
+    velocity,
+    momentum,
+    energy,
+    valid: valid && Number.isFinite(momentum) && Number.isFinite(energy),
   };
+}
+
+function initialLongitudinalCoordinate(particleId) {
+  const { ux, uy } = packetWaveVector();
+  return (
+    (particleInitialX[particleId] - PACKET_X0) * ux
+    + (particleInitialY[particleId] - PACKET_Y0) * uy
+  );
+}
+
+function resetTrajectoryTracking() {
+  particleTrackSlot.fill(0);
+  const ranked = Array.from({ length: particleCount }, (_, id) => id)
+    .filter((id) => particleAlive[id])
+    .sort((a, b) => initialLongitudinalCoordinate(a) - initialLongitudinalCoordinate(b));
+  const quantiles = [0.2, 0.5, 0.8];
+  trackedParticleIds = [];
+  for (const q of quantiles) {
+    if (!ranked.length) break;
+    const id = ranked[Math.min(ranked.length - 1, Math.round(q * (ranked.length - 1)))];
+    if (!trackedParticleIds.includes(id)) trackedParticleIds.push(id);
+  }
+  trajectoryHistory = trackedParticleIds.map((particleId, slot) => {
+    particleTrackSlot[particleId] = slot + 1;
+    return {
+      particleId,
+      initialS: initialLongitudinalCoordinate(particleId),
+      time: [],
+      velocity: [],
+      momentum: [],
+      energy: [],
+    };
+  });
+  lastHistoryTime = -Infinity;
+  recordTrajectorySamples(true);
+}
+
+function recordTrajectorySamples(force = false) {
+  if (!force && simTime - lastHistoryTime < historySampleDt()) return;
+  lastHistoryTime = simTime;
+  for (const history of trajectoryHistory) {
+    const id = history.particleId;
+    if (!particleAlive[id]) continue;
+    const sample = sampleBohmianObservables(particleX[id], particleY[id]);
+    history.time.push(simTime);
+    history.velocity.push(sample.velocity);
+    history.momentum.push(sample.valid ? sample.momentum : NaN);
+    history.energy.push(sample.valid ? sample.energy : NaN);
+    if (history.time.length > MAX_HISTORY_SAMPLES) {
+      history.time.shift();
+      history.velocity.shift();
+      history.momentum.shift();
+      history.energy.shift();
+    }
+  }
 }
 
 function updateParticles(dt) {
@@ -704,8 +1073,12 @@ function updateParticles(dt) {
     const mx = wrapValue(x + 0.5 * dt * v1.x, BOX_LX);
     const my = wrapValue(y + 0.5 * dt * v1.y, BOX_LY);
     const v2 = sampleVelocity(mx, my);
-    particleX[p] = wrapValue(x + v2.x * dt, BOX_LX);
-    particleY[p] = wrapValue(y + v2.y * dt, BOX_LY);
+    const deltaX = v2.x * dt;
+    const deltaY = v2.y * dt;
+    particleX[p] = wrapValue(x + deltaX, BOX_LX);
+    particleY[p] = wrapValue(y + deltaY, BOX_LY);
+    particleUnwrappedX[p] += deltaX;
+    particleUnwrappedY[p] += deltaY;
   }
 }
 
@@ -714,10 +1087,307 @@ function updateSimulation() {
   const dt = simulationDt();
   for (let s = 0; s < steps; s++) {
     stepWave(dt);
-    updateDensityVelocity();
+    updateDensity();
     updateParticles(dt);
     simTime += dt;
+    recordTrajectorySamples();
   }
+}
+
+function finishMoments(count, sum, sum2) {
+  if (!count) return { mean: NaN, variance: NaN };
+  const mean = sum / count;
+  return { mean, variance: Math.max(0, sum2 / count - mean * mean) };
+}
+
+function computeEnsembleAnalysis() {
+  const velocityHistogram = ensembleHistograms.velocity;
+  const momentumHistogram = ensembleHistograms.momentum;
+  const energyHistogram = ensembleHistograms.energy;
+  velocityHistogram.fill(0);
+  momentumHistogram.fill(0);
+  energyHistogram.fill(0);
+  const ranges = analysisRanges();
+
+  let total = 0;
+  let valid = 0;
+  let velocityCount = 0;
+  let velocitySum = 0;
+  let velocitySum2 = 0;
+  let momentumSum = 0;
+  let momentumSum2 = 0;
+  let energySum = 0;
+  let energySum2 = 0;
+  let momentumInRange = 0;
+  let energyInRange = 0;
+  let particleForward = 0;
+  let particleBackward = 0;
+  let particleTransverse = 0;
+  const directionThreshold = 0.02 * Math.max(params.diracC, 1e-9);
+
+  for (let p = 0; p < particleCount; p++) {
+    if (!particleAlive[p]) continue;
+    total++;
+    const sample = sampleBohmianObservables(particleX[p], particleY[p]);
+    if (sample.rho > diagnostics.maxRho * 1e-8 && Number.isFinite(sample.velocity)) {
+      velocityCount++;
+      velocitySum += sample.velocity;
+      velocitySum2 += sample.velocity * sample.velocity;
+      if (sample.velocity > directionThreshold) particleForward++;
+      else if (sample.velocity < -directionThreshold) particleBackward++;
+      else particleTransverse++;
+      const velocityBin = histogramIndex(sample.velocity, ranges.velocity);
+      if (velocityBin >= 0) velocityHistogram[velocityBin]++;
+    }
+    if (!sample.valid) continue;
+    valid++;
+    momentumSum += sample.momentum;
+    momentumSum2 += sample.momentum * sample.momentum;
+    energySum += sample.energy;
+    energySum2 += sample.energy * sample.energy;
+    const momentumBin = histogramIndex(sample.momentum, ranges.momentum);
+    const energyBin = histogramIndex(sample.energy, ranges.energy);
+    if (momentumBin >= 0) {
+      momentumHistogram[momentumBin]++;
+      momentumInRange++;
+    }
+    if (energyBin >= 0) {
+      energyHistogram[energyBin]++;
+      energyInRange++;
+    }
+  }
+
+  const velocityNorm = Math.max(velocityCount, 1);
+  const validNorm = Math.max(valid, 1);
+  for (let i = 0; i < HISTOGRAM_BINS; i++) {
+    velocityHistogram[i] /= velocityNorm;
+    momentumHistogram[i] /= validNorm;
+    energyHistogram[i] /= validNorm;
+  }
+
+  const velocityMoments = finishMoments(velocityCount, velocitySum, velocitySum2);
+  const momentumMoments = finishMoments(valid, momentumSum, momentumSum2);
+  const energyMoments = finishMoments(valid, energySum, energySum2);
+  ensembleAnalysis = {
+    valid,
+    total,
+    momentumMean: momentumMoments.mean,
+    momentumVariance: momentumMoments.variance,
+    velocityMean: velocityMoments.mean,
+    velocityVariance: velocityMoments.variance,
+    energyMean: energyMoments.mean,
+    energyVariance: energyMoments.variance,
+    momentumInRange,
+    energyInRange,
+  };
+  diagnostics.aliveParticles = total;
+  diagnostics.particleForward = particleForward;
+  diagnostics.particleBackward = particleBackward;
+  diagnostics.particleTransverse = particleTransverse;
+}
+
+function prepareChart(canvas) {
+  if (!canvas || canvas.clientWidth < 2 || canvas.clientHeight < 2) return null;
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const width = Math.max(1, Math.round(canvas.clientWidth));
+  const height = Math.max(1, Math.round(canvas.clientHeight));
+  const pixelWidth = Math.round(width * dpr);
+  const pixelHeight = Math.round(height * dpr);
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  return { ctx, width, height };
+}
+
+function drawChartFrame(ctx, width, height, xMin, xMax, yMin, yMax) {
+  const plot = { left: 38, right: width - 7, top: 7, bottom: height - 18 };
+  ctx.fillStyle = "rgba(1, 7, 18, 0.46)";
+  ctx.fillRect(plot.left, plot.top, plot.right - plot.left, plot.bottom - plot.top);
+  ctx.strokeStyle = "rgba(132, 192, 255, 0.12)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const x = plot.left + (plot.right - plot.left) * i / 4;
+    const y = plot.top + (plot.bottom - plot.top) * i / 4;
+    ctx.beginPath();
+    ctx.moveTo(x, plot.top);
+    ctx.lineTo(x, plot.bottom);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(plot.left, y);
+    ctx.lineTo(plot.right, y);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#7f9dbc";
+  ctx.font = "10px ui-monospace, SFMono-Regular, Consolas, monospace";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(fmt(yMax), 1, plot.top - 1);
+  ctx.textBaseline = "bottom";
+  ctx.fillText(fmt(yMin), 1, plot.bottom + 1);
+  ctx.fillText(fmt(xMin), plot.left, height - 1);
+  ctx.textAlign = "right";
+  ctx.fillText(fmt(xMax), plot.right, height - 1);
+  const mapX = (x) => plot.left + (x - xMin) * (plot.right - plot.left) / Math.max(xMax - xMin, 1e-12);
+  const mapY = (y) => plot.bottom - (y - yMin) * (plot.bottom - plot.top) / Math.max(yMax - yMin, 1e-12);
+  return { ...plot, mapX, mapY };
+}
+
+function drawVerticalReferences(ctx, frame, references, range) {
+  ctx.save();
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = "rgba(224, 239, 255, 0.55)";
+  ctx.lineWidth = 1;
+  for (const value of references) {
+    if (value < range[0] || value > range[1]) continue;
+    const x = frame.mapX(value);
+    ctx.beginPath();
+    ctx.moveTo(x, frame.top);
+    ctx.lineTo(x, frame.bottom);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawHorizontalReferences(ctx, frame, references, range) {
+  ctx.save();
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = "rgba(224, 239, 255, 0.55)";
+  ctx.lineWidth = 1;
+  for (const value of references) {
+    if (value < range[0] || value > range[1]) continue;
+    const y = frame.mapY(value);
+    ctx.beginPath();
+    ctx.moveTo(frame.left, y);
+    ctx.lineTo(frame.right, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawHistogram(canvas, histogram, range, references, overlay = null) {
+  const prepared = prepareChart(canvas);
+  if (!prepared) return;
+  const { ctx, width, height } = prepared;
+  let primaryMax = 0;
+  let maxValue = 0;
+  for (const value of histogram) primaryMax = Math.max(primaryMax, value);
+  maxValue = primaryMax;
+  if (overlay) for (const value of overlay) maxValue = Math.max(maxValue, value);
+  maxValue = maxValue > 0 ? maxValue * 1.12 : 1;
+  const frame = drawChartFrame(ctx, width, height, range[0], range[1], 0, maxValue);
+
+  if (overlay) {
+    ctx.beginPath();
+    ctx.moveTo(frame.mapX(range[0]), frame.mapY(0));
+    for (let i = 0; i < HISTOGRAM_BINS; i++) {
+      const x = range[0] + (i + 0.5) * (range[1] - range[0]) / HISTOGRAM_BINS;
+      ctx.lineTo(frame.mapX(x), frame.mapY(overlay[i]));
+    }
+    ctx.lineTo(frame.mapX(range[1]), frame.mapY(0));
+    ctx.closePath();
+    ctx.fillStyle = "rgba(64, 202, 245, 0.17)";
+    ctx.fill();
+    ctx.strokeStyle = "#50cdf5";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+
+  const plotWidth = frame.right - frame.left;
+  const barWidth = plotWidth / HISTOGRAM_BINS;
+  ctx.fillStyle = "rgba(255, 224, 112, 0.68)";
+  for (let i = 0; i < HISTOGRAM_BINS; i++) {
+    const x = frame.left + i * barWidth + 0.5;
+    const y = frame.mapY(histogram[i]);
+    ctx.fillRect(x, y, Math.max(1, barWidth - 1), frame.bottom - y);
+  }
+  drawVerticalReferences(ctx, frame, references, range);
+  if (primaryMax <= 0) {
+    ctx.fillStyle = "rgba(217, 234, 255, 0.8)";
+    ctx.font = "10px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(overlay ? "No Bohmian samples in range" : "No samples in range", 0.5 * (frame.left + frame.right), 0.5 * (frame.top + frame.bottom));
+  }
+}
+
+function drawTrajectoryChart(canvas, field, range, references) {
+  const prepared = prepareChart(canvas);
+  if (!prepared) return;
+  const { ctx, width, height } = prepared;
+  const firstTimes = trajectoryHistory.map((history) => history.time[0]).filter(Number.isFinite);
+  const tMin = firstTimes.length ? Math.max(0, Math.min(...firstTimes)) : 0;
+  const tMax = tMin > 0
+    ? Math.max(simTime * 1.01, tMin + 0.1)
+    : Math.max(2 * separationTime(), simTime * 1.05, 0.1);
+  const frame = drawChartFrame(ctx, width, height, tMin, tMax, range[0], range[1]);
+  drawHorizontalReferences(ctx, frame, references, range);
+
+  for (let slot = 0; slot < trajectoryHistory.length; slot++) {
+    const history = trajectoryHistory[slot];
+    const values = history[field];
+    ctx.beginPath();
+    let drawing = false;
+    for (let i = 0; i < history.time.length; i++) {
+      const value = values[i];
+      if (!Number.isFinite(value) || value < range[0] || value > range[1]) {
+        drawing = false;
+        continue;
+      }
+      const x = frame.mapX(history.time[i]);
+      const y = frame.mapY(value);
+      if (!drawing) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+      drawing = true;
+    }
+    ctx.strokeStyle = TRACK_COLORS[slot % TRACK_COLORS.length];
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  }
+}
+
+function updateAnalysisStatus() {
+  if (!analysisStatusEl) return;
+  const tau = separationTime();
+  const overlap = Math.exp(-((simTime / Math.max(tau, 1e-12)) ** 2));
+  const stage = simTime < 0.75 * tau ? "1 - overlapping" : simTime < 1.75 * tau ? "2 - separating" : "3 - separated";
+  const cleanTime = cleanWindowTime();
+  const contaminated = simTime > cleanTime;
+  const zitterbewegungPeriod = PI * HBAR / Math.max(centralEnergy(), 1e-12);
+  const timingWarning = simulationDt() > zitterbewegungPeriod / 12;
+  const validPercent = ensembleAnalysis.total ? 100 * ensembleAnalysis.valid / ensembleAnalysis.total : 0;
+  const momentumCharted = ensembleAnalysis.valid ? 100 * ensembleAnalysis.momentumInRange / ensembleAnalysis.valid : 0;
+  const energyCharted = ensembleAnalysis.valid ? 100 * ensembleAnalysis.energyInRange / ensembleAnalysis.valid : 0;
+  const trackLegend = trajectoryHistory.map((history, slot) => (
+    `<span class="track-dot" style="background:${TRACK_COLORS[slot]}"></span>s0=${fmt(history.initialS)}`
+  )).join(" ");
+  analysisStatusEl.classList.toggle("is-warning", contaminated || timingWarning);
+  analysisStatusEl.innerHTML = contaminated
+    ? `Periodic re-entry: asymptotic comparison ended at t=${fmt(cleanTime)}. &nbsp; ${trackLegend}`
+    : `Stage ${stage} · overlap≈${fmt(overlap)} · conservative clean time≈${fmt(cleanTime)} · mask kept ${fmt(validPercent)}% · charted p/E ${fmt(momentumCharted)}%/${fmt(energyCharted)}%${timingWarning ? " · lower dt to resolve fast oscillations" : ""} &nbsp; ${trackLegend}`;
+}
+
+function drawAnalysis() {
+  const ranges = analysisRanges();
+  const v0 = asymptoticSpeed();
+  const E0 = centralEnergy();
+  const p0 = HBAR * params.packetK;
+  drawHistogram(chartCanvases.histVelocity, ensembleHistograms.velocity, ranges.velocity, [-v0, v0]);
+  drawHistogram(chartCanvases.histMomentum, ensembleHistograms.momentum, ranges.momentum, [p0], canonicalMomentumHistogram);
+  drawHistogram(chartCanvases.histEnergy, ensembleHistograms.energy, ranges.energy, [-E0, E0]);
+  drawTrajectoryChart(chartCanvases.trajectoryVelocity, "velocity", ranges.velocity, [-v0, v0]);
+  drawTrajectoryChart(chartCanvases.trajectoryMomentum, "momentum", ranges.momentum, [p0]);
+  drawTrajectoryChart(chartCanvases.trajectoryEnergy, "energy", ranges.energy, [-E0, E0]);
+  updateAnalysisStatus();
+}
+
+function refreshAnalysis() {
+  computeEnsembleAnalysis();
+  updateStats();
+  drawAnalysis();
 }
 
 function compileShader(type, source) {
@@ -873,7 +1543,7 @@ function uploadParticleBuffer() {
     particleUpload[o + 0] = particleX[p];
     particleUpload[o + 1] = particleY[p];
     particleUpload[o + 2] = particleAlive[p] ? 1 : 0;
-    particleUpload[o + 3] = 0;
+    particleUpload[o + 3] = particleTrackSlot[p];
   }
 
   gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
@@ -960,7 +1630,10 @@ function render(advanceTrails = !paused) {
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, densityTexture);
   gl.uniform1i(gl.getUniformLocation(densityProgram, "uDensity"), 0);
-  gl.uniform1f(gl.getUniformLocation(densityProgram, "uDensityGain"), params.densityGain);
+  const paperDensityScale = params.paperMode
+    ? BOX_LY / (Math.sqrt(PI) * Math.max(params.packetSigma, 1e-9))
+    : 1;
+  gl.uniform1f(gl.getUniformLocation(densityProgram, "uDensityGain"), params.densityGain * paperDensityScale);
   gl.uniform1f(gl.getUniformLocation(densityProgram, "uDensityGamma"), params.densityGamma);
   drawFullscreen(densityProgram);
 
@@ -989,24 +1662,30 @@ function updateStats() {
   if (!statsEl) return;
   const E0 = centralEnergy();
   const v0 = asymptoticSpeed();
-  statsEl.innerHTML =
-    `<b>E0</b>: ${fmt(E0)} &nbsp; <b>v0</b>: ${fmt(v0)} &nbsp; <b>t</b>: ${fmt(simTime)}<br>` +
-    `<b>central w+</b>: ${fmt(diagnostics.centralPlus)} &nbsp; <b>w-</b>: ${fmt(diagnostics.centralMinus)}<br>` +
-    `<b>spectral P+</b>: ${fmt(diagnostics.spectralPlus)} &nbsp; <b>P-</b>: ${fmt(diagnostics.spectralMinus)}<br>` +
-    `<b>&lt;k∥&gt;+</b>: ${fmt(diagnostics.meanKPlus)} &nbsp; <b>&lt;k∥&gt;-</b>: ${fmt(diagnostics.meanKMinus)}<br>` +
-    `<b>particles v∥ + / -</b>: ${diagnostics.particleForward} / ${diagnostics.particleBackward} &nbsp; ` +
-    `<b>near 0</b>: ${diagnostics.particleTransverse}<br>` +
-    `<b>P</b>: ${fmt(diagnostics.total)} &nbsp; <b>BC</b>: periodic torus &nbsp; ` +
-    `<b>view</b>: ${params.amplitudeView ? "Lower" : "Total"}`;
+  const tau = separationTime();
+  const stage = simTime < 0.75 * tau ? 1 : simTime < 1.75 * tau ? 2 : 3;
+  const metric = (label, value) => `<div class="analysis-metric" title="${label}: ${value}"><span>${label}</span><b>${value}</b></div>`;
+  statsEl.innerHTML = [
+    metric("time / stage", `${fmt(simTime)} / ${stage}`),
+    metric("grid / box", `${NX}x${NY} / ${fmt(BOX_LX)}x${fmt(BOX_LY)}`),
+    metric("p0", fmt(HBAR * params.packetK)),
+    metric("v0 / E0", `${fmt(v0)} / ${fmt(E0)}`),
+    metric("spectral + / -", `${fmt(diagnostics.spectralPlus)} / ${fmt(diagnostics.spectralMinus)}`),
+    metric("mask / charted p,E", `${ensembleAnalysis.valid}/${ensembleAnalysis.total} / ${ensembleAnalysis.momentumInRange},${ensembleAnalysis.energyInRange}`),
+    metric("pB mean / var", `${fmt(ensembleAnalysis.momentumMean)} / ${fmt(ensembleAnalysis.momentumVariance)}`),
+    metric("canonical mean / var", `${fmt(canonicalAnalysis.mean)} / ${fmt(canonicalAnalysis.variance)}`),
+    metric("v mean / var", `${fmt(ensembleAnalysis.velocityMean)} / ${fmt(ensembleAnalysis.velocityVariance)}`),
+    metric("EB mean / var", `${fmt(ensembleAnalysis.energyMean)} / ${fmt(ensembleAnalysis.energyVariance)}`),
+  ].join("");
 }
 
 function resetAll() {
   simTime = 0;
   resetWave();
-  updateDensityVelocity();
+  updateDensity();
   computeSpectralDiagnostics();
   rebuildParticles();
-  updateStats();
+  refreshAnalysis();
 }
 
 function installDebugHooks() {
@@ -1016,8 +1695,11 @@ function installDebugHooks() {
         paused,
         simTime,
         particleCount,
+        grid: { nx: NX, ny: NY, lx: BOX_LX, ly: BOX_LY, dx: DX, dy: DY },
         params: { ...params },
         diagnostics: { ...diagnostics },
+        ensembleAnalysis: { ...ensembleAnalysis },
+        canonicalAnalysis: { ...canonicalAnalysis },
       };
     },
     setPaused(value) {
@@ -1025,8 +1707,11 @@ function installDebugHooks() {
       return this.state();
     },
     setParams(next, reset = false) {
+      const rebuildGrid = Object.hasOwn(next, "simScale") || Object.hasOwn(next, "paperMode");
       Object.assign(params, next);
-      if (reset) resetAll();
+      syncControlValues();
+      if (rebuildGrid) rebuildSimulationGrid();
+      else if (reset) resetAll();
       else updateStats();
       return this.state();
     },
@@ -1039,7 +1724,7 @@ function installDebugHooks() {
       const n = Math.max(0, Math.floor(frames));
       for (let i = 0; i < n; i++) updateSimulation();
       render(n > 0);
-      updateStats();
+      refreshAnalysis();
       return this.state();
     },
   };
@@ -1072,12 +1757,64 @@ window.addEventListener("keydown", (event) => {
 window.addEventListener("resize", () => {
   resizeCanvas();
   clearTrail();
+  drawAnalysis();
 });
 
+const narrowLayoutQuery = window.matchMedia("(max-width: 959px), (max-height: 560px)");
+
+function setUiExpanded(open) {
+  uiBody.hidden = !open;
+  minUiBtn.textContent = open ? "-" : "+";
+}
+
+function setAnalysisExpanded(open) {
+  analysisBody.hidden = !open;
+  analysisPanel.classList.toggle("is-minimized", !open);
+  analysisToggle.textContent = open ? "-" : "+";
+  analysisToggle.setAttribute("aria-expanded", String(open));
+  if (open) {
+    if (narrowLayoutQuery.matches) setUiExpanded(false);
+    requestAnimationFrame(refreshAnalysis);
+  }
+}
+
 minUiBtn.addEventListener("click", () => {
-  const hidden = uiBody.hidden;
-  uiBody.hidden = !hidden;
-  minUiBtn.textContent = hidden ? "-" : "+";
+  const open = uiBody.hidden;
+  if (open && narrowLayoutQuery.matches) setAnalysisExpanded(false);
+  setUiExpanded(open);
+});
+
+function setAnalysisView(nextView) {
+  analysisView = nextView === "trajectories" ? "trajectories" : "distributions";
+  const showTrajectories = analysisView === "trajectories";
+  trajectoryPage.hidden = !showTrajectories;
+  distributionPage.hidden = showTrajectories;
+  trajectoryTab.classList.toggle("is-active", showTrajectories);
+  distributionTab.classList.toggle("is-active", !showTrajectories);
+  trajectoryTab.setAttribute("aria-selected", String(showTrajectories));
+  distributionTab.setAttribute("aria-selected", String(!showTrajectories));
+  trajectoryTab.tabIndex = showTrajectories ? 0 : -1;
+  distributionTab.tabIndex = showTrajectories ? -1 : 0;
+  requestAnimationFrame(drawAnalysis);
+}
+
+trajectoryTab?.addEventListener("click", () => setAnalysisView("trajectories"));
+distributionTab?.addEventListener("click", () => setAnalysisView("distributions"));
+for (const tab of [trajectoryTab, distributionTab]) {
+  tab?.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const nextView = event.key === "ArrowLeft" || event.key === "Home" ? "trajectories" : "distributions";
+    setAnalysisView(nextView);
+    (nextView === "trajectories" ? trajectoryTab : distributionTab).focus();
+  });
+}
+
+analysisToggle?.addEventListener("click", () => setAnalysisExpanded(analysisBody.hidden));
+
+if (narrowLayoutQuery.matches) setAnalysisExpanded(false);
+narrowLayoutQuery.addEventListener?.("change", (event) => {
+  if (event.matches) setAnalysisExpanded(false);
 });
 
 if (theoryToggle && theoryBody && theoryPanel) {
@@ -1094,6 +1831,7 @@ initWebGLRenderer();
 resizeCanvas();
 initSimulationSpeedControl({ visible: !isEmbedded });
 resetAll();
+setAnalysisView("distributions");
 if (debugEnabled) installDebugHooks();
 
 let lastFrameTime = performance.now();
@@ -1101,8 +1839,13 @@ requestAnimationFrame(function loop(now = performance.now()) {
   const frameSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
   lastFrameTime = now;
   setSimulationFrameDuration(frameSeconds);
-  if (!paused) updateSimulation();
+  if (!paused) {
+    updateSimulation();
+  }
   render();
-  updateStats();
+  if (!analysisBody.hidden && now - lastAnalysisDraw >= 100) {
+    refreshAnalysis();
+    lastAnalysisDraw = now;
+  }
   requestAnimationFrame(loop);
 });

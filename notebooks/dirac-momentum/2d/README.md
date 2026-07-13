@@ -10,10 +10,27 @@ i hbar d_t psi =
 [c (sigma_x p_x + sigma_y p_y) + m c^2 sigma_z] psi.
 ```
 
-The initial wave function is a localized 2D Gaussian with mean wave vector
-`k0`, multiplied by one **fixed spinor**. A generic fixed spinor is not an
-energy eigenvector for every momentum in the packet. Therefore the initial
-state contains both positive- and negative-energy spectral components.
+The default **1D paper mode** uses a Gaussian along `x`, is exactly uniform in
+`y`, fixes `ky = 0`, and guides particles only longitudinally. This reproduces
+the paper's one-dimensional experiment inside the 2D renderer. Paper mode can
+be turned off to use a localized 2D Gaussian and arbitrary mean-momentum angle.
+
+The initial fixed spinor is controlled by the paper angles `theta0` and
+`omega0`. In the Pauli representation used by the solver its Bloch components
+are
+
+```text
+n_parallel = cos(theta0)
+n_perp     = sin(theta0) sin(omega0)
+n_beta     = sin(theta0) cos(omega0)
+```
+
+The built-in paper preset uses natural units (`hbar = c = 1`) with `m = 3`,
+`k0 = 10`, `sigma = 1`, `theta0 = 90 deg`, and `omega0 = 0 deg`.
+Paper mode uses the article's amplitude convention
+`exp(-x^2 / (4 sigma^2))`, so `sigma` is the standard deviation of the
+initial position density. The localized 2D extension retains the applet's
+original `exp(-r^2 / (2 sigma^2))` envelope.
 
 For a narrow packet around `k0`, the two components have approximately
 
@@ -34,7 +51,7 @@ splitting mechanism analyzed in the supplied 1D paper.
 - Exact free Dirac evolution in 2D Fourier space for each time step.
 - No scalar potential and no absorber.
 - Periodic FFT boundary conditions.
-- Bohmian particles use the periodic 2D Dirac guidance field
+- Full-2D Bohmian particles use the periodic 2D Dirac guidance field
 
 ```text
 rho = psi^dagger psi
@@ -42,38 +59,69 @@ j = c psi^dagger (sigma_x, sigma_y) psi
 rdot = j / rho
 ```
 
+  Paper mode instead uses the longitudinal projection `xdot = jx / rho` and
+  holds `y` fixed, as required by the one-dimensional experiment.
+
 - Particle positions wrap on the torus instead of dying at the edges.
 - Velocity interpolation also wraps periodically across grid seams.
 
-## The ±E mix angle
+## Bohm/Vigier diagnostics
 
-The `±E mix angle` slider chooses the fixed initial spinor relative to the
-central positive-energy eigenspinor:
-
-- `0 deg`: central momentum is +E.
-- `90 deg`: central momentum has 50/50 +E and -E weights.
-- `180 deg`: central momentum is -E.
-
-For the central momentum,
+For `psi = (a,b)`, the app evaluates
 
 ```text
-w+ = (1 + cos chi) / 2
-w- = (1 - cos chi) / 2
+rho = |a|^2 + |b|^2
+S   = |a|^2 - |b|^2
+E_B = m c^2 rho / S
+p_B = m j / S
 ```
 
-Because the packet has finite momentum width while the spinor is fixed, the
-exact FFT spectral populations can differ slightly from these central-mode
-weights. The app computes and displays both.
+These are the paper's 1D momentum and energy in the current representation and
+their natural bilinear extension in 2D. They satisfy `v = c^2 p_B / E_B` and
+return the plane-wave energy-momentum on either energy branch. Since both
+quantities are singular at `S = 0`, particle samples with `|S| / rho < 0.06`
+are omitted from an explicitly conditional educational distribution instead
+of being clipped. Mask-kept and charted counts remain visible.
+
+The analysis panel provides:
+
+- selected-particle histories of longitudinal `v`, `p_B`, and `E_B`;
+- synchronized ensemble histograms for those three quantities;
+- the conserved canonical FFT momentum distribution overlaid on `p_B`;
+- predicted reference values `+/-v0`, `p0`, and `+/-E0`;
+- empirical and canonical means and variances;
+- a conservative pre-wrap time based on the maximum Dirac speed `c`.
+
+Three representative particles are selected automatically from the 20%, 50%,
+and 80% initial longitudinal-position quantiles. Their initial and unwrapped
+positions are retained, and their colors match the trajectory curves.
+
+## Simulation scale
+
+`simulation scale` has discrete `1x`, `2x`, and `4x` settings so every FFT
+dimension remains a power of two. Scaling enlarges the physical box and grid
+together, preserving longitudinal spacing and extending the clean pre-wrap
+window. In paper mode the uniform transverse direction uses 32 rows; the
+corresponding longitudinal grids are 256, 512, and 1024 samples. Full 2D mode
+uses 256x128, 512x256, or 1024x512 grids.
+
+Turning paper mode off returns to the interactive `1x` full-2D grid and one
+step per displayed frame. Larger full-2D scales and step counts can then be
+selected deliberately.
+
+The wave FFT runs on the CPU, not the GPU. The `4x` full-2D grid is therefore a
+deliberately demanding option even on a fast graphics card.
 
 ## Visuals
 
-The original density palette, yellow Bohmian particles, soft dots, and fading
-particle trails are retained. The cyan border now marks one fundamental cell
-of the periodic torus rather than a hard wall.
+The original density palette, Bohmian particles, soft dots, and fading particle
+trails are retained. Three enlarged colored dots identify the tracked
+trajectories. The cyan border marks one fundamental cell of the periodic torus
+rather than a hard wall.
 
 The `amp view` toggle changes only the background diagnostic between total
-spinor density and lower-component density. Particle guidance always uses the
-full spinor current.
+spinor density and lower-component density. Guidance always uses the complete
+spinor state, with the current projected longitudinally in paper mode.
 
 ## Run
 

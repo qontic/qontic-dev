@@ -502,6 +502,8 @@ function renderCatalog() {
   $("#grid-comparative,#grid-pilot-wave,#grid-notebook,#grid-all").empty();
 
   for (const item of catalog) {
+    if (item.hidden === true) continue;
+
     const s = sectionOf(item);
     const html = makeCard(item);
 

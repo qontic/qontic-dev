@@ -472,9 +472,9 @@
     <section id="two-d" class="applet-section" aria-labelledby="two-d-title">
       <h2 id="two-d-title">2D Dirac Momentum</h2>
       <p>
-         The initial
-        Gaussian is multiplied by a fixed spinor, so the packet can contain both positive- and
-        negative-energy spectral components.
+        The default paper mode embeds the one-dimensional Gaussian experiment in the 2D renderer.
+        It follows representative Bohmian particles while the positive- and negative-energy
+        branches separate, then compares their trajectory momentum with the canonical FFT result.
       </p>
 
       <div class="applet-shell is-inactive">
@@ -490,7 +490,7 @@
         </div>
       </div>
       <p class="caption">
-        The mix-angle control changes the central positive-/negative-energy branch weights.
+        Switch between trajectory histories and synchronized velocity, momentum, and energy distributions.
       </p>
     </section>
 
@@ -556,7 +556,8 @@
 
       <h3>Bohmian guidance</h3>
       <p>
-        The particles in both applets are guided by the Dirac current of the full spinor field.
+        The particles are guided by the Dirac current of the full spinor field. The 2D paper
+        preset takes its longitudinal projection and keeps the replicated transverse coordinate fixed.
       </p>
       <div class="equation">
         <span class="eq-label">Dirac density and current</span>
@@ -566,6 +567,29 @@
           \dot{\mathbf{X}}=\frac{\mathbf{j}}{\rho}.
         \]
       </div>
+
+      <h3>Trajectory momentum and energy</h3>
+      <p>
+        In the two-component 2D representation, the paper's Bohm/Vigier quantities have the
+        following bilinear form. They return the same momentum on both separated energy branches,
+        even though the branch velocities have opposite signs.
+      </p>
+      <div class="equation">
+        <span class="eq-label">Bohm/Vigier diagnostic used in 2D</span>
+        \[
+          S=\psi^\dagger\sigma_z\psi,
+          \qquad
+          E_B=mc^2\frac{\rho}{S},
+          \qquad
+          \mathbf p_B=m\frac{\mathbf j}{S},
+          \qquad
+          \mathbf v=\frac{c^2\mathbf p_B}{E_B}.
+        \]
+      </div>
+      <p>
+        The educational histograms are explicitly conditioned on \(|S|/\rho\ge0.06\) to stay away
+        from the singularity, and stop being interpreted as asymptotic once periodic wrap-around begins.
+      </p>
     </section>
 
     <section id="full-applets" class="next-step" aria-labelledby="full-applets-title">
