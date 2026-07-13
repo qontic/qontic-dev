@@ -1,0 +1,66 @@
+name: Initialize publication statuses
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out qontic-dev
+        uses: actions/checkout@v4
+
+      - name: Check out production qontic
+        uses: actions/checkout@v4
+        with:
+          repository: qontic/qontic
+          path: production-qontic
+
+      - name: Mark existing production items approved and dev-only items draft
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          dev_root = Path('.')
+          prod_root = Path('production-qontic')
+          changed = []
+
+          app_json_files = sorted(dev_root.glob('notebooks/*/app.json'))
+          app_json_files += sorted(dev_root.glob('apps/*/*/app.json'))
+
+          for app_json in app_json_files:
+              rel = app_json.relative_to(dev_root)
+              production_copy = prod_root / rel
+              new_status = 'approved' if production_copy.is_file() else 'draft'
+
+              data = json.loads(app_json.read_text(encoding='utf-8'))
+              old_status = data.get('status')
+              if old_status == new_status:
+                  continue
+
+              data['status'] = new_status
+              app_json.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+              changed.append((str(rel), old_status or '(missing)', new_status))
+
+          print(f'Updated {len(changed)} app.json files')
+          for path, old, new in changed:
+              print(f'  {path}: {old} -> {new}')
+          PY
+
+      - name: Commit initialized statuses
+        run: |
+          git config user.name "qontic-status"
+          git config user.email "qontic-status@users.noreply.github.com"
+          git add notebooks apps
+
+          if git diff --cached --quiet; then
+            echo "All statuses are already initialized."
+            exit 0
+          fi
+
+          git commit -m "Initialize publication statuses"
+          git push
