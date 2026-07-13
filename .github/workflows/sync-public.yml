@@ -20,6 +20,41 @@ jobs:
           path: public-qontic
           fetch-depth: 0
 
+      - name: Validate publication statuses
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          app_json_files = sorted(Path('.').glob('notebooks/*/app.json'))
+          app_json_files += sorted(Path('.').glob('apps/*/*/app.json'))
+
+          missing = []
+          invalid = []
+          allowed = {'draft', 'review', 'approved'}
+
+          for app_json in app_json_files:
+              data = json.loads(app_json.read_text(encoding='utf-8'))
+              status = data.get('status')
+              if status is None:
+                  missing.append(str(app_json))
+              elif status not in allowed:
+                  invalid.append((str(app_json), status))
+
+          if missing or invalid:
+              if missing:
+                  print('Missing status field:')
+                  for path in missing:
+                      print(f'  {path}')
+              if invalid:
+                  print('Invalid status value:')
+                  for path, status in invalid:
+                      print(f'  {path}: {status!r}')
+              raise SystemExit('Publication statuses are not fully initialized. Run the Initialize publication statuses workflow first.')
+
+          print(f'Validated {len(app_json_files)} publication statuses.')
+          PY
+
       - name: Copy qontic-dev into qontic, excluding GitHub workflows
         run: |
           rsync -a --delete \
@@ -28,7 +63,7 @@ jobs:
             --exclude='.github/workflows/' \
             ./ public-qontic/
 
-      - name: Remove unapproved new notebooks and apps
+      - name: Remove unapproved notebooks and apps
         run: |
           python3 - <<'PY'
           import json
@@ -37,48 +72,30 @@ jobs:
 
           dev_root = Path('.')
           public_root = Path('public-qontic')
-
-          def load_status(app_json: Path) -> str:
-              try:
-                  data = json.loads(app_json.read_text(encoding='utf-8'))
-              except Exception:
-                  return ''
-              return str(data.get('status', '')).strip().lower()
-
-          def candidate_dirs(root: Path):
-              for app_json in root.glob('notebooks/*/app.json'):
-                  yield app_json.parent.relative_to(root)
-              for app_json in root.glob('apps/*/*/app.json'):
-                  yield app_json.parent.relative_to(root)
-
-          removed = []
           kept = []
-          for rel_dir in sorted(candidate_dirs(dev_root)):
-              dev_app_json = dev_root / rel_dir / 'app.json'
-              public_app_json = public_root / rel_dir / 'app.json'
-              status = load_status(dev_app_json)
+          removed = []
 
-              existed_before_sync = public_app_json.exists()
-              approved = status == 'approved'
+          app_json_files = sorted(dev_root.glob('notebooks/*/app.json'))
+          app_json_files += sorted(dev_root.glob('apps/*/*/app.json'))
 
-              # Existing production items remain public unless explicitly marked draft/review/private.
-              # New items require status: approved before publication.
-              blocked_status = status in {'draft', 'review', 'private', 'do-not-publish', 'unapproved'}
-              should_publish = approved or (existed_before_sync and not blocked_status)
+          for app_json in app_json_files:
+              rel_dir = app_json.parent.relative_to(dev_root)
+              data = json.loads(app_json.read_text(encoding='utf-8'))
+              status = data['status']
 
-              if should_publish:
-                  kept.append((str(rel_dir), status or 'existing'))
-              else:
-                  target = public_root / rel_dir
-                  if target.exists():
-                      shutil.rmtree(target)
-                  removed.append((str(rel_dir), status or 'missing-status'))
+              if status == 'approved':
+                  kept.append(str(rel_dir))
+                  continue
 
-          print('Production approval gate summary')
-          print('Kept:')
-          for path, status in kept:
-              print(f'  KEEP {path} [{status}]')
-          print('Removed / not published:')
+              target = public_root / rel_dir
+              if target.exists():
+                  shutil.rmtree(target)
+              removed.append((str(rel_dir), status))
+
+          print('Approved for production:')
+          for path in kept:
+              print(f'  KEEP {path}')
+          print('Not published:')
           for path, status in removed:
               print(f'  SKIP {path} [{status}]')
           PY
