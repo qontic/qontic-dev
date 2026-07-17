@@ -1,7 +1,12 @@
 {
+  "id": "quantum-harmonic-oscillator-notebook",
   "title": "Quantum Harmonic Oscillator Notebook",
   "type": "notebook",
   "category": "modern physics",
+  "module": "potential-well",
+  "topics": ["harmonic-oscillator", "bound-states", "energy-eigenstates"],
+  "interpretations": ["orthodox", "pilot-wave"],
+  "level": "introductory",
   "description": "A learner-first notebook connecting classical simple harmonic motion to the quantum harmonic oscillator with energy levels, wavefunctions, zero-point motion, measurements, and interpretation comparisons.",
   "tags": [
     "Notebook",
