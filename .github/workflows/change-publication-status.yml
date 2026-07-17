@@ -14,7 +14,7 @@ on:
         options:
           - draft
           - review
-          - approved
+          - published
 
 permissions:
   contents: write
