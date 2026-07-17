@@ -24,11 +24,11 @@
         },
         {
           "type": "module",
-          "id": "quantum-measurement"
+          "id": "stern-gerlach"
         },
         {
           "type": "module",
-          "id": "stern-gerlach"
+          "id": "bell-correlations"
         }
       ]
     },
@@ -39,7 +39,11 @@
       "items": [
         {
           "type": "module",
-          "id": "bell-correlations"
+          "id": "quantum-measurement"
+        },
+        {
+          "type": "module",
+          "id": "quantum-non-equilibrium"
         }
       ]
     }
