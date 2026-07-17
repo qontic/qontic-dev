@@ -19,7 +19,7 @@ jobs:
           repository: qontic/qontic
           path: production-qontic
 
-      - name: Mark existing production items approved and dev-only items draft
+      - name: Mark existing production items published and dev-only items draft
         run: |
           python3 - <<'PY'
           import json
@@ -35,7 +35,7 @@ jobs:
           for app_json in app_json_files:
               rel = app_json.relative_to(dev_root)
               production_copy = prod_root / rel
-              new_status = 'approved' if production_copy.is_file() else 'draft'
+              new_status = 'published' if production_copy.is_file() else 'draft'
 
               data = json.loads(app_json.read_text(encoding='utf-8'))
               old_status = data.get('status')
