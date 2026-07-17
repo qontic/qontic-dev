@@ -31,7 +31,7 @@ jobs:
 
           missing = []
           invalid = []
-          allowed = {'draft', 'review', 'approved'}
+          allowed = {'draft', 'review', 'published'}
 
           for app_json in app_json_files:
               data = json.loads(app_json.read_text(encoding='utf-8'))
@@ -63,7 +63,7 @@ jobs:
             --exclude='.github/workflows/' \
             ./ public-qontic/
 
-      - name: Remove unapproved notebooks and apps
+      - name: Remove unpublished notebooks and apps
         run: |
           python3 - <<'PY'
           import json
@@ -83,7 +83,7 @@ jobs:
               data = json.loads(app_json.read_text(encoding='utf-8'))
               status = data['status']
 
-              if status == 'approved':
+              if status == 'published':
                   kept.append(str(rel_dir))
                   continue
 
@@ -92,7 +92,7 @@ jobs:
                   shutil.rmtree(target)
               removed.append((str(rel_dir), status))
 
-          print('Approved for production:')
+          print('Published for production:')
           for path in kept:
               print(f'  KEEP {path}')
           print('Not published:')
@@ -114,5 +114,5 @@ jobs:
           fi
 
           SOURCE_SHA=$(git -C .. rev-parse --short HEAD)
-          git commit -m "Sync approved public qontic from qontic-dev (${SOURCE_SHA})"
+          git commit -m "Sync published public qontic from qontic-dev (${SOURCE_SHA})"
           git push origin main
