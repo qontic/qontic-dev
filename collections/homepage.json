@@ -39,7 +39,7 @@
       "items": [
         {
           "type": "module",
-          "id": "quantum-measurement"
+          "id": "measurement"
         },
         {
           "type": "module",
