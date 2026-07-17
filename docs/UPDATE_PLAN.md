@@ -4,15 +4,9 @@
 
 Reorganize Q-Ontic Lab around physics topics and modules while preserving direct access to simulations, notebooks, videos, and other resources.
 
-The homepage should initially present physics topics. Each module should have a canonical landing page collecting its related resources. Courses and other curated collections should reference modules, individual resources, or both.
+The homepage should initially present two sections: **Core Concepts** and **Beyond the Basics**. Each module should have a canonical landing page collecting its related resources. Courses and other curated collections should reference modules, individual resources, or both.
 
 ## Core content model
-
-### Modules
-
-A module is the principal educational unit and corresponds to a physics topic such as Quantum Tunneling, Double Slit, Stern–Gerlach, or Bell Correlations.
-
-Each module has stable metadata and may contain any number of resources.
 
 ### Resources
 
@@ -20,20 +14,50 @@ A resource is an individual simulation, notebook, video, instructor activity, pa
 
 Each resource must have a stable unique `id` and normally identifies its parent module through a `module` field. Resources may also carry intrinsic metadata such as physics topics, interpretations, level, and technical requirements.
 
-Courses are deliberately not stored as tags on modules or resources.
+Courses and homepage placement are deliberately not stored as tags on modules or resources.
 
-### Courses and other collections
+### Modules
 
-A course is an ordered collection that may reference:
+A module is the principal educational unit and corresponds to a physics topic such as Quantum Tunneling, Double Slit, Stern–Gerlach, or Bell Correlations.
+
+Each module has stable metadata and may contain any number of resources.
+
+### Sections
+
+A section is an ordered group inside a collection. It may contain whole modules, individual resources, or both.
+
+Sections are local to their parent collection rather than global objects. The same module or resource may therefore appear under different section titles in different collections.
+
+Examples include:
+
+- **Core Concepts** and **Beyond the Basics** on the homepage;
+- chapters or units in a course;
+- weeks in a seminar;
+- parts of a workshop;
+- segments in a learning path.
+
+### Collections
+
+A collection is a curated view or sequence. Examples include the homepage, a course, a workshop, or a learning path.
+
+The hierarchy is:
+
+```text
+Collection
+  -> Section
+    -> Module or Resource
+```
+
+A collection may reference:
 
 - a whole module;
 - one individual resource;
 - several individual resources from the same module;
 - a mixture of modules and resources.
 
-Course-specific instructions, labels, sequencing, and preferred notebook mode belong in the course definition rather than in the referenced resource.
+Collection-specific instructions, labels, sequencing, and preferred notebook mode belong in the collection definition rather than in the referenced resource.
 
-The same reference model may later be used for learning paths, workshops, and other curated collections.
+Courses are a specific kind of collection. They may remain in `courses/` for authoring convenience while using the same section-and-item schema as files in `collections/`.
 
 ## Notebook modes
 
@@ -77,14 +101,43 @@ The two modes should not be maintained as separate notebook files. Detailed-only
 }
 ```
 
-### Course
+### Homepage collection
+
+```json
+{
+  "id": "homepage",
+  "type": "homepage",
+  "title": "Q-Ontic Lab",
+  "sections": [
+    {
+      "id": "core-concepts",
+      "title": "Core Concepts",
+      "items": [
+        { "type": "module", "id": "free-particle" },
+        { "type": "module", "id": "double-slit" }
+      ]
+    },
+    {
+      "id": "beyond-the-basics",
+      "title": "Beyond the Basics",
+      "items": [
+        { "type": "module", "id": "bell-correlations" }
+      ]
+    }
+  ]
+}
+```
+
+### Course collection
 
 ```json
 {
   "id": "intro-quantum",
+  "type": "course",
   "title": "Introduction to Quantum Mechanics",
   "sections": [
     {
+      "id": "wave-mechanics",
       "title": "Wave Mechanics",
       "items": [
         { "type": "module", "id": "free-particle" },
@@ -110,16 +163,19 @@ The two modes should not be maintained as separate notebook files. Detailed-only
 ### Stage 1 — Content model and validation
 
 - [x] Document the architecture and update plan.
-- [ ] Add module metadata under `modules/`.
-- [ ] Add stable `id`, `module`, `topics`, `interpretations`, and `level` fields to resource metadata.
-- [ ] Do not add course tags to modules or resources.
-- [ ] Add a `courses/` format that can reference both modules and resources.
-- [ ] Extend `scripts/build-catalog.py` to load modules and collections, resolve references, and validate IDs.
-- [ ] Preserve the current `catalog.json` output while introducing a richer `site-data.json` file.
+- [x] Support collections containing ordered sections.
+- [x] Allow section items to reference modules or resources directly.
+- [x] Add the initial homepage collection with **Core Concepts** and **Beyond the Basics**.
+- [ ] Complete module metadata under `modules/`.
+- [ ] Add stable `id`, `module`, `topics`, `interpretations`, and `level` fields to all resource metadata.
+- [x] Do not add course or homepage tags to modules or resources.
+- [x] Use the same section-and-item format for courses and other collections.
+- [x] Extend `scripts/build-catalog.py` to load modules and collections, resolve references, and validate IDs.
+- [x] Preserve the current `catalog.json` output while introducing a richer `site-data.json` file.
 
-### Stage 2 — Topic homepage and module pages
+### Stage 2 — Homepage and module pages
 
-- [ ] Replace the homepage resource-category tabs with physics-topic groups.
+- [ ] Replace the homepage resource-category tabs with the **Core Concepts** and **Beyond the Basics** sections from the homepage collection.
 - [ ] Generate or render canonical module landing pages.
 - [ ] Keep separate indexes for simulations, notebooks, videos, and other resource types.
 - [ ] Add stable "Back to module" navigation to resources.
