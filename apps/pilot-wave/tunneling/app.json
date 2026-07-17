@@ -1,7 +1,17 @@
 {
+  "id": "tunneling-pilot-wave-webgl2-simulation",
   "title": "Pilot-Wave Tunneling — WebGL2",
   "type": "app",
   "category": "pilot-wave",
+  "module": "quantum-tunneling",
+  "topics": [
+    "wave-mechanics",
+    "potential-barriers"
+  ],
+  "interpretations": [
+    "pilot-wave"
+  ],
+  "level": "intermediate",
   "description": "Pilot-wave tunneling simulation showing guided trajectories and wave-packet dynamics.",
   "tags": [
     "Pilot-wave",
