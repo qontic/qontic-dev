@@ -25,7 +25,6 @@
       "items": [
         { "type": "module", "id": "measurement" },
         { "type": "module", "id": "delayed-choice" },
-        { "type": "module", "id": "quantum-non-equilibrium" },
         { "type": "module", "id": "michelson-morley" }
       ]
     },
@@ -34,6 +33,7 @@
       "title": "Advanced Modules",
       "description": "Relativistic quantum mechanics and other advanced topics.",
       "items": [
+        { "type": "module", "id": "quantum-non-equilibrium" },
         { "type": "module", "id": "dirac-momentum" },
         { "type": "module", "id": "klein-tunneling" }
       ]
