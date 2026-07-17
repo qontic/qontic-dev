@@ -6,6 +6,7 @@ from pathlib import Path
 
 RESOURCE_ROOTS = [Path("apps"), Path("notebooks")]
 MODULE_ROOT = Path("modules")
+COLLECTION_ROOT = Path("collections")
 COURSE_ROOT = Path("courses")
 
 
@@ -117,40 +118,93 @@ def load_modules(errors):
     return modules
 
 
-def load_courses(errors):
-    courses = []
-    seen_ids = {}
+def load_collection_directory(root, default_type, errors, seen_ids):
+    collections = []
+    if not root.exists():
+        return collections
 
-    if not COURSE_ROOT.exists():
-        return courses
-
-    for path in sorted(COURSE_ROOT.glob("*.json")):
+    for path in sorted(root.glob("*.json")):
         if path.name.startswith("_"):
             continue
         try:
-            course = load_json(path)
+            collection = load_json(path)
         except ValueError as exc:
             errors.append(str(exc))
             continue
 
-        course_id = course.get("id")
-        if not course_id:
+        collection_id = collection.get("id")
+        if not collection_id:
             errors.append(f"{path} is missing required field 'id'")
             continue
-        if course_id in seen_ids:
+        if collection_id in seen_ids:
             errors.append(
-                f"Duplicate course id '{course_id}' in {path} and {seen_ids[course_id]}"
+                f"Duplicate collection id '{collection_id}' in {path} and {seen_ids[collection_id]}"
             )
             continue
 
-        seen_ids[course_id] = path
-        courses.append(course)
+        collection.setdefault("type", default_type)
+        collection["source"] = str(path).replace("\\", "/")
+        seen_ids[collection_id] = path
+        collections.append(collection)
 
-    courses.sort(key=lambda course: course.get("title", ""))
-    return courses
+    return collections
 
 
-def validate_references(resources, modules, courses, errors):
+def load_collections(errors):
+    seen_ids = {}
+    collections = []
+    collections.extend(
+        load_collection_directory(COLLECTION_ROOT, "collection", errors, seen_ids)
+    )
+    collections.extend(
+        load_collection_directory(COURSE_ROOT, "course", errors, seen_ids)
+    )
+    collections.sort(
+        key=lambda collection: (
+            collection.get("order", 999),
+            collection.get("title", ""),
+        )
+    )
+    return collections
+
+
+def validate_collection_structure(collection, errors):
+    sections = collection.get("sections")
+    if not isinstance(sections, list):
+        errors.append(
+            f"Collection '{collection['id']}' must contain a 'sections' array"
+        )
+        return
+
+    seen_section_ids = set()
+    for index, section in enumerate(sections, start=1):
+        if not isinstance(section, dict):
+            errors.append(
+                f"Collection '{collection['id']}' section {index} must be an object"
+            )
+            continue
+
+        section_id = section.get("id")
+        if section_id:
+            if section_id in seen_section_ids:
+                errors.append(
+                    f"Collection '{collection['id']}' has duplicate section id '{section_id}'"
+                )
+            seen_section_ids.add(section_id)
+
+        if not section.get("title"):
+            errors.append(
+                f"Collection '{collection['id']}' section {index} is missing 'title'"
+            )
+
+        items = section.get("items")
+        if not isinstance(items, list):
+            errors.append(
+                f"Collection '{collection['id']}' section '{section.get('title', index)}' must contain an 'items' array"
+            )
+
+
+def validate_references(resources, modules, collections, errors):
     resource_ids = {item["id"] for item in resources}
     module_ids = {module["id"] for module in modules}
 
@@ -168,22 +222,30 @@ def validate_references(resources, modules, courses, errors):
                     f"Module '{module['id']}' references unknown related module '{related_id}'"
                 )
 
-    for course in courses:
-        for section in course.get("sections", []):
+    for collection in collections:
+        validate_collection_structure(collection, errors)
+        for section in collection.get("sections", []):
+            if not isinstance(section, dict):
+                continue
             for entry in section.get("items", []):
+                if not isinstance(entry, dict):
+                    errors.append(
+                        f"Collection '{collection['id']}' has a non-object item"
+                    )
+                    continue
                 entry_type = entry.get("type")
                 entry_id = entry.get("id")
                 if entry_type == "module" and entry_id not in module_ids:
                     errors.append(
-                        f"Course '{course['id']}' references unknown module '{entry_id}'"
+                        f"Collection '{collection['id']}' references unknown module '{entry_id}'"
                     )
                 elif entry_type == "resource" and entry_id not in resource_ids:
                     errors.append(
-                        f"Course '{course['id']}' references unknown resource '{entry_id}'"
+                        f"Collection '{collection['id']}' references unknown resource '{entry_id}'"
                     )
                 elif entry_type not in {"module", "resource"}:
                     errors.append(
-                        f"Course '{course['id']}' has item with invalid type '{entry_type}'"
+                        f"Collection '{collection['id']}' has item with invalid type '{entry_type}'"
                     )
 
 
@@ -208,8 +270,8 @@ def main():
 
     resources = load_resources(warnings, errors)
     modules = load_modules(errors)
-    courses = load_courses(errors)
-    validate_references(resources, modules, courses, errors)
+    collections = load_collections(errors)
+    validate_references(resources, modules, collections, errors)
 
     for warning in warnings:
         print(f"WARNING: {warning}", file=sys.stderr)
@@ -226,14 +288,21 @@ def main():
     site_data = {
         "modules": attach_resources_to_modules(resources, modules),
         "resources": resources,
-        "courses": courses,
+        "collections": collections,
+        # Temporary compatibility view for code expecting a courses array.
+        "courses": [
+            collection
+            for collection in collections
+            if collection.get("type") == "course"
+        ],
     }
     with open("site-data.json", "w", encoding="utf-8") as handle:
         json.dump(site_data, handle, indent=2, ensure_ascii=False)
 
     print(
         f"Wrote catalog.json and site-data.json with "
-        f"{len(resources)} resources, {len(modules)} modules, and {len(courses)} courses"
+        f"{len(resources)} resources, {len(modules)} modules, and "
+        f"{len(collections)} collections"
     )
 
 
