@@ -39,7 +39,7 @@ jobs:
 
           body = os.environ.get('ISSUE_BODY', '')
           path_match = re.search(r'^path:\s*(.+?)\s*$', body, re.MULTILINE)
-          status_match = re.search(r'^status:\s*(draft|review|approved)\s*$', body, re.MULTILINE)
+          status_match = re.search(r'^status:\s*(draft|review|published)\s*$', body, re.MULTILINE)
           if not path_match or not status_match:
               raise SystemExit('Issue body does not contain a valid path and status.')
 
