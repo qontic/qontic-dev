@@ -70,7 +70,7 @@
   }
 
   function resourceLabel(count) {
-    return count === 1 ? "1 resource" : `${count} resources`;
+    return count === 1 ? "Open resource" : `${count} resources`;
   }
 
   function render(data) {
@@ -88,9 +88,11 @@
       const rows = (section.items || []).filter(item => item.type === "module").map(item => {
         const module = modules.get(item.id);
         if (!module) return "";
-        const count = (module.resources || []).filter(id => resources.has(id)).length;
-        const search = [module.title, module.summary, ...(module.topics || [])].join(" ").toLowerCase();
-        return `<a class="module-row" href="modules/${encodeURIComponent(module.id)}/" data-search="${esc(search)}">
+        const moduleResources = (module.resources || []).map(id => resources.get(id)).filter(Boolean);
+        const count = moduleResources.length;
+        const href = count === 1 ? moduleResources[0].url : `modules/${encodeURIComponent(module.id)}/`;
+        const search = [module.title, module.summary, ...(module.topics || []), ...moduleResources.map(r => r.title)].join(" ").toLowerCase();
+        return `<a class="module-row" href="${esc(href)}" data-search="${esc(search)}">
           <span class="module-title">${esc(module.title)}</span>
           <span class="module-summary">${esc(module.summary || "")}</span>
           <span class="module-count">${resourceLabel(count)} <span class="module-arrow">→</span></span>
