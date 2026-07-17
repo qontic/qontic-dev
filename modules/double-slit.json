@@ -2,7 +2,7 @@
   "id": "double-slit",
   "title": "Double Slit",
   "summary": "Explore interference, detection, trajectories, and branching in the double-slit experiment.",
-  "topics": ["wave-mechanics", "interference", "measurement"],
+  "topics": ["interference", "measurement"],
   "interpretations": ["orthodox", "pilot-wave", "many-worlds"],
   "order": 20,
   "relatedModules": ["free-particle", "measurement"]
