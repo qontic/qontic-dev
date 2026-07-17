@@ -97,7 +97,7 @@ The two modes should not be maintained as separate notebook files. Detailed-only
   "level": "intermediate",
   "description": "Explore tunneling using wave-packet dynamics and Bohmian trajectories.",
   "entry": "index.html",
-  "status": "approved"
+  "status": "published"
 }
 ```
 
