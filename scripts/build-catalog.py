@@ -1,9 +1,26 @@
 #!/usr/bin/env python3
 import json
+import re
+import sys
 from pathlib import Path
 
-ROOTS = [Path("apps"), Path("notebooks")]
-items = []
+RESOURCE_ROOTS = [Path("apps"), Path("notebooks")]
+MODULE_ROOT = Path("modules")
+COLLECTION_ROOT = Path("collections")
+COURSE_ROOT = Path("courses")
+
+
+def load_json(path):
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Could not read {path}: {exc}") from exc
+
+
+def slugify(value):
+    value = re.sub(r"[^a-z0-9]+", "-", str(value).lower()).strip("-")
+    return value or "untitled"
 
 
 def is_gpu_item(item):
@@ -16,30 +33,278 @@ def is_gpu_item(item):
     blob = " ".join(str(field) for field in fields).lower()
     return any(keyword in blob for keyword in ("webgpu", "webgl2", "webgl", "gpu"))
 
-for root in ROOTS:
+
+def load_resources(warnings, errors):
+    resources = []
+    seen_ids = {}
+
+    for root in RESOURCE_ROOTS:
+        if not root.exists():
+            continue
+
+        for meta_path in sorted(root.rglob("app.json")):
+            folder = meta_path.parent
+            try:
+                item = load_json(meta_path)
+            except ValueError as exc:
+                errors.append(str(exc))
+                continue
+
+            resource_id = item.get("id")
+            if not resource_id:
+                resource_id = slugify(str(folder).replace("\\", "/"))
+                item["id"] = resource_id
+                item["legacyGeneratedId"] = True
+                warnings.append(
+                    f"{meta_path} has no stable id; temporarily generated '{resource_id}'"
+                )
+
+            if resource_id in seen_ids:
+                errors.append(
+                    f"Duplicate resource id '{resource_id}' in {meta_path} and {seen_ids[resource_id]}"
+                )
+                continue
+            seen_ids[resource_id] = meta_path
+
+            entry = item.get("entry", "index.html")
+            url = str(folder / entry).replace("\\", "/")
+            if entry == "index.html":
+                url = str(folder).replace("\\", "/") + "/"
+
+            item["url"] = url
+            item["path"] = str(folder).replace("\\", "/")
+            item["gpu"] = is_gpu_item(item)
+            resources.append(item)
+
+    order = {"comparative": 0, "pilot-wave": 1, "foundations": 2}
+    resources.sort(
+        key=lambda item: (
+            item.get("type", ""),
+            order.get(item.get("category", ""), 99),
+            item.get("title", ""),
+        )
+    )
+    return resources
+
+
+def load_modules(errors):
+    modules = []
+    seen_ids = {}
+
+    if not MODULE_ROOT.exists():
+        return modules
+
+    for path in sorted(MODULE_ROOT.glob("*.json")):
+        try:
+            module = load_json(path)
+        except ValueError as exc:
+            errors.append(str(exc))
+            continue
+
+        module_id = module.get("id")
+        if not module_id:
+            errors.append(f"{path} is missing required field 'id'")
+            continue
+        if module_id in seen_ids:
+            errors.append(
+                f"Duplicate module id '{module_id}' in {path} and {seen_ids[module_id]}"
+            )
+            continue
+
+        seen_ids[module_id] = path
+        modules.append(module)
+
+    modules.sort(key=lambda module: (module.get("order", 999), module.get("title", "")))
+    return modules
+
+
+def load_collection_directory(root, default_type, errors, seen_ids):
+    collections = []
     if not root.exists():
-        continue
+        return collections
 
-    for meta_path in sorted(root.rglob("app.json")):
-        folder = meta_path.parent
-        with meta_path.open("r", encoding="utf-8") as f:
-            item = json.load(f)
+    for path in sorted(root.glob("*.json")):
+        if path.name.startswith("_"):
+            continue
+        try:
+            collection = load_json(path)
+        except ValueError as exc:
+            errors.append(str(exc))
+            continue
 
-        entry = item.get("entry", "index.html")
-        url = str(folder / entry).replace("\\", "/")
+        collection_id = collection.get("id")
+        if not collection_id:
+            errors.append(f"{path} is missing required field 'id'")
+            continue
+        if collection_id in seen_ids:
+            errors.append(
+                f"Duplicate collection id '{collection_id}' in {path} and {seen_ids[collection_id]}"
+            )
+            continue
 
-        if entry == "index.html":
-            url = str(folder).replace("\\", "/") + "/"
+        collection.setdefault("type", default_type)
+        collection["source"] = str(path).replace("\\", "/")
+        seen_ids[collection_id] = path
+        collections.append(collection)
 
-        item["url"] = url
-        item["path"] = str(folder).replace("\\", "/")
-        item["gpu"] = is_gpu_item(item)
-        items.append(item)
+    return collections
 
-order = {"comparative": 0, "pilot-wave": 1, "foundations": 2}
-items.sort(key=lambda x: (x.get("type", ""), order.get(x.get("category", ""), 99), x.get("title", "")))
 
-with open("catalog.json", "w", encoding="utf-8") as f:
-    json.dump(items, f, indent=2, ensure_ascii=False)
+def load_collections(errors):
+    seen_ids = {}
+    collections = []
+    collections.extend(
+        load_collection_directory(COLLECTION_ROOT, "collection", errors, seen_ids)
+    )
+    collections.extend(
+        load_collection_directory(COURSE_ROOT, "course", errors, seen_ids)
+    )
+    collections.sort(
+        key=lambda collection: (
+            collection.get("order", 999),
+            collection.get("title", ""),
+        )
+    )
+    return collections
 
-print(f"Wrote catalog.json with {len(items)} entries")
+
+def validate_collection_structure(collection, errors):
+    sections = collection.get("sections")
+    if not isinstance(sections, list):
+        errors.append(
+            f"Collection '{collection['id']}' must contain a 'sections' array"
+        )
+        return
+
+    seen_section_ids = set()
+    for index, section in enumerate(sections, start=1):
+        if not isinstance(section, dict):
+            errors.append(
+                f"Collection '{collection['id']}' section {index} must be an object"
+            )
+            continue
+
+        section_id = section.get("id")
+        if section_id:
+            if section_id in seen_section_ids:
+                errors.append(
+                    f"Collection '{collection['id']}' has duplicate section id '{section_id}'"
+                )
+            seen_section_ids.add(section_id)
+
+        if not section.get("title"):
+            errors.append(
+                f"Collection '{collection['id']}' section {index} is missing 'title'"
+            )
+
+        items = section.get("items")
+        if not isinstance(items, list):
+            errors.append(
+                f"Collection '{collection['id']}' section '{section.get('title', index)}' must contain an 'items' array"
+            )
+
+
+def validate_references(resources, modules, collections, errors):
+    resource_ids = {item["id"] for item in resources}
+    module_ids = {module["id"] for module in modules}
+
+    for item in resources:
+        module_id = item.get("module")
+        if module_id and module_id not in module_ids:
+            errors.append(
+                f"Resource '{item['id']}' references unknown module '{module_id}'"
+            )
+
+    for module in modules:
+        for related_id in module.get("relatedModules", []):
+            if related_id not in module_ids:
+                errors.append(
+                    f"Module '{module['id']}' references unknown related module '{related_id}'"
+                )
+
+    for collection in collections:
+        validate_collection_structure(collection, errors)
+        for section in collection.get("sections", []):
+            if not isinstance(section, dict):
+                continue
+            for entry in section.get("items", []):
+                if not isinstance(entry, dict):
+                    errors.append(
+                        f"Collection '{collection['id']}' has a non-object item"
+                    )
+                    continue
+                entry_type = entry.get("type")
+                entry_id = entry.get("id")
+                if entry_type == "module" and entry_id not in module_ids:
+                    errors.append(
+                        f"Collection '{collection['id']}' references unknown module '{entry_id}'"
+                    )
+                elif entry_type == "resource" and entry_id not in resource_ids:
+                    errors.append(
+                        f"Collection '{collection['id']}' references unknown resource '{entry_id}'"
+                    )
+                elif entry_type not in {"module", "resource"}:
+                    errors.append(
+                        f"Collection '{collection['id']}' has item with invalid type '{entry_type}'"
+                    )
+
+
+def attach_resources_to_modules(resources, modules):
+    by_module = {module["id"]: [] for module in modules}
+    for resource in resources:
+        module_id = resource.get("module")
+        if module_id in by_module:
+            by_module[module_id].append(resource["id"])
+
+    enriched = []
+    for module in modules:
+        copy = dict(module)
+        copy["resources"] = by_module[module["id"]]
+        enriched.append(copy)
+    return enriched
+
+
+def main():
+    warnings = []
+    errors = []
+
+    resources = load_resources(warnings, errors)
+    modules = load_modules(errors)
+    collections = load_collections(errors)
+    validate_references(resources, modules, collections, errors)
+
+    for warning in warnings:
+        print(f"WARNING: {warning}", file=sys.stderr)
+
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        raise SystemExit(1)
+
+    # Preserve the existing homepage input during the transition.
+    with open("catalog.json", "w", encoding="utf-8") as handle:
+        json.dump(resources, handle, indent=2, ensure_ascii=False)
+
+    site_data = {
+        "modules": attach_resources_to_modules(resources, modules),
+        "resources": resources,
+        "collections": collections,
+        # Temporary compatibility view for code expecting a courses array.
+        "courses": [
+            collection
+            for collection in collections
+            if collection.get("type") == "course"
+        ],
+    }
+    with open("site-data.json", "w", encoding="utf-8") as handle:
+        json.dump(site_data, handle, indent=2, ensure_ascii=False)
+
+    print(
+        f"Wrote catalog.json and site-data.json with "
+        f"{len(resources)} resources, {len(modules)} modules, and "
+        f"{len(collections)} collections"
+    )
+
+
+if __name__ == "__main__":
+    main()
