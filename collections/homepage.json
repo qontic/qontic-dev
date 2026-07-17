@@ -10,26 +10,12 @@
       "title": "Core Concepts",
       "description": "Central quantum concepts and experiments used across introductory study.",
       "items": [
-        {
-          "type": "module",
-          "id": "free-particle"
-        },
-        {
-          "type": "module",
-          "id": "double-slit"
-        },
-        {
-          "type": "module",
-          "id": "quantum-tunneling"
-        },
-        {
-          "type": "module",
-          "id": "stern-gerlach"
-        },
-        {
-          "type": "module",
-          "id": "bell-correlations"
-        }
+        { "type": "module", "id": "free-particle" },
+        { "type": "module", "id": "double-slit" },
+        { "type": "module", "id": "quantum-tunneling" },
+        { "type": "module", "id": "potential-well" },
+        { "type": "module", "id": "stern-gerlach" },
+        { "type": "module", "id": "bell-correlations" }
       ]
     },
     {
@@ -37,14 +23,19 @@
       "title": "Beyond the Basics",
       "description": "Extensions, deeper conceptual questions, and more specialized topics.",
       "items": [
-        {
-          "type": "module",
-          "id": "measurement"
-        },
-        {
-          "type": "module",
-          "id": "quantum-non-equilibrium"
-        }
+        { "type": "module", "id": "measurement" },
+        { "type": "module", "id": "delayed-choice" },
+        { "type": "module", "id": "quantum-non-equilibrium" },
+        { "type": "module", "id": "michelson-morley" }
+      ]
+    },
+    {
+      "id": "advanced-modules",
+      "title": "Advanced Modules",
+      "description": "Relativistic quantum mechanics and other advanced topics.",
+      "items": [
+        { "type": "module", "id": "dirac-momentum" },
+        { "type": "module", "id": "klein-tunneling" }
       ]
     }
   ]
