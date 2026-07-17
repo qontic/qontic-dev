@@ -209,6 +209,9 @@ def render_resource_list(resources):
         if resource.get("category"):
             tags.append(str(resource["category"]).replace("-", " ").title())
         tag_html = "".join(f'<span class="tag">{html.escape(tag)}</span>' for tag in tags)
+        status = str(resource.get("status", "approved")).lower()
+        if status != "approved":
+            tag_html += f'<span class="tag status {html.escape(status, quote=True)}">{html.escape(status.title())}</span>'
         groups.append(
             '<article class="resource-row">'
             f'<div><h3>{html.escape(resource.get("title", "Untitled resource"))}</h3>'
@@ -255,6 +258,8 @@ def generate_module_pages(resources, modules):
     h1 {{ margin:.55rem 0 .35rem; font-size:2rem; }} .summary {{ margin:0; max-width:760px; opacity:.94; }}
     main {{ padding:1.5rem 1rem 2.5rem; }} .topics {{ display:flex; flex-wrap:wrap; gap:.35rem; margin:0 0 1.5rem; }}
     .topic, .tag {{ display:inline-block; background:#e8eef6; color:#34495e; border-radius:999px; padding:.2rem .55rem; font-size:.75rem; }}
+    .tag.status {{ background:#fff0c2; color:#7a5200; border:1px solid #e5bd55; font-weight:700; }}
+    .tag.status.review {{ background:#e8f1ff; color:#174f91; border-color:#9bbce4; }}
     h2 {{ color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:.3rem; margin:0 0 .35rem; }}
     .resource-list {{ background:white; border:1px solid var(--border); border-radius:8px; overflow:hidden; }}
     .resource-row {{ display:grid; grid-template-columns:1fr auto; gap:1rem; align-items:center; padding:1rem; border-bottom:1px solid var(--border); }}
