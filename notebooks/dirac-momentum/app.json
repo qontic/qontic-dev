@@ -1,18 +1,11 @@
 {
+  "id": "dirac-momentum-notebook",
   "title": "Dirac Momentum — Notebook",
   "type": "notebook",
   "category": "pilot-wave",
+  "module": "dirac-momentum",
   "description": "Momentum of Bohmian particles guided by a Dirac wave packet.",
-  "tags": [
-    "Notebook",
-    "Pilot-wave",
-    "GPU",
-    "2D",
-    "3D",
-    "Dirac",
-    "Momentum",
-    "Packet splitting"
-  ],
+  "tags": ["Notebook", "Pilot-wave", "GPU", "2D", "3D", "Dirac", "Momentum", "Packet splitting"],
   "entry": "index.html",
   "hidden": true,
   "status": "draft"
