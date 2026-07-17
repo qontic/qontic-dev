@@ -89,8 +89,8 @@
   }
 
   function statusBadge(resource) {
-    const status = String(resource?.status || "approved").toLowerCase();
-    return status === "approved" ? "" : `<span class="status-badge ${esc(status)}">${esc(status)}</span>`;
+    const status = String(resource?.status || "published").toLowerCase();
+    return status === "published" ? "" : `<span class="status-badge ${esc(status)}">${esc(status)}</span>`;
   }
 
   function renderResourcePanel(resources, type, title, rootId) {
