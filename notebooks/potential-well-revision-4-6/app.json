@@ -1,7 +1,12 @@
 {
+  "id": "potential-well-comparative-notebook",
   "title": "Quantum Potential Well Notebook (Tentative)",
   "type": "notebook",
   "category": "comparative",
+  "module": "potential-well",
+  "topics": ["potential-wells", "bound-states", "wave-functions"],
+  "interpretations": ["orthodox", "pilot-wave"],
+  "level": "introductory",
   "description": "Tentative notebook for 1D square-well quantum mechanics with interactive visual sections and full applet.",
   "tags": [
     "Notebook",
