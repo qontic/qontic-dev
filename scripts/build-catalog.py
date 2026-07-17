@@ -209,8 +209,8 @@ def render_resource_list(resources):
         if resource.get("category"):
             tags.append(str(resource["category"]).replace("-", " ").title())
         tag_html = "".join(f'<span class="tag">{html.escape(tag)}</span>' for tag in tags)
-        status = str(resource.get("status", "approved")).lower()
-        if status != "approved":
+        status = str(resource.get("status", "published")).lower()
+        if status != "published":
             tag_html += f'<span class="tag status {html.escape(status, quote=True)}">{html.escape(status.title())}</span>'
         groups.append(
             '<article class="resource-row">'
