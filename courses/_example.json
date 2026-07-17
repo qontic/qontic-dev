@@ -1,9 +1,11 @@
 {
   "id": "example-course",
+  "type": "course",
   "title": "Example Course",
   "description": "Template showing how a course can reference whole modules and individual resources.",
   "sections": [
     {
+      "id": "example-section",
       "title": "Example section",
       "items": [
         {
