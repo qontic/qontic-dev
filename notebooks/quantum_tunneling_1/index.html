@@ -283,9 +283,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 (() => {
   const allowed = new Set(["succinct", "guided", "detailed"]);
   const requested = new URLSearchParams(window.location.search).get("mode");
-  const storageKey = "qontic-notebook-mode-v2";
-  const saved = localStorage.getItem(storageKey);
-  let mode = allowed.has(requested) ? requested : (allowed.has(saved) ? saved : "detailed");
+  let mode = allowed.has(requested) ? requested : "detailed";
 
   function setMode(nextMode, updateUrl) {
     mode = allowed.has(nextMode) ? nextMode : "detailed";
@@ -293,7 +291,6 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
     document.querySelectorAll("[data-notebook-mode-button]").forEach(button => {
       button.setAttribute("aria-pressed", String(button.dataset.notebookModeButton === mode));
     });
-    localStorage.setItem(storageKey, mode);
     if (updateUrl) {
       const url = new URL(window.location.href);
       if (mode === "detailed") url.searchParams.delete("mode");
