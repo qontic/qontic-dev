@@ -9,6 +9,7 @@
   "level": "introductory",
   "modes": ["succinct", "guided", "detailed"],
   "defaultMode": "detailed",
+  "reviewProposals": "review-proposals.json",
   "description": "A guided 1D tunneling notebook with fixed-scale complex-state plots, probability current, packet-averaged transmission, localized detector events, and an orthodox versus pilot-wave comparison.",
   "tags": [
     "Notebook",
