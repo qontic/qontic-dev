@@ -284,12 +284,14 @@
 
   function init() {
     ensureGtag();
+    document.documentElement.dataset.qsfAnalyticsReady = 'true';
     telemetry.lastView = currentView();
     telemetry.lastViewStartedMs = Date.now();
 
     sendEvent('demo_open', {
       interpretation: telemetry.lastView
     });
+    document.documentElement.dataset.qsfAnalyticsOpenSent = 'true';
     attachControlListeners();
     window.setTimeout(function () { trackCurrentState('initial'); }, 500);
 
