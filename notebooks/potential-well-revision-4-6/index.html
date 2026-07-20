@@ -390,10 +390,13 @@ const Q = QMWellEngine;
 const C = {ink:'#bfe4ff', accent:'#ff9966', yellow:'#ffd24d', cyan:'#4fc3ff', green:'#54e0a0', im:'#2563eb', red:'#ff6b6b'};
 const NMAX = 14;
 const DEFAULT_SPEED = 0.002; // fs per browser ms; display-control unit is explicit.
+const BOHMIAN_MIN_FLOW_SPEED = 0.012; // keep Bohmian guidance visibly flowing when selected.
+const BOHMIAN_FLOW_CYCLE_MS = 4200; // visual cycle for the Bohmian ensemble marker stream.
 let clockMs = 0;
 let last = performance.now();
 let lastDraw = 0;
 let detectionNonce = 1;
+let bohmianSeedCache = new Map();
 const INTERP = {
   copenhagen:{name:'Orthodox interpretation',overlay:'Orthodox view: |Ψ|² gives position-measurement probabilities.'},
   bohmian:{name:'Bohmian mechanics',overlay:'Bohmian view: Ψ guides definite configurations through the probability current.'}
@@ -408,6 +411,13 @@ function speedText(s){return s===0?'Paused':Number(s).toFixed(4)+' fs/ms';}
 function isMobile(){return window.matchMedia('(max-width:700px)').matches;}
 function dpr(){return isMobile()?1:Math.min(window.devicePixelRatio||1,2);}
 function timeFs(p){
+  if(p && p.forceBohmianFlow && p.mode==='super'){
+    const period = Q.beatPeriodFs(p);
+    if(Number.isFinite(period) && period > 1e-9){
+      return fract(clockMs / BOHMIAN_FLOW_CYCLE_MS) * period;
+    }
+    return clockMs * BOHMIAN_MIN_FLOW_SPEED;
+  }
   return clockMs*(Number.isFinite(p.speed)?p.speed:DEFAULT_SPEED);
 }
 function makeParams(type,L,V0,mass,n,mode='eigen',m=2,mix=.35,relativePhase=.75,speed=DEFAULT_SPEED,kind='bound',scatterRatio=1.5){return {type,L,V0,mass,n,mode,m,mix,relativePhase,speed,kind,scatterRatio};}
@@ -498,14 +508,95 @@ function drawLevels(ctx,map,p,{labels=true,markM=false}={}){
   ctx.restore();
 }
 function sampleWave(p,N=440){if(isMobile())N=Math.min(N,260);const extent=extentFor(p), out=[];for(let i=0;i<N;i++){const x=-extent+2*extent*i/(N-1),s=Q.waveWithDerivative(x,p,timeFs(p));out.push({x,re:s.re,im:s.im,prob:s.rho});}out.scale=Math.max(Q.fixedAmplitudeScale(p),1e-10);out.probScale=Math.max(out.scale*out.scale,1e-12);return out;}
-function drawWave(ctx,map,p,{baseY,re=true,im=false,prob=true,amp=70,pamp=90,tails=null,samples=440}={}){const arr=sampleWave(p,samples);const tailFlag=tails===null?p.type==='finite':tails;const visible=arr.filter(s=>tailFlag||Math.abs(s.x)<=p.L/2+1e-9);if(re)line(ctx,visible.map(s=>[map.x(s.x),baseY-s.re/arr.scale*amp]),C.cyan,2.2,.96);if(im)line(ctx,visible.map(s=>[map.x(s.x),baseY-s.im/arr.scale*amp]),C.im,2.2,.96);if(prob){const pts=visible.map(s=>[map.x(s.x),baseY-s.prob/arr.probScale*pamp]);line(ctx,pts,C.yellow,2.4,.98);ctx.save();ctx.globalAlpha=.10;ctx.fillStyle=C.yellow;ctx.beginPath();ctx.moveTo(pts[0][0],baseY);pts.forEach(pt=>ctx.lineTo(pt[0],pt[1]));ctx.lineTo(pts.at(-1)[0],baseY);ctx.closePath();ctx.fill();ctx.restore();}return arr;}
+function drawWave(ctx,map,p,{baseY,re=true,im=false,prob=true,amp=70,pamp=90,tails=null,samples=440}={}){const arr=sampleWave(p,samples);arr.baseY=baseY;arr.pamp=pamp;const tailFlag=tails===null?p.type==='finite':tails;const visible=arr.filter(s=>tailFlag||Math.abs(s.x)<=p.L/2+1e-9);if(re)line(ctx,visible.map(s=>[map.x(s.x),baseY-s.re/arr.scale*amp]),C.cyan,2.2,.96);if(im)line(ctx,visible.map(s=>[map.x(s.x),baseY-s.im/arr.scale*amp]),C.im,2.2,.96);if(prob){const pts=visible.map(s=>[map.x(s.x),baseY-s.prob/arr.probScale*pamp]);line(ctx,pts,C.yellow,2.4,.98);ctx.save();ctx.globalAlpha=.10;ctx.fillStyle=C.yellow;ctx.beginPath();ctx.moveTo(pts[0][0],baseY);pts.forEach(pt=>ctx.lineTo(pt[0],pt[1]));ctx.lineTo(pts.at(-1)[0],baseY);ctx.closePath();ctx.fill();ctx.restore();}return arr;}
 function drawTitle(ctx,map,title){ctx.save();ctx.fillStyle=C.ink;ctx.font='bold 13px Arial';ctx.fillText(title,map.m.l,map.m.t-18);ctx.restore();}
 function buildCanvas(id,p,{labels=false,eMax=null}={}){const o=setup(id);clear(o.ctx,o.W,o.H);const map=makeMap(o.W,o.H,p,{labels,eMax});axes(o.ctx,map);drawPotential(o.ctx,map,p);return{...o,map};}
 function drawConfinementGuide(ctx,map,p){const xL=map.x(-p.L/2),xR=map.x(p.L/2),y=map.m.t+42;ctx.save();ctx.strokeStyle='rgba(84,224,160,.9)';ctx.setLineDash([5,4]);ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(xL,y);ctx.lineTo(xR,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=C.green;ctx.font='bold 12px Arial';ctx.fillText('confinement region',xL+8,y-9);ctx.restore();}
-function drawConfigurationSamples(ctx,map,p,{count=120,emphasis=false}={}){if(p.kind==='scatter')return;const cdf=Q.densityCDF(p,timeFs(p),1000),y0=map.m.t+map.plotH-22;ctx.save();for(let i=0;i<count;i++){const r=fract(Math.sin((i+1)*12.9898+detectionNonce*78.233)*43758.5453),x=Q.cdfQuantile(cdf,r),y=y0-(i%6)*3.1;ctx.fillStyle=emphasis?'rgba(247,201,72,.92)':'rgba(247,201,72,.82)';ctx.beginPath();ctx.arc(map.x(x),y,emphasis?1.8:1.55,0,2*Math.PI);ctx.fill();}ctx.fillStyle='#f7c948';ctx.font=emphasis?'bold 12px Arial':'12px Arial';ctx.fillText('120 independent configurations sampled from |Ψ(x,t)|²',map.x(-p.L/2)+8,y0-25);ctx.restore();}
+function roundRect(ctx,x,y,w,h,r,fill=true,stroke=false){
+  const rr=Math.max(0,Math.min(r,Math.abs(w)/2,Math.abs(h)/2));
+  ctx.beginPath();
+  if(typeof ctx.roundRect==='function'){
+    ctx.roundRect(x,y,w,h,rr);
+  }else{
+    ctx.moveTo(x+rr,y);
+    ctx.lineTo(x+w-rr,y);
+    ctx.quadraticCurveTo(x+w,y,x+w,y+rr);
+    ctx.lineTo(x+w,y+h-rr);
+    ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h);
+    ctx.lineTo(x+rr,y+h);
+    ctx.quadraticCurveTo(x,y+h,x,y+h-rr);
+    ctx.lineTo(x,y+rr);
+    ctx.quadraticCurveTo(x,y,x+rr,y);
+  }
+  ctx.closePath();
+  if(fill)ctx.fill();
+  if(stroke)ctx.stroke();
+}
+function drawParticleCounter(ctx,map,p,{count=120,emphasis=false,y=null,visibleCount=null}={}){const shown=Number.isFinite(visibleCount)?visibleCount:count;const label=`Particles in frame: ${shown}/${count}`;ctx.save();ctx.font=emphasis?'800 12px Arial':'800 11px Arial';const x=clamp(map.x(-p.L/2)+8,map.m.l+8,map.W-map.m.r-170),yy=clamp(y===null?map.m.t+map.plotH-8:y,map.m.t+18,map.H-14);ctx.fillStyle='rgba(215,239,255,.92)';ctx.fillText(label,x,yy);ctx.restore();}
 function fract(x){return x-Math.floor(x);}
-function drawGuidance(ctx,map,p){const y=map.m.t+map.plotH-110;ctx.save();ctx.strokeStyle='rgba(215,239,255,.88)';ctx.fillStyle='rgba(215,239,255,.95)';ctx.lineWidth=1.7;for(let k=0;k<13;k++){const x=-p.L/2+p.L*(k+.5)/13;const v=Q.velocityAt(x,p,timeFs(p));const s=Math.tanh(v*1.4);const px=map.x(x),len=7+22*Math.abs(s),dir=Math.abs(s)<.035?0:Math.sign(s);if(dir===0){ctx.beginPath();ctx.arc(px,y,2.8,0,2*Math.PI);ctx.fill();}else{const x1=px-dir*len/2,x2=px+dir*len/2;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();ctx.beginPath();ctx.moveTo(x2,y);ctx.lineTo(x2-dir*5,y-4);ctx.lineTo(x2-dir*5,y+4);ctx.closePath();ctx.fill();}}ctx.restore();}
-function drawBohmianParticles(ctx,map,p,emphasis=false){if(p.kind==='scatter')return;const moving=p.mode==='super',count=emphasis?9:7,trailSteps=emphasis?20:15,laneY=map.m.t+map.plotH-(emphasis?126:114),t=timeFs(p),seeds=Q.quantilePositions(p,count,0);ctx.save();ctx.lineCap='round';ctx.lineJoin='round';for(const seed of seeds){const hist=moving?Q.trajectory(seed,p,t,trailSteps):Array(trailSteps).fill(seed);ctx.strokeStyle=emphasis?'rgba(255,210,77,.86)':'rgba(255,210,77,.66)';ctx.lineWidth=emphasis?3.2:2.1;ctx.beginPath();hist.forEach((x,i)=>{const yy=laneY-(trailSteps-1-i)*(emphasis?1:.75);if(i)ctx.lineTo(map.x(x),yy);else ctx.moveTo(map.x(x),yy);});ctx.stroke();const px=map.x(hist.at(-1));if(emphasis){ctx.fillStyle='rgba(255,210,77,.18)';ctx.beginPath();ctx.arc(px,laneY,15,0,2*Math.PI);ctx.fill();ctx.strokeStyle='rgba(255,210,77,.72)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,laneY,11,0,2*Math.PI);ctx.stroke();}ctx.fillStyle=C.yellow;ctx.strokeStyle='rgba(7,16,32,.98)';ctx.lineWidth=emphasis?2.4:1.8;ctx.beginPath();ctx.arc(px,laneY,emphasis?8.1:5.8,0,2*Math.PI);ctx.fill();ctx.stroke();}ctx.fillStyle='#d7efff';ctx.font=emphasis?'bold 13px Arial':'bold 12px Arial';ctx.fillText(p.kind==='scatter'?'above-barrier scattering: directed current guides configurations':(moving?'ensemble of guided positions: trajectories solve dX/dt = j/|Ψ|²':'single real eigenstate: j = 0, positions stationary'),map.x(-p.L/2)+8,laneY-(emphasis?42:31));ctx.restore();}
+function bohmianSeedKey(p,count){return [detectionNonce,count,p.type,p.kind,p.L,p.V0,p.mass,p.n,p.mode,p.m,p.mix,p.relativePhase,p.scatterRatio].map(v=>String(Number.isFinite(v)?Number(v).toPrecision(9):v)).join('|');}
+function bohmianQuantiles(p,count){const key=bohmianSeedKey(p,count)+'|quantile';if(bohmianSeedCache.has(key))return bohmianSeedCache.get(key);const out=[];for(let i=0;i<count;i++){const jitter=fract(Math.sin((i+1)*19.191+detectionNonce*63.731)*28921.813);out.push(clamp((i+jitter)/count,1e-4,1-1e-4));}bohmianSeedCache.set(key,out);if(bohmianSeedCache.size>48)bohmianSeedCache.delete(bohmianSeedCache.keys().next().value);return out;}
+function bohmianDisplayTime(p){
+  if(p && p.forceBohmianFlow && p.mode==='super') return timeFs(p);
+  const speed = Number.isFinite(p.speed) ? p.speed : DEFAULT_SPEED;
+  const effectiveSpeed = p.mode === 'super' ? Math.max(speed, BOHMIAN_MIN_FLOW_SPEED) : speed;
+  const base = clockMs * effectiveSpeed;
+  if(!Number.isFinite(base) || base < 0) return 0;
+  const period = Q.beatPeriodFs(p);
+  const boosted = base * (p.mode === 'super' ? 24 : 1);
+  return Number.isFinite(period) && period > 1e-9 ? ((boosted % period) + period) % period : boosted;
+}
+function prepareBohmianFlowParams(p){
+  const q = Object.assign({}, p);
+  q.kind = q.kind || 'bound';
+  if(q.kind !== 'scatter'){
+    q.mode = 'super';
+    if(!Number.isFinite(q.m) || q.m === q.n) q.m = q.n < NMAX ? q.n + 1 : Math.max(1, q.n - 1);
+    if(!Number.isFinite(q.mix) || q.mix <= 0 || q.mix >= 1) q.mix = 0.35;
+    if(!Number.isFinite(q.relativePhase)) q.relativePhase = 0.75;
+    q.speed = Math.max(Number.isFinite(q.speed) ? q.speed : DEFAULT_SPEED, BOHMIAN_MIN_FLOW_SPEED);
+    q.forceBohmianFlow = true;
+  }
+  return q;
+}
+function drawConfigurationSamples(ctx,map,p,{count=120,emphasis=false,laneY=null,waveInfo=null}={}){
+  if(p.kind==='scatter')return;
+  // Restore the original model's dot mechanics: fixed deterministic samples from the
+  // displayed |Ψ(x,t)|² distribution, not a separate visual-flow stream.
+  const t = timeFs(p);
+  const cdf = Q.densityCDF(p,t,isMobile()?760:1000);
+  const y0 = laneY===null ? map.m.t+map.plotH-22 : laneY;
+  const insetX = Math.max(0.012*map.xExtent,1e-5);
+  const minX = -map.xExtent + insetX, maxX = map.xExtent - insetX;
+  const minPx = map.m.l + 8, maxPx = map.W - map.m.r - 8;
+  const minY = map.m.t + 16, maxY = map.m.t + map.plotH - 16;
+  let visibleCount = 0;
+  ctx.save();
+  for(let i=0;i<count;i++){
+    const r=fract(Math.sin((i+1)*12.9898+detectionNonce*78.233)*43758.5453);
+    let x=Q.cdfQuantile(cdf,r);
+    x=clamp(Number.isFinite(x)?x:0,minX,maxX);
+    const px=clamp(map.x(x),minPx,maxPx);
+    // Keep the small dot band in the region formerly occupied by the large Bohmian markers.
+    const rowOffset=(i%6)*3.1;
+    const stagger=((Math.floor(i/6)%2)-0.5)*1.2;
+    const y=clamp(y0-rowOffset+stagger,minY,maxY);
+    visibleCount++;
+    ctx.fillStyle=emphasis?'rgba(247,201,72,.92)':'rgba(247,201,72,.82)';
+    ctx.strokeStyle='rgba(7,16,32,.58)';
+    ctx.lineWidth=.65;
+    ctx.beginPath();
+    ctx.arc(px,y,emphasis?2.2:1.85,0,2*Math.PI);
+    ctx.fill();
+    ctx.stroke();
+  }
+  drawParticleCounter(ctx,map,p,{count,emphasis,visibleCount,y:map.m.t+map.plotH-4});
+  ctx.restore();
+}
+function bohmianLaneY(map,emphasis=false){return map.m.t+map.plotH-(emphasis?126:114);}
+function drawBohmianParticles(ctx,map,p,emphasis=false){if(p.kind==='scatter')return null;const moving=p.mode==='super',laneY=bohmianLaneY(map,emphasis);ctx.save();ctx.fillStyle='#d7efff';ctx.font=emphasis?'bold 13px Arial':'bold 12px Arial';ctx.fillText(p.kind==='scatter'?'above-barrier scattering: directed current guides configurations':(moving?'ensemble of guided positions: dX/dt = j/|Ψ|²':'single real eigenstate: j = 0, positions stationary'),map.x(-p.L/2)+8,laneY-(emphasis?42:31));ctx.restore();return laneY;}
+function drawGuidance(ctx,map,p){const y=map.m.t+map.plotH-110;ctx.save();ctx.strokeStyle='rgba(215,239,255,.88)';ctx.fillStyle='rgba(215,239,255,.95)';ctx.lineWidth=1.7;for(let k=0;k<13;k++){const x=-p.L/2+p.L*(k+.5)/13;const v=Q.velocityAt(x,p,bohmianDisplayTime(p));const s=Math.tanh(v*1.4);const px=map.x(x),len=7+22*Math.abs(s),dir=Math.abs(s)<.035?0:Math.sign(s);if(dir===0){ctx.beginPath();ctx.arc(px,y,2.8,0,2*Math.PI);ctx.fill();}else{const x1=px-dir*len/2,x2=px+dir*len/2;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();ctx.beginPath();ctx.moveTo(x2,y);ctx.lineTo(x2-dir*5,y-4);ctx.lineTo(x2-dir*5,y+4);ctx.closePath();ctx.fill();}}ctx.restore();}
+function drawBohmianParticles(ctx,map,p,emphasis=false){if(p.kind==='scatter')return null;const moving=p.mode==='super',laneY=bohmianLaneY(map,emphasis);ctx.save();ctx.fillStyle='#d7efff';ctx.font=emphasis?'bold 13px Arial':'bold 12px Arial';ctx.fillText(p.kind==='scatter'?'above-barrier scattering: directed current guides configurations':(moving?'ensemble of guided positions: dX/dt = j/|Ψ|²':'single real eigenstate: j = 0, positions stationary'),map.x(-p.L/2)+8,laneY-(emphasis?42:31));ctx.restore();return laneY;}
 function stateLine(p){if(p.type==='finite'&&p.kind==='scatter'){const ss=Q.scatteringState(p.L,p.V0,p.mass,p.scatterRatio);return `Above-barrier scattering: E=${ss.E.toFixed(4)} eV, R=${ss.R.toFixed(3)}, T=${ss.T.toFixed(3)}`;}const e=Q.stateEnergy(p,p.n);return p.mode==='super'?`State: superposition n=${p.n}, m=${p.m}; Eₙ=${e.toFixed(4)} eV`:`State: eigenstate n=${p.n}, Eₙ=${e.toFixed(4)} eV`;}
 function drawPart1(){const p=makeParams(value('s1Type'),4,value('s1V'),1,1);setText('s1TypeLbl',p.type==='finite'?'Finite':'Infinite');setText('s1VLbl',p.V0.toFixed(1)+' eV');const o=buildCanvas('c1',p,{eMax:40});drawConfinementGuide(o.ctx,o.map,p);setText('s1Read',p.type==='infinite'?'Infinite walls impose ψ=0 at the boundaries.':'Finite barriers have V=V₀ outside the well; later, bound states will have exponential tails there.');}
 function drawPart2(){const p=makeParams('infinite',4,12,1,value('s2n'),'eigen',2,.35,.75,value('s2Speed'));setText('s2nLbl',p.n);setText('s2SpeedLbl',speedText(p.speed));const o=buildCanvas('c2',p,{eMax:Math.max(Q.energyInfinite(8,4)*1.2,.2)});drawTitle(o.ctx,o.map,'Re Ψ and Im Ψ share one standing-wave envelope');const base=o.map.m.t+o.map.plotH*.56;drawWave(o.ctx,o.map,p,{baseY:base,re:value('s2Re'),im:value('s2Im'),prob:value('s2Prob'),amp:95,pamp:95});const nodes=p.n-1;setText('s2Read',`n=${p.n}: there are ${nodes===0?'zero':nodes} interior ${nodes===1?'node':'nodes'}.`);}
@@ -527,7 +618,7 @@ function drawPart5(){
 }
 function displayModeValues(prefix){return{mode:value(prefix+'Mode'),n:value(prefix+'n'),m:value(prefix+'m'),mix:value(prefix+'Mix'),relativePhase:prefix==='s6'?0.75:value(prefix+'Phase'),speed:value(prefix+'Speed')};}
 function drawPart6(){const d=displayModeValues('s6');const p=makeParams('infinite',4,12,1,d.n,d.mode,d.m,d.mix,d.relativePhase,d.speed);if(p.mode==='super'&&p.m===p.n){$('s6m').value=p.n<NMAX?p.n+1:p.n-1;p.m=value('s6m');}setText('s6ModeLbl',p.mode==='super'?'Superposition':'Single eigenstate');setText('s6nLbl',p.n);setText('s6mLbl',p.m);setText('s6MixLbl',p.mix.toFixed(2));setText('s6SpeedLbl',speedText(p.speed));const o=buildCanvas('c6',p,{labels:true,eMax:Q.energyInfinite(NMAX,4)*1.12});drawLevels(o.ctx,o.map,p,{labels:true,markM:true});const base=p.mode==='super'?o.map.y(.5*(Q.stateEnergy(p,p.n)+Q.stateEnergy(p,p.m))):o.map.y(Q.stateEnergy(p,p.n));drawWave(o.ctx,o.map,p,{baseY:base,re:value('s6Re'),im:value('s6Im'),prob:value('s6Prob'),amp:62,pamp:92,tails:false});const dE=p.mode==='super'?Math.abs(Q.stateEnergy(p,p.m)-Q.stateEnergy(p,p.n)):0;setHTML('s6Read',p.mode==='super'?`<strong>Superposition:</strong> changing |c<sub>m</sub>|² changes the component weights; changing the relative phase changes the initial interference pattern. The density repeats with beat period ${(2*Math.PI*Q.HBAR/dE).toFixed(2)} fs.`:`<strong>Single eigenstate:</strong> the global phase rotates, but |Ψ|² and the current remain time independent.`);}
-function drawPart7(){const interp=value('s7Interp'),d=displayModeValues('s7'),p=makeParams('infinite',4,12,1,d.n,d.mode,d.m,d.mix,d.relativePhase,d.speed);if(p.mode==='super'&&p.m===p.n){$('s7m').value=p.n<NMAX?p.n+1:p.n-1;p.m=value('s7m');}all('#part7 .interp-detail').forEach(e=>e.classList.toggle('active',e.dataset.interp===interp));setText('s7InterpLbl',INTERP[interp].name);setText('s7ModeLbl',p.mode==='super'?'Two-state superposition':'Single eigenstate');setText('s7nLbl',p.n);setText('s7mLbl',p.m);setText('s7MixLbl',p.mix.toFixed(2));setText('s7PhaseLbl',p.relativePhase.toFixed(2)+' rad');setText('s7SpeedLbl',speedText(p.speed));const En=Q.stateEnergy(p,p.n),Em=p.mode==='super'?Q.stateEnergy(p,p.m):En,o=buildCanvas('c7',p,{eMax:Math.max(Q.energyInfinite(6,4),En,Em)*1.35}),base=clamp(o.map.y(p.mode==='super'?.5*(En+Em):En),o.map.m.t+88,o.map.m.t+o.map.plotH*.56),arr=drawWave(o.ctx,o.map,p,{baseY:base,re:value('s7Re'),im:value('s7Im'),prob:value('s7Prob'),amp:72,pamp:92,tails:false});drawTitle(o.ctx,o.map,stateLine(p));if(interp==='bohmian'){drawGuidance(o.ctx,o.map,p,arr);drawBohmianParticles(o.ctx,o.map,p,true);drawConfigurationSamples(o.ctx,o.map,p,{count:120,emphasis:true});}$('interpNote').textContent=INTERP[interp].overlay+' '+stateLine(p)+'.';setHTML('s7Read','<strong>'+stateLine(p)+'</strong>'+(interp==='bohmian'?' The panel includes a configuration ensemble sampled from |Ψ(x,t)|².':''));}
+function drawPart7(){const interp=value('s7Interp'),d=displayModeValues('s7');let p=makeParams('infinite',4,12,1,d.n,d.mode,d.m,d.mix,d.relativePhase,d.speed);if(interp==='bohmian'){p=prepareBohmianFlowParams(p);$('s7Mode').value='super';$('s7Speed').value=p.speed;if($('s7m'))$('s7m').value=p.m;}if(p.mode==='super'&&p.m===p.n){$('s7m').value=p.n<NMAX?p.n+1:p.n-1;p.m=value('s7m');}all('#part7 .interp-detail').forEach(e=>e.classList.toggle('active',e.dataset.interp===interp));setText('s7InterpLbl',INTERP[interp].name);setText('s7ModeLbl',p.mode==='super'?'Two-state superposition':'Single eigenstate');setText('s7nLbl',p.n);setText('s7mLbl',p.m);setText('s7MixLbl',p.mix.toFixed(2));setText('s7PhaseLbl',p.relativePhase.toFixed(2)+' rad');setText('s7SpeedLbl',speedText(p.speed));const En=Q.stateEnergy(p,p.n),Em=p.mode==='super'?Q.stateEnergy(p,p.m):En,o=buildCanvas('c7',p,{eMax:Math.max(Q.energyInfinite(6,4),En,Em)*1.35}),base=clamp(o.map.y(p.mode==='super'?.5*(En+Em):En),o.map.m.t+88,o.map.m.t+o.map.plotH*.56),arr=drawWave(o.ctx,o.map,p,{baseY:base,re:value('s7Re'),im:value('s7Im'),prob:value('s7Prob'),amp:72,pamp:92,tails:false});drawTitle(o.ctx,o.map,stateLine(p));if(interp==='bohmian'){drawGuidance(o.ctx,o.map,p,arr);const sampleLane=drawBohmianParticles(o.ctx,o.map,p,true);drawConfigurationSamples(o.ctx,o.map,p,{count:120,emphasis:true,laneY:sampleLane});}$('interpNote').textContent=INTERP[interp].overlay+' '+stateLine(p)+'.';setHTML('s7Read','<strong>'+stateLine(p)+'</strong>'+(interp==='bohmian'?' The panel includes a configuration ensemble sampled from |Ψ(x,t)|².':''));}
 function fullParams(){
   const p=makeParams(value('fType'),value('fL'),value('fV'),value('fMass'),value('fn'),value('fMode'),value('fm'),value('fMix'),value('fPhase'),value('fSpeed'));
   if(p.type==='finite')finiteIndexState(p);
@@ -544,6 +635,7 @@ function drawFull(){
   if(bound&&p.mode==='super'&&p.m>max){$('fm').value=max;p.m=max;}
   if(bound&&p.mode==='super'&&p.m===p.n){$('fm').value=p.n<max?p.n+1:Math.max(1,p.n-1);p.m=value('fm');}
   const interp=value('fInterp');
+  if(interp==='bohmian'&&!scatter){p=prepareBohmianFlowParams(p);$('fMode').value='super';$('fSpeed').value=p.speed;if($('fm'))$('fm').value=p.m;}
   setText('fTypeLbl',p.type==='finite'?'Finite':'Infinite');
   setText('fModeLbl',p.mode==='super'?'Superposition':'Eigenstate');setText('fnLbl',p.n);setText('fmLbl',p.m);setText('fLLbl',p.L.toFixed(2)+' nm');setText('fVLbl',p.V0.toFixed(2)+' eV');setText('fMassLbl',p.mass.toFixed(2));setText('fMixLbl',p.mix.toFixed(2));setText('fPhaseLbl',p.relativePhase.toFixed(2)+' rad');setText('fSpeedLbl',speedText(p.speed));setText('fInterpLbl',INTERP[interp].name);
   if(p.type==='finite')setText('fStateNote',scatter?`n=${p.n} is a continuum sample above the ${finiteInfo.count} bound states; it is not an additional discrete level.`:`n=1–${finiteInfo.count} select normalized bound eigenstates. Larger n selects an above-barrier scattering sample.`);
@@ -553,7 +645,7 @@ function drawFull(){
   const arr=drawWave(o.ctx,o.map,p,{baseY:base,re:value('fRe'),im:value('fIm'),prob:value('fProb'),amp:74,pamp:100,tails:p.type==='finite',samples:520});
   if(interp==='bohmian'){
     if(value('fGuidance'))drawGuidance(o.ctx,o.map,p,arr);
-    if(!scatter){drawBohmianParticles(o.ctx,o.map,p,false);drawConfigurationSamples(o.ctx,o.map,p,{count:120,emphasis:false});}
+    if(!scatter){const sampleLane=drawBohmianParticles(o.ctx,o.map,p,false);drawConfigurationSamples(o.ctx,o.map,p,{count:120,emphasis:false,laneY:sampleLane,waveInfo:arr});}
   }
   if(scatter){
     const ss=Q.scatteringState(p.L,p.V0,p.mass,p.scatterRatio);
@@ -565,7 +657,16 @@ function drawFull(){
 const drawers={part1:drawPart1,part2:drawPart2,part3:drawPart3,part5:drawPart5,part6:drawPart6,part7:drawPart7,full:drawFull};const active={};Object.keys(drawers).forEach(id=>active[id]=true);function drawVisible(force=false){syncControls();for(const id of Object.keys(drawers))if(force||active[id])drawers[id]();}
 function setupVisibility(){if(!('IntersectionObserver'in window))return;const ob=new IntersectionObserver(entries=>entries.forEach(e=>{active[e.target.id]=e.isIntersecting;if(e.isIntersecting)drawers[e.target.id]();}),{rootMargin:'520px 0px',threshold:.01});Object.keys(drawers).forEach(id=>ob.observe($(id)));}
 function recommended(){const values={fType:'infinite',fV:12,fMode:'super',fn:1,fm:2,fL:4,fMass:1,fMix:.35,fPhase:.75,fSpeed:.002,fInterp:'bohmian'};Object.entries(values).forEach(([id,v])=>{$(id).value=v;});$('fRe').checked=true;$('fIm').checked=true;$('fProb').checked=true;$('fGuidance').checked=true;drawVisible(true);}
-all('input,select').forEach(e=>e.addEventListener('input',()=>drawVisible(true)));$('s7Resample').addEventListener('click',()=>{detectionNonce++;drawPart7();});$('fResample').addEventListener('click',()=>{detectionNonce++;drawFull();});$('fReset').addEventListener('click',recommended);let timer=null;window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>drawVisible(true),140);});setupVisibility();drawVisible(true);function loop(now){const dt=now-last;last=now;clockMs+=dt;const fps=isMobile()?30:45;if(!document.hidden&&now-lastDraw>=1000/fps){lastDraw=now;drawVisible(false);}requestAnimationFrame(loop);}requestAnimationFrame(loop);
+function ensureBohmianHasMotion(prefix){
+  const interp=$(prefix+'Interp'),mode=$(prefix+'Mode'),n=$(prefix==='s7'?'s7n':'fn'),m=$(prefix==='s7'?'s7m':'fm'),speed=$(prefix==='s7'?'s7Speed':'fSpeed');
+  if(!interp||!mode||interp.value!=='bohmian')return;
+  const nVal=Number(n.value);
+  if(mode.value!=='super')mode.value='super';
+  if(m&&Number(m.value)===nVal)m.value=nVal<NMAX?nVal+1:Math.max(1,nVal-1);
+  if(speed&&Number(speed.value)<BOHMIAN_MIN_FLOW_SPEED)speed.value=BOHMIAN_MIN_FLOW_SPEED;
+}
+$('s7Interp').addEventListener('change',()=>{ensureBohmianHasMotion('s7');drawVisible(true);});$('fInterp').addEventListener('change',()=>{ensureBohmianHasMotion('f');drawVisible(true);});
+all('input,select').forEach(e=>e.addEventListener('input',()=>{ensureBohmianHasMotion('s7');ensureBohmianHasMotion('f');drawVisible(true);}));$('s7Resample').addEventListener('click',()=>{detectionNonce++;bohmianSeedCache.clear();drawPart7();});$('fResample').addEventListener('click',()=>{detectionNonce++;bohmianSeedCache.clear();drawFull();});$('fReset').addEventListener('click',recommended);let timer=null;window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>drawVisible(true),140);});setupVisibility();drawVisible(true);function loop(now){const dt=now-last;last=now;clockMs+=dt;const fps=isMobile()?30:45;if(!document.hidden&&now-lastDraw>=1000/fps){lastDraw=now;drawVisible(false);}requestAnimationFrame(loop);}requestAnimationFrame(loop);
 })();
 </script>
 <script>
