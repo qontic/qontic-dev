@@ -2,6 +2,11 @@ name: Sync public qontic repository
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/sync-public.yml
 
 jobs:
   sync:
