@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import argparse
+import hashlib
 import json
 import os
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 MARKER = 'data-qsf-analytics="true"'
@@ -28,7 +30,10 @@ def load_json(path):
 
 
 def relative_script(target, site_root):
-    return Path(os.path.relpath(site_root / "shared" / "qsf-analytics.js", target.parent)).as_posix()
+    helper = site_root / "shared" / "qsf-analytics.js"
+    version = hashlib.sha256(helper.read_bytes()).hexdigest()[:12]
+    path = Path(os.path.relpath(helper, target.parent)).as_posix()
+    return f"{path}?v={version}"
 
 
 def inject(target, site_root):
@@ -56,9 +61,10 @@ def validate(target, site_root):
     if len(parser.sources) != 1:
         raise ValueError(f"Expected one standard Analytics helper in {target}; found {len(parser.sources)}")
     source = parser.sources[0]
-    resolved = (target.parent / source).resolve()
+    source_url = urlsplit(source)
+    resolved = (target.parent / source_url.path).resolve()
     expected = (site_root / "shared" / "qsf-analytics.js").resolve()
-    if resolved != expected or not resolved.is_file():
+    if resolved != expected or not resolved.is_file() or not source_url.query.startswith("v="):
         raise ValueError(f"Analytics helper in {target} does not resolve to {expected}: {source}")
 
 
