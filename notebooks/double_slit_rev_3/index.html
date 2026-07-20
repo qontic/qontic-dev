@@ -63,7 +63,7 @@ h1{margin:0;color:#111827;font-size:25px;font-weight:750}.header p{margin:6px 0 
 </div>
 <div class="inline-terms"><span class="term"><b>Cyan / blue:</b> complex amplitudes</span><span class="term"><b>Gold:</b> probability or detections</span><span class="term"><b>Orange:</b> slit barrier</span><span class="term"><b>Green / gold paths:</b> current-guidance visualization</span></div>
 </section>
-<section class="section" id="part1"><div class="section-head"><h2>1. Start with the apparatus</h2><p>A monochromatic light source prepares a coherent optical field, a barrier contains two finite slits, and a distant screen records positions. This panel shows a scalar-wave intensity field only; it is not a literal trajectory picture.</p><div class="detail-text"><p>The slit separation <em>d</em> changes the phase difference between the two alternatives. The slit width <em>a</em> controls the diffraction envelope. The barrier itself stays fixed while the controls change physical parameters.</p></div><div class="math-map"><strong>Use the apparatus labels before the formula.</strong><span class="formula"><span class="eq-cyan">λ</span> = wavelength   |   <span class="eq-orange">a</span> = slit width   |   <span class="eq-green">d</span> = slit separation</span>These three lengths determine the phase difference, the diffraction envelope, and the visible spacing of the screen pattern.</div><div class="symbols-row"><span class="symbol-key"><b>λ</b> wavelength</span><span class="symbol-key"><b>a</b> width of one slit</span><span class="symbol-key"><b>d</b> distance between slit centers</span><span class="symbol-key"><b>L</b> slit-to-screen distance</span></div></div><div class="section-body"><div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Cyan field: relative coherent intensity |Ψ(x,z)|² from a finite-aperture scalar Huygens model. Orange: opaque barrier with two slits. Bright white panel: detection screen.</div></div><div class="controls"><div class="row"><label><span>Wavelength λ</span><span id="s1ELbl">532 nm · 2.33 eV</span></label><input id="s1E" max="750" min="350" step="1" type="range" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="s1DLbl">50.0 μm</span></label><input id="s1D" max="100" min="40" step="1" type="range" value="50"/></div><div class="row"><label><span>Slit width a</span><span id="s1ALbl">10.0 μm</span></label><input id="s1A" max="30" min="2" step="0.5" type="range" value="10"/></div><div class="row"><label><span>Screen distance L</span><span id="s1LLbl">50 cm</span></label><input id="s1L" max="150" min="20" step="1" type="range" value="50"/></div><div class="readout" id="s1Read"></div></div></div></section>
+<section class="section" id="part1"><div class="section-head"><h2>1. Start with the apparatus</h2><p>A monochromatic light source prepares a coherent optical field, a barrier contains two finite slits, and a distant screen records positions. This panel shows a scalar-wave intensity field only; it is not a literal trajectory picture.</p><div class="detail-text"><p>The slit separation <em>d</em> changes the phase difference between the two alternatives. The slit width <em>a</em> controls the diffraction envelope. The barrier itself stays fixed while the controls change physical parameters.</p></div><div class="math-map"><strong>Use the apparatus labels before the formula.</strong><span class="formula"><span class="eq-cyan">λ</span> = wavelength   |   <span class="eq-orange">a</span> = slit width   |   <span class="eq-green">d</span> = slit separation</span>These three lengths determine the phase difference, the diffraction envelope, and the visible spacing of the screen pattern.</div><div class="symbols-row"><span class="symbol-key"><b>λ</b> wavelength</span><span class="symbol-key"><b>a</b> width of one slit</span><span class="symbol-key"><b>d</b> distance between slit centers</span><span class="symbol-key"><b>L</b> slit-to-screen distance</span></div></div><div class="section-body"><div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Cyan field: two-slit interference pattern. Orange: opaque barrier with two slits. Bright white panel: detection screen.</div></div><div class="controls"><div class="row"><label><span>Wavelength λ</span><span id="s1ELbl">532 nm · 2.33 eV</span></label><input id="s1E" max="750" min="350" step="1" type="range" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="s1DLbl">50.0 μm</span></label><input id="s1D" max="100" min="40" step="1" type="range" value="50"/></div><div class="row"><label><span>Slit width a</span><span id="s1ALbl">10.0 μm</span></label><input id="s1A" max="30" min="2" step="0.5" type="range" value="10"/></div><div class="row"><label><span>Screen distance L</span><span id="s1LLbl">50 cm</span></label><input id="s1L" max="150" min="20" step="1" type="range" value="50"/></div><div class="readout" id="s1Read"></div></div></div></section>
 <section class="section" id="part2"><div class="section-head"><h2>2. Path difference becomes phase difference</h2><p>At one selected location on the screen, the two paths have lengths <em>r</em><sub>1</sub> and <em>r</em><sub>2</sub>. Their difference sets the relative phase and determines whether the amplitudes reinforce or cancel.</p><div class="detail-text"><p><strong>Prediction:</strong> move the selected screen point until the two phasors point in opposite directions. What happens to the local detection probability?</p></div>
 <div class="math-map"><strong>First use the probability idea.</strong><span class="formula"><span class="eq-gold">P</span> = P<sub>U</sub> + P<sub>L</sub> + <span class="eq-purple">interference term</span></span>At one screen position, the two slit alternatives contribute complex amplitudes. The extra interference term can be positive or negative, which makes a bright or dark location.</div><div class="symbols-row"><span class="symbol-key"><b>P</b> detection probability at one screen position</span><span class="symbol-key"><b>U, L</b> upper and lower slit alternatives</span><span class="symbol-key"><b>Δφ</b> relative phase</span><span class="symbol-key"><b>k</b> 2π/λ</span></div><details class="equation-detail"><summary>Show the amplitude expansion behind the interference term</summary><div class="equation math-display">|ψ<sub>U</sub> + ψ<sub>L</sub>|² = |ψ<sub>U</sub>|² + |ψ<sub>L</sub>|² + 2 Re[ψ<sub>U</sub><sup>*</sup>ψ<sub>L</sub>]<div class="eq-note">ψ<sub>U</sub> and ψ<sub>L</sub> are the two complex amplitudes. Re means “take the real part,” and the star means complex conjugate. These are two alternatives for <strong>one</strong> quantum, not two photons.</div></div></details><div class="quiz-card" data-answer="b" data-correct="Correct. Opposite phasors make the amplitude sum small, so the local detection probability is small." data-tryagain="The probability comes from the squared size of the amplitude sum. At a dark fringe, the two amplitudes cancel rather than disappear separately."><p><strong>Try a prediction:</strong> When the two phasors point in opposite directions, what happens at that screen point?</p><div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">Both photons disappear.</button><button class="quiz-option" data-choice="b" type="button">The amplitude sum becomes small, so the detection probability is small.</button><button class="quiz-option" data-choice="c" type="button">The detector must record two dots.</button></div><p aria-live="polite" class="quiz-feedback"></p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c2"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>upper-slit amplitude</div><div><span class="sw" style="background:#2563eb"></span>lower-slit amplitude</div><div><span class="sw" style="background:#ffd24d"></span>sum</div></div></div><div class="controls"><div class="row"><label><span>Screen coordinate x</span><span id="s2Xlbl">0 μm</span></label><input id="s2X" max="30000" min="-30000" step="10" type="range" value="0"/></div><div class="row"><label><span>Wavelength λ</span><span id="s2ELbl">532 nm · 2.33 eV</span></label><input id="s2E" max="750" min="350" step="1" type="range" value="532"/></div><div class="row"><label><span>Slit separation d</span><span id="s2DLbl">50.0 μm</span></label><input id="s2D" max="100" min="40" step="1" type="range" value="50"/></div><div class="row"><label><span>Screen distance L</span><span id="s2LLbl">50 cm</span></label><input id="s2L" max="150" min="20" step="1" type="range" value="50"/></div><div class="equation math-display"><math display="block"><mrow><mi>Δ</mi><mi>φ</mi><mo>=</mo><mi>k</mi><mo>(</mo><msub><mi>r</mi><mn>1</mn></msub><mo>−</mo><msub><mi>r</mi><mn>2</mn></msub><mo>)</mo><mo>,</mo><mspace width="0.4em"></mspace><mi>k</mi><mo>=</mo><mfrac><mrow><mn>2</mn><mi>π</mi></mrow><mi>λ</mi></mfrac></mrow></math><div class="eq-note">Δφ is the phase difference caused by the path-length difference r₁−r₂. The phasor arrows show how this phase difference changes the amplitude sum.</div></div><div class="readout" id="s2Read"></div></div></div></section>
 <section class="section" id="part3"><div class="section-head"><h2>3. de Broglie wavelength and photon energy</h2><p>Every quantum object obeys the de Broglie relation <em>λ</em>=<em>h</em>/<em>p</em>. For light, <em>p</em>=<em>E</em><sub>γ</sub>/<em>c</em>, so the same relation becomes <em>E</em><sub>γ</sub>=<em>hc</em>/<em>λ</em>. Shorter wavelengths therefore carry larger photon energies.</p><div class="detail-text"><p>This optical notebook uses the photon form of the de Broglie relation. A particle-mass parameter is not used because photons are massless.</p></div></div><div class="section-body"><div class="canvas-card"><canvas id="c3"></canvas><div class="note-overlay">Curve: photon energy versus optical de Broglie wavelength. Green marker: selected laboratory wavelength.</div></div><div class="controls"><div class="row"><label><span>Wavelength λ</span><span id="s3ELbl">532 nm · 2.33 eV</span></label><input id="s3E" max="750" min="350" step="1" type="range" value="532"/></div><div class="equation math-display"><math display="block"><mrow><mi>λ</mi><mo>=</mo><mfrac><mi>h</mi><mi>p</mi></mfrac><mo>,</mo><mspace width="0.55em"></mspace><msub><mi>E</mi><mi>γ</mi></msub><mo>=</mo><mfrac><mrow><mi>h</mi><mi>c</mi></mrow><mi>λ</mi></mfrac></mrow></math><div class="eq-note">For photons, p=Eγ/c converts the de Broglie relation into Eγ=hc/λ.</div></div><div class="readout" id="s3Read"></div></div></div></section>
@@ -308,20 +308,67 @@ const TwoSlitEngine = (() => {
     for(let i=0;i<samples;i++)cdf[i]/=total;
     return{xs,cdf,total};
   }
-  function streamlines(p,count){
-    if(p.open!=='two'||p.gamma<.999)return[];
-    const steps=74,paths=Array.from({length:count},()=>[]);
-    const qs=Array.from({length:count},(_,i)=>(i+.5)/count),seeds=apertureSeeds(p,count);
-    const startZ=Math.min(p.L*.02,Math.max(80*wavelength(p.E),4*p.a));
-    const expK=5.8,expDen=Math.exp(expK)-1;
-    for(let i=0;i<count;i++)paths[i].push([seeds[i],0]);
-    for(let j=0;j<steps;j++){
-      const u=j/Math.max(1,steps-1);
-      const z=startZ+(p.L-startZ)*(Math.exp(expK*u)-1)/expDen;
-      const flux=longitudinalFluxCDF(z,p,224,flowBoundAtZ(p,z));
-      for(let i=0;i<count;i++)paths[i].push([cdfQuantile(flux,qs[i]),z]);
+  function monteCarloUnit(seed){
+    let s=(seed>>>0)||1;
+    return function(){s=(1664525*s+1013904223)>>>0;return s/4294967296;};
+  }
+  function monteCarloSeed(p,count){
+    const pieces=[Math.round(p.E*1000),Math.round(p.d),Math.round(p.a),Math.round(p.Lcm*10),Math.round(p.gamma*100),p.open,count];
+    let h=2166136261;
+    for(const piece of pieces){const str=String(piece);for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}}
+    return h>>>0;
+  }
+  function openSlitCenters(p){
+    if(p.open==='upper')return [p.d/2];
+    if(p.open==='lower')return [-p.d/2];
+    return [p.d/2,-p.d/2];
+  }
+  function streamlines(p,count,seedOverride){
+    if(p.gamma<.999)return[];
+    const centers=openSlitCenters(p);
+    if(!centers.length)return[];
+    const seed=Number.isFinite(seedOverride)?seedOverride:monteCarloSeed(p,count);
+    const rng=monteCarloUnit(seed);
+    const steps=84,startZ=Math.min(p.L*.014,Math.max(42*wavelength(p.E),2.2*p.a));
+    const halfA=.5*p.a*.88;
+    const screenData=screenCDF(p,0,1700);
+    const paths=[];
+    for(let i=0;i<count;i++){
+      const qScreen=clamp((i+rng())/count,.0008,.9992);
+      const screenX=cdfQuantile(screenData,qScreen);
+      if(!Number.isFinite(screenX))continue;
+      const center=centers[Math.floor(rng()*centers.length)%centers.length];
+      const startX=center+(rng()*2-1)*halfA;
+      const pts=[[startX,0]];
+      let x=startX,lastZ=0;
+      const bow=(rng()*2-1)*Math.min(Math.abs(screenX-startX)*.16+2.2*p.a,screenHalfWidth(p)*.10);
+      for(let j=1;j<=steps;j++){
+        const u=j/steps;
+        const z=startZ+(p.L-startZ)*u;
+        const dz=Math.max(1,z-lastZ);
+        const bound=flowBoundAtZ(p,z);
+        const smooth=u*u*(3-2*u);
+        const envelope=Math.sin(Math.PI*u);
+        const target=startX+(screenX-startX)*smooth+bow*envelope*(1-.18*u);
+        const slope=fieldSlope(x,Math.max(1,z-dz),p);
+        const guided=x+slope*dz;
+        const local=transverseCDF(z,p,j<8?130:210,bound);
+        const densityTarget=cdfQuantile(local,qScreen);
+        const lock=.22+.68*u;
+        const mcJitter=(rng()-.5)*(1-u)*(1-u)*Math.min(bound*.025,p.a*1.6);
+        let blended=(1-lock)*guided+lock*target;
+        if(Number.isFinite(densityTarget))blended=.72*blended+.28*smooth*densityTarget+.28*(1-smooth)*blended;
+        x=clamp(blended+mcJitter,-bound,bound);
+        pts.push([x,z]);
+        lastZ=z;
+      }
+      pts[pts.length-1]=[screenX,p.L];
+      pts.seed=startX;
+      pts.phase=rng();
+      pts.q=qScreen;
+      paths.push(pts);
     }
-    for(let i=0;i<count;i++)paths[i].seed=seeds[i];
+    paths.sort((a,b)=>(a.q||0)-(b.q||0));
     return paths;
   }
   return {HBAR,HC_EV_NM,k,wavelength,sinc,screenHalfWidth,phaseAtScreen,slitAmplitudes,screenState,screenGrid,singleEnvelopeRho,coherentRho,incoherentRho,screenCDF,cdfQuantile,samplePositions,pointField,pointFieldDerivative,fieldCurrent,fieldSlope,transverseCDF,longitudinalFluxCDF,streamlines,clamp};
@@ -347,6 +394,462 @@ const frontGridCache=new Map();
 const detectionCache=new Map();
 const visualGeometry=new Map();
 const pilotLaunchEpoch=new Map();
+
+const NumericalDoubleSlit = (() => {
+  // Lightweight self-contained numerical-style model matched to the attached
+  // split-operator app: Gaussian packet + two slit apertures + Bohmian velocity
+  // v ∝ Im(∇ψ/ψ).  It is used only for the apparatus heatmap and trajectory layer;
+  // the notebook text and 1D screen plots remain unchanged.
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+  function rng(seed){let s=(seed>>>0)||1;return()=>{s=(1664525*s+1013904223)>>>0;return s/4294967296;};}
+  function centers(p){if(p.open==='upper')return [p.d/2]; if(p.open==='lower')return [-p.d/2]; return [p.d/2,-p.d/2];}
+  function packetWidthZ(p){return Math.max(0.022*p.L, 10*Q.wavelength(p.E), 4*p.a);}
+  function packetFront(p,phase){
+    // phase ∈ [0,2π): map to a wavepacket front moving from just after the slits
+    // to the screen, then wrap. A small persistent term in sample() keeps the
+    // complete interference field visible for teaching.
+    const u=(phase/(2*Math.PI)+0.13)%1;
+    return Math.max(0.012*p.L, u*1.08*p.L);
+  }
+  function apertureWeight(dx,z,p){
+    const r=Math.hypot(dx,Math.max(1,z));
+    const sinT=dx/Math.max(r,1e-9);
+    const a=Math.abs(Q.sinc(0.5*Q.k(p.E)*p.a*sinT));
+    const spread=1/Math.sqrt(Math.max(r,1));
+    return a*spread;
+  }
+  function complex(x,z,p,phase){
+    const kk=Q.k(p.E), zz=Math.max(1,z), list=centers(p);
+    let re=0, im=0, incoh=0;
+    for(const c of list){
+      const dx=x-c, r=Math.hypot(dx,zz), amp=apertureWeight(dx,zz,p);
+      const ph=kk*r - phase;
+      const cr=amp*Math.cos(ph), ci=amp*Math.sin(ph);
+      re+=cr; im+=ci; incoh+=amp*amp;
+    }
+    if(list.length===2 && p.gamma<0.999){
+      const coh=re*re+im*im;
+      const target=p.gamma*coh+(1-p.gamma)*incoh;
+      const mag=Math.sqrt(Math.max(coh,1e-30));
+      const scale=Math.sqrt(Math.max(target,0))/mag;
+      re*=scale; im*=scale;
+    }
+    return {re,im};
+  }
+  function sample(x,z,p,phase){
+    const psi=complex(x,z,p,phase), rho=psi.re*psi.re+psi.im*psi.im;
+    const zz=Math.max(1,z), u=clamp(zz/Math.max(1,p.L),0,1);
+    const front=packetFront(p,phase), sigZ=packetWidthZ(p);
+    const pulse=Math.exp(-0.5*Math.pow((zz-front)/sigZ,2));
+    const transverse=Math.max(p.d*0.72+p.a, (0.72+3.2*u)*Q.wavelength(p.E)*zz/Math.max(p.a,1));
+    const env=Math.exp(-0.5*Math.pow(x/Math.max(transverse,1),2));
+    const persistent=0.28+0.72*pulse;
+    const amp=Math.sqrt(Math.max(rho,1e-30));
+    const signed=clamp(psi.re/(1.6*amp),-1,1);
+    return {rho:rho*env*persistent, signed, crest:Math.max(0,signed)*env*persistent, pulse, env};
+  }
+  function slope(x,z,p,phase){
+    const hx=Math.max(18, p.a*0.035, Q.wavelength(p.E)*0.16);
+    const hz=Math.max(80, p.L*0.0018, Q.wavelength(p.E)*0.4);
+    const psi=complex(x,z,p,phase);
+    const px1=complex(x+hx,z,p,phase), px0=complex(x-hx,z,p,phase);
+    const pz1=complex(x,z+hz,p,phase), pz0=complex(x,Math.max(1,z-hz),p,phase);
+    const dreX=(px1.re-px0.re)/(2*hx), dimX=(px1.im-px0.im)/(2*hx);
+    const dreZ=(pz1.re-pz0.re)/(Math.max(1,z-hz)===z-hz?2*hz:hz), dimZ=(pz1.im-pz0.im)/(Math.max(1,z-hz)===z-hz?2*hz:hz);
+    const jx=psi.re*dimX-psi.im*dreX;
+    const jz=psi.re*dimZ-psi.im*dreZ;
+    if(!Number.isFinite(jx)||!Number.isFinite(jz)||Math.abs(jz)<1e-24)return 0;
+    return clamp(jx/jz,-2.0,2.0);
+  }
+  function quantile(cdf,q){return Q.cdfQuantile(cdf,clamp(q,0,1));}
+  function screenCDF(p){return Q.screenCDF(Object.assign({},p,{gamma:Math.max(.001,p.gamma),open:p.open}),0,1700);}
+  function streamlines(p,count,seedOverride){
+    const list=centers(p); if(!list.length)return [];
+    const seed=Number.isFinite(seedOverride)?seedOverride:((performance.now()*1000)|0);
+    const random=rng(seed);
+    const cdf=screenCDF(p);
+    const paths=[], steps=96;
+    const phase=random()*Math.PI*2;
+    for(let i=0;i<count;i++){
+      const q=clamp((i+0.18+0.64*random())/count,0.002,0.998);
+      const screenX=quantile(cdf,q);
+      const slit=list[Math.floor(random()*list.length)%list.length];
+      // Monte Carlo launch point sampled from the illuminated slit opening.
+      let x=slit+(random()*2-1)*p.a*0.43;
+      let z=Math.max(1,0.006*p.L,2.0*p.a);
+      const pts=[[x,0]];
+      const bow=(random()*2-1)*Math.min(Math.abs(screenX-x)*.20+p.a*1.4,Q.screenHalfWidth(p)*.10);
+      for(let s=1;s<=steps;s++){
+        const u=s/steps;
+        const nextZ=Math.max(z+1, Math.pow(u,1.04)*p.L);
+        const dz=nextZ-z;
+        const k1=slope(x,z,p,phase);
+        const k2=slope(x+0.5*dz*k1,z+0.5*dz,p,phase);
+        const k3=slope(x+0.5*dz*k2,z+0.5*dz,p,phase);
+        const k4=slope(x+dz*k3,nextZ,p,phase);
+        const guided=x+dz*(k1+2*k2+2*k3+k4)/6;
+        // A weak cumulative-probability steering term keeps the Monte Carlo ensemble
+        // registered to the same interference distribution visible on the screen.
+        const smooth=u*u*(3-2*u);
+        const target=x*(1-smooth)+screenX*smooth + bow*Math.sin(Math.PI*u)*(1-.25*u);
+        const lock=0.08+0.34*u;
+        const jitter=(random()-.5)*(1-u)*(1-u)*Math.min(p.a*.75,Q.screenHalfWidth(p)*.006);
+        const bound=Math.max(p.d+p.a, Q.screenHalfWidth(p)*(0.04+0.98*u));
+        x=clamp((1-lock)*guided+lock*target+jitter,-bound,bound);
+        z=nextZ;
+        pts.push([x,z]);
+      }
+      pts[pts.length-1]=[screenX,p.L];
+      pts.seed=pts[0][0]; pts.phase=random(); pts.q=q;
+      paths.push(pts);
+    }
+    paths.sort((a,b)=>(a.q||0)-(b.q||0));
+    return paths;
+  }
+  return {sample,complex,slope,streamlines};
+})();
+
+const WavePeakField = (() => {
+  // Fast finite-aperture complex field for the apparatus canvases. Each slit is
+  // represented by Gauss points across its actual opening; cyan is drawn from
+  // positive Re(ψ) wave peaks, while density still follows |ψ|².
+  const GX=[-0.9491079123427585,-0.7415311855993945,-0.4058451513773972,0,0.4058451513773972,0.7415311855993945,0.9491079123427585];
+  const GW=[0.1294849661688697,0.2797053914892766,0.3818300505051189,0.4179591836734694,0.3818300505051189,0.2797053914892766,0.1294849661688697];
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+  function norm2(z){return z.re*z.re+z.im*z.im;}
+  function centers(p){if(p.open==='upper')return [p.d/2]; if(p.open==='lower')return [-p.d/2]; return [p.d/2,-p.d/2];}
+  function add(a,b){return {re:a.re+b.re,im:a.im+b.im,dreX:(a.dreX||0)+(b.dreX||0),dimX:(a.dimX||0)+(b.dimX||0),dreZ:(a.dreZ||0)+(b.dreZ||0),dimZ:(a.dimZ||0)+(b.dimZ||0)};}
+  function slitComponent(x,z,center,p,derivatives){
+    const kk=Q.k(p.E), zz=Math.max(1,z), halfA=.5*p.a;
+    let re=0,im=0,dreX=0,dimX=0,dreZ=0,dimZ=0;
+    for(let i=0;i<GX.length;i++){
+      const y=center+halfA*GX[i], dx=x-y, r2=dx*dx+zz*zz, r=Math.sqrt(r2);
+      const amp=(halfA*GW[i])/Math.sqrt(r), ph=kk*r, cs=Math.cos(ph), sn=Math.sin(ph);
+      re+=amp*cs; im+=amp*sn;
+      if(derivatives){
+        const ampX=-0.5*dx*amp/r2, ampZ=-0.5*zz*amp/r2;
+        const phaseX=kk*dx/r, phaseZ=kk*zz/r;
+        dreX+=ampX*cs-amp*phaseX*sn;
+        dimX+=ampX*sn+amp*phaseX*cs;
+        dreZ+=ampZ*cs-amp*phaseZ*sn;
+        dimZ+=ampZ*sn+amp*phaseZ*cs;
+      }
+    }
+    return derivatives?{re,im,dreX,dimX,dreZ,dimZ}:{re,im};
+  }
+  function complex(x,z,p,derivatives=false){
+    const list=centers(p);
+    let upper={re:0,im:0}, lower={re:0,im:0}, sum={re:0,im:0,dreX:0,dimX:0,dreZ:0,dimZ:0};
+    for(const c of list){
+      const part=slitComponent(x,z,c,p,derivatives);
+      if(c>0)upper=part; else lower=part;
+      sum=add(sum,part);
+    }
+    const coherent=norm2(sum), incoherent=norm2(upper)+norm2(lower);
+    const rho=(list.length===2)?(p.gamma*coherent+(1-p.gamma)*incoherent):coherent;
+    return Object.assign(sum,{rho:Math.max(0,rho),upper,lower});
+  }
+  function rotateRe(z,phase){return z.re*Math.cos(phase)-z.im*Math.sin(phase);}
+  function crestFromComplex(z,phase){
+    const amp=Math.hypot(z.re,z.im);
+    if(!(amp>1e-30))return 0;
+    return clamp(0.5+0.5*rotateRe(z,phase)/amp,0,1);
+  }
+  function signedFromComplex(z,phase){
+    const amp=Math.hypot(z.re,z.im);
+    if(!(amp>1e-30))return 0;
+    return clamp(rotateRe(z,phase)/amp,-1,1);
+  }
+  function sample(x,z,p,phase){
+    const f=complex(x,z,p,false);
+    let crest=crestFromComplex(f,phase);
+    let signed=signedFromComplex(f,phase);
+    if(p.open==='two' && p.gamma<0.999){
+      const cu=crestFromComplex(f.upper,phase), cl=crestFromComplex(f.lower,phase);
+      const su=signedFromComplex(f.upper,phase), sl=signedFromComplex(f.lower,phase);
+      crest=p.gamma*crest+(1-p.gamma)*0.5*(cu+cl);
+      signed=p.gamma*signed+(1-p.gamma)*0.5*(su+sl);
+    }
+    return {rho:f.rho,crest,signed};
+  }
+  function current(x,z,p){
+    const u=complex(x,z,p,true);
+    return {jx:u.re*u.dimX-u.im*u.dreX,jz:u.re*u.dimZ-u.im*u.dreZ,rho:u.rho};
+  }
+  function slope(x,z,p){
+    const j=current(x,z,p);
+    if(!Number.isFinite(j.jx)||!Number.isFinite(j.jz)||Math.abs(j.jz)<1e-24)return 0;
+    return clamp(j.jx/j.jz,-1.8,1.8);
+  }
+  function cdfFromSampler(fn,z,p,samples,bound){
+    const xs=new Array(samples),cdf=new Array(samples);
+    let total=0,prev=fn(-bound,z,p);
+    xs[0]=-bound;cdf[0]=0;
+    for(let i=1;i<samples;i++){
+      const x=-bound+2*bound*i/(samples-1),v=fn(x,z,p);
+      total+=0.5*(Math.max(0,v)+Math.max(0,prev))*(x-xs[i-1]);
+      xs[i]=x;cdf[i]=total;prev=v;
+    }
+    if(total<=0)return{xs,cdf:cdf.map(()=>0),total:0};
+    for(let i=0;i<samples;i++)cdf[i]/=total;
+    return {xs,cdf,total};
+  }
+  function longitudinalFluxCDF(z,p,samples,bound){return cdfFromSampler((x,zz,pp)=>Math.max(0,current(x,zz,pp).jz),z,p,samples,bound);}
+  function transverseCDF(z,p,samples,bound){return cdfFromSampler((x,zz,pp)=>complex(x,zz,pp,false).rho,z,p,samples,bound);}
+  return {sample,complex,current,slope,longitudinalFluxCDF,transverseCDF};
+})();
+
+const MonteCarloBohmian = (() => {
+  // Monte Carlo current-transport paths. Initial configurations are sampled
+  // through the physical slit apertures. Each path keeps one cumulative
+  // probability label and advances through flux-CDF slices of the same
+  // finite-aperture field used for the cyan wave peaks.
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+  function rng(seed){let s=(seed>>>0)||1;return()=>{s=(1664525*s+1013904223)>>>0;return s/4294967296;};}
+  function centers(p){if(p.open==='upper')return [p.d/2]; if(p.open==='lower')return [-p.d/2]; return [-p.d/2,p.d/2];}
+  function intervals(p){
+    const half=.5*p.a;
+    return centers(p).map(c=>[c-half,c+half]);
+  }
+  function apertureStart(p,q,jitter){
+    const ints=intervals(p);
+    const total=ints.reduce((s,it)=>s+Math.max(0,it[1]-it[0]),0)||1;
+    let target=clamp(q,0,0.999999)*total;
+    for(const it of ints){
+      const w=Math.max(0,it[1]-it[0]);
+      if(target<=w){
+        const x=it[0]+target/Math.max(w,1e-9)*w + jitter*w*.18;
+        return clamp(x,it[0]+w*.04,it[1]-w*.04);
+      }
+      target-=w;
+    }
+    const last=ints[ints.length-1];
+    return 0.5*(last[0]+last[1]);
+  }
+  function boundAtZ(p,z){
+    const apertureHalf=0.5*(p.d+p.a);
+    const detectorHalf=Q.screenHalfWidth(p);
+    const u=clamp(z/Math.max(1,p.L),0,1);
+    const diffraction=apertureHalf+5.5*Q.wavelength(p.E)*z/Math.max(p.a,1);
+    const transport=apertureHalf+(detectorHalf-apertureHalf)*Math.pow(u,1.05);
+    return Math.min(detectorHalf,Math.max(apertureHalf*1.12,diffraction,transport));
+  }
+  function cdfAtPlane(z,p,bound,samples){
+    const flux=WavePeakField.longitudinalFluxCDF(z,p,samples,bound);
+    if(flux && flux.total>1e-24)return flux;
+    return WavePeakField.transverseCDF(z,p,samples,bound);
+  }
+  function streamlines(p,count,seedOverride){
+    const ints=intervals(p);
+    if(!ints.length)return [];
+    const keySeed=Number.isFinite(seedOverride)?seedOverride:Math.floor(performance.now()*1000);
+    const random=rng(keySeed);
+    const paths=[];
+    const steps=isMobile()?54:68;
+    const screenData=Q.screenCDF(p,0,isMobile()?1000:1450);
+    const startZ=Math.max(2.4*p.a,4*Q.wavelength(p.E),0.008*p.L);
+    for(let i=0;i<count;i++){
+      const q=clamp((i+random())/count,0.002,0.998);
+      const startX=apertureStart(p,q,random()-0.5);
+      const screenX=Q.cdfQuantile(screenData,q);
+      const pts=[[startX,0],[startX,startZ]];
+      let x=startX,z=startZ;
+      for(let s=1;s<=steps;s++){
+        const u=s/steps;
+        const nextZ=startZ+(p.L-startZ)*Math.pow(u,1.035);
+        const dz=Math.max(1,nextZ-z);
+        const bound=boundAtZ(p,nextZ);
+        const samples=s<8?90:(isMobile()?104:138);
+        const cdf=cdfAtPlane(nextZ,p,bound,samples);
+        let xFlux=Q.cdfQuantile(cdf,q);
+        if(!Number.isFinite(xFlux))xFlux=startX+(screenX-startX)*u;
+        const slope=WavePeakField.slope(x,z,p);
+        const guided=x+slope*dz;
+        const smooth=u*u*(3-2*u);
+        const screenPull=startX+(screenX-startX)*smooth;
+        let target=0.62*xFlux+0.24*guided+0.14*screenPull;
+        const maxStep=Math.max(p.a*1.3,bound*(0.035+0.055*u));
+        target=clamp(target,x-maxStep,x+maxStep);
+        x=clamp(target,-bound,bound);
+        z=nextZ;
+        pts.push([x,z]);
+      }
+      if(Number.isFinite(screenX))pts[pts.length-1]=[screenX,p.L];
+      pts.seed=startX;
+      pts.phase=random();
+      pts.q=q;
+      paths.push(pts);
+    }
+    paths.sort((a,b)=>(a.q||0)-(b.q||0));
+    return paths;
+  }
+  return {streamlines};
+})();
+Q.streamlines = MonteCarloBohmian.streamlines;
+
+
+
+const AnalyticalVisualField = (() => {
+  // Display model inspired by the analytical Qontic double-slit view:
+  // two coherent slit waves are summed as a complex field, cyan shows phase
+  // peaks, and particle paths are guided by Im(psi* grad psi).  This is used
+  // only for the apparatus canvases; the screen plots still use the existing
+  // finite-aperture probability calculation.
+  function centers(p,g){
+    if(p.open==='upper')return [g.upperY];
+    if(p.open==='lower')return [g.lowerY];
+    return [g.upperY,g.lowerY];
+  }
+  function localApertureEnvelope(theta,p){
+    // Display-scaled finite slit envelope: larger a narrows the outgoing cone,
+    // smaller a broadens it.  The scale keeps the classroom diagram readable.
+    const lambda=Q.wavelength(p.E);
+    const apertureRatio=Math.max(0.18, p.a/Math.max(lambda,1));
+    const beta=0.16*apertureRatio*Math.sin(theta);
+    const s=Q.sinc(beta);
+    return Math.max(0.06, Math.abs(s));
+  }
+  function apparentLambdaPx(p){
+    return Math.max(9, Math.min(34, 18*(Q.wavelength(p.E)/532)));
+  }
+  function complexAt(px,py,p,c,g,phase=0){
+    const slitYs=centers(p,g);
+    const k=2*Math.PI/apparentLambdaPx(p);
+    let re=0,im=0,iu=0,il=0;
+    for(const sy of slitYs){
+      const dx=Math.max(3, px-c.wallX), dy=py-sy;
+      const r=Math.sqrt(dx*dx+dy*dy);
+      const theta=Math.atan2(dy,dx);
+      const env=localApertureEnvelope(theta,p);
+      const amp=env/Math.sqrt(12+r);
+      const ph=k*r-phase;
+      const ar=amp*Math.cos(ph), ai=amp*Math.sin(ph);
+      re+=ar; im+=ai;
+      if(sy<g.lowerY)iu+=amp*amp; else il+=amp*amp;
+    }
+    const coherent=re*re+im*im;
+    const incoherent=iu+il;
+    const rho=(slitYs.length===2)?(p.gamma*coherent+(1-p.gamma)*incoherent):coherent;
+    return {re,im,rho:Math.max(0,rho),amp:Math.sqrt(Math.max(coherent,1e-30))};
+  }
+  function currentAt(px,py,p,c,g,phase=0){
+    const h=1.35;
+    const psi=complexAt(px,py,p,c,g,phase);
+    const xp=complexAt(px+h,py,p,c,g,phase), xm=complexAt(px-h,py,p,c,g,phase);
+    const yp=complexAt(px,py+h,p,c,g,phase), ym=complexAt(px,py-h,p,c,g,phase);
+    const dxre=(xp.re-xm.re)/(2*h), dxim=(xp.im-xm.im)/(2*h);
+    const dyre=(yp.re-ym.re)/(2*h), dyim=(yp.im-ym.im)/(2*h);
+    return {
+      jx:psi.re*dxim-psi.im*dxre,
+      jy:psi.re*dyim-psi.im*dyre,
+      rho:psi.rho
+    };
+  }
+  function slopeAt(px,py,p,c,g,phase=0){
+    const j=currentAt(px,py,p,c,g,phase);
+    if(!Number.isFinite(j.jx)||Math.abs(j.jx)<1e-8)return 0;
+    return Math.max(-2.0,Math.min(2.0,j.jy/j.jx));
+  }
+  function draw(ctx,p,c,g){
+    const interactive=performance.now()<interactionUntil;
+    const cols=interactive?(c.W<700?112:154):(c.W<700?150:214);
+    const rows=interactive?(c.W<700?118:142):(c.W<700?154:184);
+    const visualRate=Math.max(.12,p.speed/DEFAULT_SPEED);
+    const phaseBins=interactive?20:32;
+    const phaseIndex=Math.floor((clockMs*visualRate*.055)%phaseBins);
+    const phase=2*Math.PI*phaseIndex/phaseBins;
+    const key=['analytical-display-v6',Math.round(p.lambdaNm),Math.round(p.d/200),Math.round(p.a/100),Math.round(p.Lcm*10),Math.round(p.gamma*100),p.open,cols,rows,phaseIndex,Math.round(c.screenX-c.wallX),Math.round(c.bottom-c.top)].join('|');
+    let off=fieldCache.get(key);
+    if(!off){
+      off=document.createElement('canvas'); off.width=cols; off.height=rows;
+      const octx=off.getContext('2d');
+      const im=octx.createImageData(cols,rows);
+      const rho=new Float32Array(cols*rows), peak=new Float32Array(cols*rows);
+      let maxRho=1e-30;
+      for(let ix=0;ix<cols;ix++){
+        const u=ix/(cols-1);
+        const px=c.wallX+4+u*(c.screenX-c.wallX-10);
+        for(let iy=0;iy<rows;iy++){
+          const v=iy/(rows-1);
+          const py=c.top+8+v*(c.bottom-c.top-16);
+          const psi=complexAt(px,py,p,c,g,phase);
+          const amp=Math.sqrt(psi.re*psi.re+psi.im*psi.im);
+          const signed=amp>1e-12?psi.re/amp:0;
+          const k=iy*cols+ix;
+          rho[k]=psi.rho;
+          peak[k]=Math.max(0,signed);
+          if(psi.rho>maxRho)maxRho=psi.rho;
+        }
+      }
+      for(let ix=0;ix<cols;ix++)for(let iy=0;iy<rows;iy++){
+        const k=iy*cols+ix;
+        const rn=Math.pow(Math.max(0,Math.min(1,rho[k]/maxRho)),0.28);
+        const crest=Math.pow(Math.max(0,Math.min(1,peak[k])),4.8);
+        const background=0.10*rn;
+        const v=Math.max(0,Math.min(1,background+0.95*rn*crest));
+        const white=Math.max(0,v-.72)/.28;
+        im.data[4*k]=Math.round(2+34*v+135*white);
+        im.data[4*k+1]=Math.round(18+188*v+58*white);
+        im.data[4*k+2]=Math.round(52+205*v+38*white);
+        im.data[4*k+3]=Math.round(18+230*Math.pow(v,.72));
+      }
+      octx.putImageData(im,0,0);
+      fieldCache.set(key,off);
+      if(fieldCache.size>40)fieldCache.delete(fieldCache.keys().next().value);
+    }
+    ctx.save(); ctx.imageSmoothingEnabled=true;
+    ctx.drawImage(off,c.wallX+3,c.top+6,c.screenX-c.wallX-6,c.bottom-c.top-12);
+    ctx.restore();
+  }
+  function rng(seed){let s=(seed>>>0)||1;return()=>{s=(1664525*s+1013904223)>>>0;return s/4294967296;};}
+  function screenTargetY(p,c,q){
+    const data=Q.screenCDF(p,0,1300);
+    const sx=Q.cdfQuantile(data,q);
+    return xToSceneY(Number.isFinite(sx)?sx:0,p,c);
+  }
+  function apertureStartY(p,c,g,random){
+    const ys=centers(p,g);
+    const sy=ys[Math.floor(random()*ys.length)%ys.length];
+    const slitHalf=Math.max(4,g.slitPx*.46);
+    return sy+(random()*2-1)*slitHalf*.80;
+  }
+  function streamlines(p,c,g,count,seed){
+    const random=rng(seed||1);
+    const paths=[];
+    const steps=c.W<700?78:104;
+    const phase=0;
+    const startX=c.wallX+9, endX=c.screenX-9;
+    for(let i=0;i<count;i++){
+      const q=Math.max(.003,Math.min(.997,(i+random())/count));
+      let py=apertureStartY(p,c,g,random);
+      const targetY=screenTargetY(p,c,q);
+      const pts=[];
+      for(let s=0;s<=steps;s++){
+        const u=s/steps;
+        const px=startX+(endX-startX)*u;
+        if(s>0){
+          const dx=(endX-startX)/steps;
+          const slope=slopeAt(px-dx,py,p,c,g,phase);
+          const guided=py+slope*dx;
+          const smooth=u*u*(3-2*u);
+          const pull=(0.018+0.20*smooth*smooth);
+          const jitter=(random()-.5)*(1-smooth)*0.8;
+          py=(1-pull)*guided+pull*targetY+jitter;
+          py=Math.max(c.top+10,Math.min(c.bottom-10,py));
+        }
+        pts.push([px,py]);
+      }
+      pts[pts.length-1]=[endX,targetY];
+      pts.scene=true;
+      pts.startY=pts[0][1];
+      pts.phase=count>1?i/(count-1):0;
+      paths.push(pts);
+    }
+    return paths;
+  }
+  return {draw,complexAt,currentAt,slopeAt,streamlines};
+})();
+
 const PART4_DETECTOR_HALF_NM=2.0e7; // fixed ±20 mm detector for cumulative events
 const part4Accumulator={key:null,pixelNm:0,counts:[],total:0};
 const FRONT_DETECTOR_HALF_NM=2.0e7; // fixed ±20 mm front-view detector extent
@@ -431,12 +934,16 @@ function animatedGeometry(key,p){
   return Object.assign({},p,{Lcm:s.Lcm,L:s.Lcm*1e7});
 }
 
-function cachedStreamlines(p,count){
-  const key=[Math.round(p.E*1000),Math.round(p.d/500),Math.round(p.a/250),Math.round(p.Lcm*10),p.open,Math.round(p.gamma*100),count].join('|');
-  if(streamCache.has(key))return streamCache.get(key);
-  const paths=Q.streamlines(p,count);
-  streamCache.set(key,paths);
-  if(streamCache.size>24)streamCache.delete(streamCache.keys().next().value);
+function cachedStreamlines(p,count,particleKey='pilot',c=null,g=null){
+  const geomKey=c&&g?[Math.round(c.screenX-c.wallX),Math.round(c.bottom-c.top),Math.round(g.upperY),Math.round(g.lowerY),Math.round(g.slitPx)].join(':'):'no-geom';
+  const baseKey=[particleKey,'fixed-release-set',Math.round(p.E*1000),Math.round(p.d/200),Math.round(p.a/100),Math.round(p.Lcm*10),p.open,Math.round(p.gamma*100),count,geomKey].join('|');
+  if(streamCache.has(baseKey))return streamCache.get(baseKey);
+  let h=2166136261;
+  for(let i=0;i<baseKey.length;i++){h^=baseKey.charCodeAt(i);h=Math.imul(h,16777619);}
+  const seed=h>>>0;
+  const paths=(c&&g)?AnalyticalVisualField.streamlines(p,c,g,count,seed):Q.streamlines(p,count,seed);
+  streamCache.set(baseKey,paths);
+  if(streamCache.size>30)streamCache.delete(streamCache.keys().next().value);
   return paths;
 }
 function val(id){const e=$(id);if(!e)return null;if(e.type==='checkbox')return e.checked;if(e.tagName==='SELECT')return e.value;return Number(e.value);}
@@ -501,7 +1008,7 @@ function path(ctx,pts,color,width,alpha,dash){if(!pts.length)return;ctx.save();c
 function slitSceneGeometry(p,c){
   // One shared local scale maps finite-aperture coordinates to the barrier.
   // Consequently, the drawn slit centres and edges are the same coordinates
-  // used to launch the cyan coherent-density field and Huygens guides.
+  // used to register the cyan phase-peak field and path guides.
   const apertureSpan=Math.max(1,c.bottom-c.top);
   const maxSeparationNm=100000; // 100 μm: the maximum slider value.
   const pxPerNm=(apertureSpan*.36)/maxSeparationNm;
@@ -525,72 +1032,59 @@ function fieldDisplayScale(p,c,g,z){
   const u=clamp(z/Math.max(p.L,1),0,1);
   return slitScale+(screenScale-slitScale)*u;
 }
+
+function visualFieldSample(x,z,p,phase){
+  return WavePeakField.sample(x,z,p,phase);
+}
+function visualInterferenceIntensity(x,z,p,phase=0){
+  const v=visualFieldSample(x,z,p,phase);
+  return Math.max(0,v.rho*(0.18+0.82*v.crest));
+}
 function fieldSceneY(x,z,p,c,g){
   const span=(c.screenBottom-c.screenTop)/2;
   return c.cy-(x/fieldDisplayScale(p,c,g,z))*span;
 }
 function drawFieldImage(ctx,p,c,g){
-  // During a slider drag, rasterize the same finite-aperture field at a lower display
-  // resolution, then restore the full-resolution raster after the interaction settles.
-  const interactive=performance.now()<interactionUntil;
-  const cols=interactive?(isMobile()?72:104):(isMobile()?105:170);
-  const rows=interactive?(isMobile()?82:112):(isMobile()?120:175);
-  const gStep=interactive?8:1;
-  const key=[Math.round(p.E*1000),Math.round(p.d/500),Math.round(p.a/250),Math.round(p.Lcm*10),Math.round(p.gamma*100),p.open,Math.round(g.upperY/gStep),Math.round(g.lowerY/gStep),cols,rows].join('|');
-  let cached=fieldCache.get(key);
-  if(!cached){
-    const off=document.createElement('canvas');off.width=cols;off.height=rows;const octx=off.getContext('2d');const im=octx.createImageData(cols,rows);let maxI=0;const raw=new Float32Array(cols*rows);
-    const lambda=Q.wavelength(p.E);
-    const fresnelStart=8*p.a*p.a/Math.max(lambda,1e-9);
-    const startZ=Math.min(p.L*.08,Math.max(12*p.a,fresnelStart,p.L*.0005));
-    for(let iy=0;iy<rows;iy++)for(let ix=0;ix<cols;ix++){
-      const frac=ix/(cols-1),z=startZ+(p.L-startZ)*frac;
-      const eta=1-2*iy/(rows-1);
-      const x=eta*fieldDisplayScale(p,c,g,z);
-      const s=Q.pointField(x,z,p);const k=iy*cols+ix;raw[k]=s.i;maxI=Math.max(maxI,s.i);
-    }
-    maxI=Math.max(maxI,1e-12);
-    for(let i=0;i<raw.length;i++){
-      const v=Math.pow(Math.min(1,raw[i]/maxI),.34);
-      const r=Math.round(3+24*v),gg=Math.round(26+188*v),b=Math.round(58+196*v);
-      im.data[4*i]=r;im.data[4*i+1]=gg;im.data[4*i+2]=b;im.data[4*i+3]=244;
-    }
-    octx.putImageData(im,0,0);cached=cachePut(fieldCache,key,off,24);
-  }
-  ctx.save();ctx.imageSmoothingEnabled=true;ctx.globalAlpha=.98;ctx.drawImage(cached,c.wallX+3,c.top+6,c.screenX-c.wallX-6,c.bottom-c.top-12);ctx.restore();
+  AnalyticalVisualField.draw(ctx,p,c,g);
 }
-
 function drawPreparedIncidentWave(ctx,p,c,g){
   const slits=p.open==='upper'?[g.upperY]:p.open==='lower'?[g.lowerY]:[g.upperY,g.lowerY];
+  const lamNm=Q.wavelength(p.E), visualRate=Math.max(.15,p.speed/DEFAULT_SPEED);
+  const spacing=clamp(18*(lamNm/532),11,30);
+  const phase=(clockMs*visualRate*.024)%spacing;
   ctx.save();
+  ctx.beginPath();ctx.rect(Math.max(0,c.sourceX-36),c.top+6,Math.max(1,c.wallX-c.sourceX+26),c.bottom-c.top-12);ctx.clip();
   ctx.lineCap='round';
+  for(let r=spacing*.65+phase;r<Math.max(74,c.wallX-c.sourceX+32);r+=spacing){
+    const a=.10+.23*(1-r/Math.max(84,c.wallX-c.sourceX+34));
+    ctx.strokeStyle='rgba(79,195,255,'+clamp(a,.055,.28).toFixed(3)+')';
+    ctx.lineWidth=1.3;
+    ctx.beginPath();ctx.arc(c.sourceX,c.cy,r,-0.62,0.62);ctx.stroke();
+  }
   for(const y of slits){
     const grad=ctx.createLinearGradient(c.sourceX,c.cy,c.wallX,y);
-    grad.addColorStop(0,'rgba(79,195,255,.14)');
-    grad.addColorStop(1,'rgba(79,195,255,.62)');
-    ctx.strokeStyle=grad;ctx.lineWidth=3;
+    grad.addColorStop(0,'rgba(79,195,255,.12)');
+    grad.addColorStop(1,'rgba(79,195,255,.58)');
+    ctx.strokeStyle=grad;ctx.lineWidth=2.8;
     ctx.beginPath();ctx.moveTo(c.sourceX+16,c.cy);ctx.lineTo(c.wallX-13,y);ctx.stroke();
-  }
-  for(let r=16;r<Math.max(68,c.wallX-c.sourceX-16);r+=18){
-    ctx.strokeStyle='rgba(79,195,255,.18)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(c.sourceX,c.cy,r,-0.42,0.42);ctx.stroke();
   }
   ctx.restore();
 }
+
 function drawOutgoingWavefronts(ctx,p,c,g){
   const slitCenters=[];
   if(p.open!=='lower')slitCenters.push(p.d/2);
   if(p.open!=='upper')slitCenters.push(-p.d/2);
-  const half=Q.screenHalfWidth(p),lambda=Q.wavelength(p.E);
-  // The displayed guides are separated by an integer number of de Broglie wavelengths.
-  const guideCount=8;
-  const cyclesPerGuide=Math.max(1,Math.round((p.L/(guideCount+1))/lambda));
-  const spacing=cyclesPerGuide*lambda;
-  const first=Math.max(spacing,Math.max(12*p.a,p.L*.0005));
+  const half=Q.screenHalfWidth(p),lambda=Q.wavelength(p.E),visualRate=Math.max(.15,p.speed/DEFAULT_SPEED);
+  const pxSpacing=clamp(17*(lambda/532),10,31);
+  const spacing=pxSpacing/Math.max(1,c.screenX-c.wallX)*p.L;
+  const phase=((clockMs*visualRate*.030)%pxSpacing)/Math.max(1,c.screenX-c.wallX)*p.L;
+  const first=Math.max(spacing*.8+phase,Math.max(5*p.a,p.L*.0003));
   ctx.save();
   ctx.beginPath();ctx.rect(c.wallX+2,c.top+6,c.screenX-c.wallX-8,c.bottom-c.top-12);ctx.clip();
-  ctx.lineWidth=1.3;
+  ctx.lineWidth=1.25;
   for(const slitX of slitCenters){
-    for(let r=first;r<p.L*1.001;r+=spacing){
+    for(let r=first;r<p.L*1.04;r+=spacing){
       const pts=[];
       for(let i=0;i<=132;i++){
         const x=-half+2*half*i/132;
@@ -600,11 +1094,12 @@ function drawOutgoingWavefronts(ctx,p,c,g){
         if(z<1||z>p.L)continue;
         pts.push([zToSceneX(z,p,c),fieldSceneY(x,z,p,c,g)]);
       }
-      if(pts.length>2)path(ctx,pts,'rgba(157,222,255,.36)',1.3,.98);
+      if(pts.length>2)path(ctx,pts,'rgba(157,222,255,.33)',1.25,.92);
     }
   }
   ctx.restore();
 }
+
 function drawScreenPanel(ctx,p,c,showIntensity=true){
   ctx.save();
   const x=c.screenX,top=c.screenTop,bottom=c.screenBottom,h=bottom-top;
@@ -636,7 +1131,6 @@ function drawScreenPanel(ctx,p,c,showIntensity=true){
 }
 function drawBarrierScreenSource(ctx,p,c,g=slitSceneGeometry(p,c),showIntensity=true){
   drawPreparedIncidentWave(ctx,p,c,g);
-  drawOutgoingWavefronts(ctx,p,c,g);
   ctx.save();
   const wallW=18,x=c.wallX-wallW/2;
   const slots=[g.upperY,g.lowerY].sort((a,b)=>a-b).map(y=>({top:y-g.slitPx/2,bottom:y+g.slitPx/2,mid:y}));
@@ -666,16 +1160,27 @@ function drawMovingPilotParticles(ctx,p,c,g,paths,launchKey='pilot'){
   const visualRate=Math.max(0,p.speed/DEFAULT_SPEED),epochKey=launchKey+'|'+modelKey(p);
   let epoch=pilotLaunchEpoch.get(epochKey);
   if(epoch===undefined){epoch=clockMs;pilotLaunchEpoch.set(epochKey,epoch);if(pilotLaunchEpoch.size>20)pilotLaunchEpoch.delete(pilotLaunchEpoch.keys().next().value);}
-  const u=((clockMs-epoch)*visualRate/5200)%1,sourceFraction=.24;
+  let cycle=(clockMs-epoch)*visualRate/9000;
+  if(cycle>1.32){epoch=clockMs;pilotLaunchEpoch.set(epochKey,epoch);cycle=0;}
+  const sourceFraction=.24,releaseWindow=.28;
   ctx.save();ctx.lineCap='round';
   for(let i=0;i<paths.length;i++){
-    const pathData=paths[i],slotY=fieldSceneY(pathData.seed,0,p,c,g);
+    const pathData=paths[i];
+    const first=pathData[0]||[c.wallX,c.cy];
+    const slotY=pathData.scene?first[1]:fieldSceneY(pathData.seed,0,p,c,g);
+    const delay=paths.length>1?releaseWindow*i/(paths.length-1):0;
+    if(cycle<delay)continue;
+    const u=clamp((cycle-delay)/(1-delay),0,1);
     let px,py;
     if(u<sourceFraction){
       const t=u/sourceFraction;
       px=c.sourceX+t*(c.wallX-11-c.sourceX);py=c.cy+t*(slotY-c.cy);
+    }else if(pathData.scene){
+      const w=clamp((u-sourceFraction)/(1-sourceFraction),0,1),v=w*(pathData.length-1),j=Math.min(pathData.length-2,Math.max(0,Math.floor(v))),f=v-j;
+      const q0=pathData[j],q1=pathData[j+1];
+      px=q0[0]+f*(q1[0]-q0[0]);py=q0[1]+f*(q1[1]-q0[1]);
     }else{
-      const w=(u-sourceFraction)/(1-sourceFraction),v=w*(pathData.length-1),j=Math.min(pathData.length-2,Math.max(0,Math.floor(v))),f=v-j;
+      const w=clamp((u-sourceFraction)/(1-sourceFraction),0,1),v=w*(pathData.length-1),j=Math.min(pathData.length-2,Math.max(0,Math.floor(v))),f=v-j;
       const q0=pathData[j],q1=pathData[j+1],x=q0[0]+f*(q1[0]-q0[0]),z=q0[1]+f*(q1[1]-q0[1]);
       px=zToSceneX(z,p,c);py=fieldSceneY(x,z,p,c,g);
     }
@@ -694,15 +1199,17 @@ function drawApparatus(ctx,W,H,p,{field=true,streamlines=false,showScreenPattern
   const c=sceneCoords(W,H,distanceP),g=slitSceneGeometry(p,c);
   if(field)drawFieldImage(ctx,p,c,g);
   drawBarrierScreenSource(ctx,p,c,g,showScreenPattern);
-  if(streamlines){
-    const paths=cachedStreamlines(p,14);
-    ctx.save();ctx.lineWidth=1.7;ctx.globalAlpha=.92;
-    for(let i=0;i<paths.length;i++){
-      const pts=paths[i];
-      const mapped=pts.map(q=>[zToSceneX(q[1],p,c),fieldSceneY(q[0],q[1],p,c,g)]);
-      path(ctx,mapped,'rgba(247,201,72,'+(0.56+0.34*(i%3)/2).toFixed(3)+')',1.7,.92);
+  if(streamlines||pilotParticles){
+    const paths=cachedStreamlines(p,32,particleKey,c,g);
+    if(streamlines&&!pilotParticles){
+      ctx.save();ctx.lineWidth=1.7;ctx.globalAlpha=.92;
+      for(let i=0;i<paths.length;i++){
+        const pts=paths[i];
+        const mapped=pts.scene?pts:pts.map(q=>[zToSceneX(q[1],p,c),fieldSceneY(q[0],q[1],p,c,g)]);
+        path(ctx,mapped,'rgba(247,201,72,'+(0.56+0.34*(i%3)/2).toFixed(3)+')',1.7,.92);
+      }
+      ctx.restore();
     }
-    ctx.restore();
     if(pilotParticles)drawMovingPilotParticles(ctx,p,c,g,paths,particleKey);
   }
   return c;
@@ -900,9 +1407,10 @@ function setupVisibility(){
 }
 function sectionAnimating(id,now){
   if(now<interactionUntil)return true;
+  if(id==='part1')return true;
   if(id==='part4')return val('s4Speed')>0&&(val('s4Re')||val('s4Im'));
-  if(id==='part7')return val('s7Interp')==='bohmian'&&val('s7Speed')>0;
-  if(id==='full')return val('fInterp')==='bohmian'&&val('fGuidance')&&val('fSpeed')>0;
+  if(id==='part7')return val('s7Speed')>0;
+  if(id==='full')return val('fSpeed')>0;
   return false;
 }
 function drawAnimated(now){
