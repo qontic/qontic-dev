@@ -127,6 +127,7 @@
         if (!module) return "";
         const moduleResources = (module.resources || []).map(id => resources.get(id)).filter(Boolean);
         const count = moduleResources.length;
+        if (count === 0) return "";
         const href = count === 1 ? moduleResources[0].url : `modules/${encodeURIComponent(module.id)}/`;
         const search = [module.title, module.summary, ...(module.topics || []), ...moduleResources.map(r => r.title)].join(" ").toLowerCase();
         return `<a class="module-row catalog-row" href="${esc(href)}" data-search="${esc(search)}">
@@ -164,6 +165,13 @@
     });
     document.getElementById("search").placeholder = `Search ${name}…`;
     applySearch();
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "catalog_tab_selected", {
+        catalog_tab: name,
+        page_path: window.location.pathname,
+        send_to: "G-ZWF6YQM0YV"
+      });
+    }
   }
 
   fetch("site-data.json")
@@ -175,6 +183,17 @@
       document.getElementById("search").addEventListener("input", applySearch);
       document.querySelectorAll(".tab-button").forEach(button => {
         button.addEventListener("click", () => selectTab(button.dataset.tab));
+      });
+      document.querySelector("main").addEventListener("click", event => {
+        const link = event.target.closest("a.catalog-row");
+        if (!link || typeof window.gtag !== "function") return;
+        window.gtag("event", "resource_open", {
+          resource_title: link.querySelector(".module-title")?.textContent || "",
+          destination: link.getAttribute("href") || "",
+          catalog_tab: document.querySelector('.tab-button[aria-selected="true"]')?.dataset.tab || "modules",
+          page_path: window.location.pathname,
+          send_to: "G-ZWF6YQM0YV"
+        });
       });
       applySearch();
     })
