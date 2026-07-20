@@ -250,6 +250,13 @@ def generate_module_pages(resources, modules):
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{html.escape(module.get("title", "Module"))} — Q-Ontic Lab</title>
   <meta name="description" content="{html.escape(module.get("summary", ""), quote=True)}" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZWF6YQM0YV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){{dataLayer.push(arguments);}}
+    gtag('js', new Date());
+    gtag('config', 'G-ZWF6YQM0YV');
+  </script>
   <style>
     :root {{ --blue:#003366; --blue2:#0055aa; --bg:#f7f8fb; --border:#dbe3f0; --text:#263238; --muted:#5f6b7a; }}
     * {{ box-sizing:border-box; }} body {{ margin:0; font-family:"Segoe UI",system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }}
