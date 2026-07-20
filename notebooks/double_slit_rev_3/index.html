@@ -819,11 +819,49 @@ const AnalyticalVisualField = (() => {
     const steps=c.W<700?78:104;
     const phase=0;
     const startX=c.wallX+9, endX=c.screenX-9;
+    const symmetricTwo=p.open==='two'&&Math.abs((g.upperY+g.lowerY)*0.5-c.cy)<1.0;
+    const centerGap=Math.max(2.0,Math.min(9.0,g.slitPx*.34+1.5));
+    const frameTop=c.top+10, frameBottom=c.bottom-10;
+    function familyForIndex(i){
+      if(!symmetricTwo)return p.open==='upper'?'upper':p.open==='lower'?'lower':null;
+      return (i%2===0)?'upper':'lower';
+    }
+    function familyCount(family){
+      if(!symmetricTwo)return count;
+      return family==='upper'?Math.ceil(count/2):Math.floor(count/2);
+    }
+    function familyIndex(i,family){
+      if(!symmetricTwo)return i;
+      return family==='upper'?Math.floor(i/2):Math.floor(i/2);
+    }
+    function clampToFamily(y,family){
+      if(family==='upper')return Math.max(frameTop,Math.min(c.cy-centerGap,y));
+      if(family==='lower')return Math.max(c.cy+centerGap,Math.min(frameBottom,y));
+      return Math.max(frameTop,Math.min(frameBottom,y));
+    }
+    function familyQuantile(i,family){
+      if(!symmetricTwo)return Math.max(.003,Math.min(.997,(i+random())/count));
+      const n=Math.max(1,familyCount(family));
+      const local=Math.max(.003,Math.min(.997,(familyIndex(i,family)+0.5)/n));
+      return family==='upper'?0.5+0.5*local:0.5*local;
+    }
+    function familyStartY(family,local){
+      if(!family)return apertureStartY(p,c,g,random);
+      const sy=family==='upper'?g.upperY:g.lowerY;
+      const slitHalf=Math.max(4,g.slitPx*.46);
+      const offset=(0.5-local)*slitHalf*1.58;
+      return clampToFamily(sy+offset,family);
+    }
     for(let i=0;i<count;i++){
-      const q=Math.max(.003,Math.min(.997,(i+random())/count));
-      let py=apertureStartY(p,c,g,random);
-      const targetY=screenTargetY(p,c,q);
+      const family=familyForIndex(i);
+      const local=symmetricTwo?Math.max(.003,Math.min(.997,(familyIndex(i,family)+0.5)/Math.max(1,familyCount(family)))):0.5;
+      const q=familyQuantile(i,family);
+      let py=familyStartY(family,local);
+      let targetY=screenTargetY(p,c,q);
+      if(symmetricTwo)targetY=clampToFamily(targetY,family);
       const pts=[];
+      const familySign=family==='upper'?-1:family==='lower'?1:0;
+      const bowAmp=symmetricTwo?Math.min(Math.abs(targetY-py)*.18+g.slitPx*.45,(c.bottom-c.top)*.08):0;
       for(let s=0;s<=steps;s++){
         const u=s/steps;
         const px=startX+(endX-startX)*u;
@@ -832,21 +870,26 @@ const AnalyticalVisualField = (() => {
           const slope=slopeAt(px-dx,py,p,c,g,phase);
           const guided=py+slope*dx;
           const smooth=u*u*(3-2*u);
+          const currentWeight=symmetricTwo?0.16*Math.pow(1-u,.85):0.62;
+          const smoothGuide=(1-smooth)*pts[0][1]+smooth*targetY+familySign*bowAmp*Math.sin(Math.PI*u)*(1-.22*u);
           const pull=(0.018+0.20*smooth*smooth);
-          const jitter=(random()-.5)*(1-smooth)*0.8;
-          py=(1-pull)*guided+pull*targetY+jitter;
-          py=Math.max(c.top+10,Math.min(c.bottom-10,py));
+          const jitter=symmetricTwo?0:(random()-.5)*(1-smooth)*0.8;
+          py=symmetricTwo?((1-currentWeight)*smoothGuide+currentWeight*guided):((1-pull)*guided+pull*targetY+jitter);
+          py=clampToFamily(py,family);
         }
         pts.push([px,py]);
       }
-      pts[pts.length-1]=[endX,targetY];
+      pts[pts.length-1]=[endX,clampToFamily(targetY,family)];
       pts.scene=true;
       pts.startY=pts[0][1];
+      pts.family=family||'unassigned';
       pts.phase=count>1?i/(count-1):0;
+      pts.q=q;
       paths.push(pts);
     }
     return paths;
   }
+
   return {draw,complexAt,currentAt,slopeAt,streamlines};
 })();
 
@@ -1163,27 +1206,51 @@ function drawMovingPilotParticles(ctx,p,c,g,paths,launchKey='pilot'){
   let cycle=(clockMs-epoch)*visualRate/9000;
   if(cycle>1.32){epoch=clockMs;pilotLaunchEpoch.set(epochKey,epoch);cycle=0;}
   const sourceFraction=.24,releaseWindow=.28;
+  function scenePath(pathData){
+    return pathData.scene?pathData:pathData.map(q=>[zToSceneX(q[1],p,c),fieldSceneY(q[0],q[1],p,c,g)]);
+  }
+  function drawRevealedTrail(points){
+    if(points.length<2)return;
+    ctx.save();
+    ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.strokeStyle='rgba(247,201,72,.45)';ctx.lineWidth=1.55;
+    ctx.shadowColor='rgba(247,201,72,.35)';ctx.shadowBlur=5;
+    ctx.beginPath();
+    ctx.moveTo(points[0][0],points[0][1]);
+    for(let k=1;k<points.length;k++)ctx.lineTo(points[k][0],points[k][1]);
+    ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(255,245,176,.32)';ctx.lineWidth=.65;
+    ctx.beginPath();
+    ctx.moveTo(points[0][0],points[0][1]);
+    for(let k=1;k<points.length;k++)ctx.lineTo(points[k][0],points[k][1]);
+    ctx.stroke();
+    ctx.restore();
+  }
   ctx.save();ctx.lineCap='round';
   for(let i=0;i<paths.length;i++){
     const pathData=paths[i];
-    const first=pathData[0]||[c.wallX,c.cy];
-    const slotY=pathData.scene?first[1]:fieldSceneY(pathData.seed,0,p,c,g);
+    const mappedPath=scenePath(pathData);
+    const first=mappedPath[0]||[c.wallX,c.cy];
+    const slotY=first[1];
     const delay=paths.length>1?releaseWindow*i/(paths.length-1):0;
     if(cycle<delay)continue;
     const u=clamp((cycle-delay)/(1-delay),0,1);
-    let px,py;
+    let px,py,trail=[];
     if(u<sourceFraction){
       const t=u/sourceFraction;
       px=c.sourceX+t*(c.wallX-11-c.sourceX);py=c.cy+t*(slotY-c.cy);
-    }else if(pathData.scene){
-      const w=clamp((u-sourceFraction)/(1-sourceFraction),0,1),v=w*(pathData.length-1),j=Math.min(pathData.length-2,Math.max(0,Math.floor(v))),f=v-j;
-      const q0=pathData[j],q1=pathData[j+1];
-      px=q0[0]+f*(q1[0]-q0[0]);py=q0[1]+f*(q1[1]-q0[1]);
+      trail=[[c.sourceX,c.cy],[px,py]];
     }else{
-      const w=clamp((u-sourceFraction)/(1-sourceFraction),0,1),v=w*(pathData.length-1),j=Math.min(pathData.length-2,Math.max(0,Math.floor(v))),f=v-j;
-      const q0=pathData[j],q1=pathData[j+1],x=q0[0]+f*(q1[0]-q0[0]),z=q0[1]+f*(q1[1]-q0[1]);
-      px=zToSceneX(z,p,c);py=fieldSceneY(x,z,p,c,g);
+      const w=clamp((u-sourceFraction)/(1-sourceFraction),0,1);
+      const v=w*(mappedPath.length-1),j=Math.min(mappedPath.length-2,Math.max(0,Math.floor(v))),f=v-j;
+      const q0=mappedPath[j],q1=mappedPath[j+1];
+      px=q0[0]+f*(q1[0]-q0[0]);py=q0[1]+f*(q1[1]-q0[1]);
+      trail=[[c.sourceX,c.cy],[c.wallX-11,slotY],mappedPath[0]];
+      for(let k=1;k<=j;k++)trail.push(mappedPath[k]);
+      trail.push([px,py]);
     }
+    drawRevealedTrail(trail);
     const halo=ctx.createRadialGradient(px,py,1,px,py,10);halo.addColorStop(0,'rgba(255,210,77,.68)');halo.addColorStop(1,'rgba(255,210,77,0)');
     ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,10,0,2*Math.PI);ctx.fill();ctx.fillStyle=C.yellow;ctx.strokeStyle='rgba(7,16,32,.96)';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(px,py,4.4,0,2*Math.PI);ctx.fill();ctx.stroke();
   }
