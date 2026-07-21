@@ -1,13 +1,24 @@
 {
   "id": "quantum-tunneling-comparative-notebook",
-  "title": "1D Quantum Tunneling: Orthodox and Pilot-Wave Accounts (Tentative)",
+  "title": "1D Quantum Tunneling: Standard Measurement and Pilot-Wave Accounts",
   "type": "notebook",
   "category": "comparative",
   "module": "quantum-tunneling",
-  "topics": ["quantum-tunneling", "potential-barriers", "wave-packets"],
-  "interpretations": ["orthodox", "pilot-wave"],
+  "topics": [
+    "quantum-tunneling",
+    "potential-barriers",
+    "wave-packets"
+  ],
+  "interpretations": [
+    "orthodox",
+    "pilot-wave"
+  ],
   "level": "introductory",
-  "modes": ["succinct", "guided", "detailed"],
+  "modes": [
+    "succinct",
+    "guided",
+    "detailed"
+  ],
   "defaultMode": "detailed",
   "reviewProposals": "review-proposals.json",
   "description": "A guided 1D tunneling notebook with fixed-scale complex-state plots, probability current, packet-averaged transmission, localized detector events, and an orthodox versus pilot-wave comparison.",
@@ -18,5 +29,5 @@
     "Wave packets"
   ],
   "entry": "index.html",
-  "status": "draft"
+  "status": "reviewed"
 }
