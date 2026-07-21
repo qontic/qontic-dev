@@ -1,13 +1,48 @@
 {
   "resourceId": "quantum-tunneling-comparative-notebook",
-  "status": "author-review",
+  "status": "implemented",
   "proposals": [
-    {"id":"QT-R01","section":"1. Classical prediction","reason":"interpretation-neutral description of the quantum state","status":"pending"},
-    {"id":"QT-R02","section":"3. Evanescent wave","reason":"replace sequential source language with boundary matching","status":"pending"},
-    {"id":"QT-R04","section":"3. Evanescent wave","reason":"show the general decay constant before simplified units","status":"pending"},
-    {"id":"QT-R03","section":"4. Transmission","reason":"clarify stationary-component terminology and below-barrier scope","status":"pending"},
-    {"id":"QT-R05","section":"5. Detector outcomes","reason":"state that microscopic detector dynamics are not simulated","status":"pending"},
-    {"id":"QT-R06","section":"5. Detector outcomes","reason":"state conditions for left-right probabilities to sum to one","status":"pending"},
-    {"id":"QT-R07","section":"6. Interpretations","reason":"avoid presenting orthodox quantum mechanics as a single ontology","status":"pending"}
+    {
+      "id": "QT-R01",
+      "section": "1. Classical prediction",
+      "reason": "interpretation-neutral description of the quantum state",
+      "status": "implemented"
+    },
+    {
+      "id": "QT-R02",
+      "section": "3. Evanescent wave",
+      "reason": "replace sequential source language with boundary matching",
+      "status": "implemented"
+    },
+    {
+      "id": "QT-R04",
+      "section": "3. Evanescent wave",
+      "reason": "show the general decay constant before simplified units",
+      "status": "implemented"
+    },
+    {
+      "id": "QT-R03",
+      "section": "4. Transmission",
+      "reason": "clarify stationary-component terminology and below-barrier scope",
+      "status": "implemented"
+    },
+    {
+      "id": "QT-R05",
+      "section": "5. Detector outcomes",
+      "reason": "state that microscopic detector dynamics are not simulated",
+      "status": "implemented"
+    },
+    {
+      "id": "QT-R06",
+      "section": "5. Detector outcomes",
+      "reason": "state conditions for left-right probabilities to sum to one",
+      "status": "implemented"
+    },
+    {
+      "id": "QT-R07",
+      "section": "6. Interpretations",
+      "reason": "avoid presenting orthodox quantum mechanics as a single ontology",
+      "status": "implemented"
+    }
   ]
 }
