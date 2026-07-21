@@ -1,0 +1,13 @@
+{
+  "title": "Gaussian Wavepacket Spreading: Orthodox and Bohmian Accounts",
+  "type": "notebook",
+  "category": "comparative",
+  "description": "A guided free-particle Gaussian wavepacket notebook with analytic spreading, uncertainty, position measurements, and orthodox versus Bohmian interpretations.",
+  "tags": [
+    "Notebook",
+    "Gaussian wavepacket",
+    "Bohmian mechanics",
+    "Free particle"
+  ],
+  "entry": "index.html"
+}

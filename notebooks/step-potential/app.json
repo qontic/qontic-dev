@@ -1,0 +1,13 @@
+{
+  "title": "Step Potential Scattering: Orthodox and Bohmian Accounts",
+  "type": "notebook",
+  "category": "comparative",
+  "description": "A guided step-potential scattering notebook with a split-operator wavepacket solver, probability current, reflection/transmission, and orthodox versus Bohmian interpretations.",
+  "tags": [
+    "Notebook",
+    "Scattering",
+    "Step potential",
+    "Bohmian mechanics"
+  ],
+  "entry": "index.html"
+}
