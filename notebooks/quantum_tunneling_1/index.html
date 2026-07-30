@@ -185,18 +185,18 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 </section>
 <section class="learning-strip guided-only" id="guided-barrier-foundations">
 <h2>Before you begin: reading the display</h2>
-<p>Orange shows the barrier, cyan and blue show the wavefunction, and gold shows the probability density used to predict detector outcomes.</p>
+<ul class="guided-points"><li>The orange region is the potential barrier.</li><li>The cyan and blue curves are the real and imaginary parts of ψ.</li><li>The gold curve ρ=|ψ|² predicts detector positions over many repeated runs.</li></ul>
 </section>
 <section class="section" id="part1">
 <div class="section-head">
-<h2>1. Begin with the classical prediction</h2>
-<p>A classical particle with total energy <em>E</em> below a barrier of height <em>V</em><sub>0</sub> cannot enter the classically forbidden region. Quantum mechanics introduces a wavefunction whose evolution permits nonzero transmission; in the pilot-wave account, the description also includes a definite particle configuration.</p>
+<h2>1. A classical particle with too little energy reflects</h2>
+<p>Classically, a particle with total energy below the barrier height cannot cross the barrier. It reaches the first edge and reflects: T=0.</p>
 <div class="guided-summary guided-only"><strong>What to notice:</strong> A finite quantum barrier can transmit part of the wave even when the classical prediction is zero. Wider and higher barriers usually transmit less.<span class="guided-equation">\[T=\text{transmitted fraction}\]</span></div>
 <div class="detail-text"><p>Throughout this notebook, <strong>ℏ = m = 1</strong>. The central momentum is <em>k</em><sub>0</sub>, so the incident central energy is <em>E</em><sub>0</sub> = <em>k</em><sub>0</sub><sup>2</sup>/2. The rendered state is a normalizable Gaussian packet, not a literal infinite plane wave.</p></div>
-<div class="math-map"><strong>Define transmission before comparing models.</strong><span class="formula">\[T=\frac{N_{\mathrm{right}}}{N_{\mathrm{incident}}}\]</span>For a classical particle with E<sub>0</sub><V<sub>0</sub>, the prediction is T<sub>classical</sub>=0. For a finite quantum barrier, the calculated transmission can be nonzero.</div><div class="symbols-row"><span class="symbol-key"><b>T</b> transmission fraction</span><span class="symbol-key"><b>E<sub>0</sub></b> central incident energy</span><span class="symbol-key"><b>V<sub>0</sub></b> barrier height</span><span class="symbol-key"><b>a</b> barrier width</span></div><div class="quiz-card" data-answer="b" data-correct="Correct. For E<sub>0</sub><V<sub>0</sub>, making a finite barrier wider usually makes transmission smaller, although not generically zero." data-tryagain="The wavefunction has farther to decay across a wider barrier. The result is a smaller transmitted amplitude."><p><strong>Try a prediction:</strong> Keep E<sub>0</sub><V<sub>0</sub> and increase the barrier width. What happens to T?</p><div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">It must become exactly one.</button><button class="quiz-option" data-choice="b" type="button">It becomes smaller.</button><button class="quiz-option" data-choice="c" type="button">It cannot change.</button></div><p aria-live="polite" class="quiz-feedback"></p></div>
+<div class="math-map"><strong>Define transmission before comparing models.</strong><span class="formula">\[T=\frac{N_{\mathrm{right}}}{N_{\mathrm{incident}}}\]</span>For a classical particle with E<sub>0</sub>&lt;V<sub>0</sub>, the prediction is T<sub>classical</sub>=0. For a finite quantum barrier, the calculated transmission can be nonzero.</div><div class="symbols-row"><span class="symbol-key"><b>T</b> transmission fraction</span><span class="symbol-key"><b>E<sub>0</sub></b> central incident energy</span><span class="symbol-key"><b>V<sub>0</sub></b> barrier height</span><span class="symbol-key"><b>a</b> barrier width</span></div><div class="quiz-card" data-answer="b" data-correct="Correct. For E₀&lt;V₀, making a finite barrier wider usually makes transmission smaller, although not generically zero." data-tryagain="The wavefunction has farther to decay across a wider barrier. The result is a smaller transmitted amplitude."><p><strong>Try a prediction:</strong> Keep E<sub>0</sub>&lt;V<sub>0</sub> and increase the barrier width. What happens to T?</p><div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">It must become exactly one.</button><button class="quiz-option" data-choice="b" type="button">It becomes smaller.</button><button class="quiz-option" data-choice="c" type="button">It cannot change.</button></div><p aria-live="polite" class="quiz-feedback"></p></div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Orange: square potential V(x). Blue: incident central energy E₀. When E₀<V₀, the classical prediction is R=1 and T=0. The rest of this notebook shows why the quantum calculation differs.</div></div>
+<div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Orange: square potential V(x). Blue: incident central energy E₀. When E₀&lt;V₀, the classical prediction is R=1 and T=0. The rest of this notebook shows why the quantum calculation differs.</div></div>
 <div class="controls">
 <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
 <div class="row"><label><span>Barrier height V₀</span><span data-label="v0"></span></label><input data-param="v0" max="5.50" min="0.40" step="0.05" type="range" value="2.80"/></div>
@@ -229,10 +229,10 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <section class="section" id="part3">
 <div class="section-head">
 <h2>3. Below the barrier, the local wave is evanescent</h2>
-<p>For a stationary component with E<V₀, the wave number inside the barrier becomes imaginary: k→iκ. The resulting spatial dependence is exponential rather than oscillatory.</p>
+<p>For a stationary component with E&lt;V₀, the wave number inside the barrier becomes imaginary: k→iκ. The resulting spatial dependence is exponential rather than oscillatory.</p>
 <div class="guided-summary guided-only"><strong>What to notice:</strong> The wave becomes smaller inside the barrier, but it does not immediately become zero. If some reaches the far edge, a transmitted wave continues beyond it.</div>
 <div class="detail-text"><p>This does <strong>not</strong> mean the packet vanishes at the first edge. Because the barrier is finite, the wavefunction can remain nonzero at the far boundary. Matching the solution across both boundaries produces a transmitted component beyond the barrier.</p></div>
-<div class="math-map"><strong>Follow the below-barrier chain.</strong><span class="formula">\[E<V_0\quad\Longrightarrow\quad k=i\kappa\quad\Longrightarrow\quad\text{exponential behavior inside the barrier}\]</span>“Evanescent” describes the form of the wavefunction inside the barrier. It does not mean that the particle stops at a classical turning point or that energy is borrowed.</div><div class="symbols-row"><span class="symbol-key"><b>κ</b> positive decay constant</span><span class="symbol-key"><b>k</b> wave number</span><span class="symbol-key"><b>A, B</b> coefficients fixed by both barrier edges</span></div><div class="quiz-card" data-answer="b" data-correct="Correct. Evanescent describes exponential spatial behavior of a wavefunction component, not a classical particle simply stopping at the first edge." data-tryagain="Keep the mathematical statement separate from a classical path picture. The entire quantum state continues to evolve through the finite-barrier problem."><p><strong>Try a prediction:</strong> What does “evanescent” mean here?</p><div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">The particle has permanently stopped at the first edge.</button><button class="quiz-option" data-choice="b" type="button">The below-barrier wavefunction has exponential spatial behavior.</button><button class="quiz-option" data-choice="c" type="button">The particle temporarily gains extra energy.</button></div><p aria-live="polite" class="quiz-feedback"></p></div>
+<div class="math-map"><strong>Follow the below-barrier chain.</strong><span class="formula">\[E&lt;V_0\quad\Longrightarrow\quad k=i\kappa\quad\Longrightarrow\quad\text{exponential behavior inside the barrier}\]</span>“Evanescent” describes the form of the wavefunction inside the barrier. It does not mean that the particle stops at a classical turning point or that energy is borrowed.</div><div class="symbols-row"><span class="symbol-key"><b>κ</b> positive decay constant</span><span class="symbol-key"><b>k</b> wave number</span><span class="symbol-key"><b>A, B</b> coefficients fixed by both barrier edges</span></div><div class="quiz-card" data-answer="b" data-correct="Correct. Evanescent describes exponential spatial behavior of a wavefunction component, not a classical particle simply stopping at the first edge." data-tryagain="Keep the mathematical statement separate from a classical path picture. The entire quantum state continues to evolve through the finite-barrier problem."><p><strong>Try a prediction:</strong> What does “evanescent” mean here?</p><div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">The particle has permanently stopped at the first edge.</button><button class="quiz-option" data-choice="b" type="button">The below-barrier wavefunction has exponential spatial behavior.</button><button class="quiz-option" data-choice="c" type="button">The particle temporarily gains extra energy.</button></div><p aria-live="polite" class="quiz-feedback"></p></div>
 </div>
 <div class="section-body">
 <div class="canvas-card"><canvas id="c3"></canvas><div class="note-overlay">The time control is placed near the collision. The numerical Re ψ, Im ψ, and ρ=|ψ|² remain combined in one plot. The dashed orange line is only a local stationary-state density guide exp[−2κ(x+a/2)].</div></div>
@@ -258,7 +258,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="row"><label><span>Barrier height V₀</span><span data-label="v0"></span></label><input data-param="v0" max="5.50" min="0.40" step="0.05" type="range" value="2.80"/></div>
 <div class="row"><label><span>Barrier width a</span><span data-label="a"></span></label><input data-param="a" max="3.50" min="0.30" step="0.05" type="range" value="1.20"/></div>
 <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
-<details class="equation-detail"><summary>Advanced: show the exact below-barrier plane-wave formula</summary><div class="equation math-display">\[T(E)=\left[1+\frac{V_0^2\sinh^2(\kappa a)}{4E(V_0-E)}\right]^{-1},\qquad E<V_0\]<div class="eq-note">This exact expression is for one stationary energy E. A finite packet contains a range of energies, so the simulation also computes a packet-averaged prediction.</div></div></details>
+<details class="equation-detail"><summary>Advanced: show the exact below-barrier plane-wave formula</summary><div class="equation math-display">\[T(E)=\left[1+\frac{V_0^2\sinh^2(\kappa a)}{4E(V_0-E)}\right]^{-1},\qquad E&lt;V_0\]<div class="eq-note">This exact expression is for one stationary energy E. A finite packet contains a range of energies, so the simulation also computes a packet-averaged prediction.</div></div></details>
 <div class="readout" id="s4Read"></div>
 </div>
 </div>
@@ -620,233 +620,123 @@ class TDSEngine {
   }
 
   frameAt(t){
-    const f=clamp(t,0,this.tMax);
+    if(t<=0) return this.frames[0];
+    if(t>=this.tMax) return this.frames[this.frames.length-1];
+    const f=t/this.tMax*(this.frames.length-1),i=Math.floor(f),u=f-i;
+    const A=this.frames[i],B=this.frames[Math.min(i+1,this.frames.length-1)];
+    const r=new Float32Array(this.N),q=new Float32Array(this.N),cdf=new Float32Array(this.N);
+    let norm=0;
+    for(let n=0;n<this.N;n++){
+      r[n]=(1-u)*A.r[n]+u*B.r[n];
+      q[n]=(1-u)*A.i[n]+u*B.i[n];
+      norm+=(r[n]*r[n]+q[n]*q[n])*this.dx;
+      cdf[n]=norm;
+    }
+    const inv=1/Math.max(norm,1e-14);
+    for(let n=0;n<this.N;n++) cdf[n]*=inv;
+    return {t,r,i:q,cdf,norm,edge:0};
+  }
+
+  nearestFrameIndex(t){
     let lo=0,hi=this.frames.length-1;
+    const f=clamp(t,0,this.tMax);
     while(lo<hi){
       const mid=Math.ceil((lo+hi)/2);
       if(this.frames[mid].t<=f) lo=mid; else hi=mid-1;
     }
-    const a=this.frames[lo], b=this.frames[Math.min(lo+1,this.frames.length-1)];
-    const u=(b===a)?0:(f-a.t)/Math.max(b.t-a.t,1e-12);
-    return {a,b,u,index:lo,t:f};
+    return lo;
+  }
+
+  inverseCDFAt(frame,q){ return this.inverseCDF(frame.cdf,q); }
+
+  sampleDetectorPosition(){
+    const frame=this.measureFrame;
+    for(let attempt=0;attempt<500;attempt++){
+      const x=this.inverseCDFAt(frame,Math.random());
+      if(x < -this.p.a/2 || x > this.p.a/2) return x;
+    }
+    return Math.random()<this.Tdetector ? this.p.a/2+1 : -this.p.a/2-1;
   }
 
   component(state,i){
-    return {
-      re:state.a.r[i]*(1-state.u)+state.b.r[i]*state.u,
-      im:state.a.i[i]*(1-state.u)+state.b.i[i]*state.u
-    };
+    const th=phaseRadians(),c=Math.cos(th),s=Math.sin(th);
+    return {re:state.r[i]*c-state.i[i]*s,im:state.r[i]*s+state.i[i]*c};
   }
 
-  currentAt(state,i){
-    const j=clamp(i,1,this.N-2);
-    const c=this.component(state,j);
-    const l=this.component(state,j-1);
-    const r=this.component(state,j+1);
-    const dre=(r.re-l.re)/(2*this.dx);
-    const dim=(r.im-l.im)/(2*this.dx);
-    const rho=c.re*c.re+c.im*c.im;
+  localCurrent(state,i){
+    if(i<=0||i>=this.N-1) return 0;
+    const dr=(state.r[i+1]-state.r[i-1])/(2*this.dx);
+    const di=(state.i[i+1]-state.i[i-1])/(2*this.dx);
+    return state.r[i]*di-state.i[i]*dr;
+  }
+
+  velocity(state,x){
+    const i=clamp(Math.round((x-this.xmin)/this.dx),1,this.N-2);
+    const rho=state.r[i]*state.r[i]+state.i[i]*state.i[i];
     if(rho<1e-8*this.rhoRef) return 0;
-    return c.re*dim-c.im*dre;
-  }
-
-  trajectoryX(tr,state){
-    const i=state.index, j=Math.min(i+1,tr.path.length-1);
-    return tr.path[i]*(1-state.u)+tr.path[j]*state.u;
-  }
-
-  normAt(state){ return state.a.norm*(1-state.u)+state.b.norm*state.u; }
-
-  sampleDetectorPosition(){
-    const left=-this.p.a/2,right=this.p.a/2, frame=this.measureFrame;
-    for(let attempt=0;attempt<50;attempt++){
-      const x=this.inverseCDF(frame.cdf,Math.random());
-      if(x<left || x>right) return x;
-    }
-    return this.inverseCDF(frame.cdf,Math.random());
+    return this.localCurrent(state,i)/rho;
   }
 }
 
-/* --------------------------- canvas drawing --------------------------- */
+/* ---------------------------- view helpers ---------------------------- */
 function canvasContext(canvas){
-  const rect=canvas.getBoundingClientRect(), dpr=Math.min(window.devicePixelRatio||1,2);
-  const w=Math.max(1,Math.round(rect.width)), h=Math.max(1,Math.round(rect.height));
-  if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){
-    canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+  const dpr=Math.min(2,window.devicePixelRatio||1),rect=canvas.getBoundingClientRect();
+  const w=Math.max(320,Math.floor(rect.width)),h=Math.max(260,Math.floor(rect.height));
+  if(canvas.width!==Math.floor(w*dpr)||canvas.height!==Math.floor(h*dpr)){
+    canvas.width=Math.floor(w*dpr);canvas.height=Math.floor(h*dpr);
   }
-  const ctx=canvas.getContext("2d");
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  return {ctx,w,h};
+  const ctx=canvas.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);return{ctx,w,h};
 }
-function clear(ctx,w,h){
-  ctx.clearRect(0,0,w,h); ctx.fillStyle=C.bg; ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle=C.grid; ctx.lineWidth=1;
+function clear(ctx,w,h){ctx.fillStyle=C.bg;ctx.fillRect(0,0,w,h);ctx.strokeStyle=C.grid;ctx.lineWidth=1;
   for(let i=0;i<=12;i++){ const x=i*w/12; ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke(); }
   for(let j=0;j<=8;j++){ const y=j*h/8; ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke(); }
 }
-function text(ctx,txt,x,y,color=C.ink,font="12px system-ui",align="left"){
-  ctx.fillStyle=color;ctx.font=font;ctx.textAlign=align;ctx.fillText(txt,x,y);
+function line(ctx,pts,color,width=1.8,dash=[]){if(!pts.length)return;ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.restore();}
+function text(ctx,str,x,y,color=C.ink,font="12px system-ui",align="left"){ctx.fillStyle=color;ctx.font=font;ctx.textAlign=align;ctx.fillText(str,x,y);}
+function plotBox(ctx,w,h,m={left:54,right:22,top:46,bottom:56}){return{x:m.left,y:m.top,w:w-m.left-m.right,h:h-m.top-m.bottom};}
+function xPix(x,box){return box.x+(x-engine.xmin)/(engine.xmax-engine.xmin)*box.w;}
+function drawClassicAxes(ctx,box,base){ctx.strokeStyle="rgba(219,234,254,.72)";ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(box.x,base);ctx.lineTo(box.x+box.w,base);ctx.moveTo(box.x,box.y);ctx.lineTo(box.x,box.y+box.h);ctx.stroke();text(ctx,"position x",box.x+box.w,base+32,C.muted,"12px system-ui","right");}
+function drawClassicalPotential(ctx,box,base,withEnergy=true){
+  const left=xPix(-params.a/2,box),right=xPix(params.a/2,box),scale=Math.min(34,box.h*.20)/Math.max(params.v0,.5);
+  const top=base-params.v0*scale;
+  ctx.fillStyle="rgba(255,153,102,.15)";ctx.fillRect(left,top,right-left,base-top);ctx.strokeStyle=C.orange;ctx.lineWidth=2;ctx.strokeRect(left,top,right-left,base-top);
+  text(ctx,"V₀",(left+right)/2,top-8,C.orange,"700 12px system-ui","center");
+  if(withEnergy){const ey=base-energy()*scale;ctx.strokeStyle=C.blue;ctx.setLineDash([7,5]);ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(box.x,ey);ctx.lineTo(box.x+box.w,ey);ctx.stroke();ctx.setLineDash([]);text(ctx,"E₀",box.x+box.w-4,ey-6,C.cyan,"700 12px system-ui","right");}
+  return{left,right,top,potentialScale:scale};
 }
-function line(ctx,pts,color,width=1.5,dash=[]){
-  if(!pts.length) return;
-  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.beginPath();
-  pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.restore();
+function drawPotentialWave(ctx,box,base,scale){
+  const left=xPix(-params.a/2,box),right=xPix(params.a/2,box),height=Math.min(base-box.y-8,params.v0*scale);
+  ctx.fillStyle="rgba(255,153,102,.10)";ctx.fillRect(left,base-height,right-left,height);ctx.strokeStyle=C.orange;ctx.lineWidth=1.8;ctx.strokeRect(left,base-height,right-left,height);
+  text(ctx,"V(x)",(left+right)/2,base-height-7,C.orange,"700 11px system-ui","center");return{left,right,height};
 }
-function plotBox(ctx,w,h,{left=54,right=20,top=42,bottom=58}={}){
-  const box={x:left,y:top,w:w-left-right,h:h-top-bottom};
-  ctx.strokeStyle="rgba(219,234,254,.45)";ctx.lineWidth=1;ctx.strokeRect(box.x,box.y,box.w,box.h);
-  return box;
-}
-function subBox(ctx,box,y,h,label){
-  const b={x:box.x+1,y,w:box.w-2,h};
-  ctx.strokeStyle="rgba(219,234,254,.27)";ctx.lineWidth=1;ctx.strokeRect(b.x,b.y,b.w,b.h);
-  text(ctx,label,b.x+7,b.y+15,C.muted,"700 10px system-ui");
-  return b;
-}
-function xPix(x,box){ return box.x+(x-engine.xmin)/(engine.xmax-engine.xmin)*box.w; }
-function rotateDisplay(re,im){
-  const phi=phaseRadians(), c=Math.cos(phi), s=Math.sin(phi);
-  return {re:re*c-im*s, im:re*s+im*c};
-}
-function drawXLabels(ctx,box){
-  const y=box.y+box.h+17;
-  text(ctx,"−36",box.x,y,C.muted,"10px system-ui");
-  text(ctx,"0",xPix(0,box),y,C.muted,"10px system-ui","center");
-  text(ctx,"36",box.x+box.w,y,C.muted,"10px system-ui","right");
-  text(ctx,"x",box.x+box.w,y-14,C.muted,"10px system-ui","right");
-}
-function drawClassicalPotential(ctx,box,base,energyLine=true){
-  const xL=xPix(-params.a/2,box), xR=xPix(params.a/2,box);
-  const potentialScale=Math.min(26,box.h*.30/Math.max(params.v0,1));
-  const hh=params.v0*potentialScale;
-  ctx.fillStyle="rgba(255,153,102,.22)";ctx.fillRect(xL,base-hh,xR-xL,hh);
-  ctx.strokeStyle=C.orange;ctx.lineWidth=2;ctx.strokeRect(xL,base-hh,xR-xL,hh);
-  text(ctx,"V₀",xL+5,base-hh-8,C.orange,"700 12px system-ui");
-  if(energyLine){
-    const E=energy(),ey=base-E*potentialScale;
-    ctx.save();ctx.strokeStyle="rgba(79,195,255,.9)";ctx.setLineDash([6,5]);ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(box.x,ey);ctx.lineTo(box.x+box.w,ey);ctx.stroke();ctx.restore();
-    text(ctx,"E₀",box.x+5,ey-7,C.cyan,"700 12px system-ui");
-  }
-  return {xL,xR,potentialScale};
-}
-function drawPotentialDensity(ctx,box,base){
-  const xL=xPix(-params.a/2,box),xR=xPix(params.a/2,box);
-  const displayMax=6.0;
-  const pScale=box.h*.56/displayMax;
-  const h=params.v0*pScale;
-  ctx.fillStyle="rgba(255,153,102,.21)";ctx.fillRect(xL,base-h,xR-xL,h);
-  ctx.strokeStyle=C.orange;ctx.lineWidth=1.5;ctx.strokeRect(xL,base-h,xR-xL,h);
-  text(ctx,"V₀",xL+4,base-h-5,C.orange,"700 10px system-ui");
-  const E=energy(),ey=base-E*pScale;
-  ctx.save();ctx.strokeStyle="rgba(79,195,255,.78)";ctx.setLineDash([5,4]);ctx.lineWidth=1.05;ctx.beginPath();ctx.moveTo(box.x,ey);ctx.lineTo(box.x+box.w,ey);ctx.stroke();ctx.restore();
-  text(ctx,"E₀",box.x+3,ey-5,C.cyan,"700 10px system-ui");
-  return {xL,xR,pScale};
-}
-function drawClassicAxes(ctx,box,base){
-  ctx.strokeStyle="rgba(219,234,254,.75)";ctx.lineWidth=1.25;ctx.beginPath();ctx.moveTo(box.x,base);ctx.lineTo(box.x+box.w,base);ctx.stroke();
-  text(ctx,"x",box.x+box.w-4,base-8,C.muted,"12px system-ui","right");
-  text(ctx,"−36",box.x,base+20,C.muted,"11px system-ui");
-  text(ctx,"0",xPix(0,box),base+20,C.muted,"11px system-ui","center");
-  text(ctx,"36",box.x+box.w,base+20,C.muted,"11px system-ui","right");
-}
-
-// Re/Im and density share one x-axis and one common plot. Their display scales are
-// fixed for the whole run, but separate, because ψ and |ψ|² have different units.
 function drawPacket(ctx,w,h,t,opts={}){
-  const box=opts.box||plotBox(ctx,w,h,{left:52,right:18,top:48,bottom:58});
-  const state=engine.frameAt(t);
-  const showRe=opts.re??view.re, showIm=opts.im??view.im, showRho=opts.rho??view.rho;
-  const showCurrent=opts.current??view.current;
-  const base=box.y+box.h*.78;
-  const ampScale=box.h*.25/engine.ampRef;
-  const rhoScale=box.h*.47/engine.rhoRef;
-
-  // One shared zero/reference axis. Potential and density are conventionally drawn
-  // upward from it; Re and Im are signed excursions about it.
-  ctx.strokeStyle="rgba(219,234,254,.38)";ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(box.x,base);ctx.lineTo(box.x+box.w,base);ctx.stroke();
-  drawPotentialDensity(ctx,box,base);
-
-  if(showRho){
-    const pts=[];
-    for(let i=0;i<engine.N;i++){
-      const z=engine.component(state,i),rho=z.re*z.re+z.im*z.im;
-      pts.push([xPix(engine.x[i],box),base-rho*rhoScale]);
-    }
-    line(ctx,pts,C.gold,2.2);
+  const state=engine.frameAt(t),box=plotBox(ctx,w,h,{left:56,right:24,top:50,bottom:62}),base=box.y+box.h*.70;
+  const ampScale=box.h*.23/engine.ampRef,rhoScale=box.h*.25/engine.rhoRef,currentScale=box.h*.16/engine.currentRef;
+  drawPotentialWave(ctx,box,base,Math.min(31,box.h*.18)/Math.max(params.v0,.5));
+  ctx.strokeStyle="rgba(219,234,254,.73)";ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(box.x,base);ctx.lineTo(box.x+box.w,base);ctx.moveTo(box.x,box.y);ctx.lineTo(box.x,box.y+box.h);ctx.stroke();
+  const re=[],im=[],rho=[];let area=[];
+  for(let i=0;i<engine.N;i++){
+    const z=engine.component(state,i),x=xPix(engine.x[i],box),r=z.re*z.re+z.im*z.im;
+    re.push([x,base-z.re*ampScale]);im.push([x,base-z.im*ampScale]);rho.push([x,base-r*rhoScale]);area.push([x,base-r*rhoScale]);
   }
-  if(showRe){
-    const pts=[];
-    for(let i=0;i<engine.N;i++){
-      const z=engine.component(state,i),d=rotateDisplay(z.re,z.im);
-      pts.push([xPix(engine.x[i],box),base-d.re*ampScale]);
-    }
-    line(ctx,pts,C.cyan,1.55);
+  if(view.rho){ctx.beginPath();ctx.moveTo(area[0][0],base);area.forEach(p=>ctx.lineTo(p[0],p[1]));ctx.lineTo(area[area.length-1][0],base);ctx.closePath();ctx.fillStyle="rgba(255,210,77,.13)";ctx.fill();line(ctx,rho,C.gold,2.15);}
+  if(view.re)line(ctx,re,C.cyan,1.55);if(view.im)line(ctx,im,C.blue,1.55);
+  if(view.current){
+    const ib={x:box.x+box.w*.67,y:box.y+10,w:box.w*.30,h:box.h*.18};ctx.fillStyle="rgba(7,16,32,.78)";ctx.fillRect(ib.x,ib.y,ib.w,ib.h);ctx.strokeStyle="rgba(79,195,255,.38)";ctx.strokeRect(ib.x,ib.y,ib.w,ib.h);text(ctx,"probability current j",ib.x+7,ib.y+14,C.green,"700 10px system-ui");
+    const pts=[];for(let i=1;i<engine.N-1;i++){const x=ib.x+(engine.x[i]-engine.xmin)/(engine.xmax-engine.xmin)*ib.w,y=ib.y+ib.h*.62-engine.localCurrent(state,i)*currentScale*.32;pts.push([x,y]);}line(ctx,pts,C.green,1.4);
   }
-  if(showIm){
-    const pts=[];
-    for(let i=0;i<engine.N;i++){
-      const z=engine.component(state,i),d=rotateDisplay(z.re,z.im);
-      pts.push([xPix(engine.x[i],box),base-d.im*ampScale]);
-    }
-    line(ctx,pts,C.blue,1.45);
-  }
-
-  // Current remains available, but as a small inset so it does not split the main state view.
-  let currentBox=null;
-  if(showCurrent){
-    const iw=Math.max(160,box.w*.34), ih=Math.min(68,Math.max(48,box.h*.20));
-    currentBox={x:box.x+7,y:box.y+28,w:iw,h:ih};
-    ctx.fillStyle="rgba(7,16,32,.86)";ctx.fillRect(currentBox.x,currentBox.y,currentBox.w,currentBox.h);
-    ctx.strokeStyle="rgba(84,224,160,.48)";ctx.lineWidth=1;ctx.strokeRect(currentBox.x,currentBox.y,currentBox.w,currentBox.h);
-    const currentBase=currentBox.y+currentBox.h*.60;
-    ctx.strokeStyle="rgba(219,234,254,.28)";ctx.beginPath();ctx.moveTo(currentBox.x,currentBase);ctx.lineTo(currentBox.x+currentBox.w,currentBase);ctx.stroke();
-    const currentScale=currentBox.h*.31/engine.currentRef;
-    const pts=[];
-    for(let i=0;i<engine.N;i++) pts.push([xPix(engine.x[i],currentBox),currentBase-engine.currentAt(state,i)*currentScale]);
-    line(ctx,pts,C.green,1.35);
-    text(ctx,"probability current j(x,t)",currentBox.x+6,currentBox.y+14,C.green,"700 10px system-ui");
-    text(ctx,"rightward +",currentBox.x+currentBox.w-6,currentBox.y+14,C.green,"700 10px system-ui","right");
-  }
-
-  text(ctx,"fixed display scales: ψ and ρ are normalized separately",box.x+7,box.y+15,C.muted,"700 10px system-ui");
-  text(ctx,`display phase φ = ${fmt(view.phase,0)}°`,box.x+box.w-7,box.y+15,C.phase,"700 10px system-ui","right");
-  drawXLabels(ctx,box);
-  text(ctx,`t = ${fmt(t,2)}   |   ||ψ||² = ${fmt(engine.normAt(state),8)}`,box.x,box.y-16,C.muted,"12px system-ui");
-  return {box,currentBox,state,base,ampScale,rhoScale};
+  text(ctx,`t = ${fmt(t,2)}`,box.x+box.w-5,box.y+box.h-5,C.muted,"11px system-ui","right");text(ctx,"position x",box.x+box.w,base+38,C.muted,"12px system-ui","right");
+  return{state,box,base,ampScale,rhoScale};
 }
-
 function drawBohmian(ctx,packet){
-  const {box,currentBox,state}=packet;
-  const bx=box.x+box.w*.56, by=box.y+28, bw=box.w*.41, bh=Math.min(126,Math.max(92,box.h*.31));
-  ctx.fillStyle="rgba(7,16,32,.88)";ctx.fillRect(bx,by,bw,bh);ctx.strokeStyle="rgba(255,210,77,.45)";ctx.strokeRect(bx,by,bw,bh);
-  text(ctx,"equilibrium ensemble of X(t)",bx+8,by+16,"rgba(255,235,166,.96)","700 10px system-ui");
-  text(ctx,"one run has one configuration",bx+8,by+30,C.muted,"10px system-ui");
-  const px=x=>bx+6+(x-engine.xmin)/(engine.xmax-engine.xmin)*(bw-12);
-  const py=tt=>by+39+tt/engine.tMax*(bh-45);
+  const upto=engine.nearestFrameIndex(packet.state.t),px=x=>xPix(x,packet.box),py=t=>packet.box.y+packet.box.h*.12+t/engine.tMax*packet.box.h*.46;
+  ctx.fillStyle="rgba(7,16,32,.72)";ctx.fillRect(packet.box.x+4,packet.box.y+4,packet.box.w-8,packet.box.h*.58);ctx.strokeStyle="rgba(255,210,77,.22)";ctx.strokeRect(packet.box.x+4,packet.box.y+4,packet.box.w-8,packet.box.h*.58);
+  text(ctx,"equilibrium configurations X(t): cumulative-probability paths",packet.box.x+10,packet.box.y+19,C.gold,"700 10px system-ui");
   for(const tr of engine.trajectories){
-    const pts=[];
-    for(let n=0;n<=state.index;n++) pts.push([px(tr.path[n]),py(engine.frames[n].t)]);
-    pts.push([px(engine.trajectoryX(tr,state)),py(state.t)]);
-    line(ctx,pts,"rgba(255,210,77,.56)",.85);
+    const pts=[];for(let n=0;n<=upto;n++)pts.push([px(tr.path[n]),py(engine.frames[n].t)]);line(ctx,pts,"rgba(247,201,72,.66)",.85);
   }
-  ctx.save();ctx.strokeStyle="rgba(84,224,160,.7)";ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(px(params.a/2),by+37);ctx.lineTo(px(params.a/2),by+bh-5);ctx.stroke();ctx.restore();
-  for(const tr of engine.trajectories){
-    const x=engine.trajectoryX(tr,state);
-    ctx.fillStyle=C.gold;ctx.beginPath();ctx.arc(px(x),py(state.t),1.8,0,Math.PI*2);ctx.fill();
-  }
-
-  // The configuration strip stays inside the single combined plot, not on ψ itself.
-  const y=box.y+box.h-8;
-  ctx.fillStyle="rgba(7,16,32,.78)";ctx.fillRect(box.x+1,y-12,box.w-2,14);
-  ctx.strokeStyle="rgba(255,210,77,.45)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(box.x+1,y);ctx.lineTo(box.x+box.w-1,y);ctx.stroke();
-  text(ctx,"sample X(t)",box.x+4,y-14,"rgba(255,235,166,.92)","700 10px system-ui");
-  for(const tr of engine.trajectories){
-    const x=engine.trajectoryX(tr,state), final=tr.path[tr.path.length-1], col=final>params.a/2?C.green:C.red;
-    ctx.fillStyle=col;ctx.strokeStyle="rgba(7,16,32,.85)";ctx.lineWidth=1;ctx.beginPath();ctx.arc(xPix(x,box),y,3.1,0,Math.PI*2);ctx.fill();ctx.stroke();
-  }
+  for(const tr of engine.trajectories){const x=tr.path[Math.min(upto,tr.path.length-1)];ctx.fillStyle=C.gold;ctx.beginPath();ctx.arc(px(x),py(engine.frames[Math.min(upto,engine.frames.length-1)].t),1.6,0,Math.PI*2);ctx.fill();}
 }
-
 function drawClassical(canvas){
   const {ctx,w,h}=canvasContext(canvas);clear(ctx,w,h);
   const box=plotBox(ctx,w,h,{left:58,right:22,top:50,bottom:70}),base=box.y+box.h*.70;
