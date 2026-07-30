@@ -97,6 +97,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 .guided-summary strong{color:#1e3a8a}.guided-summary .guided-equation{display:block;margin-top:6px;color:#172033}
 .math-map .formula,.equation-summary .equation-line,.guided-equation,.derivation-body .math-display,.equation.math-display{font-family:var(--font);font-weight:400}
 .math-map .formula .katex-display,.equation-summary .equation-line .katex-display,.guided-equation .katex-display,.derivation-body .math-display .katex-display,.equation.math-display>.katex-display{margin:.15em 0}
+.math-map .formula .katex-display,.equation-summary .equation-line .katex-display,.guided-equation .katex-display,.derivation-body .math-display .katex-display,.equation.math-display>.katex-display{max-width:100%;overflow-x:auto;overflow-y:hidden;padding:2px 0}
 .math-map .formula .katex,.equation-summary .equation-line .katex,.guided-equation .katex,.derivation-body .math-display .katex,.equation.math-display>.katex-display .katex{font-size:1.12em}
 .equation.math-display{padding:16px 14px;background:#fff;border:0;border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);border-radius:0}
 .eq-note{margin-top:10px}
@@ -239,7 +240,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="controls">
 <div class="row"><label><span>Collision-time view</span><span data-collision-label=""></span></label><input data-collision="" max="35" min="-35" step="1" type="range" value="0"/></div>
 <div class="row"><label><span>Packet width σ</span><span data-label="sigma"></span></label><input data-param="sigma" max="2.20" min="0.80" step="0.05" type="range" value="1.75"/></div>
-<div class="equation-summary"><strong>After the picture, here is the local stationary form.</strong><span class="equation-line">\[\kappa=\frac{\sqrt{2m(V_0-E)}}{\hbar};\qquad \hbar=m=1:\quad\kappa=\sqrt{2(V_0-E)}\]</span><span class="equation-line">\[\psi_{\mathrm{inside}}(x)=Ae^{\kappa x}+Be^{-\kappa x}\]</span>A finite barrier has two edges. The coefficients A and B are chosen so that the wavefunction and its slope join smoothly at both edges. A single decaying exponential alone would not describe the full finite-barrier solution.</div>
+<div class="equation-summary"><strong>After the picture, here is the local stationary form.</strong><span class="equation-line">\[\begin{aligned}\kappa &amp;=\frac{\sqrt{2m(V_0-E)}}{\hbar},\\[3pt]\hbar=m=1:\qquad \kappa &amp;=\sqrt{2(V_0-E)}\end{aligned}\]</span><span class="equation-line">\[\psi_{\mathrm{inside}}(x)=Ae^{\kappa x}+Be^{-\kappa x}\]</span>A finite barrier has two edges. The coefficients A and B are chosen so that the wavefunction and its slope join smoothly at both edges. A single decaying exponential alone would not describe the full finite-barrier solution.</div>
 <div class="readout" id="s3Read"></div>
 </div>
 </div>
