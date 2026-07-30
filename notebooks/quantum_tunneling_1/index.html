@@ -323,7 +323,7 @@ const C = {
   cyan:"#4fc3ff", blue:"#2563eb", gold:"#ffd24d", orange:"#ff9966", green:"#54e0a0", red:"#ff6b6b",
   phase:"#c084fc", white:"#f8fafc"
 };
-const params = { k0:2.00, v0:2.80, a:1.20, sigma:1.75, speed:0.85 };
+const params = { k0:2.00, v0:3.50, a:1.20, sigma:1.75, speed:0.85 };
 const view = { re:true, im:true, rho:true, current:false, interpretation:"orthodox", guidance:true, phase:0 };
 const sim = { playing:true, time:0, last:performance.now(), lastRender:0, trials:[], lastTrial:null, rebuilding:false, pending:null };
 let engine = null;
@@ -338,7 +338,7 @@ function phaseRadians(){ return view.phase*Math.PI/180; }
 
 function planeTransmission(E,V,a){
   if(E<=1e-10) return 0;
-  if(Math.abs(E-V)<1e-7) return 1/(1 + V*V*a*a/(2*E));
+  if(Math.abs(E-V)<1e-7) return 1/(1 + V*V*a*a/(4*E));
   if(E<V){
     const kap=Math.sqrt(2*(V-E));
     const s=Math.sinh(kap*a);
@@ -1066,7 +1066,7 @@ function fireTrials(n=Number(document.getElementById("trialN").value)){
   renderAll();
 }
 function loadRecommended(){
-  Object.assign(params,{k0:2.00,v0:2.80,a:1.20,sigma:1.75,speed:.85});
+  Object.assign(params,{k0:2.00,v0:3.50,a:1.20,sigma:1.75,speed:.85});
   view.interpretation="bohmian";view.guidance=true;view.phase=0;sim.playing=true;requestRebuild();
 }
 
