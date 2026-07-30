@@ -158,6 +158,28 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
   .page{width:calc(100% - 20px);margin:10px auto}
   .section-body{gap:10px;padding:10px}
 }
+
+/* Equation containment without scrollbars */
+.math-map .formula .katex-display,
+.equation-summary .equation-line .katex-display,
+.guided-equation .katex-display,
+.derivation-body .math-display .katex-display,
+.equation.math-display>.katex-display{
+  overflow:visible;
+  max-width:100%;
+  padding-left:0;
+  padding-right:0;
+}
+.controls .math-map .formula .katex,
+.controls .equation-summary .equation-line .katex,
+.controls .equation.math-display>.katex-display .katex{
+  font-size:.92em;
+}
+@media(max-width:430px){
+  .controls .math-map .formula .katex,
+  .controls .equation-summary .equation-line .katex,
+  .controls .equation.math-display>.katex-display .katex{font-size:.84em}
+}
 </style>
 </head>
 <body data-notebook-mode="detailed">
