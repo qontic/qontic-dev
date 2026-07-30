@@ -117,6 +117,25 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 .quiz-card{margin-top:10px;border:1px solid #a7f3d0;background:#f0fdf4;border-radius:10px;padding:11px 12px;color:#14532d;font-size:13px;line-height:1.5}.quiz-card strong{color:#166534}.quiz-card p{margin:0}.quiz-options{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.quiz-option{border:1px solid #86efac;background:#fff;color:#14532d;border-radius:8px;padding:7px 9px;font:650 12px var(--font);cursor:pointer;text-align:left}.quiz-option:hover,.quiz-option:focus{background:#dcfce7;outline:none}.quiz-feedback{min-height:1.4em;margin-top:8px!important;color:#14532d;font-weight:600}.quiz-card.incorrect{border-color:#fdba74;background:#fff7ed}.quiz-card.incorrect .quiz-feedback{color:#9a3412}.quiz-card.correct{border-color:#86efac;background:#ecfdf5}
 .pattern-compare{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}.pattern-card{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px}.pattern-card h3{margin:0 0 6px;color:#172033;font-size:13px}.pattern-card p{margin:6px 0 0;color:#475569;font-size:12px;line-height:1.42}.mini-pattern{height:46px;border-radius:7px;border:1px solid #e2e8f0;position:relative;overflow:hidden;background:#f8fafc}.mini-pattern.classical:before,.mini-pattern.classical:after{content:"";position:absolute;top:7px;bottom:7px;width:31%;border-radius:50%;background:rgba(96,165,250,.48)}.mini-pattern.classical:before{left:8%}.mini-pattern.classical:after{right:8%}.mini-pattern.quantum{background:repeating-linear-gradient(90deg,#fff7cc 0 5px,#f8fafc 5px 11px);opacity:.98}.mini-pattern.quantum:before{content:"";position:absolute;inset:5px 0;background:linear-gradient(90deg,rgba(255,210,77,.15),rgba(255,210,77,.92),rgba(255,210,77,.15));mix-blend-mode:multiply}.mini-pattern.dots:before{content:"•  • •   •  • • •   • •  •  •  • •   •   • •";position:absolute;left:6px;right:6px;top:8px;color:#b45309;letter-spacing:2px;font-size:20px;line-height:17px;word-spacing:4px}
 @media(max-width:820px){.pattern-compare{grid-template-columns:1fr}.equation-summary .equation-line{font-size:16px}.symbols-row{gap:5px}}
+
+/* Restore consistent section spacing after mathematical-typesetting update. */
+.section-head > .detail-text,
+.section-head > .math-map,
+.section-head > .equation-summary,
+.section-head > .equation-detail,
+.section-head > .symbols-row,
+.section-head > .quiz-card,
+.section-head > .concept-note,
+.section-head > .interpretation-list{
+  max-width:980px;
+}
+.section-body{
+  gap:18px;
+  padding:18px;
+}
+@media(max-width:640px){
+  .section-body{gap:10px;padding:10px}
+}
 </style>
 </head>
 <body data-notebook-mode="detailed">
