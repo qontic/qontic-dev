@@ -118,7 +118,24 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 .pattern-compare{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}.pattern-card{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px}.pattern-card h3{margin:0 0 6px;color:#172033;font-size:13px}.pattern-card p{margin:6px 0 0;color:#475569;font-size:12px;line-height:1.42}.mini-pattern{height:46px;border-radius:7px;border:1px solid #e2e8f0;position:relative;overflow:hidden;background:#f8fafc}.mini-pattern.classical:before,.mini-pattern.classical:after{content:"";position:absolute;top:7px;bottom:7px;width:31%;border-radius:50%;background:rgba(96,165,250,.48)}.mini-pattern.classical:before{left:8%}.mini-pattern.classical:after{right:8%}.mini-pattern.quantum{background:repeating-linear-gradient(90deg,#fff7cc 0 5px,#f8fafc 5px 11px);opacity:.98}.mini-pattern.quantum:before{content:"";position:absolute;inset:5px 0;background:linear-gradient(90deg,rgba(255,210,77,.15),rgba(255,210,77,.92),rgba(255,210,77,.15));mix-blend-mode:multiply}.mini-pattern.dots:before{content:"•  • •   •  • • •   • •  •  •  • •   •   • •";position:absolute;left:6px;right:6px;top:8px;color:#b45309;letter-spacing:2px;font-size:20px;line-height:17px;word-spacing:4px}
 @media(max-width:820px){.pattern-compare{grid-template-columns:1fr}.equation-summary .equation-line{font-size:16px}.symbols-row{gap:5px}}
 
-/* Restore consistent section spacing after mathematical-typesetting update. */
+/* Keep every notebook panel in one centered, readable layout. */
+.page{
+  width:calc(100% - 36px);
+  max-width:1220px;
+  margin:18px auto;
+  padding:0;
+}
+.section{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+.section-head,
+.section-body,
+.section-body > *{
+  min-width:0;
+}
+.section-head > p,
 .section-head > .detail-text,
 .section-head > .math-map,
 .section-head > .equation-summary,
@@ -127,13 +144,17 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 .section-head > .quiz-card,
 .section-head > .concept-note,
 .section-head > .interpretation-list{
-  max-width:980px;
+  max-width:1100px;
+}
+.learning-strip > p{
+  max-width:1100px;
 }
 .section-body{
   gap:18px;
   padding:18px;
 }
 @media(max-width:640px){
+  .page{width:calc(100% - 20px);margin:10px auto}
   .section-body{gap:10px;padding:10px}
 }
 </style>
