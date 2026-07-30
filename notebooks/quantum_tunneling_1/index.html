@@ -338,7 +338,7 @@ function phaseRadians(){ return view.phase*Math.PI/180; }
 
 function planeTransmission(E,V,a){
   if(E<=1e-10) return 0;
-  if(Math.abs(E-V)<1e-7) return 1/(1 + V*V*a*a/(4*E));
+  if(Math.abs(E-V)<1e-7) return 1/(1 + V*V*a*a/(2*E));
   if(E<V){
     const kap=Math.sqrt(2*(V-E));
     const s=Math.sinh(kap*a);
