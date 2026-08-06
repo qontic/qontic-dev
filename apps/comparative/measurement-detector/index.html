@@ -38051,10 +38051,7 @@ void main() {
         return Math.SQRT2 * hl(pl(2 * e - 1, -0.999999, 0.999999));
       }
       function BMComplexAt(e, t, n, r) {
-        let i = e.k0,
-          a = e.sigX,
-          o = e.sigY,
-          s = e.detBins,
+        let i = e.k0, a = e.sigX, o = e.sigY, s = e.detBins,
           c = cl + i * r,
           l = (e.xPointer - cl) / i,
           u = e.detWidth / i,
@@ -38063,65 +38060,47 @@ void main() {
           p = (e.lam / _l) * vl,
           m = Math.max(0.035, a * 0.09),
           h = (t - c) / a,
-          g = Math.exp(-0.25 * h * h),
-          v = 0,
-          y = 0,
-          b = 0,
-          x = 0,
-          S = 0,
-          C = 0;
-        for (let e = 0; e < s; e++) {
-          let l = e === 0 ? -1e6 : a * BMInvNorm(e / s),
-            u = e === s - 1 ? 1e6 : a * BMInvNorm((e + 1) / s),
-            h = t - c,
-            wL = e === 0 ? 1 : 1 / (1 + Math.exp(-(h - l) / m)),
-            wR = e === s - 1 ? 1 : 1 / (1 + Math.exp((h - u) / m)),
+          g2 = Math.exp(-0.5 * h * h),
+          rho = 0, qRho = 0;
+        for (let j = 0; j < s; j++) {
+          let lo = j === 0 ? -1e6 : a * BMInvNorm(j / s),
+            hi = j === s - 1 ? 1e6 : a * BMInvNorm((j + 1) / s),
+            rel = t - c,
+            wL = j === 0 ? 1 : 1 / (1 + Math.exp(-(rel - lo) / m)),
+            wR = j === s - 1 ? 1 : 1 / (1 + Math.exp((rel - hi) / m)),
             w = wL * wR,
-            dwL = e === 0 ? 0 : (wL * (1 - wL)) / m,
-            dwR = e === s - 1 ? 0 : (-wR * (1 - wR)) / m,
-            dw = dwL * wR + wL * dwR,
-            q = e / Math.max(s - 1, 1),
+            q = j / Math.max(s - 1, 1),
             yc = p * q * d,
-            py = f ? (p * q) / Math.max(u, 1e-6) : 0,
-            gy = Math.exp(-0.25 * ((n - yc) / o) ** 2),
-            phase = i * t + py * n - 0.5 * py * py * Math.max(0, r - l),
-            cr = Math.cos(phase),
-            ci = Math.sin(phase),
-            amp = g * w * gy,
-            dax = g * gy * (dw - (w * (t - c)) / (2 * a * a)),
-            day = amp * (-(n - yc) / (2 * o * o));
-          ((v += amp * cr),
-            (y += amp * ci),
-            (b += dax * cr - amp * i * ci),
-            (x += dax * ci + amp * i * cr),
-            (S += day * cr - amp * py * ci),
-            (C += day * ci + amp * py * cr));
+            gy2 = Math.exp(-0.5 * ((n - yc) / o) ** 2),
+            branchRho = g2 * w * gy2;
+          rho += branchRho;
+          qRho += q * branchRho;
         }
-        let w = v * v + y * y + 1e-18;
-        return { re: v, im: y, rho: w, vx: (v * x - y * b) / w, vy: (v * C - y * S) / w };
+        rho = Math.max(rho, 1e-18);
+        let qLocal = qRho / rho,
+          vy = f ? (p * qLocal) / Math.max(u, 1e-6) : 0;
+        return { re: Math.sqrt(rho), im: 0, rho, vx: i, vy };
       }
       function BMBuild(e) {
         let t = Math.max(2, Math.min(12, Math.round(e.detBins))),
           n = { k0: e.k0, sigX: e.sigX, sigY: e.sigY, detBins: t, xPointer: e.xPointer, detWidth: e.detWidth, lam: e.detectorOn ? e.lam : 0 },
-          r = cl + e.sigX * Sl(),
-          i = e.sigY * Sl(),
-          a = r,
-          o = i,
-          s = [],
+          r = cl + e.sigX * Sl(), i = e.sigY * Sl(),
+          a = r, o = i, s = [],
           c = (Math.abs(cl) / e.k0 + 9) / ll;
-        for (let e = 0; e <= ll; e++) {
-          let t = e * c;
+        for (let j = 0; j <= ll; j++) {
+          let time = j * c;
           s.push({ x: a, y: o });
-          if (e < ll) {
-            let e = BMComplexAt(n, a, o, t);
-            a += pl(e.vx, -2 * n.k0, 2 * n.k0) * c;
-            o += pl(e.vy, -12, 12) * c;
+          if (j < ll) {
+            let v = BMComplexAt(n, a, o, time),
+              vm = BMComplexAt(n, a + 0.5 * v.vx * c, o + 0.5 * v.vy * c, time + 0.5 * c);
+            a += vm.vx * c;
+            o += vm.vy * c;
           }
         }
-        let l = s[s.length - 1],
-          u = (e.xPointer - cl) / e.k0,
-          d = BMComplexAt(n, l.x, l.y, u + e.detWidth / e.k0 + 0.01);
-        return { pts: s, isTransmit: d.vy > 0.5 * ((e.lam / _l) * vl) / Math.max(e.detWidth / e.k0, 1e-6), bm: n, x0: r, y0: i };
+        let last = s[s.length - 1],
+          after = (e.xPointer - cl) / e.k0 + e.detWidth / e.k0 + 0.01,
+          vLast = BMComplexAt(n, last.x, last.y, after);
+        return { pts: s, isTransmit: vLast.vy > 0.5 * ((e.lam / _l) * vl) / Math.max(e.detWidth / e.k0, 1e-6), bm: n, x0: r, y0: i };
       }
       function BMSlice(e, t, n, r, i, a) {
         let o = new Float32Array(n),
