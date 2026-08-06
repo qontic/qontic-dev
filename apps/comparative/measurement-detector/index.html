@@ -38081,7 +38081,7 @@ void main() {
             dwR = e === s - 1 ? 0 : (-wR * (1 - wR)) / m,
             dw = dwL * wR + wL * dwR,
             q = e / Math.max(s - 1, 1),
-            yc = n + p * q * d,
+            yc = p * q * d,
             py = f ? (p * q) / Math.max(u, 1e-6) : 0,
             gy = Math.exp(-0.25 * ((n - yc) / o) ** 2),
             phase = i * t + py * n - 0.5 * py * py * Math.max(0, r - l),
