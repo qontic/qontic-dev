@@ -41053,7 +41053,10 @@ O → 1  (weak):    overlapping pointer states — each shot carries little info
                 : null,
               et = Qe
                 ? BMSlice(e.camY + m - h, e.camY - m - h, 420, `y`, Qe, {
-                    x: se,
+                    // The model has vx = k0 exactly. Use continuous analytic
+                    // X(t) for this rendered slice, without changing any
+                    // stored or displayed trajectory point.
+                    x: Qe.x0 + Qe.k0 * w,
                     y: ce - h,
                     time: w,
                   })
