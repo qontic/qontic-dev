@@ -31,12 +31,12 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install measurement dependencies
-        working-directory: apps/comparative/measurement
+      - name: Install measurement barrier dependencies
+        working-directory: apps/comparative/measurement-barrier
         run: npm install
 
-      - name: Build measurement app
-        working-directory: apps/comparative/measurement
+      - name: Build measurement barrier app
+        working-directory: apps/comparative/measurement-barrier
         run: npm run build
 
       - name: Build catalog
@@ -52,12 +52,12 @@ jobs:
           rsync -av \
             --exclude='_site' \
             --exclude='.git' \
-            --exclude='apps/comparative/measurement/node_modules' \
+            --exclude='apps/comparative/measurement-barrier/node_modules' \
             ./ ./_site/
 
-          rm -rf _site/apps/comparative/measurement
-          mkdir -p _site/apps/comparative/measurement
-          cp -r apps/comparative/measurement/dist/* _site/apps/comparative/measurement/
+          rm -rf _site/apps/comparative/measurement-barrier
+          mkdir -p _site/apps/comparative/measurement-barrier
+          cp -r apps/comparative/measurement-barrier/dist/* _site/apps/comparative/measurement-barrier/
 
           python3 scripts/inject-feedback.py . _site
           python3 scripts/inject-analytics.py . _site

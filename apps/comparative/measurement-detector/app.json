@@ -1,0 +1,19 @@
+{
+  "id": "quantum-measurement-detector-simulation",
+  "title": "Quantum Measurement: Detector Model",
+  "type": "app",
+  "category": "comparative",
+  "module": "measurement",
+  "topics": ["measurement", "detectors", "conditional-wave-functions"],
+  "interpretations": ["orthodox", "pilot-wave", "many-worlds"],
+  "level": "intermediate",
+  "description": "Experimental detector-pointer model with Born-sampled Bohmian configurations and conditional wave functions.",
+  "tags": [
+    "Multiview",
+    "Measurement",
+    "Detector",
+    "In validation"
+  ],
+  "entry": "index.html",
+  "status": "draft"
+}
