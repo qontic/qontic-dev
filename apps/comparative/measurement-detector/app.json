@@ -8,7 +8,7 @@
   "interpretations": ["orthodox", "pilot-wave", "many-worlds"],
   "level": "intermediate",
   "description": "Exactly solvable position-measurement model with fixed detector regions, adjustable interaction strength and duration, marginal or conditional projections, and optional Bohmian configurations.",
-  "tags": ["Multiview", "Measurement", "Exact analytic model", "In validation"],
+  "tags": ["Multiview", "Measurement", "Exact analytic model"],
   "entry": "index.html",
-  "status": "draft"
+  "status": "published"
 }
