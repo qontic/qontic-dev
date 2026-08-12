@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#03090f;color:#d7e8f3;font:12px Inter,Arial,sans-serif}#wrap{height:100%;padding:10px}.main{position:relative;height:100%;min-height:0;background:#07131d;border:1px solid #183448;border-radius:10px;overflow:hidden}.main canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:10px}.diag{position:absolute;left:12px;bottom:104px;background:#03101ade;border:1px solid #24485e;border-radius:8px;padding:7px 9px;line-height:1.5}.phase{position:absolute;right:160px;top:10px;background:#06141df2;border:1px solid #2b5267;border-radius:99px;padding:8px 13px;color:#79e2eb;font-weight:800}.phase.on{color:#ffe49b;border-color:#d8a743;background:#2a2117f2;box-shadow:0 0 18px #ffd16633}.axis{position:absolute;color:#bfd4e2;font-weight:700}.axis.x{right:160px;bottom:27px}.axis.y{left:12px;top:9px}.projection-label{position:absolute;color:#9db7c8;font-size:11px;pointer-events:none;line-height:1}.projection-label.x{left:55%;bottom:5px;transform:translateX(-50%)}.projection-label.y{right:5px;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;text-orientation:mixed}
+</style></head><body>
+<div id="wrap"><div class="main"><canvas id="wave"></canvas><canvas id="overlay"></canvas><span class="axis x">x</span><span class="axis y">y</span><span class="projection-label x">system marginal ρₓ(x,t)</span><span class="projection-label y">pointer marginal ρᵧ(y,t)</span><div class="phase" id="phase">Free approach</div><div class="diag" id="diag"></div></div></div>
+<script>
+const wave=document.querySelector('#wave'),over=document.querySelector('#overlay');
+const wc=wave.getContext('2d'),oc=over.getContext('2d');
+const COLOR_STOPS=[[255,111,145],[255,209,102],[77,217,192],[105,167,255]];
+const xmin0=-7,xmax0=10,ymin0=-4,ymax0=13,vx=1,vy=0,tm=3,m=200,hbar=1;
+const originalDuration=.65;
+let regionCount=4,partitionMode='probability',cutsZ=[],aq=[],C=[],CH=[];
+let time=0,speed=1,coupling=1.15,sx=.92,sy=.82,dur=0,postMeasurementTime=6.8,trailLength=3,projectionMode='marginal',interpretation='pilot',showWaveColors=true,colorParticles=false,particleCount=1,playing=false,last=performance.now(),x0=-3,y0=4.5,qx0=-3.34,qy0=4.67,particles=[],trails=[];
+function tmax(){return tm+dur+postMeasurementTime}
+function ranges(){const end=tmax(),centers=aq.map((_,q)=>nominalMotion(q,end).cy),pad=3.2*sigmaY(end),lo=Math.min(ymin0,...centers.map(v=>v-pad)),hi=Math.max(ymax0,...centers.map(v=>v+pad)),xhi=Math.max(xmax0,x0+vx*end+3.3*sx);return{xmin:xmin0,xmax:xhi,ymin:lo,ymax:hi}}
+function erf(x){const s=x<0?-1:1,a=Math.abs(x),t=1/(1+.3275911*a);return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+.254829592)*t*Math.exp(-a*a))}
+function invNorm(p){const a=[-39.6968302866538,220.946098424521,-275.928510446969,138.357751867269,-30.6647980661472,2.50662827745924],b=[-54.4760987982241,161.585836858041,-155.698979859887,66.8013118877197,-13.2806815528857],c=[-.00778489400243029,-.322396458041136,-2.40075827716184,-2.54973253934373,4.37466414146497,2.93816398269878],d=[.00778469570904146,.32246712907004,2.445134137143,3.75440866190742],lo=.02425,hi=1-lo;if(p<lo){const q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}if(p>hi){const q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}const q=p-.5,r=q*q;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)}
+function mixColor(t){const u=Math.max(0,Math.min(1,t))*3,i=Math.min(2,Math.floor(u)),f=u-i;return COLOR_STOPS[i].map((v,k)=>Math.round(v+(COLOR_STOPS[i+1][k]-v)*f))}
+function rebuildDetector(){cutsZ=Array.from({length:regionCount-1},(_,i)=>partitionMode==='probability'?invNorm((i+1)/regionCount):-1.5+3*(i+1)/regionCount);aq=Array.from({length:regionCount},(_,i)=>regionCount===1?0:-1.5+3*i/(regionCount-1));C=Array.from({length:regionCount},(_,i)=>mixColor(regionCount===1?.5:i/(regionCount-1)));CH=C.map(c=>`rgb(${c.join(',')})`)}
+function gauss(z,mu,s){return Math.exp(-.5*((z-mu)/s)**2)/(Math.sqrt(2*Math.PI)*s)}
+function sigmaY(t){return sy*Math.sqrt(1+(hbar*t/(2*m*sy*sy))**2)}
+function detectorCuts(){return cutsZ.map(z=>x0+vx*tm+sx*z)}
+function regionAt(x){const z=(x-(x0+vx*tm))/sx;let q=0;while(q<cutsZ.length&&z>cutsZ[q])q++;return q}
+function kickScale(){return coupling*.28*originalDuration}
+// Exact force history along the rigid characteristic x(s)=xi+vx*s.
+// dv is the accumulated pointer velocity kick and dy its displacement.
+function history(xi,t){
+  if(t<=tm)return{dv:0,dy:0,kAvg:aq[regionAt(xi+vx*tm)]};
+  if(dur===0){const k=aq[regionAt(xi+vx*tm)],dv=kickScale()*k;return{dv,dy:dv*(t-tm),kAvg:k}}
+  const a=tm,b=Math.min(t,tm+dur);if(b<=a)return{dv:0,dy:0,kAvg:0};
+  const points=[a,b],base=x0+vx*tm;for(const z of cutsZ){const s=(base+sx*z-xi)/vx;if(s>a&&s<b)points.push(s)}points.sort((u,v)=>u-v);
+  let i0=0,i1=0;for(let n=0;n<points.length-1;n++){const s=points[n],e=points[n+1],k=aq[regionAt(xi+vx*(s+e)/2)];i0+=k*(e-s);i1+=k*(t*(e-s)-.5*(e*e-s*s))}
+  const scale=kickScale()/dur;return{dv:scale*i0,dy:scale*i1,kAvg:i0/(b-a)}
+}
+function nominalMotion(q,t){
+  if(t<=tm)return{cy:y0,p:0};const k=aq[q],dv=kickScale()*k;
+  if(dur===0)return{cy:y0+dv*(t-tm),p:m*dv};
+  const u=Math.min(t-tm,dur),a=dv/dur;let cy=y0+.5*a*u*u;if(t>tm+dur)cy+=dv*(t-tm-dur);return{cy,p:m*a*u}
+}
+function halton(i,b){let f=1,r=0;while(i>0){f/=b;r+=f*(i%b);i=Math.floor(i/b)}return r}
+function rebuildParticles(){particles=[{x:qx0,y:qy0}];for(let i=1;i<particleCount;i++){const u=Math.max(1e-7,halton(i+1,2)),v=halton(i+1,3),r=Math.sqrt(-2*Math.log(u)),a=2*Math.PI*v;particles.push({x:x0+sx*r*Math.cos(a),y:y0+sy*r*Math.sin(a)})}trails=particles.map(()=>[])}
+function config(t,p=particles[0]||{x:qx0,y:qy0}){const qx=p.x+vx*t,{dy}=history(p.x,t),spread=sigmaY(t)/sy;return{x:qx,y:y0+vy*t+dy+spread*(p.y-y0),xi:p.x}}
+function density(x,y,t){const mx=x0+vx*t,xi=x-vx*t,{dy}=history(xi,t);return gauss(x,mx,sx)*gauss(y,y0+vy*t+dy,sigmaY(t))}
+function colorForKick(k){let hi=1;while(hi<regionCount&&k>aq[hi])hi++;if(hi>=regionCount)return C[regionCount-1];const lo=Math.max(0,hi-1),f=lo===hi?0:(k-aq[lo])/(aq[hi]-aq[lo]);return C[lo].map((v,i)=>Math.round(v+(C[hi][i]-v)*Math.max(0,Math.min(1,f))))}
+// The density canvas is deliberately evaluated on a moderate raster and smoothly
+// scaled by the browser. The analytic time evolution is unchanged; this avoids
+// dropping animation frames on high-DPI displays. The vector overlay stays crisp.
+function size(c,density=false){const r=c.getBoundingClientRect(),d=density?Math.min(1,520/Math.max(1,r.width)):1,w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(c.width!==w||c.height!==h){c.width=w;c.height=h}}
+const LABEL_BOTTOM=22,LABEL_RIGHT=22;
+function projectionWidth(w){return Math.min(142,Math.max(106,w*.15))}function plotWidth(w){return w-projectionWidth(w)}function plotHeight(h){return h-LABEL_BOTTOM}
+function X(x,w){const r=ranges();return(x-r.xmin)/(r.xmax-r.xmin)*plotWidth(w)}function Y(y,h){const r=ranges(),ph=plotHeight(h);return ph-(y-r.ymin)/(r.ymax-r.ymin)*ph}
+function drawWave(){
+  size(wave,true);const W=wave.width,H=wave.height,cssW=wave.getBoundingClientRect().width,cssH=wave.getBoundingClientRect().height,PW=Math.round(W*plotWidth(cssW)/cssW),PH=Math.round(H*plotHeight(cssH)/cssH),img=wc.createImageData(W,H),data=img.data,mu=x0+vx*time,syT=sigmaY(time),r=ranges();
+  const gx=new Float64Array(PW),cy=new Float64Array(PW),kr=new Float64Array(PW),cols=new Array(PW);let peak=0;
+  for(let i=0;i<PW;i++){const x=r.xmin+(i+.5)*(r.xmax-r.xmin)/PW,xi=x-vx*time,h=history(xi,time);gx[i]=gauss(x,mu,sx);cy[i]=y0+h.dy;kr[i]=h.kAvg;cols[i]=!showWaveColors||time<tm?[77,217,192]:colorForKick(h.kAvg);peak=Math.max(peak,gx[i]/(Math.sqrt(2*Math.PI)*syT))}
+  for(let j=0;j<H;j++){const y=r.ymax-(j+.5)*(r.ymax-r.ymin)/PH,row=4*j*W;for(let i=0;i<W;i++){const p=row+4*i;if(i>=PW||j>=PH){data[p]=3;data[p+1]=8;data[p+2]=13;data[p+3]=255;continue}const d=gx[i]*gauss(y,cy[i],syT),a=d?Math.sqrt(d/(peak||1)):0,col=cols[i];data[p]=3+col[0]*a;data[p+1]=8+col[1]*a;data[p+2]=13+col[2]*a;data[p+3]=255}}
+  wc.putImageData(img,0,0)
+}
+function arrow(x,y,len,direction,color,label,W,H){const px=X(x,W),py=Y(y,H),ey=py-direction*len,tip=direction>0?7:-7;oc.strokeStyle=color;oc.fillStyle=color;oc.lineWidth=2.5;oc.beginPath();oc.moveTo(px,py);oc.lineTo(px,ey);oc.stroke();oc.beginPath();oc.moveTo(px,ey);oc.lineTo(px-4,ey+tip);oc.lineTo(px+4,ey+tip);oc.closePath();oc.fill();oc.font='bold 11px Arial';oc.textAlign='left';oc.fillText(label,px+7,ey+(direction>0?7:-5))}
+function drawMarginals(W,H){
+  const PW=plotWidth(W),PH=plotHeight(H),xVals=new Float64Array(PW),xBase=PH,xAmp=Math.min(92,PH*.18),mu=x0+vx*time,r=ranges();let xMax=0;
+  const p=config(time);
+  for(let i=0;i<PW;i++){const x=r.xmin+i/(PW-1)*(r.xmax-r.xmin),v=projectionMode==='conditional'?density(x,p.y,time):gauss(x,mu,sx);xVals[i]=v;xMax=Math.max(xMax,v)}
+  oc.beginPath();oc.moveTo(0,xBase);for(let i=0;i<PW;i++)oc.lineTo(i,xBase-xVals[i]/xMax*xAmp);oc.lineTo(PW,xBase);oc.closePath();oc.fillStyle='#46d9e51f';oc.fill();
+  oc.strokeStyle='#68dce8';oc.lineWidth=2.5;oc.beginPath();for(let i=0;i<PW;i++){const py=xBase-xVals[i]/xMax*xAmp;i?oc.lineTo(i,py):oc.moveTo(i,py)}oc.stroke();
+  oc.strokeStyle='#31556c';oc.lineWidth=1;oc.beginPath();oc.moveTo(PW,0);oc.lineTo(PW,PH);oc.stroke();
+  const yVals=Array.from({length:regionCount},()=>new Float64Array(PH)),total=new Float64Array(PH),yBase=W-LABEL_RIGHT,yAmp=projectionWidth(W)-LABEL_RIGHT-12;let yMax=0;
+  const syT=sigmaY(time);
+  if(projectionMode==='conditional'){
+    const xi=p.x-vx*time,h=history(xi,time),q0=regionAt(xi+vx*tm),cy0=y0+h.dy;
+    for(let j=0;j<PH;j++){const y=r.ymax-j/(PH-1)*(r.ymax-r.ymin),v=gauss(y,cy0,syT);yVals[q0][j]=v;total[j]=v;yMax=Math.max(yMax,v)}
+  }else if(dur===0){
+    const edges=[-Infinity,...cutsZ,Infinity],weights=Array.from({length:regionCount},(_,q)=>{const cdf=z=>z===Infinity?1:z===-Infinity?0:.5*(1+erf(z/Math.sqrt(2)));return cdf(edges[q+1])-cdf(edges[q])});
+    for(let j=0;j<PH;j++){const y=r.ymax-j/(PH-1)*(r.ymax-r.ymin);for(let q=0;q<regionCount;q++){const v=weights[q]*gauss(y,nominalMotion(q,time).cy,syT);yVals[q][j]=v;total[j]+=v}yMax=Math.max(yMax,total[j])}
+  }else{
+    // Integrate on a fixed initial-coordinate grid. This change of variable removes
+    // frame-to-frame boundary aliasing that made the colored y marginal blink.
+    const nx=180,xiMin=-11,xiMax=6,dxi=(xiMax-xiMin)/(nx-1),xg=new Float64Array(nx),yc=new Float64Array(nx),qInit=new Uint8Array(nx);
+    for(let i=0;i<nx;i++){const xi=xiMin+i*dxi;xg[i]=gauss(xi,x0,sx)*dxi;yc[i]=y0+history(xi,time).dy;qInit[i]=regionAt(xi+vx*tm)}
+    for(let j=0;j<PH;j++){const y=r.ymax-j/(PH-1)*(r.ymax-r.ymin);for(let i=0;i<nx;i++){const v=xg[i]*gauss(y,yc[i],syT),q0=qInit[i];yVals[q0][j]+=v;total[j]+=v}yMax=Math.max(yMax,total[j])}
+  }
+  oc.beginPath();oc.moveTo(yBase,0);for(let j=0;j<PH;j++)oc.lineTo(yBase-total[j]/yMax*yAmp,j);oc.lineTo(yBase,PH);oc.closePath();oc.fillStyle='#edf8ff14';oc.fill();
+  for(let q=0;q<regionCount;q++){oc.strokeStyle=showWaveColors?CH[q]:'#9db7c899';oc.lineWidth=showWaveColors?2:1;oc.beginPath();for(let j=0;j<PH;j++){const px=yBase-yVals[q][j]/(yMax||1)*yAmp;j?oc.lineTo(px,j):oc.moveTo(px,j)}oc.stroke()}
+  oc.strokeStyle='#edf8ff';oc.lineWidth=1.5;oc.beginPath();for(let j=0;j<PH;j++){const px=yBase-total[j]/yMax*yAmp;j?oc.lineTo(px,j):oc.moveTo(px,j)}oc.stroke();
+}
+function drawOverlay(){size(over);const W=over.width,H=over.height,PH=plotHeight(H);oc.clearRect(0,0,W,H);drawMarginals(W,H);document.querySelector('.projection-label.x').textContent=projectionMode==='conditional'?'conditional |ψₓ(x,t)|²':'system marginal ρₓ(x,t)';document.querySelector('.projection-label.y').textContent=projectionMode==='conditional'?'conditional |ψᵧ(y,t)|²':'pointer marginal ρᵧ(y,t)';const cuts=detectorCuts(),outer=1.3;oc.setLineDash([7,6]);oc.lineWidth=1.5;oc.strokeStyle='#b9d9e788';for(const cut of cuts){const px=X(cut,W);oc.beginPath();oc.moveTo(px,0);oc.lineTo(px,PH);oc.stroke()}oc.setLineDash([]);oc.font=`bold ${Math.max(11,W/100)}px Arial`;oc.textAlign='center';const left=cuts[0]-outer,right=cuts[cuts.length-1]+outer,labelEdges=[left,...cuts,right];for(let q=0;q<regionCount;q++){oc.fillStyle=CH[q];oc.fillText(String.fromCharCode(65+q),X((labelEdges[q]+labelEdges[q+1])/2,W),PH-12)}if(time>=tm&&(dur===0?time<tm+.12:time<tm+dur)){for(let q=0;q<regionCount;q++){const xq=(labelEdges[q]+labelEdges[q+1])/2,signed=aq[q];arrow(xq,y0,18+12*Math.abs(signed),Math.sign(signed)||1,CH[q],`K ${signed>0?'+':''}${signed.toFixed(2)}`,W,H)}}if(time>=tm+dur){oc.fillStyle='#d9edf7';oc.font='bold 12px Arial';oc.textAlign='left';oc.fillText(dur===0?'Impulsive limit · components coast freely':'Fixed detector · finite-duration boundary smearing',120,28)}if(interpretation==='pilot')particles.forEach((seed,n)=>{const p=config(time,seed),tr=trails[n],lastPoint=tr[tr.length-1];if(!lastPoint||time-lastPoint.t>=.05||time===tmax())tr.push({...p,t:time});while(tr.length&&tr[0].t<time-trailLength)tr.shift();if(trailLength===0)tr.length=0;const q=regionAt(seed.x+vx*tm),particleColor=colorParticles?CH[q]:particleCount===1?'#f5dcff':'#d9b8ec',trailColor=colorParticles?CH[q]:(particleCount===1?'#f4e8ffbb':'#d9b8ec55');if(tr.length>1){oc.save();oc.globalAlpha=colorParticles?(particleCount===1?.75:.38):1;oc.strokeStyle=trailColor;oc.lineWidth=particleCount===1?2:1;oc.beginPath();tr.forEach((v,i)=>{const px=X(v.x,W),py=Y(v.y,H);i?oc.lineTo(px,py):oc.moveTo(px,py)});oc.stroke();oc.restore()}oc.fillStyle=particleColor;oc.beginPath();oc.arc(X(p.x,W),Y(p.y,H),particleCount===1?6:3.2,0,Math.PI*2);oc.fill();oc.strokeStyle=colorParticles?'#06131d':'#55266d';oc.lineWidth=particleCount===1?2:1;oc.stroke()})}
+let lastPhase=-1;
+function render(){drawWave();drawOverlay();const end=tm+dur,phaseIndex=time<tm?0:(dur>0&&time<end)?1:2,name=phaseIndex===0?'FREE — approaching fixed detector':phaseIndex===1?'MEASUREMENT ON — fixed interaction strength':'INTERACTION OFF — free separation';const badge=document.querySelector('#phase');badge.textContent=`${name} · t = ${time.toFixed(2)}`;badge.classList.toggle('on',phaseIndex===1);if(phaseIndex!==lastPhase){lastPhase=phaseIndex;parent.postMessage({source:'xavier-model',type:'phase',phase:phaseIndex},'*')}const nominal=aq.map(k=>(kickScale()*k).toFixed(2)),smear=(vx*dur).toFixed(2);document.querySelector('#diag').innerHTML=`exact characteristic propagation<br>detector boundaries: FIXED<br>nominal Δvᵧ: ${nominal.join(', ')}<br>boundary-smearing width vₓτ: ${smear}`}
+function reset(){time=0;playing=false;rebuildParticles();render()}function post(type,message){parent.postMessage({source:'xavier-model',type,message},'*')}
+function parameterChanged(label,value){reset();post('ready',`${label} = ${value.toFixed(2)}. Exact analytic evolution; no solving delay.`)}
+onmessage=e=>{if(e.data.type==='toggle')playing=!playing;if(e.data.type==='restart')reset();if(e.data.type==='speed')speed=e.data.value;if(e.data.type==='coupling'){coupling=e.data.value;parameterChanged('Interaction strength',coupling)}if(e.data.type==='sigmaX'){sx=e.data.value;parameterChanged('Position width σx',sx)}if(e.data.type==='sigmaY'){sy=e.data.value;parameterChanged('Pointer width σy',sy)}if(e.data.type==='duration'){dur=e.data.value;parameterChanged('Interaction duration',dur)}if(e.data.type==='postMeasurementTime'){postMeasurementTime=e.data.value;reset();post('ready',`Showing ${postMeasurementTime.toFixed(1)} time units after the interaction; axes rescaled.`)}if(e.data.type==='interpretation'){interpretation=e.data.value;if(interpretation!=='pilot')projectionMode='marginal';render();post('ready',interpretation==='pilot'?'Pilot-wave view: wave and Bohmian configurations.':interpretation==='orthodox'?'Orthodox view: wave only.':'Many-Worlds view: wave only.')}if(e.data.type==='trailLength'){trailLength=e.data.value;render();post('ready',trailLength===0?'Trajectory trails hidden.':`Trail length = ${trailLength.toFixed(2)} simulation-time units.`)}if(e.data.type==='partitionMode'){partitionMode=e.data.value;rebuildDetector();reset();post('ready',partitionMode==='probability'?`${regionCount} equal-probability detector regions.`:`${regionCount} equal-width detector regions.`)}if(e.data.type==='projectionMode'){projectionMode=e.data.value;render();post('ready',projectionMode==='conditional'?'Showing one-particle conditional wave functions.':'Showing marginal probability densities.')}if(e.data.type==='waveColors'){showWaveColors=e.data.value;render();post('ready',showWaveColors?'Detector-region wave colors shown.':'Wave-component colors hidden.')}if(e.data.type==='particleColors'){colorParticles=e.data.value;render();post('ready',colorParticles?'Particles labeled by their region at measurement time.':'Neutral particle coloring restored.')}if(e.data.type==='regionCount'){regionCount=e.data.value;rebuildDetector();reset();post('ready',`${regionCount} ${partitionMode==='probability'?'equal-probability':'equal-width'} detector regions.`)}if(e.data.type==='particleCount'){particleCount=e.data.value;if(particleCount>1)projectionMode='marginal';reset();post('ready',`${particleCount} Bohmian configurations sampled from |Ψ|².`)}};
+function loop(now){if(playing){time+=(now-last)/1000*speed;if(time>=tmax()){time=tmax();playing=false;post('ended','Run complete. Restart to view it again.')}render()}last=now;requestAnimationFrame(loop)}
+addEventListener('resize',()=>render());rebuildDetector();rebuildParticles();render();post('ready','Ready. Exact analytic evolution; no numerical solve or cached frames.');requestAnimationFrame(loop);
+</script></body></html>

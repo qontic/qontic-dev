@@ -1,19 +1,14 @@
 {
   "id": "quantum-measurement-detector-simulation",
-  "title": "Quantum Measurement: Detector Model",
+  "title": "Position Measurement Example",
   "type": "app",
   "category": "comparative",
   "module": "measurement",
-  "topics": ["measurement", "detectors", "conditional-wave-functions"],
+  "topics": ["measurement", "position-measurement", "conditional-wave-functions"],
   "interpretations": ["orthodox", "pilot-wave", "many-worlds"],
   "level": "intermediate",
-  "description": "Experimental detector-pointer model with Born-sampled Bohmian configurations and conditional wave functions.",
-  "tags": [
-    "Multiview",
-    "Measurement",
-    "Detector",
-    "In validation"
-  ],
+  "description": "Exactly solvable position-measurement model with fixed detector regions, adjustable interaction strength and duration, marginal or conditional projections, and optional Bohmian configurations.",
+  "tags": ["Multiview", "Measurement", "Exact analytic model", "In validation"],
   "entry": "index.html",
   "status": "draft"
 }
