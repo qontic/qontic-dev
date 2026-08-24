@@ -37,6 +37,8 @@ Apps that do not compare representations may omit this selector.
 - **Advanced** — model parameters, widths, couplings, detector positions, numerical settings, and random seed.
 - **Display** — projections, axes, labels, opacity, trajectories, trail appearance, camera, and font size.
 
+The particle-count slider appears in Core only while Pilot Wave is selected. Display includes the optional light/dark appearance switch.
+
 The combined run control, speed, and representations remain in the permanent top section of the control panel. Results never occupy a control tab. When present, they use the draggable and collapsible floating Results panel inside the canvas. Stage indicators and scenario selectors are not part of the common template.
 
 ## JavaScript API
