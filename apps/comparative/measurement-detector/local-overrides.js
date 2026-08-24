@@ -87,7 +87,7 @@ const CONTROL_REGISTRY = Object.freeze({
   regionSpacing: { category: 'advanced' }, weakDetectorPosition: { category: 'advanced' },
   strongDetectorPosition: { category: 'advanced' }, postMeasurementTime: { category: 'advanced' },
   particleColors: { category: 'advanced', originalLabel: 'Color runs by region' },
-  waveColors: { category: 'visual', originalLabel: 'Show region colors' },
+  waveColors: { category: 'visual', originalLabel: 'Color wave by detector region' },
   labelScale: { category: 'visual' }, volumeDensity: { category: 'visual' },
   trailLength: { category: 'visual', originalLabel: 'Trail length' },
 });
@@ -229,7 +229,7 @@ function installGraphicsTab(root = document) {
     panel=document.createElement('section'); panel.className='graphics-controls-panel'; panel.hidden=true;
     panel.innerHTML=`
       <label class="check-control"><span><input data-control="lightTheme" type="checkbox"> Light theme</span></label>
-      <label class="check-control"><span><input data-control="waveColors" type="checkbox" checked> Show region colors</span></label>
+      <label class="check-control" title="Color each part of the wave by the detector region it occupied when the interaction began. This helps track the corresponding branches and does not change the dynamics."><span><input data-control="waveColors" type="checkbox" checked> Color wave by detector region</span></label>
       <label>Label size <output>${Math.round(localLabelScale*100)}%</output></label><input data-control="labelScale" type="range" min="0.8" max="1.8" step="0.05" value="${localLabelScale}">
       <label>3D wave visibility <output>${localVolumeDensity.toFixed(1)}</output></label><input data-control="volumeDensity" type="range" min="0.5" max="8" step="0.1" value="${localVolumeDensity}">
       <label>Trail length <output>${localTrailLength.toFixed(1)} t</output></label><input data-control="trailLength" type="range" min="0" max="15" step="0.25" value="${localTrailLength}">`;
