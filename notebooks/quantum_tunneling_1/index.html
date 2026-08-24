@@ -199,18 +199,13 @@ body.qn-dark .section-head p,body.qn-dark .detail-text,body.qn-dark .readout,bod
 <p>Explore a one-dimensional square barrier through two empirically equivalent accounts: a standard measurement account (orthodox) and a pilot-wave account with a definite particle configuration guided by the same wavefunction.</p>
 </div>
 <div class="header-actions">
+<button class="qn-theme" data-qn-theme aria-pressed="false" type="button">Dark</button>
 <div class="mode-switch" role="group" aria-label="Notebook detail level"><button class="mode-button" data-notebook-mode-button="succinct" type="button" aria-pressed="false" title="Brief" aria-label="Show brief version"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 8h14M5 12h9M5 16h6"/></svg></button><button class="mode-button" data-notebook-mode-button="detailed" type="button" aria-pressed="true" title="Full" aria-label="Show full version"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 6h14M5 10h14M5 14h14M5 18h10"/></svg></button><button class="mode-reset" data-notebook-mode-reset type="button" title="Reset display preference" aria-label="Reset display preference"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4v6h6M5.5 9a7 7 0 1 1-1 7"/></svg></button></div>
 <nav class="nav">
 <a href="#part1">1. Classical limit</a><a href="#part2">2. Wave evolution</a><a href="#part3">3. Evanescence</a><a href="#part4">4. Transmission</a><a href="#part5">5. Outcomes</a><a href="#part6">6. Interpretations</a><a href="#full">Full simulation</a>
 </nav>
 </div>
 </header>
-<nav class="qn-commandbar" aria-label="Notebook controls">
-<div class="qn-run" data-qn-run><button class="qn-run-primary" data-action="play" type="button">Pause evolution</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button data-action="reset" type="button">↺ Restart evolution</button><button data-action="clear-trials" type="button">Clear detector record</button></div></div>
-<label class="qn-speed"><span>Speed</span><input data-param="speed" max="2.25" min="0.20" step="0.05" type="range" value="0.85"/><output data-label="speed">0.85×</output></label>
-<div class="qn-representation" aria-label="Representation"><button class="active" data-qn-representation="orthodox" type="button">Orthodox</button><button data-qn-representation="bohmian" type="button">Pilot Wave</button></div>
-<button class="qn-theme" data-qn-theme aria-pressed="false" type="button">Dark</button>
-</nav>
 <section class="learning-strip" id="barrier-foundations">
 <h2>Before you begin: what each mathematical object is doing</h2>
 <p>Each panel combines an image, a short equation, and an interpretation. The aim is not to memorize symbols before looking at the physics; it is to use the symbols to explain the behavior visible in the simulation.</p>
@@ -254,6 +249,7 @@ body.qn-dark .section-head p,body.qn-dark .detail-text,body.qn-dark .readout,bod
 <div class="section-body">
 <div class="canvas-card"><canvas id="c2"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j inset</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div></div><aside class="qn-results"><div class="qn-results-head"><strong>State diagnostics</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="s2Read"></div></aside></div>
 <div class="controls">
+<div class="qn-demo-bar"><div class="qn-run" data-qn-run><button class="qn-run-primary" data-action="play" type="button">Pause evolution</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button data-action="reset" type="button">↺ Restart evolution</button></div></div><label class="qn-speed"><span>Speed</span><input data-param="speed" max="2.25" min="0.20" step="0.05" type="range" value="0.85"/><output data-label="speed">0.85×</output></label></div>
 <div class="shared-control-grid" aria-label="Shared physical conditions">
 <div class="row"><label><span>Wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
 <div class="row"><label><span>Barrier height V₀</span><span data-label="v0"></span></label><input data-param="v0" max="5.50" min="0.40" step="0.05" type="range" value="2.80"/></div>
@@ -261,7 +257,6 @@ body.qn-dark .section-head p,body.qn-dark .detail-text,body.qn-dark .readout,bod
 <div class="row"><label><span>Evolution time</span><span data-time-label=""></span></label><input data-time="" max="100" min="0" step="1" type="range" value="0"/></div>
 <div class="row"><label><span>Display global phase φ</span><span data-label="phase"></span></label><input data-phase="" max="180" min="-180" step="5" type="range" value="0"/></div>
 <div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label></div>
-<div class="control-actions"><button class="button" data-action="play">Pause evolution</button><button class="button secondary" data-action="reset">Restart packet</button></div>
 <details class="derivation"><summary>Advanced: show the numerical time-step used by the simulation</summary><div class="derivation-body"><p>The browser advances the wavefunction in short time steps with a stable finite-difference method. This detail is not needed to use the physical ideas in the panels above.</p><div class="math-display">\[i\frac{\partial\psi}{\partial t}=\left(-\frac12\frac{\partial^2}{\partial x^2}+V(x)\right)\psi\]\[\left(I+\frac{i\Delta t}{2}H\right)\psi^{n+1}=\left(I-\frac{i\Delta t}{2}H\right)\psi^n\]</div><p>The numerical detector estimate is taken from a boundary-safe, separated snapshot: the readout reports both residual barrier probability and total norm. Part 4 compares the numerical packet with both T(E₀) and the momentum-averaged packet prediction.</p></div></details>
 </div>
 </div>
@@ -331,7 +326,8 @@ body.qn-dark .section-head p,body.qn-dark .detail-text,body.qn-dark .readout,bod
 <div class="section-body">
 <div class="canvas-card"><canvas id="c6"></canvas><div class="note-overlay" id="interpNote">Interpretation note</div><aside class="qn-results"><div class="qn-results-head"><strong>Interpretation</strong><button data-qn-result-collapse type="button">−</button></div><div class="interp-box readout" id="s6Read"></div></aside></div>
 <div class="controls">
-<div class="row"><label><span>Interpretation</span><span id="interpLabel">Standard measurement account</span></label><select id="interpretation"><option selected="" value="orthodox">Standard measurement account (orthodox)</option><option value="bohmian">Pilot-wave / Bohmian mechanics</option></select></div>
+<div class="qn-representation" aria-label="Representation"><button class="active" data-qn-representation="orthodox" type="button">Orthodox</button><button data-qn-representation="bohmian" type="button">Pilot Wave</button></div>
+<div class="qn-demo-bar"><div class="qn-run" data-qn-run><button class="qn-run-primary" data-action="play" type="button">Pause evolution</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button data-action="reset" type="button">↺ Restart evolution</button></div></div><label class="qn-speed"><span>Speed</span><input data-param="speed" max="2.25" min="0.20" step="0.05" type="range" value="0.85"/><output data-label="speed">0.85×</output></label></div>
 <div class="row"><label><span>Evolution time</span><span data-time-label=""></span></label><input data-time="" max="100" min="0" step="1" type="range" value="0"/></div>
 <div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label><label id="guidanceRow"><input checked="" id="showGuidance" type="checkbox"/> Show equilibrium Bohmian positions</label></div>
 <div class="interpretation-list">
@@ -363,16 +359,16 @@ body.qn-dark .section-head p,body.qn-dark .detail-text,body.qn-dark .readout,bod
 <div class="section-body">
 <div class="canvas-card full"><canvas id="cFull"></canvas><div class="note-overlay" id="fullNote">Full model note</div><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div><div id="pathLegend"><span class="sw" style="background:#f7c948"></span>Bohmian positions X(t)</div></div><aside class="qn-results"><div class="qn-results-head"><strong>Results</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="fRead"></div></aside></div>
 <div class="controls">
-<div class="row"><label><span>Interpretation</span><span id="fInterpLabel">Standard measurement account</span></label><select id="fInterpretation"><option selected="" value="orthodox">Standard measurement account (orthodox)</option><option value="bohmian">Pilot-wave / Bohmian mechanics</option></select></div>
+<div class="qn-representation" aria-label="Representation"><button class="active" data-qn-representation="orthodox" type="button">Orthodox</button><button data-qn-representation="bohmian" type="button">Pilot Wave</button></div>
+<div class="qn-demo-bar"><div class="qn-run" data-qn-run><button class="qn-run-primary" data-action="play" type="button">Pause evolution</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button data-action="reset" type="button">↺ Restart evolution</button></div></div><label class="qn-speed"><span>Speed</span><input data-param="speed" max="2.25" min="0.20" step="0.05" type="range" value="0.85"/><output data-label="speed">0.85×</output></label></div>
 <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
 <div class="row"><label><span>Barrier height V₀</span><span data-label="v0"></span></label><input data-param="v0" max="5.50" min="0.40" step="0.05" type="range" value="2.80"/></div>
 <div class="row"><label><span>Barrier width a</span><span data-label="a"></span></label><input data-param="a" max="3.50" min="0.30" step="0.05" type="range" value="1.20"/></div>
 <div class="row"><label><span>Packet width σ</span><span data-label="sigma"></span></label><input data-param="sigma" max="2.20" min="0.80" step="0.05" type="range" value="1.75"/></div>
-<div class="row"><label><span>Animation speed</span><span data-label="speed"></span></label><input data-param="speed" max="2.25" min="0.20" step="0.05" type="range" value="0.85"/></div>
 <div class="row"><label><span>Evolution time</span><span data-time-label=""></span></label><input data-time="" max="100" min="0" step="1" type="range" value="0"/></div>
 <div class="row"><label><span>Display global phase φ</span><span data-label="phase"></span></label><input data-phase="" max="180" min="-180" step="5" type="range" value="0"/></div>
 <div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label><label id="fGuidanceRow"><input checked="" id="fShowGuidance" type="checkbox"/> Equilibrium Bohmian positions</label></div>
-<div class="control-actions"><button class="button" data-action="play">Pause evolution</button><button class="button secondary" data-action="reset">Restart packet</button><button class="button secondary" data-action="fire">Add detector trials</button><button class="button warn" data-action="recommend">Under-barrier example</button></div>
+<div class="control-actions"><button class="button secondary" data-action="fire">Add detector trials</button><button class="button warn" data-action="recommend">Under-barrier example</button></div>
 </div>
 </div>
 </section>
@@ -985,7 +981,7 @@ function syncInputs(){
   document.querySelectorAll("#interpretation,#fInterpretation").forEach(e=>{ if(document.activeElement!==e) e.value=view.interpretation; });
   document.querySelectorAll("[data-qn-representation]").forEach(button=>button.classList.toggle("active",button.dataset.qnRepresentation===view.interpretation));
   const interpName=view.interpretation==="bohmian"?"Pilot-wave / Bohmian mechanics":"Standard measurement account (orthodox)";
-  ["interpLabel","fInterpLabel"].forEach(id=>document.getElementById(id).textContent=interpName);
+  ["interpLabel","fInterpLabel"].forEach(id=>{const label=document.getElementById(id);if(label)label.textContent=interpName;});
   document.querySelectorAll(".interp-detail").forEach(el=>el.classList.toggle("active",el.dataset.interp===view.interpretation));
   document.getElementById("guidanceRow").style.display=view.interpretation==="bohmian"?"flex":"none";
   document.getElementById("fGuidanceRow").style.display=view.interpretation==="bohmian"?"flex":"none";
