@@ -99,6 +99,16 @@ let localAnnotations = false;
 let localSpeed = 1, localPlaying = false, localPlaybackEnded = false;
 const sendModelControl = (type, value) => document.querySelector('.lab iframe')?.contentWindow?.postMessage({type,value},'*');
 
+function ensureThemedMeasurementFrame(root = document) {
+  const frame = root.querySelector?.('.lab iframe') ?? (root.matches?.('.lab iframe') ? root : null);
+  if (!frame || frame.dataset.templateFrameVersion === '1.48') return;
+  const url = new URL(frame.getAttribute('src') || frame.src, location.href);
+  if (!url.pathname.endsWith('/measurement.html')) return;
+  frame.dataset.templateFrameVersion = '1.48';
+  url.searchParams.set('v', '1.48');
+  frame.src = url.href;
+}
+
 function hideOriginalCategorizedControls(root = document) {
   const hiddenLabels = Object.values(CONTROL_REGISTRY).map((item) => item.originalLabel).filter(Boolean);
   root.querySelectorAll?.('label').forEach((label) => {
@@ -400,6 +410,7 @@ function updateElement(element) {
 }
 
 function updateInterface(root = document.body) {
+  ensureThemedMeasurementFrame(root);
   updateElement(root);
   root.querySelectorAll("*").forEach(updateElement);
   updateDetailsPanel(root);
