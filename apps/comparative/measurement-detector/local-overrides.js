@@ -87,7 +87,7 @@ const CONTROL_REGISTRY = Object.freeze({
   regionSpacing: { category: 'advanced' }, weakDetectorPosition: { category: 'advanced' },
   strongDetectorPosition: { category: 'advanced' }, postMeasurementTime: { category: 'advanced' },
   particleColors: { category: 'advanced', originalLabel: 'Color runs by region' },
-  waveColors: { category: 'visual', originalLabel: 'Color wave by detector region' },
+  waveColors: { category: 'visual', originalLabel: 'Show region colors' },
   labelScale: { category: 'visual' }, volumeDensity: { category: 'visual' },
   trailLength: { category: 'visual', originalLabel: 'Trail length' },
 });
@@ -126,6 +126,10 @@ function hideOriginalCategorizedControls(root = document) {
   root.querySelectorAll?.('input[aria-label*="Trail length"],input[aria-label*="trail length"]').forEach((input)=>{
     if(input.closest('.graphics-controls-panel')) return;
     input.hidden=true; const label=input.previousElementSibling; if(label?.matches('label')) label.hidden=true;
+  });
+  root.querySelectorAll?.('input[aria-label^="Show region colors"]').forEach((input)=>{
+    if(input.closest('.graphics-controls-panel')) return;
+    input.hidden=true; const label=input.closest('label') ?? input.previousElementSibling; if(label) label.hidden=true;
   });
   root.querySelectorAll?.('input[aria-label="Evolution time after measurement"]').forEach((input)=>{
     input.hidden=true; const label=input.previousElementSibling; if(label?.matches('label')) label.hidden=true;
