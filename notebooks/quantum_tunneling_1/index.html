@@ -327,11 +327,11 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="controls">
 <div class="row"><label><span>Interpretation</span><span id="interpLabel">Standard measurement account</span></label><select id="interpretation"><option selected="" value="orthodox">Standard measurement account (orthodox)</option><option value="bohmian">Pilot-wave / Bohmian mechanics</option></select></div>
 <div class="row"><label><span>Evolution time</span><span data-time-label=""></span></label><input data-time="" max="100" min="0" step="1" type="range" value="0"/></div>
-<div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label><label id="guidanceRow"><input checked="" id="showGuidance" type="checkbox"/> Show equilibrium Bohmian sample paths</label></div>
+<div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label><label id="guidanceRow"><input checked="" id="showGuidance" type="checkbox"/> Show equilibrium Bohmian positions</label></div>
 <div class="interp-box" id="s6Read"></div>
 <div class="interpretation-list">
 <div class="interp-item interp-detail active" data-interp="orthodox"><h3>Standard measurement account (orthodox)</h3><p>ψ is a probability amplitude. It evolves unitarily before measurement; a detector event is localized and has probabilities given by the Born rule. This presentation does not add a definite, measurement-independent particle path to the state description. Re ψ and Im ψ are display components whose split depends on a global phase convention.</p></div>
-<div class="interp-item interp-detail" data-interp="bohmian"><h3>Pilot-wave / Bohmian mechanics</h3><p>The pilot-wave account includes both ψ and one actual particle configuration X(t) in each run. For a spinless one-dimensional particle, the guiding law is <strong>dX/dt = j/ρ</strong>, where j=Im(ψ*∂<sub>x</sub>ψ) in ℏ=m=1 units. The gold curves show a <strong>sampled equilibrium ensemble</strong> of configurations, obtained by the equivalent 1D cumulative-probability construction; they are not multiple particles in one run and not classical guesses.</p></div>
+<div class="interp-item interp-detail" data-interp="bohmian"><h3>Pilot-wave / Bohmian mechanics</h3><p>The pilot-wave account includes both ψ and one actual particle configuration X(t) in each run. For a spinless one-dimensional particle, the guiding law is <strong>dX/dt = j/ρ</strong>, where j=Im(ψ*∂<sub>x</sub>ψ) in ℏ=m=1 units. The gold dots along the bottom show a <strong>sampled equilibrium ensemble</strong> of one-dimensional positions, obtained by the equivalent 1D cumulative-probability construction; they are not multiple particles in one run and not classical guesses.</p></div>
 </div>
 </div>
 </div>
@@ -356,7 +356,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <p>Change the incident packet and barrier, then compare the fixed-scale complex components and density in one shared plot, optional probability-current inset, packet-averaged and numerical transmission, localized detector outcomes, and—only in pilot-wave mode—an equilibrium sample of guided configurations.</p>
 </div>
 <div class="section-body">
-<div class="canvas-card full"><canvas id="cFull"></canvas><div class="note-overlay" id="fullNote">Full model note</div><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div><div id="pathLegend"><span class="sw" style="background:#f7c948"></span>equilibrium configuration sample</div></div></div>
+<div class="canvas-card full"><canvas id="cFull"></canvas><div class="note-overlay" id="fullNote">Full model note</div><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div><div id="pathLegend"><span class="sw" style="background:#f7c948"></span>Bohmian positions X(t)</div></div></div>
 <div class="controls">
 <div class="row"><label><span>Interpretation</span><span id="fInterpLabel">Standard measurement account</span></label><select id="fInterpretation"><option selected="" value="orthodox">Standard measurement account (orthodox)</option><option value="bohmian">Pilot-wave / Bohmian mechanics</option></select></div>
 <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
@@ -366,7 +366,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="row"><label><span>Animation speed</span><span data-label="speed"></span></label><input data-param="speed" max="2.25" min="0.20" step="0.05" type="range" value="0.85"/></div>
 <div class="row"><label><span>Evolution time</span><span data-time-label=""></span></label><input data-time="" max="100" min="0" step="1" type="range" value="0"/></div>
 <div class="row"><label><span>Display global phase φ</span><span data-label="phase"></span></label><input data-phase="" max="180" min="-180" step="5" type="range" value="0"/></div>
-<div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label><label id="fGuidanceRow"><input checked="" id="fShowGuidance" type="checkbox"/> Equilibrium Bohmian sample paths</label></div>
+<div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label><label id="fGuidanceRow"><input checked="" id="fShowGuidance" type="checkbox"/> Equilibrium Bohmian positions</label></div>
 <div class="control-actions"><button class="button" data-action="play">Pause evolution</button><button class="button secondary" data-action="reset">Restart packet</button><button class="button secondary" data-action="fire">Add detector trials</button><button class="button warn" data-action="recommend">Under-barrier example</button></div>
 <div class="readout" id="fRead"></div>
 </div>
@@ -764,13 +764,18 @@ function drawPacket(ctx,w,h,t,opts={}){
   return{state,box,base,ampScale,rhoScale};
 }
 function drawBohmian(ctx,packet){
-  const upto=engine.nearestFrameIndex(packet.state.t),px=x=>xPix(x,packet.box),py=t=>packet.box.y+packet.box.h*.12+t/engine.tMax*packet.box.h*.46;
-  ctx.fillStyle="rgba(7,16,32,.72)";ctx.fillRect(packet.box.x+4,packet.box.y+4,packet.box.w-8,packet.box.h*.58);ctx.strokeStyle="rgba(255,210,77,.22)";ctx.strokeRect(packet.box.x+4,packet.box.y+4,packet.box.w-8,packet.box.h*.58);
-  text(ctx,"equilibrium configurations X(t): cumulative-probability paths",packet.box.x+10,packet.box.y+19,C.gold,"700 10px system-ui");
+  const upto=engine.nearestFrameIndex(packet.state.t);
+  const trackY=packet.box.y+packet.box.h-17;
+  ctx.save();
+  ctx.strokeStyle="rgba(247,201,72,.48)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(packet.box.x+2,trackY);ctx.lineTo(packet.box.x+packet.box.w-2,trackY);ctx.stroke();
+  text(ctx,"Bohmian configurations X(t) — motion only along x",packet.box.x+7,trackY-8,C.gold,"700 10px system-ui");
+  ctx.fillStyle=C.gold;ctx.strokeStyle="rgba(7,16,32,.85)";ctx.lineWidth=.7;
   for(const tr of engine.trajectories){
-    const pts=[];for(let n=0;n<=upto;n++)pts.push([px(tr.path[n]),py(engine.frames[n].t)]);line(ctx,pts,"rgba(247,201,72,.66)",.85);
+    const x=tr.path[Math.min(upto,tr.path.length-1)];
+    ctx.beginPath();ctx.arc(xPix(x,packet.box),trackY,2.35,0,Math.PI*2);ctx.fill();ctx.stroke();
   }
-  for(const tr of engine.trajectories){const x=tr.path[Math.min(upto,tr.path.length-1)];ctx.fillStyle=C.gold;ctx.beginPath();ctx.arc(px(x),py(engine.frames[Math.min(upto,engine.frames.length-1)].t),1.6,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
 }
 function drawClassical(canvas){
   const {ctx,w,h}=canvasContext(canvas);clear(ctx,w,h);
@@ -921,7 +926,7 @@ function drawInterpretation(canvas,full=false){
   const {ctx,w,h}=canvasContext(canvas);clear(ctx,w,h);
   const note=view.interpretation==="orthodox"
     ? "Standard measurement account: ψ is the pre-measurement state; the drawing adds no unmeasured particle path."
-    : "Pilot-wave: the same ψ guides one X(t) per run; gold curves show an equilibrium ensemble, not many particles in one run.";
+    : "Pilot-wave: the same ψ guides one X(t) per run; bottom gold dots show a one-dimensional equilibrium ensemble, not many particles in one run.";
   const packet=drawPacket(ctx,w,h,sim.time,{current:view.current});
   if(view.interpretation==="bohmian" && view.guidance) drawBohmian(ctx,packet);
   if(view.interpretation==="orthodox"){
@@ -1020,7 +1025,7 @@ function updateReadouts(){
     `After <b>${n}</b> independent runs, observed right frequency = <b>${n?fmt(tr/n,3):"—"}</b>.<br>`+
     `${latest}`;
   const mode=view.interpretation==="bohmian"
-    ? `ψ and a <em>single</em> configuration X(t) are postulated in each run. The gold curves are a sampled equilibrium ensemble. In one dimension, their cumulative-probability construction is equivalent to dX/dt=j/ρ wherever ρ is nonzero.`
+    ? `ψ and a <em>single</em> configuration X(t) are postulated in each run. The bottom gold dots form a sampled one-dimensional equilibrium ensemble. Their cumulative-probability construction is equivalent to dX/dt=j/ρ wherever ρ is nonzero.`
     : `Only ψ is drawn as the pre-measurement state. Detector probabilities are obtained from ρ=|ψ|²; Re ψ and Im ψ are display components, not separately observable quantities.`;
   document.getElementById("s6Read").innerHTML=mode;
   document.getElementById("fRead").innerHTML=
