@@ -6,6 +6,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Quantum Tunneling Notebook — Standard Measurement and Pilot-Wave Accounts</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"/>
+<link rel="stylesheet" href="../../templates/qontic-notebook/notebook-template.css?v=1"/>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script>
@@ -184,13 +185,17 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
   .controls .equation-summary .equation-line .katex,
   .controls .equation.math-display>.katex-display .katex{font-size:.84em}
 }
+body.qn-dark{--page:#06111c;--paper:#0b1926;--paper2:#0e2030;--text:#eaf4ff;--muted:#9bb0be;--line:#27465a;--line2:#1c3548;--accent-soft:#173349}
+body.qn-dark .header,body.qn-dark .section,body.qn-dark .section-head,body.qn-dark .learning-strip,body.qn-dark .controls{color:var(--text)}
+body.qn-dark h1,body.qn-dark h2,body.qn-dark h3,body.qn-dark .row label,body.qn-dark .row label span:last-child{color:var(--text)}
+body.qn-dark .section-head p,body.qn-dark .detail-text,body.qn-dark .readout,body.qn-dark .callout{color:#b8ccdc}
 </style>
 </head>
 <body data-notebook-mode="detailed">
 <div class="page">
 <header class="header">
 <div>
-<h1>Quantum Tunneling Notebook</h1>
+<div class="qn-purpose"><h1>Quantum Tunneling Notebook</h1><button class="qn-purpose-button" aria-label="Notebook purpose" type="button">?</button><span class="qn-purpose-tip">Build a physical account of finite-barrier tunneling from the classical limit through wave evolution, transmission probabilities, detector outcomes, and interpretation.</span></div>
 <p>Explore a one-dimensional square barrier through two empirically equivalent accounts: a standard measurement account (orthodox) and a pilot-wave account with a definite particle configuration guided by the same wavefunction.</p>
 </div>
 <div class="header-actions">
@@ -200,6 +205,12 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 </nav>
 </div>
 </header>
+<nav class="qn-commandbar" aria-label="Notebook controls">
+<div class="qn-run" data-qn-run><button class="qn-run-primary" data-action="play" type="button">Pause evolution</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button data-action="reset" type="button">↺ Restart evolution</button><button data-action="clear-trials" type="button">Clear detector record</button></div></div>
+<label class="qn-speed"><span>Speed</span><input data-param="speed" max="2.25" min="0.20" step="0.05" type="range" value="0.85"/><output data-label="speed">0.85×</output></label>
+<div class="qn-representation" aria-label="Representation"><button class="active" data-qn-representation="orthodox" type="button">Orthodox</button><button data-qn-representation="bohmian" type="button">Pilot Wave</button></div>
+<button class="qn-theme" data-qn-theme aria-pressed="false" type="button">Dark</button>
+</nav>
 <section class="learning-strip" id="barrier-foundations">
 <h2>Before you begin: what each mathematical object is doing</h2>
 <p>Each panel combines an image, a short equation, and an interpretation. The aim is not to memorize symbols before looking at the physics; it is to use the symbols to explain the behavior visible in the simulation.</p>
@@ -223,12 +234,11 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="math-map"><strong>Define transmission before comparing models.</strong><span class="formula">\[T=\frac{N_{\mathrm{right}}}{N_{\mathrm{incident}}}\]</span>For a classical particle with E<sub>0</sub>&lt;V<sub>0</sub>, the prediction is T<sub>classical</sub>=0. For a finite quantum barrier, the calculated transmission can be nonzero.</div><div class="symbols-row"><span class="symbol-key"><b>T</b> transmission fraction</span><span class="symbol-key"><b>E<sub>0</sub></b> central incident energy</span><span class="symbol-key"><b>V<sub>0</sub></b> barrier height</span><span class="symbol-key"><b>a</b> barrier width</span></div><div class="quiz-card" data-answer="b" data-correct="Correct. For E₀&lt;V₀, making a finite barrier wider usually makes transmission smaller, although not generically zero." data-tryagain="The wavefunction has farther to decay across a wider barrier. The result is a smaller transmitted amplitude."><p><strong>Try a prediction:</strong> Keep E<sub>0</sub>&lt;V<sub>0</sub> and increase the barrier width. What happens to T?</p><div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">It must become exactly one.</button><button class="quiz-option" data-choice="b" type="button">It becomes smaller.</button><button class="quiz-option" data-choice="c" type="button">It cannot change.</button></div><p aria-live="polite" class="quiz-feedback"></p></div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Orange: square potential V(x). Blue: incident central energy E₀. When E₀&lt;V₀, the classical prediction is R=1 and T=0. The rest of this notebook shows why the quantum calculation differs.</div></div>
+<div class="canvas-card"><canvas id="c1"></canvas><div class="note-overlay">Orange: square potential V(x). Blue: incident central energy E₀. When E₀&lt;V₀, the classical prediction is R=1 and T=0. The rest of this notebook shows why the quantum calculation differs.</div><aside class="qn-results"><div class="qn-results-head"><strong>Results</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="s1Read"></div></aside></div>
 <div class="controls">
 <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
 <div class="row"><label><span>Barrier height V₀</span><span data-label="v0"></span></label><input data-param="v0" max="5.50" min="0.40" step="0.05" type="range" value="2.80"/></div>
 <div class="row"><label><span>Barrier width a</span><span data-label="a"></span></label><input data-param="a" max="3.50" min="0.30" step="0.05" type="range" value="1.20"/></div>
-<div class="readout" id="s1Read"></div>
 <details class="equation-detail control-detail"><summary>Details and math: units and energy</summary><div class="equation-summary"><strong>In the notebook’s simplified units:</strong><span class="equation-line">\[E_0=\frac{k_0^2}{2},\qquad V(x)=V_0\]</span>Here k<sub>0</sub> is the central wave number. The notebook uses ℏ=m=1 to shorten the numerical expressions; the general physical equations are shown in the next panel.</div></details>
 </div>
 </div>
@@ -242,7 +252,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="math-map"><strong>The full equation comes first.</strong><span class="formula">\[i\hbar\frac{\partial\psi}{\partial t}=-\frac{\hbar^2}{2m}\frac{\partial^2\psi}{\partial x^2}+V(x)\psi\]</span>The first term describes how the state changes and spreads when it is free. The second term inserts the orange barrier. The simulation then calculates the gold probability density from ρ=|ψ|².</div><div class="symbols-row"><span class="symbol-key"><b>ψ(x,t)</b> quantum state</span><span class="symbol-key"><b>ρ=|ψ|²</b> probability density</span><span class="symbol-key"><b>m</b> mass</span><span class="symbol-key"><b>V(x)</b> potential energy</span><span class="symbol-key"><b>ℏ</b> reduced Planck constant</span></div><div class="equation-summary"><strong>How the notebook shortens the calculation.</strong><span class="equation-line">\[\hbar=m=1\quad\Longrightarrow\quad i\frac{\partial\psi}{\partial t}=-\frac{1}{2}\frac{\partial^2\psi}{\partial x^2}+V(x)\psi\]</span>Using these units changes the labels, not the physical idea. It lets the simulation display the same relationship with fewer constants.</div><div class="concept-note"><strong>What is waving?</strong> The wavefunction is not a tiny water wave. It is a complex mathematical object whose phase and amplitude organize probabilities and interference. A global phase change can alter Re ψ and Im ψ without changing any detector probabilities.</div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c2"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j inset</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div></div></div>
+<div class="canvas-card"><canvas id="c2"></canvas><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j inset</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div></div><aside class="qn-results"><div class="qn-results-head"><strong>State diagnostics</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="s2Read"></div></aside></div>
 <div class="controls">
 <div class="shared-control-grid" aria-label="Shared physical conditions">
 <div class="row"><label><span>Wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
@@ -252,7 +262,6 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="row"><label><span>Display global phase φ</span><span data-label="phase"></span></label><input data-phase="" max="180" min="-180" step="5" type="range" value="0"/></div>
 <div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label></div>
 <div class="control-actions"><button class="button" data-action="play">Pause evolution</button><button class="button secondary" data-action="reset">Restart packet</button></div>
-<div class="readout" id="s2Read"></div>
 <details class="derivation"><summary>Advanced: show the numerical time-step used by the simulation</summary><div class="derivation-body"><p>The browser advances the wavefunction in short time steps with a stable finite-difference method. This detail is not needed to use the physical ideas in the panels above.</p><div class="math-display">\[i\frac{\partial\psi}{\partial t}=\left(-\frac12\frac{\partial^2}{\partial x^2}+V(x)\right)\psi\]\[\left(I+\frac{i\Delta t}{2}H\right)\psi^{n+1}=\left(I-\frac{i\Delta t}{2}H\right)\psi^n\]</div><p>The numerical detector estimate is taken from a boundary-safe, separated snapshot: the readout reports both residual barrier probability and total norm. Part 4 compares the numerical packet with both T(E₀) and the momentum-averaged packet prediction.</p></div></details>
 </div>
 </div>
@@ -266,7 +275,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="math-map"><strong>Follow the below-barrier chain.</strong><span class="formula">\[E&lt;V_0\quad\Longrightarrow\quad k=i\kappa\quad\Longrightarrow\quad\text{exponential behavior inside the barrier}\]</span>“Evanescent” describes the form of the wavefunction inside the barrier. It does not mean that the particle stops at a classical turning point or that energy is borrowed.</div><div class="symbols-row"><span class="symbol-key"><b>κ</b> positive decay constant</span><span class="symbol-key"><b>k</b> wave number</span><span class="symbol-key"><b>A, B</b> coefficients fixed by both barrier edges</span></div><div class="quiz-card" data-answer="b" data-correct="Correct. Evanescent describes exponential spatial behavior of a wavefunction component, not a classical particle simply stopping at the first edge." data-tryagain="Keep the mathematical statement separate from a classical path picture. The entire quantum state continues to evolve through the finite-barrier problem."><p><strong>Try a prediction:</strong> What does “evanescent” mean here?</p><div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">The particle has permanently stopped at the first edge.</button><button class="quiz-option" data-choice="b" type="button">The below-barrier wavefunction has exponential spatial behavior.</button><button class="quiz-option" data-choice="c" type="button">The particle temporarily gains extra energy.</button></div><p aria-live="polite" class="quiz-feedback"></p></div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c3"></canvas><div class="note-overlay">The time control is placed near the collision. The numerical Re ψ, Im ψ, and ρ=|ψ|² remain combined in one plot. The dashed orange line is only a local stationary-state density guide exp[−2κ(x+a/2)].</div></div>
+<div class="canvas-card"><canvas id="c3"></canvas><div class="note-overlay">The time control is placed near the collision. The numerical Re ψ, Im ψ, and ρ=|ψ|² remain combined in one plot. The dashed orange line is only a local stationary-state density guide exp[−2κ(x+a/2)].</div><aside class="qn-results"><div class="qn-results-head"><strong>Barrier regime</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="s3Read"></div></aside></div>
 <div class="controls">
 <div class="shared-control-grid" aria-label="Shared physical conditions">
 <div class="row"><label><span>Wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
@@ -274,7 +283,6 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 </div>
 <div class="row"><label><span>Collision-time view</span><span data-collision-label=""></span></label><input data-collision="" max="35" min="-35" step="1" type="range" value="0"/></div>
 <div class="row"><label><span>Packet width σ</span><span data-label="sigma"></span></label><input data-param="sigma" max="2.20" min="0.80" step="0.05" type="range" value="1.75"/></div>
-<div class="readout" id="s3Read"></div>
 <details class="equation-detail control-detail"><summary>Details and math: barrier solution</summary><div class="equation-summary"><strong>Local stationary form:</strong><span class="equation-line">\[\begin{gathered}\kappa=\frac{\sqrt{2m(V_0-E)}}{\hbar}\\[5pt]\hbar=m=1\\[-1pt]\kappa=\sqrt{2(V_0-E)}\end{gathered}\]</span><span class="equation-line">\[\psi(x)=Ae^{\kappa x}+Be^{-\kappa x}\]</span>A finite barrier has two edges. The coefficients A and B are chosen so that the wavefunction and its slope join smoothly at both edges. A single decaying exponential alone would not describe the full finite-barrier solution.</div></details>
 </div>
 </div>
@@ -288,13 +296,12 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="math-map"><strong>Use the standard uncertainty relation first.</strong><span class="formula">\[\Delta x\,\Delta p\geq\frac{\hbar}{2},\qquad p=\hbar k\]</span>A narrower packet has a smaller position spread Δx and a wider momentum spread Δp. Because momentum is proportional to k, that wider k-range samples a range of transmission probabilities.</div><div class="symbols-row"><span class="symbol-key"><b>Δx</b> packet width scale</span><span class="symbol-key"><b>Δp</b> momentum spread</span><span class="symbol-key"><b>k</b> wave number</span><span class="symbol-key"><b>T(E)</b> plane-wave transmission at energy E</span></div><div class="equation-summary"><strong>Use now: test the trend.</strong><span class="equation-line">\[\text{higher or wider barrier}\quad\Longrightarrow\quad\text{smaller transmission }T\]</span>The green curve is the exact stationary-wave benchmark. The cyan result averages that benchmark over the finite packet's momentum distribution.</div><div class="concept-note">Use the packet-width control in the collision panel. A narrower packet has a broader momentum spread, so its cyan packet-average can differ more from the gold single-energy estimate.</div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c4"></canvas><div class="legend"><div><span class="sw" style="background:#54e0a0"></span>Exact plane-wave T(E)</div><div><span class="sw" style="background:#ffd24d"></span>T(E₀)</div><div><span class="sw" style="background:#4fc3ff"></span>packet average</div><div><span class="sw" style="background:#ff9966"></span>barrier height V₀</div></div></div>
+<div class="canvas-card"><canvas id="c4"></canvas><div class="legend"><div><span class="sw" style="background:#54e0a0"></span>Exact plane-wave T(E)</div><div><span class="sw" style="background:#ffd24d"></span>T(E₀)</div><div><span class="sw" style="background:#4fc3ff"></span>packet average</div><div><span class="sw" style="background:#ff9966"></span>barrier height V₀</div></div><aside class="qn-results"><div class="qn-results-head"><strong>Transmission</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="s4Read"></div></aside></div>
 <div class="controls">
 <div class="row"><label><span>Barrier height V₀</span><span data-label="v0"></span></label><input data-param="v0" max="5.50" min="0.40" step="0.05" type="range" value="2.80"/></div>
 <div class="row"><label><span>Barrier width a</span><span data-label="a"></span></label><input data-param="a" max="3.50" min="0.30" step="0.05" type="range" value="1.20"/></div>
 <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
 <details class="equation-detail"><summary>Advanced: show the exact below-barrier plane-wave formula</summary><div class="equation math-display">\[T(E)=\left[1+\frac{V_0^2\sinh^2(\kappa a)}{4E(V_0-E)}\right]^{-1},\qquad E&lt;V_0\]<div class="eq-note">This exact expression is for one stationary energy E. A finite packet contains a range of energies, so the simulation also computes a packet-averaged prediction.</div></div></details>
-<div class="readout" id="s4Read"></div>
 </div>
 </div>
 </section>
@@ -306,11 +313,10 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="detail-text"><p><strong>Reading the canvas from top to bottom:</strong> (1) the gold late-time density specifies the probability of a detector position; (2) every red or green dot is one independent experimental run sampled from that density; (3) the lower bars compare the observed fractions with the quantum prediction. A dot is <strong>not</strong> a particle trajectory and the collection of dots is <strong>not</strong> one simultaneous multi-particle snapshot.</p><p>The notebook represents an ideal position measurement by sampling from the late-time probability distribution. It does not simulate the detector’s microscopic dynamics.</p><p>At sufficiently late times, when negligible probability remains in the barrier region and the state is normalized, P(L)+P(R)≈1.</p></div>
 <div class="math-map"><strong>Read a probability as a long-run frequency.</strong><span class="formula">\[P(R)=\int_{\text{right detector}}\rho(x)\,dx,\qquad P(L)=1-P(R)\]</span>The area under the late-time gold density in each detector region gives the predicted fraction of many independent runs that end there. One run still produces one localized detector event.</div><div class="symbols-row"><span class="symbol-key"><b>ρ=|ψ|²</b> probability density</span><span class="symbol-key"><b>P(R)</b> predicted right-detector frequency</span><span class="symbol-key"><b>P(L)</b> predicted left-detector frequency</span></div><div class="quiz-card" data-answer="a" data-correct="Correct. A predicted P(R)=0.20 means that, over many independent preparations, about 20% of outcomes are expected in the right detector region." data-tryagain="A probability is not a fractional event in one run. It is a long-run frequency prediction for repeated, identically prepared experiments."><p><strong>Try a prediction:</strong> If P(R)=0.20, what does that say about many runs?</p><div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">About 20% of independent outcomes should be right-side detections.</button><button class="quiz-option" data-choice="b" type="button">Every run produces a dot that is 20% to the right.</button><button class="quiz-option" data-choice="c" type="button">The particle is split into 20 pieces.</button></div><p aria-live="polite" class="quiz-feedback"></p></div></div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c5"></canvas></div>
+<div class="canvas-card"><canvas id="c5"></canvas><aside class="qn-results"><div class="qn-results-head"><strong>Detector record</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="s5Read"></div></aside></div>
 <div class="controls">
 <div class="row"><label><span>Independent preparations to add</span><span id="trialNLabel">100</span></label><input id="trialN" max="500" min="10" step="10" type="range" value="100"/></div>
 <div class="control-actions"><button class="button" data-action="fire-one">Run one</button><button class="button" data-action="fire">Add selected</button><button class="button secondary wide" data-action="clear-trials">Clear detector record</button></div>
-<div class="readout" id="s5Read"></div>
 <div class="callout"><span class="pill quantum">Standard account</span><span class="pill pilot">Pilot-wave</span><span class="pill numeric">Shared prediction</span><br/>Same detector frequencies; different accounts of what happens between preparation and detection.</div>
 </div>
 </div>
@@ -323,12 +329,11 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="math-map"><strong>Separate the calculation from the interpretation.</strong><span class="formula">\[\rho=|\psi|^2\ \text{predicts positions},\qquad \frac{dX}{dt}=\frac{j}{\rho}\ \text{is the Bohmian guidance law}\]</span>Both accounts agree on the measurement statistics in this notebook. The pilot-wave account adds a definite configuration X(t); the standard account does not add a definite unmeasured route to the state description.</div><div class="symbols-row"><span class="symbol-key"><b>ρ</b> probability density</span><span class="symbol-key"><b>j</b> probability current</span><span class="symbol-key"><b>X(t)</b> Bohmian configuration</span></div><div class="concept-note"><strong>Sense-making, not a verdict:</strong> the calculation does not by itself prove one interpretation uniquely true. Comparing accounts is useful because it shows which claims come from the mathematical prediction and which claims are extra statements about what exists between measurements.</div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c6"></canvas><div class="note-overlay" id="interpNote">Interpretation note</div></div>
+<div class="canvas-card"><canvas id="c6"></canvas><div class="note-overlay" id="interpNote">Interpretation note</div><aside class="qn-results"><div class="qn-results-head"><strong>Interpretation</strong><button data-qn-result-collapse type="button">−</button></div><div class="interp-box readout" id="s6Read"></div></aside></div>
 <div class="controls">
 <div class="row"><label><span>Interpretation</span><span id="interpLabel">Standard measurement account</span></label><select id="interpretation"><option selected="" value="orthodox">Standard measurement account (orthodox)</option><option value="bohmian">Pilot-wave / Bohmian mechanics</option></select></div>
 <div class="row"><label><span>Evolution time</span><span data-time-label=""></span></label><input data-time="" max="100" min="0" step="1" type="range" value="0"/></div>
 <div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label><label id="guidanceRow"><input checked="" id="showGuidance" type="checkbox"/> Show equilibrium Bohmian positions</label></div>
-<div class="interp-box" id="s6Read"></div>
 <div class="interpretation-list">
 <div class="interp-item interp-detail active" data-interp="orthodox"><h3>Standard measurement account (orthodox)</h3><p>ψ is a probability amplitude. It evolves unitarily before measurement; a detector event is localized and has probabilities given by the Born rule. This presentation does not add a definite, measurement-independent particle path to the state description. Re ψ and Im ψ are display components whose split depends on a global phase convention.</p></div>
 <div class="interp-item interp-detail" data-interp="bohmian"><h3>Pilot-wave / Bohmian mechanics</h3><p>The pilot-wave account includes both ψ and one actual particle configuration X(t) in each run. For a spinless one-dimensional particle, the guiding law is <strong>dX/dt = j/ρ</strong>, where j=Im(ψ*∂<sub>x</sub>ψ) in ℏ=m=1 units. The gold dots along the bottom show a <strong>sampled equilibrium ensemble</strong> of one-dimensional positions, obtained by the equivalent 1D cumulative-probability construction; they are not multiple particles in one run and not classical guesses.</p></div>
@@ -356,7 +361,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <p>Change the incident packet and barrier, then compare the fixed-scale complex components and density in one shared plot, optional probability-current inset, packet-averaged and numerical transmission, localized detector outcomes, and—only in pilot-wave mode—an equilibrium sample of guided configurations.</p>
 </div>
 <div class="section-body">
-<div class="canvas-card full"><canvas id="cFull"></canvas><div class="note-overlay" id="fullNote">Full model note</div><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div><div id="pathLegend"><span class="sw" style="background:#f7c948"></span>Bohmian positions X(t)</div></div></div>
+<div class="canvas-card full"><canvas id="cFull"></canvas><div class="note-overlay" id="fullNote">Full model note</div><div class="legend"><div><span class="sw" style="background:#4fc3ff"></span>Re ψ</div><div><span class="sw" style="background:#2563eb"></span>Im ψ</div><div><span class="sw" style="background:#ffd24d"></span>ρ=|ψ|²</div><div><span class="sw" style="background:#54e0a0"></span>j</div><div><span class="sw" style="background:#ff9966"></span>V(x)</div><div id="pathLegend"><span class="sw" style="background:#f7c948"></span>Bohmian positions X(t)</div></div><aside class="qn-results"><div class="qn-results-head"><strong>Results</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="fRead"></div></aside></div>
 <div class="controls">
 <div class="row"><label><span>Interpretation</span><span id="fInterpLabel">Standard measurement account</span></label><select id="fInterpretation"><option selected="" value="orthodox">Standard measurement account (orthodox)</option><option value="bohmian">Pilot-wave / Bohmian mechanics</option></select></div>
 <div class="row"><label><span>Central wave number k₀</span><span data-label="k0"></span></label><input data-param="k0" max="3.40" min="1.10" step="0.02" type="range" value="2.00"/></div>
@@ -368,7 +373,6 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="row"><label><span>Display global phase φ</span><span data-label="phase"></span></label><input data-phase="" max="180" min="-180" step="5" type="range" value="0"/></div>
 <div class="checks"><label><input checked="" data-show="re" type="checkbox"/> Re ψ</label><label><input checked="" data-show="im" type="checkbox"/> Im ψ</label><label><input checked="" data-show="rho" type="checkbox"/> Probability density</label><label><input data-show="current" type="checkbox"/> Probability current j</label><label id="fGuidanceRow"><input checked="" id="fShowGuidance" type="checkbox"/> Equilibrium Bohmian positions</label></div>
 <div class="control-actions"><button class="button" data-action="play">Pause evolution</button><button class="button secondary" data-action="reset">Restart packet</button><button class="button secondary" data-action="fire">Add detector trials</button><button class="button warn" data-action="recommend">Under-barrier example</button></div>
-<div class="readout" id="fRead"></div>
 </div>
 </div>
 </section>
@@ -979,6 +983,7 @@ function syncInputs(){
     document.querySelectorAll("[data-collision-label]").forEach(e=>e.textContent=`t = ${fmt(clamp(engine.collisionTime+shift,0,engine.tMax),2)}`);
   }
   document.querySelectorAll("#interpretation,#fInterpretation").forEach(e=>{ if(document.activeElement!==e) e.value=view.interpretation; });
+  document.querySelectorAll("[data-qn-representation]").forEach(button=>button.classList.toggle("active",button.dataset.qnRepresentation===view.interpretation));
   const interpName=view.interpretation==="bohmian"?"Pilot-wave / Bohmian mechanics":"Standard measurement account (orthodox)";
   ["interpLabel","fInterpLabel"].forEach(id=>document.getElementById(id).textContent=interpName);
   document.querySelectorAll(".interp-detail").forEach(el=>el.classList.toggle("active",el.dataset.interp===view.interpretation));
@@ -1078,6 +1083,10 @@ document.querySelectorAll("[data-collision]").forEach(el=>el.addEventListener("i
 document.querySelectorAll("#interpretation,#fInterpretation").forEach(el=>el.addEventListener("change",()=>{
   view.interpretation=el.value;syncInputs();renderAll();
 }));
+document.addEventListener("qontic:representation",event=>{
+  if(!["orthodox","bohmian"].includes(event.detail?.representation)) return;
+  view.interpretation=event.detail.representation;syncInputs();renderAll();
+});
 ["showGuidance","fShowGuidance"].forEach(id=>document.getElementById(id).addEventListener("change",e=>{view.guidance=e.target.checked;syncInputs();renderAll();}));
 document.getElementById("trialN").addEventListener("input",()=>{document.getElementById("trialNLabel").textContent=document.getElementById("trialN").value;});
 document.querySelectorAll("[data-action]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -1129,5 +1138,5 @@ syncInputs();renderAll();requestAnimationFrame(tick);
     feedback.textContent=isCorrect ? card.dataset.correct : card.dataset.tryagain;
   });
 })();
-</script></body>
+</script><script type="module">import{mountQonticNotebook}from'../../templates/qontic-notebook/qontic-notebook.js?v=1';mountQonticNotebook();</script></body>
 </html>
