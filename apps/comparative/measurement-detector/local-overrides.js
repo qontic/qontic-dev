@@ -94,7 +94,7 @@ const CONTROL_REGISTRY = Object.freeze({
 
 let localVolumeDensity = 3.6, localLabelScale = 1.3, localTrailLength = 3, localInteractionDuration = 0, localPostReadoutTime = 6.8;
 let localWeakDetectorX = 0, localStrongDetectorX = 1, localXPositionWidth=.92, localYPositionWidth=.82, localZPointerWidth = .26, localViewMode = 'xy', localInterpretation = 'pilot';
-let localWaveColors = true, localParticleColors = false, graphicsActive = false;
+let localWaveColors = true, localParticleColors = false, localLightTheme = false, graphicsActive = false;
 let localAnnotations = false;
 let localSpeed = 1, localPlaying = false, localPlaybackEnded = false;
 const sendModelControl = (type, value) => document.querySelector('.lab iframe')?.contentWindow?.postMessage({type,value},'*');
@@ -132,14 +132,15 @@ function installPermanentControls(root = document) {
   if (!panel) {
     panel = document.createElement('section'); panel.className = 'permanent-controls-panel';
     panel.innerHTML = `
-      <div class="projection-toggle permanent-interpretation" role="group" aria-label="Quantum interpretation"><button data-interpretation="orthodox" title="Orthodox collapse view">Orthodox</button><button class="active" data-interpretation="pilot" title="Pilot-wave view">Pilot-wave</button><button data-interpretation="many-worlds" title="Many-Worlds branching view">Many-Worlds</button></div>
-      <div class="permanent-playback"><div class="split-playback"><button data-playback title="Play, pause, continue, or start a newly sampled run">Play</button><button data-playback-menu type="button" aria-label="More playback options" aria-haspopup="menu" aria-expanded="false">▾</button><div class="playback-menu" role="menu" hidden><button data-replay-same type="button" role="menuitem">Replay same configuration</button></div></div><label title="Simulation playback speed">Speed <output>1.0×</output></label><input data-speed type="range" min="0.25" max="3" step="0.25" value="1"></div>
+      <div class="projection-toggle permanent-interpretation" role="group" aria-label="Quantum interpretation"><button data-interpretation="orthodox" title="Orthodox collapse view">Orthodox</button><button class="active" data-interpretation="pilot" title="Pilot-Wave view">Pilot Wave</button><button data-interpretation="many-worlds" title="Many-Worlds branching view">Many Worlds</button></div>
+      <div class="permanent-playback"><div class="split-playback"><button data-playback title="Play, pause, continue, or start a newly sampled run">Play</button><button data-playback-menu type="button" aria-label="More run options" aria-haspopup="menu" aria-expanded="false">▾</button><div class="playback-menu" role="menu" hidden><button data-restart-same type="button" role="menuitem">Restart same run</button><button data-new-run type="button" role="menuitem">New run</button></div></div><label class="permanent-speed" title="Simulation playback speed"><span>Speed</span><input data-speed type="range" min="0.25" max="3" step="0.25" value="1"><output>1.0×</output></label></div>
       <div class="xyz-view-control"><span>View</span><div><button class="active" data-view="xy" title="X–Y: particle position X and weak-pointer position Y; the strong-pointer coordinate Z is hidden" aria-label="X–Y view: particle position and weak pointer">X–Y</button><button data-view="xz" title="X–Z: particle position X and the final strong-pointer position Z; the weak-pointer coordinate Y is hidden" aria-label="X–Z view: particle position and strong pointer">X–Z</button><button data-view="yz" title="Y–Z: weak-pointer position Y and the strong-pointer position Z that records it; particle position X is hidden" aria-label="Y–Z view: weak pointer and strong pointer">Y–Z</button><button data-view="3d" title="3D: full rotatable X–Y–Z configuration-space density (not ordinary physical 3-space)" aria-label="3D configuration-space view">3D</button></div><small class="view-axis-key"><b>X</b> particle position · <b>Y</b> weak pointer · <b>Z</b> strong pointer</small></div>`;
     tablist.before(panel);
     panel.querySelectorAll('[data-interpretation]').forEach((button) => button.addEventListener('click', () => {
       localInterpretation = button.dataset.interpretation;
       panel.querySelectorAll('[data-interpretation]').forEach((candidate) => candidate.classList.toggle('active', candidate === button));
       sendModelControl('interpretation', localInterpretation);
+      syncPilotWaveParticleControl();
     }));
     panel.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => {
       localViewMode = button.dataset.view;
@@ -150,10 +151,20 @@ function installPermanentControls(root = document) {
     const menuButton=panel.querySelector('[data-playback-menu]'), menu=panel.querySelector('.playback-menu');
     const closePlaybackMenu=()=>{menu.hidden=true;menuButton.setAttribute('aria-expanded','false')};
     menuButton.addEventListener('click',(event)=>{event.stopPropagation();const opening=menu.hidden;menu.hidden=!opening;menuButton.setAttribute('aria-expanded',String(opening));if(opening)menu.querySelector('button')?.focus()});
-    panel.querySelector('[data-replay-same]').addEventListener('click',()=>{closePlaybackMenu();sendModelControl('replaySameAndPlay')});
+    panel.querySelector('[data-restart-same]').addEventListener('click',()=>{closePlaybackMenu();sendModelControl('replaySameAndPlay')});
+    panel.querySelector('[data-new-run]').addEventListener('click',()=>{closePlaybackMenu();sendModelControl('restartAndPlay')});
     document.addEventListener('click',(event)=>{if(!event.target.closest('.split-playback'))closePlaybackMenu()});
     panel.querySelector('[data-speed]').addEventListener('input',(event)=>{localSpeed=+event.target.value;panel.querySelector('.permanent-playback output').textContent=`${localSpeed.toFixed(1)}×`;sendModelControl('speed',localSpeed)});
   }
+}
+
+function syncPilotWaveParticleControl(root = document) {
+  const input = root.querySelector?.('input[aria-label="Number of Bohmian particles"]') ?? document.querySelector('input[aria-label="Number of Bohmian particles"]');
+  if (!input) return;
+  const label = input.previousElementSibling?.matches('label') ? input.previousElementSibling : null;
+  const visible = localInterpretation === 'pilot' && !graphicsActive;
+  input.hidden = !visible;
+  if (label) label.hidden = !visible;
 }
 
 function syncCoreAnnotationControl() {
@@ -199,7 +210,7 @@ function installGraphicsTab(root = document) {
   const aside = tablist?.closest('aside'); if (!tablist || !aside) return;
   let tab = tablist.querySelector('[data-local-tab="graphics"]');
   if (!tab) {
-    tab = document.createElement('button'); tab.type='button'; tab.role='tab'; tab.dataset.localTab='graphics'; tab.textContent='Visual'; tab.setAttribute('aria-selected','false'); tablist.append(tab);
+    tab = document.createElement('button'); tab.type='button'; tab.role='tab'; tab.dataset.localTab='graphics'; tab.textContent='Display'; tab.setAttribute('aria-selected','false'); tablist.append(tab);
     tab.addEventListener('click',()=>{graphicsActive=true;syncControlTabs()});
     tablist.querySelectorAll('button:not([data-local-tab="graphics"])').forEach((button)=>{if(!button.dataset.graphicsExit){button.dataset.graphicsExit='true';button.addEventListener('click',()=>{graphicsActive=false;requestAnimationFrame(syncControlTabs)})}});
   }
@@ -207,15 +218,18 @@ function installGraphicsTab(root = document) {
   if (!panel) {
     panel=document.createElement('section'); panel.className='graphics-controls-panel'; panel.hidden=true;
     panel.innerHTML=`
+      <label class="check-control"><span><input data-control="lightTheme" type="checkbox"> Light theme</span></label>
       <label class="check-control"><span><input data-control="waveColors" type="checkbox" checked> Show region colors</span></label>
       <label>Label size <output>${Math.round(localLabelScale*100)}%</output></label><input data-control="labelScale" type="range" min="0.8" max="1.8" step="0.05" value="${localLabelScale}">
       <label>3D wave visibility <output>${localVolumeDensity.toFixed(1)}</output></label><input data-control="volumeDensity" type="range" min="0.5" max="8" step="0.1" value="${localVolumeDensity}">
       <label>Trail length <output>${localTrailLength.toFixed(1)} t</output></label><input data-control="trailLength" type="range" min="0" max="15" step="0.25" value="${localTrailLength}">`;
     tablist.after(panel);
+    panel.querySelector('[data-control="lightTheme"]').addEventListener('change',(event)=>{localLightTheme=event.target.checked;document.body.classList.toggle('qontic-light',localLightTheme);sendModelControl('lightTheme',localLightTheme)});
     panel.querySelector('[data-control="waveColors"]').addEventListener('change',(event)=>{localWaveColors=event.target.checked;sendModelControl('waveColors',localWaveColors)});
     panel.querySelectorAll('input[type="range"][data-control]').forEach((input)=>input.addEventListener('input',()=>{const value=+input.value,output=input.previousElementSibling.querySelector('output');if(input.dataset.control==='labelScale'){localLabelScale=value;output.textContent=`${Math.round(value*100)}%`}if(input.dataset.control==='volumeDensity'){localVolumeDensity=value;output.textContent=value.toFixed(1)}if(input.dataset.control==='trailLength'){localTrailLength=value;output.textContent=value===0?'Off':`${value.toFixed(1)} t`}sendModelControl(input.dataset.control,value)}));
   }
   syncControlTabs();
+  syncPilotWaveParticleControl();
 }
 
 function installAdvancedDetectorControls(root = document) {
@@ -350,7 +364,7 @@ function installViewStyles() {
   const style = document.createElement("style");
   style.id = "xyz-view-styles";
   style.textContent = '.control-level[role="tablist"]{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}.control-level[role="tablist"] button{min-width:0!important;padding-left:4px!important;padding-right:4px!important;white-space:nowrap!important}.tabs button{white-space:nowrap}.permanent-controls-panel{display:grid;gap:5px;margin:5px 0 8px}.permanent-controls-panel>label{margin-top:1px}.xyz-view-control{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 6px;margin:0;padding:6px 7px;border:1px solid #23425a;border-radius:8px;background:#07131d}.xyz-view-control>span{color:#bcd0dd;font-size:11px;font-weight:700;white-space:nowrap}.xyz-view-control>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;min-width:0}.xyz-view-control button{min-width:0;padding:5px 2px;background:#162d3d;color:#b9cfdb;border:1px solid #294b60;font-size:10px;white-space:nowrap}.xyz-view-control button.active{background:#55d8e6;color:#04202a;border-color:#55d8e6}.view-axis-key{grid-column:1/-1;color:#8faaba;font-size:9px;line-height:1.15;text-align:center;white-space:nowrap}.view-axis-key b{color:#d7e8f3}.graphics-controls-panel,.detector-layout-controls{display:grid;gap:4px;margin:7px 0;padding:8px;border:1px solid #23425a;border-radius:7px;background:#07131d}.graphics-controls-panel[hidden],.detector-layout-controls[hidden]{display:none}.graphics-controls-panel label,.detector-layout-controls label{display:flex;justify-content:space-between;gap:8px}.graphics-controls-panel output,.detector-layout-controls output{color:#7cecff;font-variant-numeric:tabular-nums}.detector-plane-note{margin:5px 0 0;color:#a9c4d3;font-size:10px;line-height:1.3}.strong-readout-note{margin:2px 0 0;color:#8fd8b4;font-size:10px;line-height:1.3}.projection-toggle[aria-disabled="true"]{opacity:.48}.projection-toggle button:disabled{cursor:not-allowed;filter:saturate(.25)}';
-  style.textContent += '.lab{grid-template-columns:minmax(0,1fr) 328px!important}.permanent-interpretation{grid-template-columns:repeat(3,minmax(0,1fr))!important;margin-top:0!important}.permanent-interpretation button{min-width:0;padding:6px 3px!important;white-space:nowrap;font-size:10.5px!important}.permanent-playback{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:6px;padding:5px 7px;border:1px solid #23425a;border-radius:8px;background:#07131d}.permanent-playback button{padding:5px 11px}.permanent-playback label{margin:0;gap:4px;white-space:nowrap;font-size:11px}.permanent-playback input{min-width:0}.graphics-controls-panel,.detector-layout-controls{grid-template-columns:minmax(92px,.8fr) minmax(0,1.2fr);gap:5px 8px;align-items:center}.graphics-controls-panel label,.detector-layout-controls label{margin:0;white-space:nowrap}.graphics-controls-panel input[type=range],.detector-layout-controls input[type=range]{min-width:0}.graphics-controls-panel .check-control,.detector-layout-controls .check-control,.detector-plane-note,.strong-readout-note{grid-column:1/-1}.lab aside>.buttons,.lab aside>.buttons+label,.lab aside>.buttons+label+input{display:none!important}@media(max-width:900px){.lab{grid-template-columns:1fr!important}}';
+  style.textContent += '.lab{grid-template-columns:minmax(0,1fr) 328px!important}.permanent-interpretation{grid-template-columns:repeat(3,minmax(0,1fr))!important;margin-top:0!important}.permanent-interpretation button{min-width:0;padding:6px 3px!important;white-space:nowrap;font-size:10.5px!important}.permanent-playback{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;padding:5px 7px;border:1px solid #23425a;border-radius:8px;background:#07131d}.permanent-playback button{padding:5px 11px}.permanent-speed{display:grid!important;grid-template-columns:auto minmax(42px,1fr) 30px!important;align-items:center;gap:5px!important;margin:0!important;min-width:0;white-space:nowrap;font-size:11px}.permanent-speed input{min-width:0;width:100%}.permanent-speed output{min-width:30px;text-align:right;font-variant-numeric:tabular-nums}.graphics-controls-panel,.detector-layout-controls{grid-template-columns:minmax(92px,.8fr) minmax(0,1.2fr);gap:5px 8px;align-items:center}.graphics-controls-panel label,.detector-layout-controls label{margin:0;white-space:nowrap}.graphics-controls-panel input[type=range],.detector-layout-controls input[type=range]{min-width:0}.graphics-controls-panel .check-control,.detector-layout-controls .check-control,.detector-plane-note,.strong-readout-note{grid-column:1/-1}.lab aside>.buttons,.lab aside>.buttons+label,.lab aside>.buttons+label+input{display:none!important}@media(max-width:900px){.lab{grid-template-columns:1fr!important}}';
   style.textContent += '.split-playback{position:relative;display:grid;grid-template-columns:auto 24px}.split-playback>[data-playback]{border-radius:5px 0 0 5px!important}.split-playback>[data-playback-menu]{min-width:24px!important;padding:5px 3px!important;border-left:1px solid #168aa0!important;border-radius:0 5px 5px 0!important}.playback-menu{position:absolute;z-index:40;left:0;top:calc(100% + 4px);min-width:190px;padding:4px;background:#0a1b28;border:1px solid #31556c;border-radius:6px;box-shadow:0 8px 24px #0009}.playback-menu[hidden]{display:none!important}.playback-menu button{width:100%;padding:7px 9px!important;text-align:left;white-space:nowrap;background:#112c3d!important;color:#d9edf7!important}.playback-menu button:hover,.playback-menu button:focus{background:#1a4256!important}';
   style.textContent += '.interaction-controls{grid-template-columns:1fr!important;gap:9px!important}.control-pair{grid-template-columns:minmax(150px,1fr) minmax(0,1fr)!important;grid-template-rows:none!important;align-items:center!important;gap:10px!important}.control-pair label{margin:0!important;align-items:center!important;line-height:1.15!important;white-space:nowrap}.control-pair input{min-width:0!important}.detector-layout-controls{grid-template-columns:minmax(142px,1fr) minmax(0,1.05fr)!important}.detector-layout-controls label{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:5px!important}.graphics-controls-panel{grid-template-columns:minmax(158px,1.15fr) minmax(0,.85fr)!important}.interpretation-toggle:not(.permanent-interpretation),label:has(+ .interpretation-toggle:not(.permanent-interpretation)){display:none!important}.advanced-heading{display:none!important}label:has(+ input[aria-label="Initial system wave-packet width sigma x"]),input[aria-label="Initial system wave-packet width sigma x"],label:has(+ input[aria-label="Pointer width sigma y"]),input[aria-label="Pointer width sigma y"],label:has(+ input[aria-label="Trajectory trail length"]),input[aria-label="Trajectory trail length"],label:has(+ input[aria-label="Evolution time after measurement"]),input[aria-label="Evolution time after measurement"]{display:none!important}';
   style.textContent += '.lab aside>label:has(+input[aria-label*="sigma x"]),.lab aside>input[aria-label*="sigma x"],.lab aside>label:has(+input[aria-label*="sigma y"]),.lab aside>input[aria-label*="sigma y"],.lab aside>label:has(+input[aria-label="Trajectory trail length"]),.lab aside>input[aria-label="Trajectory trail length"],.lab aside>label:has(+input[aria-label="Evolution time after measurement"]),.lab aside>input[aria-label="Evolution time after measurement"]{display:none!important}';
@@ -395,6 +409,7 @@ function updateInterface(root = document.body) {
   installGraphicsTab(root);
   installAdvancedDetectorControls(root);
   installAxisModeListeners(root);
+  syncPilotWaveParticleControl(root);
   consolidatePlaybackControls(root);
   hideOriginalCategorizedControls(root);
   removeRedundantControlsHeading(root);
