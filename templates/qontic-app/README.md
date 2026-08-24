@@ -37,7 +37,7 @@ Apps that do not compare representations may omit this selector.
 - **Advanced** — model parameters, widths, couplings, detector positions, numerical settings, and random seed.
 - **Display** — projections, axes, labels, opacity, trajectories, trail appearance, camera, and font size.
 
-Speed remains in the always-visible toolbar when the model evolves in time. Results never occupy a control tab. When present, they use the draggable and collapsible floating Results panel inside the canvas.
+The combined run control, speed, and representations remain in the permanent top section of the control panel. Results never occupy a control tab. When present, they use the draggable and collapsible floating Results panel inside the canvas. Stage indicators and scenario selectors are not part of the common template.
 
 ## JavaScript API
 

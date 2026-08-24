@@ -1,0 +1,1 @@
+.always-controls{display:grid;gap:10px;margin-bottom:12px;padding:10px;border:1px solid #27465a;border-radius:9px;background:#071521}.always-controls .run-combo{justify-self:start}.always-controls .speed-row{grid-template-columns:54px 1fr 40px}.always-controls .representation{margin-left:0}.always-controls .representation button{flex:1;padding-inline:4px}
