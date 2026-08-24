@@ -963,7 +963,6 @@ const SimPanel = React.memo(({
   detectorOn, setDetectorOn,
   histT, histR, histTotal,
   isMobile,
-  advMode,
 }) => {
   const [controlTab, setControlTab] = useState("core");
   const [runMenuOpen, setRunMenuOpen] = useState(false);
@@ -3193,8 +3192,7 @@ export default function App() {
     };
   }, []);
 
-  const [canvasTab, setCanvasTab] = useState("sim"); // "sim" | "math"
-  const [advMode,   setAdvMode]   = useState(false); // false = beginner, true = advanced
+  const [canvasTab, setCanvasTab] = useState("sim"); // "sim" | "math" | "about"
 
   return (
     <div style={{ display:"flex", flexDirection: sidebarBelow ? "column" : "row",
@@ -3215,7 +3213,6 @@ export default function App() {
         <div style={{ display:"flex", flexShrink:0, background:"rgba(4,10,30,0.9)",
           borderBottom:"1px solid rgba(40,80,180,0.35)", height:28, alignItems:"center" }}>
           {[["sim","Simulation"],["math","Math"],["about","Physics"]].map(([key,label]) => {
-            if (key === "math" && !advMode) return null;
             return (
             <button key={key} onClick={() => setCanvasTab(key)} style={{
               padding:"0 16px", fontSize:11, cursor:"pointer", border:"none",
@@ -3228,25 +3225,6 @@ export default function App() {
             }}>{label}</button>
             );
           })}
-          {/* Beginner / Advanced toggle — pinned to the right */}
-          <button onClick={() => {
-              const goingBeginner = advMode;
-              setAdvMode(a => !a);
-              // if switching to beginner while on math tab, go back to sim
-              if (goingBeginner && canvasTab === "math") setCanvasTab("sim");
-            }}
-            style={{
-              marginLeft:"auto", padding:"0 12px", height:"100%",
-              fontSize:14, cursor:"pointer", border:"none",
-              fontFamily:"'JetBrains Mono','Courier New',monospace",
-              letterSpacing:"0.06em", textTransform:"uppercase",
-              background: advMode ? "rgba(80,40,160,0.35)" : "rgba(0,60,120,0.25)",
-              color: advMode ? "#cc99ff" : "#4a8ac0",
-              borderLeft:"1px solid rgba(60,80,180,0.25)",
-              borderBottom:"2px solid transparent",
-            }}>
-            {advMode ? "▼ Advanced" : "▶ Beginner"}
-          </button>
         </div>
 
         {/* Simulation view */}
@@ -3273,8 +3251,8 @@ export default function App() {
                 </div>
               );
             })()}
-            {/* Outcome histogram + pointer distribution — floating panels, expert only */}
-            {canvasTab === "sim" && advMode && (<>
+            {/* Outcome histogram + pointer distribution — floating result panels */}
+            {canvasTab === "sim" && (<>
               <HistogramFloat histT={histT} histR={histR} histTotal={histTotal} Tp={Tp} />
               <PointerDistFloat
                 needleHistory={needleHistory}
@@ -3424,7 +3402,6 @@ export default function App() {
           detectorOn={detectorOn} setDetectorOn={setDetectorOn}
           histT={histT} histR={histR} histTotal={histTotal}
           isMobile={isMobile}
-          advMode={advMode}
         />
       </div>
     </div>
