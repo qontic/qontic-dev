@@ -6,12 +6,25 @@
     <meta name="description" content="Exact analytic position-measurement demonstration for Q-Ontic.">
     <title>Measurement Example · Q-Ontic</title>
     <link rel="stylesheet" href="../../../shared/back-home.css">
-    <link rel="stylesheet" href="app.css?v=1.42">
+    <link rel="stylesheet" href="app.css?v=1.43">
+    <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=1.43">
     <script defer src="../../../shared/back-home.js"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="app.js?v=1.42"></script>
-    <script type="module" src="local-overrides.js?v=1.42"></script>
+    <script type="module" src="app.js?v=1.43"></script>
+    <script type="module" src="local-overrides.js?v=1.43"></script>
+    <script type="module">
+      import { mountQonticShell } from '../../../shared/qontic-shell.js?v=1.43';
+      mountQonticShell({
+        title: 'Measurement and Detector Readout',
+        eyebrow: 'Comparative quantum demonstration',
+        purpose: 'Follow a system through a weak position premeasurement and a later strong detector readout. Compare how Orthodox, Pilot-wave, and Many-Worlds views represent the same analytical evolution.',
+        badge: 'Exact analytical model',
+        version: 'Prototype template · v1.43',
+        homeHref: '../../../index.html',
+        labHref: 'https://qonticlab.rice.edu/'
+      });
+    </script>
   </body>
 </html>
