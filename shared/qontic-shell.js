@@ -19,11 +19,32 @@ function decorateShell(shell, settings) {
 
   const currentTitle = header.querySelector('h1');
   const titleGroup = currentTitle?.parentElement;
+  const tabs = shell.querySelector(':scope > .tabs');
   if (titleGroup) {
     titleGroup.classList.add('qontic-app-title');
     const eyebrow = titleGroup.querySelector('.eyebrow');
     if (eyebrow) eyebrow.textContent = settings.eyebrow;
     if (currentTitle) currentTitle.textContent = settings.title;
+
+    const titleRow = document.createElement('div');
+    titleRow.className = 'qontic-title-row';
+    currentTitle.before(titleRow);
+    titleRow.append(currentTitle);
+    if (tabs) {
+      tabs.classList.add('qontic-view-tabs');
+      titleRow.append(tabs);
+    }
+
+    if (settings.purpose) {
+      const tooltip = document.createElement('span');
+      tooltip.className = 'qontic-title-purpose';
+      tooltip.id = 'qontic-title-purpose';
+      tooltip.setAttribute('role', 'tooltip');
+      tooltip.innerHTML = `<strong>Purpose</strong>${settings.purpose}`;
+      titleGroup.append(tooltip);
+      titleGroup.tabIndex = 0;
+      titleGroup.setAttribute('aria-describedby', tooltip.id);
+    }
   }
 
   const brand = document.createElement('a');
@@ -44,16 +65,26 @@ function decorateShell(shell, settings) {
   }
   header.append(actions);
 
-  if (settings.purpose) {
-    const purpose = document.createElement('section');
-    purpose.className = 'qontic-purpose';
-    purpose.setAttribute('aria-labelledby', 'qontic-purpose-title');
-    purpose.innerHTML = `<strong id="qontic-purpose-title">Purpose</strong><p>${settings.purpose}</p>`;
-    header.after(purpose);
-  }
+  const keepTabsConcise = () => {
+    const mathTab = [...(tabs?.querySelectorAll('button') ?? [])]
+      .find((button) => button.textContent.trim() === 'Details & Math');
+    if (mathTab) mathTab.textContent = 'Math';
+  };
+  keepTabsConcise();
+  if (tabs) new MutationObserver(keepTabsConcise).observe(tabs, { childList: true, subtree: true });
 
-  const tabs = shell.querySelector(':scope > .tabs');
-  tabs?.classList.add('qontic-view-tabs');
+  const addPurposeToDetails = () => {
+    if (!settings.purpose) return;
+    const panel = shell.querySelector('.details-panel');
+    if (!panel || panel.querySelector('.qontic-details-purpose')) return;
+    const summary = document.createElement('p');
+    summary.className = 'qontic-details-purpose';
+    summary.innerHTML = `<strong>Purpose.</strong> ${settings.purpose}`;
+    panel.prepend(summary);
+  };
+  addPurposeToDetails();
+  new MutationObserver(addPurposeToDetails).observe(shell, { childList: true, subtree: true });
+
   shell.querySelector(':scope > .stagebar')?.setAttribute('aria-label', 'Simulation stages');
 
   const footer = document.createElement('footer');
