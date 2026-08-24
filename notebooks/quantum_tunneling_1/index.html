@@ -311,7 +311,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="row"><label><span>Independent preparations to add</span><span id="trialNLabel">100</span></label><input id="trialN" max="500" min="10" step="10" type="range" value="100"/></div>
 <div class="control-actions"><button class="button" data-action="fire-one">Run one</button><button class="button" data-action="fire">Add selected</button><button class="button secondary wide" data-action="clear-trials">Clear detector record</button></div>
 <div class="readout" id="s5Read"></div>
-<div class="callout"><span class="pill quantum">Standard account</span><span class="pill pilot">Pilot-wave</span><span class="pill numeric">Shared prediction</span><br/>Both accounts predict the same detector frequencies when the Bohmian initial configuration is distributed according to |ψ|². The interpretations differ in the story assigned between preparation and detection—not in this histogram.</div>
+<div class="callout"><span class="pill quantum">Standard account</span><span class="pill pilot">Pilot-wave</span><span class="pill numeric">Shared prediction</span><br/>Same detector frequencies; different accounts of what happens between preparation and detection.</div>
 </div>
 </div>
 </section>
@@ -1002,8 +1002,7 @@ function updateReadouts(){
     `${under?`Classical prediction: <b style="color:#b91c1c">cannot enter barrier</b>.`:`Classical prediction: <b style="color:#047857">crossing allowed</b>.`}<br>`+
     `Plane-wave T(E₀)=<b>${fmt(Tp,4)}</b>; packet-averaged prediction=<b>${fmt(Tbar,4)}</b>.`;
   document.getElementById("s2Read").innerHTML=
-    `Re ψ, Im ψ, and ρ=|ψ|² are combined in one spatial plot. Their <b>fixed</b> display scales are distinct, so compare shapes and evolution rather than vertical heights; only Re ψ and Im ψ rotate under display phase φ.<br>`+
-    `When enabled, j=Im(ψ*∂ₓψ) appears in a compact inset. ${diagnosticsHTML()}`;
+    `<b>Fixed display scales:</b> compare shapes and evolution, not the relative plotted heights. Global phase rotates Re ψ and Im ψ but leaves ρ unchanged.<br>${diagnosticsHTML()}`;
   const kapp=under?kappa():0;
   document.getElementById("s3Read").innerHTML=under
     ? `E₀&lt;V₀, so κ = <b>${fmt(kapp,3)}</b>; characteristic amplitude-decay length 1/κ = <b>${fmt(1/Math.max(kapp,1e-12),3)}</b>. The dashed guide is local and does not replace the matched two-exponential barrier solution.`
@@ -1017,10 +1016,8 @@ function updateReadouts(){
     ? `Latest independent run: <b style="color:${sim.lastTrial.transmitted?"#047857":"#b91c1c"}">${sim.lastTrial.transmitted?"right / transmitted":"left / reflected"}</b> detector at x=${fmt(sim.lastTrial.x,2)}.`
     : `No detector event has been sampled yet.`;
   document.getElementById("s5Read").innerHTML=
-    `<b>How to read this experiment:</b><br>`+
-    `1. The separated density sets P(L)=<b>${fmt(1-engine.Tdetector,3)}</b> and P(R)=<b>${fmt(engine.Tdetector,3)}</b>.<br>`+
-    `2. Each dot is one <em>separate</em> packet preparation and one sampled detector position.<br>`+
-    `3. After n=<b>${n}</b> runs, the observed right frequency is <b>${n?fmt(tr/n,3):"—"}</b>.<br>`+
+    `Prediction: P(L)=<b>${fmt(1-engine.Tdetector,3)}</b>, P(R)=<b>${fmt(engine.Tdetector,3)}</b>. `+
+    `After <b>${n}</b> independent runs, observed right frequency = <b>${n?fmt(tr/n,3):"—"}</b>.<br>`+
     `${latest}`;
   const mode=view.interpretation==="bohmian"
     ? `ψ and a <em>single</em> configuration X(t) are postulated in each run. The gold curves are a sampled equilibrium ensemble. In one dimension, their cumulative-probability construction is equivalent to dX/dt=j/ρ wherever ρ is nonzero.`
