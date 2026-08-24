@@ -16,7 +16,7 @@
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Quantum Measurement with Detector — Qontic Lab" />
     <meta name="twitter:description" content="Interactive comparison of Copenhagen, Pilot-Wave/Bohmian, and Many-Worlds interpretations in a detector-coupled tunneling simulation." />
-    <link rel="stylesheet" href="../../../shared/back-home.css" />
+    <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=1.44" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -49,29 +49,130 @@
       }
       body {
         width: 100%; height: 100%;
+        display: flex;
+        flex-direction: column;
         overflow-x: hidden !important;
         overflow-y: hidden;
+        margin: 0;
+        background: #040a1c;
       }
+      .barrier-shell {
+        width: 100%;
+        max-width: 1540px;
+        min-height: 0;
+        margin: 0 auto;
+        padding: 0;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .barrier-shell .eyebrow { margin: 0 0 7px; color: #71dce8; font: 11px Inter,Arial,sans-serif; letter-spacing: .16em; text-transform: uppercase; }
+      .barrier-shell .truth { border: 1px solid #907321; border-radius: 99px; padding: 7px 11px; background: #261f0f; color: #f4cf64; white-space: nowrap; font: 13px Inter,Arial,sans-serif; }
+      .barrier-shell .tabs { display: flex; gap: 5px; }
+      .barrier-shell .tabs button { border: 1px solid #23425a; border-radius: 7px; background: #102334; color: #a9bfce; font-weight: 800; cursor: pointer; }
+      .barrier-shell .tabs button.active { border-color: #55d8e6; background: #55d8e6; color: #04202a; }
       #root {
-        width: 100%; height: 100%;
+        width: 100%; height: auto;
+        min-height: 0;
+        flex: 1;
         display: flex; flex-direction: column;
         overflow: hidden;
       }
+      #root > div { width: 100% !important; height: 100% !important; }
+      .barrier-internal-tabs > button { display: none !important; }
+      .barrier-internal-tabs.barrier-canvas-mode { display: none !important; }
+      .barrier-math-purpose {
+        margin: 0;
+        padding: 8px 18px;
+        border-bottom: 1px solid #23425a;
+        border-left: 3px solid #d7a51e;
+        background: #071521;
+        color: #b9ccd8;
+        font: 12px/1.45 Inter, Arial, sans-serif;
+      }
+      .barrier-math-purpose strong { color: #f0ca61; }
+      .barrier-math-purpose[hidden] { display: none; }
+      .qontic-footer { margin-top: 0; padding-top: 8px; padding-bottom: 9px; flex: none; }
       @supports (height: 100dvh) {
-        html, body, #root { height: 100dvh; }
+        html, body { height: 100dvh; }
       }
       @media (max-width: 700px) {
-        html, body, #root {
+        html, body {
           height: auto !important;
           min-height: 100svh;
           overflow-y: auto !important;
         }
+        .barrier-shell { min-height: 900px; }
+        #root { min-height: 720px; }
       }
     </style>
-    <script defer src="../../../shared/back-home.js"></script>
     <script type="module" crossorigin src="./assets/index-BpAlFD2U.js"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <main class="shell barrier-shell">
+      <header>
+        <div>
+          <p class="eyebrow">Q-Ontic interactive laboratory</p>
+          <h1>Quantum Measurement: Barrier Model</h1>
+        </div>
+        <span class="truth">GPU split-operator</span>
+      </header>
+
+      <nav class="tabs" aria-label="Barrier model views">
+        <button class="active" data-barrier-view="Simulation">Demo</button>
+        <button data-barrier-view="Math">Math</button>
+        <button data-barrier-view="Physics">Physics</button>
+      </nav>
+
+      <p class="barrier-math-purpose" hidden><strong>Purpose.</strong> Explore how tunneling through a potential barrier becomes correlated with a detector pointer, and compare the wave evolution with Bohmian trajectories in the compound particle–pointer configuration space.</p>
+      <div id="root"></div>
+    </main>
+
+    <script type="module">
+      import { mountQonticShell } from '../../../shared/qontic-shell.js?v=1.44';
+
+      mountQonticShell({
+        title: 'Quantum Measurement: Barrier Model',
+        eyebrow: 'Comparative quantum demonstration',
+        purpose: 'Explore how tunneling through a potential barrier becomes correlated with a detector pointer, and compare the wave evolution with Bohmian trajectories in the compound particle–pointer configuration space.',
+        badge: 'GPU split-operator',
+        version: 'Barrier Model · v1.4.0 · Template preview',
+        homeHref: '../../../index.html',
+        labHref: 'https://qonticlab.rice.edu/'
+      });
+
+      const outerTabs = document.querySelector('.qontic-view-tabs');
+      const purpose = document.querySelector('.barrier-math-purpose');
+
+      function connectBarrierViews() {
+        const root = document.querySelector('#root');
+        const buttons = [...root.querySelectorAll('button')];
+        const internal = Object.fromEntries(['Simulation', 'Math', 'Physics'].map((name) => [name, buttons.find((button) => button.textContent.trim() === name)]));
+        if (!internal.Simulation || !internal.Math || !internal.Physics) return false;
+
+        const internalBar = internal.Simulation.parentElement;
+        internalBar.classList.add('barrier-internal-tabs', 'barrier-canvas-mode');
+        outerTabs.querySelectorAll('[data-barrier-view]').forEach((button) => {
+          if (button.dataset.connected === 'true') return;
+          button.dataset.connected = 'true';
+          button.addEventListener('click', () => {
+            const view = button.dataset.barrierView;
+            internal[view].click();
+            outerTabs.querySelectorAll('button').forEach((candidate) => candidate.classList.toggle('active', candidate === button));
+            internalBar.classList.toggle('barrier-canvas-mode', view === 'Simulation');
+            purpose.hidden = view !== 'Math';
+          });
+        });
+        return true;
+      }
+
+      if (!connectBarrierViews()) {
+        const observer = new MutationObserver(() => {
+          if (connectBarrierViews()) observer.disconnect();
+        });
+        observer.observe(document.querySelector('#root'), { childList: true, subtree: true });
+      }
+    </script>
   </body>
 </html>
