@@ -1,0 +1,19 @@
+const emit=(root,name,detail)=>root.dispatchEvent(new CustomEvent(`qontic:${name}`,{detail,bubbles:true}));
+export function mountQonticControls(options={}){
+ const root=options.root||document,run=root.querySelector('[data-qontic-run]');if(!run)return null;
+ const primary=run.querySelector('[data-run-primary]'),menuToggle=run.querySelector('[data-run-menu-toggle]'),menu=run.querySelector('[data-run-menu]');let running=options.running??true;
+ const syncRun=()=>{primary.textContent=running?'❚❚ Pause':'▶ Play';primary.setAttribute('aria-label',running?'Pause simulation':'Play simulation')};
+ const closeMenu=()=>{menu.hidden=true;menuToggle.setAttribute('aria-expanded','false')};
+ const act=(name,detail={})=>{options[`on${name[0].toUpperCase()}${name.slice(1)}`]?.(detail);emit(root,name,detail)};
+ primary.addEventListener('click',()=>{running=!running;syncRun();act(running?'play':'pause',{running})});
+ menuToggle.addEventListener('click',e=>{e.stopPropagation();menu.hidden=!menu.hidden;menuToggle.setAttribute('aria-expanded',String(!menu.hidden))});
+ menu.addEventListener('click',e=>{const action=e.target.closest('[data-run-action]')?.dataset.runAction;if(!action)return;running=true;syncRun();closeMenu();act(action,{running})});
+ document.addEventListener('click',e=>{if(!run.contains(e.target))closeMenu()});
+ root.querySelectorAll('[data-representation]').forEach(button=>button.addEventListener('click',()=>{root.querySelectorAll('[data-representation]').forEach(item=>item.classList.toggle('active',item===button));act('representation',{representation:button.dataset.representation})}));
+ const controlTabs=root.querySelector('[data-control-tabs]');controlTabs?.addEventListener('click',e=>{const button=e.target.closest('[data-control-tab]');if(!button)return;controlTabs.querySelectorAll('button').forEach(item=>item.classList.toggle('active',item===button));root.querySelectorAll('[data-control-pane]').forEach(pane=>pane.classList.toggle('hidden',pane.dataset.controlPane!==button.dataset.controlTab))});
+ root.querySelectorAll('[data-qontic-control]').forEach(control=>{const update=()=>{const output=control.closest('.control-row,.toolbar-slider')?.querySelector('output');if(output)output.value=`${control.value}${control.dataset.suffix||''}`;act('controlchange',{name:control.dataset.qonticControl,value:control.type==='range'?+control.value:control.value})};control.addEventListener('input',update);control.addEventListener('change',update)});
+ root.querySelectorAll('[data-qontic-toggle]').forEach(button=>button.addEventListener('click',()=>{const pressed=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(pressed));act('controlchange',{name:button.dataset.qonticToggle,value:pressed})}));
+ const results=root.querySelector('[data-results-panel]'),head=results?.querySelector('.results-head');results?.querySelector('[data-results-collapse]')?.addEventListener('click',()=>{const body=results.querySelector('.results-body');body.hidden=!body.hidden});let drag=null;
+ head?.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;const box=results.getBoundingClientRect();drag={x:e.clientX-box.left,y:e.clientY-box.top};head.setPointerCapture(e.pointerId)});head?.addEventListener('pointermove',e=>{if(!drag)return;const parent=results.offsetParent.getBoundingClientRect();results.style.left=`${Math.max(0,Math.min(parent.width-results.offsetWidth,e.clientX-parent.left-drag.x))}px`;results.style.top=`${Math.max(0,Math.min(parent.height-results.offsetHeight,e.clientY-parent.top-drag.y))}px`;results.style.right='auto';results.style.bottom='auto'});head?.addEventListener('pointerup',()=>{drag=null});
+ syncRun();return{setRunning(value){running=Boolean(value);syncRun()},setResult(name,value){const output=results?.querySelector(`[data-result="${name}"]`);if(output)output.value=value},setRepresentation(name){root.querySelector(`[data-representation="${name}"]`)?.click()}};
+}
