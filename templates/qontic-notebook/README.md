@@ -4,7 +4,7 @@ This is the canonical companion to `templates/qontic-app`. It is intended for gu
 
 ## Shared Q-Ontic language
 
-- Play/Pause, speed, and representation remain permanently available.
+- Play/Pause and speed appear together inside each animated demonstration.
 - Control typography is regular weight and compact.
 - Results float over the canvas and may be collapsed.
 - Secondary controls use Core, Advanced, and Graphics groups when a section needs enough controls to justify tabs.
@@ -12,10 +12,10 @@ This is the canonical companion to `templates/qontic-app`. It is intended for gu
 
 ## Notebook-specific contract
 
-- The header supplies section navigation and Brief/Full reading depth.
+- The header supplies section navigation and Brief/Full reading depth; it does not carry simulation controls.
 - Global physical parameters have one state. A section may repeat a relevant slider locally, but every copy must remain synchronized.
 - Each section follows: title and purpose; “What to notice”; visualization; compact local controls; collapsed “Details and math.”
-- A notebook may omit representations that it does not implement. Never display a representation button that changes only the label.
+- Representation buttons appear only in demonstrations that compare interpretations. A notebook may omit representations that it does not implement. Never display a representation button that changes only the label.
 - A deterministic notebook may replace “New run” with a task-specific action such as clearing a detector record.
 
 ## Canonical files
