@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Your App Title · Q-Ontic</title>
+    <link rel="stylesheet" href="starter.css">
+    <link rel="stylesheet" href="../../shared/qontic-shell.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <p class="eyebrow">Q-Ontic interactive laboratory</p>
+          <h1>Your App Title</h1>
+        </div>
+        <span class="truth">Model label</span>
+      </header>
+
+      <nav class="tabs" aria-label="App views">
+        <button class="active" data-view="demo">Demo</button>
+        <button data-view="math">Math</button>
+      </nav>
+
+      <section class="stagebar" aria-label="Simulation stages">
+        <div class="active"><b>1</b>Initial state</div>
+        <div><b>2</b>Interaction</div>
+        <div><b>3</b>Outcome</div>
+      </section>
+
+      <section class="lab" data-panel="demo">
+        <div class="visualization">
+          <div class="placeholder">
+            <h2>Primary visualization</h2>
+            <p>Replace this region with the app canvas, iframe, or interactive model.</p>
+          </div>
+        </div>
+        <aside class="controls">
+          <h2>Controls</h2>
+          <p>Keep essential controls visible. Organize additional controls as Core, Advanced, and Visual when needed.</p>
+          <div class="control-placeholder">App-specific controls go here.</div>
+        </aside>
+      </section>
+
+      <section class="details-panel hidden" data-panel="math">
+        <h2>Model and mathematics</h2>
+        <p>Explain the physical model, equations, approximations, interpretation-dependent displays, and scope here.</p>
+      </section>
+    </main>
+
+    <script type="module">
+      import { mountQonticShell } from '../../shared/qontic-shell.js';
+
+      mountQonticShell({
+        title: 'Your App Title',
+        eyebrow: 'Comparative quantum demonstration',
+        purpose: 'State what phenomenon the app shows and what the user should investigate.',
+        badge: 'Model label',
+        version: 'Version 0.1',
+        homeHref: '../../index.html',
+        labHref: 'https://qonticlab.rice.edu/'
+      });
+
+      const tabs = document.querySelector('.tabs');
+      tabs.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-view]');
+        if (!button) return;
+        tabs.querySelectorAll('button').forEach((item) => item.classList.toggle('active', item === button));
+        document.querySelectorAll('[data-panel]').forEach((panel) => panel.classList.toggle('hidden', panel.dataset.panel !== button.dataset.view));
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Canonical reusable template for Q-Ontic interactive apps.">
+    <title>Q-Ontic App Template</title>
+    <link rel="stylesheet" href="starter.css">
+    <link rel="stylesheet" href="../../shared/qontic-shell.css?v=1.44">
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <p class="eyebrow">Q-Ontic template library</p>
+          <h1>Simulation App Template</h1>
+        </div>
+        <span class="truth">Canonical starter</span>
+      </header>
+
+      <nav class="tabs" aria-label="Template views">
+        <button class="active" data-view="demo">Demo</button>
+        <button data-view="math">Math</button>
+      </nav>
+
+      <section class="stagebar" aria-label="Simulation stages">
+        <div class="active"><b>1</b>Initial state</div>
+        <div><b>2</b>Interaction</div>
+        <div><b>3</b>Outcome</div>
+      </section>
+
+      <section class="lab" data-panel="demo">
+        <div class="visualization">
+          <div class="placeholder">
+            <h2>Primary scientific visualization</h2>
+            <p>This large region is reserved for the canvas or interactive model. The surrounding shell—not the scientific content—is what the template standardizes.</p>
+            <p class="template-note">Copy <b>starter.html</b> and <b>starter.css</b> when creating a new simulation-style Q-Ontic app.</p>
+          </div>
+        </div>
+        <aside class="controls">
+          <h2>Controls</h2>
+          <p>Essential playback, interpretation, and view controls remain consistently placed. App-specific parameters belong below them.</p>
+          <div class="control-placeholder">Core · Advanced · Visual</div>
+        </aside>
+      </section>
+
+      <section class="details-panel hidden" data-panel="math">
+        <h2>Template structure</h2>
+        <p>The Math view contains the model, equations, assumptions, interpretation-dependent behavior, and scope. The shared shell automatically repeats the purpose statement at its beginning.</p>
+        <h2>Reusable assets</h2>
+        <p>The logo, compact header, purpose tooltip, navigation, Demo/Math placement, footer, and responsive behavior come from the shared Q-Ontic shell. Scientific canvases and controls remain app-specific.</p>
+        <p class="template-note"><a href="starter.html" style="color:#70e2ed">Open the clean starter</a> · <a href="README.md" style="color:#70e2ed">Read the implementation guide</a></p>
+      </section>
+    </main>
+
+    <script type="module">
+      import { mountQonticShell } from '../../shared/qontic-shell.js?v=1.44';
+
+      mountQonticShell({
+        title: 'Simulation App Template',
+        eyebrow: 'Q-Ontic template library',
+        purpose: 'Provide one recognizable interface for Q-Ontic simulations while leaving each app free to implement the scientific visualization and controls it requires.',
+        badge: 'Canonical starter',
+        version: 'Template 1.0',
+        homeHref: '../../index.html',
+        labHref: 'https://qonticlab.rice.edu/'
+      });
+
+      const tabs = document.querySelector('.tabs');
+      tabs.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-view]');
+        if (!button) return;
+        tabs.querySelectorAll('button').forEach((item) => item.classList.toggle('active', item === button));
+        document.querySelectorAll('[data-panel]').forEach((panel) => panel.classList.toggle('hidden', panel.dataset.panel !== button.dataset.view));
+      });
+    </script>
+  </body>
+</html>
