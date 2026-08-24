@@ -143,10 +143,11 @@
 
 .qontic-footer {
   display: flex;
+  width: min(100%, 1540px);
   justify-content: space-between;
   gap: 18px;
-  margin-top: 18px;
-  padding: 14px 3px 2px;
+  margin: 18px auto 0;
+  padding: 14px 21px 18px;
   border-top: 1px solid #23425a;
   color: #829dad;
   font-size: 11px;

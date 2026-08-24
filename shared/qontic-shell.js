@@ -59,14 +59,9 @@ function decorateShell(shell, settings) {
   const footer = document.createElement('footer');
   footer.className = 'qontic-footer';
   footer.innerHTML = `<span>${settings.version || 'Q-Ontic interactive demonstration'}</span><nav aria-label="Q-Ontic links"><a href="${settings.homeHref}">All demonstrations</a><a href="${settings.labHref}">Q-Ontic Lab</a></nav>`;
-  shell.append(footer);
-
-  // App frameworks may replace the active Demo/Details panel after the shell
-  // mounts. Keep shared navigation at the actual end of the page.
-  const footerObserver = new MutationObserver(() => {
-    if (shell.lastElementChild !== footer) shell.append(footer);
-  });
-  footerObserver.observe(shell, { childList: true });
+  // Keep shared navigation outside the framework-managed app root. React may
+  // replace Demo/Details children, but it will not reorder this sibling.
+  shell.after(footer);
   return true;
 }
 
