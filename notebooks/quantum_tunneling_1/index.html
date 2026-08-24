@@ -81,6 +81,7 @@ body[data-notebook-mode="succinct"] .interpretation-list,
 body[data-notebook-mode="succinct"] .path-record-note{display:none!important}
 body[data-notebook-mode="succinct"] .section-head{padding-bottom:13px}
 .guided-only{display:none}
+body[data-notebook-mode="succinct"] .guided-summary{display:block}
 body[data-notebook-mode="guided"] .guided-only{display:block}
 body[data-notebook-mode="guided"] .learning-strip:not(.guided-only),
 body[data-notebook-mode="guided"] .detail-text,
@@ -271,7 +272,7 @@ body[data-notebook-mode="guided"] .path-record-note{display:none!important}
 <div class="section-head">
 <h2>4. Transmission is controlled by barrier width and energy</h2>
 <p>For each stationary plane-wave component, a finite square barrier has an exact transmission coefficient. In the below-barrier regime emphasized here, transmission becomes exponentially small for a thick or high barrier, but is not generically zero.</p>
-<div class="guided-summary guided-only"><strong>Try this:</strong> Change one control at a time. A higher or wider barrier usually lowers transmission; increasing the incident energy usually raises it.</div>
+<div class="guided-summary guided-only"><strong>Try this:</strong> Change one control at a time. A higher or wider barrier usually lowers transmission; increasing the incident energy usually raises it. A finite packet contains several momenta, so its predicted transmission is an average of T(E), not simply T(E₀).</div>
 <div class="detail-text"><p>The green curve is the exact stationary-plane-wave result. A finite Gaussian packet contains a range of wave numbers, so its appropriate comparison is the cyan momentum average <em>∫|ψ̃(k)|²T(k²/2)dk</em>, not only the gold single-energy value T(E₀). A narrower momentum distribution makes the two benchmarks converge.</p></div>
 <div class="math-map"><strong>Use the standard uncertainty relation first.</strong><span class="formula">\[\Delta x\,\Delta p\geq\frac{\hbar}{2},\qquad p=\hbar k\]</span>A narrower packet has a smaller position spread Δx and a wider momentum spread Δp. Because momentum is proportional to k, that wider k-range samples a range of transmission probabilities.</div><div class="symbols-row"><span class="symbol-key"><b>Δx</b> packet width scale</span><span class="symbol-key"><b>Δp</b> momentum spread</span><span class="symbol-key"><b>k</b> wave number</span><span class="symbol-key"><b>T(E)</b> plane-wave transmission at energy E</span></div><div class="equation-summary"><strong>Use now: test the trend.</strong><span class="equation-line">\[\text{higher or wider barrier}\quad\Longrightarrow\quad\text{smaller transmission }T\]</span>The green curve is the exact stationary-wave benchmark. The cyan result averages that benchmark over the finite packet's momentum distribution.</div><div class="concept-note">Use the packet-width control in the collision panel. A narrower packet has a broader momentum spread, so its cyan packet-average can differ more from the gold single-energy estimate.</div>
 </div>
@@ -434,10 +435,12 @@ function planeTransmission(E,V,a){
 }
 
 // Momentum-average appropriate to the normalized initial Gaussian packet:
-// |psi~(k)|^2 is proportional to exp[-2 sigma^2 (k-k0)^2].
+// |psi~(k)|^2 is proportional to exp[-2 sigma^2 (k-k0)^2]. Components
+// with k<0 initially move away from the barrier, so they contribute zero
+// to right-side transmission but remain part of the packet normalization.
 function packetTransmission(p=params){
   const dk=gaussianDeltaK(p);
-  const lo=Math.max(0,p.k0-8*dk);
+  const lo=p.k0-8*dk;
   const hi=p.k0+8*dk;
   const n=800; // even: Simpson quadrature
   const h=(hi-lo)/n;
@@ -447,7 +450,7 @@ function packetTransmission(p=params){
     const weight=Math.exp(-2*sq(p.sigma)*sq(k-p.k0));
     const coeff=(i===0||i===n)?1:(i%2?4:2);
     denominator+=coeff*weight;
-    numerator+=coeff*weight*planeTransmission(0.5*k*k,p.v0,p.a);
+    numerator+=coeff*weight*(k>0?planeTransmission(0.5*k*k,p.v0,p.a):0);
   }
   return numerator/Math.max(denominator,1e-14);
 }
@@ -977,7 +980,7 @@ function syncInputs(){
 
 function diagnosticsHTML(){
   const state=engine.frameAt(sim.time);
-  return `grid Δx=${fmt(engine.dx,3)}, Δt=${fmt(engine.dt,3)}; ||ψ||²=${fmt(engine.normAt(state),8)}; max |Δnorm|=${engine.normMaxDeviation.toExponential(1)}`;
+  return `grid Δx=${fmt(engine.dx,3)}, Δt=${fmt(engine.dt,3)}; ||ψ||²=${fmt(state.norm,8)}; max |Δnorm|=${engine.normMaxDeviation.toExponential(1)}`;
 }
 function updateReadouts(){
   if(!engine) return;
