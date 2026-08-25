@@ -983,7 +983,7 @@ const SimPanel = React.memo(({
             style={{borderColor:vc,color:vc}}
             onClick={()=>setInterp(VIEWS[(VIEWS.indexOf(interp)+1)%VIEWS.length])}
             title={`${VIEW_TIP[interp]}\nClick to change interpretation.`}>
-            {interp==="cpn"?"Orthodox":interp==="pw"?"Pilot Wave":"Many Worlds"} ↻
+            {interp==="cpn"?"Orthodox":interp==="pw"?"Pilot Wave":"Many Worlds"}
           </button>
         </div>
 
@@ -1000,6 +1000,7 @@ const SimPanel = React.memo(({
         <div className="qontic-control-tabs" role="tablist" aria-label="Control level">
           {[['core','Core'],['advanced','Advanced'],['display','Display']].map(([key,label])=><button key={key} role="tab" aria-selected={controlTab===key} className={controlTab===key?'active':''} onClick={()=>setControlTab(key)}>{label}</button>)}
         </div>
+        <div className="qontic-tab-panel" role="tabpanel" aria-label={`${controlTab} controls`}>
 
         {controlTab === "core" && <SL label={`Transmission  ${barrierOn ? Math.round(tTarget*100)+"%" : "100% (barrier off)"}`}
           tip={"Fraction of the wave that passes through the barrier.\n0% = total reflection,  100% = total transmission.\n(Sets the barrier height internally.)"}>
@@ -1152,6 +1153,8 @@ const SimPanel = React.memo(({
           </div>
         </SL>
         )}
+
+        </div>
 
         {!isMobile && <div style={{ fontSize:10, color:"#506080",
           borderTop:"1px solid rgba(50,80,180,0.15)", paddingTop:8 }}>
