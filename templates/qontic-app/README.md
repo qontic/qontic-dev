@@ -13,15 +13,13 @@ This directory is the canonical, reusable template for simulation-style Q-Ontic 
 
 ## Functional contract
 
-### Combined run control
+### Permanent controls
 
-The run control is one visual unit. Its main area toggles Play/Pause; its arrow menu contains Restart same run and New run.
+The interpretation selector occupies the full panel width and cycles through the available interpretations. It shows only the current interpretation name—no label or arrow. The next row contains a narrow **Start/Stop** button, a two-state **↻** automatic-rerun toggle, and the **Speed** slider.
 
-- Play/Pause preserves the current state.
-- Restart returns to the same initial state and resumes.
-- New Run generates new stochastic or Born-sampled initial conditions and resumes.
+Start/Stop preserves the current state. With ↻ enabled, completion starts a newly sampled run automatically. With ↻ disabled, the simulation completes one run and stops. The template intentionally has no pull-down run menu and no separate replay action.
 
-### Representations
+### Interpretations
 
 Comparative apps use these exact labels and identifiers:
 
@@ -29,7 +27,7 @@ Comparative apps use these exact labels and identifiers:
 - `pilot-wave` — Pilot Wave
 - `many-worlds` — Many Worlds
 
-Apps that do not compare representations may omit this selector.
+Apps that do not compare interpretations may omit this selector.
 
 ### Control groups
 
@@ -39,7 +37,7 @@ Apps that do not compare representations may omit this selector.
 
 The particle-count slider appears in Core only while Pilot Wave is selected. Display includes the optional light/dark appearance switch.
 
-The combined run control, speed, and representations remain in the permanent top section of the control panel. Results never occupy a control tab. When present, they use the draggable and collapsible floating Results panel inside the canvas. Stage indicators and scenario selectors are not part of the common template.
+Core, Advanced, and Display are attached tabs that visually open one bordered control-panel section; they must not look like independent action buttons. Results never occupy a control tab. When present, they use the draggable and collapsible floating Results panel inside the canvas. Stage indicators and scenario selectors are not part of the common template. The desktop control column is approximately 10% wider than the original 310 px panel (341 px in the canonical example), and controls use regular—not bold—13 px type.
 
 ## JavaScript API
 
@@ -47,19 +45,20 @@ The combined run control, speed, and representations remain in the permanent top
 import { mountQonticControls } from './qontic-controls.js';
 
 const controls = mountQonticControls({
-  onPlay: () => engine.play(),
-  onPause: () => engine.pause(),
-  onRestart: () => engine.restartSameRun(),
-  onNewrun: () => engine.newBornSample(),
-  onRepresentation: ({ representation }) => engine.setRepresentation(representation),
+  onStart: () => engine.start(),
+  onStop: () => engine.stop(),
+  onAutorun: ({ autoRerun }) => engine.setAutoRerun(autoRerun),
+  onInterpretation: ({ interpretation }) => engine.setInterpretation(interpretation),
   onControlchange: ({ name, value }) => engine.setControl(name, value)
 });
 
 controls.setRunning(false);
+controls.setAutoRerun(true);
+controls.setInterpretation('pilot-wave');
 controls.setResult('time', '2.4');
 ```
 
-Every callback is also emitted as a bubbling event: `qontic:play`, `qontic:pause`, `qontic:restart`, `qontic:newrun`, `qontic:representation`, and `qontic:controlchange`.
+Every callback is also emitted as a bubbling event: `qontic:start`, `qontic:stop`, `qontic:autorun`, `qontic:interpretation`, and `qontic:controlchange`.
 
 ## Adoption rule
 
