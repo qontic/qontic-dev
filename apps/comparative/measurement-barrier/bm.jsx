@@ -985,8 +985,8 @@ const SimPanel = React.memo(({
         </div>
 
         <div className="qontic-playback-row">
-          <div className="qontic-split-run">
-            <button className="qontic-main-run" onClick={() => setRunning(!running)} title="Play, pause, or continue the current run">{running?"Pause":"Play"}</button>
+          <div className="qontic-split-run" onMouseLeave={()=>setRunMenuOpen(false)}>
+            <button className="qontic-main-run" onClick={() => setRunning(!running)} title={running ? "Pause the current run" : autoRun ? "Start continuous automatic runs" : "Run one simulation"}>{running?"Pause":autoRun?"Auto run":"Run once"}</button>
             <button className="qontic-run-menu-button" onClick={()=>setRunMenuOpen(open=>!open)} aria-label="More run options" aria-expanded={runMenuOpen}>▾</button>
             {runMenuOpen && <div className="qontic-run-menu">
               <button onClick={()=>{onNewRun();setRunMenuOpen(false)}}>New run</button>
@@ -2179,7 +2179,7 @@ export default function App() {
     detWidth: 2.0,
     speed:0.5,
     collapseThreshold:0.01, // von Neumann criterion — fixed, not user-adjustable
-    showWave:true, showTraj:true, showProj:false, showCoarse:false, fixedT:false, running:false, autoRun:false,
+    showWave:true, showTraj:true, showProj:false, showCoarse:false, fixedT:false, running:false, autoRun:true,
     tick:0, dirty:true,
     runSeed:0x51f15e, rngState:0x51f15e,
     pauseUntil:0,  // wall-clock ms to hold before restarting cycle
@@ -2225,7 +2225,7 @@ export default function App() {
   const [showCoarse, setShowCoarseUI] = useState(false);
   const [fixedT,     setFixedTUI]     = useState(false);
   const [running,  setRunningUI]  = useState(false);
-  const [autoRun, setAutoRunUI] = useState(false);
+  const [autoRun, setAutoRunUI] = useState(true);
   const [barrierOn,  setBarrierOnUI]  = useState(true);
   const [detectorOn, setDetectorOnUI] = useState(true);
   const [Tp,       setTpUI]       = useState(0.5);
