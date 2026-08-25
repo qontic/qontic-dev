@@ -96,14 +96,11 @@
       .qontic-interpretations,.qontic-control-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
       .qontic-interpretations button,.qontic-control-tabs button { min-width:0; padding:6px 3px; border:1px solid #294b60; border-radius:6px; background:#162d3d; color:#b9cfdb; font:400 10.5px Inter,Arial,sans-serif; cursor:pointer; white-space:nowrap; }
       .qontic-interpretations button.active,.qontic-control-tabs button.active { border-color:#55d8e6; background:#55d8e6; color:#04202a; }
-      .qontic-playback-row { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:8px; padding:5px 7px; border:1px solid #23425a; border-radius:8px; background:#07131d; }
-      .qontic-split-run { position:relative; display:grid; grid-template-columns:auto 24px; }
-      .qontic-split-run>button { padding:5px 9px; border:1px solid #168aa0; background:#12394b; color:#d9edf7; font:400 11px Inter,Arial,sans-serif; cursor:pointer; }
-      .qontic-main-run { border-radius:5px 0 0 5px; }
-      .qontic-run-menu-button { min-width:24px; padding:5px 3px!important; border-left:0!important; border-radius:0 5px 5px 0; }
-      .qontic-run-menu { position:absolute; z-index:80; left:0; top:100%; min-width:180px; padding:4px; border:1px solid #31556c; border-radius:0 6px 6px 6px; background:#0a1b28; box-shadow:0 8px 24px #0009; }
-      .qontic-run-menu button { display:block; width:100%; padding:7px 9px; border:0; border-radius:4px; background:#112c3d; color:#d9edf7; font:400 11px Inter,Arial,sans-serif; text-align:left; cursor:pointer; }
-      .qontic-run-menu button:hover { background:#1a4256; }
+      .qontic-run-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+      .qontic-run-row button { min-width:0; padding:6px 5px; border:1px solid #294b60; border-radius:6px; background:#162d3d; color:#d9edf7; font:400 11px Inter,Arial,sans-serif; cursor:pointer; white-space:nowrap; }
+      .qontic-run-row .qontic-main-run { border-color:#168aa0; background:#12394b; color:#7cecff; }
+      .qontic-run-row button:hover { border-color:#55d8e6; }
+      .qontic-speed-row { padding:5px 7px; border:1px solid #23425a; border-radius:8px; background:#07131d; }
       .qontic-speed { display:grid; grid-template-columns:auto minmax(42px,1fr) 32px; align-items:center; gap:5px; min-width:0; color:#b9cfdb; font:400 11px Inter,Arial,sans-serif; }
       .qontic-speed input { width:100%; min-width:0; accent-color:#55d8e6; }
       .qontic-speed output { min-width:32px; color:#7cecff; text-align:right; font-variant-numeric:tabular-nums; }
