@@ -958,7 +958,6 @@ const SimPanel = React.memo(({
   fixedT, setFixedT,
   running, setRunning,
   autoRun, setAutoRun,
-  onNewRun, onReplayRun,
   barrierOn, setBarrierOn,
   detectorOn, setDetectorOn,
   histT, histR, histTotal,
@@ -984,18 +983,19 @@ const SimPanel = React.memo(({
             style={{borderColor:vc,color:vc}}
             onClick={()=>setInterp(VIEWS[(VIEWS.indexOf(interp)+1)%VIEWS.length])}
             title={`${VIEW_TIP[interp]}\nClick to change interpretation.`}>
-            Interpretation: {interp==="cpn"?"Orthodox":interp==="pw"?"Pilot Wave":"Many Worlds"} ↻
+            {interp==="cpn"?"Orthodox":interp==="pw"?"Pilot Wave":"Many Worlds"} ↻
           </button>
           <label className="qontic-speed">Speed <input aria-label="Speed" type="range" min={0.1} max={4} step={0.05} defaultValue={0.5} ref={speedRef} onInput={e=>setSpeed(+e.target.value)} /><output>{speed.toFixed(1)}×</output></label>
         </div>
 
         <div className="qontic-run-row" role="group" aria-label="Simulation run controls">
-          <button className="qontic-main-run" onClick={() => {
-            if (running) setRunning(false);
-            else { setAutoRun(true); setRunning(true); }
-          }}>{running ? "Pause" : "Auto run"}</button>
-          <button onClick={()=>{setAutoRun(false);onNewRun()}} title="Start one new sampled simulation and stop when it finishes">Run once</button>
-          <button onClick={()=>{setAutoRun(false);onReplayRun()}} title="Repeat the same simulation using the same random seed" aria-label="Replay same run">↻ Replay</button>
+          <button className="qontic-main-run" onClick={() => setRunning(!running)}>
+            {running ? "Stop" : "Start"}
+          </button>
+          <label className="qontic-auto-rerun" title="Automatically start a newly sampled simulation after each run finishes">
+            <input type="checkbox" checked={autoRun} onChange={e=>setAutoRun(e.target.checked)} />
+            <span>Auto rerun</span>
+          </label>
         </div>
         <div className="qontic-control-tabs" role="tablist" aria-label="Control level">
           {[['core','Core'],['advanced','Advanced'],['display','Display']].map(([key,label])=><button key={key} role="tab" aria-selected={controlTab===key} className={controlTab===key?'active':''} onClick={()=>setControlTab(key)}>{label}</button>)}
@@ -2282,16 +2282,6 @@ export default function App() {
   const setFixedT     = v => { S.current.fixedT=v;    setFixedTUI(v); };
   const setRunning   = v => { S.current.running=v;  setRunningUI(v);  };
   const setAutoRun = v => { S.current.autoRun=v; setAutoRunUI(v); };
-  const prepareRun = (newSample) => {
-    const s=S.current;
-    if(newSample) s.runSeed=(Math.random()*0x100000000)>>>0;
-    s.rngState=s.runSeed; s.tick=0; s.pauseUntil=0;
-    s.colTriggered=false; s.colBranch=0; s.colFade=0; s.colYHold=0; s.colPhase=0;
-    s.sampledPointerY=null; s.sampledPointerY_T=null; s.sampledPointerY_R=null; s.coarseIsT=null;
-    s.dirty=true; setRunning(true);
-  };
-  const onNewRun = () => prepareRun(true);
-  const onReplayRun = () => prepareRun(false);
   const setBarrierOn  = v => { S.current.barrierOn=v;  S.current.dirty=true; setBarrierOnUI(v);  };
   const setDetectorOn = v => { S.current.detectorOn=v; S.current.dirty=true; setDetectorOnUI(v); };
   const setCollapseThreshold = v => { S.current.collapseThreshold=v; setCollapseThresholdUI(v); if(collapseThresholdRef.current) collapseThresholdRef.current.value=Math.round(v*100); };
@@ -3397,7 +3387,6 @@ export default function App() {
           fixedT={fixedT} setFixedT={setFixedT}
           running={running} setRunning={setRunning}
           autoRun={autoRun} setAutoRun={setAutoRun}
-          onNewRun={onNewRun} onReplayRun={onReplayRun}
           barrierOn={barrierOn} setBarrierOn={setBarrierOn}
           detectorOn={detectorOn} setDetectorOn={setDetectorOn}
           histT={histT} histR={histR} histTotal={histTotal}
