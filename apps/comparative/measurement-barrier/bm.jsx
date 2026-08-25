@@ -965,7 +965,6 @@ const SimPanel = React.memo(({
   isMobile,
 }) => {
   const [controlTab, setControlTab] = useState("core");
-  const [runMenuOpen, setRunMenuOpen] = useState(false);
   const adv = controlTab === "advanced";
   const display = controlTab === "display";
   const vc  = VIEW_COLOR[interp];
@@ -984,16 +983,15 @@ const SimPanel = React.memo(({
           {VIEWS.map(view => <button key={view} className={interp===view?"active":""} onClick={()=>setInterp(view)} title={VIEW_TIP[view]}>{view==="cpn"?"Orthodox":view==="pw"?"Pilot Wave":"Many Worlds"}</button>)}
         </div>
 
-        <div className="qontic-playback-row">
-          <div className="qontic-split-run" onMouseLeave={()=>setRunMenuOpen(false)}>
-            <button className="qontic-main-run" onClick={() => setRunning(!running)} title={running ? "Pause the current run" : autoRun ? "Start continuous automatic runs" : "Run one simulation"}>{running?"Pause":autoRun?"Auto run":"Run once"}</button>
-            <button className="qontic-run-menu-button" onClick={()=>setRunMenuOpen(open=>!open)} aria-label="More run options" aria-expanded={runMenuOpen}>▾</button>
-            {runMenuOpen && <div className="qontic-run-menu">
-              <button onClick={()=>{onNewRun();setRunMenuOpen(false)}}>New run</button>
-              <button onClick={()=>{onReplayRun();setRunMenuOpen(false)}}>Replay same run</button>
-              <button onClick={()=>setAutoRun(!autoRun)} aria-pressed={autoRun}>{autoRun?"✓ ":""}Auto-run next</button>
-            </div>}
-          </div>
+        <div className="qontic-run-row" role="group" aria-label="Simulation run controls">
+          <button className="qontic-main-run" onClick={() => {
+            if (running) setRunning(false);
+            else { setAutoRun(true); setRunning(true); }
+          }}>{running ? "Pause" : "Auto run"}</button>
+          <button onClick={()=>{setAutoRun(false);onNewRun()}} title="Start one new sampled simulation and stop when it finishes">Run once</button>
+          <button onClick={()=>{setAutoRun(false);onReplayRun()}} title="Repeat the same simulation using the same random seed" aria-label="Replay same run">↻ Replay</button>
+        </div>
+        <div className="qontic-speed-row">
           <label className="qontic-speed">Speed <input aria-label="Speed" type="range" min={0.1} max={4} step={0.05} defaultValue={0.5} ref={speedRef} onInput={e=>setSpeed(+e.target.value)} /><output>{speed.toFixed(1)}×</output></label>
         </div>
 
