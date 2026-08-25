@@ -979,8 +979,14 @@ const SimPanel = React.memo(({
       <div style={{ display:"flex", flexDirection:"column", gap: isMobile ? 5 : 7,
         padding: isMobile ? "6px 8px" : "8px 18px 8px 9px" }}>
 
-        <div className="qontic-interpretations" role="group" aria-label="Quantum interpretation">
-          {VIEWS.map(view => <button key={view} className={interp===view?"active":""} onClick={()=>setInterp(view)} title={VIEW_TIP[view]}>{view==="cpn"?"Orthodox":view==="pw"?"Pilot Wave":"Many Worlds"}</button>)}
+        <div className="qontic-mode-row">
+          <button className="qontic-interpretation-cycle"
+            style={{borderColor:vc,color:vc}}
+            onClick={()=>setInterp(VIEWS[(VIEWS.indexOf(interp)+1)%VIEWS.length])}
+            title={`${VIEW_TIP[interp]}\nClick to change interpretation.`}>
+            Interpretation: {interp==="cpn"?"Orthodox":interp==="pw"?"Pilot Wave":"Many Worlds"} ↻
+          </button>
+          <label className="qontic-speed">Speed <input aria-label="Speed" type="range" min={0.1} max={4} step={0.05} defaultValue={0.5} ref={speedRef} onInput={e=>setSpeed(+e.target.value)} /><output>{speed.toFixed(1)}×</output></label>
         </div>
 
         <div className="qontic-run-row" role="group" aria-label="Simulation run controls">
@@ -991,10 +997,6 @@ const SimPanel = React.memo(({
           <button onClick={()=>{setAutoRun(false);onNewRun()}} title="Start one new sampled simulation and stop when it finishes">Run once</button>
           <button onClick={()=>{setAutoRun(false);onReplayRun()}} title="Repeat the same simulation using the same random seed" aria-label="Replay same run">↻ Replay</button>
         </div>
-        <div className="qontic-speed-row">
-          <label className="qontic-speed">Speed <input aria-label="Speed" type="range" min={0.1} max={4} step={0.05} defaultValue={0.5} ref={speedRef} onInput={e=>setSpeed(+e.target.value)} /><output>{speed.toFixed(1)}×</output></label>
-        </div>
-
         <div className="qontic-control-tabs" role="tablist" aria-label="Control level">
           {[['core','Core'],['advanced','Advanced'],['display','Display']].map(([key,label])=><button key={key} role="tab" aria-selected={controlTab===key} className={controlTab===key?'active':''} onClick={()=>setControlTab(key)}>{label}</button>)}
         </div>
