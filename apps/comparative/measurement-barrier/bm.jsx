@@ -985,17 +985,17 @@ const SimPanel = React.memo(({
             title={`${VIEW_TIP[interp]}\nClick to change interpretation.`}>
             {interp==="cpn"?"Orthodox":interp==="pw"?"Pilot Wave":"Many Worlds"} ↻
           </button>
-          <label className="qontic-speed">Speed <input aria-label="Speed" type="range" min={0.1} max={4} step={0.05} defaultValue={0.5} ref={speedRef} onInput={e=>setSpeed(+e.target.value)} /><output>{speed.toFixed(1)}×</output></label>
         </div>
 
         <div className="qontic-run-row" role="group" aria-label="Simulation run controls">
           <button className="qontic-main-run" onClick={() => setRunning(!running)}>
             {running ? "Stop" : "Start"}
           </button>
-          <label className="qontic-auto-rerun" title="Automatically start a newly sampled simulation after each run finishes">
-            <input type="checkbox" checked={autoRun} onChange={e=>setAutoRun(e.target.checked)} />
-            <span>Auto rerun</span>
-          </label>
+          <button className={`qontic-auto-rerun${autoRun ? " active" : ""}`}
+            onClick={()=>setAutoRun(!autoRun)} aria-pressed={autoRun}
+            aria-label={`Auto rerun ${autoRun ? "on" : "off"}`}
+            title={autoRun ? "Auto rerun is on. Click for one run only." : "One run only. Click to automatically rerun."}>↻</button>
+          <label className="qontic-speed">Speed <input aria-label="Speed" type="range" min={0.1} max={4} step={0.05} defaultValue={0.5} ref={speedRef} onInput={e=>setSpeed(+e.target.value)} /><output>{speed.toFixed(1)}×</output></label>
         </div>
         <div className="qontic-control-tabs" role="tablist" aria-label="Control level">
           {[['core','Core'],['advanced','Advanced'],['display','Display']].map(([key,label])=><button key={key} role="tab" aria-selected={controlTab===key} className={controlTab===key?'active':''} onClick={()=>setControlTab(key)}>{label}</button>)}
@@ -2159,8 +2159,8 @@ export default function App() {
   }, []);
   // Sidebar: on mobile-portrait stacks below; on mobile-landscape stays right (compact)
   const sidebarBelow = isMobile && !isLandscape;
-  const [sidebarDragW, setSidebarDragW] = useState(275);
-  const sidebarW     = isLandscape ? 200 : (isMobile ? "100%" : sidebarDragW);
+  const [sidebarDragW, setSidebarDragW] = useState(303);
+  const sidebarW     = isLandscape ? 220 : (isMobile ? "100%" : sidebarDragW);
   const onSidebarDragStart = useCallback((e) => {
     if (sidebarBelow) return;
     e.preventDefault();
