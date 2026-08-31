@@ -11,7 +11,7 @@
     }
   </script>
   <link rel="stylesheet" href="../../shared/qontic-shell.css?v=1.44" />
-  <link rel="stylesheet" href="../../shared/qontic-controls.css?v=2.4" />
+  <link rel="stylesheet" href="../../shared/qontic-controls.css?v=2.5" />
   <style>
     html, body { margin:0; height:100%; background:#040a1c; overflow:hidden; font-family:Inter,Arial,sans-serif; }
     body { display:flex; flex-direction:column; }
@@ -124,7 +124,7 @@
   <div id="wrap">
     <canvas id="c"></canvas>
     <div id="ui">
-      <qontic-controls id="shared-controls" show-interpretation="false" show-autorun="false"
+      <qontic-controls id="shared-controls" show-interpretation="false" show-autorun="false" show-reset="true"
         running="true" speed="1" active-tab="core" theme="dark"></qontic-controls>
       <div class="legacy-panel-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:8px 0;">
         <h3 style="margin:0; font-size:14px; font-weight:600; color:#fff;">Bohmian Double Slit</h3>
@@ -137,10 +137,7 @@
       </div>
       <div id="uibody">
         <div id="controls"></div>
-        <div class="btns" data-control-tab="core">
-          <button id="reset" class="qontic-app-toggle qontic-app-toggle--wide">Reset</button>
-          <button id="pause" hidden>Pause</button>
-        </div>
+        <button id="pause" hidden>Pause</button>
         <div class="stat" id="stats"></div>
       </div>
     </div>
@@ -191,8 +188,8 @@
     </div>
   </div>
   </main>
-  <script type="module" src="../../shared/qontic-controls.js?v=2.4"></script>
-  <script type="module" src="./main.js?v=template-24b"></script>
+  <script type="module" src="../../shared/qontic-controls.js?v=2.5"></script>
+  <script type="module" src="./main.js?v=template-25-reset"></script>
   <script type="module">
     import { mountQonticShell } from '../../shared/qontic-shell.js?v=1.44';
     mountQonticShell({
