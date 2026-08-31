@@ -27,6 +27,7 @@
     }
     #ui h3 { margin:0 0 8px 0; font-size:14px; font-weight:600; color:#fff; }
     .row { display:flex; align-items:center; gap:10px; margin:6px 0; }
+    #controls [hidden], .btns[hidden] { display:none !important; }
     .row label { width:120px; font-size:12px; color:#b9cce5; }
     .row input[type="range"] { flex:1; }
     .row .val { width:76px; text-align:right; font-variant-numeric: tabular-nums; font-size:12px; color:#fff; }
@@ -189,7 +190,7 @@
   </div>
   </main>
   <script type="module" src="../../shared/qontic-controls.js?v=2.7"></script>
-  <script type="module" src="./main.js?v=template-25-speed-stable"></script>
+  <script type="module" src="./main.js?v=template-25-tabs-fixed"></script>
   <script type="module">
     import { mountQonticShell } from '../../shared/qontic-shell.js?v=1.44';
     mountQonticShell({
