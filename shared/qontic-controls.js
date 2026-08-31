@@ -10,7 +10,7 @@ const boolAttr = (element, name, fallback = false) => {
 };
 
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun"];
+  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset"];
 
   constructor() {
     super();
@@ -21,6 +21,7 @@ class QonticControls extends HTMLElement {
         <button class="qontic-interpretation" type="button"></button>
         <div class="qontic-run-row" role="group" aria-label="Run controls">
           <button class="qontic-main-run" type="button"></button>
+          <button class="qontic-reset" type="button">Reset</button>
           <button class="qontic-auto-rerun" type="button">↻</button>
           <label class="qontic-speed"><span>Speed</span><input type="range" min=".1" max="4" step=".05"><output></output></label>
         </div>
@@ -50,6 +51,9 @@ class QonticControls extends HTMLElement {
       const running = !boolAttr(this, "running");
       this.setAttribute("running", String(running));
       this.dispatch(running ? "start" : "stop", { running });
+    });
+    root.querySelector(".qontic-reset").addEventListener("click", () => {
+      this.dispatch("reset", {});
     });
     root.querySelector(".qontic-auto-rerun").addEventListener("click", () => {
       const autoRun = !boolAttr(this, "auto-run", true);
@@ -99,10 +103,17 @@ class QonticControls extends HTMLElement {
     runButton.textContent = running ? "Stop" : "Start";
     runButton.setAttribute("aria-label", running ? "Stop simulation" : "Start simulation");
 
+    const resetButton = root.querySelector(".qontic-reset");
+    resetButton.hidden = this.getAttribute("show-reset") !== "true";
+    resetButton.setAttribute("aria-label", "Reset simulation");
+    resetButton.title = "Return the simulation to its initial state";
+
     const autoRun = boolAttr(this, "auto-run", true);
     const autoButton = root.querySelector(".qontic-auto-rerun");
     autoButton.hidden = this.getAttribute("show-autorun") === "false";
-    root.querySelector(".qontic-run-row").classList.toggle("without-autorun", autoButton.hidden);
+    const runRow = root.querySelector(".qontic-run-row");
+    runRow.classList.toggle("without-autorun", autoButton.hidden);
+    runRow.classList.toggle("without-reset", resetButton.hidden);
     autoButton.classList.toggle("active", autoRun);
     autoButton.setAttribute("aria-pressed", String(autoRun));
     autoButton.setAttribute("aria-label", `Auto rerun ${autoRun ? "on" : "off"}`);
