@@ -35,3 +35,18 @@ button { font:inherit; }
 :host([active-tab="display"]) .qontic-control-tabs { margin-bottom:-8px; }
 :host-context(.qontic-light) .qontic-common-display { border-color:#9bb5c1; background:#fff; }
 :host-context(.qontic-light) .qontic-theme-toggle { color:#203746; }
+
+/* Host-app controls: use these classes for model-specific actions and toggles. */
+.qontic-app-toggle {
+  min-width:0; padding:6px 10px; border:1px solid #294b60; border-radius:6px;
+  background:#0d202e; color:#829aa8; font:400 13px Inter,Arial,sans-serif;
+  line-height:1.2; cursor:pointer; white-space:nowrap;
+  transition:border-color .15s ease,background .15s ease,color .15s ease;
+}
+.qontic-app-toggle:hover { border-color:#55d8e6; color:#d9edf7; }
+.qontic-app-toggle.active { border-color:#55d8e6; background:#12394b; color:#7cecff; }
+.qontic-app-toggle--wide { width:100%; margin-bottom:4px; }
+.qontic-app-toggle-group { display:flex; gap:6px; flex-wrap:wrap; }
+.qontic-light .qontic-app-toggle { border-color:#aec2cb; background:#eef4f6; color:#526a77; }
+.qontic-light .qontic-app-toggle:hover { border-color:#1594a8; color:#075c69; }
+.qontic-light .qontic-app-toggle.active { border-color:#1594a8; background:#dff4f7; color:#075c69; }

@@ -999,7 +999,7 @@ const SimPanel = React.memo(({
   return (
     <div style={{ display:"flex", flexDirection:"column",
       width:"100%",
-      fontFamily:"'JetBrains Mono','Courier New',monospace", color:"#e8f2ff" }}>
+      fontFamily:"Inter,Arial,sans-serif", color:"#e8f2ff" }}>
 
       <div style={{ display:"flex", flexDirection:"column", gap: isMobile ? 5 : 7,
         padding: isMobile ? "6px 8px" : "8px 18px 8px 9px" }}>
@@ -1112,33 +1112,25 @@ const SimPanel = React.memo(({
 
         {display && (
           <Tip text="Toggle the potential barrier. Off = 100% transmission (free particle).">
-            <button onClick={() => setBarrierOn(!barrierOn)} style={{
-              width:"100%", padding:"5px 0", marginBottom:4,
-              background: barrierOn ? "rgba(40,80,180,0.5)" : "rgba(15,30,70,0.5)",
-              border:"1px solid " + (barrierOn ? "#5588cc" : "#334466"),
-              borderRadius:5, color: barrierOn ? "#c8e8ff" : "#7090b8",
-              cursor:"pointer", fontSize:12,
-              fontFamily:"'JetBrains Mono','Courier New',monospace",
-            }}>{barrierOn ? "◉" : "○"} Barrier</button>
+            <button className={`qontic-app-toggle qontic-app-toggle--wide${barrierOn ? " active" : ""}`}
+              aria-pressed={barrierOn} onClick={() => setBarrierOn(!barrierOn)}>
+              {barrierOn ? "●" : "○"} Barrier
+            </button>
           </Tip>
         )}
 
         {display && <SL label="Detector">
-          <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+          <div className="qontic-app-toggle-group">
             {[
               { key:"detector", label:"Fine",       on:detectorOn, fn:setDetectorOn, tip:"Toggle the fine detector (gauge dial).\nOff = no coupling, pointer stays at rest." },
               { key:"coarse",   label:"Coarse",     on:showCoarse, fn:setShowCoarse, tip:"Show a second coarse-grained detector (binary T/R).\n\nThe fine detector shows the quantum pointer — a continuous Gaussian wavepacket.\nThe coarse detector amplifies that reading into a definite T or R click.\n\nIn weak regime the fine pointer is ambiguous; the coarse register makes the outcome definite." },
               { key:"fixedT",   label:"Fix T",     on:fixedT,     fn:setFixedT,     tip:"Lock the T pointer position on the gauge dial.\n\nOff: the T tick on the dial moves as coupling λ changes (scale fixed at λ_max range).\nOn: the dial scale adjusts so T always sits at the same height on the gauge. The y-value labels change to reflect the actual pointer separation.\n\nThe y-panel always matches the 2D canvas regardless of this setting." },
             ].map(({ key, label, on, fn, tip }) => (
               <Tip key={key} text={tip}>
-                <button onClick={() => fn(!on)} style={{
-                  padding:"5px 10px",
-                  background: on ? "rgba(40,80,180,0.5)" : "rgba(15,30,70,0.5)",
-                  border:"1px solid " + (on ? "#5588cc" : "#334466"),
-                  borderRadius:5, color: on ? "#c8e8ff" : "#7090b8",
-                  cursor:"pointer", fontSize:12,
-                  fontFamily:"'JetBrains Mono','Courier New',monospace",
-                }}>{on ? "◉" : "○"} {label}</button>
+                <button className={`qontic-app-toggle${on ? " active" : ""}`}
+                  aria-pressed={on} onClick={() => fn(!on)}>
+                  {on ? "●" : "○"} {label}
+                </button>
               </Tip>
             ))}
           </div>
@@ -1146,21 +1138,17 @@ const SimPanel = React.memo(({
 
         {display && interp === "pw" && (
         <SL label="Toggles">
-          <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+          <div className="qontic-app-toggle-group">
             {[
               { key:"wave", label:"Wave",  on:showWave, fn:setShowWave, tip:"Show/hide 2D |Ψ|² heatmap" },
               { key:"traj", label:"Paths",  on:showTraj, fn:setShowTraj, tip:"Show/hide Bohmian trajectories" },
               { key:"proj", label:"Proj",  on:showProj, fn:setShowProj, tip:"Also overlay global projections ρ(x), ρ(y) on the CWF panels" },
             ].map(({ key, label, on, fn, tip }) => (
               <Tip key={key} text={tip}>
-                <button onClick={() => fn(!on)} style={{
-                  padding:"5px 10px",
-                  background: on ? "rgba(40,80,180,0.5)" : "rgba(15,30,70,0.5)",
-                  border:"1px solid " + (on ? "#5588cc" : "#334466"),
-                  borderRadius:5, color: on ? "#c8e8ff" : "#7090b8",
-                  cursor:"pointer", fontSize:12,
-                  fontFamily:"'JetBrains Mono','Courier New',monospace",
-                }}>{on ? "◉" : "○"} {label}</button>
+                <button className={`qontic-app-toggle${on ? " active" : ""}`}
+                  aria-pressed={on} onClick={() => fn(!on)}>
+                  {on ? "●" : "○"} {label}
+                </button>
               </Tip>
             ))}
           </div>
