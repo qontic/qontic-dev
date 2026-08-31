@@ -10,7 +10,7 @@ const boolAttr = (element, name, fallback = false) => {
 };
 
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme"];
+  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun"];
 
   constructor() {
     super();
@@ -89,6 +89,7 @@ class QonticControls extends HTMLElement {
     const interpretation = this.getAttribute("interpretation") || "cpn";
     const [, label] = INTERPRETATIONS.find(([id]) => id === interpretation) || INTERPRETATIONS[0];
     const interpretationButton = root.querySelector(".qontic-interpretation");
+    interpretationButton.hidden = this.getAttribute("show-interpretation") === "false";
     interpretationButton.textContent = label;
     interpretationButton.style.setProperty("--qontic-control-accent", this.getAttribute("accent") || "#55d8e6");
     interpretationButton.title = "Click to change interpretation";
@@ -100,6 +101,8 @@ class QonticControls extends HTMLElement {
 
     const autoRun = boolAttr(this, "auto-run", true);
     const autoButton = root.querySelector(".qontic-auto-rerun");
+    autoButton.hidden = this.getAttribute("show-autorun") === "false";
+    root.querySelector(".qontic-run-row").classList.toggle("without-autorun", autoButton.hidden);
     autoButton.classList.toggle("active", autoRun);
     autoButton.setAttribute("aria-pressed", String(autoRun));
     autoButton.setAttribute("aria-label", `Auto rerun ${autoRun ? "on" : "off"}`);

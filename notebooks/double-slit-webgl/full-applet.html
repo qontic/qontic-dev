@@ -10,12 +10,16 @@
       document.documentElement.classList.add("is-embedded");
     }
   </script>
+  <link rel="stylesheet" href="../../shared/qontic-shell.css?v=1.44" />
+  <link rel="stylesheet" href="../../shared/qontic-controls.css?v=2.4" />
   <style>
-    html, body { margin:0; height:100%; background:#000; overflow:hidden; font-family: system-ui, sans-serif; }
-    #wrap { position:relative; width:100%; height:100%; }
+    html, body { margin:0; height:100%; background:#040a1c; overflow:hidden; font-family:Inter,Arial,sans-serif; }
+    body { display:flex; flex-direction:column; }
+    .double-slit-shell { width:100%; max-width:none; min-height:0; flex:1; display:flex; flex-direction:column; overflow:hidden; padding:0; }
+    #wrap { position:relative; width:100%; min-height:0; flex:1; overflow:hidden; }
     canvas { width:100%; height:100%; display:block; }
     #ui {
-      position:absolute; left:12px; top:12px; width:330px;
+      position:absolute; right:12px; top:12px; width:360px;
       background:rgba(5,16,36,0.62); color:#d9e6f8; padding:12px 12px 10px;
       border:1px solid rgba(116,174,255,0.22); border-radius:10px;
       backdrop-filter: blur(6px);
@@ -51,7 +55,7 @@
     #credit a { color:#9fd0ff; text-decoration:none; }
     #credit a:hover { text-decoration:underline; }
     #theory {
-      position:absolute; right:12px; top:12px; width:380px; max-width:calc(100vw - 24px);
+      position:absolute; left:12px; top:12px; width:380px; max-width:calc(100vw - 24px);
       max-height:calc(100vh - 24px); overflow:auto;
       background:rgba(5,16,36,0.62); color:#d9e6f8; padding:12px;
       border:1px solid rgba(116,174,255,0.22); border-radius:10px;
@@ -92,6 +96,14 @@
       #theory { top:auto; bottom:12px; width:calc(100vw - 48px); }
       #theory.is-minimized { width:160px; }
     }
+    body.qontic-light #wrap { background:#eef4f7; }
+    body.qontic-light canvas { filter:invert(.92) hue-rotate(180deg) brightness(1.04); }
+    body.qontic-light #ui, body.qontic-light #theory { background:rgba(255,255,255,.90); color:#203746; border-color:#9bb5c1; }
+    body.qontic-light #ui h3, body.qontic-light #theory h3, body.qontic-light .row .val, body.qontic-light .stat b { color:#203746; }
+    body.qontic-light .row label, body.qontic-light .stat, body.qontic-light #theorybody { color:#526a77; }
+    body.qontic-light .math { background:#f5f9fb; color:#203746; border-color:#c6d5dc; }
+    .qontic-view-tabs { flex:none; }
+    .qontic-footer { flex:none; }
     html.is-embedded #theory,
     html.is-embedded #credit { display:none; }
     html.is-embedded #ui {
@@ -105,10 +117,15 @@
   </style>
 </head>
 <body>
+  <main class="shell double-slit-shell">
+    <header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Bohmian Double Slit</h1></div><span class="truth">WebGL2</span></header>
+    <nav class="tabs" aria-label="Double-slit views"><button class="active" data-applet-view="demo">Demo</button><button data-applet-view="theory">Theory</button></nav>
   <div id="wrap">
     <canvas id="c"></canvas>
     <div id="ui">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+      <qontic-controls id="shared-controls" show-interpretation="false" show-autorun="false"
+        running="true" speed="1" active-tab="core" theme="dark"></qontic-controls>
+      <div class="legacy-panel-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:8px 0;">
         <h3 style="margin:0; font-size:14px; font-weight:600; color:#fff;">Bohmian Double Slit</h3>
         <button id="minui" title="Minimize/expand" style="
           width:34px; height:28px; padding:0;
@@ -119,9 +136,9 @@
       </div>
       <div id="uibody">
         <div id="controls"></div>
-        <div class="btns">
-          <button id="reset">Reset (R)</button>
-          <button id="pause">Pause</button>
+        <div class="btns" data-control-tab="core">
+          <button id="reset" class="qontic-app-toggle qontic-app-toggle--wide">Reset</button>
+          <button id="pause" hidden>Pause</button>
         </div>
         <div class="stat" id="stats"></div>
       </div>
@@ -172,6 +189,30 @@
       </div>
     </div>
   </div>
-  <script type="module" src="./main.js"></script>
+  </main>
+  <script type="module" src="../../shared/qontic-controls.js?v=2.4"></script>
+  <script type="module" src="./main.js?v=template-24"></script>
+  <script type="module">
+    import { mountQonticShell } from '../../shared/qontic-shell.js?v=1.44';
+    mountQonticShell({
+      title:'Bohmian Double Slit',
+      eyebrow:'Interactive notebook',
+      purpose:'Explore wave interference and Bohmian trajectories through a double slit, including Schrödinger and Pauli guiding laws.',
+      badge:'WebGL2',
+      version:'Double Slit · Shared template preview',
+      homeHref:'../../index.html',
+      labHref:'https://qonticlab.rice.edu/'
+    });
+    const viewTabs=document.querySelector('.qontic-view-tabs');
+    viewTabs?.addEventListener('click',event=>{
+      const button=event.target.closest('[data-applet-view]');
+      if(!button)return;
+      viewTabs.querySelectorAll('button').forEach(item=>item.classList.toggle('active',item===button));
+      const theoryButton=document.getElementById('mintheory');
+      const expanded=theoryButton?.getAttribute('aria-expanded')==='true';
+      if(button.dataset.appletView==='theory'&&!expanded) theoryButton?.click();
+      if(button.dataset.appletView==='demo'&&expanded) theoryButton?.click();
+    });
+  </script>
 </body>
 </html>
