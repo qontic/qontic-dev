@@ -15,9 +15,9 @@ This directory is the canonical, reusable template for simulation-style Q-Ontic 
 
 ### Permanent controls
 
-The interpretation selector occupies the full panel width and cycles through the available interpretations. It shows only the current interpretation name—no label or arrow. The next row contains a narrow **Start/Stop** button, a two-state **↻** automatic-rerun toggle, and the **Speed** slider.
+The interpretation selector occupies the full panel width and cycles through the available interpretations. It shows only the current interpretation name—no label or arrow. The next row contains a narrow **Start/Stop** button, an optional **Reset** action, a two-state **↻** automatic-rerun toggle, and the **Speed** slider.
 
-Start/Stop preserves the current state. With ↻ enabled, completion starts a newly sampled run automatically. With ↻ disabled, the simulation completes one run and stops. The template intentionally has no pull-down run menu and no separate replay action.
+Start/Stop preserves the current state. Reset returns the app to its defined initial state and emits `qontic:reset`; apps enable it with `show-reset="true"`. With ↻ enabled, completion starts a newly sampled run automatically. With ↻ disabled, the simulation completes one run and stops. The template intentionally has no pull-down run menu and no separate replay action.
 
 ### Interpretations
 
@@ -47,6 +47,7 @@ import { mountQonticControls } from './qontic-controls.js';
 const controls = mountQonticControls({
   onStart: () => engine.start(),
   onStop: () => engine.stop(),
+  onReset: () => engine.reset(),
   onAutorun: ({ autoRerun }) => engine.setAutoRerun(autoRerun),
   onInterpretation: ({ interpretation }) => engine.setInterpretation(interpretation),
   onControlchange: ({ name, value }) => engine.setControl(name, value)
