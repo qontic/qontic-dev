@@ -10,7 +10,7 @@ const boolAttr = (element, name, fallback = false) => {
 };
 
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset"];
+  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-speed"];
 
   constructor() {
     super();
@@ -119,6 +119,8 @@ class QonticControls extends HTMLElement {
     autoButton.setAttribute("aria-label", `Auto rerun ${autoRun ? "on" : "off"}`);
     autoButton.title = autoRun ? "Auto rerun is on. Click for one run only." : "One run only. Click to automatically rerun.";
 
+    const speedControl = root.querySelector(".qontic-speed");
+    speedControl.hidden = this.getAttribute("show-speed") === "false";
     const speed = +(this.getAttribute("speed") || 1);
     const speedInput = root.querySelector(".qontic-speed input");
     if (document.activeElement !== speedInput) speedInput.value = String(speed);
