@@ -234,7 +234,7 @@ def render_external_resource_list(resources):
             f'<div><h3>{html.escape(resource.get("title", "Untitled resource"))}</h3>'
             f'<p>{html.escape(resource.get("description", ""))}</p>'
             f'<div class="tags">{tag_html}</div></div>'
-            f'<a class="open" href="{html.escape(resource.get("url", "#"), quote=True)}">{action}</a>'
+            f'<a class="open" href="{html.escape(resource.get("url", "#"), quote=True)}" target="_blank" rel="noopener">{action}</a>'
             '</article>'
         )
     return "".join(groups)

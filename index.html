@@ -14,10 +14,8 @@
     header p { max-width:780px; margin:.5rem auto 0; opacity:.93; }
     main { max-width:960px; margin:1.6rem auto 2.5rem; padding:0 1rem; }
     .intro { max-width:820px; margin:0 auto 1.5rem; text-align:center; color:var(--muted); }
-    .video-link { display:inline-block; margin-top:.25rem; color:white; background:var(--blue2); padding:.45rem .75rem; border-radius:6px; text-decoration:none; font-weight:700; }
-    .video-link:hover, .video-link:focus-visible { background:var(--blue); }
     .tabs { display:flex; justify-content:center; gap:.35rem; margin:0 auto 1rem; border-bottom:1px solid var(--border); }
-    .tab-button { border:0; border-bottom:3px solid transparent; background:transparent; color:var(--muted); padding:.65rem 1.25rem; font:inherit; font-weight:700; cursor:pointer; }
+    .tab-button { border:0; border-bottom:3px solid transparent; background:transparent; color:var(--muted); padding:.65rem 1.25rem; font:inherit; font-weight:700; cursor:pointer; text-decoration:none; }
     .tab-button:hover { color:var(--blue2); }
     .tab-button[aria-selected="true"] { color:var(--blue); border-bottom-color:var(--blue); }
     .search-wrap { position:absolute; top:1rem; right:1rem; width:220px; }
@@ -67,12 +65,12 @@
 <main>
   <section class="intro">
     <p>Browse by physics module, or view the complete lists of simulations and notebooks.</p>
-    <a class="video-link" href="https://www.youtube.com/@QonticLab">Videos on YouTube ↗</a>
   </section>
   <nav class="tabs" role="tablist" aria-label="Browse Q-Ontic resources">
     <button class="tab-button" id="tab-modules" role="tab" aria-selected="true" aria-controls="panel-modules" data-tab="modules">Modules</button>
     <button class="tab-button" id="tab-apps" role="tab" aria-selected="false" aria-controls="panel-apps" data-tab="apps">Apps</button>
     <button class="tab-button" id="tab-notebooks" role="tab" aria-selected="false" aria-controls="panel-notebooks" data-tab="notebooks">Notebooks</button>
+    <a class="tab-button" href="https://www.youtube.com/@QonticLab" target="_blank" rel="noopener">Videos</a>
   </nav>
   <div id="panel-modules" class="tab-panel" role="tabpanel" aria-labelledby="tab-modules"><div id="homepage"></div></div>
   <div id="panel-apps" class="tab-panel" role="tabpanel" aria-labelledby="tab-apps" hidden></div>
