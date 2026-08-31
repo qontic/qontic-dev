@@ -234,6 +234,7 @@ function addToggleInt(key, label) {
 
   const row = document.createElement("div");
   row.className = "row";
+  row.dataset.controlTab = controlTabForKey(key);
   const lab = document.createElement("label");
   lab.textContent = label;
 
@@ -296,6 +297,7 @@ function addChoiceButtons(key, label, values, onChange = null) {
 
   const row = document.createElement("div");
   row.className = "row";
+  row.dataset.controlTab = controlTabForKey(key);
 
   const lab = document.createElement("label");
   lab.textContent = label;
@@ -321,7 +323,7 @@ function addChoiceButtons(key, label, values, onChange = null) {
   function sync() {
     const selected = params[key] | 0;
     buttons.forEach((btn, index) => {
-      btn.classList.toggle("is-active", index === selected);
+      btn.classList.toggle("active", index === selected);
     });
   }
 
