@@ -1,4 +1,4 @@
-import "../../shared/qontic-controls.js?v=2.2";
+import "../../shared/qontic-controls.js?v=2.5";
 export function mountQonticControls(options = {}) {
   const root = options.root || document;
   const controls = root.querySelector("qontic-controls");
@@ -8,6 +8,7 @@ export function mountQonticControls(options = {}) {
   const callbacks = {
     "qontic:start": event => options.onStart?.(event.detail),
     "qontic:stop": event => options.onStop?.(event.detail),
+    "qontic:reset": event => options.onReset?.(event.detail),
     "qontic:autorun": event => options.onAutorun?.({ autoRerun: event.detail.autoRun }),
     "qontic:interpretation": event => {
       const map = { cpn: "orthodox", pw: "pilot-wave", mw: "many-worlds" };
