@@ -424,11 +424,11 @@ function showControlTab(tab) {
 }
 sharedControls?.addEventListener("qontic:start", () => { paused = false; syncSharedRunState(); });
 sharedControls?.addEventListener("qontic:stop", () => { paused = true; syncSharedRunState(); });
+sharedControls?.addEventListener("qontic:reset", () => resetAll());
 sharedControls?.addEventListener("qontic:speed", event => setSimulationSpeed(event.detail.speed));
 sharedControls?.addEventListener("qontic:tab", event => showControlTab(event.detail.tab));
 showControlTab("core");
 
-document.getElementById("reset").onclick = () => resetAll();
 pauseButton.onclick = () => togglePause();
 
 if (isEmbedded) {
