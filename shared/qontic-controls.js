@@ -40,21 +40,30 @@ class QonticControls extends HTMLElement {
       const current = this.getAttribute("interpretation") || "cpn";
       const index = INTERPRETATIONS.findIndex(([id]) => id === current);
       const interpretation = INTERPRETATIONS[(index + 1) % INTERPRETATIONS.length][0];
+      this.setAttribute("interpretation", interpretation);
       this.dispatch("interpretation", { interpretation });
     });
     root.querySelector(".qontic-main-run").addEventListener("click", () => {
       const running = !boolAttr(this, "running");
+      this.setAttribute("running", String(running));
       this.dispatch(running ? "start" : "stop", { running });
     });
     root.querySelector(".qontic-auto-rerun").addEventListener("click", () => {
-      this.dispatch("autorun", { autoRun: !boolAttr(this, "auto-run", true) });
+      const autoRun = !boolAttr(this, "auto-run", true);
+      this.setAttribute("auto-run", String(autoRun));
+      this.dispatch("autorun", { autoRun });
     });
     root.querySelector(".qontic-speed input").addEventListener("input", event => {
-      this.dispatch("speed", { speed: +event.target.value });
+      const speed = +event.target.value;
+      this.setAttribute("speed", String(speed));
+      this.dispatch("speed", { speed });
     });
     root.querySelector(".qontic-control-tabs").addEventListener("click", event => {
       const button = event.target.closest("[data-tab]");
-      if (button) this.dispatch("tab", { tab: button.dataset.tab });
+      if (button) {
+        this.setAttribute("active-tab", button.dataset.tab);
+        this.dispatch("tab", { tab: button.dataset.tab });
+      }
     });
     this.sync();
   }
