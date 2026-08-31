@@ -52,7 +52,7 @@ button { font:inherit; }
 .qontic-light .qontic-app-toggle:hover { border-color:#1594a8; color:#075c69; }
 .qontic-light .qontic-app-toggle.active { border-color:#1594a8; background:#dff4f7; color:#075c69; }
 
-.qontic-interpretation[hidden], .qontic-reset[hidden], .qontic-auto-rerun[hidden] { display:none; }
+.qontic-interpretation[hidden], .qontic-reset[hidden], .qontic-auto-rerun[hidden], .qontic-speed[hidden] { display:none; }
 .qontic-run-row.without-autorun { grid-template-columns:54px 48px minmax(0,1fr); }
 .qontic-run-row.without-reset { grid-template-columns:54px 30px minmax(0,1fr); }
 .qontic-run-row.without-reset.without-autorun { grid-template-columns:62px minmax(0,1fr); }
