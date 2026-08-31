@@ -969,6 +969,32 @@ const SimPanel = React.memo(({
   const vc  = VIEW_COLOR[interp];
   const p   = isMobile ? "8px 8px" : "10px 9px";
   const fs  = isMobile ? 10 : 12;
+  const commonControlsRef = useRef(null);
+  useEffect(() => {
+    const controls = commonControlsRef.current;
+    if (!controls) return;
+    const onInterpretation = event => setInterp(event.detail.interpretation);
+    const onStart = () => setRunning(true);
+    const onStop = () => setRunning(false);
+    const onAutorun = event => setAutoRun(event.detail.autoRun);
+    const onSpeed = event => setSpeed(event.detail.speed);
+    const onTab = event => setControlTab(event.detail.tab);
+    controls.addEventListener("qontic:interpretation", onInterpretation);
+    controls.addEventListener("qontic:start", onStart);
+    controls.addEventListener("qontic:stop", onStop);
+    controls.addEventListener("qontic:autorun", onAutorun);
+    controls.addEventListener("qontic:speed", onSpeed);
+    controls.addEventListener("qontic:tab", onTab);
+    return () => {
+      controls.removeEventListener("qontic:interpretation", onInterpretation);
+      controls.removeEventListener("qontic:start", onStart);
+      controls.removeEventListener("qontic:stop", onStop);
+      controls.removeEventListener("qontic:autorun", onAutorun);
+      controls.removeEventListener("qontic:speed", onSpeed);
+      controls.removeEventListener("qontic:tab", onTab);
+    };
+  }, [setInterp, setRunning, setAutoRun, setSpeed]);
+
 
   return (
     <div style={{ display:"flex", flexDirection:"column",
@@ -978,28 +1004,15 @@ const SimPanel = React.memo(({
       <div style={{ display:"flex", flexDirection:"column", gap: isMobile ? 5 : 7,
         padding: isMobile ? "6px 8px" : "8px 18px 8px 9px" }}>
 
-        <div className="qontic-mode-row">
-          <button className="qontic-interpretation-cycle"
-            style={{borderColor:vc,color:vc}}
-            onClick={()=>setInterp(VIEWS[(VIEWS.indexOf(interp)+1)%VIEWS.length])}
-            title={`${VIEW_TIP[interp]}\nClick to change interpretation.`}>
-            {interp==="cpn"?"Orthodox":interp==="pw"?"Pilot Wave":"Many Worlds"}
-          </button>
-        </div>
-
-        <div className="qontic-run-row" role="group" aria-label="Simulation run controls">
-          <button className="qontic-main-run" onClick={() => setRunning(!running)}>
-            {running ? "Stop" : "Start"}
-          </button>
-          <button className={`qontic-auto-rerun${autoRun ? " active" : ""}`}
-            onClick={()=>setAutoRun(!autoRun)} aria-pressed={autoRun}
-            aria-label={`Auto rerun ${autoRun ? "on" : "off"}`}
-            title={autoRun ? "Auto rerun is on. Click for one run only." : "One run only. Click to automatically rerun."}>↻</button>
-          <label className="qontic-speed">Speed <input aria-label="Speed" type="range" min={0.1} max={4} step={0.05} defaultValue={0.5} ref={speedRef} onInput={e=>setSpeed(+e.target.value)} /><output>{speed.toFixed(1)}×</output></label>
-        </div>
-        <div className="qontic-control-tabs" role="tablist" aria-label="Control level">
-          {[['core','Core'],['advanced','Advanced'],['display','Display']].map(([key,label])=><button key={key} role="tab" aria-selected={controlTab===key} className={controlTab===key?'active':''} onClick={()=>setControlTab(key)}>{label}</button>)}
-        </div>
+        <qontic-controls
+          ref={commonControlsRef}
+          interpretation={interp}
+          running={running ? "true" : "false"}
+          auto-run={autoRun ? "true" : "false"}
+          speed={speed}
+          active-tab={controlTab}
+          accent={vc}
+        ></qontic-controls>
         <div className="qontic-tab-panel" role="tabpanel" aria-label={`${controlTab} controls`}>
 
         {controlTab === "core" && <SL label={`Transmission  ${barrierOn ? Math.round(tTarget*100)+"%" : "100% (barrier off)"}`}

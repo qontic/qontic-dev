@@ -62,4 +62,4 @@ Every callback is also emitted as a bubbling event: `qontic:start`, `qontic:stop
 
 ## Adoption rule
 
-Copy the canonical structure and connect it through callbacks. Do not copy the placeholder physics or force irrelevant controls into an app. The template standardizes names, behavior, placement, states, accessibility, and responsive layout; the scientific engine remains app-specific.
+Import `../../shared/qontic-controls.js` and render the `<qontic-controls>` runtime component; do not copy its markup or CSS. Connect its standard events to the app engine.  Do not copy the placeholder physics or force irrelevant controls into an app. The shared runtime component standardizes names, behavior, placement, states, accessibility, and responsive layout; the scientific engine and tab contents remain app-specific. Compatible updates to the shared component propagate to every connected app.

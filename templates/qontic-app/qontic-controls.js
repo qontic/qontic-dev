@@ -1,19 +1,60 @@
-const emit=(root,name,detail)=>root.dispatchEvent(new CustomEvent(`qontic:${name}`,{detail,bubbles:true}));
-export function mountQonticControls(options={}){
- const root=options.root||document,primary=root.querySelector('[data-run-primary]');if(!primary)return null;
- const autoButton=root.querySelector('[data-auto-rerun]'),interpretationButton=root.querySelector('[data-interpretation-cycle]');
- const interpretations=[['orthodox','Orthodox'],['pilot-wave','Pilot Wave'],['many-worlds','Many Worlds']];let running=options.running??true,autoRerun=options.autoRerun??true,interpretation=options.interpretation||'orthodox';
- const syncRun=()=>{primary.textContent=running?'Stop':'Start';primary.setAttribute('aria-label',running?'Stop simulation':'Start simulation')};
- const syncAuto=()=>{autoButton?.classList.toggle('active',autoRerun);autoButton?.setAttribute('aria-pressed',String(autoRerun));autoButton?.setAttribute('aria-label',`Auto rerun ${autoRerun?'on':'off'}`);if(autoButton)autoButton.title=autoRerun?'Auto rerun is on. Click for one run only.':'One run only. Click to automatically rerun.'};
- const syncInterpretation=()=>{const label=interpretations.find(([name])=>name===interpretation)?.[1]||'Orthodox';if(interpretationButton)interpretationButton.textContent=label;root.querySelectorAll('[data-pw-only]').forEach(item=>item.classList.toggle('hidden',interpretation!=='pilot-wave'));root.querySelectorAll('[data-no-pw]').forEach(item=>item.classList.toggle('hidden',interpretation==='pilot-wave'))};
- const act=(name,detail={})=>{options[`on${name[0].toUpperCase()}${name.slice(1)}`]?.(detail);emit(root,name,detail)};
- primary.addEventListener('click',()=>{running=!running;syncRun();act(running?'start':'stop',{running})});
- autoButton?.addEventListener('click',()=>{autoRerun=!autoRerun;syncAuto();act('autorun',{autoRerun})});
- interpretationButton?.addEventListener('click',()=>{const index=interpretations.findIndex(([name])=>name===interpretation);interpretation=interpretations[(index+1)%interpretations.length][0];syncInterpretation();act('interpretation',{interpretation})});
- const controlTabs=root.querySelector('[data-control-tabs]');controlTabs?.addEventListener('click',e=>{const button=e.target.closest('[data-control-tab]');if(!button)return;controlTabs.querySelectorAll('button').forEach(item=>item.classList.toggle('active',item===button));root.querySelectorAll('[data-control-pane]').forEach(pane=>pane.classList.toggle('hidden',pane.dataset.controlPane!==button.dataset.controlTab))});
- root.querySelectorAll('[data-qontic-control]').forEach(control=>{const update=()=>{const output=control.closest('.control-row,.toolbar-slider')?.querySelector('output');if(output)output.value=`${control.value}${control.dataset.suffix||''}`;act('controlchange',{name:control.dataset.qonticControl,value:control.type==='range'?+control.value:control.value})};control.addEventListener('input',update);control.addEventListener('change',update)});
- root.querySelectorAll('[data-qontic-toggle]').forEach(button=>button.addEventListener('click',()=>{const pressed=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(pressed));if(button.dataset.qonticToggle==='light-theme')document.body.classList.toggle('qontic-light',pressed);act('controlchange',{name:button.dataset.qonticToggle,value:pressed})}));
- const results=root.querySelector('[data-results-panel]'),head=results?.querySelector('.results-head');results?.querySelector('[data-results-collapse]')?.addEventListener('click',()=>{const body=results.querySelector('.results-body');body.hidden=!body.hidden});let drag=null;
- head?.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;const box=results.getBoundingClientRect();drag={x:e.clientX-box.left,y:e.clientY-box.top};head.setPointerCapture(e.pointerId)});head?.addEventListener('pointermove',e=>{if(!drag)return;const parent=results.offsetParent.getBoundingClientRect();results.style.left=`${Math.max(0,Math.min(parent.width-results.offsetWidth,e.clientX-parent.left-drag.x))}px`;results.style.top=`${Math.max(0,Math.min(parent.height-results.offsetHeight,e.clientY-parent.top-drag.y))}px`;results.style.right='auto';results.style.bottom='auto'});head?.addEventListener('pointerup',()=>{drag=null});
- syncRun();syncAuto();syncInterpretation();return{setRunning(value){running=Boolean(value);syncRun()},setAutoRerun(value){autoRerun=Boolean(value);syncAuto()},setResult(name,value){const output=results?.querySelector(`[data-result="${name}"]`);if(output)output.value=value},setInterpretation(name){if(interpretations.some(([value])=>value===name)){interpretation=name;syncInterpretation()}}};
+import "../../shared/qontic-controls.js?v=2.1";
+export function mountQonticControls(options = {}) {
+  const root = options.root || document;
+  const controls = root.querySelector("qontic-controls");
+  if (!controls) return null;
+  const panes = [...root.querySelectorAll("[data-control-pane]")];
+  const syncTab = tab => panes.forEach(pane => pane.classList.toggle("hidden", pane.dataset.controlPane !== tab));
+  const callbacks = {
+    "qontic:start": event => options.onStart?.(event.detail),
+    "qontic:stop": event => options.onStop?.(event.detail),
+    "qontic:autorun": event => options.onAutorun?.({ autoRerun: event.detail.autoRun }),
+    "qontic:interpretation": event => {
+      const map = { cpn: "orthodox", pw: "pilot-wave", mw: "many-worlds" };
+      const interpretation = map[event.detail.interpretation] || event.detail.interpretation;
+      controls.setAttribute("interpretation", event.detail.interpretation);
+      root.querySelectorAll("[data-pw-only]").forEach(item => item.classList.toggle("hidden", interpretation !== "pilot-wave"));
+      root.querySelectorAll("[data-no-pw]").forEach(item => item.classList.toggle("hidden", interpretation === "pilot-wave"));
+      options.onInterpretation?.({ interpretation });
+    },
+    "qontic:speed": event => options.onControlchange?.({ name: "speed", value: event.detail.speed }),
+    "qontic:tab": event => {
+      controls.setAttribute("active-tab", event.detail.tab);
+      syncTab(event.detail.tab);
+    },
+  };
+  Object.entries(callbacks).forEach(([name, callback]) => controls.addEventListener(name, callback));
+  root.querySelectorAll("[data-qontic-control]").forEach(control => {
+    const update = () => {
+      const output = control.closest(".control-row,.toolbar-slider")?.querySelector("output");
+      if (output) output.value = `${control.value}${control.dataset.suffix || ""}`;
+      options.onControlchange?.({ name: control.dataset.qonticControl, value: control.type === "range" ? +control.value : control.value });
+    };
+    control.addEventListener("input", update);
+    control.addEventListener("change", update);
+  });
+  root.querySelectorAll("[data-qontic-toggle]").forEach(button => button.addEventListener("click", () => {
+    const pressed = button.getAttribute("aria-pressed") !== "true";
+    button.setAttribute("aria-pressed", String(pressed));
+    if (button.dataset.qonticToggle === "light-theme") document.body.classList.toggle("qontic-light", pressed);
+    options.onControlchange?.({ name: button.dataset.qonticToggle, value: pressed });
+  }));
+  const results = root.querySelector("[data-results-panel]");
+  results?.querySelector("[data-results-collapse]")?.addEventListener("click", () => {
+    const body = results.querySelector(".results-body");
+    body.hidden = !body.hidden;
+  });
+  syncTab(controls.getAttribute("active-tab") || "core");
+  return {
+    setRunning(value) { controls.setAttribute("running", String(Boolean(value))); },
+    setAutoRerun(value) { controls.setAttribute("auto-run", String(Boolean(value))); },
+    setInterpretation(value) {
+      const map = { orthodox: "cpn", "pilot-wave": "pw", "many-worlds": "mw" };
+      controls.setAttribute("interpretation", map[value] || value);
+    },
+    setResult(name, value) {
+      const output = results?.querySelector(`[data-result="${name}"]`);
+      if (output) output.value = value;
+    }
+  };
 }
