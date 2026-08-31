@@ -5,5 +5,13 @@
   "topics": ["wave-mechanics"],
   "interpretations": ["orthodox", "pilot-wave", "many-worlds"],
   "order": 10,
+  "externalResources": [
+    {
+      "type": "video",
+      "title": "Free Particle in Pilot Wave Theory",
+      "description": "An animated introduction to the motion of a free quantum particle.",
+      "url": "https://www.youtube.com/watch?v=9pVtPOHfwT8"
+    }
+  ],
   "relatedModules": ["double-slit", "quantum-tunneling"]
 }

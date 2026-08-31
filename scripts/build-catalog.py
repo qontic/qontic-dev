@@ -223,6 +223,23 @@ def render_resource_list(resources):
     return "".join(groups)
 
 
+def render_external_resource_list(resources):
+    groups = []
+    for resource in resources:
+        resource_type = resource_type_label(resource)
+        tag_html = f'<span class="tag">{html.escape(resource_type)}</span>'
+        action = "Watch →" if str(resource.get("type", "")).lower() == "video" else "Open →"
+        groups.append(
+            '<article class="resource-row">'
+            f'<div><h3>{html.escape(resource.get("title", "Untitled resource"))}</h3>'
+            f'<p>{html.escape(resource.get("description", ""))}</p>'
+            f'<div class="tags">{tag_html}</div></div>'
+            f'<a class="open" href="{html.escape(resource.get("url", "#"), quote=True)}">{action}</a>'
+            '</article>'
+        )
+    return "".join(groups)
+
+
 def generate_module_pages(resources, modules):
     by_module = {module["id"]: [] for module in modules}
     for resource in resources:
@@ -243,6 +260,7 @@ def generate_module_pages(resources, modules):
         if related_links:
             related_html = '<section class="related"><h2>Related modules</h2><p>' + " · ".join(related_links) + '</p></section>'
         topic_html = "".join(f'<span class="topic">{html.escape(str(topic).replace("-", " ").title())}</span>' for topic in module.get("topics", []))
+        resource_html = render_resource_list(by_module[module["id"]]) + render_external_resource_list(module.get("externalResources", []))
         page = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -282,7 +300,7 @@ def generate_module_pages(resources, modules):
 <header><div class="header-inner"><a class="back" href="../../">← All modules</a><h1>{html.escape(module.get("title", "Module"))}</h1><p class="summary">{html.escape(module.get("summary", ""))}</p></div></header>
 <main>
   <div class="topics">{topic_html}</div>
-  <section><h2>Resources</h2><div class="resource-list">{render_resource_list(by_module[module["id"]])}</div></section>
+  <section><h2>Resources</h2><div class="resource-list">{resource_html}</div></section>
   {related_html}
 </main>
 <footer>Q-Ontic Lab · Rice University</footer>
