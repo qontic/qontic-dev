@@ -33,7 +33,7 @@
     .btns { display:flex; gap:10px; margin-top:8px; }
     .button-group { flex:1; display:flex; gap:6px; }
     .button-group button { min-width:0; padding:8px 6px; font-size:11px; }
-    .button-group button.is-active {
+    .button-group button.active {
       background:rgba(132,192,255,0.24);
       border-color:rgba(132,192,255,0.72);
       box-shadow: inset 0 0 0 1px rgba(132,192,255,0.18);
@@ -102,6 +102,7 @@
     body.qontic-light #ui h3, body.qontic-light #theory h3, body.qontic-light .row .val, body.qontic-light .stat b { color:#203746; }
     body.qontic-light .row label, body.qontic-light .stat, body.qontic-light #theorybody { color:#526a77; }
     body.qontic-light .math { background:#f5f9fb; color:#203746; border-color:#c6d5dc; }
+    .legacy-panel-title { display:none !important; }
     .qontic-view-tabs { flex:none; }
     .qontic-footer { flex:none; }
     html.is-embedded #theory,
@@ -191,7 +192,7 @@
   </div>
   </main>
   <script type="module" src="../../shared/qontic-controls.js?v=2.4"></script>
-  <script type="module" src="./main.js?v=template-24"></script>
+  <script type="module" src="./main.js?v=template-24b"></script>
   <script type="module">
     import { mountQonticShell } from '../../shared/qontic-shell.js?v=1.44';
     mountQonticShell({
