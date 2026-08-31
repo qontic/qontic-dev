@@ -1,4 +1,4 @@
-import { effectiveDt, effectiveStepsPerFrame, initSimulationSpeedControl, setSimulationFrameDuration, setSimulationSpeed } from "../simulation-speed.js";
+import { initSimulationSpeedControl, setSimulationFrameDuration } from "../simulation-speed.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
@@ -68,7 +68,8 @@ const DEFAULT_AUTO_RESTART_MOMENTUM = params.p0;
 const urlParams = new URLSearchParams(window.location.search);
 const isEmbedded = urlParams.get("embed") === "1";
 const preset = urlParams.get("preset");
-initSimulationSpeedControl({ visible: !isEmbedded });
+let playbackSpeed = 1;
+initSimulationSpeedControl({ onChange: speed => { playbackSpeed = speed; } });
 const oneParticlePreset = {
   dt: 0.02,
   simScale: 0.5,
@@ -178,11 +179,12 @@ function fmt(v) {
 }
 
 function simulationDt() {
-  return effectiveDt(params.dt);
+  // Playback speed must not alter the physical integration time step.
+  return params.dt;
 }
 
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame);
+  return Math.max(1, Math.round(params.stepsPerFrame * playbackSpeed));
 }
 
 function trailFadeFrameDt() {
@@ -425,7 +427,7 @@ function showControlTab(tab) {
 sharedControls?.addEventListener("qontic:start", () => { paused = false; syncSharedRunState(); });
 sharedControls?.addEventListener("qontic:stop", () => { paused = true; syncSharedRunState(); });
 sharedControls?.addEventListener("qontic:reset", () => resetAll());
-sharedControls?.addEventListener("qontic:speed", event => setSimulationSpeed(event.detail.speed));
+sharedControls?.addEventListener("qontic:speed", event => { playbackSpeed = event.detail.speed; });
 sharedControls?.addEventListener("qontic:tab", event => showControlTab(event.detail.tab));
 showControlTab("core");
 
