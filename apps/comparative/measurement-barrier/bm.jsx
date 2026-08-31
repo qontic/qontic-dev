@@ -558,7 +558,7 @@ function ShowDesc({ text }) {
 // ── Floating pointer readout distribution ─────────────────────────────────────
 function PointerDistFloat({ needleHistory, deltaY, sigY, Tp }) {
   const [minimized, setMinimized] = React.useState(false);
-  const posRef = React.useRef({ x: 10, y: 215 });
+  const posRef = React.useRef({ x: 10, y: 300 });
   const [pos, setPos] = React.useState(posRef.current);
   const cvRef = React.useRef(null);
   const Rp = 1 - Tp;
@@ -815,7 +815,7 @@ function PointerDistFloat({ needleHistory, deltaY, sigY, Tp }) {
 function HistogramFloat({ histT, histR, histTotal, Tp }) {
   const [minimized, setMinimized] = React.useState(false);
   // Use a ref to track position so drag closures never go stale
-  const posRef = React.useRef({ x: 10, y: 70 });
+  const posRef = React.useRef({ x: 10, y: 150 });
   const [pos, setPos] = React.useState(posRef.current);
 
   // Drag starts only from the title bar div
