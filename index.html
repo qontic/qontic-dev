@@ -25,6 +25,7 @@
     .section-header { border-bottom:2px solid var(--blue); margin-bottom:.35rem; padding-bottom:.35rem; }
     .section-header h2 { margin:0; color:var(--blue); font-size:1.35rem; }
     .section-header p { margin:.2rem 0 0; color:var(--muted); font-size:.92rem; }
+    .section-header a { color:var(--blue2); text-decoration:none; font-weight:600; }
     .module-list { background:white; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
     .module-row { display:grid; grid-template-columns:minmax(170px, 1fr) minmax(260px, 2fr) auto; gap:1rem; align-items:center; padding:.9rem 1rem; border-bottom:1px solid var(--border); text-decoration:none; color:inherit; }
     .module-row:last-child { border-bottom:0; }
@@ -70,11 +71,12 @@
     <button class="tab-button" id="tab-modules" role="tab" aria-selected="true" aria-controls="panel-modules" data-tab="modules">Modules</button>
     <button class="tab-button" id="tab-apps" role="tab" aria-selected="false" aria-controls="panel-apps" data-tab="apps">Apps</button>
     <button class="tab-button" id="tab-notebooks" role="tab" aria-selected="false" aria-controls="panel-notebooks" data-tab="notebooks">Notebooks</button>
-    <a class="tab-button" href="https://www.youtube.com/@QonticLab" target="_blank" rel="noopener">Videos</a>
+    <button class="tab-button" id="tab-videos" role="tab" aria-selected="false" aria-controls="panel-videos" data-tab="videos">Videos</button>
   </nav>
   <div id="panel-modules" class="tab-panel" role="tabpanel" aria-labelledby="tab-modules"><div id="homepage"></div></div>
   <div id="panel-apps" class="tab-panel" role="tabpanel" aria-labelledby="tab-apps" hidden></div>
   <div id="panel-notebooks" class="tab-panel" role="tabpanel" aria-labelledby="tab-notebooks" hidden></div>
+  <div id="panel-videos" class="tab-panel" role="tabpanel" aria-labelledby="tab-videos" hidden></div>
 </main>
 <footer>
   <p>Q-Ontic Lab is a research and education project at Rice University.</p>
@@ -108,6 +110,24 @@
     document.getElementById(rootId).innerHTML = `<section class="collection-section">
       <div class="section-header"><h2>${esc(title)}</h2><p>${items.length} available</p></div>
       <div class="module-list">${rows || '<p class="empty">No resources yet.</p>'}</div>
+    </section>`;
+  }
+
+  function renderVideoPanel(modules) {
+    const videos = modules.flatMap(module => (module.externalResources || [])
+      .filter(resource => resource.type === "video")
+      .map(resource => ({ ...resource, moduleTitle: module.title })));
+    const rows = videos.map(video => {
+      const search = [video.title, video.description, video.moduleTitle].join(" ").toLowerCase();
+      return `<a class="module-row catalog-row" href="${esc(video.url)}" target="_blank" rel="noopener" data-search="${esc(search)}">
+        <span class="module-title">${esc(video.title)}</span>
+        <span class="module-summary">${esc(video.description || "")} · ${esc(video.moduleTitle)}</span>
+        <span class="module-count">Watch <span class="module-arrow">→</span></span>
+      </a>`;
+    }).join("");
+    document.getElementById("panel-videos").innerHTML = `<section class="collection-section">
+      <div class="section-header"><h2>Videos</h2><p>Animated explanations of quantum phenomena. <a href="https://www.youtube.com/@QonticLab" target="_blank" rel="noopener">View the full YouTube channel ↗</a></p></div>
+      <div class="module-list">${rows || '<p class="empty">No videos available yet.</p>'}</div>
     </section>`;
   }
 
@@ -181,6 +201,7 @@
       render(data);
       renderResourcePanel(data.resources || [], "app", "Apps", "panel-apps");
       renderResourcePanel(data.resources || [], "notebook", "Notebooks", "panel-notebooks");
+      renderVideoPanel(data.modules || []);
       document.getElementById("search").addEventListener("input", applySearch);
       document.querySelectorAll(".tab-button").forEach(button => {
         button.addEventListener("click", () => selectTab(button.dataset.tab));
