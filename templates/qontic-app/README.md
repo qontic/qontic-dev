@@ -35,7 +35,7 @@ Apps that do not compare interpretations may omit this selector.
 - **Advanced** — model parameters, widths, couplings, detector positions, numerical settings, and random seed.
 - **Display** — projections, axes, labels, opacity, trajectories, trail appearance, camera, and font size.
 
-The particle-count slider appears in Core only while Pilot Wave is selected. Display includes the optional light/dark appearance switch.
+The particle-count slider appears in Core only while Pilot Wave is selected. The shared runtime always supplies the light/dark appearance switch under Display; apps must theme their canvas as well as their surrounding interface.
 
 Core, Advanced, and Display are attached tabs that visually open one bordered control-panel section; they must not look like independent action buttons. Results never occupy a control tab. When present, they use the draggable and collapsible floating Results panel inside the canvas. Stage indicators and scenario selectors are not part of the common template. The desktop control column is approximately 10% wider than the original 310 px panel (341 px in the canonical example), and controls use regular—not bold—13 px type.
 

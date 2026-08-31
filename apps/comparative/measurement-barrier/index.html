@@ -93,6 +93,12 @@
       }
       .barrier-math-purpose strong { color: #f0ca61; }
       .barrier-math-purpose[hidden] { display: none; }
+      body.qontic-light { background:#eef4f7; }
+      body.qontic-light .barrier-shell { background:#f7fbfc; color:#203746; }
+      body.qontic-light #root > div { background:#eef4f7 !important; }
+      body.qontic-light .qontic-tab-panel { background:#ffffff; border-color:#9bb5c1; color:#203746; }
+      body.qontic-light #root canvas { filter:invert(.92) hue-rotate(180deg) brightness(1.04); }
+      body.qontic-light #root [style*="rgba(4,10,30"] { background:rgba(245,250,252,.94) !important; }
       .qontic-footer { margin-top: 0; padding-top: 8px; padding-bottom: 9px; flex: none; }
       @supports (height: 100dvh) {
         html, body { height: 100dvh; }
@@ -107,7 +113,7 @@
         #root { min-height: 720px; }
       }
     </style>
-    <script type="module" src="../../../shared/qontic-controls.js?v=2.1.1"></script>
+    <script type="module" src="../../../shared/qontic-controls.js?v=2.2"></script>
     <script type="module" src="./src/main.jsx"></script>
   </head>
   <body>

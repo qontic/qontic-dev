@@ -10,7 +10,7 @@ const boolAttr = (element, name, fallback = false) => {
 };
 
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent"];
+  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme"];
 
   constructor() {
     super();
@@ -29,6 +29,9 @@ class QonticControls extends HTMLElement {
           <button type="button" data-tab="advanced" role="tab">Advanced</button>
           <button type="button" data-tab="display" role="tab">Display</button>
         </nav>
+        <div class="qontic-common-display" hidden>
+          <button class="qontic-theme-toggle" type="button" role="switch"><span>Light theme</span><i></i></button>
+        </div>
       </section>`;
   }
 
@@ -64,6 +67,11 @@ class QonticControls extends HTMLElement {
         this.setAttribute("active-tab", button.dataset.tab);
         this.dispatch("tab", { tab: button.dataset.tab });
       }
+    });
+    root.querySelector(".qontic-theme-toggle").addEventListener("click", () => {
+      const theme = (this.getAttribute("theme") || "dark") === "light" ? "dark" : "light";
+      this.setAttribute("theme", theme);
+      this.dispatch("theme", { theme });
     });
     this.sync();
   }
@@ -103,11 +111,20 @@ class QonticControls extends HTMLElement {
     root.querySelector(".qontic-speed output").value = `${speed.toFixed(1)}×`;
 
     const tab = this.getAttribute("active-tab") || "core";
+    root.querySelector(".qontic-common-display").hidden = tab !== "display";
     root.querySelectorAll("[data-tab]").forEach(button => {
       const active = button.dataset.tab === tab;
       button.classList.toggle("active", active);
       button.setAttribute("aria-selected", String(active));
     });
+
+    const theme = this.getAttribute("theme") || "dark";
+    const light = theme === "light";
+    document.documentElement.classList.toggle("qontic-light", light);
+    document.body?.classList.toggle("qontic-light", light);
+    const themeButton = root.querySelector(".qontic-theme-toggle");
+    themeButton.setAttribute("aria-checked", String(light));
+    themeButton.classList.toggle("active", light);
   }
 }
 

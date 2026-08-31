@@ -24,3 +24,14 @@ button { font:inherit; }
 :host-context(.qontic-light) .qontic-control-tabs button { background:#e8f0f3; color:#526a77; }
 :host-context(.qontic-light) .qontic-control-tabs button.active { background:#fff; color:#087487; border-bottom-color:#fff; }
 @media (max-width:700px) { :host { font-size:12px; } }
+
+.qontic-common-display { margin-top:7px; padding:8px 7px 7px; border:1px solid #3a6578; border-radius:0 0 7px 7px; background:#0f2230; }
+.qontic-common-display[hidden] { display:none; }
+.qontic-theme-toggle { width:100%; display:flex; align-items:center; justify-content:space-between; padding:5px 7px; border:0; background:transparent; color:#b9cfdb; cursor:pointer; }
+.qontic-theme-toggle i { width:30px; height:16px; position:relative; border:1px solid #456174; border-radius:99px; background:#07131d; }
+.qontic-theme-toggle i::after { content:""; position:absolute; width:10px; height:10px; left:2px; top:2px; border-radius:50%; background:#718995; transition:left .15s ease,background .15s ease; }
+.qontic-theme-toggle.active i { border-color:#1594a8; background:#dff6fa; }
+.qontic-theme-toggle.active i::after { left:16px; background:#1594a8; }
+:host([active-tab="display"]) .qontic-control-tabs { margin-bottom:-8px; }
+:host-context(.qontic-light) .qontic-common-display { border-color:#9bb5c1; background:#fff; }
+:host-context(.qontic-light) .qontic-theme-toggle { color:#203746; }
