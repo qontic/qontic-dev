@@ -3,10 +3,11 @@
 .qontic-common-controls { display:flex; flex-direction:column; gap:7px; }
 button { font:inherit; }
 .qontic-interpretation { width:100%; min-width:0; padding:7px 9px; overflow:hidden; border:1px solid var(--qontic-control-accent,#55d8e6); border-radius:999px; background:#111b2a; color:var(--qontic-control-accent,#55d8e6); text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
-.qontic-run-row { display:grid; grid-template-columns:54px 30px minmax(0,1fr); align-items:center; gap:6px; }
+.qontic-run-row { display:grid; grid-template-columns:54px 48px 30px minmax(0,1fr); align-items:center; gap:6px; }
 .qontic-run-row button { min-width:0; padding:6px 5px; border:1px solid #294b60; border-radius:6px; background:#162d3d; color:#d9edf7; cursor:pointer; white-space:nowrap; }
 .qontic-main-run { border-color:#168aa0 !important; background:#12394b !important; color:#7cecff !important; }
 .qontic-run-row button:hover { border-color:#55d8e6; }
+.qontic-reset { padding-inline:7px !important; }
 .qontic-auto-rerun { width:30px; padding:6px 0 !important; color:#718995 !important; background:#0d202e !important; }
 .qontic-auto-rerun.active { border-color:#55d8e6 !important; color:#55d8e6 !important; background:#12394b !important; }
 .qontic-speed { display:grid; grid-template-columns:auto minmax(42px,1fr) 35px; align-items:center; gap:5px; min-width:0; color:#b9cfdb; }
@@ -51,5 +52,7 @@ button { font:inherit; }
 .qontic-light .qontic-app-toggle:hover { border-color:#1594a8; color:#075c69; }
 .qontic-light .qontic-app-toggle.active { border-color:#1594a8; background:#dff4f7; color:#075c69; }
 
-.qontic-interpretation[hidden], .qontic-auto-rerun[hidden] { display:none; }
-.qontic-run-row.without-autorun { grid-template-columns:62px minmax(0,1fr); }
+.qontic-interpretation[hidden], .qontic-reset[hidden], .qontic-auto-rerun[hidden] { display:none; }
+.qontic-run-row.without-autorun { grid-template-columns:54px 48px minmax(0,1fr); }
+.qontic-run-row.without-reset { grid-template-columns:54px 30px minmax(0,1fr); }
+.qontic-run-row.without-reset.without-autorun { grid-template-columns:62px minmax(0,1fr); }
