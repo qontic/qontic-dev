@@ -3328,9 +3328,9 @@ async function evolveParticles() {
             nHits++;
             hits[iBin]++;
             if (hits[iBin] > hitMax) hitMax = hits[iBin];
-            if (interpretation === 'manyworlds') {
-               logNBranches += Math.log10(nDetectorPixels);
-            }
+            // Keep the finite branch model in sync with the shared record,
+            // including detections accumulated while viewing Orthodox mode.
+            logNBranches += Math.log10(nDetectorPixels);
          }
          nParticles++;
          continue;
@@ -3846,14 +3846,16 @@ function updateModeExplanation() {
 
 function changeInterpretation(mode) {
    if (viewLocked || !['copenhagen', 'bohmian', 'manyworlds'].includes(mode)) return;
-   if (interpretation !== mode) lightweightReset();
+   // Interpretation is a display choice: retain the detector record, clocks,
+   // emission progress and in-flight trajectories (hidden outside Pilot-Wave).
    interpretation = mode;
+   $('#infoBranchCount').text(logNBranches > 0 ? `10^${logNBranches.toFixed(0)}` : '1');
    updateViewButton();
    updateInterpretationDisplay();
    updateMathFormulas();
    syncMathButtons();
    invalidateWaveCache();
-   if (!isAnimating) drawSystem(0);
+   if (!isAnimating) drawSystem(currentCycleIndex);
 }
 
 function updateViewButton() {

@@ -41,16 +41,33 @@ ctx.precomputeWorker.onmessage({data:{...reply,seq:ctx.sent[0].seq}});
 assert.equal(vm.runInContext('precomputePending',ctx),true);
 ctx.precomputeWorker.onmessage({data:{...reply,seq:ctx.sent[1].seq}});
 assert.equal(vm.runInContext('precomputePending',ctx),false);
-// Exercise the actual mode transition while isolating rendering functions.
+// Interpretation changes preserve one experimental record, paused or running.
 ctx.$=()=>({text(){return this;}});
-vm.runInContext(`hits=[2,3]; trajectories=[{}]; nHits=5; logNBranches=10;
+vm.runInContext(`hits=[2,3]; trajectories=[{points:[{x:10,y:20}],nPoints:1}];
+nHits=5; hitMax=3; nParticles=8; logNBranches=10; time=12;
+nSteps=7; lastParticleTime=4; lastRealTime=9; particleAccum=0.25; startRealTime=2;
+altBranchHits=[1,4]; showAltBranch=true;
 updateViewButton=()=>{}; updateInterpretationDisplay=()=>{}; updateMathFormulas=()=>{};
-syncMathButtons=()=>{}; drawSystem=()=>{}; changeInterpretation('manyworlds');`,ctx);
+syncMathButtons=()=>{}; drawSystem=()=>{};`,ctx);
+const record = () => vm.runInContext(`JSON.stringify({hits,trajectories,nHits,hitMax,nParticles,
+logNBranches,time,nSteps,lastParticleTime,lastRealTime,particleAccum,startRealTime,altBranchHits,showAltBranch})`,ctx);
+const before = record();
+for (const running of [false,true]) {
+  ctx.isAnimating=running;
+  for (const mode of ['bohmian','manyworlds','copenhagen','manyworlds','bohmian','copenhagen']) {
+    ctx.changeInterpretation(mode);
+    assert.equal(record(),before);
+    assert.equal(vm.runInContext('interpretation',ctx),mode);
+    assert.equal(ctx.isAnimating,running);
+  }
+}
+// Explicit reset remains available.
+ctx.lightweightReset();
 assert.equal(ctx.nHits,0);
 assert.equal(vm.runInContext('logNBranches',ctx),0);
 assert.equal(ctx.trajectories.length,0);
-assert.equal(vm.runInContext('interpretation',ctx),'manyworlds');
-console.log('PASS: open-slit sampling, full-screen CDF, symmetry, photon units, worker parity, stale results, and clean mode transitions.');
+assert.equal(ctx.time,0);
+console.log('PASS: sampling, symmetry, worker parity, stale results, preserved mode transitions, explicit reset.');
 
 // Worker failure must restore synchronous sampling instead of blocking particles.
 vm.runInContext(`precomputePending=true; precomputeWorker={terminate(){}};
@@ -58,3 +75,4 @@ setupGeo=()=>{precomputePending=false;}; recoverPrecompute();`,ctx);
 assert.equal(vm.runInContext('precomputePending',ctx),false);
 assert.equal(ctx.precomputeWorker,null);
 console.log('PASS: worker recovery cannot leave particle generation waiting.');
+

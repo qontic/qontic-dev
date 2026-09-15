@@ -15,7 +15,7 @@
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
-    <script src="js/double-slit.js?v=20260908-layout3"></script>
+    <script src="js/double-slit.js?v=20260915-preserve-record"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
 </head>
@@ -58,7 +58,7 @@
         <div id="experiment-bar">
             <button id="toggleSlits" data-tip="Click to cycle: Both slits open → Slit 1 only → Slit 2 only.">Both Slits</button>
             <button id="toggleWhichPath" data-tip="Click to toggle a which-path detector at one of the slits. Destroys interference.">No Detector</button>
-            <button id="toggleView" data-tip="Cycle view: Orthodox (sampled detections) → Pilot-Wave (guided trajectories) → Many-Worlds (outcome weights and one record). Changing mode resets the run.">Orthodox</button>
+            <button id="toggleView" data-tip="Cycle view: Orthodox (sampled detections) → Pilot-Wave (guided trajectories) → Many-Worlds (outcome weights and one record). Changing interpretation preserves the run and accumulated hits.">Orthodox</button>
             <div id="setupBtnStatus" class="btn-status-line">&nbsp;</div>
         </div>
         <ul>
@@ -365,7 +365,7 @@
                <p id="recordMeaning"></p>
                <p>Curve: model probability density. Points and bars: sampled frequencies and approximate √n count uncertainties. Palette: the selected wave quantity, not particle density unless |Ψ|² is selected.</p>
                <p class="manyworlds-only">Each detection splits every existing branch into N sensor-outcome branches. After m detections: N^m branches. N is the number of detector sensors. Branch weights follow the Born rule; the histogram follows one sampled branch.</p>
-               <p>Switching interpretation starts a fresh run with the same geometry and wave display. <a href="#rationale" id="compareHelp">Compare the three accounts</a>.</p>
+               <p>Switching interpretation preserves the accumulated hits and elapsed time while changing the visual account. Use Reset to start a fresh run. <a href="#rationale" id="compareHelp">Compare the three accounts</a>.</p>
              </div>
              <div id="shortcut-hint">Space: play/pause · R: reset · S: screenshot · V: cycle view · W: cycle wave display</div>
              </div>
@@ -437,7 +437,7 @@
   <button id="closePopup2Btn" onclick="$('#palettePopup2').hide()">Close</button>
 </div>
 
-<div id="versionInfo" style="text-align: center; font-size: 0.85em; color: var(--text-muted); margin-top: 16px; padding: 12px; border-top: 1px solid var(--border-color);"> Q-Ontic analytical double slit · Paper alignment revision 3</div>
+<div id="versionInfo" style="text-align: center; font-size: 0.85em; color: var(--text-muted); margin-top: 16px; padding: 12px; border-top: 1px solid var(--border-color);"> Q-Ontic analytical double slit · Revision 4 · Shared hit record</div>
 <!-- Visitor counter removed to avoid browser warnings about
   parser-blocking cross-site scripts injected via document.write. -->
 
