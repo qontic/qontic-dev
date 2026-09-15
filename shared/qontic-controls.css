@@ -56,3 +56,11 @@ button { font:inherit; }
 .qontic-run-row.without-autorun { grid-template-columns:54px 48px minmax(0,1fr); }
 .qontic-run-row.without-reset { grid-template-columns:54px 30px minmax(0,1fr); }
 .qontic-run-row.without-reset.without-autorun { grid-template-columns:62px minmax(0,1fr); }
+
+/* Public optional states; defaults preserve existing adapters. */
+.qontic-control-tabs[hidden] { display:none; }
+button:disabled, input:disabled { opacity:.5; cursor:default; }
+:host-context(.qontic-light) .qontic-speed { color:#526a77; }
+:host-context(.qontic-light) .qontic-speed output { color:#075c69; }
+:host-context(.qontic-light) .qontic-speed input { accent-color:#087487; }
+

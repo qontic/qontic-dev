@@ -1,0 +1,50 @@
+<!doctype html><meta charset="utf-8"><title>Shared Q-Ontic controls compatibility</title><h1>Shared controls compatibility</h1><pre id="report">Running</pre><script type="module">
+import "../../shared/qontic-controls.js?v=2.8";
+const results = [];
+function check(name, run) { try { run(); results.push({name,pass:true}); } catch(error) { results.push({name,pass:false,error:error.message}); } }
+function assert(condition,message) { if(!condition) throw Error(message); }
+const c = document.createElement('qontic-controls');
+document.body.append(c);
+const root = c.shadowRoot;
+const events = [];
+for(const name of ['start','stop','reset','interpretation','speed','autorun','tab','theme']) c.addEventListener('qontic:'+name,e=>events.push({name,detail:e.detail}));
+check('Existing defaults and interpretation cycle',()=>{
+ assert(root.querySelector('.qontic-interpretation').textContent==='Orthodox','default');
+ root.querySelector('.qontic-interpretation').click();
+ assert(events.at(-1).detail.interpretation==='pw','payload compatibility');
+ assert(root.querySelector('.qontic-speed input').max==='4','default speed');
+});
+check('Start and stop each emit once',()=>{
+ root.querySelector('.qontic-main-run').click();root.querySelector('.qontic-main-run').click();
+ assert(events.filter(e=>e.name==='start').length===1 && events.filter(e=>e.name==='stop').length===1,'duplicate events');
+});
+check('State synchronization emits no engine action',()=>{
+ const n=events.length;c.setAttribute('running','true');c.setAttribute('interpretation','mw');
+ assert(events.length===n,'sync restarted engine');
+});
+check('Optional speed range preserves Free Particle range',()=>{
+ c.setAttribute('speed-min','0.1');c.setAttribute('speed-max','16');c.setAttribute('speed-step','0.01');
+ const slider=root.querySelector('.qontic-speed input');slider.value='12.34';slider.dispatchEvent(new Event('input'));
+ assert(events.at(-1).detail.speed===12.34,'speed clamped');
+});
+check('Legacy adapters can still configure slider properties',()=>{
+ const legacy=document.createElement('qontic-controls');document.body.append(legacy);
+ const slider=legacy.shadowRoot.querySelector('input');slider.max='32';legacy.setAttribute('running','true');
+ assert(slider.max==='32','legacy range overwritten');legacy.remove();
+});
+check('Export lock blocks actions',()=>{
+ c.setAttribute('disabled','true');const n=events.length;root.querySelector('.qontic-main-run').click();
+ assert(events.length===n && [...root.querySelectorAll('button,input')].every(x=>x.disabled),'export lock failed');
+ c.setAttribute('disabled','false');assert(!root.querySelector('input').disabled,'unlock');
+});
+check('Expanded controls and reset remain functional',()=>{
+ c.setAttribute('show-tabs','false');assert(root.querySelector('nav').hidden,'tabs');
+ c.setAttribute('show-reset','true');root.querySelector('.qontic-reset').click();assert(events.at(-1).name==='reset','reset event');
+});
+check('Theme and tab events keep existing payloads',()=>{
+ c.setAttribute('show-tabs','true');root.querySelector('[data-tab="display"]').click();assert(events.at(-1).detail.tab==='display','tab payload');
+ c.setAttribute('theme','dark');root.querySelector('.qontic-theme-toggle').click();assert(events.at(-1).detail.theme==='light','theme payload');
+});
+document.getElementById('report').textContent=JSON.stringify(results,null,2);
+
+</script>

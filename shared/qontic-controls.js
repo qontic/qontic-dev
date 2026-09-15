@@ -10,13 +10,13 @@ const boolAttr = (element, name, fallback = false) => {
 };
 
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-speed"];
+  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs"];
 
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
-      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=2.6", import.meta.url).href}">
+      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=2.8", import.meta.url).href}">
       <section class="qontic-common-controls" aria-label="Simulation controls">
         <button class="qontic-interpretation" type="button"></button>
         <div class="qontic-run-row" role="group" aria-label="Run controls">
@@ -123,11 +123,20 @@ class QonticControls extends HTMLElement {
     speedControl.hidden = this.getAttribute("show-speed") === "false";
     const speed = +(this.getAttribute("speed") || 1);
     const speedInput = root.querySelector(".qontic-speed input");
-    if (document.activeElement !== speedInput) speedInput.value = String(speed);
+    // Additive public configuration: adapters never need shadow DOM selectors.
+    for (const name of ["min", "max", "step"]) {
+      if (this.hasAttribute(`speed-${name}`)) speedInput[name] = this.getAttribute(`speed-${name}`);
+    }
+    if (root.activeElement !== speedInput) speedInput.value = String(speed);
+    speedInput.setAttribute("aria-label", "Simulation speed");
     root.querySelector(".qontic-speed output").value = `${speed.toFixed(1)}×`;
 
     const tab = this.getAttribute("active-tab") || "core";
-    root.querySelector(".qontic-common-display").hidden = tab !== "display";
+    const showTabs = this.getAttribute("show-tabs") !== "false";
+    root.querySelector(".qontic-control-tabs").hidden = !showTabs;
+    root.querySelector(".qontic-common-display").hidden = !showTabs || tab !== "display";
+    const disabled = boolAttr(this, "disabled");
+    root.querySelectorAll("button, input").forEach(control => { control.disabled = disabled; });
     root.querySelectorAll("[data-tab]").forEach(button => {
       const active = button.dataset.tab === tab;
       button.classList.toggle("active", active);
@@ -146,3 +155,4 @@ class QonticControls extends HTMLElement {
 
 if (!customElements.get("qontic-controls")) customElements.define("qontic-controls", QonticControls);
 export { QonticControls };
+
