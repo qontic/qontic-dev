@@ -28,17 +28,34 @@ $(function () {
       button.setAttribute('aria-pressed', String(selected));
     });
   };
-  pageButtons.forEach(button => button.addEventListener('click', () => {
-    $('#superContainer').tabs('option', 'active', Number(button.dataset.page));
+  const showPage = index => {
+    $('#superContainer').tabs('option', 'active', index);
     syncPage();
+    shell.scrollIntoView({block: 'start'});
+  };
+  pageButtons.forEach(button => button.addEventListener('click', () => {
+    showPage(Number(button.dataset.page));
   }));
   $('#superContainer').on('tabsactivate', syncPage);
+  // Handle these links directly: the outer jQuery tabs widget can consume
+  // their hash-link click before the legacy document-level handler sees it.
+  root.querySelectorAll('.view-link').forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    changeInterpretation(link.dataset.view);
+    showPage(0);
+  }));
 
   const controls = document.createElement('qontic-controls');
   controls.id = 'sharedControls';
   controls.setAttribute('show-reset', 'true');
   controls.setAttribute('show-autorun', 'false');
   document.getElementById('psiTabs').prepend(controls);
+  const themeStyle = document.createElement('style');
+  themeStyle.textContent = `:host-context(.qontic-light) .qontic-speed { color: #526a77; }
+    :host-context(.qontic-light) .qontic-speed output { color: #075c69; }
+    :host-context(.qontic-light) .qontic-speed input { accent-color: #087487; }`;
+  controls.shadowRoot.append(themeStyle);
   const core = document.getElementById('basics-container');
   core.prepend(document.getElementById('experiment-bar'));
   const advanced = document.createElement('div');
@@ -71,6 +88,7 @@ $(function () {
     setAttribute('running', isAnimating);
     setAttribute('speed', $('#animationStep-group')[0].getValueInFirstUnit());
     setAttribute('theme', document.documentElement.getAttribute('data-theme') || 'dark');
+    setAttribute('accent', document.documentElement.getAttribute('data-theme') === 'light' ? '#087487' : '#55d8e6');
     setAttribute('show-interpretation', !viewLocked);
     const slider = controls.shadowRoot.querySelector('.qontic-speed input');
     slider.min = document.getElementById('animationStep').min;
@@ -84,7 +102,11 @@ $(function () {
     if ((action === 'start') !== isAnimating) $('#startButton').trigger('click');
     sync();
   });
-  controls.addEventListener('qontic:reset', () => { $('#resetButton').trigger('click'); sync(); });
+  controls.addEventListener('qontic:reset', () => {
+    $('#resetButton').trigger('click');
+    $('#nhits, #shownParticles, #systemTime').text('0');
+    sync();
+  });
   controls.addEventListener('qontic:speed', event => {
     $('#animationStep').val(event.detail.speed).trigger('input').trigger('change');
     sync();
@@ -103,7 +125,6 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit',
-    purpose: 'Compare Orthodox, Pilot-Wave, and Many-Worlds accounts of one double-slit experiment.',
     version: 'Analytical double slit · Version 7 · Q-Ontic template',
     homeHref: '../../../index.html',
   });
