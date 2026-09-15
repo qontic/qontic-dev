@@ -46,3 +46,5 @@ body.fp-template { margin:0; padding:0 18px 12px; background:var(--bg-primary); 
  .fp-template .qontic-app-header { margin-inline:-10px; padding-inline:10px; }
  .fp-template .rationale, .fp-template #viewpanel-compare { padding:12px; }
 }
+.fp-template.qontic-light .qontic-footer, .fp-template.qontic-light .qontic-footer a { color:#526a77; }
+.fp-template .fp-results-title { touch-action:none; }

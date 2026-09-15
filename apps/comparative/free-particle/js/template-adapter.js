@@ -118,6 +118,7 @@ function mountFreeParticleTemplate() {
     const next = $('viewpanel-sim').classList.contains('sim-expanded');
     if (next === expanded) return;
     expanded = next;
+    shell.querySelector(':scope > header').inert = expanded;
     if (expanded) {
       controls.replaceWith(controlHome);
       $('fp-expanded-playback').append(controls);
