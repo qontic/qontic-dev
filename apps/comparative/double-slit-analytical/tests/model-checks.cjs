@@ -42,7 +42,7 @@ assert.equal(vm.runInContext('precomputePending',ctx),true);
 ctx.precomputeWorker.onmessage({data:{...reply,seq:ctx.sent[1].seq}});
 assert.equal(vm.runInContext('precomputePending',ctx),false);
 // Interpretation changes preserve one experimental record, paused or running.
-ctx.$=()=>({text(){return this;}});
+ctx.$=()=>({text(){return this;},html(){return this;},attr(){return this;}});
 vm.runInContext(`hits=[2,3]; trajectories=[{points:[{x:10,y:20}],nPoints:1}];
 nHits=5; hitMax=3; nParticles=8; logNBranches=10; time=12;
 nSteps=7; lastParticleTime=4; lastRealTime=9; particleAccum=0.25; startRealTime=2;

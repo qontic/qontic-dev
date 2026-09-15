@@ -2939,7 +2939,7 @@ async function updateSimulationState() {
       particleAccum = 0;
       startRealTime = performance.now() / 1000;
       lastCycleIndex   = 100000;
-      $("#infoBranchCount").text("1");
+      updateBranchCountDisplay();
       $('#realTime').text('0.0 s');
    }
 }
@@ -3738,7 +3738,7 @@ async function evolveSystem() {
       $('#stepTime').text(avgStep.toFixed(1));
       // Update branch count display
       if (logNBranches > 0) {
-         $("#infoBranchCount").text(`10^${logNBranches.toFixed(0)}`);
+         updateBranchCountDisplay();
       }
       calcTimeAccum = 0;
       stepTimeAccum = 0;
@@ -3807,7 +3807,7 @@ function lightweightReset() {
    particleAccum = 0;
    startRealTime = performance.now() / 1000;
    $('#nhits, #shownParticles, #systemTime').text('0');
-   $('#infoBranchCount').text('1');
+   updateBranchCountDisplay();
    $('#realTime').text('0.0 s');
    // Clear alt-branch ghost
    if (showAltBranch) { altBranchHits = null; }
@@ -3844,12 +3844,20 @@ function updateModeExplanation() {
       : 'Screen statistics: accumulated detections compared with the model probability curve.');
 }
 
+function updateBranchCountDisplay() {
+   const exponent = logNBranches.toFixed(0);
+   const hasBranches = logNBranches > 0;
+   $('#infoBranchCount')
+      .html(hasBranches ? `10<sup>${exponent}</sup>` : '1')
+      .attr('aria-label', hasBranches ? `10 to the power of ${exponent}` : '1');
+}
+
 function changeInterpretation(mode) {
    if (viewLocked || !['copenhagen', 'bohmian', 'manyworlds'].includes(mode)) return;
    // Interpretation is a display choice: retain the detector record, clocks,
    // emission progress and in-flight trajectories (hidden outside Pilot-Wave).
    interpretation = mode;
-   $('#infoBranchCount').text(logNBranches > 0 ? `10^${logNBranches.toFixed(0)}` : '1');
+   updateBranchCountDisplay();
    updateViewButton();
    updateInterpretationDisplay();
    updateMathFormulas();
@@ -5001,7 +5009,7 @@ $(document).ready(function() {
 
       $('#resetBranches').on('click', function () {
          logNBranches=0;
-         $("#infoBranchCount").text("1");
+         updateBranchCountDisplay();
       });
 
       $('#resampleHitsButton').on('click', function () {
