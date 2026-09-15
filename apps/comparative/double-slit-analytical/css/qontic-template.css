@@ -38,6 +38,7 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #rationale,
 .analytical-template #superContainer > #math-container { max-width: 1080px; margin: auto; padding: 20px; color: var(--text-primary); background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; line-height: 1.6; }
 .analytical-template #math-container > div { margin-bottom: 18px !important; }
+.analytical-template .comparison-table .view-link { display: inline-block; white-space: nowrap; padding: 4px 0; }
 .analytical-template .eyebrow { font-size: 10px; }
 .analytical-template .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .analytical-template .tabs button { background: #0d202e; color: #b9cfdb; border: 1px solid #294b60; border-radius: 6px; }

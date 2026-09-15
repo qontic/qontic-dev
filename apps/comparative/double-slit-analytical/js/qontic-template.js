@@ -102,11 +102,11 @@ $(function () {
     if ((action === 'start') !== isAnimating) $('#startButton').trigger('click');
     sync();
   });
-  controls.addEventListener('qontic:reset', () => {
-    $('#resetButton').trigger('click');
+  $('#resetButton').on('click.template', () => {
     $('#nhits, #shownParticles, #systemTime').text('0');
     sync();
   });
+  controls.addEventListener('qontic:reset', () => { $('#resetButton').trigger('click'); });
   controls.addEventListener('qontic:speed', event => {
     $('#animationStep').val(event.detail.speed).trigger('input').trigger('change');
     sync();
