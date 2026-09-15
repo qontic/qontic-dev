@@ -4410,6 +4410,8 @@ $(document).ready(function() {
          $('#basicsWaveFunctionOption').val($(this).val());
       });
       
+      // The shared template owns responsive sizing; retain legacy sizing otherwise.
+      if (!window.qonticTemplateLayout) {
       // Restore saved panel and canvas sizes from localStorage
       // (only on wide viewports — responsive mode uses CSS-driven sizing)
       (function restoreSavedSizes() {
@@ -4600,6 +4602,7 @@ $(document).ready(function() {
         });
       })();
 
+      }
       hits = new Array(nDetectorPixels).fill(0); // Histogram array
 
       drawSystem(0);

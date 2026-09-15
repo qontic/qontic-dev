@@ -1,0 +1,60 @@
+body.analytical-template { padding: 0 18px 12px; }
+.analytical-template .analytical-shell { width: 100%; margin: auto; }
+.analytical-template #superContainer { padding: 16px 0 0; background: transparent; border: 0; }
+.analytical-template #superContainer > ul,
+.analytical-template #psiTabs > ul,
+.analytical-template #toggleView,
+.analytical-template #startButton,
+.analytical-template #resetButton,
+.analytical-template #animationStep-group,
+.analytical-template #physics-mirror-sliders,
+.analytical-template #setup-mirror-sliders,
+.analytical-template #particle-parameter-container > .wave-range-box,
+.analytical-template .basics-advanced-toggle,
+.analytical-template #versionInfo,
+.analytical-template #setupBtnStatus { display: none !important; }
+.analytical-template #mainContainer { padding: 0; width: 100%; }
+.analytical-template .main-container { width: 100%; align-items: flex-start; gap: 18px; }
+.analytical-template #leftPanel { width: 340px; flex: 0 0 340px; min-width: 0; gap: 12px; }
+.analytical-template #psiTabs { padding: 12px; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; }
+.analytical-template #sharedControls { margin-bottom: 8px; }
+.analytical-template #psiTabs [hidden] { display: none !important; }
+.analytical-template #basics-container,
+.analytical-template #analytical-advanced,
+.analytical-template #graphics-parameter-container { padding: 12px 0 0 !important; }
+.analytical-template #particle-parameter-container,
+.analytical-template #detector-parameter-container { padding: 0 !important; }
+.analytical-template #psiTabs h3 { margin: 10px 0; font-size: 13px; color: var(--text-primary); }
+.analytical-template #experiment-bar { display: flex; gap: 8px; padding: 0; border: 0; margin: 0 0 12px; }
+.analytical-template #experiment-bar button { flex: 1; width: auto; }
+.analytical-template #canvas-wrapper { flex: 1 1 0; min-width: 0; }
+.analytical-template #canvas-container { width: 100%; height: auto; aspect-ratio: 4 / 3; min-width: 0; min-height: 0; max-width: none; max-height: none; margin: 8px 0; box-sizing: border-box; }
+.analytical-template #canvas-container > canvas:not([id^="palette"]) { left: 0; top: 0; }
+.analytical-template #Info { box-sizing: border-box; padding: 12px; }
+.analytical-template .info-layout { display: block; }
+.analytical-template .info-controls fieldset { margin-bottom: 0; }
+.analytical-template .info-highlight td { background: var(--bg-tertiary); color: var(--text-primary); }
+.analytical-template .info-highlight td span { color: var(--text-primary); }
+.analytical-template #rationale,
+.analytical-template #superContainer > #math-container { max-width: 1080px; margin: auto; padding: 20px; color: var(--text-primary); background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; line-height: 1.6; }
+.analytical-template #math-container > div { margin-bottom: 18px !important; }
+.analytical-template .eyebrow { font-size: 10px; }
+.analytical-template .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.analytical-template .tabs button { background: #0d202e; color: #b9cfdb; border: 1px solid #294b60; border-radius: 6px; }
+.analytical-template .tabs button.active { background: #12394b; color: #7cecff; border-color: #55d8e6; }
+.analytical-template #psiTabs button:not(.pick-color) { background: #162d3d; color: #d9edf7; border: 1px solid #294b60; border-radius: 6px; padding: 6px 10px; font: 400 13px Inter, Arial, sans-serif; }
+.analytical-template #psiTabs button:not(.pick-color):hover { border-color: #55d8e6; }
+.analytical-template.qontic-light #psiTabs button:not(.pick-color) { background: #edf5f8; color: #203746; border-color: #aec2cb; }
+.analytical-template .qontic-footer { box-sizing: border-box; }
+.analytical-template .input-group label { min-width: 72px; }
+.analytical-template #graphics-parameter-container table label { min-width: 0; }
+@media (max-width: 1000px) {
+  .analytical-template .main-container { flex-direction: column; }
+  .analytical-template #leftPanel { width: 100%; flex-basis: auto; }
+  .analytical-template #canvas-wrapper { width: 100%; }
+}
+@media (max-width: 560px) {
+  body.analytical-template { padding-inline: 10px; }
+  .analytical-template .qontic-app-header { margin-inline: -10px; padding-inline: 10px; }
+  .analytical-template #rationale, .analytical-template #superContainer > #math-container { padding: 12px; }
+}
