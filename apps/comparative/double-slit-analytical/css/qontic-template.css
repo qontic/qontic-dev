@@ -12,6 +12,7 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #particle-parameter-container > .wave-range-box,
 .analytical-template .basics-advanced-toggle,
 .analytical-template #versionInfo,
+.analytical-template #modeExplanation,
 .analytical-template #setupBtnStatus { display: none !important; }
 .analytical-template #mainContainer { padding: 0; width: 100%; }
 .analytical-template .main-container { width: 100%; align-items: flex-start; gap: 18px; }
@@ -28,7 +29,7 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #experiment-bar { display: flex; gap: 8px; padding: 0; border: 0; margin: 0 0 12px; }
 .analytical-template #experiment-bar button { flex: 1; width: auto; }
 .analytical-template #canvas-wrapper { flex: 1 1 0; min-width: 0; }
-.analytical-template #canvas-container { width: 100%; height: auto; aspect-ratio: 4 / 3; min-width: 0; min-height: 0; max-width: none; max-height: none; margin: 8px 0; box-sizing: border-box; }
+.analytical-template #canvas-container { width: min(100%, max(320px, calc((100dvh - 260px) * 4 / 3))); height: auto; aspect-ratio: 4 / 3; min-width: 0; min-height: 0; max-width: none; max-height: none; margin: 8px auto; box-sizing: border-box; }
 .analytical-template #canvas-container > canvas:not([id^="palette"]) { left: 0; top: 0; }
 .analytical-template #Info { box-sizing: border-box; padding: 12px; }
 .analytical-template .info-layout { display: block; }

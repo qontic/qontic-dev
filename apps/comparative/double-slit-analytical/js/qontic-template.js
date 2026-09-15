@@ -125,7 +125,7 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit',
-    version: 'Analytical double slit · Version 7 · Q-Ontic template',
+    version: 'Analytical double slit · Version 8 · Screen-fit canvas',
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');
