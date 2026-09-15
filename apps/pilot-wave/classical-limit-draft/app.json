@@ -1,0 +1,15 @@
+{
+  "id": "classical-limit-simulation",
+  "title": "Classical Limit",
+  "type": "app",
+  "category": "pilot-wave",
+  "module": "potential-well",
+  "topics": ["classical-limit", "wave-mechanics", "trajectories", "diffraction"],
+  "interpretations": ["pilot-wave"],
+  "level": "intermediate",
+  "description": "Explore the transition from quantum wave motion to nearly classical trajectories in a reflecting box, with an optional diffraction barrier and video export.",
+  "tags": ["Pilot-wave", "Classical limit", "Reflecting box", "Diffraction", "WebGL2"],
+  "gpu": true,
+  "entry": "index.html",
+  "status": "draft"
+}

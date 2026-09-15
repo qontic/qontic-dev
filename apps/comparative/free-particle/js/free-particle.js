@@ -51,6 +51,7 @@ let fp = {
   waveMode        : 'packet',   // packet-only mode
   interpMode      : 'pilotwave',// 'copenhagen' | 'pilotwave' | 'manyworlds'
   displayMode     : 'prob',     // 'prob' | 'real' | 'imag' | 'phase'
+  showPilotWave   : true,       // visual preference only; guidance stays active
 
   // ── physical parameters ───────────────────────────────────────────────────
   energy_eV       : 1.0,        // kinetic energy in eV  → sets k, omega
@@ -80,6 +81,10 @@ let fp = {
   animId          : null,
   autoNextCycle   : true,
   autoDtScale     : 1,
+  speed           : 1,          // continuous multiplier of the automatic preview pace
+  _lastFrameTime_ms: null,
+  collapseElapsed_ms: 0,        // presentation time only; never advances the physics
+  _collapseVisual : null,
 
   // ── world geometry ────────────────────────────────────────────────────────
   xMin_nm         : -50,
@@ -153,6 +158,78 @@ function fpColor(t) {
 function fpPhaseColor(phase) {
   const h = ((phase / (2*Math.PI)) % 1 + 1) % 1 * 360;
   return `hsl(${h.toFixed(1)},90%,55%)`;
+}
+
+// DoubleSlit2.0/shaders/wave_render.frag and its ungrouped yellow particles.
+// Keep the legacy palettes above for Many-Worlds. Lookup tables avoid per-pixel
+// trigonometry in the Canvas renderer.
+const FP_WAVE_AMPLITUDE_CUTOFF = 0.001;
+const FP_PHASE_AMOUNT = 0.77905591;
+const FP_PALETTE_STEPS = 1024;
+const FP_YELLOW = '255,235,20';
+const FP_COLLAPSE_SPEED = 4;
+const FP_COLLAPSE_DURATION_MS = 950 / FP_COLLAPSE_SPEED;
+const FP_COLLAPSE_HOLD_MS = 450 / FP_COLLAPSE_SPEED;
+
+// Density uses the full relative-density range, without the phase view's
+// high exposure. Deep magenta is reserved for values nearest the peak.
+// Adjust the wave and both profiles here: [relative density, [red, green, blue]],
+// all values 0..1. Keep densities increasing; move a stop to change where its
+// color appears. Tones sampled from the supplied DoubleSlit reference: dark
+// teal, green, a subdued transition into red, then deep magenta. Keep the
+// transition dark to avoid introducing a bright yellow band.
+const FP_DENSITY_STOPS = [
+  [0.00, [0.000, 0.000, 0.000]],
+  [0.08, [0.040, 0.065, 0.100]],
+  [0.32, [0.080, 0.235, 0.240]],
+  [0.58, [0.024, 0.408, 0.153]],
+  [0.66, [0.196, 0.369, 0.051]],
+  [0.74, [0.427, 0.208, 0.051]],
+  [0.82, [0.569, 0.067, 0.039]],
+  [0.91, [0.592, 0.047, 0.106]],
+  [0.97, [0.549, 0.043, 0.239]],
+  [1.00, [0.506, 0.039, 0.314]],
+];
+const FP_DENSITY_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
+  const density = i / FP_PALETTE_STEPS;
+  const hi = FP_DENSITY_STOPS.findIndex((stop, index) => index > 0 && density <= stop[0]);
+  const [loValue, loColor] = FP_DENSITY_STOPS[hi - 1];
+  const [hiValue, hiColor] = FP_DENSITY_STOPS[hi];
+  const blend = (density - loValue) / (hiValue - loValue);
+  return loColor.map((channel, c) => channel + (hiColor[c] - channel) * blend);
+});
+const FP_PHASE_DENSITY_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
+  const I = i / FP_PALETTE_STEPS;
+  return [0.26, 0.13, 0.49].map((lo, c) =>
+    (lo + ([0.72, 0.50, 0.99][c] - lo) * Math.pow(I, 0.7)) * I);
+});
+const FP_PHASE_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
+  const phase = (i / FP_PALETTE_STEPS * 2 - 1) * Math.PI;
+  const magnitude = Math.abs(phase);
+  const blend = Math.max(0, (magnitude - Math.PI / 2) / (Math.PI / 2));
+  const u = Math.min(1, magnitude / 1.05);
+  const visibility = u * u * u * (u * (u * 6 - 15) + 10);
+  const branch = phase >= 0 ? [0.08, 0.25, 1] : [1, 0.08, 0.02];
+  return branch.map((v, c) => (v + ([0.72, 0.04, 0.88][c] - v) * blend) * visibility);
+});
+
+function fpWaveIntensity(rho) {
+  return Math.sqrt(-Math.expm1(-20 * Math.max(0, rho)));
+}
+
+function fpDensityRGB(relativeDensity) {
+  return FP_DENSITY_PALETTE[Math.round(Math.max(0, Math.min(1, relativeDensity)) * FP_PALETTE_STEPS)];
+}
+
+function fpDensityColor(relativeDensity) {
+  const rgb = fpDensityRGB(relativeDensity);
+  return `rgb(${rgb.map(v => Math.round(255 * v)).join(',')})`;
+}
+
+function fpClearCollapse() {
+  fp.collapseElapsed_ms = 0;
+  fp._collapseVisual = null;
+  fp._lastFrameTime_ms = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -462,6 +539,9 @@ function fpCheckCopenhagen(dt_fs = fp.dt_fs) {
 // ---------------------------------------------------------------------------
 let fpWaveCanvas, fpPartCanvas, fpDetCanvas;
 let fpWaveCtx, fpPartCtx, fpDetCtx;
+// Export copies can draw at higher resolution without changing view geometry.
+let fpRenderScale = 1;
+let fpDeferRender = false;
 
 function fpInitCanvases() {
   fpWaveCanvas = document.getElementById('fpWaveCanvas');
@@ -477,37 +557,208 @@ function fpInitCanvases() {
 // Coordinate transforms  (nm ↔ pixel)
 // ---------------------------------------------------------------------------
 function fpXtoPixel(x_nm) {
-  const W = fpWaveCanvas ? fpWaveCanvas.width : 800;
+  const W = fpWaveCanvas ? fpWaveCanvas.width / fpRenderScale : 800;
   return (x_nm - fp.xMin_nm) / (fp.xMax_nm - fp.xMin_nm) * W;
 }
 
 function fpPixelToX(px) {
-  const W = fpWaveCanvas ? fpWaveCanvas.width : 800;
+  const W = fpWaveCanvas ? fpWaveCanvas.width / fpRenderScale : 800;
   return fp.xMin_nm + (px / W) * (fp.xMax_nm - fp.xMin_nm);
 }
 
 // ---------------------------------------------------------------------------
 // RENDER – wave layer
 // ---------------------------------------------------------------------------
+function fpCaptureCollapse(image, probs) {
+  const W = image.width, H = image.height;
+  let left = W - 1, right = 0, top = H - 1, bottom = 0;
+  const xDensity = new Float64Array(W);
+  const yDensity = new Float64Array(H);
+  for (let j = 0; j < H; j++) {
+    for (let i = 0; i < W; i++) {
+      const rho = probs[j * W + i];
+      xDensity[i] += rho;
+      yDensity[j] += rho;
+      if (rho > FP_WAVE_AMPLITUDE_CUTOFF ** 2) {
+        left = Math.min(left, i); right = Math.max(right, i);
+        top = Math.min(top, j); bottom = Math.max(bottom, j);
+      }
+    }
+  }
+  if (right < left || bottom < top) { left = 0; right = W - 1; top = 0; bottom = H - 1; }
+  const feathered = document.createElement('canvas');
+  feathered.width = W; feathered.height = H;
+  fp._collapseVisual = {
+    image, feathered, xDensity, yDensity,
+    xPeak: Math.max(1e-12, ...xDensity), yPeak: Math.max(1e-12, ...yDensity),
+    source: { x: left / W, y: top / H, w: (right - left + 1) / W, h: (bottom - top + 1) / H },
+  };
+}
+
+function fpCollapseFrame(W, H) {
+  const source = fp._collapseVisual.source;
+  const p = Math.min(1, fp.collapseElapsed_ms / FP_COLLAPSE_DURATION_MS);
+  const ease = p * p * p * (p * (p * 6 - 15) + 10);
+  const { detL, detR } = fpDetectorLayout(W);
+  const binH = H / fp.nSections;
+  const target = { x: (detL + detR) / 2, y: (fp.bDetectedSection + 0.5) * binH };
+  const mix = (a, b) => a + (b - a) * ease;
+  const w = mix(source.w * W, Math.max(1, detR - detL - 4));
+  const h = mix(source.h * H, binH * 0.82);
+  return {
+    x: mix((source.x + source.w / 2) * W, target.x) - w / 2,
+    y: mix((source.y + source.h / 2) * H, target.y) - h / 2,
+    w, h, p, ease, target,
+  };
+}
+
+function fpRenderCollapse(ctx, W, H) {
+  const { image, feathered, source } = fp._collapseVisual;
+  const frame = fpCollapseFrame(W, H);
+  // The initial wave can extend beyond the viewport. Feather those clipped
+  // edges as it contracts so they become a soft packet instead of a rectangle.
+  const layer = feathered.getContext('2d');
+  layer.clearRect(0, 0, image.width, image.height);
+  layer.drawImage(image, 0, 0);
+  const edgeAlpha = 1 - Math.min(1, frame.p * 4);
+  const edgeFade = layer.createLinearGradient(0, source.y * image.height,
+    0, (source.y + source.h) * image.height);
+  edgeFade.addColorStop(0, `rgba(255,255,255,${edgeAlpha})`);
+  edgeFade.addColorStop(0.16, '#fff');
+  edgeFade.addColorStop(0.84, '#fff');
+  edgeFade.addColorStop(1, `rgba(255,255,255,${edgeAlpha})`);
+  layer.globalCompositeOperation = 'destination-in';
+  layer.fillStyle = edgeFade;
+  layer.fillRect(0, 0, image.width, image.height);
+  layer.globalCompositeOperation = 'source-over';
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(feathered, source.x * image.width, source.y * image.height,
+    source.w * image.width, source.h * image.height, frame.x, frame.y, frame.w, frame.h);
+
+  // A few faint converging wisps make the direction of the contraction legible.
+  // This is a presentation effect on a frozen wave snapshot, not wave evolution.
+  const pull = Math.sin(Math.PI * frame.p);
+  ctx.globalCompositeOperation = 'screen';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 9; i++) {
+    const y = frame.y + frame.h * (i + 0.5) / 9;
+    const x = frame.x + frame.w * 0.65;
+    ctx.strokeStyle = fp.displayMode === 'phase'
+      ? `rgba(${i < 3 ? '255,50,75' : i > 5 ? '55,95,255' : '200,65,235'},${0.22 * pull})`
+      : `rgba(190,115,245,${0.22 * pull})`;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x + frame.w * 0.25, y, frame.target.x - W * 0.035,
+      frame.target.y, frame.target.x, frame.target.y);
+    ctx.stroke();
+  }
+
+  // The glow fits within the fired bin and holds there after the contraction.
+  const { detL, detR } = fpDetectorLayout(W);
+  ctx.beginPath();
+  ctx.rect(detL + 1, fp.bDetectedSection * H / fp.nSections + 1,
+    Math.max(1, detR - detL - 2), Math.max(1, H / fp.nSections - 2));
+  ctx.clip();
+  ctx.translate(frame.target.x, frame.target.y);
+  ctx.scale(Math.max(2, (detR - detL) * 0.8), H / fp.nSections * 0.6);
+  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  glow.addColorStop(0, `rgba(255,247,206,${0.9 * frame.ease})`);
+  glow.addColorStop(0.25, `rgba(231,151,255,${0.75 * frame.ease})`);
+  glow.addColorStop(1, 'rgba(95,60,220,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(-1, -1, 2, 2);
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(235,220,255,0.85)';
+  ctx.font = '13px Inter,sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${frame.p < 1 ? 'Collapsing into' : 'Localized in'} bin ${fp.bDetectedSection + 1}`, 8, 18);
+}
+
+// Draw continuous, subpixel-accurate profiles instead of rounded pixel bars.
+// Supersampling smooths the silhouette; a continuous gradient removes seams
+// between neighboring samples. Each profile canvas reuses its own layer.
+const fpProfileLayers = new WeakMap();
+function fpDrawDensityProfile(ctx, W, H, values, peak, axis, start = 0, span = axis === 'x' ? W : H) {
+  if (W <= 0 || H <= 0 || values.length < 2 || span <= 0) return;
+  let layer = fpProfileLayers.get(ctx.canvas);
+  if (!layer) {
+    const canvas = document.createElement('canvas');
+    layer = { canvas, ctx: canvas.getContext('2d') };
+    fpProfileLayers.set(ctx.canvas, layer);
+  }
+  const scale = Math.max(2, fpRenderScale);
+  if (layer.canvas.width !== W * scale || layer.canvas.height !== H * scale) {
+    layer.canvas.width = W * scale;
+    layer.canvas.height = H * scale;
+  }
+  const paint = layer.ctx;
+  paint.setTransform(scale, 0, 0, scale, 0, 0);
+  paint.clearRect(0, 0, W, H);
+  const isX = axis === 'x';
+  const baseline = isX ? H : W - 1;
+  const amplitude = Math.max(0, isX ? H - 20 : W - 12);
+  const gradient = isX ? paint.createLinearGradient(start, 0, start + span, 0)
+    : paint.createLinearGradient(0, start, 0, start + span);
+  paint.beginPath();
+  paint.moveTo(isX ? start : baseline, isX ? baseline : start);
+  for (let i = 0; i < values.length; i++) {
+    const fraction = i / (values.length - 1);
+    const density = Math.max(0, Math.min(1, values[i] / Math.max(1e-12, peak)));
+    const position = start + fraction * span;
+    const edge = baseline - density * amplitude;
+    paint.lineTo(isX ? position : edge, isX ? edge : position);
+    gradient.addColorStop(fraction, fpDensityColor(density));
+  }
+  paint.lineTo(isX ? start + span : baseline, isX ? baseline : start + span);
+  paint.closePath();
+  paint.fillStyle = gradient;
+  paint.fill();
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(layer.canvas, 0, 0, W, H);
+  ctx.restore();
+}
+
+function fpRenderCollapseProjection(ctx, W, H, axis) {
+  if (!fp._collapseVisual) return;
+  const { source, xDensity, yDensity, xPeak, yPeak } = fp._collapseVisual;
+  const frame = fpCollapseFrame(fpWaveCanvas.width / fpRenderScale, fpWaveCanvas.height / fpRenderScale);
+  const isX = axis === 'x';
+  const values = isX ? xDensity : yDensity;
+  const peak = isX ? xPeak : yPeak;
+  const extent = isX ? W : H;
+  const mainExtent = (isX ? fpWaveCanvas.width : fpWaveCanvas.height) / fpRenderScale;
+  const start = (isX ? frame.x : frame.y) / mainExtent * extent;
+  const span = (isX ? frame.w : frame.h) / mainExtent * extent;
+  const srcStart = isX ? source.x : source.y;
+  const srcSpan = isX ? source.w : source.h;
+  const first = Math.round(srcStart * values.length);
+  const last = Math.min(values.length, Math.round((srcStart + srcSpan) * values.length));
+  const profile = new Float64Array(last - first);
+  for (let i = first; i < last; i++) {
+    const edge = Math.max(0, Math.min(1, (i - first) / (last - first) / 0.16,
+      (last - i - 1) / (last - first) / 0.16));
+    const feather = isX ? 1 : 1 - Math.min(1, frame.p * 4) * (1 - edge);
+    profile[i - first] = values[i] / peak * feather;
+  }
+  fpDrawDensityProfile(ctx, W, H, profile, 1, axis, start, span);
+}
+
 function fpRenderWave() {
   if (!fpWaveCtx) return;
   const ctx = fpWaveCtx;
-  const W   = fpWaveCanvas.width;
-  const H   = fpWaveCanvas.height;
+  const W   = fpWaveCanvas.width / fpRenderScale;
+  const H   = fpWaveCanvas.height / fpRenderScale;
 
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
 
-  // Collapse view: wave function erased the moment the detector fires
-  if (fp.interpMode === 'collapse' && fp.bDetected) {
-    ctx.fillStyle = 'rgba(100,240,150,0.70)';
-    ctx.font      = 'bold 16px Inter,sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('\u03c8 collapsed', W / 2, H / 2 - 10);
-    ctx.fillStyle = 'rgba(200,200,200,0.45)';
-    ctx.font      = '12px Inter,sans-serif';
-    ctx.fillText('Wave function localised at detector', W / 2, H / 2 + 14);
+  if (fp.interpMode === 'collapse' && fp.bDetected && fp._collapseVisual) {
+    fpRenderCollapse(ctx, W, H);
     return;
   }
 
@@ -524,6 +775,8 @@ function fpRenderWave() {
   }
 
   // 2D field rendering: keep existing UI, but visualize ψ(x,y,t) over the canvas.
+  if (fp.interpMode === 'pilotwave' && !fp.showPilotWave) return;
+
   const NY = 140;
   if (!fp._waveOff || fp._waveOff.width !== fp.NX || fp._waveOff.height !== NY) {
     fp._waveOff = document.createElement('canvas');
@@ -568,7 +821,25 @@ function fpRenderWave() {
     for (let i = 0; i < off.width; i++) {
       const v = vals[j * off.width + i];
       let r = 0, g = 0, b = 0, a = 255;
-      if (mode === 'phase') {
+      if (fp.interpMode !== 'manyworlds' && (mode === 'phase' || mode === 'prob')) {
+        const rho = probs[j * off.width + i];
+        const fade = Math.max(0, Math.min(1, (Math.sqrt(rho) - FP_WAVE_AMPLITUDE_CUTOFF) / FP_WAVE_AMPLITUDE_CUTOFF));
+        const visibility = fade * fade * (3 - 2 * fade);
+        if (mode === 'phase') {
+          const I = fpWaveIntensity(rho);
+          const colorIndex = Math.round(I * FP_PALETTE_STEPS);
+          const phaseIndex = Math.max(0, Math.min(FP_PALETTE_STEPS,
+            Math.round((v / Math.PI + 1) * 0.5 * FP_PALETTE_STEPS)));
+          const phase = FP_PHASE_PALETTE[phaseIndex];
+          const density = FP_PHASE_DENSITY_PALETTE[colorIndex];
+          r = ((1 - FP_PHASE_AMOUNT) * density[0] + FP_PHASE_AMOUNT * phase[0] * I) * 255 * visibility;
+          g = ((1 - FP_PHASE_AMOUNT) * density[1] + FP_PHASE_AMOUNT * phase[1] * I) * 255 * visibility;
+          b = ((1 - FP_PHASE_AMOUNT) * density[2] + FP_PHASE_AMOUNT * phase[2] * I) * 255 * visibility;
+        } else {
+          const rgb = fpDensityRGB(rho / maxP2D);
+          r = rgb[0] * 255 * visibility; g = rgb[1] * 255 * visibility; b = rgb[2] * 255 * visibility;
+        }
+      } else if (mode === 'phase') {
         // Modulate hue brightness by local amplitude so near-zero regions
         // appear dark rather than showing noisy colour at the packet edges.
         const ampWeight = Math.min(1, Math.sqrt(probs[j * off.width + i] / maxP2D));
@@ -602,6 +873,11 @@ function fpRenderWave() {
     }
   }
   octx.putImageData(img, 0, 0);
+  if (fp.interpMode === 'collapse' && fp.bDetected) {
+    fpCaptureCollapse(off, probs);
+    fpRenderCollapse(ctx, W, H);
+    return;
+  }
   ctx.drawImage(off, 0, 0, W, H);
 
   // Detector window overlay in world x-mapped coordinates
@@ -625,16 +901,17 @@ function fpRenderWave() {
 function fpRenderParticle() {
   if (!fpPartCtx) return;
   const ctx = fpPartCtx;
-  const W   = fpPartCanvas.width;
-  const H   = fpPartCanvas.height;
+  const W   = fpPartCanvas.width / fpRenderScale;
+  const H   = fpPartCanvas.height / fpRenderScale;
 
   ctx.clearRect(0, 0, W, H);
   if (fp.interpMode !== 'pilotwave') return;
 
   // Draw trail
   if (fp.bTrail.length > 1) {
-    ctx.strokeStyle = 'rgba(255,80,80,0.6)';
-    ctx.lineWidth   = 1.5;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     const trailStart = Math.max(0, fp.bTrail.length - 600);
     const yPix = (y_nm) => ((y_nm - fp.yMin_nm) / (fp.yMax_nm - fp.yMin_nm)) * H;
@@ -646,55 +923,47 @@ function fpRenderParticle() {
       const yi = (typeof ti.y === 'number') ? ti.y : (fp.yMin_nm + fp.bPos_y * (fp.yMax_nm - fp.yMin_nm));
       ctx.lineTo(fpXtoPixel(ti.x), yPix(yi));
     }
+    const last = fp.bTrail[fp.bTrail.length - 1];
+    const fade = ctx.createLinearGradient(fpXtoPixel(t0.x), yPix(y0),
+      fpXtoPixel(last.x) + 0.01, yPix(last.y ?? y0));
+    fade.addColorStop(0, `rgba(${FP_YELLOW},0.06)`);
+    fade.addColorStop(0.45, `rgba(${FP_YELLOW},0.48)`);
+    fade.addColorStop(1, `rgba(${FP_YELLOW},0.92)`);
+    ctx.strokeStyle = `rgba(${FP_YELLOW},0.13)`;
+    ctx.lineWidth = 5;
+    ctx.shadowColor = `rgba(${FP_YELLOW},0.5)`;
+    ctx.shadowBlur = 7 * fpRenderScale;
     ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = fade;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.restore();
   }
 
-  // Draw particle dot (or detection indicator)
-  if (!fp.bDetected) {
-    const px = fpXtoPixel(fp.bPos_nm);
-    const py = ((fp.bPosY_nm - fp.yMin_nm) / (fp.yMax_nm - fp.yMin_nm)) * H;
-    ctx.beginPath();
-    ctx.arc(px, py, 5, 0, 2*Math.PI);
-    ctx.fillStyle   = '#ff4444';
-    ctx.fill();
-    ctx.strokeStyle = '#ffaaaa';
-    ctx.lineWidth   = 1.5;
-    ctx.stroke();
-  } else if (fp.interpMode === 'pilotwave') {
-    // Show particle frozen at its detector band
-    const px = fpXtoPixel(fp.detectorX_nm);
-    const py = ((fp.bPosY_nm - fp.yMin_nm) / (fp.yMax_nm - fp.yMin_nm)) * H;
-    ctx.beginPath();
-    ctx.arc(px, py, 7, 0, 2*Math.PI);
-    ctx.fillStyle   = '#50f050';
-    ctx.fill();
-    ctx.strokeStyle = '#aaffaa';
-    ctx.lineWidth   = 2;
-    ctx.stroke();
-  }
+  // DoubleSlit2.0's warm yellow body, pale core, and soft transparent halo.
+  const px = fpXtoPixel(fp.bDetected ? fp.detectorX_nm : fp.bPos_nm);
+  const py = ((fp.bPosY_nm - fp.yMin_nm) / (fp.yMax_nm - fp.yMin_nm)) * H;
+  const radius = fp.bDetected ? 13 : 11;
+  const dot = ctx.createRadialGradient(px, py, 0, px, py, radius);
+  dot.addColorStop(0, 'rgba(255,252,199,1)');
+  dot.addColorStop(0.18, 'rgba(255,252,199,0.98)');
+  dot.addColorStop(0.34, `rgba(${FP_YELLOW},0.94)`);
+  dot.addColorStop(0.55, `rgba(${FP_YELLOW},0.30)`);
+  dot.addColorStop(1, `rgba(${FP_YELLOW},0)`);
+  ctx.fillStyle = dot;
+  ctx.fillRect(px - radius, py - radius, radius * 2, radius * 2);
 }
 
 // ---------------------------------------------------------------------------
 // RENDER – detector layer
 // ---------------------------------------------------------------------------
-function fpRenderDetector() {
-  if (!fpDetCtx) return;
-  const ctx     = fpDetCtx;
-  const W       = fpDetCanvas.width;
-  const H       = fpDetCanvas.height;
-  const N_SECTS = fp.nSections;
-
-  ctx.clearRect(0, 0, W, H);
-
+function fpDetectorLayout(W) {
   const xd     = fpXtoPixel(fp.detectorX_nm);
   const hw     = Math.abs(fpXtoPixel(fp.detectorX_nm + fp.detectorW_nm) - fpXtoPixel(fp.detectorX_nm));
   const xLeft  = Math.round(xd - hw);
   const xRight = Math.round(xd + hw);
 
-  const anyFired = fp.bDetected || fp.mwFired;
-  const mwUnchosen = fp.mwFired && fp.bDetectedSection < 0;
-  const hits = fp.sectionHits || [];
-  const maxH = Math.max(1, ...(hits.length ? hits : [0]));
   const fullW = Math.max(12, xRight - xLeft);
 
   // Geometry: detector strip (about 1/3 original width) + separate histogram area to the right.
@@ -725,7 +994,25 @@ function fpRenderDetector() {
   detR  = Math.min(W - 4, detR);
   histL = Math.max(detR + 1, histL);
   histR = Math.min(W - 2, histR);
+  // Let the horizontal bars use all remaining space, preserving the detector
+  // position and the existing Many-Worlds layout.
+  if (fp.interpMode !== 'manyworlds') histR = W - 2;
   const histW = Math.max(4, histR - histL);
+  return { detL, detR, histL, histR, histW };
+}
+
+function fpRenderDetector() {
+  if (!fpDetCtx) return;
+  const ctx = fpDetCtx;
+  const W = fpDetCanvas.width / fpRenderScale, H = fpDetCanvas.height / fpRenderScale;
+  const N_SECTS = fp.nSections;
+  ctx.clearRect(0, 0, W, H);
+  const { detL, detR, histL, histR, histW } = fpDetectorLayout(W);
+  const anyFired = fp.bDetected || fp.mwFired;
+  const mwUnchosen = fp.mwFired && fp.bDetectedSection < 0;
+  const collapse = fp.interpMode === 'collapse' && fp.bDetected;
+  const hits = fp.sectionHits || [];
+  const maxH = Math.max(1, ...(hits.length ? hits : [0]));
 
   // Draw each section with histogram in its own zone, detector hit in a separate zone.
   for (let i = 0; i < N_SECTS; i++) {
@@ -746,7 +1033,13 @@ function fpRenderDetector() {
     // Detector zone (left): only event-highlight information.
     const secFired = anyFired && (mwUnchosen || fp.bDetectedSection === i);
     ctx.fillStyle  = secFired ? 'rgba(80,240,80,0.74)' : 'rgba(100,140,255,0.28)';
+    if (collapse && secFired) ctx.fillStyle = 'rgba(255,223,150,0.10)';
     ctx.fillRect(detL, secY, Math.max(1, detR - detL), secH);
+    if (collapse && secFired) {
+      ctx.strokeStyle = 'rgba(255,232,163,0.95)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(detL + 1, secY + 1, Math.max(1, detR - detL - 2), Math.max(1, secH - 2));
+    }
 
     // Per-section count labels directly on detector panel.
     ctx.fillStyle = cnt > 0 ? '#f8fafc' : 'rgba(148,163,184,0.7)';
@@ -767,6 +1060,7 @@ function fpRenderDetector() {
 
   // Zone borders
   ctx.strokeStyle = anyFired ? '#50f050' : '#6688ff';
+  if (collapse) ctx.strokeStyle = '#9d88cb';
   ctx.lineWidth   = 2;
   ctx.strokeRect(detL, 0, Math.max(1, detR - detL), H);
   ctx.strokeStyle = 'rgba(250,204,21,0.65)';
@@ -775,6 +1069,7 @@ function fpRenderDetector() {
 
   // Labels
   ctx.fillStyle = anyFired ? '#50f050' : 'rgba(180,200,255,0.9)';
+  if (collapse) ctx.fillStyle = '#ffe8a3';
   ctx.font      = 'bold 12px Inter, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('D', Math.round((detL + detR) * 0.5), 16);
@@ -789,8 +1084,8 @@ function fpRenderYProjection() {
   const canvas = document.getElementById('fpYProjCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const W = canvas.width;
-  const H = canvas.height;
+  const W = canvas.width / fpRenderScale;
+  const H = canvas.height / fpRenderScale;
   if (!W || !H) return;
 
   ctx.clearRect(0, 0, W, H);
@@ -798,6 +1093,11 @@ function fpRenderYProjection() {
   ctx.fillRect(0, 0, W, H);
 
   // Match wave visibility semantics.
+  if (fp.interpMode === 'pilotwave' && !fp.showPilotWave) return;
+  if (fp.interpMode === 'collapse' && fp.bDetected) {
+    fpRenderCollapseProjection(ctx, W, H, 'y');
+    return;
+  }
   if ((fp.interpMode === 'collapse' || fp.interpMode === 'pilotwave') && fp.bDetected) return;
 
   const NXp = 180;
@@ -817,11 +1117,15 @@ function fpRenderYProjection() {
     if (accum > maxRho) maxRho = accum;
   }
 
-  for (let j = 0; j < H; j++) {
-    const t = Math.max(0, Math.min(1, rhoY[j] / maxRho));
-    const barW = Math.max(1, Math.round((W - 12) * t));
-    ctx.fillStyle = fpColor(t);
-    ctx.fillRect(W - barW - 1, j, barW, 1);
+  if (fp.interpMode !== 'manyworlds') {
+    fpDrawDensityProfile(ctx, W, H, rhoY, maxRho, 'y');
+  } else {
+    for (let j = 0; j < H; j++) {
+      const t = Math.max(0, Math.min(1, rhoY[j] / maxRho));
+      const barW = Math.max(1, Math.round((W - 12) * t));
+      ctx.fillStyle = fpColor(t);
+      ctx.fillRect(W - barW - 1, j, barW, 1);
+    }
   }
 
   // Detector section guides to compare y-density against detector bands.
@@ -1088,26 +1392,35 @@ function fpRenderProbPanel() {
   const canvas = document.getElementById('fpProbCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const W   = canvas.width;
-  const H   = canvas.height;
+  const W   = canvas.width / fpRenderScale;
+  const H   = canvas.height / fpRenderScale;
 
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#0a0a1a';
   ctx.fillRect(0, 0, W, H);
 
   // Blank the strip when the wavefunction is gone (collapse or pilot-wave post-detection)
+  if (fp.interpMode === 'pilotwave' && !fp.showPilotWave) return;
+  if (fp.interpMode === 'collapse' && fp.bDetected) {
+    fpRenderCollapseProjection(ctx, W, H, 'x');
+    return;
+  }
   if ((fp.interpMode === 'collapse' || fp.interpMode === 'pilotwave') && fp.bDetected) return;
 
-  // Draw |ψ|² as vertical bar chart mapped onto x-axis
+  // Draw the continuous density profile; retain the Many-Worlds rendering.
   const N     = fp.NX;
   const maxP  = fp._maxProb || 1e-12;
   const dxPix = W / N;
 
-  for (let i = 0; i < N; i++) {
-    const t  = fp.prob[i] / maxP;
-    const bH = Math.round(t * (H - 20));
-    ctx.fillStyle = fpColor(t);
-    ctx.fillRect(Math.round(i * dxPix), H - bH, Math.max(1, Math.ceil(dxPix)), bH);
+  if (fp.interpMode !== 'manyworlds') {
+    fpDrawDensityProfile(ctx, W, H, fp.prob, maxP, 'x');
+  } else {
+    for (let i = 0; i < N; i++) {
+      const t = fp.prob[i] / maxP;
+      const bH = Math.round(t * (H - 20));
+      ctx.fillStyle = fpColor(t);
+      ctx.fillRect(Math.round(i * dxPix), H - bH, Math.max(1, Math.ceil(dxPix)), bH);
+    }
   }
 
   // detector window marker (map using this panel's own width)
@@ -1218,6 +1531,7 @@ function fpRenderSectionHist() {
 // Master render  (all layers)
 // ---------------------------------------------------------------------------
 function fpRender() {
+  if (fpDeferRender) return;
   fpComputeGrid();
   fpRenderWave();
   fpRenderYProjection();
@@ -1270,11 +1584,15 @@ function fpUpdateInfoPanel() {
 // ---------------------------------------------------------------------------
 // Animation loop
 // ---------------------------------------------------------------------------
-function fpStep() {
-  const _spd = document.getElementById('fp-speed')?.value;
-  const isAuto = (_spd === 'auto' || !_spd);
-  const stepsPerFrame = isAuto ? (fp.autoStepsPerFrame || 1) : parseInt(_spd || '4');
-  const stepDt = fp.dt_fs * (isAuto ? (fp.autoDtScale || 1) : 1);
+function fpStep(timestamp = performance.now()) {
+  // Divide an exact, fractional time budget into bounded integration steps.
+  // Rounding the speed itself would turn the slider back into discrete gears.
+  const stepBudget = (fp.autoStepsPerFrame || 1) * fp.speed;
+  const stepsPerFrame = Math.max(1, Math.ceil(stepBudget));
+  const stepDt = fp.dt_fs * (fp.autoDtScale || 1) * stepBudget / stepsPerFrame;
+  const elapsed_ms = fp._lastFrameTime_ms === null ? 1000 / 60
+    : Math.max(0, Math.min(100, timestamp - fp._lastFrameTime_ms));
+  fp._lastFrameTime_ms = timestamp;
 
   // Freeze physics while user chooses a Many-Worlds branch.
   if (fp.mwWaitingForChoice) {
@@ -1287,7 +1605,17 @@ function fpStep() {
   if (fp.bDetected) {
     // In MW, auto-next is allowed only after branch choice (mwWaitingForChoice is handled above).
     const autoNext = fp.autoNextCycle;
-    if (autoNext) {
+    if (fp.interpMode === 'collapse') {
+      fp.collapseElapsed_ms = Math.min(FP_COLLAPSE_DURATION_MS + FP_COLLAPSE_HOLD_MS,
+        fp.collapseElapsed_ms + elapsed_ms);
+      fpRender();
+      const finishAt = FP_COLLAPSE_DURATION_MS + (autoNext ? FP_COLLAPSE_HOLD_MS : 0);
+      if (fp.collapseElapsed_ms < finishAt) {
+        if (fp.running) fp.animId = requestAnimationFrame(fpStep);
+        return;
+      }
+      if (autoNext) { fpRunReset(); return; }
+    } else if (autoNext) {
       fp.postDetectFrames++;
       fpRender();
       if (fp.postDetectFrames >= 24) { fpRunReset(); return; }
@@ -1342,6 +1670,9 @@ function fpStep() {
       }
     }
 
+    // Freeze the detected packet at the event time, even at a high speed.
+    if (fp.bDetected && fp.interpMode !== 'manyworlds') break;
+
     // auto-advance to next run when packet exits or after a brief post-detection pause
     if (fp.waveMode === 'packet') {
       const xbar     = fp.x0_nm + fp.vGroupX_nm_fs * fp.time_fs;
@@ -1364,6 +1695,7 @@ function fpStep() {
 // Reset helpers
 // ---------------------------------------------------------------------------
 function fpResetParticle() {
+  fpClearCollapse();
   // Reset particle but keep stats accumulating
   fp.bDetected     = false;
   fp.bDetectedTime = null;
@@ -1383,6 +1715,7 @@ function fpResetParticle() {
 // Run reset — starts a new run, keeping accumulated detection stats
 // ---------------------------------------------------------------------------
 function fpRunReset() {
+  fpClearCollapse();
   const shouldTally = !fp.eventCommitted;
   if (shouldTally) fp.nTrials++;
   // Tally per-section hits before clearing state
@@ -1440,6 +1773,7 @@ function fpRunReset() {
 }
 
 function fpFullReset() {
+  fpClearCollapse();
   fp.time_fs          = 0;
   fp.bDetected        = false;
   fp.bDetectedTime    = null;
@@ -1521,17 +1855,50 @@ function fpInit() {
 }
 
 function fpWireUI() {
+  const speedSlider = document.getElementById('fp-speed');
+  const speedValue = document.getElementById('fp-speed-value');
+  function updateSpeed() {
+    const value = Number(speedSlider.value);
+    fp.speed = Number.isFinite(value) ? Math.max(0.1, Math.min(16, value)) : 1;
+    const label = `${Number(fp.speed.toFixed(2))}×`;
+    speedValue.textContent = label;
+    speedSlider.setAttribute('aria-valuetext', `${label} playback speed`);
+  }
+  if (speedSlider) {
+    speedSlider.addEventListener('input', updateSpeed);
+    updateSpeed();
+  }
+
+  // One visual toggle for the main wave and both probability projections.
+  const waveToggle = document.getElementById('fp-btn-wave');
+  function updateWaveToggle() {
+    if (!waveToggle) return;
+    waveToggle.hidden = fp.interpMode !== 'pilotwave';
+    waveToggle.textContent = fp.showPilotWave ? 'Hide waves' : 'Show waves';
+    waveToggle.setAttribute('aria-pressed', String(!fp.showPilotWave));
+  }
+  if (waveToggle) waveToggle.addEventListener('click', () => {
+    fp.showPilotWave = !fp.showPilotWave;
+    updateWaveToggle();
+    fpRender();
+  });
+  updateWaveToggle();
+
   // ── Interpretation ─────────────────────────────────────────────────────────
   document.querySelectorAll('input[name="fp-interp"]').forEach(rb => {
     rb.addEventListener('change', () => {
       fp.interpMode = rb.value;
-      fpFullReset();      fpManageMWView();    });
+      updateWaveToggle();
+      fpFullReset();
+      fpManageMWView();
+    });
   });
 
   // ── Display mode ───────────────────────────────────────────────────────────
   document.querySelectorAll('input[name="fp-display"]').forEach(rb => {
     rb.addEventListener('change', () => {
       fp.displayMode = rb.value;
+      fp._collapseVisual = null;
       fpRender();
     });
   });
@@ -1607,9 +1974,12 @@ function fpWireUI() {
   if (btnStart) btnStart.addEventListener('click', () => {
     if (!fp.running) {
       // After a completed measurement, Start launches the next run directly.
-      if (fp.bDetected || fp.mwFired) {
+      const resumingCollapse = fp.interpMode === 'collapse' && fp.bDetected
+        && fp.collapseElapsed_ms < FP_COLLAPSE_DURATION_MS;
+      if ((fp.bDetected || fp.mwFired) && !resumingCollapse) {
         fpRunReset();
       }
+      fp._lastFrameTime_ms = null;
       fp.running = true;
       fp.animId  = requestAnimationFrame(fpStep);
       btnStart.disabled = true;
@@ -1632,8 +2002,9 @@ function fpWireUI() {
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return; // don't capture while typing
+    if (e.target.matches('input, select, textarea, [contenteditable="true"]')) return;
     if (e.code === 'Space') {
+      if (e.target.tagName === 'BUTTON') return; // Space activates the focused button.
       e.preventDefault();
       if (fp.running) {
         btnStop && btnStop.click();

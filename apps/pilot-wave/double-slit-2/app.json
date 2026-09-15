@@ -1,0 +1,15 @@
+{
+  "id": "double-slit-2-simulation",
+  "title": "Double Slit 2.0",
+  "type": "app",
+  "category": "pilot-wave",
+  "module": "double-slit",
+  "topics": ["wave-mechanics", "interference", "trajectories", "measurement"],
+  "interpretations": ["pilot-wave"],
+  "level": "intermediate",
+  "description": "Bohmian double-slit simulation with enhanced wave and trajectory visuals, a detector histogram, an illustrative which-slit mode, and video export.",
+  "tags": ["Pilot-wave", "Double slit", "WebGL2", "Which slit", "Video export"],
+  "gpu": true,
+  "entry": "index.html",
+  "status": "draft"
+}

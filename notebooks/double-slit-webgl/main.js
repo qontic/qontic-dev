@@ -431,6 +431,13 @@ sharedControls?.addEventListener("qontic:speed", event => { playbackSpeed = even
 sharedControls?.addEventListener("qontic:tab", event => showControlTab(event.detail.tab));
 showControlTab("core");
 
+// Embedded examples expose only their focused Core controls.
+if (isEmbedded && sharedControls) {
+  customElements.whenDefined("qontic-controls").then(() => {
+    sharedControls.shadowRoot.querySelector(".qontic-control-tabs").style.display = "none";
+  });
+}
+
 pauseButton.onclick = () => togglePause();
 
 if (isEmbedded) {

@@ -57,6 +57,30 @@
     }
     #credit a { color:#9fd0ff; text-decoration:none; }
     #credit a:hover { text-decoration:underline; }
+    #density-legend {
+      position:absolute; left:50%; bottom:14px; z-index:9;
+      width:min(560px, calc(100vw - 32px));
+      padding:8px 10px 7px; box-sizing:border-box;
+      color:#eef5ff; background:rgba(2,9,12,0.70);
+      border:1px solid rgba(150,190,210,0.26); border-radius:9px;
+      box-shadow:0 5px 18px rgba(0,0,0,0.32);
+      backdrop-filter:blur(5px); transform:translateX(-50%);
+      pointer-events:none; user-select:none;
+    }
+    #density-legend[hidden] { display:none; }
+    .density-legend-labels {
+      display:flex; justify-content:space-between; gap:18px;
+      margin-bottom:5px; font-size:11px; line-height:1.2;
+    }
+    .density-legend-bar {
+      height:12px; border-radius:999px;
+      border:1px solid rgba(255,255,255,0.22);
+      background:linear-gradient(90deg,
+        #000 0%, #06010c 10%, #00101f 20%, #002d2f 30%,
+        #004c32 40%, #005f24 50%, #22590b 60%, #513900 70%,
+        #7a0b00 80%, #8a0011 90%, #740047 100%);
+      box-shadow:inset 0 0 5px rgba(0,0,0,0.55);
+    }
     html.is-embedded #credit { display:none; }
     html.is-embedded #ui {
       max-height:calc(100vh - 24px);
@@ -88,6 +112,13 @@
           <button id="pause">Pause</button>
         </div>
       </div>
+    </div>
+    <div id="density-legend" hidden aria-hidden="true">
+      <div class="density-legend-labels">
+        <span>Low probability</span>
+        <span>High probability</span>
+      </div>
+      <div class="density-legend-bar"></div>
     </div>
   </div>
   <script type="module" src="./main.js"></script>

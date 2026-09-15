@@ -1,0 +1,14 @@
+# Standalone Free Particle preview; the app needs no build step.
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/"
+  to = "/free-particle.html"
+  status = 200
+
+# The app's relative Lab link normally points to the parent site's index.
+[[redirects]]
+  from = "/index.html"
+  to = "https://qonticlab.rice.edu/"
+  status = 302

@@ -31,7 +31,13 @@
       } catch (_) {}
     }
 
-    return "../../index.html";
+    return "../../index.html?tab=notebooks";
+  }
+
+  function notebookHref(slug, returnHref) {
+    const url = new URL(`../${slug}/index.html`, window.location.href);
+    url.searchParams.set("returnTo", new URL(returnHref, window.location.href).href);
+    return url.href;
   }
 
   function getCurrentNotebookSlug() {
@@ -53,25 +59,26 @@
 
     const currentSlug = getCurrentNotebookSlug();
     const currentIndex = NOTEBOOKS.findIndex((notebook) => notebook.slug === currentSlug);
+    const returnHref = safeReturnHref();
     const footer = document.createElement("nav");
     footer.className = "notebook-footer-nav";
     footer.setAttribute("aria-label", "Notebook navigation");
 
     footer.appendChild(
-      createLink("Back", safeReturnHref(), "footer-nav-button footer-nav-button-main")
+      createLink("Back", returnHref, "footer-nav-button footer-nav-button-main")
     );
 
     if (currentIndex > 0) {
       const previous = NOTEBOOKS[currentIndex - 1];
       footer.appendChild(
-        createLink(`Previous notebook: ${previous.title}`, `../${previous.slug}/index.html`, "footer-nav-button")
+        createLink(`Previous notebook: ${previous.title}`, notebookHref(previous.slug, returnHref), "footer-nav-button")
       );
     }
 
     if (currentIndex >= 0 && currentIndex < NOTEBOOKS.length - 1) {
       const next = NOTEBOOKS[currentIndex + 1];
       footer.appendChild(
-        createLink(`Next notebook: ${next.title}`, `../${next.slug}/index.html`, "footer-nav-button")
+        createLink(`Next notebook: ${next.title}`, notebookHref(next.slug, returnHref), "footer-nav-button")
       );
     }
 
@@ -124,6 +131,7 @@
     document.querySelectorAll("a.nav-button").forEach((link) => {
       if (/back/i.test(link.textContent || "")) {
         link.setAttribute("href", href);
+        link.setAttribute("aria-label", "Return to the page that opened this notebook");
         if (/back to main page/i.test(link.textContent || "")) link.textContent = "Back";
       }
     });

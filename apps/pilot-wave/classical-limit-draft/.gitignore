@@ -1,0 +1,8 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.log
+validation/*.png
+validation/*.webm
+validation/*.mp4

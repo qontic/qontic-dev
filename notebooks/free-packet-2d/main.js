@@ -463,8 +463,8 @@ if (!isControlFixed("boundaryMode")) {
 }
 
 addSectionHeader("Visual Parameters");
-addToggleInt("showWave", "show wave");
-addToggleInt("showPhase", "show phase");
+addToggleInt("showWave", "show wave", syncDensityLegend);
+addToggleInt("showPhase", "show phase", syncDensityLegend);
 addToggleInt("showParticles", "show particles");
 addSlider("nParticles", "particle count", 1, 1000, 10, () => resetAll());
 addSlider("dotSize", "particle size", 2.0, 25.0, 1);
@@ -479,6 +479,15 @@ addSlider("trailHalfLife", "trail length", 1.0, 60.0, 1.0);
 //addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
 
 removeEmptySectionHeaders();
+
+function syncDensityLegend() {
+  const legend = document.getElementById("density-legend");
+  const visible = Boolean(params.showWave) && !Boolean(params.showPhase);
+  legend.hidden = !visible;
+  legend.setAttribute("aria-hidden", String(!visible));
+}
+
+syncDensityLegend();
 
 document.getElementById("reset").onclick = () => resetAll();
 const pauseButton = document.getElementById("pause");

@@ -14,3 +14,6 @@ build/
 .ipynb_checkpoints/
 _site/
 catalog.json
+
+# Local Netlify folder
+.netlify

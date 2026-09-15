@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080b15">
+  <title>Classical Limit — Draft · Q-ONTIC</title>
+  <link rel="icon" type="image/png" href="./assets/q-ontic-logo.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main>
+    <aside id="panel" aria-label="Simulation controls">
+      <div class="panel-heading">
+        <a class="brand-home" data-catalog-back href="../../../index.html?tab=apps" aria-label="Back to catalog"><img class="brand-logo" src="./assets/q-ontic-logo.png" alt="Q-ONTIC logo" width="883" height="896"></a>
+        <div class="panel-title"><p class="eyebrow"><span style="color:var(--gold)">DRAFT</span> · <a id="catalog-back" data-catalog-back href="../../../index.html?tab=apps">← Back</a></p><h1>Classical Limit</h1></div>
+        <button id="collapse" class="icon-button" aria-label="Collapse controls" aria-expanded="true" aria-controls="panel-body">−</button>
+      </div>
+      <div id="panel-body">
+        <p class="intro">Watch a quantum wave give way to an almost classical path.</p>
+        <fieldset class="scene-control" aria-describedby="scene-note">
+          <legend>Scene</legend>
+          <div class="scene-options">
+            <label><input id="scene-free" type="radio" name="scene" value="free" checked><span>Without barrier</span></label>
+            <label><input id="scene-barrier" type="radio" name="scene" value="barrier"><span>With barrier</span></label>
+          </div>
+          <p id="scene-note" class="hint">The full classical range, with a compact packet and gentler spreading.</p>
+        </fieldset>
+        <section class="regime-control">
+          <div class="label-row"><label for="classicality">Classicality</label><output id="classicality-value" for="classicality">0%</output></div>
+          <input id="classicality" type="range" min="0" max="1" step="0.001" value="0">
+          <div class="range-ends"><span><i class="wave-dot"></i>Wave dominated</span><span>Nearly classical<i class="particle-dot"></i></span></div>
+          <p id="regime-description" class="regime-description">Spreading and interference shape the path.</p>
+        </section>
+        <label class="switch-row reference-toggle">Classical comparison<input type="checkbox" id="show-reference" checked></label>
+        <div class="label-row angle-row"><label for="angle">Launch direction</label><output id="angle-value" for="angle">45°</output></div>
+        <input id="angle" type="range" min="-180" max="180" step="1" value="45">
+        <div class="buttons"><button id="pause" class="primary">Pause</button><button id="reset">↺ Restart</button></div>
+        <details id="appearance" open><summary>Appearance & particles<span>−</span></summary><div class="detail-body">
+          <label class="switch-row">Wave<input type="checkbox" id="show-wave" checked></label>
+          <label class="switch-row" title="Faster flow makes the arrows longer, thicker and more opaque.">Velocity field<input type="checkbox" id="show-velocity" checked></label>
+          <label class="switch-row">Particles<input type="checkbox" id="show-particles" checked></label>
+          <div class="label-row"><label for="count">Particle count</label><output id="count-value" for="count">1</output></div><input id="count" type="range" min="1" max="256" step="1" value="1">
+          <div class="label-row"><label for="dot-size">Particle size</label><output id="dot-size-value">15</output></div><input id="dot-size" type="range" min="4" max="48" step="1" value="15" aria-describedby="trail-width-note">
+          <p class="hint" id="trail-width-note">Trail width follows 60% of the particle size.</p>
+          <div class="label-row"><label for="trail-seconds">Trail length</label><output id="trail-seconds-value">10 s</output></div><input id="trail-seconds" type="range" min="2" max="10" step="1" value="10">
+          <div class="label-row"><label for="playback">Playback</label><output id="playback-value" for="playback">1.0×</output></div><input id="playback" type="range" min="1" max="4" step="1" value="1">
+          <div class="playback-steps" aria-hidden="true"><span>1×</span><span>2×</span><span>3×</span><span>4×</span></div>
+        </div></details>
+        <details id="export-options" open><summary>Video export<span>+</span></summary><div class="detail-body">
+          <div class="label-row"><label for="export-size">Resolution</label><select id="export-size"><option value="1920">1920 × 1200</option><option value="2560" selected>2K · 2560 × 1600</option></select></div>
+          <div class="label-row"><label for="export-duration">Length (seconds)</label><input id="export-duration" type="number" min="1" max="120" step="1" value="10"></div>
+          <div class="label-row"><label for="export-start">Start from</label><select id="export-start"><option value="beginning">Beginning</option><option value="current">Current time</option></select></div>
+          <p class="hint">30 fps · supersampled. Uses the current framing and playback speed. Rendering can take longer than playback.</p>
+          <button id="record" class="record-button"><span class="record-dot"></span><span id="record-label">Render video · 30 fps</span></button>
+          <progress id="export-progress" value="0" max="300" aria-label="Video rendering progress" hidden></progress>
+          <p id="export-status" class="hint" role="status" aria-live="polite"></p>
+          <a id="export-download" hidden>Save video</a>
+        </div></details>
+        <p class="keyboard-hint">SPACE pause · R restart · H hide controls</p>
+      </div>
+    </aside>
+    <section class="stage" aria-label="Bohmian particle in a reflecting box">
+      <div class="stage-heading"><div><span id="regime-name">WAVE DOMINATED</span><span class="separator">/</span><span id="scene-name">REFLECTING BOX</span></div><div class="live-badge" id="status" role="status"><i></i><span>Starting…</span></div></div>
+      <div class="canvas-slot" id="canvas-slot">
+        <div class="canvas-wrap" id="canvas-wrap"><canvas id="canvas" aria-label="Wave density, Bohmian particles and their trajectories"></canvas><figure id="phase-legend" class="phase-key"><canvas id="phase-legend-canvas" width="336" height="296"></canvas></figure><div id="error" role="alert" hidden></div><div id="paused-badge" hidden>PAUSED</div></div>
+      </div>
+      <div class="stage-footer"><div class="legend"><span><i class="legend-wave"></i>Probability density</span><span><i class="particle-dot"></i>Bohmian particle</span><span id="reference-legend"><i class="reference-dot"></i>Classical comparison</span></div><button id="reset-view" title="Restore the full box">Reset view ↗</button></div>
+      <p class="canvas-hint">Scroll to zoom · drag to pan · double-click to reset</p>
+    </section>
+  </main>
+  <script type="module" src="./src/main.js"></script>
+  <script>
+    const appParams = new URLSearchParams(window.location.search);
+    const catalogLinks = document.querySelectorAll('[data-catalog-back]');
+    for (const link of catalogLinks) link.hidden = appParams.get('embed') === '1';
+    for (const candidate of [appParams.get('returnTo'), document.referrer]) {
+      if (!candidate) continue;
+      try {
+        const destination = new URL(candidate, window.location.href);
+        if (destination.origin === window.location.origin && destination.href !== window.location.href) {
+          for (const link of catalogLinks) link.href = destination.href;
+          break;
+        }
+      } catch (_) {}
+    }
+  </script>
+</body>
+</html>

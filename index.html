@@ -177,7 +177,39 @@
     });
   }
 
-  function selectTab(name) {
+  const catalogTabs = new Set(["modules", "apps", "notebooks", "videos"]);
+
+  function saveCatalogLocation() {
+    const url = new URL(window.location.href);
+    const tab = document.querySelector('.tab-button[aria-selected="true"]').dataset.tab;
+    const query = document.getElementById("search").value;
+    if (tab === "modules") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", tab);
+    if (query) url.searchParams.set("q", query);
+    else url.searchParams.delete("q");
+    if (["#notebook", "#notebooks", "#modules", "#apps", "#videos"].includes(url.hash)) url.hash = "";
+    window.history.replaceState(window.history.state, "", url);
+
+    // Carry the catalog view explicitly, including when opening a new tab.
+    const returnTo = url.pathname + url.search + url.hash;
+    const resourceRoots = ["apps/", "notebooks/"].map(path => new URL(path, url).pathname);
+    document.querySelectorAll("a.catalog-row").forEach(link => {
+      const destination = new URL(link.href);
+      if (destination.origin !== url.origin || !resourceRoots.some(root => destination.pathname.startsWith(root))) return;
+      destination.searchParams.set("returnTo", returnTo);
+      link.href = destination.href;
+    });
+  }
+
+  function restoreCatalogLocation() {
+    const url = new URL(window.location.href);
+    const legacyTab = url.hash === "#notebook" ? "notebooks" : url.hash.slice(1);
+    const tab = url.searchParams.get("tab") || legacyTab;
+    document.getElementById("search").value = url.searchParams.get("q") || "";
+    selectTab(catalogTabs.has(tab) ? tab : "modules", { track: false });
+  }
+
+  function selectTab(name, { track = true } = {}) {
     document.querySelectorAll(".tab-button").forEach(button => {
       button.setAttribute("aria-selected", String(button.dataset.tab === name));
     });
@@ -186,7 +218,8 @@
     });
     document.getElementById("search").placeholder = `Search ${name}…`;
     applySearch();
-    if (typeof window.gtag === "function") {
+    saveCatalogLocation();
+    if (track && typeof window.gtag === "function") {
       window.gtag("event", "catalog_tab_selected", {
         catalog_tab: name,
         page_path: window.location.pathname,
@@ -202,7 +235,10 @@
       renderResourcePanel(data.resources || [], "app", "Apps", "panel-apps");
       renderResourcePanel(data.resources || [], "notebook", "Notebooks", "panel-notebooks");
       renderVideoPanel(data.modules || []);
-      document.getElementById("search").addEventListener("input", applySearch);
+      document.getElementById("search").addEventListener("input", () => {
+        applySearch();
+        saveCatalogLocation();
+      });
       document.querySelectorAll(".tab-button").forEach(button => {
         button.addEventListener("click", () => selectTab(button.dataset.tab));
       });
@@ -217,7 +253,9 @@
           send_to: "G-ZWF6YQM0YV"
         });
       });
-      applySearch();
+      window.addEventListener("popstate", restoreCatalogLocation);
+      window.addEventListener("hashchange", restoreCatalogLocation);
+      restoreCatalogLocation();
     })
     .catch(error => {
       console.error(error);

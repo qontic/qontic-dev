@@ -1,0 +1,21 @@
+{
+  "name": "classical-limit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A continuous, speed-matched Bohmian classical-limit experiment in a hard-wall box.",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "test": "node --test tests/physics.test.js tests/obstacle-physics.test.js",
+    "check": "node scripts/check.mjs",
+    "build": "node scripts/build.mjs",
+    "vendor": "node scripts/vendor-media.mjs",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "esbuild": "0.25.12",
+    "mediabunny": "1.56.0"
+  }
+}
