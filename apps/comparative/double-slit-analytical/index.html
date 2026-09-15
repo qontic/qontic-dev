@@ -379,12 +379,6 @@
            <canvas id="paletteScaleCanvas2" width="40" height="100" data-tip="Wave 2 (slit 2) color palette scale" style="position: absolute; left: 0px; bottom: 50px; z-index: 10; display: none;"></canvas>
            <canvas id="paletteScaleCanvas1" width="40" height="100" data-tip="Wave 1 (slit 1) color palette scale" style="position: absolute; left: 0px; bottom: 150px; z-index: 10; display: none;"></canvas>
              </div>
-             <div class="comparison-caption">
-               <p id="recordMeaning"></p>
-               <p>Curve: model probability density. Points and bars: sampled frequencies and approximate √n count uncertainties. Palette: the selected wave quantity, not particle density unless |Ψ|² is selected.</p>
-               <p class="manyworlds-only">Each detection splits every existing branch into N sensor-outcome branches. After m detections: N^m branches. N is the number of detector sensors. Branch weights follow the Born rule; the histogram follows one sampled branch.</p>
-               <p>Switching interpretation preserves the accumulated hits and elapsed time while changing the visual account. Use Reset to start a fresh run. <a href="#rationale" id="compareHelp">Compare the three accounts</a>.</p>
-             </div>
              <div id="shortcut-hint">Space: play/pause · R: reset · S: screenshot · V: cycle view · W: cycle wave display</div>
              </div>
 <!--
@@ -422,6 +416,14 @@
         <tr><th><a href="#" class="view-link" data-view="manyworlds">Many-Worlds</a></th><td>Unitary evolution correlates different detector and observer records with different outcomes, without collapse.</td><td>The wave and outcome-weight curve, plus one sampled record. The branch counter is N^m: N detector sensors and m detections. All sensor outcomes are retained in this finite branching model; only one sampled branch history is displayed. Separate detector/observer wavefunctions are not propagated.</td><td>How do all possible records differ from the one record an observer experiences?</td></tr>
       </tbody>
     </table></div>
+             <section class="reading-display">
+               <h2>Reading the display</h2>
+               <p id="recordMeaning"></p>
+               <p>Curve: model probability density. Points and bars: sampled frequencies and approximate √n count uncertainties. Palette: the selected wave quantity, not particle density unless |Ψ|² is selected.</p>
+               <p>In Many-Worlds, each detection splits every existing branch into N sensor-outcome branches. After m detections: N<sup>m</sup> branches. N is the number of detector sensors. Branch weights follow the Born rule; the histogram follows one sampled branch.</p>
+               <p>Switching interpretation preserves the accumulated hits and elapsed time while changing the visual account. Use Reset to start a fresh run.</p>
+             </section>
+
     <h2>A short comparison activity</h2>
     <ol><li>Choose electrons, both slits, no which-path detector, and |Ψ|². Run each interpretation at the same geometry. Compare patterns after similar numbers of detections, not equal animation times.</li><li>In Pilot-Wave, inspect a path near a dark fringe. Explain the role of the full wave in guiding it.</li><li>Close one slit, then restore both and enable the which-path detector. Compare the two ways interference disappears.</li><li>In Many-Worlds, sample another branch. Explain why its fluctuations can change while the outcome weights remain the same.</li></ol>
     <h2>Model and limits</h2>
@@ -455,7 +457,7 @@
   <button id="closePopup2Btn" onclick="$('#palettePopup2').hide()">Close</button>
 </div>
 
-<div id="versionInfo" style="text-align: center; font-size: 0.85em; color: var(--text-muted); margin-top: 16px; padding: 12px; border-top: 1px solid var(--border-color);"> Q-Ontic analytical double slit · Revision 5 · Branch formula</div>
+<div id="versionInfo" style="text-align: center; font-size: 0.85em; color: var(--text-muted); margin-top: 16px; padding: 12px; border-top: 1px solid var(--border-color);"> Q-Ontic analytical double slit · Revision 6 · Simplified simulation view</div>
 <!-- Visitor counter removed to avoid browser warnings about
   parser-blocking cross-site scripts injected via document.write. -->
 
@@ -547,9 +549,4 @@
   })();
 </script>
 
-<script>
-  document.getElementById('compareHelp').addEventListener('click', function (event) {
-    event.preventDefault(); $('#superContainer').tabs('option', 'active', 1);
-  });
-</script>
 </body>
