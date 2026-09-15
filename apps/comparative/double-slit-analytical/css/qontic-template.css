@@ -1,5 +1,5 @@
 body.analytical-template { padding: 0 18px 12px; }
-.analytical-template .analytical-shell { width: 100%; margin: auto; }
+.analytical-template .analytical-shell { width: 100%; max-width: none; margin: auto; }
 .analytical-template #superContainer { padding: 16px 0 0; background: transparent; border: 0; }
 .analytical-template #superContainer > ul,
 .analytical-template #psiTabs > ul,
@@ -16,7 +16,7 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #setupBtnStatus { display: none !important; }
 .analytical-template #mainContainer { padding: 0; width: 100%; }
 .analytical-template .main-container { width: 100%; align-items: flex-start; gap: 18px; }
-.analytical-template #leftPanel { width: 340px; flex: 0 0 340px; min-width: 0; gap: 12px; }
+.analytical-template #leftPanel { width: var(--qontic-sidebar-width, 340px); flex: 0 0 var(--qontic-sidebar-width, 340px); min-width: 0; gap: 12px; }
 .analytical-template #psiTabs { padding: 12px; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; }
 .analytical-template #sharedControls { margin-bottom: 8px; }
 .analytical-template #psiTabs [hidden] { display: none !important; }
@@ -29,7 +29,7 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #experiment-bar { display: flex; gap: 8px; padding: 0; border: 0; margin: 0 0 12px; }
 .analytical-template #experiment-bar button { flex: 1; width: auto; }
 .analytical-template #canvas-wrapper { flex: 1 1 0; min-width: 0; }
-.analytical-template #canvas-container { width: min(100%, max(320px, calc((100dvh - 260px) * 4 / 3))); height: auto; aspect-ratio: 4 / 3; min-width: 0; min-height: 0; max-width: none; max-height: none; margin: 8px auto; box-sizing: border-box; }
+.analytical-template #canvas-container { width: 100%; height: max(240px, calc(100dvh - 260px)); aspect-ratio: auto; min-width: 0; min-height: 0; max-width: none; max-height: none; margin: 8px auto; box-sizing: border-box; }
 .analytical-template #canvas-container > canvas:not([id^="palette"]) { left: 0; top: 0; }
 .analytical-template #Info { box-sizing: border-box; padding: 12px; }
 .analytical-template .info-layout { display: block; }
@@ -54,6 +54,7 @@ body.analytical-template { padding: 0 18px 12px; }
   .analytical-template .main-container { flex-direction: column; }
   .analytical-template #leftPanel { width: 100%; flex-basis: auto; }
   .analytical-template #canvas-wrapper { width: 100%; }
+  .analytical-template #canvas-container { height: auto; aspect-ratio: 4 / 3; }
 }
 @media (max-width: 560px) {
   body.analytical-template { padding-inline: 10px; }

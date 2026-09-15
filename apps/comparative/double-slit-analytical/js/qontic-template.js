@@ -1,3 +1,4 @@
+import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
 import '../../../../shared/qontic-controls.js?v=2.7';
 
@@ -125,11 +126,17 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit',
-    version: 'Analytical double slit · Version 8 · Screen-fit canvas',
+    version: 'Analytical double slit · Version 9 · Adjustable layout',
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');
   syncPage();
+  enableResizableSidebar({
+    panel: document.getElementById('leftPanel'),
+    container: document.querySelector('.main-container'),
+    storageKey: 'qontic-double-slit-sidebar-width',
+    minWidth: 320,
+  });
 
   // Match actual canvas pixels to the displayed size. Geometry and time step
   // in world units, all detections, and in-flight trajectories are preserved.

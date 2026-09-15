@@ -229,3 +229,20 @@
     flex-direction: column;
   }
 }
+
+/* Enabled only on sidebars explicitly registered by qontic-resize.js. */
+.qontic-resizable-sidebar { position: relative; }
+.qontic-sidebar-divider {
+  position: absolute; top: 0; bottom: 0; right: -15px; width: 12px;
+  min-height: 80px; cursor: col-resize; touch-action: none; z-index: 12;
+}
+.qontic-sidebar-divider::after {
+  content: ''; position: absolute; top: 8px; bottom: 8px; left: 5px; width: 3px;
+  border-radius: 3px; background: #51768a; opacity: .65;
+}
+.qontic-sidebar-divider:hover::after, .qontic-sidebar-divider:focus-visible::after {
+  background: #1594a8; opacity: 1;
+}
+.qontic-sidebar-divider:focus-visible { outline: 2px solid #1594a8; border-radius: 5px; }
+.qontic-sidebar-divider[hidden] { display: none; }
+body.qontic-sidebar-dragging, body.qontic-sidebar-dragging * { cursor: col-resize !important; user-select: none !important; }
