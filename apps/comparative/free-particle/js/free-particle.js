@@ -703,14 +703,24 @@ function fpDrawDensityProfile(ctx, W, H, values, peak, axis, start = 0, span = a
     : paint.createLinearGradient(0, start, 0, start + span);
   paint.beginPath();
   paint.moveTo(isX ? start : baseline, isX ? baseline : start);
+  let lastColor = null, pendingStop = null;
   for (let i = 0; i < values.length; i++) {
     const fraction = i / (values.length - 1);
     const density = Math.max(0, Math.min(1, values[i] / Math.max(1e-12, peak)));
     const position = start + fraction * span;
     const edge = baseline - density * amplitude;
     paint.lineTo(isX ? position : edge, isX ? edge : position);
-    gradient.addColorStop(fraction, fpDensityColor(density));
+    const color = fpDensityColor(density);
+    // Keep the two ends of each constant-color run. Interior stops do not
+    // change the gradient, but are costly for the canvas rasterizer.
+    if (color !== lastColor) {
+      if (pendingStop !== null) gradient.addColorStop(pendingStop, lastColor);
+      gradient.addColorStop(fraction, color);
+      lastColor = color;
+      pendingStop = null;
+    } else pendingStop = fraction;
   }
+  if (pendingStop !== null) gradient.addColorStop(pendingStop, lastColor);
   paint.lineTo(isX ? start + span : baseline, isX ? baseline : start + span);
   paint.closePath();
   paint.fillStyle = gradient;
@@ -745,6 +755,37 @@ function fpRenderCollapseProjection(ctx, W, H, axis) {
     profile[i - first] = values[i] / peak * feather;
   }
   fpDrawDensityProfile(ctx, W, H, profile, 1, axis, start, span);
+}
+
+// Render-only workspace stays outside fp so video snapshots remain serializable.
+let fpWaveBuffers = null;
+
+// The existing packet and x-only absorber are separable. Evaluate each axis
+// once, then combine them on the unchanged 800 x 140 display grid.
+function fpRenderFactors(nx, ny, t) {
+  const sx0 = fp.sigma0_nm, sy0 = fpSigmaY0();
+  const tx = FP_HBAR_EV_FS * t / (FP_MASS_EV * sx0 * sx0);
+  const ty = FP_HBAR_EV_FS * t / (FP_MASS_EV * sy0 * sy0);
+  const sx = sx0 * Math.sqrt(1 + tx * tx), sy = sy0 * Math.sqrt(1 + ty * ty);
+  const amp = Math.sqrt((sx0 * sy0) / (sx * sy));
+  const phase0 = -fp.omega_fs * t - 0.5 * (Math.atan(tx) + Math.atan(ty));
+  const xAmp = new Float64Array(nx), yAmp = new Float64Array(ny);
+  const xPhase = new Float64Array(nx), yPhase = new Float64Array(ny);
+  for (let i = 0; i < nx; i++) {
+    const x = fp.xMin_nm + i / Math.max(1, nx - 1) * (fp.xMax_nm - fp.xMin_nm);
+    const dx = x - (fp.x0_nm + fp.vGroupX_nm_fs * t);
+    const q = dx * dx / (4 * sx0 * sx);
+    xAmp[i] = amp * Math.exp(-q) * Math.exp(-Math.max(0, fp.absorbGamma_fs) * Math.max(0, t) * fpDetectorProfileX(x));
+    xPhase[i] = fp.kx_nm * x + tx * q + phase0;
+  }
+  for (let j = 0; j < ny; j++) {
+    const y = fp.yMin_nm + j / Math.max(1, ny - 1) * (fp.yMax_nm - fp.yMin_nm);
+    const dy = y - fp.vGroupY_nm_fs * t;
+    const q = dy * dy / (4 * sy0 * sy);
+    yAmp[j] = Math.exp(-q);
+    yPhase[j] = fp.ky_nm * y + ty * q;
+  }
+  return { xAmp, yAmp, xPhase, yPhase };
 }
 
 function fpRenderWave() {
@@ -786,27 +827,34 @@ function fpRenderWave() {
   }
   const off = fp._waveOff;
   const octx = fp._waveOffCtx;
-  const img = octx.createImageData(off.width, off.height);
+  if (!fpWaveBuffers || fpWaveBuffers.width !== off.width || fpWaveBuffers.height !== off.height) {
+    fpWaveBuffers = { width: off.width, height: off.height,
+      img: octx.createImageData(off.width, off.height),
+      vals: new Float32Array(off.width * off.height),
+      probs: new Float32Array(off.width * off.height) };
+  }
+  const { img, vals, probs } = fpWaveBuffers;
   const data = img.data;
 
   let p = 0;
   let maxP2D = 1e-12;
-  const vals  = new Float32Array(off.width * off.height);
-  const probs = new Float32Array(off.width * off.height); // always stores |psi|^2 for amplitude modulation
   const mode = fp.displayMode;
 
+  const factors = fpRenderFactors(off.width, off.height, fp.time_fs);
   for (let j = 0; j < off.height; j++) {
-    const y = fp.yMin_nm + (j / (off.height - 1)) * (fp.yMax_nm - fp.yMin_nm);
     for (let i = 0; i < off.width; i++) {
-      const x = fp.xMin_nm + (i / (off.width - 1)) * (fp.xMax_nm - fp.xMin_nm);
-      const psi = fpPsi2D(x, y, fp.time_fs);
-      const prob = psi.re * psi.re + psi.im * psi.im;
+      const index = j * off.width + i;
+      const amplitude = factors.xAmp[i] * factors.yAmp[j];
+      const prob = amplitude * amplitude;
       maxP2D = Math.max(maxP2D, prob);
-      probs[j * off.width + i] = prob;
-      if (mode === 'prob') vals[j * off.width + i] = prob;
-      else if (mode === 'real') vals[j * off.width + i] = psi.re;
-      else if (mode === 'imag') vals[j * off.width + i] = psi.im;
-      else vals[j * off.width + i] = Math.atan2(psi.im, psi.re);
+      probs[index] = prob;
+      if (mode === 'prob') vals[index] = prob;
+      else {
+        const phase = factors.xPhase[i] + factors.yPhase[j];
+        if (mode === 'real') vals[index] = amplitude * Math.cos(phase);
+        else if (mode === 'imag') vals[index] = amplitude * Math.sin(phase);
+        else vals[index] = Math.atan2(amplitude * Math.sin(phase), amplitude * Math.cos(phase));
+      }
     }
   }
 
@@ -1105,14 +1153,11 @@ function fpRenderYProjection() {
   const rhoY = new Float64Array(H);
   let maxRho = 1e-12;
 
+  const factors = fpRenderFactors(NXp, H, fp.time_fs);
+  let xMass = 0;
+  for (let i = 0; i < NXp; i++) xMass += factors.xAmp[i] * factors.xAmp[i] * dx;
   for (let j = 0; j < H; j++) {
-    const y = fp.yMin_nm + (j / Math.max(1, H - 1)) * (fp.yMax_nm - fp.yMin_nm);
-    let accum = 0;
-    for (let i = 0; i < NXp; i++) {
-      const x = fp.xMin_nm + i * dx;
-      const psi = fpPsi2D(x, y, fp.time_fs);
-      accum += (psi.re * psi.re + psi.im * psi.im) * dx;
-    }
+    const accum = xMass * factors.yAmp[j] * factors.yAmp[j];
     rhoY[j] = accum;
     if (accum > maxRho) maxRho = accum;
   }
@@ -2015,3 +2060,4 @@ function fpWireUI() {
     if (e.code === 'KeyR') { btnReset && btnReset.click(); }
   });
 }
+
