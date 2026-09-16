@@ -136,7 +136,11 @@ $(function () {
     layers.append(row);
   }
   layerTable.remove();
-  displayPanel.querySelector('#fontTarget').closest('div').classList.add('analytical-font-row');
+  // Browser zoom supplies consistent sizing across controls and canvas.
+  displayPanel.querySelector('#fontTarget').parentElement.parentElement.hidden = true;
+  core.append(document.getElementById('resetDefaultsButton'));
+  document.querySelector('#waveOpacity-group label').textContent = 'Wave opacity';
+  document.querySelector('#trajOpacity-group label').textContent = 'Paths opacity';
 
   const panels = {core, advanced, display: document.getElementById('graphics-parameter-container')};
   const showControls = name => {
@@ -193,7 +197,7 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit',
-    version: 'Analytical double slit · Version 13 · Responsive proportions',
+    version: 'Analytical double slit · Version 14 · Responsive proportions',
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');

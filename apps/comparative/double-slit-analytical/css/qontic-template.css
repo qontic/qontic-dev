@@ -119,3 +119,13 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #fontTarget { color:var(--text-primary); background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:5px; }
 .analytical-template #opacity-box { background:transparent; border:1px solid var(--border-color); border-radius:10px; padding:8px 10px; }
 .analytical-template #opacity-box .opacity-box-title { font-size:12px; color:var(--text-secondary); font-weight:500; }
+
+/* Keep Display short without shrinking its text or color targets. */
+.analytical-template #graphics-parameter-container > [hidden] { display:none !important; }
+.analytical-template .analytical-layers { margin-bottom:8px; padding-block:2px; }
+.analytical-template .analytical-layer { min-height:28px; }
+.analytical-template .analytical-layer label { padding-block:3px; }
+.analytical-template #opacity-box { padding:6px 0 0; margin:0 0 6px; border:0; border-radius:0; }
+.analytical-template #opacity-box .opacity-box-title { display:none; }
+.analytical-template #opacity-box .input-group label { width:95px; min-width:95px; font-size:13px; }
+.analytical-template #opacity-box .input-group { margin-bottom:6px; }
