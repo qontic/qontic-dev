@@ -158,3 +158,23 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 .analytical-template .analytical-layer.is-transparent label {color:var(--text-muted);}
 .analytical-template .analytical-layer > button {justify-self:center;}
 .analytical-template #opacity-box[hidden] {display:none!important;}
+
+/* Reading tabs use a document layout independent of compact control sizing. */
+.analytical-template #superContainer > #math-container,
+.analytical-template #superContainer > #rationale {
+  width:min(100%,1040px)!important;max-width:1040px!important;min-width:0;
+  box-sizing:border-box;font:400 16px/1.65 Inter,Arial,sans-serif;
+  padding:clamp(18px,3vw,36px)!important;
+}
+.analytical-template #math-container h1,
+.analytical-template #rationale h1 {font-size:28px;line-height:1.25;margin:0 0 16px;}
+.analytical-template #math-container h2,
+.analytical-template #rationale h2 {font-size:21px;line-height:1.35;margin:24px 0 10px;}
+.analytical-template #math-container h3 {font-size:17px;margin:16px 0 8px;}
+.analytical-template #math-container p {margin:10px 0 16px;}
+.analytical-template #math-container .math-section + .math-section {border-top:1px solid var(--border-color);margin-top:24px;padding-top:4px;}
+.analytical-template #math-container .math-equation {padding:12px 16px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:8px;overflow-x:auto;}
+.analytical-template #math-container .katex {font-size:1.15em;}
+.analytical-template #math-container .katex-display {margin:10px 0;}
+.analytical-template #mathLegend {font-size:16px;line-height:1.8;}
+.analytical-template #rationale .comparison-table-scroll {overflow-x:auto;}

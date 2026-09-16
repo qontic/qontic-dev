@@ -81,12 +81,6 @@ $(function () {
   });
   // Keep one visible copy of each control, preserving the original input IDs.
   // The wave quantity selector belongs with the main experiment controls.
-  const options = document.createElement('div');
-  options.className = 'analytical-path-options';
-  const screenSeeded = document.getElementById('onlyWallMode').closest('.input-group');
-  screenSeeded.before(options);
-  options.append(screenSeeded);
-
   // Reuse the original inputs and color actions in a single readable layer list.
   const displayPanel = document.getElementById('graphics-parameter-container');
   const layerTable = displayPanel.querySelector('table');

@@ -2843,7 +2843,7 @@ async function evolveParticles() {
    if (precomputePending) { lastRealTime = performance.now() / 1000; return; }
 
    var trajectoriesToBeDeleted = [];
-   const onlyWallMode = $('#onlyWallMode').prop('checked');
+   // Fixed screen-endpoint initialization for this analytical model.
 
    
 
@@ -2948,7 +2948,7 @@ async function evolveParticles() {
          traj.del=1;
       }
 
-      if (onlyWallMode) {
+      { // Initialize post-slit paths from screen endpoints.
          if ( xn < wallXWorld && traj.del==2 ) {
             // In wall-forced mode, trajectories that were
             // back-propagated from detector hits (del==2)
@@ -3029,93 +3029,6 @@ async function evolveParticles() {
                  traj.del=2;  
                }
          }
-      } else {
-         // Case A (non-only-wall-hits): absorb at the wall outside
-         // the slits; if we cross the wall within a slit window,
-         // choose an endpoint on detector/top/bottom, backtrack to
-         // just behind the wall, and continue forward from there.
-         // We use slit-specific boundary arrays so backtracking
-         // lands near the same slit that was hit.
-         if ( xn > wallXWorld && traj.del==0 ) {
-            var stepFractionA = (wallXWorld-lastPoint.x)/(xn-lastPoint.x);
-            var yWallA = lastPoint.y + (yn-lastPoint.y) * stepFractionA;
-
-            var atSlit1 = ( yWallA < slit1YWorld + slitWidth &&  yWallA > slit1YWorld - slitWidth );
-            var atSlit2 = ( yWallA < slit2YWorld + slitWidth &&  yWallA > slit2YWorld - slitWidth );
-
-            if (!atSlit1 && !atSlit2) {
-               // Hit the opaque wall: absorb.
-               traj.del = 1;
-            } else if (atSlit1) {
-               if (whichPathDetector !== 'none') {
-                  // Which-path mode: use full 180° phi range (straight-line trajectories)
-                  const phi = -Math.PI/2 + Math.random() * Math.PI;
-                  traj.phi = phi;  // Store for straight-line propagation
-                  xn = wallXWorld + xPre;
-                  yn = slit1YWorld;
-                  traj.slitNum = 1;
-               } else if (boundaryDetArray1 && boundaryTopArray &&
-                          boundaryDetArray1.bins.length > 0 && boundaryTopArray.bins.length > 0) {
-                  // Normal Bohmian mode: sample from upper detector half + top edge
-                  const lenDet = boundaryDetArray1.bins.length;
-                  const lenTop = boundaryTopArray.bins.length;
-                  const totalLen = lenDet + lenTop;
-
-                  let r = Math.random() * totalLen;
-                  let xStart, yStart;
-                  if (r < lenDet) {
-                     yStart = sampleFromCDF(boundaryDetArray1);
-                     xStart = detectorXWorld;
-                  } else {
-                     xStart = sampleFromCDF(boundaryTopArray);
-                     yStart = 0;
-                  }
-
-                  const slitPosA = backtrackFromPoint(xStart, yStart, 1);
-                  xn = slitPosA.x;
-                  yn = slitPosA.y;
-                  traj.slitNum = 1;
-               }
-               traj.del = 2;
-            } else if (atSlit2) {
-               if (whichPathDetector !== 'none') {
-                  // Which-path mode: use full 180° phi range (straight-line trajectories)
-                  const phi = -Math.PI/2 + Math.random() * Math.PI;
-                  traj.phi = phi;  // Store for straight-line propagation
-                  xn = wallXWorld + xPre;
-                  yn = slit2YWorld;
-                  traj.slitNum = 2;
-               } else if (boundaryDetArray2 && boundaryBottomArray &&
-                          boundaryDetArray2.bins.length > 0 && boundaryBottomArray.bins.length > 0) {
-                  // Normal Bohmian mode: sample from lower detector half + bottom edge
-                  const lenDet = boundaryDetArray2.bins.length;
-                  const lenBottom = boundaryBottomArray.bins.length;
-                  const totalLen = lenDet + lenBottom;
-
-                  let r = Math.random() * totalLen;
-                  let xStart, yStart;
-                  if (r < lenDet) {
-                     yStart = sampleFromCDF(boundaryDetArray2);
-                     xStart = detectorXWorld;
-                  } else {
-                     xStart = sampleFromCDF(boundaryBottomArray);
-                     yStart = worldCanvasDy;
-                  }
-
-                  const slitPosA = backtrackFromPoint(xStart, yStart, 2);
-                  xn = slitPosA.x;
-                  yn = slitPosA.y;
-                  traj.slitNum = 2;
-               }
-               traj.del = 2;
-            }
-         }
-      }
-
-      // For case A, if a del==2 trajectory somehow crosses back
-      // behind the wall, terminate it (mirrors case B logic).
-      if (!onlyWallMode && xn < wallXWorld && traj.del == 2) {
-         traj.del = 1;
       }
 
       // After handling wall interactions (or free propagation in
@@ -3826,6 +3739,19 @@ function updateMathFormulas() {
       katex.render(bvLatex, bvEl, { displayMode: true, throwOnError: false });
    }
 
+   const renderFormula = (id, latex) => {
+      const element = document.getElementById(id);
+      if (element) katex.render(latex, element, {displayMode:true, throwOnError:false});
+   };
+   renderFormula('mathDensity', hasDetector && bothSlits
+      ? String.raw`\rho(y)=|\psi_1(x_D,y)|^2+|\psi_2(x_D,y)|^2`
+      : String.raw`\rho(y)=|\Psi_{\mathrm{II}}(x_D,y)|^2`);
+   renderFormula('mathProbability', String.raw`p(y)=\frac{\rho(y)}{\int_{\mathrm{screen}}\rho(y')\,dy'},\qquad P_j=\int_{\mathrm{bin}\ j}p(y)\,dy`);
+   renderFormula('mathCounts', String.raw`\mathbb{E}[n_j]=M P_j,\qquad \sigma_{n_j}\approx\sqrt{n_j}`);
+   const velocityNote = document.getElementById('mathVelocityNote');
+   if (velocityNote) velocityNote.textContent = hasDetector && bothSlits
+      ? 'This is the guidance law for the coherent field. In the current two-slit which-path visualization, post-slit paths instead use a simplified straight-line construction with sampled angles; the app does not solve the joint particle–detector dynamics.'
+      : 'For electrons and neutrons, the local phase gradient gives the velocity. Post-slit starting positions are reconstructed by tracing sampled screen endpoints backward through this field, then propagating forward.';
    // Legend
    const legendEl = document.getElementById('mathLegend');
    if (legendEl) {

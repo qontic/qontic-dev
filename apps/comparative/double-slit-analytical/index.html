@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
     <script>window.qonticTemplateLayout = true;</script>
-    <script src="js/double-slit.js?v=continuous-20260916"></script>
+    <script src="js/double-slit.js?v=screen-math-20260916"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
     <style>
@@ -38,8 +38,8 @@
       }
     </style>
     <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
-    <link rel="stylesheet" href="css/qontic-template.css?v=20">
-    <script type="module" src="js/qontic-template.js?v=21"></script>
+    <link rel="stylesheet" href="css/qontic-template.css?v=22">
+    <script type="module" src="js/qontic-template.js?v=22"></script>
 </head>
 <body>
   <!-- Loading overlay — visible until JS init completes -->
@@ -178,33 +178,41 @@
 	</div>
 
         <!-- Math / Formulas tab -->
-        <div id="math-container" style="padding-top: 6px;">
-
-          <h3 style="margin: 0 0 6px 0; font-size: 1.05em; color: var(--text-primary);">Wave Function</h3>
-
-          <div style="margin-bottom: 6px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 2px;">Domain 1 &mdash; Before the wall</div>
-            <div id="mathDomain1" style="padding: 4px 8px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-x: auto;"></div>
-          </div>
-
-          <div style="margin-bottom: 6px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 2px;">Domain 2 &mdash; After the wall</div>
-            <div id="mathDomain2" style="padding: 4px 8px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-x: auto;"></div>
-          </div>
-
-          <div id="mathDetectorNote" style="display: none; margin-bottom: 6px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 2px;">Detector state</div>
-            <div id="mathDetectorExplain" style="padding: 4px 8px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-x: auto; font-size: 0.88em; color: var(--text-primary); line-height: 1.5;"></div>
-          </div>
-
-          <div id="mathBohmSection" style="margin-bottom: 6px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: var(--text-secondary); margin-bottom: 2px;">Particle velocity</div>
-            <div id="mathBohmV" style="padding: 4px 8px; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-x: auto;"></div>
-          </div>
-
-          <div style="font-size: 0.82em; color: var(--text-muted); line-height: 1.4;">
-            <div id="mathLegend"></div>
-          </div>
+        <div id="math-container">
+          <h1>The analytical model</h1>
+          <p>The app uses a stationary wave field to compare three interpretations of the same double-slit arrangement. These equations follow the slit and which-path settings selected in Simulation.</p>
+          <section class="math-section">
+            <h2>The wave before and after the slits</h2>
+            <p>Before the wall, an outgoing point-source wave supplies the incident field. After the wall, each open slit contributes an outgoing wave. The expressions omit an overall amplitude factor.</p>
+            <h3>Before the wall</h3><div id="mathDomain1" class="math-equation"></div>
+            <h3>After the wall</h3><div id="mathDomain2" class="math-equation"></div>
+            <p>With two open slits and no which-path detector, amplitudes add coherently. Their cross term produces interference. Closing a slit removes its contribution.</p>
+            <div id="mathDetectorNote" style="display:none"><h3>Distinguishable detector records</h3><div id="mathDetectorExplain"></div><p>The detector-state notation explains the ideal loss of interference; separate detector wavefunctions are not numerically propagated.</p></div>
+          </section>
+          <section class="math-section">
+            <h2>From the field to screen probabilities</h2>
+            <p>At the detector position <i>x</i><sub>D</sub>, the model prescribes the following density along the screen:</p>
+            <div id="mathDensity" class="math-equation"></div>
+            <p>Normalizing over the finite screen gives the position probability density and the probability of a sensor bin:</p>
+            <div id="mathProbability" class="math-equation"></div>
+            <p>This is a prescribed screen-detection rule. It is not a calculation of detector absorption or arrival times.</p>
+          </section>
+          <section id="mathBohmSection" class="math-section">
+            <h2>Pilot-Wave trajectories</h2>
+            <div id="mathBohmV" class="math-equation"></div>
+            <p id="mathVelocityNote"></p>
+            <p>Sampling endpoints from the screen distribution makes agreement with that distribution partly an input. It is not an independent derivation of the Born rule from a source ensemble.</p>
+          </section>
+          <section class="math-section">
+            <h2>Screen statistics</h2>
+            <div id="mathCounts" class="math-equation"></div>
+            <p>Here <i>M</i> is the total number of detections and <i>n</i><sub>j</sub> the count in bin <i>j</i>. The bars show approximate square-root count uncertainties; they are not exact confidence intervals, especially for small counts.</p>
+            <p>Orthodox and Many-Worlds views sample screen outcomes from the prescribed distribution. Pilot-Wave shows guided paths in the coherent case. The Many-Worlds counter N<sup>m</sup> is a finite bookkeeping model with N sensor outcomes per detection and m detections, not a count of separately simulated wavefunctions.</p>
+          </section>
+          <section class="math-section">
+            <h2>Symbols and scope</h2><div id="mathLegend"></div>
+            <p>The spatial gradient is ∇, ℏ is the reduced Planck constant, and <i>m</i> in the velocity equation is the particle mass. The displayed field is a planar view of outgoing 1/r waves. The source and slit regions are joined schematically; finite slit widths and time-dependent wave packets are not solved.</p>
+          </section>
         </div>
 
         <div id="particle-parameter-container">
@@ -222,11 +230,6 @@
 	        <option value="QPotential">sgn(Q)log(|Q|)</option>
               </select>
             </div>
-          </div>
-
-          <div class="input-group bohmian-only">
-            <label data-tip="Screen-seeded (detector-conditioned): sample screen endpoints from the model probability curve, then trace paths backward to initialize particles. Unchecked: also include top/bottom boundary endpoints, an exploratory view." for="onlyWallMode">Screen-seeded</label>
-            <input id="onlyWallMode" type="checkbox" checked>
           </div>
 
           <div class="input-group particle-second-line bohmian-only">
@@ -397,7 +400,6 @@
   </div>
 </div>
   <div id="rationale">
-<p>
   
 <article>
     <header>
@@ -410,27 +412,29 @@
     <div class="comparison-table-scroll"><table class="comparison-table">
       <thead><tr><th>Mode</th><th>Physical account</th><th>What the tool displays</th><th>Question to discuss</th></tr></thead>
       <tbody>
-        <tr><th><a href="#" class="view-link" data-view="copenhagen">Orthodox</a></th><td>The wave evolves between measurements; the Born rule assigns probabilities and a measurement yields one outcome.</td><td>The wave and sampled screen detections, without paths. The reset between trials is not a dynamical collapse calculation.</td><td>What does an observed spot tell us, and what path has the theory specified?</td></tr>
-        <tr><th><a href="#" class="view-link" data-view="bohmian">Pilot-Wave</a></th><td>Particles have definite positions guided by the wave. In the symmetric coherent setup, the wave uses both slits while each particle uses one.</td><td>Guided red paths and screen statistics. In the default detector-conditioned view, endpoints are sampled and backtracked; matching statistics are not an independent derivation of the Born rule.</td><td>How can the other open slit influence a particle that passes through one slit?</td></tr>
+        <tr><th><a href="#" class="view-link" data-view="copenhagen">Orthodox</a></th><td>The wave evolves between measurements; the Born rule assigns probabilities and a measurement yields one outcome.</td><td>The wave and sampled screen detections, without paths. Individual detections represent single outcomes; the app does not dynamically propagate wavefunction collapse.</td><td>What does an observed spot tell us, and what path has the theory specified?</td></tr>
+        <tr><th><a href="#" class="view-link" data-view="bohmian">Pilot-Wave</a></th><td>Particles have definite positions guided by the wave. In the symmetric coherent setup, the wave uses both slits while each particle uses one.</td><td>Guided red paths and screen statistics. In the coherent case, screen endpoints are sampled and backtracked to initialize paths. Matching statistics are therefore not an independent derivation of the Born rule.</td><td>How can the other open slit influence a particle that passes through one slit?</td></tr>
         <tr><th><a href="#" class="view-link" data-view="manyworlds">Many-Worlds</a></th><td>Unitary evolution correlates different detector and observer records with different outcomes, without collapse.</td><td>The wave and outcome-weight curve, plus one sampled record. The branch counter is N^m: N detector sensors and m detections. All sensor outcomes are retained in this finite branching model; only one sampled branch history is displayed. Separate detector/observer wavefunctions are not propagated.</td><td>How do all possible records differ from the one record an observer experiences?</td></tr>
       </tbody>
     </table></div>
              <section class="reading-display">
                <h2>Reading the display</h2>
                <p id="recordMeaning"></p>
-               <p>Curve: model probability density. Points and bars: sampled frequencies and approximate √n count uncertainties. Palette: the selected wave quantity, not particle density unless |Ψ|² is selected.</p>
+               <p>Curve: model probability density. Points and bars: sampled frequencies and approximate √n count uncertainties. The palette displays the selected wave quantity; |Ψ|² shows the squared amplitude, while phase and the other choices show different properties of the field. Display sliders adjust visibility only: 0% hides an element and 100% shows it fully.</p>
                <p>In Many-Worlds, each detection splits every existing branch into N sensor-outcome branches. After m detections: N<sup>m</sup> branches. N is the number of detector sensors. Branch weights follow the Born rule; the histogram follows one sampled branch.</p>
                <p>Switching interpretation preserves the accumulated hits and elapsed time while changing the visual account. Use Reset to start a fresh run.</p>
              </section>
 
     <h2>A short comparison activity</h2>
     <ol><li>Choose electrons, both slits, no which-path detector, and |Ψ|². Run each interpretation at the same geometry. Compare patterns after similar numbers of detections, not equal animation times.</li><li>In Pilot-Wave, inspect a path near a dark fringe. Explain the role of the full wave in guiding it.</li><li>Close one slit, then restore both and enable the which-path detector. Compare the two ways interference disappears.</li><li>In Many-Worlds, sample another branch. Explain why its fluctuations can change while the outcome weights remain the same.</li></ol>
-    <h2>Particle initialization</h2><p>In Pilot-Wave mode, Screen-seeded (formerly Detector-conditioned) samples screen endpoints from the model probability curve and traces paths backward to initialize the particles. Agreement with that curve is therefore partly built into the initialization. Unchecking it also includes top and bottom boundary endpoints; this is an exploratory view. The wave display shows the continuous analytical field; it does not represent a propagating wave packet.</p>
+    <h2>How Pilot-Wave paths are initialized</h2>
+    <p>With no which-path detector, the app samples endpoints from the model probability distribution on the screen, traces the guidance field backward to obtain positions just beyond the slits, and then propagates the paths forward. This screen-seeded procedure is fixed for this app.</p>
+    <p>A source-prepared ensemble would require a consistent distribution of particle positions at a common time and its subsequent evolution to the screen. That preparation is not supplied by the present stationary analytical construction. The app instead uses screen endpoints to construct the displayed ensemble. Agreement with the target screen curve is therefore partly built into initialization, rather than an independent derivation of the Born rule. Numerical integration can introduce deviations.</p>
     <h2>Model and limits</h2>
     <p>The analytical field is a sum of outgoing point-source waves exp[i(kr−ωt)]/r from the open slits. It is a stationary model shown in a plane, not a numerical solution of a finite-width slit boundary problem or a propagating localized wave packet. The source and post-slit fields are joined schematically. A 10 nm source-distance cutoff regularizes the displayed amplitude; the model is not resolved inside that core.</p>
-    <p>Screen probabilities are normalized |Ψ|² along the finite detector. This is a prescribed spatial detection model, not a calculation of arrival times, absorption, or detector back-action. Default guided paths are reconstructed using sampled endpoints and then propagated forward. Their numerical agreement is subject to integration error. The optional top/bottom-boundary view is exploratory.</p>
+    <p>Screen probabilities are normalized |Ψ|² along the finite detector. This is a prescribed spatial detection model, not a calculation of arrival times, absorption, or detector back-action. The endpoint construction described above applies to the coherent Pilot-Wave visualization.</p>
     <p>The which-path setting assumes perfectly distinguishable detector records. The screen density becomes |ψ₁|² + |ψ₂|²; separate colors show the two contributions. A detector at either slit supplies ideal path information, including its complementary no-click record. The detector interaction and decoherence are represented by this assumption rather than explicitly evolved.</p>
-    <p>Electron and neutron paths use v = (ℏ/m) Im(∇Ψ/Ψ). Photon mode normalizes the scalar phase-flow direction to c and is a visualization analogy, not a photon-position theory. The paper's guidance-equation discussion concerns massive nonrelativistic particles.</p>
+    <p>For electrons and neutrons, coherent Pilot-Wave paths use v = (ℏ/m) Im(∇Ψ/Ψ). With both slits open and a which-path detector enabled, the current visualization uses a simplified straight-line construction with sampled angles. Those paths do not constitute a dynamical simulation of the particle and detector together.</p>
     <p>The symmetric Pilot-Wave paths do not cross the midline. Inferring a slit from a later position is conditional on that model and geometry; the display is not an operational which-way measurement protocol.</p>
   </article>
 
