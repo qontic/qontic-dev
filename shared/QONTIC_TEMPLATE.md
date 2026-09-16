@@ -28,3 +28,14 @@ This limits the risk; a shared change can still regress multiple apps. The compa
 - `show-tabs="false"`: hide tabs and the appearance section in a compact expanded-view toolbar. Defaults to visible.
 
 Use these public attributes and the documented `qontic:*` events. New adapters must not query or modify internal shadow-DOM elements. Keep app styles scoped to an app class.
+
+## Optional expansion and live video
+Import `mountQonticMedia` from `shared/qontic-media.js` and call it with:
+- `stage`: the simulation wrapper; receives Expand Simulation and Record Video actions.
+- `controls`: optional shared controls, moved into the expanded dialog and restored intact.
+- `getCanvases()`: visible canvas layers in painting order (background first); CSS placement is preserved in the exported frame.
+- `beginRecording()`: starts playback and returns an app-defined state token.
+- `endRecording(token)`: restores playback after recording. Do not reset statistics.
+- `filename`: download prefix.
+
+The canonical demo and analytical Double Slit show working integrations. Escape restores the normal view. The recorder uses MediaRecorder, starts from the current state, captures up to 30 fps in real time, and offers preview plus download. Resolution changes output dimensions; it does not increase the model's spatial resolution. Only canvas layers are recorded, not DOM controls. Recording hooks should be synchronous. Do not change geometry or canvas placement during capture. Free Particle retains its model-specific offline renderer (snapshot, fixed frame stepping, high-resolution render); this optional shared recorder does not replace that engine.

@@ -1,3 +1,4 @@
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
 import '../../../../shared/qontic-controls.js?v=2.9';
@@ -161,7 +162,7 @@ $(function () {
     setAttribute('speed', $('#animationStep-group')[0].getValueInFirstUnit());
     setAttribute('theme', document.documentElement.getAttribute('data-theme') || 'dark');
     setAttribute('accent', document.documentElement.getAttribute('data-theme') === 'light' ? '#087487' : '#55d8e6');
-    setAttribute('show-interpretation', !viewLocked);
+    setAttribute('show-interpretation', !viewLocked && !controls.closest('.qontic-expanded-dialog'));
     const slider = controls.shadowRoot.querySelector('.qontic-speed input');
     slider.min = document.getElementById('animationStep').min;
     slider.max = document.getElementById('animationStep').max;
@@ -197,7 +198,7 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit',
-    version: 'Analytical double slit · Version 14 · Responsive proportions',
+    version: 'Analytical double slit · Version 15 · Responsive proportions',
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');
@@ -255,4 +256,20 @@ $(function () {
     resizeFrame = requestAnimationFrame(resizeCanvas);
   }).observe(container);
   resizeCanvas();
+  mountQonticMedia({
+    stage: document.getElementById('canvas-wrapper'), controls,
+    filename: 'double-slit',
+    getCanvases: () => [...container.querySelectorAll('canvas')].sort((a,b) =>
+      (Number(getComputedStyle(a).zIndex) || 0) - (Number(getComputedStyle(b).zIndex) || 0)),
+    beginRecording: () => {
+      const wasRunning = isAnimating;
+      if (!wasRunning) $('#startButton').trigger('click');
+      sync();
+      return wasRunning;
+    },
+    endRecording: wasRunning => {
+      if (!wasRunning && isAnimating) $('#startButton').trigger('click');
+      sync();
+    },
+  });
 });

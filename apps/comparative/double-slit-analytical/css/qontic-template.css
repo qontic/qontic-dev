@@ -129,3 +129,20 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #opacity-box .opacity-box-title { display:none; }
 .analytical-template #opacity-box .input-group label { width:95px; min-width:95px; font-size:13px; }
 .analytical-template #opacity-box .input-group { margin-bottom:6px; }
+
+/* One type system, independent of legacy saved font preferences. */
+body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-size-xs:13px; --font-size-info:13px; font-family:Inter,Arial,sans-serif; }
+.analytical-template #psiTabs label,
+.analytical-template #psiTabs input,
+.analytical-template #psiTabs select,
+.analytical-template #psiTabs button,
+.analytical-template #Info,
+.analytical-template #Info td,
+.analytical-template #Info td span { font-family:Inter,Arial,sans-serif !important; font-size:13px !important; line-height:1.35 !important; font-weight:400 !important; }
+.analytical-template #Info td.value,
+.analytical-template #Info td.value span { font-weight:500 !important; font-variant-numeric:tabular-nums; }
+.analytical-template .main-container { max-width:calc(var(--qontic-sidebar-width,340px) + 18px + max(320px,(100dvh - 270px)*4/3)); }
+.analytical-template .qontic-expanded-dialog #canvas-wrapper { flex:1 1 auto; width:100%; }
+.analytical-template .qontic-expanded-dialog #canvas-container { width:min(100%,calc((100dvh - 160px)*4/3)); height:auto !important; aspect-ratio:4/3; margin:4px auto; }
+.analytical-template .qontic-expanded-dialog #shortcut-hint { display:none; }
+@media(max-width:1000px) { .analytical-template .main-container { max-width:100%; } }
