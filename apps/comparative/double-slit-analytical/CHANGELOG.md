@@ -2,6 +2,11 @@
 
 The displayed release is defined in `js/release.js`. For each published app change, increment that version, add an entry here, and refresh changed assets' import URLs. Query strings are cache refreshes, not a release history.
 
+## 26 — 2026-09-16
+- Drag the wave-range panel from its palette, values, or background.
+- Protect slider handles and their surrounding area from panel dragging.
+- Apply the same behavior in the shared template.
+
 ## 25 — 2026-09-16
 - Make the wave-range slider, values, and palette movable together with a drag grip.
 - Add a Wave range toolbar toggle; hiding preserves the selected range.

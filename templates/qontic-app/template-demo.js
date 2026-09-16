@@ -1,9 +1,9 @@
-import { mountDistanceScale, mountValueRange } from '../../shared/qontic-overlays.js?v=2';
+import { mountDistanceScale, mountValueRange } from '../../shared/qontic-overlays.js?v=3';
 let demoRange={lower:0,upper:1};
 import { mountQonticMedia } from '../../shared/qontic-media.js?v=range-25';
 import { mountQonticShell } from '../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=2.7';
-mountQonticShell({compactHeader:true,navigation:'breadcrumbs',title:'Functional Simulation Template',eyebrow:'Q-Ontic template library',purpose:'Define a common functional interface for Q-Ontic simulations while allowing each app to connect its own scientific model.',badge:'Canonical starter',version:'Template 2.3 · Movable canvas tools',homeHref:'../../index.html',labHref:'https://qonticlab.rice.edu/'});
+mountQonticShell({compactHeader:true,navigation:'breadcrumbs',title:'Functional Simulation Template',eyebrow:'Q-Ontic template library',purpose:'Define a common functional interface for Q-Ontic simulations while allowing each app to connect its own scientific model.',badge:'Canonical starter',version:'Template 2.4 · Consistent overlay dragging',homeHref:'../../index.html',labHref:'https://qonticlab.rice.edu/'});
 const tabs=document.querySelector('.tabs');tabs.addEventListener('click',event=>{const button=event.target.closest('[data-view]');if(!button)return;tabs.querySelectorAll('button').forEach(item=>item.classList.toggle('active',item===button));document.querySelectorAll('[data-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.panel!==button.dataset.view));});
 const canvas=document.querySelector('.demo-canvas'),ctx=canvas.getContext('2d');let running=true,autoRerun=true,time=0,speed=1,seed=.22,interpretation='orthodox';
 const ui=mountQonticControls({onStart:()=>running=true,onStop:()=>running=false,onReset:()=>{time=0;seed=.22;running=false;},onAutorun:event=>autoRerun=event.autoRerun,onInterpretation:event=>interpretation=event.interpretation,onControlchange:event=>{if(event.name==='speed')speed=event.value;}});
