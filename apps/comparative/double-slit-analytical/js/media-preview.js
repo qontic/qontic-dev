@@ -1,4 +1,4 @@
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=1';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=2';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
 import '../../../../shared/qontic-controls.js?v=2.9';
