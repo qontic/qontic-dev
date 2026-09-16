@@ -1,4 +1,4 @@
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=header-20260916';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=opacity-20260916';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import '../../../../shared/qontic-controls.js?v=2.9';
@@ -111,11 +111,44 @@ $(function () {
     row.className = 'analytical-layer' + (input.closest('.bohmian-only') ? ' bohmian-only' : '');
     if (input.closest('.bohmian-only')) row.style.display = input.closest('.bohmian-only').style.display;
     const label = document.createElement('label');
-    label.htmlFor = id;
+    label.htmlFor = id + '-opacity';
     label.title = oldLabel.dataset.tip || name;
-    input.setAttribute('role', 'switch');
-    label.append(input, document.createTextNode(name));
-    row.append(label);
+    // Keep engine visibility endpoints, but make opacity the visible control.
+    input.hidden = true;
+    if (!Number.isFinite(displayOpacities[id])) {
+      displayOpacities[id] = (input.checked || id === 'plot_particles' || id === 'plot_trajectories') ? 1 : 0;
+    }
+    if (id !== 'plot_particles' && id !== 'plot_trajectories') input.checked = true;
+    label.textContent = name;
+    const slider = document.createElement('input');
+    slider.type = 'range'; slider.id = id + '-opacity';
+    slider.min = '0'; slider.max = '100'; slider.step = '5';
+    slider.value = Math.round(elementOpacity(id) * 100);
+    slider.className = 'analytical-opacity-slider';
+    slider.setAttribute('aria-label', name + ' opacity');
+    const updateValue = () => {
+      const value = Number(slider.value);
+      slider.title = name + ': ' + value + '% opacity (0 hides)';
+      slider.setAttribute('aria-valuetext', value === 0 ? 'Hidden' : value + '% opacity');
+      row.classList.toggle('is-transparent', value === 0);
+      if (id === 'plot_palette') {
+        for (const element of document.querySelectorAll('#paletteRangeSlider, #waveRangeLabel')) {
+          element.style.opacity = value / 100;
+          element.style.pointerEvents = value === 0 ? 'none' : '';
+        }
+      }
+    };
+    slider.addEventListener('input', () => {
+      displayOpacities[id] = Number(slider.value) / 100;
+      updateValue();
+      renderSetupFlag = 1;
+      invalidateWaveCache();
+      lastCycleIndex = -1;
+      if (!isAnimating) drawSystem(currentCycleIndex);
+    });
+    slider.addEventListener('change', saveSimulationState);
+    updateValue();
+    row.append(input, label, slider);
     if (colorId) {
       const color = document.getElementById(colorId);
       color.title = colorId === 'openPaletteBtn' ? 'Choose wave palette' : 'Choose ' + name.toLowerCase() + ' color';
@@ -137,11 +170,16 @@ $(function () {
     layers.append(row);
   }
   layerTable.remove();
+  document.getElementById('waveCanvas').style.display = '';
+  sensorWidth = 30;
   // Browser zoom supplies consistent sizing across controls and canvas.
   displayPanel.querySelector('#fontTarget').parentElement.parentElement.hidden = true;
   core.append(document.getElementById('resetDefaultsButton'));
-  document.querySelector('#waveOpacity-group label').textContent = 'Wave opacity';
-  document.querySelector('#trajOpacity-group label').textContent = 'Paths opacity';
+  document.getElementById('opacity-box').hidden = true;
+  invalidateWaveCache();
+  renderSetupFlag = 1;
+  lastCycleIndex = -1;
+  if (!isAnimating) drawSystem(currentCycleIndex);
 
   const panels = {core, advanced, display: document.getElementById('graphics-parameter-container')};
   const showControls = name => {

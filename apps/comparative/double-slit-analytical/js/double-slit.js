@@ -1,3 +1,15 @@
+// Display-only opacity values; separate from model and interpretation state.
+var displayOpacities = {};
+function elementOpacity(id, fallback = 1) {
+   const value = displayOpacities[id];
+   return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : fallback;
+}
+function restoreDisplayOpacities(values) {
+   if (!values || typeof values !== 'object') return;
+   for (const id of ['plot_wave','plot_palette','hit_prob','plot_hits','plot_sensor','plot_trajectories','plot_particles','plot_screen','plot_detector','plot_scales']) {
+      if (Number.isFinite(values[id])) displayOpacities[id] = Math.max(0, Math.min(1, values[id]));
+   }
+}
 var amplitudes = [];
 var yHits = [];
 var detectorPsiCacheValid = false; // Flag to cache detector |ψ|² curve
@@ -935,7 +947,7 @@ function renderWaveWithWebGL(t, psiOptionLocal) {
    gl.uniform1f(waveUniforms.u_viewMin, gpuMin);
    gl.uniform1f(waveUniforms.u_viewMax, gpuMax);
 
-   let alphaScale = parseFloat($('#waveOpacity-input').val());
+   let alphaScale = elementOpacity('plot_wave', parseFloat($('#waveOpacity-input').val()));
    if (isNaN(alphaScale)) alphaScale = 1.0;
    if (alphaScale < 0) alphaScale = 0;
    if (alphaScale > 1) alphaScale = 1;
@@ -943,7 +955,7 @@ function renderWaveWithWebGL(t, psiOptionLocal) {
    // Per-pixel alpha no longer depends on Psi^2; we just use the
    // global Wave Opacity slider.
    gl.uniform1i(waveUniforms.u_alphaMode, 0);
-   gl.uniform1f(waveUniforms.u_alphaScale, alphaScale);
+   gl.uniform1f(waveUniforms.u_alphaScale, 1.0); // Apply opacity once, on the visible canvas.
 
    // In which-path mode, use detector-specific palettes; otherwise use graphPalette
    if (whichPathDetector !== 'none') {
@@ -1020,6 +1032,7 @@ function drawPaletteScale(palette, minValue, maxValue) {
 
     ctx.clearRect(0, 0, width, height);
 
+    ctx.globalAlpha = id === 'paletteScaleCanvas' ? elementOpacity('plot_palette') : 1;
     if ( id == "paletteScaleCanvas" ) {
        for (let i = 0; i < height; i++) {
           const t = 1 - i / height;
@@ -1062,6 +1075,7 @@ function drawDualPaletteScale(palette1, palette2, minValue, maxValue) {
    const ctx1 = canvas1.getContext('2d');
    const w1 = canvas1.width, h1 = canvas1.height;
    ctx1.clearRect(0, 0, w1, h1);
+   ctx1.globalAlpha = elementOpacity('plot_palette');
    for (let i = 0; i < h1; i++) {
       const t = 1 - i / h1;
       const [r, g, b] = window.paletteModule.getColorForValue(t, palette1);
@@ -1080,6 +1094,7 @@ function drawDualPaletteScale(palette1, palette2, minValue, maxValue) {
    const ctx2 = canvas2.getContext('2d');
    const w2 = canvas2.width, h2 = canvas2.height;
    ctx2.clearRect(0, 0, w2, h2);
+   ctx2.globalAlpha = elementOpacity('plot_palette');
    for (let i = 0; i < h2; i++) {
       const t = 1 - i / h2;
       const [r, g, b] = window.paletteModule.getColorForValue(t, palette2);
@@ -2194,6 +2209,7 @@ function getSimulationState() {
     },
     slit1Open,
     slit2Open,
+    displayOpacities: {...displayOpacities},
     displayOptions: {
       hits: $("#plot_hits").is(":checked"),
       particles: $("#plot_particles").is(":checked"),
@@ -2224,6 +2240,7 @@ function restoreSimulationState() {
   if (!saved) return;
 
   const state = JSON.parse(saved);
+  restoreDisplayOpacities(state.displayOpacities);
 
   // Clear old state if version doesn't match (units changed from mm to nm)
   if (!state.version || state.version < SIMULATION_STATE_VERSION) {
@@ -2446,6 +2463,7 @@ function setupGeo(doPrecompute) {
 //
 //===========================================================================================================
 async function renderSetup() {
+   setupCtx.globalAlpha = 1;
    setupCtx.clearRect(0, 0, canvas.width, canvas.height);
 
    setupCtx.strokeStyle = 'red'; // Set the color of the line
@@ -2462,6 +2480,7 @@ async function renderSetup() {
    var slitWidthCanvas = slitWidth*toCanvasY;
 
    if ( $("#plot_screen").is(':checked') > 0 ) {
+      setupCtx.globalAlpha = elementOpacity('plot_screen');
       // Draw wall with slits
       setupCtx.strokeStyle = colorScreen; // Set the color of the line
       setupCtx.beginPath();
@@ -2507,6 +2526,7 @@ async function renderSetup() {
 
 
    if ( $("#plot_detector").is(':checked') > 0 ) {
+      setupCtx.globalAlpha = elementOpacity('plot_detector');
       // Draw detector
       setupCtx.lineWidth = wallWidth;
       setupCtx.strokeStyle = colorDetector; // Set the color of the line
@@ -2521,6 +2541,7 @@ async function renderSetup() {
 
    setupCtx.lineWidth = 1;
    if ( $("#plot_scales").is(':checked') > 0 ) {
+      setupCtx.globalAlpha = elementOpacity('plot_scales');
       // Draw X and Y scale indicators in top-left corner
       const scaleOriginX = 10;
       const scaleOriginY = 10;
@@ -2610,6 +2631,7 @@ async function renderSetup() {
       }
 
 
+      setupCtx.globalAlpha = 1;
       if (phiHist1 && typeof phiHist1.plot === 'function') {
          phiHist1.plot();
       }
@@ -2656,6 +2678,7 @@ async function renderTrajectoriesAndParticles() {
       let trajDelay=1;
       if ( traj.nPoints > trajDelay ) {
          if ( showTrajectories ) {
+            partCtx.globalAlpha = elementOpacity('plot_trajectories', trajAlphaScale);
             partCtx.beginPath();
             partCtx.moveTo(toCanvasX*traj.points[0].x, toCanvasY*traj.points[0].y);
 
@@ -2667,6 +2690,7 @@ async function renderTrajectoriesAndParticles() {
          }
 
          if ( showParticles ) {
+            partCtx.globalAlpha = elementOpacity('plot_particles', trajAlphaScale);
             partCtx.beginPath();
             var xLast = toCanvasX*traj.points[traj.nPoints-trajDelay].x;
             var yLast = toCanvasY*traj.points[traj.nPoints-trajDelay].y;
@@ -2799,7 +2823,7 @@ async function drawWaveImage(waveData) {
    // Draw the wave function
    var imageData = waveCtx.createImageData(canvas.width, canvas.height);
    var data = imageData.data;
-   let waveOpacityScale = parseFloat($('#waveOpacity-input').val());
+   let waveOpacityScale = elementOpacity('plot_wave', parseFloat($('#waveOpacity-input').val()));
    if (isNaN(waveOpacityScale)) waveOpacityScale = 1.0;
    waveOpacityScale = Math.max(0, Math.min(1, waveOpacityScale));
 
@@ -3387,6 +3411,7 @@ async function renderDetectorAndHistogram() {
    // First loop: Calculate the maximum amplitude (cached for performance)
 
    histoX=detectorX+sensorWidth;
+   setupCtx.globalAlpha = 1;
    // Fill histogram area with white background
    setupCtx.fillStyle = '#ffffff';
    setupCtx.fillRect(histoX, 0, canvas.width-histoX, canvas.height);
@@ -3431,6 +3456,7 @@ async function renderDetectorAndHistogram() {
       }
    }
 
+   setupCtx.globalAlpha = elementOpacity('hit_prob');
    // Second loop: Scale amplitudes and plot
    setupCtx.beginPath();
    var oldStyle = setupCtx.strokeStyle;
@@ -3468,6 +3494,7 @@ async function renderDetectorAndHistogram() {
 
    var rgbSensor ;
    if ( showSensor ) {
+      setupCtx.globalAlpha = elementOpacity('plot_sensor');
       rgbSensor = getRGBComponents(colorSensor);
       setupCtx.fillStyle = "black";
       setupCtx.fillRect(detectorX, 0, sensorWidth, canvas.height);  // color 
@@ -3488,6 +3515,7 @@ async function renderDetectorAndHistogram() {
             var normalizedUncertainty = norma * uncertainty ; // Normalize uncertainty
 
             if ( showHits ) {
+               setupCtx.globalAlpha = elementOpacity('plot_hits');
                // Plot the point
                setupCtx.fillStyle = colorHit;
                setupCtx.beginPath();
@@ -3504,6 +3532,7 @@ async function renderDetectorAndHistogram() {
                setupCtx.stroke();
             }
             if ( showSensor ) {
+               setupCtx.globalAlpha = elementOpacity('plot_sensor');
                intensity = (hits[i] / hitMax);
                const color = `rgb(${parseInt(rgbSensor['red'])*intensity}, ${parseInt(rgbSensor['green'])*intensity}, ${parseInt(rgbSensor['blue'])*intensity})`;  
                setupCtx.fillStyle = color;
@@ -3514,6 +3543,7 @@ async function renderDetectorAndHistogram() {
          }
       }
    }
+   setupCtx.globalAlpha = 1;
 }
 //==================================================================================================================
 //
@@ -4065,6 +4095,7 @@ function buildUrlHash() {
       wl:  $('#wavelength-group')[0].getValueInFirstUnit(),
       view: interpretation,
       slits: (slit1Open ? '1' : '0') + (slit2Open ? '1' : '0'),
+      opacity: JSON.stringify(displayOpacities),
       wp: whichPathDetector
    };
    var parts = [];
@@ -4080,6 +4111,7 @@ function applyUrlHash() {
       var kv = pair.split('=');
       if (kv.length === 2) params[kv[0]] = decodeURIComponent(kv[1]);
    });
+   if (params.opacity) { try { restoreDisplayOpacities(JSON.parse(params.opacity)); } catch (_) {} }
    // Apply physics parameters
    if (params.sep) $('#slit-separation-group')[0].setValueInFirstUnit(parseFloat(params.sep));
    if (params.src) $('#source-position-group')[0].setValueInFirstUnit(parseFloat(params.src));

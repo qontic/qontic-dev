@@ -27,6 +27,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   const share=action('share','Share link','Copy a link to this simulation');
   const expand=action('expand','Expand','Expand simulation · Esc to restore');
   const record=action('record','Record video','Record a video of the simulation');
+  screenshot.after(record);
   expand.setAttribute('aria-expanded','false');
   const notice=document.createElement('span');notice.className='qontic-media-status';
   notice.setAttribute('role','status');toolbar.append(notice);

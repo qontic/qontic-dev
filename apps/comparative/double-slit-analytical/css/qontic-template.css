@@ -150,3 +150,11 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 /* Keep the interpretation label compact above the canvas. */
 .analytical-template #canvas-wrapper .qontic-media-toolbar { align-items:center; }
 .analytical-template #canvas-wrapper #view-label { margin:0 auto 0 0; text-align:left; font:400 14px/1.35 Inter,Arial,sans-serif; }
+
+/* One compact opacity slider per layer; zero hides without changing the model. */
+.analytical-template .analytical-layer {display:grid;grid-template-columns:minmax(0,1fr) 68px 38px;gap:8px;min-height:30px;}
+.analytical-template .analytical-layer label {cursor:default;margin:0;min-width:0;}
+.analytical-template .analytical-layer .analytical-opacity-slider {width:68px;min-width:0;margin:0;accent-color:#55d8e6;cursor:pointer;}
+.analytical-template .analytical-layer.is-transparent label {color:var(--text-muted);}
+.analytical-template .analytical-layer > button {justify-self:center;}
+.analytical-template #opacity-box[hidden] {display:none!important;}
