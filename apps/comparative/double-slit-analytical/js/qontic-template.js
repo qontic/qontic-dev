@@ -272,4 +272,5 @@ $(function () {
       sync();
     },
   });
+  document.querySelector('#canvas-wrapper .qontic-media-toolbar').prepend(document.getElementById('view-label'));
 });
