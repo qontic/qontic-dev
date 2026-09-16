@@ -1187,6 +1187,10 @@ function updateWaveRangeLabel() {
 }
 
 function updateWaveRangeSliderUI() {
+   if (window.qonticTemplateLayout) {
+      window.qonticWaveRangeControl?.setState({min:waveRangeAutoMin,max:waveRangeAutoMax,lower:waveRangeUserMin ?? waveRangeAutoMin,upper:waveRangeUserMax ?? waveRangeAutoMax});
+      return;
+   }
    const $slider = $('#paletteRangeSlider');
    if (!$slider.length) return;
 
@@ -1203,6 +1207,7 @@ function updateWaveRangeSliderUI() {
 }
 
 function initWaveRangeSlider() {
+   if (window.qonticTemplateLayout) return;
    const $slider = $('#paletteRangeSlider');
    if (!$slider.length || $slider.data('qsf-range-init')) return;
 
@@ -2377,6 +2382,7 @@ function setupGeo(doPrecompute) {
 async function renderSetup() {
    setupCtx.globalAlpha = 1;
    setupCtx.clearRect(0, 0, canvas.width, canvas.height);
+   window.qonticScaleOverlay?.update();
 
    setupCtx.strokeStyle = 'red'; // Set the color of the line
    setupCtx.fillStyle = 'black';
@@ -2452,7 +2458,7 @@ async function renderSetup() {
 
 
    setupCtx.lineWidth = 1;
-   if ( $("#plot_scales").is(':checked') > 0 ) {
+   if (!window.qonticScaleOverlay && $("#plot_scales").is(':checked') > 0 ) {
       setupCtx.globalAlpha = elementOpacity('plot_scales');
       // Draw X and Y scale indicators in top-left corner
       const scaleOriginX = 10;

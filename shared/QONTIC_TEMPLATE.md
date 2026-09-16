@@ -56,3 +56,16 @@ Navigation is a deployment setting, not a user control. Set `showSiteNavigation:
 For a reviewer deployment, the shell also supports `showBranding: false` (no logo or brand eyebrow) and `showFooter: false`. These settings alone do not anonymize the complete app: use neutral hosting and separately audit app content, document metadata, feedback links, analytics, external assets, downloads and source references. Do not call an existing Q-Ontic-hosted URL anonymous.
 
 Existing consumers retain legacy navigation until they opt in. No engine behavior or controls change.
+
+## Reusable canvas overlays
+Import `mountDistanceScale` and `mountValueRange` from `shared/qontic-overlays.js`. The canonical demo includes both.
+
+- `mountDistanceScale({host,getUnitsPerPixel,format,storageKey?})`: host is a positioned wrapper matching the displayed canvas. The adapter supplies positive physical units per CSS pixel for x/y and a label formatter. The scale stays within the host, supports pointer/touch dragging and arrow-key positioning (Home resets), and optionally remembers its position. Call `update()` when geometry changes; resizing is observed. `setOpacity()`, `setVisible()`, and `getVisible()` control appearance.
+- Pass a `scaleControl: {getVisible,setVisible}` to `mountQonticMedia` to add the optional Distance scale toolbar action. If another UI changes visibility, call the returned `syncScale()`.
+- Include the returned scale `canvas` after the simulation layers in `getCanvases()` so screenshots and video include it. The canvas contains the scale graphics; the drag affordance is excluded.
+- `mountValueRange({host,label,format,onChange})`: provides two keyboard-accessible vertical range handles. Call `setState({min,max,lower,upper})` when the model's scalar range changes. `onChange({lower,upper})` updates the app's color mapping; it must not reset model state. Values cannot cross. Formatters must describe the app's actual scalar mapping, including normalized quantities.
+- The range control itself is DOM UI and is excluded from exports. Apps supply their own palette canvas/legend.
+- Both components offer `destroy()`. Existing apps remain unchanged until they mount these optional tools.
+
+## App version tracking
+Each app should import one release record for its visible footer and maintain a CHANGELOG. Analytical Double Slit uses `js/release.js`; bump its release for every published app change and refresh affected asset URLs. Template releases and app releases are independent.

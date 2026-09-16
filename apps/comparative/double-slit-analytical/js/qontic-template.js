@@ -1,4 +1,6 @@
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=opacity-20260916';
+import { APP_RELEASE } from './release.js?v=24';
+import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=1';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=overlays-24';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import '../../../../shared/qontic-controls.js?v=2.9';
@@ -230,7 +232,7 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit', compactHeader: true, navigation: 'breadcrumbs',
-    version: 'Analytical double slit · Version 15 · Responsive proportions',
+    version: `Analytical double slit · Version ${APP_RELEASE.version} · ${APP_RELEASE.date}`,
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');
@@ -289,9 +291,30 @@ $(function () {
   }).observe(container);
   resizeCanvas();
   document.getElementById('screenshotButton').parentElement.hidden = true;
-  mountQonticMedia({
+  const scale = mountDistanceScale({
+    host:container,storageKey:'qontic-double-slit-scale-position',
+    getUnitsPerPixel:()=>({x:toWorldX,y:toWorldY}),
+    format:value=>value>=1e6?(value/1e6).toPrecision(3)+' mm':value>=1e3?(value/1e3).toPrecision(3)+' µm':Number(value.toPrecision(3))+' nm'
+  });
+  let lastScaleOpacity=elementOpacity('plot_scales')||1;
+  window.qonticScaleOverlay={update:()=>{scale.setOpacity(elementOpacity('plot_scales'));media?.syncScale();}};
+  const rangeHost=document.getElementById('paletteRangeSlider');
+  document.getElementById('waveRangeLabel').hidden=true;
+  window.qonticWaveRangeControl=mountValueRange({
+    host:rangeHost,label:'wave display range',
+    format:value=>formatWaveRangeValue(useWebGLWave && $('#waveFunctionOption').val()==='Phase'?value*2*Math.PI:useWebGLWave && $('#waveFunctionOption').val()==='LogPsi2'?(value*15-15)/Math.log(10):value),
+    onChange:({lower,upper})=>{
+      waveRangeUserMin=lower;waveRangeUserMax=upper;waveRangeLockedByUser=true;
+      lastCycleIndex=-1;
+      if(!isAnimating)renderWaveFunction(currentCycleIndex);
+    }
+  });
+  updateWaveRangeSliderUI();
+  let media;
+  media=mountQonticMedia({
     stage: document.getElementById('canvas-wrapper'), controls,
     filename: 'double-slit', headerTools: false,
+    scaleControl:{getVisible:()=>elementOpacity('plot_scales')>0,setVisible:shown=>{if(!shown)lastScaleOpacity=elementOpacity('plot_scales')||1;const slider=document.getElementById('plot_scales-opacity');slider.value=shown?lastScaleOpacity*100:0;slider.dispatchEvent(new Event('input',{bubbles:true}));slider.dispatchEvent(new Event('change',{bubbles:true}));}},
     getShareUrl: () => location.href.split('#')[0] + buildUrlHash(),
     getCanvases: () => [...container.querySelectorAll('canvas')].sort((a,b) =>
       (Number(getComputedStyle(a).zIndex) || 0) - (Number(getComputedStyle(b).zIndex) || 0)),
@@ -306,5 +329,6 @@ $(function () {
       sync();
     },
   });
+  renderSetupFlag=1;window.qonticScaleOverlay.update();if(!isAnimating)drawSystem(currentCycleIndex);
   document.querySelector('#canvas-wrapper .qontic-media-toolbar').prepend(document.getElementById('view-label'));
 });
