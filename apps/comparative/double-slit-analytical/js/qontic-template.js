@@ -1,6 +1,6 @@
-import { APP_RELEASE } from './release.js?v=24';
-import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=1';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=overlays-24';
+import { APP_RELEASE } from './release.js?v=25';
+import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=2';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import '../../../../shared/qontic-controls.js?v=2.9';
@@ -299,9 +299,17 @@ $(function () {
   let lastScaleOpacity=elementOpacity('plot_scales')||1;
   window.qonticScaleOverlay={update:()=>{scale.setOpacity(elementOpacity('plot_scales'));media?.syncScale();}};
   const rangeHost=document.getElementById('paletteRangeSlider');
+  const rangePanel=document.createElement('div');rangePanel.className='qontic-range-panel';
+  rangePanel.style.left='0px';rangePanel.style.bottom='50px';container.append(rangePanel);
+  for(const id of ['paletteScaleCanvas','paletteScaleCanvas1','paletteScaleCanvas2']){
+    const palette=document.getElementById(id);rangePanel.append(palette);
+    palette.style.bottom=id==='paletteScaleCanvas1'?'100px':'0px';
+  }
+  rangePanel.append(rangeHost);rangeHost.style.bottom='8px';
+
   document.getElementById('waveRangeLabel').hidden=true;
   window.qonticWaveRangeControl=mountValueRange({
-    host:rangeHost,label:'wave display range',
+    host:rangeHost,label:'wave display range',movableContainer:rangePanel,storageKey:'qontic-double-slit-range-position',
     format:value=>formatWaveRangeValue(useWebGLWave && $('#waveFunctionOption').val()==='Phase'?value*2*Math.PI:useWebGLWave && $('#waveFunctionOption').val()==='LogPsi2'?(value*15-15)/Math.log(10):value),
     onChange:({lower,upper})=>{
       waveRangeUserMin=lower;waveRangeUserMax=upper;waveRangeLockedByUser=true;
@@ -313,7 +321,7 @@ $(function () {
   let media;
   media=mountQonticMedia({
     stage: document.getElementById('canvas-wrapper'), controls,
-    filename: 'double-slit', headerTools: false,
+    filename: 'double-slit', headerTools: false, rangeControl:window.qonticWaveRangeControl,
     scaleControl:{getVisible:()=>elementOpacity('plot_scales')>0,setVisible:shown=>{if(!shown)lastScaleOpacity=elementOpacity('plot_scales')||1;const slider=document.getElementById('plot_scales-opacity');slider.value=shown?lastScaleOpacity*100:0;slider.dispatchEvent(new Event('input',{bubbles:true}));slider.dispatchEvent(new Event('change',{bubbles:true}));}},
     getShareUrl: () => location.href.split('#')[0] + buildUrlHash(),
     getCanvases: () => [...container.querySelectorAll('canvas')].sort((a,b) =>

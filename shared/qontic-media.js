@@ -1,5 +1,5 @@
 // Optional shared presentation tools. Models supply canvas layers and playback hooks.
-export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = false, scaleControl = null}) {
+export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = false, scaleControl = null, rangeControl = null}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=header-20260916', import.meta.url);
@@ -8,6 +8,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   const toolbar = document.createElement('div'); toolbar.className = 'qontic-media-toolbar';
   toolbar.setAttribute('role','group'); toolbar.setAttribute('aria-label','Simulation tools');
   const icons = {
+    range:'<path d="M7 3v18M17 3v18M3 8h8m2 8h8"/><circle cx="7" cy="8" r="2"/><circle cx="17" cy="16" r="2"/>',
     ruler:'<path d="M3 7h18v10H3zM7 7v5m4-5v3m4-3v5m4-5v3"/>',
     expand:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
     restore:'<path d="M3 8h5V3m8 0v5h5M8 21v-5H3m13 5v-5h5"/>',
@@ -33,6 +34,9 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   const syncScale = () => {if(scaleButton){const shown=scaleControl.getVisible();scaleButton.setAttribute('aria-pressed',String(shown));setAction(scaleButton,'ruler','Distance scale',shown?'Hide distance scale':'Show distance scale');}};
   if(scaleControl){scaleButton=action('ruler','Distance scale','Show or hide distance scale');scaleButton.addEventListener('click',()=>{scaleControl.setVisible(!scaleControl.getVisible());syncScale();});syncScale();}
 
+  let rangeButton;
+  const syncRange=()=>{if(rangeButton){const shown=rangeControl.getVisible();rangeButton.setAttribute('aria-pressed',String(shown));setAction(rangeButton,'range','Wave range',shown?'Hide wave range':'Show wave range');}};
+  if(rangeControl){rangeButton=action('range','Wave range','Show or hide wave range');rangeButton.addEventListener('click',()=>{rangeControl.setVisible(!rangeControl.getVisible());syncRange();});syncRange();}
   expand.setAttribute('aria-expanded','false');
   const notice=document.createElement('span');notice.className='qontic-media-status';
   notice.setAttribute('role','status');toolbar.append(notice);
@@ -176,5 +180,5 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
     } catch(error) { cleanup(); status.textContent = 'Recording failed: ' + error.message; }
   });
   window.addEventListener('pagehide',()=>{stop();if(url)URL.revokeObjectURL(url);});
-  return {setExpanded, stopRecording:stop, syncScale};
+  return {setExpanded, stopRecording:stop, syncScale, syncRange};
 }

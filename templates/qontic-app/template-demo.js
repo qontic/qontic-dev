@@ -1,9 +1,9 @@
-import { mountDistanceScale, mountValueRange } from '../../shared/qontic-overlays.js?v=1';
+import { mountDistanceScale, mountValueRange } from '../../shared/qontic-overlays.js?v=2';
 let demoRange={lower:0,upper:1};
-import { mountQonticMedia } from '../../shared/qontic-media.js?v=overlays-24';
+import { mountQonticMedia } from '../../shared/qontic-media.js?v=range-25';
 import { mountQonticShell } from '../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=2.7';
-mountQonticShell({compactHeader:true,navigation:'breadcrumbs',title:'Functional Simulation Template',eyebrow:'Q-Ontic template library',purpose:'Define a common functional interface for Q-Ontic simulations while allowing each app to connect its own scientific model.',badge:'Canonical starter',version:'Template 2.2 · Canvas tools',homeHref:'../../index.html',labHref:'https://qonticlab.rice.edu/'});
+mountQonticShell({compactHeader:true,navigation:'breadcrumbs',title:'Functional Simulation Template',eyebrow:'Q-Ontic template library',purpose:'Define a common functional interface for Q-Ontic simulations while allowing each app to connect its own scientific model.',badge:'Canonical starter',version:'Template 2.3 · Movable canvas tools',homeHref:'../../index.html',labHref:'https://qonticlab.rice.edu/'});
 const tabs=document.querySelector('.tabs');tabs.addEventListener('click',event=>{const button=event.target.closest('[data-view]');if(!button)return;tabs.querySelectorAll('button').forEach(item=>item.classList.toggle('active',item===button));document.querySelectorAll('[data-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.panel!==button.dataset.view));});
 const canvas=document.querySelector('.demo-canvas'),ctx=canvas.getContext('2d');let running=true,autoRerun=true,time=0,speed=1,seed=.22,interpretation='orthodox';
 const ui=mountQonticControls({onStart:()=>running=true,onStop:()=>running=false,onReset:()=>{time=0;seed=.22;running=false;},onAutorun:event=>autoRerun=event.autoRerun,onInterpretation:event=>interpretation=event.interpretation,onControlchange:event=>{if(event.name==='speed')speed=event.value;}});
@@ -11,11 +11,13 @@ function frame(){const ratio=devicePixelRatio||1,width=canvas.clientWidth,height
 
 const canvasHost=document.createElement('div');canvasHost.style.position='relative';canvas.before(canvasHost);canvasHost.append(canvas);
 const demoScale=mountDistanceScale({host:canvasHost,getUnitsPerPixel:()=>({x:10/canvas.clientWidth,y:6/canvas.clientHeight}),format:value=>Number(value.toPrecision(2))+' units'});
-const rangeHost=document.createElement('div');rangeHost.style.cssText='position:absolute;left:12px;bottom:12px;height:120px';canvasHost.append(rangeHost);
-mountValueRange({host:rangeHost,label:'demo intensity range',onChange:value=>demoRange=value}).setState({min:0,max:1,lower:0,upper:1});
+const rangePanel=document.createElement('div');rangePanel.className='qontic-range-panel';rangePanel.style.cssText='left:12px;bottom:12px;height:152px';canvasHost.append(rangePanel);
+const rangeHost=document.createElement('div');rangeHost.style.cssText='position:absolute;left:0;bottom:0;height:120px';rangePanel.append(rangeHost);
+const demoRangeControl=mountValueRange({host:rangeHost,label:'demo intensity range',movableContainer:rangePanel,onChange:value=>demoRange=value});
+demoRangeControl.setState({min:0,max:1,lower:0,upper:1});
 mountQonticMedia({
   stage:document.querySelector('.visualization'), controls:document.querySelector('qontic-controls'),
-  getCanvases:()=>[canvas,demoScale.canvas], scaleControl:demoScale, filename:'qontic-template', headerTools:false,
+  getCanvases:()=>[canvas,demoScale.canvas], scaleControl:demoScale, rangeControl:demoRangeControl, filename:'qontic-template', headerTools:false,
   beginRecording:()=>{const previous=running;running=true;ui.setRunning(true);return previous;},
   endRecording:previous=>{running=previous;ui.setRunning(previous);}
 });

@@ -2,7 +2,7 @@
 function styles() {
   if (document.querySelector('link[data-qontic-overlays]')) return;
   const link=document.createElement('link');link.rel='stylesheet';
-  link.href=new URL('./qontic-overlays.css?v=1',import.meta.url);
+  link.href=new URL('./qontic-overlays.css?v=2',import.meta.url);
   link.dataset.qonticOverlays='';document.head.append(link);
 }
 export function mountDistanceScale({host,getUnitsPerPixel,format=v=>String(v),storageKey,onVisibilityChange=()=>{}}) {
@@ -42,8 +42,23 @@ export function mountDistanceScale({host,getUnitsPerPixel,format=v=>String(v),st
   return {canvas,update,getVisible:()=>visible&&opacity>0,setVisible(value){visible=!!value;update();onVisibilityChange(visible);},setOpacity(value){opacity=Math.max(0,Math.min(1,value));update();},destroy(){observer.disconnect();element.remove();}};
 }
 
-export function mountValueRange({host,label='Display range',onChange=()=>{},format=v=>Number(v).toPrecision(3)}) {
+export function mountValueRange({host,label='Display range',onChange=()=>{},format=v=>Number(v).toPrecision(3),movableContainer=null,storageKey}) {
   styles();host.classList.add('qontic-value-range');host.replaceChildren();host.setAttribute('role','group');host.setAttribute('aria-label',label);
+  const target=movableContainer||host, boundary=target.parentElement;
+  const grip=document.createElement('button');grip.type='button';grip.className='qontic-range-grip';
+  grip.textContent='⠿';grip.setAttribute('aria-label','Move '+label);
+  grip.title='Drag range control · arrow keys to move · Home to reset';target.append(grip);
+  let position=null,drag=null,visible=true;
+  if(storageKey)try{const saved=JSON.parse(localStorage.getItem(storageKey));if(Number.isFinite(saved?.x)&&Number.isFinite(saved?.y))position=saved;}catch(_){}
+  const origin={left:target.style.left,top:target.style.top,bottom:target.style.bottom};
+  const place=()=>{if(!position||!visible||!boundary.clientWidth||!boundary.clientHeight)return;position.x=Math.max(0,Math.min(position.x,boundary.clientWidth-target.offsetWidth));position.y=Math.max(0,Math.min(position.y,boundary.clientHeight-target.offsetHeight));target.style.left=position.x+'px';target.style.top=position.y+'px';target.style.bottom='auto';};
+  const save=()=>{if(storageKey)try{localStorage.setItem(storageKey,JSON.stringify(position));}catch(_){}};
+  grip.addEventListener('pointerdown',event=>{if(event.button!==0)return;event.preventDefault();event.stopPropagation();grip.focus();position={x:target.offsetLeft,y:target.offsetTop};drag={x:event.clientX,y:event.clientY,px:position.x,py:position.y};grip.setPointerCapture(event.pointerId);});
+  grip.addEventListener('pointermove',event=>{if(!drag)return;position={x:drag.px+event.clientX-drag.x,y:drag.py+event.clientY-drag.y};place();});
+  grip.addEventListener('pointerup',()=>{drag=null;save();});
+  grip.addEventListener('pointercancel',()=>{drag=null;});
+  grip.addEventListener('keydown',event=>{event.stopPropagation();const d={ArrowLeft:[-10,0],ArrowRight:[10,0],ArrowUp:[0,-10],ArrowDown:[0,10]}[event.key];if(event.key==='Home'){event.preventDefault();position=null;Object.assign(target.style,origin);if(storageKey)try{localStorage.removeItem(storageKey);}catch(_){}return;}if(!d)return;event.preventDefault();position={x:target.offsetLeft+d[0],y:target.offsetTop+d[1]};place();save();});
+  const observer=new ResizeObserver(place);observer.observe(boundary);requestAnimationFrame(place);
   let state={min:0,max:1,lower:0,upper:1};
   const low=document.createElement('input'),high=document.createElement('input');
   for(const [input,name] of [[low,'Lower'],[high,'Upper']]){input.type='range';input.min='0';input.max='1000';input.step='1';input.setAttribute('aria-label',name+' '+label);host.append(input);input.addEventListener('keydown',e=>e.stopPropagation());}
@@ -51,5 +66,5 @@ export function mountValueRange({host,label='Display range',onChange=()=>{},form
   const sync=()=>{const span=state.max-state.min;if(!(span>0))return;low.value=Math.round((state.lower-state.min)/span*1000);high.value=Math.round((state.upper-state.min)/span*1000);upper.textContent=format(state.upper);lower.textContent=format(state.lower);low.setAttribute('aria-valuetext',format(state.lower));high.setAttribute('aria-valuetext',format(state.upper));};
   const change=input=>{if(input===low)low.value=Math.min(+low.value,+high.value-1);else high.value=Math.max(+high.value,+low.value+1);const span=state.max-state.min;state.lower=state.min+(+low.value/1000)*span;state.upper=state.min+(+high.value/1000)*span;sync();onChange({lower:state.lower,upper:state.upper});};
   low.addEventListener('input',()=>change(low));high.addEventListener('input',()=>change(high));sync();
-  return {setState(next){if(![next.min,next.max,next.lower,next.upper].every(Number.isFinite)||next.max<=next.min)return;state={...next,lower:Math.max(next.min,Math.min(next.lower,next.max)),upper:Math.max(next.min,Math.min(next.upper,next.max))};if(state.upper<=state.lower){state.lower=state.min;state.upper=state.max;}sync();},destroy(){host.replaceChildren();host.classList.remove('qontic-value-range');}};
+  return {getVisible:()=>visible,setVisible(value){visible=!!value;target.hidden=!visible;if(visible)place();},setState(next){if(![next.min,next.max,next.lower,next.upper].every(Number.isFinite)||next.max<=next.min)return;state={...next,lower:Math.max(next.min,Math.min(next.lower,next.max)),upper:Math.max(next.min,Math.min(next.upper,next.max))};if(state.upper<=state.lower){state.lower=state.min;state.upper=state.max;}sync();},destroy(){observer.disconnect();grip.remove();host.replaceChildren();host.classList.remove('qontic-value-range');}};
 }

@@ -2,6 +2,11 @@
 
 The displayed release is defined in `js/release.js`. For each published app change, increment that version, add an entry here, and refresh changed assets' import URLs. Query strings are cache refreshes, not a release history.
 
+## 25 — 2026-09-16
+- Make the wave-range slider, values, and palette movable together with a drag grip.
+- Add a Wave range toolbar toggle; hiding preserves the selected range.
+- Extend the reusable template components and demo.
+
 ## 24 — 2026-09-16
 - Correct the footer's stale Version 15 label and centralize the displayed release.
 - Adopt shared draggable distance scale, toolbar toggle, and two-handle color-range control.
