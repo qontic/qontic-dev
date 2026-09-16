@@ -75,3 +75,10 @@ body.analytical-template { padding: 0 18px 12px; }
   .analytical-template #canvas-wrapper { flex: none; }
   .analytical-template #Info { width: 100%; }
 }
+
+@media (max-width: 600px) {
+  .analytical-template #psiTabs { width: 100%; min-width: 0; box-sizing: border-box; }
+  .analytical-template .input-group label { width: 72px; min-width: 72px; }
+  .analytical-template .input-group input[type=range] { min-width: 20px; width: 0; }
+  .analytical-template .input-group input[type=number] { width: 48px; }
+}
