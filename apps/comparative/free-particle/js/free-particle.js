@@ -37,6 +37,14 @@
 
 'use strict';
 
+// Cached once per theme change, never queried inside the pixel loop.
+let fpLightCanvas = document.documentElement.dataset.theme !== 'dark';
+const fpCanvasColor = (dark, light) => fpLightCanvas ? light : dark;
+new MutationObserver(() => {
+  fpLightCanvas = document.documentElement.dataset.theme !== 'dark';
+  if (fpWaveCtx) fpRender();
+}).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
 // ---------------------------------------------------------------------------
 // Physical constants (internal units: nm, fs, eV)
 // ---------------------------------------------------------------------------
@@ -795,7 +803,7 @@ function fpRenderWave() {
   const H   = fpWaveCanvas.height / fpRenderScale;
 
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = fpCanvasColor('#000', '#ffffff');
   ctx.fillRect(0, 0, W, H);
 
   if (fp.interpMode === 'collapse' && fp.bDetected && fp._collapseVisual) {
@@ -809,7 +817,7 @@ function fpRenderWave() {
     ctx.font      = 'bold 16px Inter,sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Particle absorbed', W / 2, H / 2 - 10);
-    ctx.fillStyle = 'rgba(200,200,200,0.45)';
+    ctx.fillStyle = fpCanvasColor('rgba(200,200,200,0.45)', '#64748b');
     ctx.font      = '12px Inter,sans-serif';
     ctx.fillText('Bohmian particle registered at detector', W / 2, H / 2 + 14);
     return;
@@ -917,6 +925,11 @@ function fpRenderWave() {
         const bb = Math.round(164 * Math.pow(t, 0.6));
         r = rr; g = gg; b = bb;
       }
+      // In light mode, let empty space reveal the light canvas. Keep the
+      // existing RGB palette; alpha follows the packet, including signed views.
+      if (fpLightCanvas) {
+        a = Math.round(255 * Math.min(1, Math.sqrt(probs[j * off.width + i] / maxP2D) * 4));
+      }
       data[p++] = r; data[p++] = g; data[p++] = b; data[p++] = a;
     }
   }
@@ -937,7 +950,7 @@ function fpRenderWave() {
 
   ctx.textAlign = 'left';
   ctx.font = '13px Inter, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fillStyle = fpCanvasColor('rgba(255,255,255,0.7)', '#334155');
   const modeLabel2 = { prob:'|ψ|² (2D)', real:'Re(ψ)', imag:'Im(ψ)', phase:'Phase(ψ)' }[mode];
   ctx.fillText(`Wave Packet · ${modeLabel2}`, 8, 18);
   return;
@@ -1071,7 +1084,7 @@ function fpRenderDetector() {
     const barW     = Math.max(1, Math.round((histW - 2) * t));
 
     // Histogram zone (right): per-section track + filled hit bar.
-    ctx.fillStyle = 'rgba(20,30,50,0.55)';
+    ctx.fillStyle = fpCanvasColor('rgba(20,30,50,0.55)', 'rgba(226,232,240,0.85)');
     ctx.fillRect(histL + 1, secY + 1, Math.max(1, histW - 2), Math.max(1, secH - 2));
     if (cnt > 0) {
       ctx.fillStyle = 'rgba(250,204,21,0.40)';
@@ -1090,7 +1103,7 @@ function fpRenderDetector() {
     }
 
     // Per-section count labels directly on detector panel.
-    ctx.fillStyle = cnt > 0 ? '#f8fafc' : 'rgba(148,163,184,0.7)';
+    ctx.fillStyle = cnt > 0 ? fpCanvasColor('#f8fafc', '#334155') : fpCanvasColor('rgba(148,163,184,0.7)', '#64748b');
     ctx.font = 'bold 10px Inter, sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
@@ -1098,7 +1111,7 @@ function fpRenderDetector() {
   }
 
   // Section dividers in both zones
-  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.strokeStyle = fpCanvasColor('rgba(255,255,255,0.22)', 'rgba(51,65,85,0.25)');
   ctx.lineWidth   = 0.5;
   for (let i = 1; i < N_SECTS; i++) {
     const sy = Math.round(H * i / N_SECTS);
@@ -1116,12 +1129,12 @@ function fpRenderDetector() {
   ctx.strokeRect(histL, 0, Math.max(1, histR - histL), H);
 
   // Labels
-  ctx.fillStyle = anyFired ? '#50f050' : 'rgba(180,200,255,0.9)';
+  ctx.fillStyle = anyFired ? '#50f050' : fpCanvasColor('rgba(180,200,255,0.9)', '#4159a0');
   if (collapse) ctx.fillStyle = '#ffe8a3';
   ctx.font      = 'bold 12px Inter, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('D', Math.round((detL + detR) * 0.5), 16);
-  ctx.fillStyle = 'rgba(250,204,21,0.9)';
+  ctx.fillStyle = fpCanvasColor('rgba(250,204,21,0.9)', '#806300');
   ctx.fillText('H', Math.round((histL + histR) * 0.5), 16);
 }
 
@@ -1137,7 +1150,7 @@ function fpRenderYProjection() {
   if (!W || !H) return;
 
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#0a0a1a';
+  ctx.fillStyle = fpCanvasColor('#0a0a1a', '#f1f5f9');
   ctx.fillRect(0, 0, W, H);
 
   // Match wave visibility semantics.
@@ -1174,7 +1187,7 @@ function fpRenderYProjection() {
   }
 
   // Detector section guides to compare y-density against detector bands.
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.strokeStyle = fpCanvasColor('rgba(255,255,255,0.18)', 'rgba(51,65,85,0.22)');
   ctx.lineWidth = 1;
   for (let i = 1; i < fp.nSections; i++) {
     const sy = Math.round(H * i / fp.nSections);
@@ -1184,7 +1197,7 @@ function fpRenderYProjection() {
     ctx.stroke();
   }
 
-  ctx.fillStyle = 'rgba(200,200,200,0.85)';
+  ctx.fillStyle = fpCanvasColor('rgba(200,200,200,0.85)', '#475569');
   ctx.font = '11px Inter, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
@@ -1201,7 +1214,7 @@ function fpDrawObserver(ctx, cx, cy, r, color, label) {
   // Head
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI);
   ctx.fillStyle = color; ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.strokeStyle = fpCanvasColor('rgba(255,255,255,0.4)', 'rgba(51,65,85,0.4)'); ctx.lineWidth = 1; ctx.stroke();
   // Body + limbs
   ctx.strokeStyle = color; ctx.lineWidth = lw;
   ctx.beginPath(); ctx.moveTo(cx, cy + r);   ctx.lineTo(cx, cy + 3.2 * r); ctx.stroke();
@@ -1211,7 +1224,7 @@ function fpDrawObserver(ctx, cx, cy, r, color, label) {
   ctx.moveTo(cx, cy + 3.2*r); ctx.lineTo(cx + r, cy + 5.2*r);
   ctx.stroke();
   if (label) {
-    ctx.fillStyle = 'rgba(220,220,220,0.9)';
+    ctx.fillStyle = fpCanvasColor('rgba(220,220,220,0.9)', '#334155');
     ctx.font = Math.max(8, Math.round(r * 1.3)) + 'px Inter,sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(label, cx, cy + 6.8 * r);
@@ -1220,7 +1233,7 @@ function fpDrawObserver(ctx, cx, cy, r, color, label) {
 }
 
 function fpRenderMWBranch(ctx, W, H, sectionIdx) {
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = fpCanvasColor('#000', '#ffffff');
   ctx.fillRect(0, 0, W, H);
   if (!fp.prob) return;
 
@@ -1248,10 +1261,10 @@ function fpRenderMWBranch(ctx, W, H, sectionIdx) {
 
   // Branch-specific absorbing detector view:
   // keep only this section on incident side; remove transmitted side for all branches.
-  ctx.fillStyle = 'rgba(0,0,0,0.88)';
+  ctx.fillStyle = fpCanvasColor('rgba(0,0,0,0.88)', 'rgba(241,245,249,0.88)');
   ctx.fillRect(0, 0, xAbsorb, branchY);
   ctx.fillRect(0, branchY + branchH, xAbsorb, Math.max(0, H - (branchY + branchH)));
-  ctx.fillStyle = 'rgba(0,0,0,0.94)';
+  ctx.fillStyle = fpCanvasColor('rgba(0,0,0,0.94)', 'rgba(241,245,249,0.94)');
   ctx.fillRect(xAbsorb, 0, W - xAbsorb, H);
 
   for (let si = 0; si < NS; si++) {
@@ -1262,7 +1275,7 @@ function fpRenderMWBranch(ctx, W, H, sectionIdx) {
                   :                      'rgba(80,100,200,0.22)';
     ctx.fillRect(xL, sY, xR - xL, sH);
   }
-  ctx.strokeStyle = 'rgba(255,255,255,0.20)'; ctx.lineWidth = 0.5;
+  ctx.strokeStyle = fpCanvasColor('rgba(255,255,255,0.20)', 'rgba(51,65,85,0.25)'); ctx.lineWidth = 0.5;
   for (let si = 1; si < NS; si++) {
     const sy = Math.round(H * si / NS);
     ctx.beginPath(); ctx.moveTo(xL, sy); ctx.lineTo(xR, sy); ctx.stroke();
@@ -1272,7 +1285,7 @@ function fpRenderMWBranch(ctx, W, H, sectionIdx) {
 
   // Section label
   const fs = Math.max(9, Math.round(H * 0.17));
-  ctx.fillStyle = isWinner ? '#fbbf24' : 'rgba(200,200,200,0.9)';
+  ctx.fillStyle = isWinner ? '#fbbf24' : fpCanvasColor('rgba(200,200,200,0.9)', '#334155');
   ctx.font = `bold ${fs}px Inter,sans-serif`;
   ctx.textAlign = 'left'; ctx.fillText('S' + (sectionIdx + 1), 4, fs + 1);
 
@@ -1441,7 +1454,7 @@ function fpRenderProbPanel() {
   const H   = canvas.height / fpRenderScale;
 
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#0a0a1a';
+  ctx.fillStyle = fpCanvasColor('#0a0a1a', '#f1f5f9');
   ctx.fillRect(0, 0, W, H);
 
   // Blank the strip when the wavefunction is gone (collapse or pilot-wave post-detection)
@@ -1482,7 +1495,7 @@ function fpRenderProbPanel() {
   ctx.stroke();
 
   // Label
-  ctx.fillStyle = 'rgba(200,200,200,0.7)';
+  ctx.fillStyle = fpCanvasColor('rgba(200,200,200,0.7)', '#475569');
   ctx.font      = '11px Inter, sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('|ψ|²  (position density at fixed time)', 6, 14);
@@ -1507,7 +1520,7 @@ function fpRenderSectionHist() {
   if (!W || !H) return;
 
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#0a0a1a';
+  ctx.fillStyle = fpCanvasColor('#0a0a1a', '#f1f5f9');
   ctx.fillRect(0, 0, W, H);
 
   const nS   = fp.nSections || 6;
@@ -1538,7 +1551,7 @@ function fpRenderSectionHist() {
       const labelY = Math.max(padT + 10, H - padB - bH - 2);
       ctx.font      = Math.max(8, Math.min(11, barW - 4)) + 'px Inter,sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#e2e8f0';
+      ctx.fillStyle = fpCanvasColor('#e2e8f0', '#334155');
       ctx.fillText(cnt, x + barW / 2, labelY);
     }
 
