@@ -2,7 +2,7 @@
 export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = false}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=5', import.meta.url);
+    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=header-20260916', import.meta.url);
     link.dataset.qonticMedia = ''; document.head.append(link);
   }
   const toolbar = document.createElement('div'); toolbar.className = 'qontic-media-toolbar';
