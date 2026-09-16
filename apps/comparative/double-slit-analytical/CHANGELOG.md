@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## 29 — 2026-09-16
+- Highlight the selected MW branch, then move the entire branch grid through a shared camera zoom until the selected system fills the canvas.
+- Add a selection pause, a smooth 1.2-second zoom, and a brief full-view hold.
+
 ## 28 — 2026-09-16
 - Add optional slow-motion Many-Worlds branching: one miniature per detector pixel, Born-weighted automatic following or manual selection, and expansion into the followed world.
 - Pause evolution during the branch tour; cancel pending outcomes on reset, geometry, or interpretation changes.

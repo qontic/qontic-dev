@@ -40,16 +40,48 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       if(active!==session||session.selected!==null||!isRunning()||weights[index]<=0)return;
       session.selected=index;session.zoomTime=0;
       const tile=session.buttons[index];tile.scrollIntoView({block:'nearest',inline:'nearest'});
-      const r=tile.querySelector('canvas').getBoundingClientRect(),h=host.getBoundingClientRect();
-      session.from={x:r.left-h.left,y:r.top-h.top,w:r.width,h:r.height};
+      const h=overlay.getBoundingClientRect();
+      session.tiles=session.buttons.map(button=>{
+        const r=button.querySelector('canvas').getBoundingClientRect();
+        return {x:r.left-h.left,y:r.top-h.top,w:r.width,h:r.height,label:button.querySelector('span').textContent};
+      });
+      session.from=session.tiles[index];
+      tile.setAttribute('aria-current','true');
       zoom.width=snapshot.width;zoom.height=snapshot.height;zoom.hidden=false;
-      status.textContent=`Following pixel ${index+1} · other branches continue`;
+      status.textContent=`Selected pixel ${index+1} · entering this branch`;
+      renderCamera(0);
+      scroll.hidden=true;
     };
     const paint=(target,index,w,h)=>{
       target.drawImage(snapshot,0,0,w,h);
       const x=detectorFraction*w,y=(index+.5)/count*h;
       target.fillStyle='#ffe476';target.fillRect(x-2,index/count*h,5,Math.max(2,h/count));
       target.beginPath();target.arc(x,y,Math.max(2,Math.min(6,w*.025)),0,Math.PI*2);target.fill();
+    };
+    // A single camera transform moves every branch together. The selected
+    // system fills the viewport while its neighbors pass beyond the edges.
+    const renderCamera=progress=>{
+      const z=zoom.getContext('2d'),r=session.from;
+      const ease=progress*progress*(3-2*progress);
+      const finalScale=Math.max(zoom.width/r.w,zoom.height/r.h);
+      const scale=Math.exp(Math.log(finalScale)*ease);
+      const cx=r.x+r.w/2,cy=r.y+r.h/2;
+      const tx=cx+(zoom.width/2-cx)*ease-scale*cx;
+      const ty=cy+(zoom.height/2-cy)*ease-scale*cy;
+      z.fillStyle='#0b1725';z.fillRect(0,0,zoom.width,zoom.height);
+      z.save();z.translate(tx,ty);z.scale(scale,scale);
+      session.tiles.forEach((tile,index)=>{
+        const {x,y,w,h,label}=tile;
+        if(tx+(x+w)*scale<0||tx+x*scale>zoom.width||ty+(y+h+18)*scale<0||ty+y*scale>zoom.height)return;
+        z.save();z.translate(x,y);paint(z,index,w,h);
+        z.fillStyle=index===session.selected?'rgba(85,216,230,'+(.18*(1-ease))+')':'rgba(4,14,24,.22)';
+        z.fillRect(0,0,w,h);
+        z.fillStyle='#142737';z.fillRect(0,h,w,16);
+        z.fillStyle='#e9faff';z.font='10px Inter,Arial,sans-serif';z.textAlign='center';z.fillText(label,w/2,h+12,w-4);
+        z.strokeStyle=index===session.selected?'#7cf2ff':'#496577';z.lineWidth=index===session.selected?2:1;
+        z.strokeRect(-1,-1,w+2,h+18);z.restore();
+      });
+      z.restore();
     };
     weights.forEach((weight,index)=>{
       const button=document.createElement('button');button.type='button';button.className='mw-branch-tile';
@@ -68,10 +100,12 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
           status.textContent=mode.value==='manual'?`${count} outcome branches · choose a pixel to follow`:`${count} outcome branches · following one by Born weight…`;
           if(mode.value==='auto'&&session.elapsed>=1000)choose(selected);
         }else{
-          session.zoomTime+=dt;const t=Math.min(1,session.zoomTime/650),ease=t*t*(3-2*t),r=session.from;
-          const z=zoom.getContext('2d');z.clearRect(0,0,zoom.width,zoom.height);z.fillStyle='#0b1725';z.fillRect(0,0,zoom.width,zoom.height);
-          z.save();z.translate(r.x*(1-ease),r.y*(1-ease));paint(z,session.selected,r.w+(zoom.width-r.w)*ease,r.h+(zoom.height-r.h)*ease);z.restore();
-          if(session.zoomTime>=1250){const index=session.selected;cancel();onSelect(index);return;}
+          session.zoomTime+=dt;
+          // Let the selection register before moving the camera.
+          const progress=Math.max(0,Math.min(1,(session.zoomTime-350)/1200));
+          renderCamera(progress);
+          status.textContent=`Following pixel ${session.selected+1} · other branches continue`;
+          if(session.zoomTime>=2000){const index=session.selected;cancel();onSelect(index);return;}
         }
       }else status.textContent='Paused · press Start to continue branching';
       session.frame=requestAnimationFrame(tick);
