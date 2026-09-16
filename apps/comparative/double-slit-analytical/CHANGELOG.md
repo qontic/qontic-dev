@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## 27 — 2026-09-16
+- Remove the redundant range drag grip; retain panel dragging and keyboard movement.
+- Make the distance-scale background nearly transparent through the shared template.
+
 The displayed release is defined in `js/release.js`. For each published app change, increment that version, add an entry here, and refresh changed assets' import URLs. Query strings are cache refreshes, not a release history.
 
 ## 26 — 2026-09-16

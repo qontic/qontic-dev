@@ -1,5 +1,5 @@
-import { APP_RELEASE } from './release.js?v=26';
-import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=3';
+import { APP_RELEASE } from './release.js?v=27';
+import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';

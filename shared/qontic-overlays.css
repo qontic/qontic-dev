@@ -14,9 +14,9 @@
 
 .qontic-range-panel {position:absolute;width:124px;height:224px;z-index:31;}
 .qontic-range-panel[hidden],.qontic-value-range[hidden] {display:none!important;}
-.qontic-range-grip {position:absolute;right:0;top:0;z-index:3;width:24px;height:24px;padding:0;border:1px solid #36576c;border-radius:5px;background:#102333dd;color:#9cf4ff;font:18px/1 Inter,Arial,sans-serif;cursor:move;touch-action:none;}
-.qontic-range-grip:focus-visible {outline:2px solid #55d8e6;outline-offset:2px;}
 
 /* The panel moves like the distance scale; slider handles retain their own gesture. */
 .qontic-range-draggable {cursor:move;touch-action:none;}
 .qontic-range-draggable canvas,.qontic-range-draggable output {cursor:move;}
+
+.qontic-range-draggable:focus-visible {outline:2px solid #55d8e6;outline-offset:2px;}
