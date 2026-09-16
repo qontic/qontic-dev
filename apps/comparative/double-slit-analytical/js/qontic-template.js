@@ -126,7 +126,7 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit',
-    version: 'Analytical double slit · Version 9 · Adjustable layout',
+    version: 'Analytical double slit · Version 10 · Responsive proportions',
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');
@@ -137,6 +137,26 @@ $(function () {
     storageKey: 'qontic-double-slit-sidebar-width',
     minWidth: 320,
   });
+
+  // Use the same preferred sidebar width when bounding the whole desktop
+  // arrangement, so spare space stays outside the controls-and-canvas group.
+  const sidebar = document.getElementById('leftPanel');
+  const layout = document.querySelector('.main-container');
+  const syncLayoutWidth = () => layout.style.setProperty('--qontic-sidebar-width',
+    sidebar.style.getPropertyValue('--qontic-sidebar-width') || '340px');
+  new MutationObserver(syncLayoutWidth).observe(sidebar, {attributes: true, attributeFilter: ['style']});
+  syncLayoutWidth();
+
+  // On phones, keep playback and the experiment first; statistics follow
+  // the canvas instead of pushing it beneath a tall sidebar.
+  const phone = matchMedia('(max-width: 600px)');
+  const info = document.getElementById('Info');
+  const placeStatistics = () => {
+    if (phone.matches) document.getElementById('canvas-wrapper').after(info);
+    else sidebar.append(info);
+  };
+  phone.addEventListener('change', placeStatistics);
+  placeStatistics();
 
   // Match actual canvas pixels to the displayed size. Geometry and time step
   // in world units, all detections, and in-flight trajectories are preserved.

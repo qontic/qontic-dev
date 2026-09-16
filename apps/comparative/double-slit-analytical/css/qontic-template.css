@@ -15,7 +15,7 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #modeExplanation,
 .analytical-template #setupBtnStatus { display: none !important; }
 .analytical-template #mainContainer { padding: 0; width: 100%; }
-.analytical-template .main-container { width: 100%; align-items: flex-start; gap: 18px; }
+.analytical-template .main-container { width: 100%; max-width: calc(var(--qontic-sidebar-width, 340px) + 18px + max(320px, (100dvh - 230px) * 4 / 3)); margin-inline: auto; align-items: flex-start; gap: 18px; }
 .analytical-template #leftPanel { width: var(--qontic-sidebar-width, 340px); flex: 0 0 var(--qontic-sidebar-width, 340px); min-width: 0; gap: 12px; }
 .analytical-template #psiTabs { padding: 12px; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; }
 .analytical-template #sharedControls { margin-bottom: 8px; }
@@ -29,7 +29,7 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #experiment-bar { display: flex; gap: 8px; padding: 0; border: 0; margin: 0 0 12px; }
 .analytical-template #experiment-bar button { flex: 1; width: auto; }
 .analytical-template #canvas-wrapper { flex: 1 1 0; min-width: 0; }
-.analytical-template #canvas-container { width: 100%; height: max(240px, calc(100dvh - 260px)); aspect-ratio: auto; min-width: 0; min-height: 0; max-width: none; max-height: none; margin: 8px auto; box-sizing: border-box; }
+.analytical-template #canvas-container { width: 100%; height: auto; aspect-ratio: 4 / 3; min-width: 0; min-height: 0; max-width: none; max-height: none; margin: 8px auto; box-sizing: border-box; }
 .analytical-template #canvas-container > canvas:not([id^="palette"]) { left: 0; top: 0; }
 .analytical-template #Info { box-sizing: border-box; padding: 12px; }
 .analytical-template .info-layout { display: block; }
@@ -51,8 +51,8 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template .input-group label { min-width: 72px; }
 .analytical-template #graphics-parameter-container table label { min-width: 0; }
 @media (max-width: 1000px) {
-  .analytical-template .main-container { flex-direction: column; }
-  .analytical-template #leftPanel { width: 100%; flex-basis: auto; }
+  .analytical-template .main-container { flex-direction: column; max-width: 100%; }
+  .analytical-template #leftPanel { width: 100%; flex-basis: auto; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(220px, 1fr); align-items: start; }
   .analytical-template #canvas-wrapper { width: 100%; }
   .analytical-template #canvas-container { height: auto; aspect-ratio: 4 / 3; }
 }
@@ -60,4 +60,18 @@ body.analytical-template { padding: 0 18px 12px; }
   body.analytical-template { padding-inline: 10px; }
   .analytical-template .qontic-app-header { margin-inline: -10px; padding-inline: 10px; }
   .analytical-template #rationale, .analytical-template #superContainer > #math-container { padding: 12px; }
+}
+
+@media (max-width: 600px) {
+  .analytical-template #leftPanel { display: flex; }
+  .analytical-template .qontic-app-header { min-height: 0; padding-block: 8px; }
+  .analytical-template .qontic-brand img { width: 42px; height: 42px; }
+  .analytical-template .qontic-app-title h1 { font-size: 25px; }
+  .analytical-template .qontic-app-title .eyebrow { font-size: 8px; margin: 0 0 4px; }
+  .analytical-template .qontic-header-actions { display: none; }
+  .analytical-template #superContainer { padding-top: 10px; }
+  .analytical-template #psiTabs { padding: 10px; }
+  .analytical-template .main-container { gap: 8px; }
+  .analytical-template #canvas-wrapper { flex: none; }
+  .analytical-template #Info { width: 100%; }
 }
