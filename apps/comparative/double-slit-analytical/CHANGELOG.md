@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## 30 — 2026-09-16
+- Add an MW slow-motion Time in branch slider (1–5 seconds, default 1 second).
+- Run the full-size branch before the first split and after each selection; exclude paused time and prevent queued detections during this interval.
+
 ## 29 — 2026-09-16
 - Highlight the selected MW branch, then move the entire branch grid through a shared camera zoom until the selected system fills the canvas.
 - Add a selection pause, a smooth 1.2-second zoom, and a brief full-view hold.

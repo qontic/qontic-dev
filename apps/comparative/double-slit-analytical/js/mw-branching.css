@@ -17,3 +17,7 @@
 .mw-branch-settings,.mw-branch-settings label,.mw-branch-settings small{color:#dcecf4!important}
 [data-theme="light"] .mw-branch-settings,[data-theme="light"] .mw-branch-settings label,[data-theme="light"] .mw-branch-settings small{color:#183343!important}
 .mw-branch-tile span{font-size:10px;overflow:hidden;text-overflow:ellipsis}
+
+.mw-branch-settings .mw-dwell-control{display:grid;grid-template-columns:auto minmax(50px,1fr) 3.5em;gap:8px;align-items:center}
+.mw-dwell-control input{width:100%;min-width:0;margin:0}
+.mw-dwell-control output{text-align:right;font:inherit;font-variant-numeric:tabular-nums;white-space:nowrap}

@@ -1,25 +1,37 @@
+// Count active branch-view time only; pausing does not consume the interval.
+export function createBranchDwellClock(now=()=>performance.now()) {
+  let elapsed=0,last=null;
+  return {
+    reset(){elapsed=0;last=null;},
+    pause(){last=null;},
+    tick(running){if(!running){last=null;return elapsed;}const current=now();if(last!==null)elapsed+=Math.max(0,current-last);last=current;return elapsed;}
+  };
+}
 // A visual tour of detector records, not propagation of separate world wavefunctions.
 export function mountMWBranching({host,controls,isMW,isRunning}) {
-  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=28.1',import.meta.url);document.head.append(style);
+  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=30',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
-  settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow" hidden>Follow branch <select aria-label="Follow branch"><option value="auto">Automatically (Born weights)</option><option value="manual">Choose myself</option></select></label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
+  settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow" hidden>Follow branch <select aria-label="Follow branch"><option value="auto">Automatically (Born weights)</option><option value="manual">Choose myself</option></select></label><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
   controls.append(settings);
   const enabled=settings.querySelector('input'),mode=settings.querySelector('select');
   const overlay=document.createElement('div');overlay.className='mw-branch-overlay';overlay.hidden=true;
   overlay.innerHTML='<div class="mw-branch-status" role="status"></div><div class="mw-branch-scroll"><div class="mw-branch-grid"></div></div><canvas class="mw-branch-zoom"></canvas>';
   host.append(overlay);
   const status=overlay.querySelector('[role=status]'),scroll=overlay.querySelector('.mw-branch-scroll'),grid=overlay.querySelector('.mw-branch-grid'),zoom=overlay.querySelector('.mw-branch-zoom');
+  const dwell=settings.querySelector('#mw-branch-dwell'),dwellOutput=settings.querySelector('output');
+  const dwellClock=createBranchDwellClock();
+  dwell.addEventListener('input',()=>{dwellOutput.textContent=Number(dwell.value).toFixed(1)+' s';dwell.setAttribute('aria-valuetext',dwellOutput.textContent);dwellClock.reset();});
   let active=null;
-  const cancel=()=>{if(!active)return;cancelAnimationFrame(active.frame);active=null;overlay.hidden=true;grid.replaceChildren();zoom.hidden=true;};
-  const sync=()=>{settings.hidden=!isMW();settings.querySelectorAll('.mw-follow').forEach(el=>el.hidden=!enabled.checked);if(!isMW()||!enabled.checked)cancel();};
-  enabled.addEventListener('change',sync);mode.addEventListener('change',cancel);
+  const cancel=()=>{dwellClock.reset();if(!active)return;cancelAnimationFrame(active.frame);active=null;overlay.hidden=true;grid.replaceChildren();zoom.hidden=true;};
+  const sync=()=>{if(!isRunning())dwellClock.pause();settings.hidden=!isMW();settings.querySelectorAll('.mw-follow').forEach(el=>el.hidden=!enabled.checked);if(!isMW()||!enabled.checked)cancel();};
+  enabled.addEventListener('change',()=>{dwellClock.reset();sync();});mode.addEventListener('change',cancel);
   // Cancel before existing input handlers can replace geometry or the record.
   for(const type of ['input','change']) document.addEventListener(type,event=>{
     if(active&&!settings.contains(event.target)&&!overlay.contains(event.target))cancel();
   },true);
   for(const id of ['resampleHitsButton','resetBranches']) document.getElementById(id)?.addEventListener('click',cancel,true);
   // Mode switches can originate in several existing controls.
-  const observer=new MutationObserver(sync);observer.observe(document.getElementById('sharedControls'),{attributes:true,attributeFilter:['interpretation']});sync();
+  const observer=new MutationObserver(sync);observer.observe(document.getElementById('sharedControls'),{attributes:true,attributeFilter:['interpretation','running']});sync();
   const begin=({selected,weights,detectorFraction,onSelect})=>{
     if(active||!enabled.checked||!isMW())return false;
     const snapshot=document.createElement('canvas');snapshot.width=host.clientWidth;snapshot.height=host.clientHeight;
@@ -112,5 +124,5 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     };
     session.frame=requestAnimationFrame(tick);return true;
   };
-  return {get enabled(){return enabled.checked&&isMW();},get busy(){return !!active;},begin,cancel};
+  return {ready(){return dwellClock.tick(isRunning())>=Number(dwell.value)*1000;},get enabled(){return enabled.checked&&isMW();},get busy(){return !!active;},begin,cancel};
 }

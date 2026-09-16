@@ -2848,6 +2848,10 @@ async function updateSimulationState() {
 //
 //==================================================================================================================
 async function evolveParticles() {
+   // Keep rendering/evolving the wave between MW detections, without queued hits.
+   if (interpretation === 'manyworlds' && window.qonticMWBranches?.enabled && !window.qonticMWBranches.ready()) {
+      lastRealTime = performance.now() / 1000; particleAccum = 0; return;
+   }
    if (precomputePending) { lastRealTime = performance.now() / 1000; return; }
 
    var trajectoriesToBeDeleted = [];
