@@ -64,3 +64,11 @@ button:disabled, input:disabled { opacity:.5; cursor:default; }
 :host-context(.qontic-light) .qontic-speed output { color:#075c69; }
 :host-context(.qontic-light) .qontic-speed input { accent-color:#087487; }
 
+
+/* Prominent playback actions with a compact speed control. */
+.qontic-run-row { display:flex; flex-wrap:wrap; }
+.qontic-run-row .qontic-main-run { flex:0 0 78px; min-height:44px; font-size:16px; font-weight:600; }
+.qontic-run-row .qontic-reset { flex:0 0 70px; min-height:44px; font-size:15px; }
+.qontic-speed { flex:1 1 90px; max-width:140px; grid-template-columns:minmax(32px,1fr) 35px; gap:2px 5px; }
+.qontic-speed > span { grid-column:1 / -1; font-size:11px; }
+.qontic-speed input { margin:0; }

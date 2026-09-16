@@ -1,6 +1,6 @@
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
-import '../../../../shared/qontic-controls.js?v=2.7';
+import '../../../../shared/qontic-controls.js?v=2.9';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
 $(function () {
@@ -70,7 +70,12 @@ $(function () {
     advanced.append(panel);
   }
   // Keep one visible copy of each control, preserving the original input IDs.
-  document.getElementById('graphics-parameter-container').prepend(core.querySelector('.wave-range-box'));
+  // The wave quantity selector belongs with the main experiment controls.
+  const options = document.createElement('div');
+  options.className = 'analytical-path-options';
+  const continuous = document.getElementById('wave-continous').closest('.input-group');
+  continuous.before(options);
+  options.append(continuous, document.getElementById('onlyWallMode').closest('.input-group'));
   const panels = {core, advanced, display: document.getElementById('graphics-parameter-container')};
   const showControls = name => {
     Object.entries(panels).forEach(([key, panel]) => { panel.hidden = key !== name; });
@@ -126,7 +131,7 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit',
-    version: 'Analytical double slit · Version 10 · Responsive proportions',
+    version: 'Analytical double slit · Version 11 · Responsive proportions',
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');
