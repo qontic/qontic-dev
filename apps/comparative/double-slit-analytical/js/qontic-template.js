@@ -83,9 +83,9 @@ $(function () {
   // The wave quantity selector belongs with the main experiment controls.
   const options = document.createElement('div');
   options.className = 'analytical-path-options';
-  const continuous = document.getElementById('wave-continous').closest('.input-group');
-  continuous.before(options);
-  options.append(continuous, document.getElementById('onlyWallMode').closest('.input-group'));
+  const screenSeeded = document.getElementById('onlyWallMode').closest('.input-group');
+  screenSeeded.before(options);
+  options.append(screenSeeded);
 
   // Reuse the original inputs and color actions in a single readable layer list.
   const displayPanel = document.getElementById('graphics-parameter-container');

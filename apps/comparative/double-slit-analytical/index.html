@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
     <script>window.qonticTemplateLayout = true;</script>
-    <script src="js/double-slit.js?v=opacity-20260916"></script>
+    <script src="js/double-slit.js?v=continuous-20260916"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
     <style>
@@ -39,7 +39,7 @@
     </style>
     <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
     <link rel="stylesheet" href="css/qontic-template.css?v=20">
-    <script type="module" src="js/qontic-template.js?v=20"></script>
+    <script type="module" src="js/qontic-template.js?v=21"></script>
 </head>
 <body>
   <!-- Loading overlay — visible until JS init completes -->
@@ -222,11 +222,6 @@
 	        <option value="QPotential">sgn(Q)log(|Q|)</option>
               </select>
             </div>
-          </div>
-
-          <div class="input-group bohmian-only">
-            <label data-tip="Whether the wave function is shown continous or for each particle" for="wave-continous">Continuous</label>
-            <input id="wave-continous" type="checkbox" checked>
           </div>
 
           <div class="input-group bohmian-only">
@@ -430,7 +425,7 @@
 
     <h2>A short comparison activity</h2>
     <ol><li>Choose electrons, both slits, no which-path detector, and |Ψ|². Run each interpretation at the same geometry. Compare patterns after similar numbers of detections, not equal animation times.</li><li>In Pilot-Wave, inspect a path near a dark fringe. Explain the role of the full wave in guiding it.</li><li>Close one slit, then restore both and enable the which-path detector. Compare the two ways interference disappears.</li><li>In Many-Worlds, sample another branch. Explain why its fluctuations can change while the outcome weights remain the same.</li></ol>
-    <h2>Particle initialization</h2><p>In Pilot-Wave mode, Screen-seeded (formerly Detector-conditioned) samples screen endpoints from the model probability curve and traces paths backward to initialize the particles. Agreement with that curve is therefore partly built into the initialization. Unchecking it also includes top and bottom boundary endpoints; this is an exploratory view. Continuous controls whether the wave is displayed continuously or with each particle.</p>
+    <h2>Particle initialization</h2><p>In Pilot-Wave mode, Screen-seeded (formerly Detector-conditioned) samples screen endpoints from the model probability curve and traces paths backward to initialize the particles. Agreement with that curve is therefore partly built into the initialization. Unchecking it also includes top and bottom boundary endpoints; this is an exploratory view. The wave display shows the continuous analytical field; it does not represent a propagating wave packet.</p>
     <h2>Model and limits</h2>
     <p>The analytical field is a sum of outgoing point-source waves exp[i(kr−ωt)]/r from the open slits. It is a stationary model shown in a plane, not a numerical solution of a finite-width slit boundary problem or a propagating localized wave packet. The source and post-slit fields are joined schematically. A 10 nm source-distance cutoff regularizes the displayed amplitude; the model is not resolved inside that core.</p>
     <p>Screen probabilities are normalized |Ψ|² along the finite detector. This is a prescribed spatial detection model, not a calculation of arrival times, absorption, or detector back-action. Default guided paths are reconstructed using sampled endpoints and then propagated forward. Their numerical agreement is subject to integration error. The optional top/bottom-boundary view is exploratory.</p>

@@ -212,10 +212,6 @@ var maxSteps=500000;
 var nSteps=0;
 let logBranches = 0;
 var radiusPre=5;
-let r1SqMin=Infinity;
-let r1SqMax=0;
-let r2SqMin=Infinity;
-let r2SqMax=0;
 var reset=0;
 var phiArraySlit1;
 var phiArraySlit2;
@@ -401,17 +397,6 @@ function initWaveWebGL() {
          uniform float u_slit1YWorld;
          uniform float u_slit2YWorld;
 
-         // Wave-packet style masking (CPU "continuous" option).
-         // When disabled, the wave is only shown within a band of
-         // radial distances around the particles, approximated by
-         // r1Min/Max (from source) and r2Min/Max (from slits), with
-         // additional width u_waveWidth.
-         uniform int   u_waveContinuous; // 1 = always show wave
-         uniform float u_r1Min;
-         uniform float u_r1Max;
-         uniform float u_r2Min;
-         uniform float u_r2Max;
-         uniform float u_waveWidth;
 
          uniform float u_k;
          uniform float u_omega;
@@ -482,55 +467,7 @@ function initWaveWebGL() {
             float re = 0.0;
             float im = 0.0;
 
-               // Optional masking based on current particle radii.
-               // If waveContinuous == 0, we hide the wave except in the
-               // band between the current min and max radii (plus a
-               // small waveWidth margin), matching the CPU logic.
-               // Skip wave packet masking in which-path mode for clearer visualization
-               if (u_waveContinuous == 0 && u_whichPathMode == 0) {
-                  float r; // distance from source or from the active slit
-
-                  if (xWorld < u_wallXWorld) {
-                     if (u_r1Max <= 0.0 || u_r1Min < 0.0) {
-                        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-                        return;
-                     }
-                     float sx = xWorld - u_sourceXWorld;
-                     float sy = yWorld - u_sourceYWorld;
-                     r = length(vec2(sx, sy));
-
-                     float bandMin = max(0.0, u_r1Min - u_waveWidth);
-                     float bandMax = u_r1Max + u_waveWidth;
-                     if (r < bandMin || r > bandMax) {
-                        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-                        return;
-                     }
-                  } else {
-                     if (u_r2Max <= 0.0 || u_r2Min < 0.0) {
-                        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-                        return;
-                     }
-
-                     float ry1 = yWorld - u_slit1YWorld;
-                     float ry2 = yWorld - u_slit2YWorld;
-                     float rx  = xWorld - u_wallXWorld;
-
-                     // Choose slit 1 vs slit 2 based on position and
-                     // which slits are open, similar to the CPU logic.
-                     if (u_slit1Open > 0.5 && (yWorld < (u_slit1YWorld + u_slit2YWorld) * 0.5 || u_slit2Open < 0.5)) {
-                        r = length(vec2(rx, ry1));
-                     } else {
-                        r = length(vec2(rx, ry2));
-                     }
-
-                     float bandMin = max(0.0, u_r2Min - u_waveWidth);
-                     float bandMax = u_r2Max + u_waveWidth;
-                     if (r < bandMin || r > bandMax) {
-                        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-                        return;
-                     }
-                  }
-               }
+               
 
             if (xWorld < u_wallXWorld) {
                float sx = xWorld - u_sourceXWorld;
@@ -745,12 +682,6 @@ function initWaveWebGL() {
          u_wallXWorld:      uni('u_wallXWorld'),
          u_slit1YWorld:     uni('u_slit1YWorld'),
          u_slit2YWorld:     uni('u_slit2YWorld'),
-         u_waveContinuous:  uni('u_waveContinuous'),
-         u_r1Min:           uni('u_r1Min'),
-         u_r1Max:           uni('u_r1Max'),
-         u_r2Min:           uni('u_r2Min'),
-         u_r2Max:           uni('u_r2Max'),
-         u_waveWidth:       uni('u_waveWidth'),
          u_k:               uni('u_k'),
          u_omega:           uni('u_omega'),
          u_time:            uni('u_time'),
@@ -871,20 +802,7 @@ function renderWaveWithWebGL(t, psiOptionLocal) {
     gl.uniform1f(waveUniforms.u_slit1YWorld, slit1YWorld);
     gl.uniform1f(waveUniforms.u_slit2YWorld, slit2YWorld);
 
-   // Wave packet (continuous vs shell) controls
-   const waveContinuous = $('#wave-continous').prop('checked') ? 1 : 0;
-   const waveWidth = parseFloat($('#WaveWidth-input').val()) * toWorldX; // approximate in world units
-   const r1Min = Math.sqrt(r1SqMin || 0);
-   const r1Max = Math.sqrt(r1SqMax || 0);
-   const r2Min = Math.sqrt(r2SqMin || 0);
-   const r2Max = Math.sqrt(r2SqMax || 0);
 
-   gl.uniform1i(waveUniforms.u_waveContinuous, waveContinuous);
-   gl.uniform1f(waveUniforms.u_r1Min, r1Min);
-   gl.uniform1f(waveUniforms.u_r1Max, r1Max);
-   gl.uniform1f(waveUniforms.u_r2Min, r2Min);
-   gl.uniform1f(waveUniforms.u_r2Max, r2Max);
-   gl.uniform1f(waveUniforms.u_waveWidth, waveWidth);
 
     gl.uniform1f(waveUniforms.u_k, k);
     gl.uniform1f(waveUniforms.u_omega, omega);
@@ -1349,7 +1267,6 @@ function createParameterInput(containerId, id, label, min, max, step, value, uni
       'particleRate' : 'Number of particles injected per second in real time (your clock, not simulation time)',
       'MaxPart' : 'Maximum Number of Particles',
       'animationStep' : 'Simulation Speed Multiplier',
-      'WaveWidth' : 'Wave Packet Width',
       'waveOpacity' : 'Wave Opacity',
       'trajOpacity' : 'Trajectory/Particle Opacity'
    };
@@ -1404,7 +1321,6 @@ function createParameterInput(containerId, id, label, min, max, step, value, uni
          formattedValue = formatSmart(scaledValue);
       }
       if ( id=="MaxPart" ) formattedValue=scaledValue.toFixed(0);// fix for maxpart
-      if ( id=="WaveWidth" ) formattedValue=scaledValue.toFixed(0);// fix for maxpart
       if ( id=="det-pixels" ) formattedValue=scaledValue.toFixed(0);// fix for det-pixels
 
       $('#' + id + '-input').val(formattedValue);
@@ -1435,7 +1351,7 @@ function createParameterInput(containerId, id, label, min, max, step, value, uni
 
    $('#' + id + '-units').on('change', function() {
          updateInputs();
-         const liveIds = ['slit-separation','source-position','detector-distance','screen-height','wavelength','WaveWidth'];
+         const liveIds = ['slit-separation','source-position','detector-distance','screen-height','wavelength'];
          if (liveIds.includes(id)) {
             // Treat unit changes like a small geometry edit.
             if (!sliderDragInProgress) {
@@ -1454,7 +1370,7 @@ function createParameterInput(containerId, id, label, min, max, step, value, uni
       // Update value and, for selected sliders, redraw continuously while dragging
    $('#' + id).on('input', async function() {
          updateInputs();
-         const liveIds = ['slit-separation','source-position','detector-distance','screen-height','wavelength','WaveWidth'];
+         const liveIds = ['slit-separation','source-position','detector-distance','screen-height','wavelength'];
          if (liveIds.includes(id)) {
             // On first movement, pause animation if it was running.
             if (!sliderDragInProgress) {
@@ -1501,7 +1417,7 @@ function createParameterInput(containerId, id, label, min, max, step, value, uni
         reset=1;
       }
 
-      const liveIds = ['slit-separation','source-position','detector-distance','screen-height','wavelength','WaveWidth'];
+      const liveIds = ['slit-separation','source-position','detector-distance','screen-height','wavelength'];
       if (liveIds.includes(id)) {
          // Slider released: redraw immediately with cheap geometry,
          // then run the expensive precomputation in the background.
@@ -2192,8 +2108,6 @@ function getSimulationState() {
     particleRate: $('#particleRate-input').val(),
     particleType: $('#particleType').val(),
     waveFunctionOption: $('#waveFunctionOption').val(),
-    waveWidth: $('#WaveWidth').val(),
-    waveContinous: $('#wave-continous').prop('checked'),
     paletteName: paletteName,
     interpretation: interpretation,
     colors: {
@@ -2255,12 +2169,10 @@ function restoreSimulationState() {
   updateParameter('detector-distance', 0, 1000, 1, state.detectorDistance);
   updateParameter('det-pixels', 10, 500, 1, state.nDetectorPixels);
   updateParameter('screen-height', 100, 5000, 10, state.screenHeight);
-  updateParameter('WaveWidth', 1, 200, 1, state.waveWidth);
   if (state.particleRate) {
     updateParameter('particleRate', 1, 100, 1, state.particleRate);
   }
 
-  $('#wave-continous').prop('checked', state.waveContinous);
 
   $('#particleType').val(state.particleType).trigger('change');
   $('#waveFunctionOption').val(state.waveFunctionOption).trigger('change');
@@ -2833,13 +2745,7 @@ async function drawWaveImage(waveData) {
    let usedWidth2 = parseInt(detectorX)-parseInt(wallX);
    let toWorldX2  = toWorldX * toWorldX;
    let toWorldY2  = toWorldY * toWorldY;
-   let r1Min      = Math.sqrt(r1SqMin);
-   let r1Max      = Math.sqrt(r1SqMax);
-   let r2Min      = Math.sqrt(r2SqMin);
-   let r2Max      = Math.sqrt(r2SqMax);
 
-   let waveWidth     = parseFloat($('#WaveWidth-input').val());
-   let waveContinous = $('#wave-continous').prop('checked');
 
    // Configure the current viewing window based on the scalar
    // range in this waveData; this also keeps the UI slider and
@@ -2853,16 +2759,11 @@ async function drawWaveImage(waveData) {
    const autoRange = autoMax - autoMin || 1e-6;
    const viewRange = vMax - vMin || 1e-6;
 
-   if ( r1Max > 0 || waveContinous ) {
+   {
       for (var x =0 ; x < usedWidth1; x++) {
          let xSq = Math.pow(x,2) * toWorldX2 ;
          for (let y = 0; y < canvas.height; y++) {
-            if ( !waveContinous ) {
-               let ySq = Math.pow(y-sourceY,2)*toWorldY2;
-               let rr   = Math.sqrt(xSq + ySq);
-               if ( rr < r1Min - waveWidth ) continue;
-               if ( rr > r1Max + waveWidth  ) continue;
-            }
+            
 
             var index2 = (y * usedWidth + x ); 
             // Recover the underlying scalar from the stored
@@ -2883,45 +2784,13 @@ async function drawWaveImage(waveData) {
       }
    }
 
-   if ( r2Max > 0 || waveContinous ) {
+   {
       for (var x =usedWidth1 ; x < usedWidth; x++) {
          let x1Sq = 0 ;
          let x2Sq = 0 ;
-         if ( !waveContinous ) {
-            x1Sq = Math.pow(x-wallX+sourceX,2) * toWorldX2 ;
-            x2Sq = Math.pow(x-wallX+sourceX,2) * toWorldX2 ;
-         }
+         
          for (let y = 0; y < canvas.height; y++) {
-            if ( !waveContinous ) {
-               if ( slit1Open && slit2Open ) {
-                  if ( y < 0.5* canvas.height ) {
-                     let y1Sq = Math.pow(y-slit1Y,2)*toWorldY2;
-                     let rr1  = Math.sqrt(x1Sq + y1Sq);
-                     if ( rr1 < r2Min - waveWidth ) continue;
-                     if ( rr1 > r2Max + waveWidth ) continue;
-                  }
-                  else {
-                     if ( slit2Open ) {
-                        let y2Sq = Math.pow(y-slit2Y,2)*toWorldY2;
-                        let rr2  = Math.sqrt(x2Sq + y2Sq);
-                        if ( rr2 < r2Min - waveWidth ) continue;
-                        if ( rr2 > r2Max + waveWidth ) continue;
-                     }
-                  }
-               }
-               else if ( slit1Open ) {
-                  let y1Sq = Math.pow(y-slit1Y,2)*toWorldY2;
-                  let rr1  = Math.sqrt(x1Sq + y1Sq);
-                  if ( rr1 < r2Min - waveWidth ) continue;
-                  if ( rr1 > r2Max + waveWidth ) continue;
-               }
-               else if ( slit2Open ) {
-                  let y2Sq = Math.pow(y-slit2Y,2)*toWorldY2;
-                  let rr2  = Math.sqrt(x2Sq + y2Sq);
-                  if ( rr2 < r2Min - waveWidth ) continue;
-                  if ( rr2 > r2Max + waveWidth ) continue;
-               }
-            }
+            
             var index2 = (y * usedWidth + x ); 
             const rawScalar = autoMin + (waveData.info[index2] / 255) * autoRange;
             let mapped = (rawScalar - vMin) / viewRange;
@@ -2974,15 +2843,9 @@ async function evolveParticles() {
    if (precomputePending) { lastRealTime = performance.now() / 1000; return; }
 
    var trajectoriesToBeDeleted = [];
-   const waveContinous = $('#wave-continous').prop('checked');
    const onlyWallMode = $('#onlyWallMode').prop('checked');
 
-   if ( !waveContinous ) {
-      r1SqMin=Infinity;
-      r1SqMax=0;
-      r2SqMin=Infinity;
-      r2SqMax=0;
-   }
+   
 
    for (var iPart = 0; iPart < trajectories.length ; iPart++) {
       traj = trajectories[iPart];
@@ -3008,11 +2871,7 @@ async function evolveParticles() {
             }
          }
 
-         if ( !waveContinous ) {
-            r1sq = Math.pow(xn-sourceXWorld,2)+Math.pow(yn-sourceYWorld,2);
-            if ( r1sq > r1SqMax ) r1SqMax=r1sq;
-            if ( r1sq < r1SqMin ) r1SqMin=r1sq;
-         }
+         
 
       }
       else {
@@ -3078,18 +2937,7 @@ async function evolveParticles() {
          yn=yl;
 
 
-         if ( !waveContinous ) {
-            rrSq = 0;
-            if ( slit1Open && slit2Open ) {
-               if ( yn < 0.5 * worldCanvasDy )  rrSq = Math.pow(xn-slit1XWorld,2)+Math.pow(yn-slit1YWorld,2); 
-               else                             rrSq = Math.pow(xn-slit2XWorld,2)+Math.pow(yn-slit2YWorld,2); 
-            }
-            else if ( slit1Open ) rrSq = Math.pow(xn-slit1XWorld,2)+Math.pow(yn-slit1YWorld,2); 
-            else if ( slit2Open ) rrSq = Math.pow(xn-slit2XWorld,2)+Math.pow(yn-slit2YWorld,2); 
-
-            if ( rrSq < r2SqMin ) r2SqMin=rrSq;
-            if ( rrSq > r2SqMax ) r2SqMax=rrSq;
-         }
+         
       }
       }
 
@@ -3667,8 +3515,7 @@ async function drawSystem(cycleIndex) {
    if ( renderSetupFlag ) await renderSetup();
 
 
-   let waveContinous = $('#wave-continous').prop('checked');
-   const needsNewWave = (lastCycleIndex != cycleIndex) || !waveContinous;
+   const needsNewWave = (lastCycleIndex != cycleIndex);
    if (needsNewWave) {
       const psiOptionLocal = $('#waveFunctionOption').val();
       const isStaticView = (psiOptionLocal === 'QPotential');
@@ -4223,10 +4070,6 @@ $(document).ready(function() {
        { value: '', text: 'x', scale:1. },
        ], false);
 
-      createParameterInput('graphics', 'WaveWidth', 'Wave Width', 1, 200, 1., 10., [
-            { value: '', text: '', scale:1 },
-            ], false);
-      $('#WaveWidth-group').addClass('bohmian-only');
 
       // Create opacity box container
       var opacityBox = $('<div>', { class: 'opacity-box', id: 'opacity-box' });
@@ -4956,7 +4799,6 @@ $(document).ready(function() {
       });
 
       $('#MaxPart-units').css('visibility','hidden');
-      $('#WaveWidth-units').css('visibility','hidden');
       $('#det-pixels-units').css('visibility','hidden');
 
 
@@ -5051,10 +4893,6 @@ $(document).ready(function() {
         resampleHitsFromPsi() ;
       });
 
-      $('#wave-continous').change(function() {
-         lastCycleIndex=1000000;
-         if (!isAnimating) drawSystem(currentCycleIndex); 
-      });
 
       
 
