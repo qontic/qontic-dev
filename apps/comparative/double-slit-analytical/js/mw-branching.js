@@ -39,7 +39,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     const layers=['setupCanvas','waveCanvas','partCanvas'].map(id=>document.getElementById(id));
     const updateSharedFrame=()=>{ctx.clearRect(0,0,snapshot.width,snapshot.height);for(const layer of layers)ctx.drawImage(layer,0,0,snapshot.width,snapshot.height);};
     updateSharedFrame();
-    overlay.hidden=false;zoom.hidden=true;scroll.hidden=false;scroll.scrollTop=0;grid.replaceChildren();
+    overlay.hidden=false;status.style.opacity='1';zoom.hidden=true;scroll.hidden=false;scroll.scrollTop=0;grid.replaceChildren();
     const count=weights.length,aspect=snapshot.width/snapshot.height;
     // Fit all views when legible; narrower screens can scroll through larger tiles.
     const ideal=Math.ceil(Math.sqrt(count*host.clientWidth/(Math.max(100,host.clientHeight-40)*aspect)));
@@ -78,6 +78,8 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     const renderCamera=progress=>{
       const z=zoom.getContext('2d'),r=session.from;
       const ease=progress*progress*(3-2*progress);
+      // Clear the topmost detector pixel as we enter the selected world.
+      status.style.opacity=String(Math.max(0,1-progress*4));
       const finalScale=Math.max(zoom.width/r.w,zoom.height/r.h);
       const scale=Math.exp(Math.log(finalScale)*ease);
       const cx=r.x+r.w/2,cy=r.y+r.h/2;

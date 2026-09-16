@@ -3250,19 +3250,24 @@ async function renderDetectorAndHistogram() {
 
    detectorWidth = canvas.width - detectorX - sensorWidth;
 
-   // Compute area under probability curve (each sample is one canvas pixel = toWorldY world units)
-   var totalArea = 0;
+   // Use a common horizontal scale for the model and sampled counts.
+   // At low statistics a single count (and its sqrt(n) uncertainty) can
+   // greatly exceed the model peak; fit the upper error-bar endpoint too.
+   const baseScale = maxAmplitude > 0 ? 0.9 * detectorWidth / maxAmplitude : 0;
+   const baseArea = amplitudes.reduce((sum,value)=>sum+value,0) * baseScale * toWorldY;
+   const binWorldHeight = worldCanvasDy / nDetectorPixels;
+   const baseCountScale = nHits > 0 ? baseArea / (nHits * binWorldHeight) : 0;
+   let upperCount = 0;
+   if (showHits) for (const count of hits) upperCount = Math.max(upperCount,count+Math.sqrt(count));
+   const largestExtent = Math.max(0.9*detectorWidth,baseCountScale*upperCount);
+   const fitScale = largestExtent > 0 ? Math.min(1,Math.max(0,detectorWidth-8)/largestExtent) : 1;
+   var totalArea = baseArea * fitScale;
    for (let i = 0; i < amplitudes.length; i++) {
-      const normalizedAmplitude = 0.9* (amplitudes[i] / maxAmplitude) * detectorWidth; // Scale amplitude
-      totalArea  += normalizedAmplitude * toWorldY;
-      const yHitCanvas = i + 0.5; // canvas pixel center
-
-      if  ( showHitProb ) {
-         if (i === 0) {
-            setupCtx.moveTo(histoX + normalizedAmplitude, yHitCanvas);
-         } else {
-            setupCtx.lineTo(histoX + normalizedAmplitude, yHitCanvas);
-         }
+      const normalizedAmplitude = amplitudes[i] * baseScale * fitScale;
+      const yHitCanvas = i + 0.5;
+      if (showHitProb) {
+         if (i === 0) setupCtx.moveTo(histoX + normalizedAmplitude,yHitCanvas);
+         else setupCtx.lineTo(histoX + normalizedAmplitude,yHitCanvas);
       }
    }
    setupCtx.stroke();

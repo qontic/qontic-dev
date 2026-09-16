@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## 32 — 2026-09-16
+- Scale the model curve and sampled histogram together to keep all count markers and upper sqrt(n) error bars inside the plotting area, including at very low counts.
+- Fade the branch-entry status banner during zoom so it cannot hide the topmost fired detector pixel.
+
 ## 31 — 2026-09-16
 - Keep the wave evolving in every MW miniature and during branch-entry zooms; only new detections wait for selection.
 - Reuse a single evolving wave render and one downsampled frame across all miniature canvases.
