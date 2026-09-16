@@ -13,3 +13,7 @@
 .mw-branch-tile canvas{position:static!important;display:block;width:100%!important;height:auto!important;border:0!important}
 .mw-branch-tile span{display:block;white-space:nowrap}
 .mw-branch-zoom{position:absolute!important;inset:0;width:100%!important;height:100%!important;z-index:1;pointer-events:none}
+
+.mw-branch-settings,.mw-branch-settings label,.mw-branch-settings small{color:#dcecf4!important}
+[data-theme="light"] .mw-branch-settings,[data-theme="light"] .mw-branch-settings label,[data-theme="light"] .mw-branch-settings small{color:#183343!important}
+.mw-branch-tile span{font-size:10px;overflow:hidden;text-overflow:ellipsis}

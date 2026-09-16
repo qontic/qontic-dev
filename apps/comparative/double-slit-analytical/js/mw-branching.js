@@ -1,6 +1,6 @@
 // A visual tour of detector records, not propagation of separate world wavefunctions.
 export function mountMWBranching({host,controls,isMW,isRunning}) {
-  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=28',import.meta.url);document.head.append(style);
+  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=28.1',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
   settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow" hidden>Follow branch <select aria-label="Follow branch"><option value="auto">Automatically (Born weights)</option><option value="manual">Choose myself</option></select></label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
   controls.append(settings);
@@ -24,7 +24,10 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     const count=weights.length,aspect=snapshot.width/snapshot.height;
     // Fit all views when legible; narrower screens can scroll through larger tiles.
     const ideal=Math.ceil(Math.sqrt(count*host.clientWidth/(Math.max(100,host.clientHeight-40)*aspect)));
-    const columns=Math.max(1,Math.min(ideal,Math.floor(host.clientWidth/88)));
+    let columns=Math.max(1,Math.min(ideal,Math.floor(host.clientWidth/88)));
+    if(host.clientWidth>=600){
+      while(columns<count && Math.ceil(count/columns)*((host.clientWidth/columns-5)/aspect+23)>host.clientHeight-40) columns++;
+    }
     grid.style.gridTemplateColumns=`repeat(${columns},minmax(0,1fr))`;
     active={frame:0,elapsed:0,last:performance.now(),selected:null,zoomTime:0,buttons:[],snapshot};
     const session=active;
@@ -63,7 +66,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
           session.zoomTime+=dt;const t=Math.min(1,session.zoomTime/650),ease=t*t*(3-2*t),r=session.from;
           const z=zoom.getContext('2d');z.clearRect(0,0,zoom.width,zoom.height);z.fillStyle='#0b1725';z.fillRect(0,0,zoom.width,zoom.height);
           z.save();z.translate(r.x*(1-ease),r.y*(1-ease));paint(z,session.selected,r.w+(zoom.width-r.w)*ease,r.h+(zoom.height-r.h)*ease);z.restore();
-          if(t===1){const index=session.selected;cancel();onSelect(index);return;}
+          if(session.zoomTime>=1250){const index=session.selected;cancel();onSelect(index);return;}
         }
       }else status.textContent='Paused · press Start to continue branching';
       session.frame=requestAnimationFrame(tick);
