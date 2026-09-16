@@ -1,3 +1,4 @@
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=6';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
 import '../../../../shared/qontic-controls.js?v=2.8';
 
@@ -111,21 +112,17 @@ function mountFreeParticleTemplate() {
     });
   }
   nav.addEventListener('click',syncPage);
-  // Use the same shared controls in expanded view; never duplicate state.
-  const controlHome = document.createComment('Shared controls home');
-  let expanded = false;
-  new MutationObserver(() => {
-    const next = $('viewpanel-sim').classList.contains('sim-expanded');
-    if (next === expanded) return;
-    expanded = next;
-    shell.querySelector(':scope > header').inert = expanded;
-    if (expanded) {
-      controls.replaceWith(controlHome);
-      $('fp-expanded-playback').append(controls);
-    } else controlHome.replaceWith(controls);
-    set('show-interpretation', !expanded);
-    set('show-tabs', !expanded);
-  }).observe($('viewpanel-sim'),{attributes:true,attributeFilter:['class']});
+  // Shared media toolbar; retain the app's offline high-resolution MP4 exporter.
+  const stage = $('viewpanel-sim');
+  mountQonticMedia({
+    stage, controls, filename:'qontic-free-particle',
+    getCanvases: () => [...stage.querySelectorAll('#fpYProjCanvas, #fpWaveCanvas, #fpPartCanvas, #fpDetCanvas, #fpProbCanvas, .mw-mini-wrap canvas')],
+    onRecord: () => $('fp-btn-record').click(),
+  });
+  const toolbar = stage.querySelector('.qontic-media-toolbar');
+  stage.querySelector('.sim-toolbar').append(toolbar);
+  $('fp-btn-record').hidden = true;
+  $('fp-btn-expand').hidden = true;
 
   // Preserve every readout in a compact, collapsible Results panel.
   const results = document.querySelector('.info-compact');
@@ -134,8 +131,8 @@ function mountFreeParticleTemplate() {
   while(results.firstChild) resultBody.append(results.firstChild);
   const toggle = document.createElement('button');
   toggle.type = 'button'; toggle.className = 'qontic-app-toggle fp-results-title';
-  toggle.textContent = 'Results'; toggle.setAttribute('aria-expanded','false');
-  resultBody.hidden = true;
+  toggle.textContent = 'Results'; toggle.setAttribute('aria-expanded','true');
+  resultBody.hidden = false;
   toggle.addEventListener('click',() => { resultBody.hidden = !resultBody.hidden; toggle.setAttribute('aria-expanded',String(!resultBody.hidden)); });
   results.append(toggle,resultBody);
   results.classList.add('fp-results');

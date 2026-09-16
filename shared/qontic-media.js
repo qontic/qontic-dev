@@ -1,5 +1,5 @@
 // Optional shared presentation tools. Models supply canvas layers and playback hooks.
-export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href}) {
+export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=4', import.meta.url);
@@ -98,7 +98,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   let recorder, stream, frame, timeout, url, token, captureCanvas, recording = false;
   const stop = () => { if (recording && recorder?.state === 'recording') recorder.stop(); };
   const close = () => { stop(); dialog.close(); };
-  record.addEventListener('click', () => { dialog.showModal(); if (!supported) status.textContent = 'Video recording is unavailable in this browser.'; });
+  record.addEventListener('click', () => { if (onRecord) { onRecord(); return; } dialog.showModal(); if (!supported) status.textContent = 'Video recording is unavailable in this browser.'; });
   dialog.querySelector('[data-close]').addEventListener('click', close);
   dialog.addEventListener('cancel', event => { event.preventDefault(); event.stopPropagation(); close(); });
   dialog.addEventListener('keydown', event => event.stopPropagation());

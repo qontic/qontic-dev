@@ -50,3 +50,6 @@ body.fp-template { margin:0; padding:0 18px 12px; background:var(--bg-primary); 
 }
 .fp-template.qontic-light .qontic-footer, .fp-template.qontic-light .qontic-footer a { color:#526a77; }
 
+
+.fp-template .sim-toolbar .qontic-media-toolbar { margin:0; }
+.fp-template .qontic-expanded-dialog { background:var(--bg-primary); color:var(--text-primary); }
