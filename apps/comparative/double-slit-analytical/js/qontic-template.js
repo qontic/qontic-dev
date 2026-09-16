@@ -1,6 +1,6 @@
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=header-20260916';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
-import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=compact-20260916';
+import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=directory-20260916';
 import '../../../../shared/qontic-controls.js?v=2.9';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
@@ -197,7 +197,7 @@ $(function () {
   sync();
 
   mountQonticShell({
-    title: 'Double Slit', compactHeader: true,
+    title: 'Double Slit', compactHeader: true, navigation: 'breadcrumbs',
     version: 'Analytical double slit · Version 15 · Responsive proportions',
     homeHref: '../../../index.html',
   });

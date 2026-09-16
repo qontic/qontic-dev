@@ -259,3 +259,20 @@ body.qontic-sidebar-dragging, body.qontic-sidebar-dragging * { cursor: col-resiz
   .qontic-compact-header .qontic-title-row {align-items:flex-start;gap:6px;}
   .qontic-compact-header .qontic-header-actions {display:none;}
 }
+
+/* Directory navigation is opt-in; legacy consumers keep their existing shell. */
+body.qontic-directory .qontic-back-home {display:none!important;}
+.qontic-directory-header .qontic-breadcrumbs {margin:0 0 4px;font:400 11px/1.4 Inter,Arial,sans-serif;color:#94b4c6;}
+.qontic-breadcrumbs ol {display:flex;flex-wrap:wrap;align-items:center;gap:4px 0;margin:0;padding:0;list-style:none;}
+.qontic-breadcrumbs li {display:flex;align-items:center;}
+.qontic-breadcrumbs li+li::before {content:'›';margin:0 8px;color:#7294a7;}
+.qontic-breadcrumbs a {color:#a4cadc;text-decoration:none;}
+.qontic-breadcrumbs a:hover {color:#7cecff;text-decoration:underline;}
+.qontic-breadcrumbs [aria-current] {color:#d9edf7;}
+.qontic-breadcrumbs[hidden] {display:none;}
+.qontic-directory-header .qontic-navigation-toggle {font:400 11px/1.4 Inter,Arial,sans-serif;color:#a4cadc;background:transparent;border:1px solid #36576c;border-radius:6px;padding:5px 8px;cursor:pointer;white-space:nowrap;}
+.qontic-navigation-toggle:focus-visible,.qontic-breadcrumbs a:focus-visible {outline:2px solid #55d8e6;outline-offset:3px;}
+.qontic-directory-header .qontic-header-actions {display:flex!important;}
+@media(max-width:900px) {
+  .qontic-directory-header .qontic-header-actions {grid-column:2;justify-content:flex-start;}
+}

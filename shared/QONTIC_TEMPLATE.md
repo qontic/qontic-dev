@@ -44,3 +44,11 @@ The canonical demo and analytical Double Slit keep media tools inside the simula
 The canonical demo and analytical Double Slit show working integrations. Escape restores the normal view. The recorder uses MediaRecorder, starts from the current state, captures up to 30 fps in real time, and offers preview plus download. Resolution changes output dimensions; it does not increase the model's spatial resolution. Only canvas layers are recorded, not DOM controls. Recording hooks should be synchronous. Do not change geometry or canvas placement during capture. Free Particle retains its model-specific offline renderer (snapshot, fixed frame stepping, high-resolution render); this optional shared recorder does not replace that engine.
 
 The shared media toolbar uses four labeled SVG icon buttons: Screenshot, Share link, Expand/Restore, and Record video. Hover and keyboard focus reveal explanations. `getShareUrl()` optionally supplies a model-specific parameterized URL; the default is the current page URL. Screenshots composite the same ordered canvas layers as recording. Existing app-specific export buttons can be hidden when the shared actions are mounted.
+
+## Directory navigation and standalone apps
+The canonical template uses `mountQonticShell({navigation: 'breadcrumbs', compactHeader: true, ...})`.
+This consolidates site links into Q-Ontic Lab › Demonstrations › current app, using `labHref`, `homeHref`, and `title`. It suppresses the legacy floating Back link and removes duplicate footer links. Simulation/Math/Rationale remain app navigation.
+
+“Hide navigation” hides the trail and disables the logo's outgoing link; “Show navigation” restores it without resetting the app. The choice is reflected in the current URL: `?standalone=1` opens a self-contained view, and `?standalone=0` shows navigation. Existing query parameters and the simulation hash are preserved, so shared links retain the choice. Apps may set `showSiteNavigation: false` for a standalone default. A URL setting takes precedence.
+
+Existing consumers retain legacy navigation until they opt in. No engine behavior or controls change.
