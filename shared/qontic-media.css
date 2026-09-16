@@ -19,3 +19,12 @@
 .qontic-media-toolbar { position:relative; z-index:5; }
 
 .qontic-expanded-dialog > :not(qontic-controls) { flex:1 1 auto; }
+
+/* Consistent compact actions, with labels on hover and keyboard focus. */
+.qontic-media-toolbar .qontic-media-action {position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;flex:0 0 36px!important;padding:7px!important;box-sizing:border-box;}
+.qontic-media-action svg {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;}
+.qontic-media-action:focus-visible {outline:2px solid #55d8e6;outline-offset:3px;}
+.qontic-media-action::after {content:attr(data-tooltip);position:absolute;top:calc(100% + 7px);right:0;width:max-content;max-width:min(230px,80vw);padding:6px 9px;border:1px solid #36576c;border-radius:6px;background:#102333;color:#eefaff;font:400 12px/1.4 Inter,Arial,sans-serif;white-space:normal;pointer-events:none;opacity:0;visibility:hidden;z-index:100;}
+.qontic-media-action:hover::after,.qontic-media-action:focus-visible::after {opacity:1;visibility:visible;}
+.qontic-media-action.is-recording {color:#ff7e7e;border-color:#ff7e7e;}
+.qontic-media-status {position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}

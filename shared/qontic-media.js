@@ -1,13 +1,58 @@
 // Optional shared presentation tools. Models supply canvas layers and playback hooks.
-export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation'}) {
+export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3', import.meta.url);
+    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=4', import.meta.url);
     link.dataset.qonticMedia = ''; document.head.append(link);
   }
   const toolbar = document.createElement('div'); toolbar.className = 'qontic-media-toolbar';
-  toolbar.innerHTML = '<button type="button" aria-expanded="false">⛶ Expand Simulation</button><button type="button">● Record Video</button>';
-  const [expand, record] = toolbar.children;
+  toolbar.setAttribute('role','group'); toolbar.setAttribute('aria-label','Simulation tools');
+  const icons = {
+    expand:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
+    restore:'<path d="M3 8h5V3m8 0v5h5M8 21v-5H3m13 5v-5h5"/>',
+    record:'<rect x="3" y="5" width="13" height="14" rx="3"/><path d="m16 10 5-3v10l-5-3"/>',
+    screenshot:'<path d="M8 5 10 3h4l2 2h4a1 1 0 0 1 1 1v13H3V6a1 1 0 0 1 1-1Z"/><circle cx="12" cy="12" r="4"/>',
+    share:'<path d="m10 13 4-4m-5 7-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m0 10a4 4 0 0 0 6 0l4-4a4 4 0 0 0-6-6l-1 1"/>',
+    check:'<path d="m5 12 4 4L19 6"/>'
+  };
+  const setAction = (button, icon, name, description = name) => {
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+icons[icon]+'</svg>';
+    button.setAttribute('aria-label',name); button.dataset.tooltip=description;
+  };
+  const action = (icon,name,description) => {
+    const button=document.createElement('button');button.type='button';button.className='qontic-media-action';
+    setAction(button,icon,name,description);toolbar.append(button);return button;
+  };
+  const screenshot=action('screenshot','Screenshot','Save simulation as a PNG image');
+  const share=action('share','Share link','Copy a link to this simulation');
+  const expand=action('expand','Expand','Expand simulation · Esc to restore');
+  const record=action('record','Record video','Record a video of the simulation');
+  expand.setAttribute('aria-expanded','false');
+  const notice=document.createElement('span');notice.className='qontic-media-status';
+  notice.setAttribute('role','status');toolbar.append(notice);
+  screenshot.addEventListener('click',()=>{
+    try {
+      const layers=getCanvases().filter(c=>c.getBoundingClientRect().width>0 && c.getBoundingClientRect().height>0);
+      if(!layers.length)throw new Error('Open the simulation first.');
+      const rects=layers.map(c=>c.getBoundingClientRect());
+      const x=Math.min(...rects.map(r=>r.left)),y=Math.min(...rects.map(r=>r.top));
+      const w=Math.max(...rects.map(r=>r.right))-x,h=Math.max(...rects.map(r=>r.bottom))-y;
+      const scale=layers[0].width/rects[0].width,output=document.createElement('canvas');
+      output.width=Math.round(w*scale);output.height=Math.round(h*scale);
+      const ctx=output.getContext('2d');ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--bg-primary').trim()||'#0f172a';
+      ctx.fillRect(0,0,output.width,output.height);
+      layers.forEach((c,i)=>{const r=rects[i];ctx.drawImage(c,(r.left-x)*scale,(r.top-y)*scale,r.width*scale,r.height*scale);});
+      const link=document.createElement('a');link.download=filename+'-'+Date.now()+'.png';link.href=output.toDataURL('image/png');link.click();
+      notice.textContent='Screenshot saved.';
+    }catch(error){notice.textContent='Screenshot failed: '+error.message;}
+  });
+  share.addEventListener('click',async()=>{
+    try {
+      await navigator.clipboard.writeText(getShareUrl());
+      setAction(share,'check','Link copied','Link copied');notice.textContent='Link copied.';
+      setTimeout(()=>setAction(share,'share','Share link','Copy a link to this simulation'),1800);
+    }catch(error){notice.textContent='Could not copy the link. Please use the address bar.';}
+  });
   stage.prepend(toolbar);
   const expanded = document.createElement('dialog'); expanded.className = 'qontic-expanded-dialog';
   expanded.setAttribute('aria-label', 'Expanded simulation'); document.body.append(expanded);
@@ -30,7 +75,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
         for (const [name, value] of attributes) value === null ? controls.removeAttribute(name) : controls.setAttribute(name,value);
       }
     }
-    expand.textContent = value ? '↙ Restore View' : '⛶ Expand Simulation';
+    setAction(expand,value?'restore':'expand',value?'Restore view':'Expand',value?'Restore normal view · Esc':'Expand simulation · Esc to restore');
     expand.setAttribute('aria-expanded', String(value)); expand.focus();
     window.dispatchEvent(new Event('resize'));
   };
@@ -61,7 +106,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   const cleanup = () => {
     cancelAnimationFrame(frame); clearTimeout(timeout); stream?.getTracks().forEach(track => track.stop()); captureCanvas?.remove();
     if (recording) endRecording(token);
-    recording = false; record.textContent = '● Record Video'; start.textContent = 'Start recording';
+    recording = false; setAction(record,'record','Record video','Record a video of the simulation'); record.classList.remove('is-recording'); start.textContent = 'Start recording';
     start.disabled = !supported; duration.disabled = size.disabled = false; progress.hidden = true;
   };
   start.addEventListener('click', async () => {
@@ -100,7 +145,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       recorder.onerror = event => { cleanup(); status.textContent = 'Recording failed: ' + (event.error?.message || 'browser error'); };
       token = await beginRecording(); recording = true;
       size.disabled = duration.disabled = true; download.hidden = preview.hidden = true;
-      progress.hidden = false; progress.value = 0; start.textContent = 'Stop and save'; record.textContent = '● Recording…';
+      progress.hidden = false; progress.value = 0; start.textContent = 'Stop and save'; setAction(record,'record','Recording video','Recording in progress'); record.classList.add('is-recording');
       status.textContent = 'Recording the live simulation…';
       const began=performance.now(), length=Number(duration.value)*1000;
       let last=0;

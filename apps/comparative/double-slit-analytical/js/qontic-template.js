@@ -1,4 +1,4 @@
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=4';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=5';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
 import '../../../../shared/qontic-controls.js?v=2.9';
@@ -256,9 +256,11 @@ $(function () {
     resizeFrame = requestAnimationFrame(resizeCanvas);
   }).observe(container);
   resizeCanvas();
+  document.getElementById('screenshotButton').parentElement.hidden = true;
   mountQonticMedia({
     stage: document.getElementById('canvas-wrapper'), controls,
     filename: 'double-slit',
+    getShareUrl: () => location.href.split('#')[0] + buildUrlHash(),
     getCanvases: () => [...container.querySelectorAll('canvas')].sort((a,b) =>
       (Number(getComputedStyle(a).zIndex) || 0) - (Number(getComputedStyle(b).zIndex) || 0)),
     beginRecording: () => {
