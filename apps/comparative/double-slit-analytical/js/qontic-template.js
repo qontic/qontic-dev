@@ -62,13 +62,22 @@ $(function () {
   const advanced = document.createElement('div');
   advanced.id = 'analytical-advanced';
   core.after(advanced);
-  for (const [id, title] of [['particle-parameter-container', 'Particles'], ['detector-parameter-container', 'Geometry and detector']]) {
-    const panel = document.getElementById(id);
-    const heading = document.createElement('h3');
-    heading.textContent = title;
-    panel.prepend(heading);
-    advanced.append(panel);
+  for (const id of ['particle-parameter-container', 'detector-parameter-container']) {
+    advanced.append(document.getElementById(id));
   }
+  // Keep the engine's unit conversion controls, but present units as quiet text.
+  advanced.querySelectorAll('select[id$="-units"]').forEach(select => {
+    select.hidden = true;
+    const unit = document.createElement('span');
+    unit.className = 'analytical-unit';
+    const syncUnit = () => {
+      unit.textContent = select.selectedOptions[0]?.textContent.trim() || '';
+      unit.hidden = !unit.textContent;
+    };
+    select.after(unit);
+    select.addEventListener('change', syncUnit);
+    syncUnit();
+  });
   // Keep one visible copy of each control, preserving the original input IDs.
   // The wave quantity selector belongs with the main experiment controls.
   const options = document.createElement('div');
@@ -131,7 +140,7 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit',
-    version: 'Analytical double slit · Version 11 · Responsive proportions',
+    version: 'Analytical double slit · Version 12 · Responsive proportions',
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');
