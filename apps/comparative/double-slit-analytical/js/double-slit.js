@@ -2218,6 +2218,7 @@ function restoreSimulationState() {
 //
 //==============================================================================================================
 function setupGeo(doPrecompute) {
+   window.qonticMWBranches?.cancel();
 
    // Invalidate detector |ψ|² cache when geometry changes
    detectorPsiCacheValid = false;
@@ -2820,6 +2821,7 @@ async function drawWaveImage(waveData) {
 async function updateSimulationState() {
 
    if (reset === 1) {
+      window.qonticMWBranches?.cancel();
       renderSetupFlag =1;
       hits.fill(0);
       waveDataCache = {}; // Key: cycle index, Value: Image object or data URL
@@ -3116,6 +3118,19 @@ async function evolveParticles() {
             var iBin = Math.floor(yn * yToBinWorld);
             if (iBin < 0) iBin = 0;
             if (iBin >= nDetectorPixels) iBin = nDetectorPixels - 1;
+            if (interpretation === 'manyworlds' && window.qonticMWBranches?.enabled) {
+               const started = window.qonticMWBranches.begin({
+                  selected: iBin, weights: getMWPixelWeights(), detectorFraction: detectorX / canvas.width,
+                  onSelect(index) {
+                     nHits++; hits[index]++; hitMax = Math.max(hitMax, hits[index]); nParticles++;
+                     logNBranches += Math.log10(nDetectorPixels);
+                     particleAccum = 0; lastRealTime = performance.now() / 1000;
+                     $('#nhits').text(nHits); updateBranchCountDisplay();
+                     renderDetectorAndHistogram();
+                  }
+               });
+               if (started) { particleAccum = 0; break; }
+            }
             nHits++;
             hits[iBin]++;
             if (hits[iBin] > hitMax) hitMax = hits[iBin];
@@ -3323,6 +3338,26 @@ function getDetectionDistribution() {
    return Math.random() < 0.5 ? singleSlitArray1 : singleSlitArray2;
 }
 
+function getMWPixelWeights() {
+   const weights = new Array(nDetectorPixels).fill(0);
+   const distributions = !slit2Open ? [singleSlitArray1] : !slit1Open ? [singleSlitArray2]
+      : whichPathDetector === 'none' ? [detectorArrayFull] : [singleSlitArray1, singleSlitArray2];
+   for (const dist of distributions) {
+      const step = dist.bins.length > 1 ? dist.bins[1] - dist.bins[0] : 0;
+      let previous = 0;
+      for (let i=0;i<dist.cdf.length;i++) {
+         const mass = Math.max(0,dist.cdf[i]-previous)/distributions.length; previous=dist.cdf[i];
+         const lo=(dist.bins[i]-step/2)*yToBinWorld, hi=(dist.bins[i]+step/2)*yToBinWorld;
+         if (!(hi>lo)) {weights[Math.max(0,Math.min(nDetectorPixels-1,Math.floor(lo)))]+=mass;continue;}
+         for(let bin=Math.max(0,Math.floor(lo));bin<=Math.min(nDetectorPixels-1,Math.floor(hi));bin++) {
+            const left=bin===0?lo:Math.max(lo,bin),right=bin===nDetectorPixels-1?hi:Math.min(hi,bin+1);
+            weights[bin]+=mass*Math.max(0,right-left)/(hi-lo);
+         }
+      }
+   }
+   const total=weights.reduce((a,b)=>a+b,0);return weights.map(w=>total>0?w/total:0);
+}
+
 function resampleHitsFromPsi() {
   if (precomputePending) return;
   hits.fill(0);
@@ -3460,6 +3495,11 @@ async function drawSystem(cycleIndex) {
 //
 //==================================================================================================================
 async function evolveSystem() {
+   if (window.qonticMWBranches?.busy) {
+      lastRealTime = performance.now() / 1000;
+      if (isAnimating) animationId = requestAnimationFrame(evolveSystem);
+      return;
+   }
    // Interpret the UI control as a simulation speed multiplier
    // (1x = normal, >1x faster, <1x slower) instead of a raw
    // frame delay. Base step time is 30 ms.
@@ -3590,6 +3630,7 @@ function invalidateAllCaches() {
 
 // Lightweight simulation reset: clear particles/hits but skip precompute
 function lightweightReset() {
+   window.qonticMWBranches?.cancel();
    renderSetupFlag = 1;
    if (hits) hits.fill(0);
    trajectories.length = 0;
@@ -3652,6 +3693,7 @@ function changeInterpretation(mode) {
    if (viewLocked || !['copenhagen', 'bohmian', 'manyworlds'].includes(mode)) return;
    // Interpretation is a display choice: retain the detector record, clocks,
    // emission progress and in-flight trajectories (hidden outside Pilot-Wave).
+   window.qonticMWBranches?.cancel();
    interpretation = mode;
    updateBranchCountDisplay();
    updateViewButton();
@@ -4804,7 +4846,8 @@ $(document).ready(function() {
          if (!mode) return;
 
          viewLocked = true;
-         interpretation = mode;
+         window.qonticMWBranches?.cancel();
+   interpretation = mode;
 
          // Set active buttons (they'll be hidden, but keep state consistent)
          updateViewButton();

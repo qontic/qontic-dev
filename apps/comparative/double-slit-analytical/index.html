@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
     <script>window.qonticTemplateLayout = true;</script>
-    <script src="js/double-slit.js?v=24-overlays"></script>
+    <script src="js/double-slit.js?v=28-branching"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
     <style>
@@ -39,7 +39,7 @@
     </style>
     <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
     <link rel="stylesheet" href="css/qontic-template.css?v=23">
-    <script type="module" src="js/qontic-template.js?v=27-polish"></script>
+    <script type="module" src="js/qontic-template.js?v=28-branching"></script>
 </head>
 <body>
   <!-- Loading overlay — visible until JS init completes -->
@@ -414,7 +414,7 @@
       <tbody>
         <tr><th><a href="#" class="view-link" data-view="copenhagen">Orthodox</a></th><td>The wave evolves between measurements; the Born rule assigns probabilities and a measurement yields one outcome.</td><td>The wave and sampled screen detections, without paths. Individual detections represent single outcomes; the app does not dynamically propagate wavefunction collapse.</td><td>What does an observed spot tell us, and what path has the theory specified?</td></tr>
         <tr><th><a href="#" class="view-link" data-view="bohmian">Pilot-Wave</a></th><td>Particles have definite positions guided by the wave. In the symmetric coherent setup, the wave uses both slits while each particle uses one.</td><td>Guided red paths and screen statistics. In the coherent case, screen endpoints are sampled and backtracked to initialize paths. Matching statistics are therefore not an independent derivation of the Born rule.</td><td>How can the other open slit influence a particle that passes through one slit?</td></tr>
-        <tr><th><a href="#" class="view-link" data-view="manyworlds">Many-Worlds</a></th><td>Unitary evolution correlates different detector and observer records with different outcomes, without collapse.</td><td>The wave and outcome-weight curve, plus one sampled record. The branch counter is N^m: N detector sensors and m detections. All sensor outcomes are retained in this finite branching model; only one sampled branch history is displayed. Separate detector/observer wavefunctions are not propagated.</td><td>How do all possible records differ from the one record an observer experiences?</td></tr>
+        <tr><th><a href="#" class="view-link" data-view="manyworlds">Many-Worlds</a></th><td>Unitary evolution correlates different detector and observer records with different outcomes, without collapse.</td><td>The wave and outcome-weight curve, plus one sampled record. The branch counter is N^m: N detector sensors and m detections. All sensor outcomes are retained in this finite branching model; one branch history is followed. The optional slow-motion view displays the next detector outcomes as miniature systems before following one of them. Separate detector/observer wavefunctions are not propagated.</td><td>How do all possible records differ from the one record an observer experiences?</td></tr>
       </tbody>
     </table></div>
              <section class="reading-display">
@@ -426,6 +426,9 @@
              </section>
 
     <h2>A short comparison activity</h2>
+    <h3>Slow-motion Many-Worlds branching</h3>
+    <p>Enable <strong>Slow-motion branching</strong> in Core while viewing Many-Worlds. At each detection, the simulation pauses and displays one miniature system per detector pixel, with that pixel highlighted and its Born weight shown. Automatic mode displays the alternatives for one second, then expands a branch sampled from the same screen distribution used by the ordinary simulation. In manual mode, choose a pixel to follow. Reduce the detector pixel count in Advanced for larger miniature views; on narrow screens, scroll to inspect all outcomes.</p>
+    <p>This is a schematic visualization of distinct detector records, not a simulation of separate detector or observer wavefunctions. The miniature views share the pre-detection system and differ in the highlighted record. Expanding one branch selects our viewpoint; it does not collapse the wave or erase the other branches. Only the selected outcome is added to the followed history. Manual choices produce a deliberately selected history, so its histogram need not agree with the Born curve. The N<sup>m</sup> counter retains the existing finite outcome bookkeeping convention.</p>
     <ol><li>Choose electrons, both slits, no which-path detector, and |Ψ|². Run each interpretation at the same geometry. Compare patterns after similar numbers of detections, not equal animation times.</li><li>In Pilot-Wave, inspect a path near a dark fringe. Explain the role of the full wave in guiding it.</li><li>Close one slit, then restore both and enable the which-path detector. Compare the two ways interference disappears.</li><li>In Many-Worlds, sample another branch. Explain why its fluctuations can change while the outcome weights remain the same.</li></ol>
     <h2>How Pilot-Wave paths are initialized</h2>
     <p>With no which-path detector, the app samples endpoints from the model probability distribution on the screen, traces the guidance field backward to obtain positions just beyond the slits, and then propagates the paths forward. This screen-seeded procedure is fixed for this app.</p>

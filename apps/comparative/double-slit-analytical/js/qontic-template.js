@@ -1,4 +1,5 @@
-import { APP_RELEASE } from './release.js?v=27';
+import { mountMWBranching } from './mw-branching.js?v=28';
+import { APP_RELEASE } from './release.js?v=28';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -267,6 +268,7 @@ $(function () {
   // Match actual canvas pixels to the displayed size. Geometry and time step
   // in world units, all detections, and in-flight trajectories are preserved.
   const container = document.getElementById('canvas-container');
+  window.qonticMWBranches = mountMWBranching({host:container,controls:core,isMW:()=>interpretation==='manyworlds',isRunning:()=>isAnimating});
   const resizeCanvas = () => {
     const width = Math.round(container.clientWidth), height = Math.round(container.clientHeight);
     if (width < 100 || height < 100 || (canvas.width === width && canvas.height === height)) return;

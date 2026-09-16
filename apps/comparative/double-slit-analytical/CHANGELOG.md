@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## 28 — 2026-09-16
+- Add optional slow-motion Many-Worlds branching: one miniature per detector pixel, Born-weighted automatic following or manual selection, and expansion into the followed world.
+- Pause evolution during the branch tour; cancel pending outcomes on reset, geometry, or interpretation changes.
+- Explain the schematic branch view and manually selected histories in the Rationale.
+
 ## 27 — 2026-09-16
 - Remove the redundant range drag grip; retain panel dragging and keyboard movement.
 - Make the distance-scale background nearly transparent through the shared template.
