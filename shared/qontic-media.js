@@ -50,7 +50,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   const duration = dialog.querySelector('[data-duration]'), size = dialog.querySelector('[data-size]');
   const progress = dialog.querySelector('progress'), download = dialog.querySelector('a'), preview = dialog.querySelector('video');
   const supported = typeof MediaRecorder !== 'undefined' && typeof HTMLCanvasElement.prototype.captureStream === 'function';
-  let recorder, stream, frame, timeout, url, token, recording = false;
+  let recorder, stream, frame, timeout, url, token, captureCanvas, recording = false;
   const stop = () => { if (recording && recorder?.state === 'recording') recorder.stop(); };
   const close = () => { stop(); dialog.close(); };
   record.addEventListener('click', () => { dialog.showModal(); if (!supported) status.textContent = 'Video recording is unavailable in this browser.'; });
@@ -59,7 +59,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   dialog.addEventListener('keydown', event => event.stopPropagation());
   start.disabled = !supported;
   const cleanup = () => {
-    cancelAnimationFrame(frame); clearTimeout(timeout); stream?.getTracks().forEach(track => track.stop());
+    cancelAnimationFrame(frame); clearTimeout(timeout); stream?.getTracks().forEach(track => track.stop()); captureCanvas?.remove();
     if (recording) endRecording(token);
     recording = false; record.textContent = '● Record Video'; start.textContent = 'Start recording';
     start.disabled = !supported; duration.disabled = size.disabled = false; progress.hidden = true;
@@ -73,7 +73,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       const bounds = layers.map(c => c.getBoundingClientRect());
       const left = Math.min(...bounds.map(r=>r.left)), top = Math.min(...bounds.map(r=>r.top));
       const width = Math.max(...bounds.map(r=>r.right))-left, height = Math.max(...bounds.map(r=>r.bottom))-top;
-      const output = document.createElement('canvas'); output.width = +size.value;
+      const output = document.createElement('canvas'); captureCanvas = output; output.style.cssText = 'display:block;width:100%;max-height:220px;object-fit:contain;margin-top:8px'; preview.before(output); output.width = +size.value;
       output.height = Math.max(2, 2*Math.round(output.width*height/width/2));
       const ctx = output.getContext('2d');
       const draw = () => {
@@ -81,15 +81,15 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
         ctx.fillRect(0,0,output.width,output.height);
         layers.forEach((canvas,i) => { const r=bounds[i];ctx.drawImage(canvas,(r.left-left)*output.width/width,(r.top-top)*output.height/height,r.width*output.width/width,r.height*output.height/height); });
       };
-      draw(); stream = output.captureStream(30);
-      const mimeType = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'].find(type=>MediaRecorder.isTypeSupported(type));
+      draw(); stream = output.captureStream(0); const captureTrack = stream.getVideoTracks()[0];
+      const mimeType = ['video/webm;codecs=vp8','video/webm;codecs=vp9','video/webm','video/mp4'].find(type=>MediaRecorder.isTypeSupported(type));
       if (!mimeType) throw new Error('No supported video format is available.');
       recorder = new MediaRecorder(stream,{mimeType,videoBitsPerSecond:6000000});
       const chunks=[];
       recorder.ondataavailable = event => { if(event.data.size) chunks.push(event.data); };
       recorder.onstop = () => {
         cleanup();
-        if (!chunks.length) {status.textContent='No video frames were recorded. Please try again.';return;}
+        if (chunks.reduce((sum,chunk)=>sum+chunk.size,0)<256) {status.textContent='No video frames were recorded. Please try again.';return;}
         if (url) URL.revokeObjectURL(url);
         url = URL.createObjectURL(new Blob(chunks,{type:mimeType}));
         download.href = preview.src = url;
@@ -104,8 +104,8 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       status.textContent = 'Recording the live simulation…';
       const began=performance.now(), length=Number(duration.value)*1000;
       let last=0;
-      const tick = now => {if(!recording)return;if(now-last>=1000/30){draw();last=now;progress.value=Math.min(1,(now-began)/length);}frame=requestAnimationFrame(tick);};
-      recorder.start(); frame=requestAnimationFrame(tick); timeout=setTimeout(stop,length);
+      const tick = now => {if(!recording)return;if(now-last>=1000/30){draw();captureTrack.requestFrame();last=now;progress.value=Math.min(1,(now-began)/length);}frame=requestAnimationFrame(tick);};
+      recorder.start(); draw(); captureTrack.requestFrame(); frame=requestAnimationFrame(tick); timeout=setTimeout(stop,length);
     } catch(error) { cleanup(); status.textContent = 'Recording failed: ' + error.message; }
   });
   window.addEventListener('pagehide',()=>{stop();if(url)URL.revokeObjectURL(url);});

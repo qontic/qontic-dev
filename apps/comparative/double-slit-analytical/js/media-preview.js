@@ -162,7 +162,7 @@ $(function () {
     setAttribute('speed', $('#animationStep-group')[0].getValueInFirstUnit());
     setAttribute('theme', document.documentElement.getAttribute('data-theme') || 'dark');
     setAttribute('accent', document.documentElement.getAttribute('data-theme') === 'light' ? '#087487' : '#55d8e6');
-    setAttribute('show-interpretation', !viewLocked);
+    setAttribute('show-interpretation', !viewLocked && !controls.closest('.qontic-expanded-dialog'));
     const slider = controls.shadowRoot.querySelector('.qontic-speed input');
     slider.min = document.getElementById('animationStep').min;
     slider.max = document.getElementById('animationStep').max;
