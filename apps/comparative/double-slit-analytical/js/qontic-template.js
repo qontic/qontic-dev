@@ -85,6 +85,59 @@ $(function () {
   const continuous = document.getElementById('wave-continous').closest('.input-group');
   continuous.before(options);
   options.append(continuous, document.getElementById('onlyWallMode').closest('.input-group'));
+
+  // Reuse the original inputs and color actions in a single readable layer list.
+  const displayPanel = document.getElementById('graphics-parameter-container');
+  const layerTable = displayPanel.querySelector('table');
+  const layers = document.createElement('div');
+  layers.className = 'analytical-layers';
+  layerTable.before(layers);
+  for (const [id, name, colorId] of [
+    ['plot_wave', 'Wave', 'openPaletteBtn'],
+    ['plot_palette', 'Color scale', null],
+    ['hit_prob', 'Probability curve', 'prob-color'],
+    ['plot_hits', 'Screen hits', 'hit-color'],
+    ['plot_sensor', 'Sensor band', 'sensor-color'],
+    ['plot_trajectories', 'Trajectories', 'traj-color'],
+    ['plot_particles', 'Particles', 'part-color'],
+    ['plot_screen', 'Slit wall', 'screen-color'],
+    ['plot_detector', 'Detector', 'detector-color'],
+    ['plot_scales', 'Distance scales', 'scale-color'],
+  ]) {
+    const input = document.getElementById(id);
+    const oldLabel = input.closest('label');
+    const row = document.createElement('div');
+    row.className = 'analytical-layer' + (input.closest('.bohmian-only') ? ' bohmian-only' : '');
+    if (input.closest('.bohmian-only')) row.style.display = input.closest('.bohmian-only').style.display;
+    const label = document.createElement('label');
+    label.htmlFor = id;
+    label.title = oldLabel.dataset.tip || name;
+    input.setAttribute('role', 'switch');
+    label.append(input, document.createTextNode(name));
+    row.append(label);
+    if (colorId) {
+      const color = document.getElementById(colorId);
+      color.title = colorId === 'openPaletteBtn' ? 'Choose wave palette' : 'Choose ' + name.toLowerCase() + ' color';
+      color.setAttribute('aria-label', color.title);
+      if (color.tagName === 'CANVAS') {
+        const paletteButton = document.createElement('button');
+        paletteButton.type = 'button';
+        paletteButton.className = 'analytical-palette-button';
+        paletteButton.setAttribute('aria-label', color.title);
+        paletteButton.title = color.title;
+        paletteButton.append(color);
+        paletteButton.addEventListener('click', event => { if (event.target !== color) color.click(); });
+        row.append(paletteButton);
+      } else {
+        color.type = 'button';
+        row.append(color);
+      }
+    }
+    layers.append(row);
+  }
+  layerTable.remove();
+  displayPanel.querySelector('#fontTarget').closest('div').classList.add('analytical-font-row');
+
   const panels = {core, advanced, display: document.getElementById('graphics-parameter-container')};
   const showControls = name => {
     Object.entries(panels).forEach(([key, panel]) => { panel.hidden = key !== name; });
@@ -140,7 +193,7 @@ $(function () {
 
   mountQonticShell({
     title: 'Double Slit',
-    version: 'Analytical double slit · Version 12 · Responsive proportions',
+    version: 'Analytical double slit · Version 13 · Responsive proportions',
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');
