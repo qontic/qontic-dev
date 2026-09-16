@@ -17,3 +17,5 @@
 .qontic-light .qontic-media-toolbar button {color:#203746;background:#edf5f8;border-color:#aec2cb;}
 
 .qontic-media-toolbar { position:relative; z-index:5; }
+
+.qontic-expanded-dialog > :not(qontic-controls) { flex:1 1 auto; }
