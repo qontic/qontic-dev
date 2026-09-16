@@ -1,8 +1,8 @@
 // Optional shared presentation tools. Models supply canvas layers and playback hooks.
-export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null}) {
+export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = false}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=4', import.meta.url);
+    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=5', import.meta.url);
     link.dataset.qonticMedia = ''; document.head.append(link);
   }
   const toolbar = document.createElement('div'); toolbar.className = 'qontic-media-toolbar';
@@ -53,7 +53,21 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       setTimeout(()=>setAction(share,'share','Share link','Copy a link to this simulation'),1800);
     }catch(error){notice.textContent='Could not copy the link. Please use the address bar.';}
   });
-  stage.prepend(toolbar);
+  // Opt-in header placement keeps existing media consumers unchanged.
+  const titleRow = headerTools && stage.closest('.shell')?.querySelector('.qontic-title-row');
+  if (titleRow) {
+    titleRow.classList.add('qontic-title-with-tools');
+    let tools = titleRow.querySelector('.qontic-header-tools');
+    if (!tools) {
+      tools = document.createElement('div'); tools.className = 'qontic-header-tools';
+      const tabs = titleRow.querySelector('.qontic-view-tabs');
+      titleRow.append(tools);
+      if (tabs) tools.append(tabs);
+    }
+    tools.append(toolbar);
+  } else stage.prepend(toolbar);
+  const toolbarHome = document.createComment('Simulation tools position');
+  toolbar.before(toolbarHome);
   const expanded = document.createElement('dialog'); expanded.className = 'qontic-expanded-dialog';
   expanded.setAttribute('aria-label', 'Expanded simulation'); document.body.append(expanded);
   let home, controlHome, attributes;
@@ -67,9 +81,11 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
         controls.setAttribute('show-tabs','false'); controls.setAttribute('show-interpretation','false');
         expanded.append(controls);
       }
+      if (titleRow) stage.prepend(toolbar);
       expanded.append(stage); expanded.showModal();
     } else {
       expanded.close(); home.replaceWith(stage);
+      if (titleRow) toolbarHome.after(toolbar);
       if (controls) {
         controlHome.replaceWith(controls);
         for (const [name, value] of attributes) value === null ? controls.removeAttribute(name) : controls.setAttribute(name,value);

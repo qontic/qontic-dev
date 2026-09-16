@@ -1,4 +1,4 @@
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=5';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=6';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
 import '../../../../shared/qontic-controls.js?v=2.9';
@@ -259,7 +259,7 @@ $(function () {
   document.getElementById('screenshotButton').parentElement.hidden = true;
   mountQonticMedia({
     stage: document.getElementById('canvas-wrapper'), controls,
-    filename: 'double-slit',
+    filename: 'double-slit', headerTools: true,
     getShareUrl: () => location.href.split('#')[0] + buildUrlHash(),
     getCanvases: () => [...container.querySelectorAll('canvas')].sort((a,b) =>
       (Number(getComputedStyle(a).zIndex) || 0) - (Number(getComputedStyle(b).zIndex) || 0)),
@@ -274,5 +274,4 @@ $(function () {
       sync();
     },
   });
-  document.querySelector('#canvas-wrapper .qontic-media-toolbar').prepend(document.getElementById('view-label'));
 });

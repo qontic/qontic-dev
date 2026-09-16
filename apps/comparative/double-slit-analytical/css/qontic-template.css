@@ -147,6 +147,6 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 .analytical-template .qontic-expanded-dialog #shortcut-hint { display:none; }
 @media(max-width:1000px) { .analytical-template .main-container { max-width:100%; } }
 
-/* Interpretation and presentation actions share the canvas header. */
+/* Keep the interpretation label compact above the canvas. */
 .analytical-template #canvas-wrapper .qontic-media-toolbar { align-items:center; }
-.analytical-template #canvas-wrapper .qontic-media-toolbar #view-label { margin:0 auto 0 0; text-align:left; font:400 14px/1.35 Inter,Arial,sans-serif; }
+.analytical-template #canvas-wrapper #view-label { margin:0 auto 0 0; text-align:left; font:400 14px/1.35 Inter,Arial,sans-serif; }

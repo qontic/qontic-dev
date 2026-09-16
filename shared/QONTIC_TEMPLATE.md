@@ -31,7 +31,8 @@ Use these public attributes and the documented `qontic:*` events. New adapters m
 
 ## Optional expansion and live video
 Import `mountQonticMedia` from `shared/qontic-media.js` and call it with:
-- `stage`: the simulation wrapper; receives Expand Simulation and Record Video actions.
+- `stage`: the simulation wrapper; receives the media actions by default.
+- `headerTools: true`: place the icon toolbar beside section tabs in the title header (canonical template default). On narrow screens the groups wrap; during expansion the toolbar moves into the dialog and returns to the header on restore. Omit to retain stage placement.
 - `controls`: optional shared controls, moved into the expanded dialog and restored intact.
 - `getCanvases()`: visible canvas layers in painting order (background first); CSS placement is preserved in the exported frame.
 - `beginRecording()`: starts playback and returns an app-defined state token.

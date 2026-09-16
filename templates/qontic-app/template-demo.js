@@ -1,4 +1,4 @@
-import { mountQonticMedia } from '../../shared/qontic-media.js?v=5';
+import { mountQonticMedia } from '../../shared/qontic-media.js?v=6';
 import { mountQonticShell } from '../../shared/qontic-shell.js?v=1.44';
 import { mountQonticControls } from './qontic-controls.js?v=2.7';
 mountQonticShell({title:'Functional Simulation Template',eyebrow:'Q-Ontic template library',purpose:'Define a common functional interface for Q-Ontic simulations while allowing each app to connect its own scientific model.',badge:'Canonical starter',version:'Template 2.1',homeHref:'../../index.html',labHref:'https://qonticlab.rice.edu/'});
@@ -9,7 +9,7 @@ function frame(){const ratio=devicePixelRatio||1,width=canvas.clientWidth,height
 
 mountQonticMedia({
   stage:document.querySelector('.visualization'), controls:document.querySelector('qontic-controls'),
-  getCanvases:()=>[canvas], filename:'qontic-template',
+  getCanvases:()=>[canvas], filename:'qontic-template', headerTools:true,
   beginRecording:()=>{const previous=running;running=true;ui.setRunning(true);return previous;},
   endRecording:previous=>{running=previous;ui.setRunning(previous);}
 });

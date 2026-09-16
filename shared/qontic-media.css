@@ -28,3 +28,12 @@
 .qontic-media-action:hover::after,.qontic-media-action:focus-visible::after {opacity:1;visibility:visible;}
 .qontic-media-action.is-recording {color:#ff7e7e;border-color:#ff7e7e;}
 .qontic-media-status {position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+
+/* Header tools share the section tabs' vertical center and wrap as groups. */
+.qontic-title-row.qontic-title-with-tools {align-items:center;flex-wrap:wrap;gap:10px 18px;}
+.qontic-header-tools {display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px 16px;min-width:0;margin-left:auto;}
+.qontic-header-tools .qontic-view-tabs {margin:0;align-items:center;}
+.qontic-header-tools .qontic-media-toolbar {margin:0;flex-wrap:nowrap;gap:6px;}
+@media(max-width:900px) {
+  .qontic-header-tools {margin-left:0;justify-content:flex-start;}
+}
