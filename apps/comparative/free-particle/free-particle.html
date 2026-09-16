@@ -706,7 +706,7 @@
   </style>
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-controls.css?v=2.8">
-  <link rel="stylesheet" href="template-adapter.css?v=2">
+  <link rel="stylesheet" href="template-adapter.css?v=3">
 </head>
 <body>
 
@@ -1147,7 +1147,7 @@
     let W = wrap ? wrap.clientWidth : 0;
     if (!W) {
       const area = document.querySelector('.canvas-area');
-      W = area ? Math.min(860, area.clientWidth) : 0;
+      W = area ? area.clientWidth : 0;
     }
     if (!W) return;
     const H = wrap?.clientHeight || Math.round(W * 0.45);
@@ -1337,7 +1337,7 @@
 })();
 </script>
 
-<script type="module" src="js/template-adapter.js?v=2"></script>
+<script type="module" src="js/template-adapter.js?v=3"></script>
 </body>
 </html>
 

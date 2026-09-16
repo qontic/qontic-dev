@@ -24,15 +24,17 @@ body.fp-template { margin:0; padding:0 18px 12px; background:var(--bg-primary); 
 .fp-template #viewpanel-sim { position:relative; }
 .fp-template #viewpanel-sim.sim-expanded { position:fixed; }
 .fp-template #fp-expanded-playback { flex:1 1 340px; max-width:440px; }
-.fp-template .fp-results { position:absolute; right:10px; bottom:8px; width:min(300px,calc(100% - 20px)); padding:0; z-index:10; overflow:hidden; background:var(--bg-panel); box-shadow:var(--shadow-md); }
-.fp-template .fp-results-title { display:block; width:100%; text-align:left; cursor:move; }
+.fp-template .fp-results { position:static; width:100%; box-sizing:border-box; padding:0; z-index:10; overflow:hidden; background:var(--bg-panel); box-shadow:var(--shadow-md); }
+.fp-template .fp-results-title { display:block; width:100%; text-align:left; cursor:pointer; }
 .fp-template .fp-results-title::after { content:'+'; float:right; }
 .fp-template .fp-results-title[aria-expanded=true]::after { content:'−'; }
 .fp-template .fp-results-body { padding:10px; }
 .fp-template .info-grid { grid-template-columns:auto 1fr; }
 .fp-template .info-grid .ig-v { overflow-wrap:anywhere; }
 .fp-template .info-compact { margin-top:0; }
-.fp-template .prob-wrap { margin-bottom:44px; }
+.fp-template .prob-wrap { margin-bottom:0; }
+.fp-template .sim-main-row, .fp-template .canvas-wrap, .fp-template .sim-toolbar, .fp-template .mw-grid, .fp-template #fp-mw-status { max-width:none; }
+.fp-template .canvas-wrap { min-width:0; }
 .fp-template .rationale, .fp-template #viewpanel-compare { max-width:1080px; margin:0 auto; width:100%; padding:20px; border:1px solid var(--border-color); border-radius:9px; background:var(--bg-panel); }
 .fp-template .fp-model-note { border-left:3px solid #d7a51e; padding:10px 12px; background:var(--bg-tertiary); margin-bottom:20px; }
 .fp-template .qontic-footer { box-sizing:border-box; }
@@ -47,4 +49,4 @@ body.fp-template { margin:0; padding:0 18px 12px; background:var(--bg-primary); 
  .fp-template .rationale, .fp-template #viewpanel-compare { padding:12px; }
 }
 .fp-template.qontic-light .qontic-footer, .fp-template.qontic-light .qontic-footer a { color:#526a77; }
-.fp-template .fp-results-title { touch-action:none; }
+

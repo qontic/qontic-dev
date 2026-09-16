@@ -137,29 +137,9 @@ function mountFreeParticleTemplate() {
   toggle.textContent = 'Results'; toggle.setAttribute('aria-expanded','false');
   resultBody.hidden = true;
   toggle.addEventListener('click',() => { resultBody.hidden = !resultBody.hidden; toggle.setAttribute('aria-expanded',String(!resultBody.hidden)); });
-  let drag = null;
-  toggle.addEventListener('pointerdown', event => {
-    drag = {x:event.clientX,y:event.clientY,left:results.offsetLeft,top:results.offsetTop,moved:false};
-    toggle.setPointerCapture(event.pointerId);
-  });
-  toggle.addEventListener('pointermove', event => {
-    if (!drag) return;
-    const dx = event.clientX-drag.x, dy = event.clientY-drag.y;
-    if (Math.abs(dx)+Math.abs(dy)<5 && !drag.moved) return;
-    drag.moved = true;
-    const parent = results.offsetParent;
-    results.style.left = Math.max(0,Math.min(parent.clientWidth-results.offsetWidth,drag.left+dx))+'px';
-    results.style.top = Math.max(0,Math.min(parent.clientHeight-results.offsetHeight,drag.top+dy))+'px';
-    results.style.right = 'auto'; results.style.bottom = 'auto';
-  });
-  toggle.addEventListener('click', event => {
-    if (drag?.moved) { event.stopImmediatePropagation(); resultBody.hidden = !resultBody.hidden; toggle.setAttribute('aria-expanded',String(!resultBody.hidden)); }
-    drag = null;
-  });
-  toggle.addEventListener('pointercancel',()=>{drag=null;});
   results.append(toggle,resultBody);
   results.classList.add('fp-results');
-  $('viewpanel-sim').append(results);
+  controlPanel.after(results);
 
   mountQonticShell({title:'Free Particle', purpose:'Explore wave-packet spreading and detector outcomes in three quantum interpretations.',
     version:'Free Particle · Q-Ontic shared template 2.8', homeHref:'../../../index.html'});
