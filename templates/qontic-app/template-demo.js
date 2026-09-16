@@ -1,5 +1,5 @@
 import { mountQonticMedia } from '../../shared/qontic-media.js?v=header-20260916';
-import { mountQonticShell } from '../../shared/qontic-shell.js?v=directory-20260916';
+import { mountQonticShell } from '../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=2.7';
 mountQonticShell({compactHeader:true,navigation:'breadcrumbs',title:'Functional Simulation Template',eyebrow:'Q-Ontic template library',purpose:'Define a common functional interface for Q-Ontic simulations while allowing each app to connect its own scientific model.',badge:'Canonical starter',version:'Template 2.1',homeHref:'../../index.html',labHref:'https://qonticlab.rice.edu/'});
 const tabs=document.querySelector('.tabs');tabs.addEventListener('click',event=>{const button=event.target.closest('[data-view]');if(!button)return;tabs.querySelectorAll('button').forEach(item=>item.classList.toggle('active',item===button));document.querySelectorAll('[data-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.panel!==button.dataset.view));});

@@ -47,8 +47,12 @@ The shared media toolbar uses four labeled SVG icon buttons: Screenshot, Share l
 
 ## Directory navigation and standalone apps
 The canonical template uses `mountQonticShell({navigation: 'breadcrumbs', compactHeader: true, ...})`.
-This consolidates site links into Q-Ontic Lab › Demonstrations › current app, using `labHref`, `homeHref`, and `title`. It suppresses the legacy floating Back link and removes duplicate footer links. Simulation/Math/Rationale remain app navigation.
+The default trail is Q-Ontic Lab › Resources › current app, using `labHref`, `homeHref`, and `title`. It suppresses the floating Back link and duplicate footer links.
 
-“Hide navigation” hides the trail and disables the logo's outgoing link; “Show navigation” restores it without resetting the app. The choice is reflected in the current URL: `?standalone=1` opens a self-contained view, and `?standalone=0` shows navigation. Existing query parameters and the simulation hash are preserved, so shared links retain the choice. Apps may set `showSiteNavigation: false` for a standalone default. A URL setting takes precedence.
+Set `breadcrumbs` to an array of parent entries `{label, href}` to represent the resource's actual location or entry route; the current app title is appended automatically. For example, a module can supply Resources › module title before the app. Only include routes that exist. The shell does not guess hierarchy from browser history or referrer.
+
+Navigation is a deployment setting, not a user control. Set `showSiteNavigation: false` to omit site navigation and disable the logo link. There is no Show/Hide button and URL parameters cannot override the setting. Simulation/Math/Rationale stay available. The old `standalone` query parameter is no longer used.
+
+For a reviewer deployment, the shell also supports `showBranding: false` (no logo or brand eyebrow) and `showFooter: false`. These settings alone do not anonymize the complete app: use neutral hosting and separately audit app content, document metadata, feedback links, analytics, external assets, downloads and source references. Do not call an existing Q-Ontic-hosted URL anonymous.
 
 Existing consumers retain legacy navigation until they opt in. No engine behavior or controls change.

@@ -5,6 +5,9 @@ const DEFAULTS = Object.freeze({
   compactHeader: false,
   navigation: 'legacy',
   showSiteNavigation: true,
+  breadcrumbs: null,
+  showBranding: true,
+  showFooter: true,
   badge: 'Interactive model',
   version: '',
   homeHref: '../../index.html',
@@ -57,7 +60,8 @@ function decorateShell(shell, settings) {
   brand.setAttribute('aria-label', 'Q-Ontic demonstrations home');
   const logoUrl = new URL('./qontic-logo.png', import.meta.url).href;
   brand.innerHTML = `<img src="${logoUrl}" alt="Q-Ontic"><span>Interactive quantum perspectives</span>`;
-  header.prepend(brand);
+  if (settings.showBranding) header.prepend(brand);
+  else { header.classList.add('qontic-unbranded-header'); titleGroup?.querySelector('.eyebrow')?.remove(); }
 
   const oldBadge = header.querySelector('.truth');
   const actions = document.createElement('div');
@@ -76,7 +80,8 @@ function decorateShell(shell, settings) {
     trail.className = 'qontic-breadcrumbs'; trail.id = 'qontic-site-navigation';
     trail.setAttribute('aria-label', 'Site navigation');
     const list = document.createElement('ol');
-    for (const [label, href] of [['Q-Ontic Lab', settings.labHref], ['Demonstrations', settings.homeHref], [settings.title, null]]) {
+    const parents = settings.breadcrumbs ?? [{label: 'Q-Ontic Lab', href: settings.labHref}, {label: 'Resources', href: settings.homeHref}];
+    for (const {label, href} of [...parents, {label: settings.title}]) {
       const item = document.createElement('li');
       const node = document.createElement(href ? 'a' : 'span');
       node.textContent = label;
@@ -86,33 +91,17 @@ function decorateShell(shell, settings) {
     trail.append(list);
     const eyebrow = titleGroup?.querySelector('.eyebrow');
     if (eyebrow) eyebrow.replaceWith(trail); else titleGroup?.prepend(trail);
-    actions.replaceChildren();
-    const toggle = document.createElement('button');
-    toggle.type = 'button'; toggle.className = 'qontic-navigation-toggle';
-    toggle.setAttribute('aria-controls', trail.id);
-    actions.append(toggle);
-    const query = new URLSearchParams(location.search);
-    let visible = query.has('standalone') ? query.get('standalone') !== '1' : settings.showSiteNavigation;
-    const updateNavigation = () => {
-      trail.hidden = !visible;
-      toggle.textContent = visible ? 'Hide navigation' : 'Show navigation';
-      toggle.setAttribute('aria-expanded', String(visible));
-      toggle.title = visible ? 'Use as a self-contained app' : 'Show the Q-Ontic directory';
-      if (visible) {
-        brand.href = settings.homeHref;
-        brand.setAttribute('aria-label', 'Q-Ontic demonstrations home');
-      } else {
-        brand.removeAttribute('href');
-        brand.removeAttribute('aria-label');
-      }
-    };
-    toggle.addEventListener('click', () => {
-      visible = !visible; updateNavigation();
-      const url = new URL(location.href);
-      url.searchParams.set('standalone', visible ? '0' : '1');
-      history.replaceState(history.state, '', url);
-    });
-    updateNavigation();
+    trail.hidden = !settings.showSiteNavigation;
+    actions.remove();
+    header.classList.add('qontic-header-without-actions');
+    brand.setAttribute('aria-label', 'Q-Ontic resources home');
+  }
+  if (!settings.showSiteNavigation) {
+    document.body.classList.add('qontic-no-site-navigation');
+    actions.remove();
+    header.classList.add('qontic-header-without-actions');
+    brand.removeAttribute('href');
+    brand.removeAttribute('aria-label');
   }
 
   const keepTabsConcise = () => {
@@ -142,8 +131,8 @@ function decorateShell(shell, settings) {
   footer.innerHTML = `<span>${settings.version || 'Q-Ontic interactive demonstration'}</span><nav aria-label="Q-Ontic links"><a href="${settings.homeHref}">All demonstrations</a><a href="${settings.labHref}">Q-Ontic Lab</a></nav>`;
   // Keep shared navigation outside the framework-managed app root. React may
   // replace Demo/Details children, but it will not reorder this sibling.
-  if (directory) footer.querySelector('nav')?.remove();
-  shell.after(footer);
+  if (directory || !settings.showSiteNavigation) footer.querySelector('nav')?.remove();
+  if (settings.showFooter) shell.after(footer);
   return true;
 }
 

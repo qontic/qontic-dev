@@ -270,9 +270,9 @@ body.qontic-directory .qontic-back-home {display:none!important;}
 .qontic-breadcrumbs a:hover {color:#7cecff;text-decoration:underline;}
 .qontic-breadcrumbs [aria-current] {color:#d9edf7;}
 .qontic-breadcrumbs[hidden] {display:none;}
-.qontic-directory-header .qontic-navigation-toggle {font:400 11px/1.4 Inter,Arial,sans-serif;color:#a4cadc;background:transparent;border:1px solid #36576c;border-radius:6px;padding:5px 8px;cursor:pointer;white-space:nowrap;}
-.qontic-navigation-toggle:focus-visible,.qontic-breadcrumbs a:focus-visible {outline:2px solid #55d8e6;outline-offset:3px;}
-.qontic-directory-header .qontic-header-actions {display:flex!important;}
-@media(max-width:900px) {
-  .qontic-directory-header .qontic-header-actions {grid-column:2;justify-content:flex-start;}
-}
+
+.qontic-breadcrumbs a:focus-visible {outline:2px solid #55d8e6;outline-offset:3px;}
+body.qontic-no-site-navigation .qontic-back-home {display:none!important;}
+.qontic-app-header.qontic-header-without-actions {grid-template-columns:auto minmax(0,1fr);}
+.qontic-app-header.qontic-unbranded-header {grid-template-columns:minmax(0,1fr) auto;}
+.qontic-app-header.qontic-unbranded-header.qontic-header-without-actions {grid-template-columns:minmax(0,1fr);}
