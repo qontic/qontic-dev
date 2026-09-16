@@ -15,3 +15,5 @@
 .qontic-record-dialog progress {width:100%;margin-top:12px;}
 .qontic-record-dialog [hidden] {display:none;}
 .qontic-light .qontic-media-toolbar button {color:#203746;background:#edf5f8;border-color:#aec2cb;}
+
+.qontic-media-toolbar { position:relative; z-index:5; }

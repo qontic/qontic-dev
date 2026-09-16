@@ -2,7 +2,7 @@
 export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation'}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=1', import.meta.url);
+    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=2', import.meta.url);
     link.dataset.qonticMedia = ''; document.head.append(link);
   }
   const toolbar = document.createElement('div'); toolbar.className = 'qontic-media-toolbar';
