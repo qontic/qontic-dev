@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
     <script>window.qonticTemplateLayout = true;</script>
-    <script src="js/double-slit.js?v=30-branching"></script>
+    <script src="js/double-slit.js?v=31-branching"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
     <style>
@@ -39,7 +39,7 @@
     </style>
     <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
     <link rel="stylesheet" href="css/qontic-template.css?v=23">
-    <script type="module" src="js/qontic-template.js?v=30-branching"></script>
+    <script type="module" src="js/qontic-template.js?v=31-branching"></script>
 </head>
 <body>
   <!-- Loading overlay — visible until JS init completes -->
@@ -427,8 +427,8 @@
 
     <h2>A short comparison activity</h2>
     <h3>Slow-motion Many-Worlds branching</h3>
-    <p>Enable <strong>Slow-motion branching</strong> in Core while viewing Many-Worlds. The <strong>Time in branch</strong> slider sets a 1–5 second interval of running in the full-size branch before the first split and after every selection (default: 1 second). This interval excludes paused time and is independent of simulation speed. At each detection, the simulation pauses and displays one miniature system per detector pixel, with that pixel highlighted and its Born weight shown. Automatic mode displays the alternatives for one second, then expands a branch sampled from the same screen distribution used by the ordinary simulation. In manual mode, choose a pixel to follow. Reduce the detector pixel count in Advanced for larger miniature views; on narrow screens, scroll to inspect all outcomes.</p>
-    <p>This is a schematic visualization of distinct detector records, not a simulation of separate detector or observer wavefunctions. The miniature views share the pre-detection system and differ in the highlighted record. Expanding one branch selects our viewpoint; it does not collapse the wave or erase the other branches. Only the selected outcome is added to the followed history. Manual choices produce a deliberately selected history, so its histogram need not agree with the Born curve. The N<sup>m</sup> counter retains the existing finite outcome bookkeeping convention.</p>
+    <p>Enable <strong>Slow-motion branching</strong> in Core while viewing Many-Worlds. The <strong>Time in branch</strong> slider sets a 1–5 second interval of running in the full-size branch before the first split and after every selection (default: 1 second). This interval excludes paused time and is independent of simulation speed. At each detection, further detections wait while the wave continues evolving in every miniature system and throughout the zoom. The display shows one miniature system per detector pixel, with that pixel highlighted and its Born weight shown. Automatic mode displays the alternatives for one second, then expands a branch sampled from the same screen distribution used by the ordinary simulation. In manual mode, choose a pixel to follow. Reduce the detector pixel count in Advanced for larger miniature views; on narrow screens, scroll to inspect all outcomes.</p>
+    <p>This is a schematic visualization of distinct detector records, not a simulation of separate detector or observer wavefunctions. The miniature views share the evolving analytical wave and the previous detection history, and differ in the newly highlighted detector record. Expanding one branch selects our viewpoint; it does not collapse the wave or erase the other branches. Only the selected outcome is added to the followed history. Manual choices produce a deliberately selected history, so its histogram need not agree with the Born curve. The N<sup>m</sup> counter retains the existing finite outcome bookkeeping convention.</p>
     <ol><li>Choose electrons, both slits, no which-path detector, and |Ψ|². Run each interpretation at the same geometry. Compare patterns after similar numbers of detections, not equal animation times.</li><li>In Pilot-Wave, inspect a path near a dark fringe. Explain the role of the full wave in guiding it.</li><li>Close one slit, then restore both and enable the which-path detector. Compare the two ways interference disappears.</li><li>In Many-Worlds, sample another branch. Explain why its fluctuations can change while the outcome weights remain the same.</li></ol>
     <h2>How Pilot-Wave paths are initialized</h2>
     <p>With no which-path detector, the app samples endpoints from the model probability distribution on the screen, traces the guidance field backward to obtain positions just beyond the slits, and then propagates the paths forward. This screen-seeded procedure is fixed for this app.</p>

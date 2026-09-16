@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## 31 — 2026-09-16
+- Keep the wave evolving in every MW miniature and during branch-entry zooms; only new detections wait for selection.
+- Reuse a single evolving wave render and one downsampled frame across all miniature canvases.
+- Preserve Start/Stop behavior, branch dwell timing, and one recorded hit per selection.
+
 ## 30 — 2026-09-16
 - Add an MW slow-motion Time in branch slider (1–5 seconds, default 1 second).
 - Run the full-size branch before the first split and after each selection; exclude paused time and prevent queued detections during this interval.

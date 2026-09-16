@@ -3499,11 +3499,6 @@ async function drawSystem(cycleIndex) {
 //
 //==================================================================================================================
 async function evolveSystem() {
-   if (window.qonticMWBranches?.busy) {
-      lastRealTime = performance.now() / 1000;
-      if (isAnimating) animationId = requestAnimationFrame(evolveSystem);
-      return;
-   }
    // Interpret the UI control as a simulation speed multiplier
    // (1x = normal, >1x faster, <1x slower) instead of a raw
    // frame delay. Base step time is 30 ms.
@@ -3526,8 +3521,14 @@ async function evolveSystem() {
    const cycleIndex = nSteps;
    currentCycleIndex = cycleIndex;
 
-   await evolveParticles();
+   // Branch exploration suspends new detections, not the unitary wave animation.
+   if (window.qonticMWBranches?.busy) {
+      lastRealTime = performance.now() / 1000; particleAccum = 0;
+   } else {
+      await evolveParticles();
+   }
    await drawSystem(cycleIndex);
+   window.qonticMWBranches?.refreshFrame();
    
    const cacheSize = Object.keys(waveDataCache).length;
 

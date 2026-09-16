@@ -36,7 +36,9 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     if(active||!enabled.checked||!isMW())return false;
     const snapshot=document.createElement('canvas');snapshot.width=host.clientWidth;snapshot.height=host.clientHeight;
     const ctx=snapshot.getContext('2d');
-    for(const id of ['setupCanvas','waveCanvas','partCanvas']){const layer=document.getElementById(id);ctx.drawImage(layer,0,0,snapshot.width,snapshot.height);}
+    const layers=['setupCanvas','waveCanvas','partCanvas'].map(id=>document.getElementById(id));
+    const updateSharedFrame=()=>{ctx.clearRect(0,0,snapshot.width,snapshot.height);for(const layer of layers)ctx.drawImage(layer,0,0,snapshot.width,snapshot.height);};
+    updateSharedFrame();
     overlay.hidden=false;zoom.hidden=true;scroll.hidden=false;scroll.scrollTop=0;grid.replaceChildren();
     const count=weights.length,aspect=snapshot.width/snapshot.height;
     // Fit all views when legible; narrower screens can scroll through larger tiles.
@@ -46,7 +48,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       while(columns<count && Math.ceil(count/columns)*((host.clientWidth/columns-5)/aspect+23)>host.clientHeight-40) columns++;
     }
     grid.style.gridTemplateColumns=`repeat(${columns},minmax(0,1fr))`;
-    active={frame:0,elapsed:0,last:performance.now(),selected:null,zoomTime:0,buttons:[],snapshot};
+    active={frame:0,elapsed:0,last:performance.now(),selected:null,zoomTime:0,buttons:[],miniatures:[],snapshot};
     const session=active;
     const choose=index=>{
       if(active!==session||session.selected!==null||!isRunning()||weights[index]<=0)return;
@@ -64,8 +66,9 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       renderCamera(0);
       scroll.hidden=true;
     };
-    const paint=(target,index,w,h)=>{
-      target.drawImage(snapshot,0,0,w,h);
+    const paint=(target,index,w,h,source=snapshot)=>{
+      target.clearRect(0,0,w,h);
+      target.drawImage(source,0,0,w,h);
       const x=detectorFraction*w,y=(index+.5)/count*h;
       target.fillStyle='#ffe476';target.fillRect(x-2,index/count*h,5,Math.max(2,h/count));
       target.beginPath();target.arc(x,y,Math.max(2,Math.min(6,w*.025)),0,Math.PI*2);target.fill();
@@ -100,8 +103,20 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       const percent=(100*weight).toPrecision(3)+'%';button.setAttribute('aria-label',`Follow pixel ${index+1}, weight ${percent}`);button.title=`Pixel ${index+1} · Born weight ${percent}`;
       button.disabled=mode.value!=='manual'||weight<=0;
       const miniature=document.createElement('canvas');miniature.width=192;miniature.height=Math.round(192/aspect);paint(miniature.getContext('2d'),index,miniature.width,miniature.height);
-      const label=document.createElement('span');label.textContent=`${index+1} · ${percent}`;button.append(miniature,label);button.addEventListener('click',()=>choose(index));grid.append(button);session.buttons.push(button);
+      const label=document.createElement('span');label.textContent=`${index+1} · ${percent}`;button.append(miniature,label);button.addEventListener('click',()=>choose(index));grid.append(button);session.buttons.push(button);session.miniatures.push(miniature);
     });
+    // Render the physics once, then reuse one downsampled live frame for every tile.
+    // The full-resolution shared frame also drives the camera zoom.
+    const thumbnail=document.createElement('canvas');thumbnail.width=192;thumbnail.height=Math.round(192/aspect);
+    const thumbnailCtx=thumbnail.getContext('2d');
+    session.refresh=()=>{
+      if(active!==session||!isRunning())return;
+      updateSharedFrame();
+      if(session.selected!==null)return;
+      thumbnailCtx.clearRect(0,0,thumbnail.width,thumbnail.height);
+      thumbnailCtx.drawImage(snapshot,0,0,thumbnail.width,thumbnail.height);
+      session.miniatures.forEach((miniature,index)=>paint(miniature.getContext('2d'),index,miniature.width,miniature.height,thumbnail));
+    };
     const tick=now=>{
       if(active!==session)return;
       if(!isMW()||!enabled.checked){cancel();return;}
@@ -124,5 +139,5 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     };
     session.frame=requestAnimationFrame(tick);return true;
   };
-  return {ready(){return dwellClock.tick(isRunning())>=Number(dwell.value)*1000;},get enabled(){return enabled.checked&&isMW();},get busy(){return !!active;},begin,cancel};
+  return {refreshFrame(){active?.refresh?.();},ready(){return dwellClock.tick(isRunning())>=Number(dwell.value)*1000;},get enabled(){return enabled.checked&&isMW();},get busy(){return !!active;},begin,cancel};
 }
