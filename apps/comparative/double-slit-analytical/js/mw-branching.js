@@ -13,6 +13,11 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
   const cancel=()=>{if(!active)return;cancelAnimationFrame(active.frame);active=null;overlay.hidden=true;grid.replaceChildren();zoom.hidden=true;};
   const sync=()=>{settings.hidden=!isMW();settings.querySelectorAll('.mw-follow').forEach(el=>el.hidden=!enabled.checked);if(!isMW()||!enabled.checked)cancel();};
   enabled.addEventListener('change',sync);mode.addEventListener('change',cancel);
+  // Cancel before existing input handlers can replace geometry or the record.
+  for(const type of ['input','change']) document.addEventListener(type,event=>{
+    if(active&&!settings.contains(event.target)&&!overlay.contains(event.target))cancel();
+  },true);
+  for(const id of ['resampleHitsButton','resetBranches']) document.getElementById(id)?.addEventListener('click',cancel,true);
   // Mode switches can originate in several existing controls.
   const observer=new MutationObserver(sync);observer.observe(document.getElementById('sharedControls'),{attributes:true,attributeFilter:['interpretation']});sync();
   const begin=({selected,weights,detectorFraction,onSelect})=>{
