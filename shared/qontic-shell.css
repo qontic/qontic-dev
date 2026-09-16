@@ -246,3 +246,16 @@
 .qontic-sidebar-divider:focus-visible { outline: 2px solid #1594a8; border-radius: 5px; }
 .qontic-sidebar-divider[hidden] { display: none; }
 body.qontic-sidebar-dragging, body.qontic-sidebar-dragging * { cursor: col-resize !important; user-select: none !important; }
+
+/* Optional compact branding leaves more vertical space for the experiment. */
+.qontic-app-header.qontic-compact-header {min-height:0;padding-block:8px;gap:12px;}
+.qontic-compact-header .qontic-brand {width:56px;}
+.qontic-compact-header .qontic-brand img {width:48px;height:48px;}
+.qontic-compact-header .qontic-brand span {display:none;}
+.qontic-compact-header .qontic-app-title .eyebrow {margin:0 0 3px;font-size:9px;}
+.qontic-compact-header .qontic-app-title h1 {font-size:clamp(24px,2.4vw,30px);line-height:1.15;}
+.qontic-compact-header .qontic-title-row {align-items:center;}
+@media(max-width:900px) {
+  .qontic-compact-header .qontic-title-row {align-items:flex-start;gap:6px;}
+  .qontic-compact-header .qontic-header-actions {display:none;}
+}

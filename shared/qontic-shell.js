@@ -2,6 +2,7 @@ const DEFAULTS = Object.freeze({
   title: 'Quantum demonstration',
   eyebrow: 'Q-Ontic interactive laboratory',
   purpose: '',
+  compactHeader: false,
   badge: 'Interactive model',
   version: '',
   homeHref: '../../index.html',
@@ -16,6 +17,7 @@ function decorateShell(shell, settings) {
   shell.dataset.qonticShell = 'true';
   shell.classList.add('qontic-template');
   header.classList.add('qontic-app-header');
+  if (settings.compactHeader) header.classList.add('qontic-compact-header');
 
   const currentTitle = header.querySelector('h1');
   const titleGroup = currentTitle?.parentElement;

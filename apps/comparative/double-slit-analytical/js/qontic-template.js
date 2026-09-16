@@ -1,6 +1,6 @@
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=header-20260916';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
-import { mountQonticShell } from '../../../../shared/qontic-shell.js';
+import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=compact-20260916';
 import '../../../../shared/qontic-controls.js?v=2.9';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
@@ -197,7 +197,7 @@ $(function () {
   sync();
 
   mountQonticShell({
-    title: 'Double Slit',
+    title: 'Double Slit', compactHeader: true,
     version: 'Analytical double slit · Version 15 · Responsive proportions',
     homeHref: '../../../index.html',
   });
@@ -259,7 +259,7 @@ $(function () {
   document.getElementById('screenshotButton').parentElement.hidden = true;
   mountQonticMedia({
     stage: document.getElementById('canvas-wrapper'), controls,
-    filename: 'double-slit', headerTools: true,
+    filename: 'double-slit', headerTools: false,
     getShareUrl: () => location.href.split('#')[0] + buildUrlHash(),
     getCanvases: () => [...container.querySelectorAll('canvas')].sort((a,b) =>
       (Number(getComputedStyle(a).zIndex) || 0) - (Number(getComputedStyle(b).zIndex) || 0)),
@@ -274,4 +274,5 @@ $(function () {
       sync();
     },
   });
+  document.querySelector('#canvas-wrapper .qontic-media-toolbar').prepend(document.getElementById('view-label'));
 });

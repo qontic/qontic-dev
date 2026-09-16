@@ -32,12 +32,14 @@ Use these public attributes and the documented `qontic:*` events. New adapters m
 ## Optional expansion and live video
 Import `mountQonticMedia` from `shared/qontic-media.js` and call it with:
 - `stage`: the simulation wrapper; receives the media actions by default.
-- `headerTools: true`: place the icon toolbar beside section tabs in the title header (canonical template default). On narrow screens the groups wrap; during expansion the toolbar moves into the dialog and returns to the header on restore. Omit to retain stage placement.
+- `headerTools: true`: place the icon toolbar beside section tabs in the title header. On narrow screens the groups wrap; during expansion the toolbar moves into the dialog and returns to the header on restore. Omit to retain stage placement.
 - `controls`: optional shared controls, moved into the expanded dialog and restored intact.
 - `getCanvases()`: visible canvas layers in painting order (background first); CSS placement is preserved in the exported frame.
 - `beginRecording()`: starts playback and returns an app-defined state token.
 - `endRecording(token)`: restores playback after recording. Do not reset statistics.
 - `filename`: download prefix.
+
+The canonical demo and analytical Double Slit keep media tools inside the simulation panel, separate from the section navigation. They use `mountQonticShell({compactHeader: true, ...})` for a shorter branding header. Double Slit places its interpretation label on the same row as the media tools. The `headerTools` option remains available but is not the template default.
 
 The canonical demo and analytical Double Slit show working integrations. Escape restores the normal view. The recorder uses MediaRecorder, starts from the current state, captures up to 30 fps in real time, and offers preview plus download. Resolution changes output dimensions; it does not increase the model's spatial resolution. Only canvas layers are recorded, not DOM controls. Recording hooks should be synchronous. Do not change geometry or canvas placement during capture. Free Particle retains its model-specific offline renderer (snapshot, fixed frame stepping, high-resolution render); this optional shared recorder does not replace that engine.
 
