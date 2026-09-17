@@ -41,12 +41,20 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     updateSharedFrame();
     overlay.hidden=false;status.style.opacity='1';zoom.hidden=true;scroll.hidden=false;scroll.style.visibility='';scroll.scrollTop=0;grid.replaceChildren();
     const count=weights.length,aspect=snapshot.width/snapshot.height;
-    // Fit all views when legible; narrower screens can scroll through larger tiles.
-    const ideal=Math.ceil(Math.sqrt(count*host.clientWidth/(Math.max(100,host.clientHeight-40)*aspect)));
-    let columns=Math.max(1,Math.min(ideal,Math.floor(host.clientWidth/88)));
-    if(host.clientWidth>=600){
-      while(columns<count && Math.ceil(count/columns)*((host.clientWidth/columns-5)/aspect+23)>host.clientHeight-40) columns++;
+    // Prefer complete, near-square grids (25 -> 5x5, 500 -> 25x20).
+    // For prime counts use the smallest near-square rectangle.
+    let columns=Math.ceil(Math.sqrt(count));
+    for(let divisor=Math.floor(Math.sqrt(count));divisor>=1;divisor--){
+      if(count%divisor===0 && count/divisor<=2*divisor){columns=count/divisor;break;}
     }
+    const rows=Math.ceil(count/columns),gap=5;
+    const availableWidth=Math.max(1,scroll.clientWidth-10);
+    const availableHeight=Math.max(1,scroll.clientHeight-10);
+    // Fit height by scaling the grid, rather than adding extra columns.
+    // Small screens retain the available width and allow vertical scrolling.
+    const fittedWidth=columns*(Math.max(1,(availableHeight-gap*(rows-1))/rows-20)*aspect+2)+gap*(columns-1);
+    grid.style.width=Math.min(availableWidth,host.clientWidth>=600?fittedWidth:availableWidth)+'px';
+    grid.style.marginInline='auto';
     grid.style.gridTemplateColumns=`repeat(${columns},minmax(0,1fr))`;
     active={frame:0,elapsed:0,last:performance.now(),selected:null,splitTime:0,splitDone:false,zoomTime:0,buttons:[],miniatures:[],snapshot};
     const session=active;

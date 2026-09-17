@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## 37 — 2026-09-17
+- Prefer complete balanced branch grids: 25 outcomes form 5×5; 500 form 25×20.
+- Fit desktop grids within the canvas by scaling their width while retaining each miniature’s aspect ratio.
+
 ## 36 — 2026-09-17
 - Show relative Born weights through branch opacity during splitting and in the grid, with a visibility floor and readable probability labels.
 - Restore the selected branch smoothly to full opacity during entry; document the visual mapping in Rationale.
