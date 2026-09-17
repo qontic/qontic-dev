@@ -1,5 +1,16 @@
 # Analytical Double Slit releases
 
+
+## Version 42 — Analytical source-to-screen packets (2026-09-17)
+
+- Added Packet · source to the existing Wave model selector; retained the exact free Packet · slit exits engine and continuous engine.
+- Connected one translating Gaussian pulse to analytical Gaussian-aperture transmission with inherited complex phase and spatial transverse propagation. No fade, phase reset, or downstream packet reinjection at the wall.
+- Added source width in Advanced. Existing source distance, aperture width, slit switches, wavelength, detector geometry, opacity, screenshot/video and interpretation controls continue to apply.
+- Source trajectories sample the incident ensemble. Effective mask absorption uses T²; transmitted paths continue at their crossing positions. Screen density and counts share the hit-driven scale.
+- Cached the analytical transverse field and used a fixed brightness reference for smooth pulse motion and stable opacity across transmission.
+- Math and Rationale distinguish the paraxial, non-reflecting source model from exact free slit-exit evolution, including stochastic absorption and longitudinal-dispersion limits.
+- Validated complex aperture matching, paraxial equation residuals, transmitted flux conservation, overlapping/single apertures, and a seeded 12,000-particle screen-distribution comparison.
+
 ## 41 — 2026-09-17
 - Prepare packet centers three standard deviations beyond the exit plane, retain analytical tails and adjust the detector flight distance consistently.
 - Draw a smooth current profile independent of detector binning. Normalize model and sampled counts to observed hits on one shared scale, unchanged by packet launches.
