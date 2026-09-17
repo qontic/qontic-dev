@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## 34 — 2026-09-17
+- Each branch has its updated histogram and sensor record from the first split frame, through the grid and zoom.
+- Advance hit and branch totals at detection; following a branch adopts its existing record without counting another hit.
+- Cache detector strips once per split while sharing the live wave rendering.
+
 ## 33 — 2026-09-17
 - Animate detection and branching together: fired detector records emerge in a depth stack and fan out into the branch grid.
 - Keep the wave live during the split; enable selection and start the one-second automatic-choice delay after the grid settles.

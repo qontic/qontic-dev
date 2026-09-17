@@ -3123,14 +3123,38 @@ async function evolveParticles() {
             if (iBin < 0) iBin = 0;
             if (iBin >= nDetectorPixels) iBin = nDetectorPixels - 1;
             if (interpretation === 'manyworlds' && window.qonticMWBranches?.enabled) {
+               const previousHits = hits.slice();
+               const nextCount = nHits + 1;
+               const setBranchRecord = index => {
+                  hits = previousHits.slice(); hits[index]++;
+                  hitMax = Math.max(...hits);
+                  renderDetectorAndHistogram();
+               };
                const started = window.qonticMWBranches.begin({
                   selected: iBin, weights: getMWPixelWeights(), detectorFraction: detectorX / canvas.width,
-                  onSelect(index) {
-                     nHits++; hits[index]++; hitMax = Math.max(hitMax, hits[index]); nParticles++;
+                  createRecord(index) {
+                     // Cache only the detector strip; waves remain shared and live.
+                     const record = previousHits.slice(); record[index]++;
+                     const strip = document.createElement('canvas');
+                     const scale = Math.min(1, 256 / canvas.height);
+                     strip.width = Math.ceil((canvas.width-detectorX)*scale);
+                     strip.height = Math.ceil(canvas.height*scale);
+                     const context = strip.getContext('2d');
+                     context.fillStyle = '#000'; context.fillRect(0,0,strip.width,strip.height);
+                     context.scale(scale,scale); context.translate(-detectorX,0);
+                     renderDetectorAndHistogram({context,hits:record,count:nextCount,maximum:Math.max(...record)});
+                     return strip;
+                  },
+                  onSplit() {
+                     nHits = nextCount; nParticles++;
                      logNBranches += Math.log10(nDetectorPixels);
-                     particleAccum = 0; lastRealTime = performance.now() / 1000;
+                     setBranchRecord(iBin);
                      $('#nhits').text(nHits); updateBranchCountDisplay();
-                     renderDetectorAndHistogram();
+                  },
+                  onSelect(index) {
+                     // Selection follows an existing record; it is not another detection.
+                     setBranchRecord(index);
+                     particleAccum = 0; lastRealTime = performance.now() / 1000;
                   }
                });
                if (started) { particleAccum = 0; break; }
@@ -3193,14 +3217,18 @@ async function evolveParticles() {
 //==================================================================================================================
 //
 //==================================================================================================================
-async function renderDetectorAndHistogram() {
+function renderDetectorAndHistogram(options = {}) {
+   const ctx = options.context || setupCtx;
+   const recordHits = options.hits || hits;
+   const recordCount = options.count ?? nHits;
+   const recordMax = options.maximum ?? hitMax;
    // First loop: Calculate the maximum amplitude (cached for performance)
 
    histoX=detectorX+sensorWidth;
-   setupCtx.globalAlpha = 1;
+   ctx.globalAlpha = 1;
    // Fill histogram area with white background
-   setupCtx.fillStyle = '#ffffff';
-   setupCtx.fillRect(histoX, 0, canvas.width-histoX, canvas.height);
+   ctx.fillStyle = '#ffffff';
+   ctx.fillRect(histoX, 0, canvas.width-histoX, canvas.height);
    
    let maxAmplitude = 0;
    const showHitProb = $("#hit_prob").is(":checked");
@@ -3242,11 +3270,11 @@ async function renderDetectorAndHistogram() {
       }
    }
 
-   setupCtx.globalAlpha = elementOpacity('hit_prob');
+   ctx.globalAlpha = elementOpacity('hit_prob');
    // Second loop: Scale amplitudes and plot
-   setupCtx.beginPath();
-   var oldStyle = setupCtx.strokeStyle;
-   setupCtx.strokeStyle = colorProb; // Set the color of the line
+   ctx.beginPath();
+   var oldStyle = ctx.strokeStyle;
+   ctx.strokeStyle = colorProb; // Set the color of the line
 
    detectorWidth = canvas.width - detectorX - sensorWidth;
 
@@ -3256,9 +3284,9 @@ async function renderDetectorAndHistogram() {
    const baseScale = maxAmplitude > 0 ? 0.9 * detectorWidth / maxAmplitude : 0;
    const baseArea = amplitudes.reduce((sum,value)=>sum+value,0) * baseScale * toWorldY;
    const binWorldHeight = worldCanvasDy / nDetectorPixels;
-   const baseCountScale = nHits > 0 ? baseArea / (nHits * binWorldHeight) : 0;
+   const baseCountScale = recordCount > 0 ? baseArea / (recordCount * binWorldHeight) : 0;
    let upperCount = 0;
-   if (showHits) for (const count of hits) upperCount = Math.max(upperCount,count+Math.sqrt(count));
+   if (showHits) for (const count of recordHits) upperCount = Math.max(upperCount,count+Math.sqrt(count));
    const largestExtent = Math.max(0.9*detectorWidth,baseCountScale*upperCount);
    const fitScale = largestExtent > 0 ? Math.min(1,Math.max(0,detectorWidth-8)/largestExtent) : 1;
    var totalArea = baseArea * fitScale;
@@ -3266,75 +3294,75 @@ async function renderDetectorAndHistogram() {
       const normalizedAmplitude = amplitudes[i] * baseScale * fitScale;
       const yHitCanvas = i + 0.5;
       if (showHitProb) {
-         if (i === 0) setupCtx.moveTo(histoX + normalizedAmplitude,yHitCanvas);
-         else setupCtx.lineTo(histoX + normalizedAmplitude,yHitCanvas);
+         if (i === 0) ctx.moveTo(histoX + normalizedAmplitude,yHitCanvas);
+         else ctx.lineTo(histoX + normalizedAmplitude,yHitCanvas);
       }
    }
-   setupCtx.stroke();
+   ctx.stroke();
 
    // Draw histogram with statistical uncertainties
-   setupCtx.fillStyle = colorHit;
-   setupCtx.strokeStyle = colorHit; // Color for error bars
-   setupCtx.lineWidth = 1;         // Line width for error bars
+   ctx.fillStyle = colorHit;
+   ctx.strokeStyle = colorHit; // Color for error bars
+   ctx.lineWidth = 1;         // Line width for error bars
 
    // Draw histogram with statistical uncertainties
-   setupCtx.fillStyle = colorHit;
-   setupCtx.strokeStyle = colorHit; // Color for error bars
-   setupCtx.lineWidth = 1;         // Line width for error bars
+   ctx.fillStyle = colorHit;
+   ctx.strokeStyle = colorHit; // Color for error bars
+   ctx.lineWidth = 1;         // Line width for error bars
 
 
    var rgbSensor ;
    if ( showSensor ) {
-      setupCtx.globalAlpha = elementOpacity('plot_sensor');
+      ctx.globalAlpha = elementOpacity('plot_sensor');
       rgbSensor = getRGBComponents(colorSensor);
-      setupCtx.fillStyle = "black";
-      setupCtx.fillRect(detectorX, 0, sensorWidth, canvas.height);  // color 
+      ctx.fillStyle = "black";
+      ctx.fillRect(detectorX, 0, sensorWidth, canvas.height);  // color 
    }
-   if ( nHits > 0 && ( showHits || showSensor ) ) {
-      var histoArea = nHits * worldCanvasDy / parseFloat(nDetectorPixels);
+   if ( recordCount > 0 && ( showHits || showSensor ) ) {
+      var histoArea = recordCount * worldCanvasDy / parseFloat(nDetectorPixels);
       var norma = totalArea / histoArea;
-      for (var i = 0; i < hits.length; i++) {
+      for (var i = 0; i < recordHits.length; i++) {
          // Draw at bin center: bin i covers [(i)/yToBin, (i+1)/yToBin)
          // so its center is at (i + 0.5) / yToBinCanvas
          var yHit = (i + 0.5) / yToBinCanvas; // Position on the canvas (bin center)
-         if (hits[i] > 0) {
+         if (recordHits[i] > 0) {
             var dY = canvas.height / parseFloat(nDetectorPixels); // Height of the bin
-            var binValue = hits[i];
+            var binValue = recordHits[i];
             var uncertainty = Math.sqrt(binValue); // Statistical uncertainty = sqrt(nEntries)
 
             var normalizedBinValue = norma * binValue ; // Normalize bin value
             var normalizedUncertainty = norma * uncertainty ; // Normalize uncertainty
 
             if ( showHits ) {
-               setupCtx.globalAlpha = elementOpacity('plot_hits');
+               ctx.globalAlpha = elementOpacity('plot_hits');
                // Plot the point
-               setupCtx.fillStyle = colorHit;
-               setupCtx.beginPath();
-               //setupCtx.arc(histoX + normalizedBinValue, canvas.height - yHit, 3, 0, 2 * Math.PI); // Small circle for the point
-               setupCtx.arc(histoX + normalizedBinValue, yHit, 3, 0, 2 * Math.PI); // Small circle for the point
-               setupCtx.fill();
+               ctx.fillStyle = colorHit;
+               ctx.beginPath();
+               //ctx.arc(histoX + normalizedBinValue, canvas.height - yHit, 3, 0, 2 * Math.PI); // Small circle for the point
+               ctx.arc(histoX + normalizedBinValue, yHit, 3, 0, 2 * Math.PI); // Small circle for the point
+               ctx.fill();
 
                // Draw error bar
-               setupCtx.beginPath();
-               setupCtx.moveTo(histoX + normalizedBinValue + normalizedUncertainty, yHit ); // Top of error bar
-               //setupCtx.moveTo(histoX + normalizedBinValue + normalizedUncertainty, canvas.height - yHit ); // Top of error bar
-               setupCtx.lineTo(histoX + normalizedBinValue - normalizedUncertainty, yHit ); // Bottom of error bar
-               //setupCtx.lineTo(histoX + normalizedBinValue - normalizedUncertainty, canvas.height - yHit ); // Bottom of error bar
-               setupCtx.stroke();
+               ctx.beginPath();
+               ctx.moveTo(histoX + normalizedBinValue + normalizedUncertainty, yHit ); // Top of error bar
+               //ctx.moveTo(histoX + normalizedBinValue + normalizedUncertainty, canvas.height - yHit ); // Top of error bar
+               ctx.lineTo(histoX + normalizedBinValue - normalizedUncertainty, yHit ); // Bottom of error bar
+               //ctx.lineTo(histoX + normalizedBinValue - normalizedUncertainty, canvas.height - yHit ); // Bottom of error bar
+               ctx.stroke();
             }
             if ( showSensor ) {
-               setupCtx.globalAlpha = elementOpacity('plot_sensor');
-               intensity = (hits[i] / hitMax);
+               ctx.globalAlpha = elementOpacity('plot_sensor');
+               intensity = (recordHits[i] / recordMax);
                const color = `rgb(${parseInt(rgbSensor['red'])*intensity}, ${parseInt(rgbSensor['green'])*intensity}, ${parseInt(rgbSensor['blue'])*intensity})`;  
-               setupCtx.fillStyle = color;
+               ctx.fillStyle = color;
                // Sensor rect starts at bin edge, not center
                var yBinEdge = i / yToBinCanvas;
-               setupCtx.fillRect(detectorX, yBinEdge, sensorWidth, dY);  // color 
+               ctx.fillRect(detectorX, yBinEdge, sensorWidth, dY);  // color 
             }
          }
       }
    }
-   setupCtx.globalAlpha = 1;
+   ctx.globalAlpha = 1;
 }
 //==================================================================================================================
 //
