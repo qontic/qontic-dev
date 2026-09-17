@@ -22,6 +22,24 @@ export function hankel0(z) {
   return [a*(re*c-im*s),a*(re*s+im*c)];
 }
 
+// Analytic radial derivative: d H0(z)/dz = -H1(z).
+export function hankel1(z){
+ if(!(z>0))throw new RangeError('Positive radius required');
+ if(z<12){
+  const q=-z*z/4;let term=1,j=1,dj=0,ds=0,h=0;
+  for(let n=1;n<100;n++){term*=q/(n*n);h+=1/n;j+=term;dj+=2*n*term/z;ds-=2*n*h*term/z;if(Math.abs(term)<1e-16)break;}
+  return [-dj,-2/Math.PI*(j/z+(Math.log(z/2)+.5772156649015329)*dj+ds)];
+ }
+ let re=1,im=0,term=1,previous=Infinity;
+ for(let n=1;n<50;n++){
+  term*=(4-(2*n-1)**2)/(8*n*z);if(Math.abs(term)>previous)break;previous=Math.abs(term);
+  const phase=n%4;if(phase===0)re+=term;else if(phase===1)im+=term;else if(phase===2)re-=term;else im-=term;
+  if(Math.abs(term)<1e-16)break;
+ }
+ const a=Math.sqrt(2/(Math.PI*z)),c=Math.cos(z-3*Math.PI/4),s=Math.sin(z-3*Math.PI/4);
+ return [a*(re*c-im*s),a*(re*s+im*c)];
+}
+
 export function spectrum(p,n=96){
   const low=Math.max(.02,p.k-4/p.sx),high=p.k+4/p.sx,dk=(high-low)/(n-1);
   return Array.from({length:n},(_,i)=>{const k=low+dk*i;return {k,omega:k*k/2,weight:Math.exp(-((p.sx*(k-p.k))**2))*dk*((i===0||i===n-1)?.5:1)};});

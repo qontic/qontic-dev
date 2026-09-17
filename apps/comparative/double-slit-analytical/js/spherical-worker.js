@@ -1,4 +1,4 @@
-import {build,detectorProfile} from './spherical-field.js?v=43';
+import {build,detectorProfile} from './spherical-field.js?v=43.1';
 self.onmessage=({data})=>{
  try{
   const {p,options}=data,table=build(p,options),profile=detectorProfile(table);

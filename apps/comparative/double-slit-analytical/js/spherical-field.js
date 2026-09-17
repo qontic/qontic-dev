@@ -1,4 +1,4 @@
-import {spectrum,hankel0,angularModes,screenFrame,evaluate} from './spherical-packet-model.js?v=43';
+import {spectrum,hankel0,hankel1,angularModes,screenFrame,evaluate} from './spherical-packet-model.js?v=43.1';
 const COMPONENTS=['re','im','dr','di','yr','yi'];
 export function build(p,{nx=144,ny=161,xmin=-.5,xmax=p.screen,ymin=-6,ymax=6,frequencies=96,order=96}={}){
  const freq=spectrum(p,frequencies),xs=Float64Array.from({length:nx},(_,i)=>xmin+(xmax-xmin)*i/(nx-1)),ys=Float64Array.from({length:ny},(_,j)=>ymin+(ymax-ymin)*j/(ny-1));
@@ -22,15 +22,15 @@ export function build(p,{nx=144,ny=161,xmin=-.5,xmax=p.screen,ymin=-6,ymax=6,fre
    const x=xs[i];
    if(x>=p.wall)column(x,components,f*size+i,nx);
    else for(let j=0;j<ny;j++){
-    const y=ys[j],radius=Math.max(.08,Math.hypot(x,y)),h=1e-5,[r,q]=hankel0(k*radius),a=hankel0(k*(radius+h)),b=hankel0(k*(radius-h)),dr=(a[0]-b[0])/(2*h),di=(a[1]-b[1])/(2*h),z=f*size+j*nx+i;
+    const y=ys[j],radius=Math.max(.08,Math.hypot(x,y)),[r,q]=hankel0(k*radius),a=hankel1(k*radius),dr=-k*a[0],di=-k*a[1],z=f*size+j*nx+i;
     const v=[r,q,dr*x/radius,di*x/radius,dr*y/radius,di*y/radius];for(let n=0;n<6;n++)components[n][z]=v[n];
    }
   }
  }
  const radialN=1024,rmin=p.radius||.08,rmax=Math.hypot(p.screen,Math.max(Math.abs(ymin),Math.abs(ymax)))+1,radial=COMPONENTS.map(()=>new Float32Array(radialN*freq.length));
  for(let f=0;f<freq.length;f++)for(let j=0;j<radialN;j++){
-  const r=rmin+(rmax-rmin)*j/(radialN-1),k=freq[f].k,h=1e-5,a=hankel0(k*r),b=hankel0(k*(r+h)),c=hankel0(k*(r-h)),z=f*radialN+j;
-  radial[0][z]=a[0];radial[1][z]=a[1];radial[2][z]=(b[0]-c[0])/(2*h);radial[3][z]=(b[1]-c[1])/(2*h);
+  const r=rmin+(rmax-rmin)*j/(radialN-1),k=freq[f].k,a=hankel0(k*r),b=hankel1(k*r),z=f*radialN+j;
+  radial[0][z]=a[0];radial[1][z]=a[1];radial[2][z]=-k*b[0];radial[3][z]=-k*b[1];
  }
  return {p,freq,xs,ys,nx,ny,size,components,edge,screen,radial,radialN,rmin,rmax,xmin,xmax,ymin,ymax,screenReal:screen[0],screenImag:screen[1],screenDr:screen[2],screenDi:screen[3]};
 }
