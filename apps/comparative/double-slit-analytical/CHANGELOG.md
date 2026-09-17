@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## 38 — 2026-09-17
+- Hide branch probability labels by default; add an optional Show probabilities checkbox.
+- Show labels only when complete text fits; remove their reserved space otherwise. Keep full probabilities in tooltips and accessible names.
+
 ## 37 — 2026-09-17
 - Prefer complete balanced branch grids: 25 outcomes form 5×5; 500 form 25×20.
 - Fit desktop grids within the canvas by scaling their width while retaining each miniature’s aspect ratio.

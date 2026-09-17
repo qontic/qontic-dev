@@ -11,7 +11,7 @@ export function createBranchDwellClock(now=()=>performance.now()) {
 export function mountMWBranching({host,controls,isMW,isRunning}) {
   const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=30',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
-  settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow" hidden>Follow branch <select aria-label="Follow branch"><option value="auto">Automatically (Born weights)</option><option value="manual">Choose myself</option></select></label><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
+  settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow" hidden>Follow branch <select aria-label="Follow branch"><option value="auto">Automatically (Born weights)</option><option value="manual">Choose myself</option></select></label><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><label class="mw-follow" hidden><input type="checkbox" id="mw-show-probabilities"> Show probabilities</label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
   controls.append(settings);
   const enabled=settings.querySelector('input'),mode=settings.querySelector('select');
   const overlay=document.createElement('div');overlay.className='mw-branch-overlay';overlay.hidden=true;
@@ -22,6 +22,8 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
   const dwellClock=createBranchDwellClock();
   dwell.addEventListener('input',()=>{dwellOutput.textContent=Number(dwell.value).toFixed(1)+' s';dwell.setAttribute('aria-valuetext',dwellOutput.textContent);dwellClock.reset();});
   let active=null;
+  const showProbabilities=settings.querySelector("#mw-show-probabilities");
+  showProbabilities.addEventListener("change",()=>active?.layout?.());
   const cancel=()=>{dwellClock.reset();if(!active)return;cancelAnimationFrame(active.frame);active=null;overlay.hidden=true;grid.replaceChildren();zoom.hidden=true;};
   const sync=()=>{if(!isRunning())dwellClock.pause();settings.hidden=!isMW();settings.querySelectorAll('.mw-follow').forEach(el=>el.hidden=!enabled.checked);if(!isMW()||!enabled.checked)cancel();};
   enabled.addEventListener('change',()=>{dwellClock.reset();sync();});mode.addEventListener('change',cancel);
@@ -52,10 +54,22 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     const availableHeight=Math.max(1,scroll.clientHeight-10);
     // Fit height by scaling the grid, rather than adding extra columns.
     // Small screens retain the available width and allow vertical scrolling.
-    const fittedWidth=columns*(Math.max(1,(availableHeight-gap*(rows-1))/rows-20)*aspect+2)+gap*(columns-1);
-    grid.style.width=Math.min(availableWidth,host.clientWidth>=600?fittedWidth:availableWidth)+'px';
-    grid.style.marginInline='auto';
-    grid.style.gridTemplateColumns=`repeat(${columns},minmax(0,1fr))`;
+    const labelTexts=weights.map((weight,index)=>`${index+1} · ${(100*weight).toPrecision(3)}%`);
+    ctx.font='10px Inter,Arial,sans-serif';
+    const minimumLabelWidth=Math.max(80,...labelTexts.map(text=>ctx.measureText(text).width+12));
+    let displayLabels=false;
+    const sizeGrid=()=>{
+      const widthFor=footer=>{
+        const fitted=columns*(Math.max(1,(availableHeight-gap*(rows-1))/rows-footer)*aspect+2)+gap*(columns-1);
+        return Math.min(availableWidth,host.clientWidth>=600?fitted:availableWidth);
+      };
+      const labelledWidth=widthFor(20);
+      displayLabels=showProbabilities.checked && (labelledWidth-gap*(columns-1))/columns-2>=minimumLabelWidth;
+      grid.style.width=widthFor(displayLabels?20:2)+'px';
+      grid.style.marginInline='auto';
+      grid.style.gridTemplateColumns=`repeat(${columns},minmax(0,1fr))`;
+    };
+    sizeGrid();
     active={frame:0,elapsed:0,last:performance.now(),selected:null,splitTime:0,splitDone:false,zoomTime:0,buttons:[],miniatures:[],snapshot};
     const session=active;
     const choose=index=>{
@@ -114,10 +128,12 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
         z.save();z.translate(x,y);paint(z,index,w,h,snapshot,progress<1,opacities[index]+(index===session.selected?(1-opacities[index])*ease:0));
         z.fillStyle=index===session.selected?'rgba(85,216,230,'+(.18*(1-ease))+')':'rgba(4,14,24,.22)';
         z.fillRect(0,0,w,h);
-        z.fillStyle='#142737';z.fillRect(0,h,w,16);
-        z.fillStyle='#e9faff';z.font='10px Inter,Arial,sans-serif';z.textAlign='center';z.fillText(label,w/2,h+12,w-4);
+        if(displayLabels && w>=minimumLabelWidth){
+          z.fillStyle='#142737';z.fillRect(0,h,w,16);
+          z.fillStyle='#e9faff';z.font='10px Inter,Arial,sans-serif';z.textAlign='center';z.fillText(label,w/2,h+12);
+        }
         z.strokeStyle=index===session.selected?'#7cf2ff':'#496577';z.lineWidth=index===session.selected?2:1;
-        z.strokeRect(-1,-1,w+2,h+18);z.restore();
+        z.strokeRect(-1,-1,w+2,h+(displayLabels?18:2));z.restore();
       });
       z.restore();
     };
@@ -126,14 +142,24 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       const percent=(100*weight).toPrecision(3)+'%';button.setAttribute('aria-label',`Follow pixel ${index+1}, weight ${percent}`);button.title=`Pixel ${index+1} · Born weight ${percent}`;
       button.disabled=true;
       const miniature=document.createElement('canvas');miniature.width=192;miniature.height=Math.round(192/aspect);paint(miniature.getContext('2d'),index,miniature.width,miniature.height);
-      const label=document.createElement('span');label.textContent=`${index+1} · ${percent}`;button.append(miniature,label);button.addEventListener('click',()=>choose(index));grid.append(button);session.buttons.push(button);session.miniatures.push(miniature);
+      const label=document.createElement('span');label.textContent=labelTexts[index];label.hidden=!displayLabels;button.append(miniature,label);button.addEventListener('click',()=>choose(index));grid.append(button);session.buttons.push(button);session.miniatures.push(miniature);
     });
     // Capture the destination layout before hiding its interactive DOM layer.
-    const bounds=overlay.getBoundingClientRect();
-    const destinations=session.miniatures.map(miniature=>{
-      const r=miniature.getBoundingClientRect();
-      return {x:r.left-bounds.left,y:r.top-bounds.top,w:r.width,h:r.height};
-    });
+    let destinations=[];
+    const captureDestinations=()=>{
+      const bounds=overlay.getBoundingClientRect();
+      destinations=session.miniatures.map(miniature=>{
+        const r=miniature.getBoundingClientRect();
+        return {x:r.left-bounds.left,y:r.top-bounds.top,w:r.width,h:r.height};
+      });
+    };
+    session.layout=()=>{
+      if(session.selected!==null)return;
+      sizeGrid();
+      session.buttons.forEach(button=>button.querySelector('span').hidden=!displayLabels);
+      captureDestinations();
+    };
+    captureDestinations();
     zoom.width=snapshot.width;zoom.height=snapshot.height;zoom.hidden=false;
     scroll.style.visibility='hidden';
     const splitDuration=1250;
@@ -157,11 +183,11 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
         // Each copy already carries its own fired pixel from its first frame.
         paint(z,index,w,h,w<240?thumbnail:snapshot);
         z.strokeStyle='rgba(124,242,255,'+(0.65*(1-spread)+0.25)+')';z.lineWidth=1.5;z.strokeRect(0,0,w,h);
-        if(spread>.75){
+        if(spread>.75 && displayLabels && w>=minimumLabelWidth){
           z.globalAlpha=(spread-.75)/.25;
           z.fillStyle='#142737';z.fillRect(0,h,w,16);
           z.fillStyle='#e9faff';z.font='10px Inter,Arial,sans-serif';z.textAlign='center';
-          z.fillText(session.buttons[index].querySelector('span').textContent,w/2,h+12,w-4);
+          z.fillText(labelTexts[index],w/2,h+12);
         }
         z.restore();
       }
