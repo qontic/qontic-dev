@@ -39,7 +39,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     const layers=['setupCanvas','waveCanvas','partCanvas'].map(id=>document.getElementById(id));
     const updateSharedFrame=()=>{ctx.clearRect(0,0,snapshot.width,snapshot.height);for(const layer of layers)ctx.drawImage(layer,0,0,snapshot.width,snapshot.height);};
     updateSharedFrame();
-    overlay.hidden=false;status.style.opacity='1';zoom.hidden=true;scroll.hidden=false;scroll.scrollTop=0;grid.replaceChildren();
+    overlay.hidden=false;status.style.opacity='1';zoom.hidden=true;scroll.hidden=false;scroll.style.visibility='';scroll.scrollTop=0;grid.replaceChildren();
     const count=weights.length,aspect=snapshot.width/snapshot.height;
     // Fit all views when legible; narrower screens can scroll through larger tiles.
     const ideal=Math.ceil(Math.sqrt(count*host.clientWidth/(Math.max(100,host.clientHeight-40)*aspect)));
@@ -48,10 +48,10 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       while(columns<count && Math.ceil(count/columns)*((host.clientWidth/columns-5)/aspect+23)>host.clientHeight-40) columns++;
     }
     grid.style.gridTemplateColumns=`repeat(${columns},minmax(0,1fr))`;
-    active={frame:0,elapsed:0,last:performance.now(),selected:null,zoomTime:0,buttons:[],miniatures:[],snapshot};
+    active={frame:0,elapsed:0,last:performance.now(),selected:null,splitTime:0,splitDone:false,zoomTime:0,buttons:[],miniatures:[],snapshot};
     const session=active;
     const choose=index=>{
-      if(active!==session||session.selected!==null||!isRunning()||weights[index]<=0)return;
+      if(active!==session||!session.splitDone||session.selected!==null||!isRunning()||weights[index]<=0)return;
       session.selected=index;session.zoomTime=0;
       const tile=session.buttons[index];tile.scrollIntoView({block:'nearest',inline:'nearest'});
       const h=overlay.getBoundingClientRect();
@@ -103,14 +103,55 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     weights.forEach((weight,index)=>{
       const button=document.createElement('button');button.type='button';button.className='mw-branch-tile';
       const percent=(100*weight).toPrecision(3)+'%';button.setAttribute('aria-label',`Follow pixel ${index+1}, weight ${percent}`);button.title=`Pixel ${index+1} · Born weight ${percent}`;
-      button.disabled=mode.value!=='manual'||weight<=0;
+      button.disabled=true;
       const miniature=document.createElement('canvas');miniature.width=192;miniature.height=Math.round(192/aspect);paint(miniature.getContext('2d'),index,miniature.width,miniature.height);
       const label=document.createElement('span');label.textContent=`${index+1} · ${percent}`;button.append(miniature,label);button.addEventListener('click',()=>choose(index));grid.append(button);session.buttons.push(button);session.miniatures.push(miniature);
     });
+    // Capture the destination layout before hiding its interactive DOM layer.
+    const bounds=overlay.getBoundingClientRect();
+    const destinations=session.miniatures.map(miniature=>{
+      const r=miniature.getBoundingClientRect();
+      return {x:r.left-bounds.left,y:r.top-bounds.top,w:r.width,h:r.height};
+    });
+    zoom.width=snapshot.width;zoom.height=snapshot.height;zoom.hidden=false;
+    scroll.style.visibility='hidden';
+    const splitDuration=1250;
+    const renderSplit=elapsed=>{
+      const z=zoom.getContext('2d'),W=zoom.width,H=zoom.height;
+      const depthProgress=Math.min(1,elapsed/350);
+      const spread=Math.max(0,Math.min(1,(elapsed-350)/900));
+      const ease=spread*spread*(3-2*spread);
+      z.fillStyle='#0b1725';z.fillRect(0,0,W,H);
+      // A few visible layers convey the initial stack without painting hundreds
+      // of fully occluded full-size copies. Every outcome fans out into its tile.
+      const stride=spread===0?Math.max(1,Math.ceil(count/12)):1;
+      for(let index=count-1;index>=0;index-=stride){
+        const depth=count>1?index/(count-1):0,d=destinations[index];
+        const stackScale=1+(0.42/(1+depth*1.3)-1)*depthProgress;
+        const sw=W*stackScale,sh=H*stackScale;
+        const sx=(W-sw)/2+depth*24*depthProgress,sy=(H-sh)/2-depth*18*depthProgress;
+        const x=sx+(d.x-sx)*ease,y=sy+(d.y-sy)*ease,w=sw+(d.w-sw)*ease,h=sh+(d.h-sh)*ease;
+        if(x>W||y>H||x+w<0||y+h<0)continue;
+        z.save();z.translate(x,y);
+        // Each copy already carries its own fired pixel from its first frame.
+        paint(z,index,w,h,w<240?thumbnail:snapshot);
+        z.strokeStyle='rgba(124,242,255,'+(0.65*(1-spread)+0.25)+')';z.lineWidth=1.5;z.strokeRect(0,0,w,h);
+        if(spread>.75){
+          z.globalAlpha=(spread-.75)/.25;
+          z.fillStyle='#142737';z.fillRect(0,h,w,16);
+          z.fillStyle='#e9faff';z.font='10px Inter,Arial,sans-serif';z.textAlign='center';
+          z.fillText(session.buttons[index].querySelector('span').textContent,w/2,h+12,w-4);
+        }
+        z.restore();
+      }
+      status.style.opacity=String(Math.min(1,spread*2));
+    };
     // Render the physics once, then reuse one downsampled live frame for every tile.
     // The full-resolution shared frame also drives the camera zoom.
     const thumbnail=document.createElement('canvas');thumbnail.width=192;thumbnail.height=Math.round(192/aspect);
     const thumbnailCtx=thumbnail.getContext('2d');
+    thumbnailCtx.drawImage(snapshot,0,0,thumbnail.width,thumbnail.height);
+    renderSplit(0);
     session.refresh=()=>{
       if(active!==session||!isRunning())return;
       updateSharedFrame();
@@ -124,8 +165,17 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       if(!isMW()||!enabled.checked){cancel();return;}
       const dt=Math.min(100,now-session.last);session.last=now;
       if(isRunning()){
-        session.elapsed+=dt;
-        if(session.selected===null){
+        if(!session.splitDone){
+          session.splitTime+=dt;
+          renderSplit(session.splitTime);
+          status.textContent='Detection · outcome branches separating';
+          if(session.splitTime>=splitDuration){
+            session.splitDone=true;session.elapsed=0;zoom.hidden=true;
+            scroll.style.visibility='';status.style.opacity='1';
+            session.buttons.forEach((button,index)=>button.disabled=mode.value!=='manual'||weights[index]<=0);
+          }
+        }else if(session.selected===null){
+          session.elapsed+=dt;
           status.textContent=mode.value==='manual'?`${count} outcome branches · choose a pixel to follow`:`${count} outcome branches · following one by Born weight…`;
           if(mode.value==='auto'&&session.elapsed>=1000)choose(selected);
         }else{

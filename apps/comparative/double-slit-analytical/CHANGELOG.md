@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## 33 — 2026-09-17
+- Animate detection and branching together: fired detector records emerge in a depth stack and fan out into the branch grid.
+- Keep the wave live during the split; enable selection and start the one-second automatic-choice delay after the grid settles.
+- Preserve the branch-entry camera zoom and record one outcome when a branch is followed.
+
 ## 32 — 2026-09-16
 - Scale the model curve and sampled histogram together to keep all count markers and upper sqrt(n) error bars inside the plotting area, including at very low counts.
 - Fade the branch-entry status banner during zoom so it cannot hide the topmost fired detector pixel.
