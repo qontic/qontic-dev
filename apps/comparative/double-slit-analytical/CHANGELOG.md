@@ -1,5 +1,8 @@
 # Analytical Double Slit releases
 
+## 35 — 2026-09-17
+- Remove the temporary yellow detection highlight at the instant the selected branch fills the canvas, retaining its detector record and histogram.
+
 ## 34 — 2026-09-17
 - Each branch has its updated histogram and sensor record from the first split frame, through the grid and zoom.
 - Advance hit and branch totals at detection; following a branch adopts its existing record without counting another hit.

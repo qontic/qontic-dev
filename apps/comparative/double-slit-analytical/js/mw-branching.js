@@ -69,11 +69,12 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     const records=weights.map((_,index)=>createRecord(index));
     onSplit();
     updateSharedFrame();
-    const paint=(target,index,w,h,source=snapshot)=>{
+    const paint=(target,index,w,h,source=snapshot,highlight=true)=>{
       target.clearRect(0,0,w,h);
       target.drawImage(source,0,0,w,h);
       const x=detectorFraction*w,y=(index+.5)/count*h;
       target.drawImage(records[index],x,0,w-x,h);
+      if(!highlight)return; // The detector record remains after the temporary highlight ends.
       target.fillStyle='#ffe476';target.fillRect(x-2,index/count*h,5,Math.max(2,h/count));
       target.beginPath();target.arc(x,y,Math.max(2,Math.min(6,w*.025)),0,Math.PI*2);target.fill();
     };
@@ -94,7 +95,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       session.tiles.forEach((tile,index)=>{
         const {x,y,w,h,label}=tile;
         if(tx+(x+w)*scale<0||tx+x*scale>zoom.width||ty+(y+h+18)*scale<0||ty+y*scale>zoom.height)return;
-        z.save();z.translate(x,y);paint(z,index,w,h);
+        z.save();z.translate(x,y);paint(z,index,w,h,snapshot,progress<1);
         z.fillStyle=index===session.selected?'rgba(85,216,230,'+(.18*(1-ease))+')':'rgba(4,14,24,.22)';
         z.fillRect(0,0,w,h);
         z.fillStyle='#142737';z.fillRect(0,h,w,16);
