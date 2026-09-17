@@ -2294,7 +2294,7 @@ function setupGeo(doPrecompute) {
    if ( $("#plot_sensor").is(':checked') > 0 ) sensorWidth=30;
    else                                        sensorWidth=0;
 
-   worldCanvasDx = 1.4 * (sourcePos + detectorDistance)+sensorWidth;
+   worldCanvasDx = window.qonticPacketEngine?.viewportWidth ?? (1.4 * (sourcePos + detectorDistance)+sensorWidth);
    worldCanvasDy = screenHeight;
 
    slitWidth = 0.01 * screenHeight;

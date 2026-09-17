@@ -1,5 +1,13 @@
 # Analytical Double Slit releases
 
+## Version 47 — Canvas geometry and trajectory tails (2026-09-17)
+
+- Remove the source marker and source-position control; fix the preparation plane at 225 nm before the apertures.
+- Replace detector distance and screen-height sliders with draggable canvas handles and keyboard adjustment. Preview while dragging; commit starts a new record, Escape cancels.
+- Keep the horizontal viewport stable when moving the detector; expand it when necessary.
+- Inline packet-width controls with numeric entry and units. Add trajectory tail length in nm; completed paths fade over 0.8 playback seconds.
+- Geometry, bounds, tail-length and fade checks passed. Browser verification unavailable because the execution environment was disconnected.
+
 ## Version 46 — Gaussian packets across interpretations (2026-09-17)
 
 - Gaussian source packets are the sole engine; previous models remain recoverable in git.
