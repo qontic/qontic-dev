@@ -1,4 +1,5 @@
-import {spectrum,hankel0,hankel1,angularModes,screenFrame,evaluate} from './spherical-packet-model.js?v=43.1';
+import {aimedAngle} from './packet-cache.js?v=44';
+import {spectrum,hankel0,hankel1,angularModes,screenFrame,evaluate} from './spherical-packet-model.js?v=44';
 const COMPONENTS=['re','im','dr','di','yr','yi'];
 export function build(p,{nx=144,ny=161,xmin=-.5,xmax=p.screen,ymin=-6,ymax=6,frequencies=96,order=96}={}){
  const freq=spectrum(p,frequencies),xs=Float64Array.from({length:nx},(_,i)=>xmin+(xmax-xmin)*i/(nx-1)),ys=Float64Array.from({length:ny},(_,j)=>ymin+(ymax-ymin)*j/(ny-1));
@@ -83,7 +84,7 @@ export function sourceSchedule(table,random=Math.random,count=100){
  for(let i=0;i<n;i++)cdf.push(cdf[i]+Math.max(0,evaluate(coeff,(i+.5)*dt,table.p.emission).jx)*dt);
  return Array.from({length:count},()=>{
   const u=random()*cdf[n];let lo=0,hi=n;while(hi-lo>1){const mid=(lo+hi)>>1;if(cdf[mid]>u)hi=mid;else lo=mid;}
-  const birth=(lo+(u-cdf[lo])/Math.max(1e-30,cdf[lo+1]-cdf[lo]))*dt,angle=(random()-.5)*Math.PI;
+  const birth=(lo+(u-cdf[lo])/Math.max(1e-30,cdf[lo+1]-cdf[lo]))*dt,angle=table.p.focused?aimedAngle(table.p,random):(random()-.5)*Math.PI;
   return {birth,angle,x:table.rmin*Math.cos(angle),y:table.rmin*Math.sin(angle),passed:false,done:false,path:[]};
  });
 }
@@ -97,7 +98,7 @@ export function stepParticles(table,first,last,particles,random=Math.random){
   if(a.done||a.birth>=last.t)continue;
   let time=Math.max(a.birth,first.t);
   while(time<last.t-1e-12&&!a.done){
-   let dt=Math.min(last.t-time,.002/p.k);
+   let dt=Math.min(last.t-time,.01/p.k);
    if(!a.passed){
     const r=Math.hypot(a.x,a.y),s=radialAt(r,time+dt/2),v=s.jx/Math.max(1e-24,s.rho),next=Math.max(table.rmin,r+dt*v),xx=next*Math.cos(a.angle),yy=next*Math.sin(a.angle);
     if(xx>=p.wall){

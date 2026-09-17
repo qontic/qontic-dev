@@ -1,5 +1,16 @@
 # Analytical Double Slit releases
 
+## Version 44 — Packet playback and launch controls (2026-09-17)
+
+- Cache and interpolate the carrier-demodulated spectral solution once per geometry; reuse it for repeat packets and resets.
+- Independent Launch interval control (0.5–10 playback seconds, default 3); concurrent independent packets, capped at 12 without truncating existing packets.
+- Keep packet motion speed in the shared Speed control; eliminate the one-small-step-per-frame cap and allow catch-up substeps.
+- Extend slit/exit Gaussian width to 200 nm.
+- Optional biased slit-directed particle sampling; hide the ordinary prediction curve while enabled, preserve actual hit counts and explain the limitation.
+- Numerical cache-convergence, speed benchmark, emission scheduling, angular sampling and detector-statistics checks.
+- Prior release retained in git at ef9396480f07c7b509e76ca12bb0173e0446db3e.
+
+
 ## Version 43 — Circular-source packet prototype (2026-09-17)
 
 - Integrated into the existing Wave model selector; previous engines retained.
