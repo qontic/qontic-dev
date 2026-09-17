@@ -1,5 +1,11 @@
 # Analytical Double Slit releases
 
+## 39 — 2026-09-17
+- Add a separate experimental analytical Gaussian packet preview linked from Core, with single/pair slit-exit preparation, repeated independent pulses, and a Pilot-Wave ensemble.
+- Use exact free Gaussian fields and longitudinal trajectories, RK4 transverse trajectories, and quadrature of analytical screen current. No screen-endpoint seeding.
+- Validation: normalization, spreading, gradients, step convergence; 2,500 seeded trajectories give maximum screen CDF discrepancy 0.01088.
+- Rollback snapshot: `rollback/double-slit-v38-before-packets` at `faaa6861163976c8a0d3b1f1ce17f47f14e72c02`. To undo this release, revert its commit only; do not reset main or overwrite unrelated shared-template work.
+
 ## 38 — 2026-09-17
 - Hide branch probability labels by default; add an optional Show probabilities checkbox.
 - Show labels only when complete text fits; remove their reserved space otherwise. Keep full probabilities in tooltips and accessible names.

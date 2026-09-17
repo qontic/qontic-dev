@@ -1,5 +1,5 @@
 import { mountMWBranching } from './mw-branching.js?v=38';
-import { APP_RELEASE } from './release.js?v=38';
+import { APP_RELEASE } from './release.js?v=39';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -63,6 +63,11 @@ $(function () {
   controls.shadowRoot.append(themeStyle);
   const core = document.getElementById('basics-container');
   core.prepend(document.getElementById('experiment-bar'));
+  const packetLink=document.createElement('a');
+  packetLink.href='./packets.html?v=39';packetLink.target='_blank';packetLink.rel='noopener';
+  packetLink.textContent='Try analytical wave packets ↗';
+  packetLink.style.cssText='display:block;margin:12px 0;color:inherit;text-align:center;padding:8px;border:1px solid #427487;border-radius:6px';
+  core.append(packetLink);
   const advanced = document.createElement('div');
   advanced.id = 'analytical-advanced';
   core.after(advanced);
