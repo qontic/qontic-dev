@@ -1,5 +1,5 @@
-import {cachedPacketFrame,LaunchClock} from './packet-cache.js?v=44';
-import {sourceSchedule,stepParticles} from './spherical-field.js?v=44';
+import {cachedPacketFrame,LaunchClock} from './packet-cache.js?v=44.1';
+import {sourceSchedule,stepParticles} from './spherical-field.js?v=44.1';
 import {gaussian,transverse,longitudinal,positionX,advanceY,sample,screenProfile,histogramLayout} from './packet-model.js?v=41';
 import {aperture,sourceCoefficients,sourceTransverse,sourceEnvelope,sampleSource,stepSource,sourceProfile} from './source-packet-model.js?v=42';
 // Engine adapter: uses the application's existing controls, canvas layers and record.
@@ -58,7 +58,6 @@ export function mountPacketEngine({core,advanced}) {
   pulse++;particles=Array.from({length:p.particles},()=>p.source?sampleSource(p):sample(p));nParticles+=p.particles;
  }
  function resetEngine(){
-  if(packetAnimationId!==null)cancelAnimationFrame(packetAnimationId);packetAnimationId=null;
   const previousTable=sphericalTable,previousProfile=sphericalProfile,previousKey=sphericalCacheKey;
   sphericalJob++;sphericalWorker?.terminate();sphericalWorker=null;sphericalTable=null;sphericalFrame=null;sphericalError='';sphericalPreparing=false;cohorts=[];particles=[];launchClock.reset();
   p=config();if(p.spherical&&previousTable&&previousKey===cacheKey(p)){sphericalTable=previousTable;sphericalTable.p=p;sphericalProfile=previousProfile;}fingerprint=JSON.stringify([p,screenHeight,slit1Open,slit2Open,particleType]);yOffset=p.source||p.slits===2?screenHeight/200:(slit1Open?slit1YWorld:slit2YWorld)/100;
@@ -73,7 +72,7 @@ export function mountPacketEngine({core,advanced}) {
   const nx=Math.max(128,Math.ceil((p.screen-xmin)*p.k/(2*Math.PI)*18)),ny=Math.max(161,Math.ceil((ymax-ymin)*p.k/(2*Math.PI)*18));
   const frequencies=Math.max(96,Math.ceil((8/p.sx)*p.k*p.duration/(2*Math.PI)));
   if(p.wall<.3||nx>320||ny>321||frequencies>256){sphericalError='Spherical packets: increase source distance, wavelength or packet length, or reduce the displayed area, to resolve this geometry.';return;}
-  sphericalPreparing=true;sphericalWorker=new Worker(new URL('./spherical-worker.js?v=44',import.meta.url),{type:'module'});
+  sphericalPreparing=true;sphericalWorker=new Worker(new URL('./spherical-worker.js?v=44.1',import.meta.url),{type:'module'});
   sphericalWorker.onmessage=({data:result})=>{
    if(job!==sphericalJob||!enabled||!p.spherical)return;
    if(result.progress){status.textContent=result.progress;return;}
@@ -169,7 +168,7 @@ export function mountPacketEngine({core,advanced}) {
  }
  function frame(){
   packetAnimationId=null;if(!enabled||!isAnimating)return;
-  ensure();const now=performance.now(),elapsed=last===null?0:(now-last)/1000,wallDt=Math.min(p.spherical?.25:.05,elapsed);last=now;realElapsed+=elapsed;
+  ensure();const now=performance.now(),elapsed=last===null?0:(now-last)/1000,wallDt=Math.min(p.spherical?2:.05,elapsed);last=now;realElapsed+=elapsed;
   if(p.spherical&&!sphericalTable){last=null;stats();if(isAnimating&&!sphericalError)packetAnimationId=requestAnimationFrame(evolveSystem);else if(sphericalError){isAnimating=false;$('#startButton').text('Start');}return;}
   if(finished){prepare();}
   const speed=Number($('#animationStep-group')[0].getValueInFirstUnit())||1;
