@@ -1,4 +1,4 @@
-import { mountPacketEngine } from './packet-engine.js?v=40';
+import { mountPacketEngine } from './packet-engine.js?v=40.1';
 import { mountMWBranching } from './mw-branching.js?v=38';
 import { APP_RELEASE } from './release.js?v=40';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
@@ -314,7 +314,7 @@ $(function () {
   document.getElementById('waveRangeLabel').hidden=true;
   window.qonticWaveRangeControl=mountValueRange({
     host:rangeHost,label:'wave display range',movableContainer:rangePanel,storageKey:'qontic-double-slit-range-position',
-    format:value=>formatWaveRangeValue(useWebGLWave && $('#waveFunctionOption').val()==='Phase'?value*2*Math.PI:useWebGLWave && $('#waveFunctionOption').val()==='LogPsi2'?(value*15-15)/Math.log(10):value),
+    format:value=>formatWaveRangeValue((useWebGLWave || window.qonticPacketEngine?.enabled) && $('#waveFunctionOption').val()==='Phase'?value*2*Math.PI:(useWebGLWave || window.qonticPacketEngine?.enabled) && $('#waveFunctionOption').val()==='LogPsi2'?(value*15-15)/Math.log(10):value),
     onChange:({lower,upper})=>{
       waveRangeUserMin=lower;waveRangeUserMax=upper;waveRangeLockedByUser=true;
       lastCycleIndex=-1;

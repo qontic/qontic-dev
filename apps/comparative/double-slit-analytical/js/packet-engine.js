@@ -6,10 +6,10 @@ export function mountPacketEngine({core,advanced}) {
  panel.innerHTML='<label>Packet length σ <output>50 nm</output><input aria-label="Packet length" type="range" min="20" max="200" step="5" value="50"></label><label>Exit width σ <output>30 nm</output><input aria-label="Packet exit width" type="range" min="10" max="100" step="5" value="30"></label><label><input type="checkbox" checked> Repeat packets</label><p class="packet-note" role="status"></p>';advanced.prepend(panel);
  const [length,width,repeat]=panel.querySelectorAll('input'),note=panel.querySelector('p');
  const status=document.createElement('p');status.className='packet-note';status.hidden=true;core.append(status);
- const style=document.createElement('style');style.textContent='.packet-model-choice{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0}.packet-model-choice select{font:inherit;max-width:60%;background:var(--panel,#172b3b);color:inherit;border:1px solid #476477;border-radius:5px;padding:5px}.packet-settings{margin:10px 0}.packet-settings[hidden],.packet-note[hidden]{display:none!important}.packet-settings label{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;margin:10px 0}.packet-settings input[type=range]{grid-column:1/-1;width:100%;min-width:0;accent-color:#55d8e6}.packet-settings label:has(input[type=checkbox]){display:flex;gap:8px}.packet-note{font:inherit;font-size:.85em;line-height:1.4;color:inherit;opacity:.8}';document.head.append(style);
+ const style=document.createElement('style');style.textContent='.packet-model-choice{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0}.packet-model-choice select{font:inherit;max-width:60%;background:var(--panel,#172b3b);color:inherit;border:1px solid #476477;border-radius:5px;padding:5px}.packet-settings{margin:10px 0}.packet-settings[hidden],.packet-note[hidden]{display:none!important}.packet-settings label{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;margin:10px 0}.packet-settings input[type=range]{grid-column:1/-1;width:100%;min-width:0;accent-color:#55d8e6}.packet-settings label:has(input[type=checkbox]){display:flex;gap:8px}.packet-note{font:inherit;font-size:.85em;line-height:1.4;color:inherit;opacity:.8}';style.textContent+=' .packet-model-choice,.packet-model-choice select,.packet-settings,.packet-settings label,.packet-note{color:#dcecf4!important} [data-theme="light"] .packet-model-choice,[data-theme="light"] .packet-model-choice select,[data-theme="light"] .packet-settings,[data-theme="light"] .packet-settings label,[data-theme="light"] .packet-note{color:#183343!important}';document.head.append(style);
  const math=document.getElementById('math-container'),mathChildren=[...math.children],packetMath=document.createElement('section');packetMath.className='math-section';packetMath.hidden=true;
- packetMath.innerHTML='<h2>Analytical slit-exit packets</h2><p>A coherent pair of freely evolving Gaussians is prepared at the slit exits. This model does not solve scattering from a hard wall or emission from the source.</p><div class="packet-equation"></div><p>The wave and its gradients are analytical. Transverse Pilot-Wave paths use RK4 integration; initial positions sample |Ψ(0)|². Screen probabilities integrate outward current over each detector pixel and the packet duration. The curve is the predicted record at the end of the current packet; dots and √n errors are detections accumulated so far.</p><p>Coordinates are shown in nm. Internally ℓ=100 nm and t₀=mℓ²/ℏ set dimensionless units. Packet length and exit width are density standard deviations.</p>';math.prepend(packetMath);
- const rationale=document.createElement('section');rationale.innerHTML='<h2>Packet engine</h2><p>Select Packet in Core to prepare Gaussian packets at the slit exits. The existing wavelength, slit separation, detector geometry and particle controls apply. Max. Particles becomes the number of independent particles per packet. Packets repeat after a fixed flight window chosen from their preparation and geometry; hits persist between packets. Changing engines or preparation resets the record, while changing interpretation preserves it.</p><p>The dashed exit plane replaces the hard-wall drawing: Gaussian tails extend on both sides and evolve freely. The source and which-path interaction are not part of this initial packet engine. Electrons and neutrons are supported; a nonrelativistic massive-particle Gaussian is not used for photons.</p><p>Pilot-Wave displays the sampled trajectories. Orthodox and Many-Worlds display the same unconditioned ensemble wave and detection record without assigning visible paths. A hit consumes one independently prepared member, not the whole displayed ensemble wave. The current MW split animation and alternative-history resampling remain available with the continuous engine; they are not yet connected to packet detections. Packet detector statistics use first screen crossings and analytical outward flux, not a microscopic detector calculation.</p>';document.getElementById('rationale').prepend(rationale);
+ packetMath.innerHTML='<h2>Analytical slit-exit packets</h2><p>A coherent pair of freely evolving Gaussians is prepared at the slit exits. This model does not solve scattering from a hard wall or emission from the source.</p><div class="packet-equation"></div><p>For two open slits the expression above applies; with one open slit only its Gaussian is present. The wave and its gradients are analytical. Transverse Pilot-Wave paths use RK4 integration; initial positions sample |Ψ(0)|². Screen probabilities integrate outward current over each detector pixel and the packet duration. The curve is the predicted record at the end of the current packet; dots and √n errors are detections accumulated so far.</p><p>Coordinates are shown in nm. Internally ℓ=100 nm and t₀=mℓ²/ℏ set dimensionless units. Packet length and exit width are density standard deviations.</p>';math.prepend(packetMath);
+ const rationale=document.createElement('section');rationale.innerHTML='<h2>Packet engine</h2><p>Select Packet in Core to prepare Gaussian packets at the slit exits. The existing wavelength, slit separation, detector geometry and particle controls apply. Max. Particles becomes the number of independent particles per packet. Packets repeat after a fixed flight window chosen from their preparation and geometry; hits persist between packets. Changing engines or preparation resets the record, while changing interpretation preserves it.</p><p>The dashed exit plane replaces the hard-wall drawing: Gaussian tails extend on both sides and evolve freely. The source and which-path interaction are not part of this initial packet engine. Electrons and neutrons are supported; a nonrelativistic massive-particle Gaussian is not used for photons.</p><p>Pilot-Wave displays the sampled trajectories. Orthodox and Many-Worlds display the same unconditioned ensemble wave and detection record without assigning visible paths. A hit consumes one independently prepared member, not the whole displayed ensemble wave. The quantum-potential display, current MW split animation and alternative-history resampling remain available with the continuous engine; they are not yet connected to packet detections. Packet detector statistics use first screen crossings and analytical outward flux, not a microscopic detector calculation.</p>';document.getElementById('rationale').prepend(rationale);
  let enabled=false,p=null,fingerprint='',t=0,totalTime=0,pulse=0,particles=[],expected=[],missed=0,last=null,realElapsed=0,timeUnit=1,yOffset=0,finished=false;
  const field=document.createElement('canvas');field.width=320;field.height=240;const fc=field.getContext('2d');let data=fc.createImageData(320,240);
  const shown=id=>document.getElementById(id)?.checked;
@@ -24,7 +24,7 @@ export function mountPacketEngine({core,advanced}) {
   p=config();fingerprint=JSON.stringify([p,screenHeight,slit1Open,slit2Open,particleType]);yOffset=p.slits===2?screenHeight/200:(slit1Open?slit1YWorld:slit2YWorld)/100;
   timeUnit=(particleType==='neutron'?mNeutron:mElectron)*10000/hbar;
   hits=Array(p.bins).fill(0);nHits=0;hitMax=0;logNBranches=0;nParticles=0;trajectories.length=0;missed=0;t=0;totalTime=0;time=0;pulse=0;nSteps=0;last=null;realElapsed=0;prepare();
-  expected=prediction(p,-yOffset,screenHeight/100-yOffset,Math.max(.0005,p.duration/900));
+  expected=prediction(p,-yOffset,screenHeight/100-yOffset,p.duration/1200);
   updateBranchCountDisplay();setWaveRangeAuto(0,1);updateMath();stats();
  }
  function ensure(){const c=config();if(JSON.stringify([c,screenHeight,slit1Open,slit2Open,particleType])!==fingerprint)resetEngine();}
@@ -34,16 +34,18 @@ export function mountPacketEngine({core,advanced}) {
  }
  const disabledControls=['toggleWhichPath','sourceOption','particleRate','particleRate-input','mw-branch-tour','resampleHitsButton','resetBranches'];
  const savedDisabled=new Map();
- const maxLabel=document.getElementById('MaxPart-input')?.closest('tr')?.querySelector('label');let maxLabelText=maxLabel?.textContent;
+ const maxLabel=document.querySelector('#MaxPart-group label');let maxLabelText=maxLabel?.textContent;
  function switchEngine(){
   if(isAnimating)document.getElementById('startButton').click();
   enabled=select.value==='packet';panel.hidden=status.hidden=!enabled;window.qonticMWBranches?.cancel();
-  for(const id of disabledControls){const el=document.getElementById(id);if(!el)continue;if(enabled){savedDisabled.set(el,el.disabled);el.disabled=true;}else el.disabled=savedDisabled.get(el)||false;}
+  for(const id of disabledControls){const el=document.getElementById(id);if(!el)continue;if(enabled){savedDisabled.set(el,el.disabled);el.disabled=true;el.title='Available with the continuous engine';}else el.disabled=savedDisabled.get(el)||false;}
+  const qOption=document.querySelector('#waveFunctionOption option[value="QPotential"]');if(qOption)qOption.disabled=enabled;
+  if(enabled&&$('#waveFunctionOption').val()==='QPotential')$('#waveFunctionOption').val('Psi2');
   const photon=document.querySelector('#particleType option[value="photon"]');if(photon)photon.disabled=enabled;
   if(enabled){if(particleType==='photon')$('#particleType').val('electron');whichPathDetector='none';updateWhichPathButton();const tour=document.getElementById('mw-branch-tour');if(tour){tour.checked=false;tour.dispatchEvent(new Event('change'));}setupGeo(false);resetEngine();}
   else {reset=1;fingerprint='';}
   if(maxLabel)maxLabel.textContent=enabled?'Particles / packet:':maxLabelText;
-  note.textContent='Slit-exit preparation. Particle count uses Max. Particles below. Source and which-path controls are inactive.';
+  note.textContent='Slit-exit preparation. Use Particles / packet below. Source and which-path controls are inactive.';
   updateMath();if(!enabled)updateMathFormulas();renderSetupFlag=1;lastCycleIndex=-1;drawSystem(0);
  }
  select.addEventListener('change',switchEngine);
@@ -67,15 +69,15 @@ export function mountPacketEngine({core,advanced}) {
   if(t>=p.duration-1e-10){missed+=particles.filter(a=>!a.done).length;particles.forEach(a=>a.done=true);if(repeat.checked)prepare();else {finished=true;isAnimating=false;$('#startButton').text('Start');}}
  }
  function frame(){
-  ensure();const now=performance.now(),wallDt=last===null?0:Math.min(.05,(now-last)/1000);last=now;realElapsed+=wallDt;
+  ensure();const now=performance.now(),elapsed=last===null?0:(now-last)/1000,wallDt=Math.min(.05,elapsed);last=now;realElapsed+=elapsed;
   if(finished){prepare();}
   const speed=Number($('#animationStep-group')[0].getValueInFirstUnit())||1;
   // Roughly six seconds of playback to reach the detector at 1x; physics
   // substeps remain small regardless of the animation-speed setting.
   let remaining=wallDt*speed*p.screen/p.k/6,limit=0;
-  const stepSize=Math.min(.005,.02*p.sy*p.sy);
+  const stepSize=Math.min(.005,.02*p.sy*p.sy,p.screen/p.k/300,p.sx/p.k/30);
   while(remaining>1e-10&&isAnimating&&limit++<2000){const dt=Math.min(stepSize,remaining,p.duration-t);integrate(dt);remaining-=dt;}
-  draw();updateBranchCountDisplay();if(isAnimating)animationId=requestAnimationFrame(evolveSystem);
+  draw();$('#stepTime').text((performance.now()-now).toFixed(1));updateBranchCountDisplay();if(isAnimating)animationId=requestAnimationFrame(evolveSystem);
  }
  const X=x=>(wallXWorld+x*100)*toCanvasX,Y=y=>(y+yOffset)*100*toCanvasY;
  function drawWave(){
