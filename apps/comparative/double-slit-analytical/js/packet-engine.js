@@ -103,7 +103,7 @@ export function mountPacketEngine({core,advanced}){
   const speed=+$('#animationStep-group')[0].getValueInFirstUnit()||1;
   const branch=window.qonticMWBranches,busy=branch?.busy,waiting=branch?.enabled&&!branch.ready();
   if(busy||pending.length||hold>0){visualPhase+=wallDt*speed*p.k*p.screen/12;if(!busy&&!waiting&&hold===0)processPending();}
-  else if(!waiting){
+  else{
    if(finished){if(repeat.checked)prepare();else{isAnimating=false;$('#startButton').text('Start');}}
    let remaining=wallDt*speed*p.screen/p.k/6,limit=0;
    const step=Math.min(.005,.02*p.sy*p.sy,p.screen/p.k/300,p.sx/p.k/30);
@@ -127,13 +127,13 @@ export function mountPacketEngine({core,advanced}){
    sourceGrid={key,values,xs,maxRho};
   }
   setWaveRangeAuto(0,1);const range=getWaveRangeEffective(),span=Math.max(1e-9,range.max-range.min),mode=$('#waveFunctionOption').val();
-  const env=sourceGrid.xs.map(x=>sourceEnvelope(x,t,p));
+  const env=sourceGrid.xs.map(x=>sourceEnvelope(x,t,p)),populationOpacity=ensembleOpacity();
   // Fixed density reference across the aperture and across pulses avoids
  // brightness pumping as the packet arrives or is absorbed.
   const peak=sourceGrid.maxRho/(Math.sqrt(2*Math.PI)*p.sx),pal=Array.from({length:256},(_,i)=>window.paletteModule.getColorForValue(i/255,graphPalette));
   for(let j=0;j<240;j++)for(let i=0;i<320;i++){
    const n=j*320+i,rho=sourceGrid.values[2*n]*env[i].rho;
-   const weight=Math.min(1,1.5*Math.pow(rho/Math.max(1e-30,peak),.35))*ensembleOpacity();let value;
+   const weight=Math.min(1,1.5*Math.pow(rho/Math.max(1e-30,peak),.35))*populationOpacity;let value;
    if(mode==='Phase')value=((sourceGrid.values[2*n+1]+env[i].phase-visualPhase)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)/(2*Math.PI);
    else if(mode==='LogPsi2')value=Math.max(0,Math.min(1,(Math.log(Math.max(1e-15,rho/peak))+15)/15));
    else value=Math.min(1,rho/peak);
