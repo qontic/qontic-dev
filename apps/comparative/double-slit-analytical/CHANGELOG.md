@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## 36 — 2026-09-17
+- Show relative Born weights through branch opacity during splitting and in the grid, with a visibility floor and readable probability labels.
+- Restore the selected branch smoothly to full opacity during entry; document the visual mapping in Rationale.
+
 ## 35 — 2026-09-17
 - Remove the temporary yellow detection highlight at the instant the selected branch fills the canvas, retaining its detector record and histogram.
 

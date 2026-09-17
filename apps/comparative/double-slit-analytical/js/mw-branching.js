@@ -66,17 +66,25 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       renderCamera(0);
       scroll.hidden=true;
     };
+    // Relative Born weights retain contrast even with hundreds of pixels.
+    const peakWeight=Math.max(...weights,Number.EPSILON);
+    const opacities=weights.map(weight=>0.2+0.8*Math.max(0,weight)/peakWeight);
     const records=weights.map((_,index)=>createRecord(index));
     onSplit();
     updateSharedFrame();
-    const paint=(target,index,w,h,source=snapshot,highlight=true)=>{
+    const paint=(target,index,w,h,source=snapshot,highlight=true,opacity=opacities[index])=>{
       target.clearRect(0,0,w,h);
       target.drawImage(source,0,0,w,h);
       const x=detectorFraction*w,y=(index+.5)/count*h;
       target.drawImage(records[index],x,0,w-x,h);
-      if(!highlight)return; // The detector record remains after the temporary highlight ends.
-      target.fillStyle='#ffe476';target.fillRect(x-2,index/count*h,5,Math.max(2,h/count));
-      target.beginPath();target.arc(x,y,Math.max(2,Math.min(6,w*.025)),0,Math.PI*2);target.fill();
+      if(highlight){
+        target.fillStyle='#ffe476';target.fillRect(x-2,index/count*h,5,Math.max(2,h/count));
+        target.beginPath();target.arc(x,y,Math.max(2,Math.min(6,w*.025)),0,Math.PI*2);target.fill();
+      }
+      // Composite the entire system uniformly against the stage background.
+      // Applying alpha separately to wave and detector layers would bleed through.
+      target.save();target.globalAlpha=1-opacity;target.fillStyle='#0b1725';
+      target.fillRect(0,0,w,h);target.restore();
     };
     // A single camera transform moves every branch together. The selected
     // system fills the viewport while its neighbors pass beyond the edges.
@@ -95,7 +103,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       session.tiles.forEach((tile,index)=>{
         const {x,y,w,h,label}=tile;
         if(tx+(x+w)*scale<0||tx+x*scale>zoom.width||ty+(y+h+18)*scale<0||ty+y*scale>zoom.height)return;
-        z.save();z.translate(x,y);paint(z,index,w,h,snapshot,progress<1);
+        z.save();z.translate(x,y);paint(z,index,w,h,snapshot,progress<1,opacities[index]+(index===session.selected?(1-opacities[index])*ease:0));
         z.fillStyle=index===session.selected?'rgba(85,216,230,'+(.18*(1-ease))+')':'rgba(4,14,24,.22)';
         z.fillRect(0,0,w,h);
         z.fillStyle='#142737';z.fillRect(0,h,w,16);
