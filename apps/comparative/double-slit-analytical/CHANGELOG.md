@@ -1,5 +1,13 @@
 # Analytical Double Slit releases
 
+## Version 46 — Gaussian packets across interpretations (2026-09-17)
+
+- Gaussian source packets are the sole engine; previous models remain recoverable in git.
+- Orthodox samples absorption and screen outcomes from the packet probabilities, shows localized absorbing-detector registration and removes only the detected member from the ensemble.
+- MW packet detections now drive split-and-zoom views with integrated pixel weights, branch-specific records at splitting, and no duplicate hit on selection.
+- Pilot-Wave retains source preparation and forward propagation. Switching preserves records and conditions unresolved preparations on survival.
+- Rewrite Math/Rationale for the packet model and its effective detector, aperture and finite branch approximations.
+
 ## Version 45 — Source cone and reusable preparation (2026-09-17)
 
 - Save the latest spherical field in browser storage and restore matching geometry across reloads; show preparation stages. First preparation and changed geometry still require computation.
