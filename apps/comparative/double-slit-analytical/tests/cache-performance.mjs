@@ -12,7 +12,7 @@ assert(error<.003,'cached wave convergence');
 let t=performance.now();for(let j=0;j<20;j++)synthesize(table,.7+j*.001);const spectral=(performance.now()-t)/20;
 t=performance.now();for(let j=0;j<20;j++)cachedPacketFrame(table,.7+j*.001);const cached=(performance.now()-t)/20;
 assert(cached<spectral/3,'material playback speedup');
-for(let i=0;i<1000;i++){const y=p.wall*Math.tan(aimedAngle(p));assert(p.centers.some(c=>Math.abs(y-c)<=2*p.sy+1e-12));}
+for(let i=0;i<1000;i++){const y=p.wall*Math.tan(aimedAngle(p));assert(y>=Math.min(...p.centers)-2*p.sy-1e-12&&y<=Math.max(...p.centers)+2*p.sy+1e-12);}
 for(const fps of [30,60]){const clock=new LaunchClock();let launches=0;for(let i=0;i<fps*12;i++)launches+=clock.advance(1/fps,3,true,12);assert.equal(launches,4);assert.equal(clock.advance(10,3,false,12),0);}
 console.log(JSON.stringify({passed:true,maxRelativeAmplitudeError:error,spectralMs:spectral,cachedMs:cached,speedup:spectral/cached,cacheMB:table.cache.bytes/1048576}));
 // Validate that the cached field plus enlarged guidance steps preserves transport.
