@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## 41 — 2026-09-17
+- Prepare packet centers three standard deviations beyond the exit plane, retain analytical tails and adjust the detector flight distance consistently.
+- Draw a smooth current profile independent of detector binning. Normalize model and sampled counts to observed hits on one shared scale, unchanged by packet launches.
+- Strengthen packet visibility with a display-only envelope in all interpretations, retaining the Wave opacity control.
+
 ## 40 — 2026-09-17
 - Integrate analytical packets into the existing app through Core → Wave model. Reuse playback, geometry, display, canvas layers, media tools, stats and Math/Rationale.
 - Packet-only widths live in Advanced; Max. Particles controls particles per packet. Interpretation switching preserves the packet history.

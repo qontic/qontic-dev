@@ -43,3 +43,23 @@ export function prediction(p,ymin=-14,ymax=14,dt=.01){
  }
  return bins;
 }
+
+// Smooth time-integrated screen current, independent of detector pixel count.
+export function screenProfile(p,ymin,ymax,samples=1025,steps=1000){
+ const values=Array(samples).fill(0),dy=(ymax-ymin)/(samples-1),dt=p.duration/steps;
+ for(let j=0;j<steps;j++){
+  const t=(j+.5)*dt,g=longitudinal(p.screen,t,p),weight=g.rho*g.v*dt;
+  if(weight<1e-15)continue;
+  for(let i=0;i<samples;i++)values[i]+=weight*transverse(ymin+i*dy,t,p).rho;
+ }
+ const integral=values.reduce((sum,v,i)=>sum+v*((i===0||i===samples-1)?.5:1),0)*dy;
+ return {values,integral};
+}
+// Both the smooth curve and observed counts use the same count-to-pixel scale.
+// Packet number, launched particles and animation time intentionally play no role.
+export function histogramLayout(record,profile,screenHeight,width){
+ const total=record.reduce((a,b)=>a+b,0),binHeight=screenHeight/record.length;
+ const curve=profile.values.map(v=>v/Math.max(1e-30,profile.integral)*binHeight*(total||1));
+ const max=Math.max(1e-30,...curve,...record.map(n=>n+Math.sqrt(n)));
+ return {curve,scale:Math.max(0,width-8)/max,total};
+}
