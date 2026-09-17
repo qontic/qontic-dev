@@ -26,11 +26,11 @@ export function cachedPacketFrame(table,t){
  }
  return out;
 }
+export function emissionCone(p){
+ return [Math.atan2(Math.min(...p.centers)-2*p.sy,p.wall),Math.atan2(Math.max(...p.centers)+2*p.sy,p.wall)];
+}
 export function aimedAngle(p,random=Math.random){
- const intervals=p.centers.map(c=>[Math.atan2(c-2*p.sy,p.wall),Math.atan2(c+2*p.sy,p.wall)]).sort((a,b)=>a[0]-b[0]);
- const merged=[];for(const a of intervals){const last=merged.at(-1);if(last&&a[0]<=last[1])last[1]=Math.max(last[1],a[1]);else merged.push([...a]);}
- const width=merged.reduce((s,a)=>s+a[1]-a[0],0);if(width===0)return (random()-.5)*Math.PI;
- let u=random()*width;for(const [a,b] of merged){if(u<=b-a)return a+u;u-=b-a;}return merged.at(-1)[1];
+ const [a,b]=emissionCone(p);return a+(b-a)*random();
 }
 export class LaunchClock{
  constructor(){this.elapsed=0;}

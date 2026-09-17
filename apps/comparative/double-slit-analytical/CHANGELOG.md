@@ -1,5 +1,12 @@
 # Analytical Double Slit releases
 
+## Version 45 — Source cone and reusable preparation (2026-09-17)
+
+- Save the latest spherical field in browser storage and restore matching geometry across reloads; show preparation stages. First preparation and changed geometry still require computation.
+- Default particle emission to one cone spanning the open Gaussian slits, using two-sigma outer limits. Draw the source and cone guides. This biased particle sampling leaves the wave unchanged; the ordinary prediction stays hidden.
+- Remove the slit-exit packet selector; legacy slit-exit links open spherical-source mode. Retain Continuous and Gaussian source.
+- Preserve version 44 in git history.
+
 ## Version 44 — Packet playback and launch controls (2026-09-17)
 
 - Cache and interpolate the carrier-demodulated spectral solution once per geometry; reuse it for repeat packets and resets.
