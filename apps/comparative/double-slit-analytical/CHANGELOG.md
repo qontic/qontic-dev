@@ -1,5 +1,11 @@
 # Analytical Double Slit releases
 
+## 40 — 2026-09-17
+- Integrate analytical packets into the existing app through Core → Wave model. Reuse playback, geometry, display, canvas layers, media tools, stats and Math/Rationale.
+- Packet-only widths live in Advanced; Max. Particles controls particles per packet. Interpretation switching preserves the packet history.
+- Remove the separate preview entry. The packet engine currently excludes source propagation, which-path coupling, photons and MW split-tour animation; these remain available with the continuous engine.
+- The version 38 rollback branch and complete Git history remain available.
+
 ## 39 — 2026-09-17
 - Add a separate experimental analytical Gaussian packet preview linked from Core, with single/pair slit-exit preparation, repeated independent pulses, and a Pilot-Wave ensemble.
 - Use exact free Gaussian fields and longitudinal trajectories, RK4 transverse trajectories, and quadrature of analytical screen current. No screen-endpoint seeding.

@@ -120,6 +120,7 @@ function recoverPrecompute() {
 }
 
 function runPrecomputeAsync() {
+   if (window.qonticPacketEngine?.enabled) { precomputePending=false; return; }
    if (!precomputeWorker) {
       // Fallback: run on main thread
       setupGeo(true);
@@ -2352,7 +2353,7 @@ function setupGeo(doPrecompute) {
    // Heavy precomputations used for hit resampling and some
    // optimizations. Skip these when doPrecompute === false so
    // slider drags can update geometry cheaply.
-   if (doPrecompute !== false) {
+   if (doPrecompute !== false && !window.qonticPacketEngine?.enabled) {
       phiArraySlit1 = precomputePhiArrayWithFixedR(slit1XWorld, slit1YWorld, 0, radiusPre, 5000) ;
       phiArraySlit2 = precomputePhiArrayWithFixedR(slit2XWorld, slit2YWorld, 0, radiusPre, 5000) ;
 
@@ -2562,6 +2563,7 @@ async function renderSetup() {
 //
 //==================================================================================================================
 async function renderTrajectoriesAndParticles() {
+   if (window.qonticPacketEngine?.enabled) { window.qonticPacketEngine.drawParticles(); return; }
 
    partCtx.clearRect(0, 0, canvas.width, canvas.height);
    const showTrajectories = $("#plot_trajectories").is(":checked");
@@ -2819,6 +2821,9 @@ async function drawWaveImage(waveData) {
 //
 //==================================================================================================================
 async function updateSimulationState() {
+   if (reset === 1 && window.qonticPacketEngine?.enabled) {
+      reset = 0; setupGeo(false); window.qonticPacketEngine.reset(); return;
+   }
 
    if (reset === 1) {
       window.qonticMWBranches?.cancel();
@@ -3218,6 +3223,7 @@ async function evolveParticles() {
 //
 //==================================================================================================================
 function renderDetectorAndHistogram(options = {}) {
+   if (window.qonticPacketEngine?.enabled) { window.qonticPacketEngine.histogram(options); return; }
    const ctx = options.context || setupCtx;
    const recordHits = options.hits || hits;
    const recordCount = options.count ?? nHits;
@@ -3416,6 +3422,7 @@ function resampleHitsFromPsi() {
 //
 //==================================================================================================================
 async function renderWaveFunction(cycleIndex) {
+   if (window.qonticPacketEngine?.enabled) { window.qonticPacketEngine.drawWave(); return; }
    if (!$("#plot_wave").is(':checked')) return;
 
    const psiOptionLocal = $('#waveFunctionOption').val();
@@ -3503,6 +3510,7 @@ async function renderWaveFunction(cycleIndex) {
 //==================================================================================================================
 async function drawSystem(cycleIndex) {
    await updateSimulationState();
+   if (window.qonticPacketEngine?.enabled) { window.qonticPacketEngine.draw(); return; }
    if ( renderSetupFlag ) await renderSetup();
 
 
@@ -3532,6 +3540,8 @@ async function drawSystem(cycleIndex) {
 //
 //==================================================================================================================
 async function evolveSystem() {
+   if (!isAnimating) return;
+   if (window.qonticPacketEngine?.enabled) { await updateSimulationState(); window.qonticPacketEngine.frame(); return; }
    // Interpret the UI control as a simulation speed multiplier
    // (1x = normal, >1x faster, <1x slower) instead of a raw
    // frame delay. Base step time is 30 ms.
@@ -3753,6 +3763,7 @@ function updateViewButton() {
 // Render KaTeX math formulas in the Math tab based on current state
 //==================================================================================================================
 function updateMathFormulas() {
+   if (window.qonticPacketEngine?.enabled) { window.qonticPacketEngine.updateMath(); return; }
    if (typeof katex === 'undefined') return;
 
    const hasDetector = (whichPathDetector !== 'none');
@@ -3959,7 +3970,7 @@ function buildUrlHash() {
    };
    var parts = [];
    for (var k in p) parts.push(k + '=' + encodeURIComponent(p[k]));
-   return '#' + parts.join('&');
+   return '#' + parts.join('&') + (window.qonticPacketEngine?.hash() || '');
 }
 
 function applyUrlHash() {
@@ -4559,6 +4570,7 @@ $(document).ready(function() {
             if (isAnimating) {
                isAnimating = false;
                cancelAnimationFrame(animationId); // Stop the animation
+               window.qonticPacketEngine?.pause();
                $(this).text('Start'); // Change button label to "Start"
             } else {
                isAnimating = true;
