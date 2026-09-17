@@ -1,5 +1,15 @@
 # Analytical Double Slit releases
 
+## Version 43 — Circular-source packet prototype (2026-09-17)
+
+- Integrated into the existing Wave model selector; previous engines retained.
+- Analytical outgoing 2D Hankel kernels and angular-spectrum propagation; spectral/aperture quadrature, analytical time phases and numerical current-guided trajectories. No time-stepped wave PDE.
+- Radial source emission and reduced one-way aperture transmission, with assumptions and 2D/3D distinction documented in Math and Rationale.
+- Background preparation, resolution guards, hit-driven histogram scaling, existing display and capture controls.
+- Seeded 30,000-emission validation: 1,375 screen hits; maximum screen CDF difference 0.01528. This validates the tested configuration, not arbitrary geometries.
+- Rollback: rollback/double-slit-v42-before-spherical at a4ddfc53354bdee79d817f47ee6b0b33a066a959.
+
+
 
 ## Version 42 — Analytical source-to-screen packets (2026-09-17)
 
