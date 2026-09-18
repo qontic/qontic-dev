@@ -3402,6 +3402,7 @@ function getMWPixelWeights() {
 }
 
 function resampleHitsFromPsi() {
+  if(window.qonticPacketEngine?.enabled){window.qonticPacketEngine.sampleBranch();return;}
   if (precomputePending) return;
   hits.fill(0);
   hitMax = 0;

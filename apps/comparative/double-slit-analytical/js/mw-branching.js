@@ -10,9 +10,9 @@ export function createBranchDwellClock(now=()=>performance.now()) {
 }
 // A visual tour of detector records, not propagation of separate world wavefunctions.
 export function mountMWBranching({host,controls,isMW,isRunning}) {
-  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=57.1',import.meta.url);document.head.append(style);
+  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=58',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
-  settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow" hidden>Follow branch <select aria-label="Follow branch"><option value="auto">Automatically (Born weights)</option><option value="manual">Choose myself</option></select></label><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><label class="mw-follow" hidden><input type="checkbox" id="mw-show-probabilities"> Show probabilities</label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
+  settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow mw-follow-choice" hidden>Follow <select aria-label="Follow branch" title="Random follows Born probabilities; Manual lets you choose."><option value="auto">Random</option><option value="manual">Manual</option></select></label><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><label class="mw-follow" hidden><input type="checkbox" id="mw-show-probabilities"> Show probabilities</label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
   controls.append(settings);
   const enabled=settings.querySelector('input'),mode=settings.querySelector('select');
   const overlay=document.createElement('div');overlay.className='mw-branch-overlay';overlay.hidden=true;
@@ -33,7 +33,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     if(['MaxPart','MaxPart-input','MaxPart-units'].includes(event.target.id))return;
     if(active&&!settings.contains(event.target)&&!overlay.contains(event.target))cancel();
   },true);
-  for(const id of ['resampleHitsButton','resetBranches']) document.getElementById(id)?.addEventListener('click',cancel,true);
+  for(const id of ['resetBranches']) document.getElementById(id)?.addEventListener('click',cancel,true);
   // Mode switches can originate in several existing controls.
   const observer=new MutationObserver(sync);observer.observe(document.getElementById('sharedControls'),{attributes:true,attributeFilter:['interpretation','running']});sync();
   const begin=({selected,weights,detectorFraction,sensorFraction=.01,sensorColor='#90ee90',createRecord,onSplit,onSelect})=>{

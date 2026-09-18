@@ -21,3 +21,5 @@
 .mw-branch-settings .mw-dwell-control{display:grid;grid-template-columns:auto minmax(50px,1fr) 3.5em;gap:8px;align-items:center}
 .mw-dwell-control input{width:100%;min-width:0;margin:0}
 .mw-dwell-control output{text-align:right;font:inherit;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.mw-branch-settings .mw-follow-choice{flex-wrap:nowrap}.mw-follow-choice select{flex:1;min-width:0}

@@ -1,5 +1,11 @@
 # Analytical Double Slit releases
 
+## Version 58 — 2026-09-18
+
+- Enable Sample another branch for packet-model detector histories, preserving hit count and elapsed time.
+- Move Reset Defaults to Advanced and remove the Gaussian source status paragraph from Core.
+- Keep the MW Follow selector on one line with concise Random and Manual choices; random selection still uses Born weights.
+
 ## Version 57 — 2026-09-18
 
 - Fill both dimensions of the MW branch grid, including the complete 8 × 5 layout for 40 detector pixels.

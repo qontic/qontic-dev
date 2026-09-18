@@ -1,6 +1,6 @@
-import { mountPacketEngine } from './packet-engine.js?v=57.1';
-import { mountMWBranching } from './mw-branching.js?v=57.1';
-import { APP_RELEASE } from './release.js?v=57.1';
+import { mountPacketEngine } from './packet-engine.js?v=58';
+import { mountMWBranching } from './mw-branching.js?v=58';
+import { APP_RELEASE } from './release.js?v=58';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -173,7 +173,7 @@ $(function () {
   sensorWidth = 30;
   // Browser zoom supplies consistent sizing across controls and canvas.
   displayPanel.querySelector('#fontTarget').parentElement.parentElement.hidden = true;
-  core.append(document.getElementById('resetDefaultsButton'));
+  advanced.append(document.getElementById('resetDefaultsButton'));
   document.getElementById('opacity-box').hidden = true;
   invalidateWaveCache();
   renderSetupFlag = 1;
