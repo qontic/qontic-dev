@@ -1,4 +1,4 @@
-import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=63';
+import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=64';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,trimTail,tailOpacity} from './packet-interaction.js?v=59.1';
 import {histogramLayout} from './packet-model.js?v=41';

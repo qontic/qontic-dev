@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 64 — 2026-09-18
+
+- Remove the related-paper citation and reference section from Physics; retain the current equations and simulation model.
+
 ## Version 63 — 2026-09-18
 
 - Define consistent wave, geometry, width and detector notation, with explicit mappings to control labels.
