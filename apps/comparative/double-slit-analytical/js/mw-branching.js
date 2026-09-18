@@ -38,7 +38,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     if(active||!enabled.checked||!isMW())return false;
     const snapshot=document.createElement('canvas');snapshot.width=host.clientWidth;snapshot.height=host.clientHeight;
     const ctx=snapshot.getContext('2d');
-    const layers=['setupCanvas','waveCanvas','partCanvas'].map(id=>document.getElementById(id));
+    const layers=['waveCanvas','setupCanvas','partCanvas'].map(id=>document.getElementById(id));
     const updateSharedFrame=()=>{ctx.clearRect(0,0,snapshot.width,snapshot.height);for(const layer of layers)ctx.drawImage(layer,0,0,snapshot.width,snapshot.height);};
     updateSharedFrame();
     overlay.hidden=false;status.style.opacity='1';zoom.hidden=true;scroll.hidden=false;scroll.style.visibility='';scroll.scrollTop=0;grid.replaceChildren();
