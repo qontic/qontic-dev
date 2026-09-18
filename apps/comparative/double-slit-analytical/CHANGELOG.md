@@ -1,5 +1,12 @@
 # Analytical Double Slit releases
 
+## Version 48 — Compact handles and brighter transmitted waves (2026-09-18)
+
+- Detector movement and height controls appear only at the bottom; add a bottom slit-wall handle that keeps the detector fixed.
+- Smoothly enhance transmitted-wave brightness without changing probabilities or trajectories.
+- Always repeat packets; remove repeat checkbox and control-panel drag explanation, retain handle tooltips.
+- Move the particle species selector to the top of Advanced.
+
 ## Version 47 — Canvas geometry and trajectory tails (2026-09-17)
 
 - Remove the source marker and source-position control; fix the preparation plane at 225 nm before the apertures.
