@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## Version 57 — 2026-09-18
+
+- Fill both dimensions of the MW branch grid, including the complete 8 × 5 layout for 40 detector pixels.
+- Fit each whole system to its tile and smoothly restore full-canvas proportions during branch entry. Probability labels appear only when both width and height allow them.
+
 ## Version 56 — 2026-09-18
 
 - Keep a high-contrast fired-pixel marker visible throughout MW splitting and branch selection, clearing it at full-size entry.

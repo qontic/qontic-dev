@@ -10,7 +10,7 @@ export function createBranchDwellClock(now=()=>performance.now()) {
 }
 // A visual tour of detector records, not propagation of separate world wavefunctions.
 export function mountMWBranching({host,controls,isMW,isRunning}) {
-  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=30',import.meta.url);document.head.append(style);
+  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=57',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
   settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow" hidden>Follow branch <select aria-label="Follow branch"><option value="auto">Automatically (Born weights)</option><option value="manual">Choose myself</option></select></label><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><label class="mw-follow" hidden><input type="checkbox" id="mw-show-probabilities"> Show probabilities</label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
   controls.append(settings);
@@ -52,24 +52,20 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       if(count%divisor===0 && count/divisor<=2*divisor){columns=count/divisor;break;}
     }
     const rows=Math.ceil(count/columns),gap=5;
-    const availableWidth=Math.max(1,scroll.clientWidth-10);
-    const availableHeight=Math.max(1,scroll.clientHeight-10);
-    // Fit height by scaling the grid, rather than adding extra columns.
-    // Small screens retain the available width and allow vertical scrolling.
+    // Fill both dimensions; camera entry restores the full-view proportions.
     const labelTexts=weights.map((weight,index)=>`${index+1} · ${(100*weight).toPrecision(3)}%`);
     ctx.font='10px Inter,Arial,sans-serif';
     const minimumLabelWidth=Math.max(80,...labelTexts.map(text=>ctx.measureText(text).width+12));
     let displayLabels=false;
     const sizeGrid=()=>{
-      const widthFor=footer=>{
-        const fitted=columns*(Math.max(1,(availableHeight-gap*(rows-1))/rows-footer)*aspect+2)+gap*(columns-1);
-        return Math.min(availableWidth,host.clientWidth>=600?fitted:availableWidth);
-      };
-      const labelledWidth=widthFor(20);
-      displayLabels=showProbabilities.checked && (labelledWidth-gap*(columns-1))/columns-2>=minimumLabelWidth;
-      grid.style.width=widthFor(displayLabels?20:2)+'px';
-      grid.style.marginInline='auto';
+      const width=Math.max(1,scroll.clientWidth-10),height=Math.max(1,scroll.clientHeight-10);
+      const tileWidth=(width-gap*(columns-1))/columns-2;
+      const tileHeight=(height-gap*(rows-1))/rows-2;
+      displayLabels=showProbabilities.checked && tileWidth>=minimumLabelWidth && tileHeight>=55;
+      grid.style.width=width+'px';
+      grid.style.height=height+'px';
       grid.style.gridTemplateColumns=`repeat(${columns},minmax(0,1fr))`;
+      grid.style.gridTemplateRows=`repeat(${rows},minmax(0,1fr))`;
     };
     sizeGrid();
     active={frame:0,elapsed:0,last:performance.now(),selected:null,splitTime:0,splitDone:false,zoomTime:0,buttons:[],miniatures:[],snapshot};
@@ -129,16 +125,16 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       const ease=progress*progress*(3-2*progress);
       // Clear the topmost detector pixel as we enter the selected world.
       status.style.opacity=String(Math.max(0,1-progress*4));
-      const finalScale=Math.max(zoom.width/r.w,zoom.height/r.h);
-      const scale=Math.exp(Math.log(finalScale)*ease);
+      const scaleX=Math.exp(Math.log(zoom.width/r.w)*ease);
+      const scaleY=Math.exp(Math.log(zoom.height/r.h)*ease);
       const cx=r.x+r.w/2,cy=r.y+r.h/2;
-      const tx=cx+(zoom.width/2-cx)*ease-scale*cx;
-      const ty=cy+(zoom.height/2-cy)*ease-scale*cy;
+      const tx=cx+(zoom.width/2-cx)*ease-scaleX*cx;
+      const ty=cy+(zoom.height/2-cy)*ease-scaleY*cy;
       z.fillStyle='#0b1725';z.fillRect(0,0,zoom.width,zoom.height);
-      z.save();z.translate(tx,ty);z.scale(scale,scale);
+      z.save();z.translate(tx,ty);z.scale(scaleX,scaleY);
       session.tiles.forEach((tile,index)=>{
         const {x,y,w,h,label}=tile;
-        if(tx+(x+w)*scale<0||tx+x*scale>zoom.width||ty+(y+h+18)*scale<0||ty+y*scale>zoom.height)return;
+        if(tx+(x+w)*scaleX<0||tx+x*scaleX>zoom.width||ty+(y+h+18)*scaleY<0||ty+y*scaleY>zoom.height)return;
         z.save();z.translate(x,y);paint(z,index,w,h,snapshot,progress<1,opacities[index]+(index===session.selected?(1-opacities[index])*ease:0));
         z.fillStyle=index===session.selected?'rgba(85,216,230,'+(.18*(1-ease))+')':'rgba(4,14,24,.22)';
         z.fillRect(0,0,w,h);
