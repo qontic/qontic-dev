@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## Version 54 — 2026-09-18
+
+- Update the distance scale continuously during detector-height dragging, using the preview height and displayed canvas dimensions. Cancelling restores the original scale; release retains the committed scale.
+
+
 ## Version 53 — 2026-09-18
 
 - Replace yellow hit flashes with sensor-colored bin enlargement and neutral outlines, lasting 225 ms in all modes.

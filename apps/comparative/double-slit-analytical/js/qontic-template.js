@@ -1,6 +1,6 @@
-import { mountPacketEngine } from './packet-engine.js?v=53';
-import { mountMWBranching } from './mw-branching.js?v=53';
-import { APP_RELEASE } from './release.js?v=53';
+import { mountPacketEngine } from './packet-engine.js?v=54';
+import { mountMWBranching } from './mw-branching.js?v=54';
+import { APP_RELEASE } from './release.js?v=54';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -295,13 +295,14 @@ $(function () {
   }).observe(container);
   resizeCanvas();
   document.getElementById('screenshotButton').parentElement.hidden = true;
+  let previewScreenHeight=null;
   const scale = mountDistanceScale({
     host:container,storageKey:'qontic-double-slit-scale-position',
-    getUnitsPerPixel:()=>({x:toWorldX,y:toWorldY}),
+    getUnitsPerPixel:()=>({x:worldCanvasDx/Math.max(1,container.clientWidth),y:(previewScreenHeight??screenHeight)/Math.max(1,container.clientHeight)}),
     format:value=>value>=1e6?(value/1e6).toPrecision(3)+' mm':value>=1e3?(value/1e3).toPrecision(3)+' µm':Number(value.toPrecision(3))+' nm'
   });
   let lastScaleOpacity=elementOpacity('plot_scales')||1;
-  window.qonticScaleOverlay={update:()=>{scale.setOpacity(elementOpacity('plot_scales'));media?.syncScale();}};
+  window.qonticScaleOverlay={previewHeight:height=>{previewScreenHeight=height;scale.update();},update:()=>{scale.setOpacity(elementOpacity('plot_scales'));media?.syncScale();}};
   const rangeHost=document.getElementById('paletteRangeSlider');
   const rangePanel=document.createElement('div');rangePanel.className='qontic-range-panel';
   rangePanel.style.left='0px';rangePanel.style.bottom='50px';container.append(rangePanel);

@@ -251,7 +251,7 @@ export function mountPacketEngine({core,advanced}){
  const geometryControls=mountPacketGeometry({
   host:document.getElementById('canvas-container'),
   getGeometry(){if(!p)return null;const host=document.getElementById('canvas-container');return {wall:sourcePos,wallFraction:wallX/canvas.width,distance:detectorDistance,height:screenHeight,detectorFraction:detectorX/canvas.width,scaleX:toCanvasX*host.clientWidth/canvas.width,scaleY:toCanvasY*host.clientHeight/canvas.height,busy:window.qonticMWBranches?.busy};},
-  onPreview(next){if(!next){histogram();drawDetection();return;}const preview={...p,wall:next.wall/100,screen:(next.wall+next.distance)/100};const predicted=sourceProfile(preview,-next.height/200,next.height/200,2049);histogram({profile:predicted,screenHeight:next.height/100});},
+  onPreview(next){window.qonticScaleOverlay?.previewHeight(next?.height??null);if(!next){histogram();drawDetection();return;}const preview={...p,wall:next.wall/100,screen:(next.wall+next.distance)/100};const predicted=sourceProfile(preview,-next.height/200,next.height/200,2049);histogram({profile:predicted,screenHeight:next.height/100});},
   onCommit(next){if(next.distance===detectorDistance&&next.height===screenHeight&&next.wall===sourcePos)return;document.getElementById('source-position-group').setValueInFirstUnit(next.wall);document.getElementById('detector-distance-group').setValueInFirstUnit(next.distance);document.getElementById('screen-height-group').setValueInFirstUnit(next.height);setupGeo(false);reset=0;resetEngine();draw();},
   pause(){const running=isAnimating;if(running)document.getElementById('startButton').click();return running;},
   resume(running){if(running&&!isAnimating)document.getElementById('startButton').click();}
