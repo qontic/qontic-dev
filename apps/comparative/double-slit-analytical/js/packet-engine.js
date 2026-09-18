@@ -188,14 +188,16 @@ export function mountPacketEngine({core,advanced}){
   for(let j=0;j<gridH;j++)for(let i=0;i<gridW;i++){
    const n=j*gridW+i,rho=sourceGrid.values[2*n]*env[i].rho;
    // Preserve a localized Gaussian envelope; do not amplify its remote tails.
-   const weight=sourceGrid.visibility[n]*env[i].envelope;let value;
+   const rawWeight=sourceGrid.visibility[n]*env[i].envelope;
+   // Display-only contrast boost; zero density stays transparent.
+   const weight=-Math.expm1(-3*rawWeight)/-Math.expm1(-3);let value;
    if(mode==='Phase'){
     // Cyclic phase coloring avoids the sharp seam at 0 / 2pi.
     value=.5+.5*(sourceGrid.phaseCos[n]*env[i].cos-sourceGrid.phaseSin[n]*env[i].sin);
    }else if(mode==='LogPsi2')value=Math.max(0,Math.min(1,(Math.log(Math.max(1e-15,rho/peak))+15)/15));
    else value=Math.sqrt(Math.min(1,rho/peak*8));
    const rgb=paletteColors[Math.round(Math.max(0,Math.min(1,(value-range.min)/span))*1023)];
-   data.data[4*n]=rgb[0];data.data[4*n+1]=rgb[1];data.data[4*n+2]=rgb[2];data.data[4*n+3]=alpha*weight;
+   data.data[4*n]=.88*rgb[0]+.12*255;data.data[4*n+1]=.88*rgb[1]+.12*255;data.data[4*n+2]=.88*rgb[2]+.12*255;data.data[4*n+3]=alpha*weight;
   }
   fc.putImageData(data,0,0);waveCtx.save();waveCtx.imageSmoothingEnabled=true;waveCtx.imageSmoothingQuality="high";waveCtx.beginPath();waveCtx.rect(0,0,detectorX,canvas.height);waveCtx.clip();waveCtx.drawImage(field,0,0,canvas.width,canvas.height);waveCtx.restore();
   drawPaletteScale(graphPalette,mode==='Phase'?2*range.min-1:range.min,mode==='Phase'?2*range.max-1:range.max);

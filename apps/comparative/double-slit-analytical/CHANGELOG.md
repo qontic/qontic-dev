@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## Version 56 — 2026-09-18
+
+- Keep a high-contrast fired-pixel marker visible throughout MW splitting and branch selection, clearing it at full-size entry.
+- Strengthen packet-wave opacity and color visibility consistently in all interpretations, retaining the Wave opacity control and unchanged physics.
+
 ## Version 55 — 2026-09-18
 
 - MW slow motion temporarily uses one hit per packet and restores the previous count on exit, preserving recorded statistics.

@@ -108,6 +108,19 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       // Applying alpha separately to wave and detector layers would bleed through.
       target.save();target.globalAlpha=1-opacity;target.fillStyle='#0b1725';
       target.fillRect(0,0,w,h);target.restore();
+      // Keep the outcome identifiable even after the brief bin pulse ends.
+      // Draw above the probability shading so rare branches remain readable.
+      if(highlight){
+        const tileWidth=Math.max(1,(parseFloat(grid.style.width)-gap*(columns-1))/columns-2);
+        const radius=Math.max(3,Math.min(10,3*w/tileWidth));
+        const markerX=Math.min(w-radius-1,x+Math.max(1,sensorFraction*w)/2);
+        const markerY=Math.max(radius+1,Math.min(h-radius-1,y));
+        target.save();target.beginPath();target.arc(markerX,markerY,radius,0,2*Math.PI);
+        target.fillStyle='#ffe66b';target.fill();target.lineWidth=1.5;
+        target.strokeStyle='#172332';target.stroke();
+        target.beginPath();target.arc(markerX,markerY,radius+1,0,2*Math.PI);
+        target.lineWidth=.75;target.strokeStyle='#fff7cf';target.stroke();target.restore();
+      }
     };
     // A single camera transform moves every branch together. The selected
     // system fills the viewport while its neighbors pass beyond the edges.
