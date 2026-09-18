@@ -57,3 +57,27 @@ export function mountPacketGeometry({host,getGeometry,onCommit,onPreview=()=>{},
  }
  return {update};
 }
+export function slitWidthFromDrag(width,dy,pixelsPerNm){
+ return Math.max(10,Math.min(200,Math.round((width+dy/(Math.sqrt(2*Math.log(2))*pixelsPerNm))/5)*5));
+}
+export function mountSlitWidth({host,getState,onPreview,onCommit,pause,resume}){
+ const layer=document.createElement('div');layer.className='packet-geometry packet-slit-handles';
+ host.append(layer);let drag=null,frame=null;
+ const buttons=[0,1].map(index=>{
+  const button=document.createElement('button');button.type='button';button.className='packet-slit-width-drag';
+  button.textContent='↕';button.setAttribute('aria-label','Resize slit '+(index+1)+' width');
+  button.title='Drag vertically to resize the slit openings together. Arrow keys adjust width; Escape cancels. Changing width starts a new record.';
+  layer.append(button);
+  const finish=commit=>{if(!drag||drag.index!==index)return;const d=drag;drag=null;if(frame!==null){cancelAnimationFrame(frame);frame=null;}try{onPreview(null);if(commit&&d.next!==d.start.width)onCommit(d.next);}finally{resume(d.running);update();}};
+  button.addEventListener('pointerdown',e=>{if(e.button!==0||drag)return;e.preventDefault();e.stopPropagation();const state=getState();if(state.busy)return;drag={index,start:state,y:e.clientY,next:state.width,running:pause()};button.setPointerCapture(e.pointerId);});
+  button.addEventListener('pointermove',e=>{if(!drag||drag.index!==index)return;drag.next=slitWidthFromDrag(drag.start.width,e.clientY-drag.y,drag.start.scaleY);if(frame===null)frame=requestAnimationFrame(()=>{frame=null;if(drag){onPreview(drag.next);update();}});});
+  button.addEventListener('pointerup',()=>finish(true));button.addEventListener('pointercancel',()=>finish(false));button.addEventListener('lostpointercapture',()=>finish(false));
+  button.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();finish(false);return;}if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const state=getState(),sign=['ArrowDown','ArrowRight'].includes(e.key)?1:-1;onCommit(Math.max(10,Math.min(200,state.width+sign*(e.shiftKey?25:5))));update();});
+  return button;
+ });
+ function update(){
+  const state=getState();if(!state)return;layer.hidden=!!state.busy||!state.visible;
+  buttons.forEach((button,index)=>{const center=state.centers[index];button.hidden=center===undefined;if(button.hidden)return;const sigma=drag?drag.next:state.width;button.style.left=(100*state.wallFraction)+'%';button.style.top=Math.max(14,Math.min(host.clientHeight-14,center*host.clientHeight+Math.sqrt(2*Math.log(2))*sigma*state.scaleY))+'px';button.setAttribute('aria-description','Slit width sigma '+sigma+' nm. Both openings change together.');});
+ }
+ return {update};
+}

@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## Version 59 — 2026-09-18
+
+- Reduce the detector hit enlargement and extend it toward the histogram instead of the slit wall.
+- Add vertical slit-width handles at the openings, with live opening/histogram previews, keyboard adjustment, and Escape cancellation. Both Gaussian aperture widths remain linked; committing starts a new detector record.
+
 ## Version 58 — 2026-09-18
 
 - Enable Sample another branch for packet-model detector histories, preserving hit count and elapsed time.

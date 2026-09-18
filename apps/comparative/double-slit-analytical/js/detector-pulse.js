@@ -1,8 +1,8 @@
 // A short geometric cue that follows the user's sensor color.
 export const DETECTOR_PULSE_SECONDS = .225;
 export function binPulseRect(x,y,width,height,strength){
- const amount=Math.max(0,Math.min(1,strength)),extra=Math.max(3,width*.65)*amount,grow=Math.max(2,height*.35)*amount;
- return {x:x-extra,y:y-grow/2,width:width+extra,height:height+grow};
+ const amount=Math.max(0,Math.min(1,strength)),extra=Math.max(2,width*.35)*amount,grow=Math.max(1,height*.2)*amount;
+ return {x:x,y:y-grow/2,width:width+extra,height:height+grow};
 }
 export function drawBinPulse(context,{x,y,width,height,color,strength}){
  if(strength<=0)return;
