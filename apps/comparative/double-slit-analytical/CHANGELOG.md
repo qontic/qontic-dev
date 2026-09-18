@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## Version 63 — 2026-09-18
+
+- Define consistent wave, geometry, width and detector notation, with explicit mappings to control labels.
+- Standardize view terminology and provide a numbered full bibliographic reference with DOI and open-access preprint.
+
 ## Version 62 — 2026-09-18
 
 - Separate Physics and Views: common equations and approximation limits in Physics; interpretations, visualization and record behavior in Views.
