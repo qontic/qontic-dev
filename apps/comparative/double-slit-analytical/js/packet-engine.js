@@ -1,5 +1,5 @@
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
-import {mountPacketGeometry,mountSlitWidth,trimTail,tailOpacity} from './packet-interaction.js?v=59';
+import {mountPacketGeometry,mountSlitWidth,trimTail,tailOpacity} from './packet-interaction.js?v=59.1';
 import {histogramLayout} from './packet-model.js?v=41';
 import {aperture,sourceCoefficients,sourceTransverse,sourceEnvelope,sampleSource,stepSource,sourceProfile} from './source-packet-model.js?v=52';
 import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=49';
