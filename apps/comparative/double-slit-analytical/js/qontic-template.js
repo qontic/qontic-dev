@@ -1,6 +1,6 @@
-import { mountPacketEngine } from './packet-engine.js?v=59.1';
-import { mountMWBranching } from './mw-branching.js?v=59.1';
-import { APP_RELEASE } from './release.js?v=59.1';
+import { mountPacketEngine } from './packet-engine.js?v=60';
+import { mountMWBranching } from './mw-branching.js?v=60';
+import { APP_RELEASE } from './release.js?v=60';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -305,7 +305,7 @@ $(function () {
   window.qonticScaleOverlay={previewHeight:height=>{previewScreenHeight=height;scale.update();},update:()=>{scale.setOpacity(elementOpacity('plot_scales'));media?.syncScale();}};
   const rangeHost=document.getElementById('paletteRangeSlider');
   const rangePanel=document.createElement('div');rangePanel.className='qontic-range-panel';
-  rangePanel.style.left='0px';rangePanel.style.bottom='50px';container.append(rangePanel);
+  rangePanel.style.left='0px';rangePanel.style.bottom='0px';container.append(rangePanel);
   for(const id of ['paletteScaleCanvas','paletteScaleCanvas1','paletteScaleCanvas2']){
     const palette=document.getElementById(id);rangePanel.append(palette);
     palette.style.bottom=id==='paletteScaleCanvas1'?'100px':'0px';
@@ -314,7 +314,7 @@ $(function () {
 
   document.getElementById('waveRangeLabel').hidden=true;
   window.qonticWaveRangeControl=mountValueRange({
-    host:rangeHost,label:'wave display range',movableContainer:rangePanel,storageKey:'qontic-double-slit-range-position',
+    host:rangeHost,label:'wave display range',movableContainer:rangePanel,storageKey:'qontic-double-slit-range-position-v60',
     format:value=>formatWaveRangeValue(window.qonticPacketEngine?.enabled && $('#waveFunctionOption').val()==='Phase'?2*value-1:useWebGLWave && $('#waveFunctionOption').val()==='Phase'?value*2*Math.PI:(useWebGLWave || window.qonticPacketEngine?.enabled) && $('#waveFunctionOption').val()==='LogPsi2'?(value*15-15)/Math.log(10):value),
     onChange:({lower,upper})=>{
       waveRangeUserMin=lower;waveRangeUserMax=upper;waveRangeLockedByUser=true;

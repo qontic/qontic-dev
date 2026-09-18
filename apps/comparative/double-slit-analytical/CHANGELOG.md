@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 60 — 2026-09-18
+
+- Anchor the color scale and wave-range panel at the exact lower-left canvas corner. Rebase its saved position for this release; subsequent dragging remains saved.
+
 ## Version 59 — 2026-09-18
 
 - Reduce the detector hit enlargement and extend it toward the histogram instead of the slit wall.
