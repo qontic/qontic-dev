@@ -1,5 +1,13 @@
 # Analytical Double Slit releases
 
+## Version 50 — 2026-09-18
+
+- Continuous packet transport through ordinary registrations; batch Orthodox/PW hits per frame instead of pausing after each hit.
+- Packet interval (10–300 ps for electrons or ns for neutrons, default 40) controls independent source launches. Multiple pulses can coexist; their densities add without inter-pulse coherence.
+- Preserve localized Gaussian display envelopes, smooth cyclic phase colors, double the wave raster resolution, and cache transverse visibility/palette data.
+- Cap animation catch-up at 100 ms to avoid large jumps. Explicit MW branch inspection still pauses transport and the source clock.
+
+
 ## Version 49 — Clearer packet display and hit targets (2026-09-18)
 
 - Remove the unused source-control row and its gap below Tail length.
