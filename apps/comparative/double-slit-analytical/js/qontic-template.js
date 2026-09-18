@@ -1,6 +1,6 @@
-import { mountPacketEngine } from './packet-engine.js?v=60';
-import { mountMWBranching } from './mw-branching.js?v=60';
-import { APP_RELEASE } from './release.js?v=60';
+import { mountPacketEngine } from './packet-engine.js?v=61';
+import { mountMWBranching } from './mw-branching.js?v=61';
+import { APP_RELEASE } from './release.js?v=61';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -14,8 +14,7 @@ $(function () {
   shell.innerHTML = `<header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Double Slit</h1></div></header>
     <nav class="tabs" aria-label="Application sections">
       <button type="button" data-page="0" class="active">Simulation</button>
-      <button type="button" data-page="2">Math</button>
-      <button type="button" data-page="1">Rationale</button>
+      <button type="button" data-page="1">Physics</button>
     </nav>`;
   const root = document.getElementById('superContainer');
   root.before(shell);
@@ -23,7 +22,9 @@ $(function () {
   $('#psiTabs').tabs('destroy');
   const math = document.getElementById('math-container');
   root.append(math);
-  $('#superContainer > ul').append('<li><a href="#math-container">Math</a></li>');
+  document.querySelector('#superContainer > ul a[href="#rationale"]')?.closest('li').remove();
+  document.getElementById('rationale')?.remove();
+  $('#superContainer > ul').append('<li><a href="#math-container">Physics</a></li>');
   $('#superContainer').tabs('refresh');
   const pageButtons = shell.querySelectorAll('[data-page]');
   const syncPage = () => {

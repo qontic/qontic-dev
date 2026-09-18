@@ -1,5 +1,11 @@
 # Analytical Double Slit releases
 
+## Version 61 — 2026-09-18
+
+- Merge Math and Rationale into one Physics section without duplicated interpretation text.
+- Audit the explanation against the Gaussian source engine: paraxial limits, soft-mask normalization, numerical quadrature and trajectories, conditioned counts, approximate errors, MW timing, and display enhancements.
+- Present five model equations with a verified reference to the Gaussian-aperture literature.
+
 ## Version 60 — 2026-09-18
 
 - Anchor the color scale and wave-range panel at the exact lower-left canvas corner. Rebase its saved position for this release; subsequent dragging remains saved.
