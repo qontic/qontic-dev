@@ -314,7 +314,7 @@ $(function () {
   document.getElementById('waveRangeLabel').hidden=true;
   window.qonticWaveRangeControl=mountValueRange({
     host:rangeHost,label:'wave display range',movableContainer:rangePanel,storageKey:'qontic-double-slit-range-position',
-    format:value=>formatWaveRangeValue((useWebGLWave || window.qonticPacketEngine?.enabled) && $('#waveFunctionOption').val()==='Phase'?value*2*Math.PI:(useWebGLWave || window.qonticPacketEngine?.enabled) && $('#waveFunctionOption').val()==='LogPsi2'?(value*15-15)/Math.log(10):value),
+    format:value=>formatWaveRangeValue(window.qonticPacketEngine?.enabled && $('#waveFunctionOption').val()==='Phase'?2*value-1:useWebGLWave && $('#waveFunctionOption').val()==='Phase'?value*2*Math.PI:(useWebGLWave || window.qonticPacketEngine?.enabled) && $('#waveFunctionOption').val()==='LogPsi2'?(value*15-15)/Math.log(10):value),
     onChange:({lower,upper})=>{
       waveRangeUserMin=lower;waveRangeUserMax=upper;waveRangeLockedByUser=true;
       lastCycleIndex=-1;
