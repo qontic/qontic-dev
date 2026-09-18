@@ -1,5 +1,11 @@
 # Analytical Double Slit releases
 
+## Version 49 — Clearer packet display and hit targets (2026-09-18)
+
+- Remove the unused source-control row and its gap below Tail length.
+- Use Particles / packet for Pilot-Wave incident trials; use Hits / packet for Orthodox/MW screen-conditioned ensembles. Explain the change of flux convention in Rationale.
+- Slate-blue canvas background, including captures, and stronger fixed wave visibility on both sides of the slits; probabilities and trajectories are unaffected by display enhancement.
+
 ## Version 48 — Compact handles and brighter transmitted waves (2026-09-18)
 
 - Detector movement and height controls appear only at the bottom; add a bottom slit-wall handle that keeps the detector fixed.
