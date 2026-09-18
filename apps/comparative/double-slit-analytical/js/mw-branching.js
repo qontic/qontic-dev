@@ -1,3 +1,4 @@
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=53';
 // Count active branch-view time only; pausing does not consume the interval.
 export function createBranchDwellClock(now=()=>performance.now()) {
   let elapsed=0,last=null;
@@ -29,12 +30,13 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
   enabled.addEventListener('change',()=>{dwellClock.reset();sync();});mode.addEventListener('change',cancel);
   // Cancel before existing input handlers can replace geometry or the record.
   for(const type of ['input','change']) document.addEventListener(type,event=>{
+    if(['MaxPart','MaxPart-input','MaxPart-units'].includes(event.target.id))return;
     if(active&&!settings.contains(event.target)&&!overlay.contains(event.target))cancel();
   },true);
   for(const id of ['resampleHitsButton','resetBranches']) document.getElementById(id)?.addEventListener('click',cancel,true);
   // Mode switches can originate in several existing controls.
   const observer=new MutationObserver(sync);observer.observe(document.getElementById('sharedControls'),{attributes:true,attributeFilter:['interpretation','running']});sync();
-  const begin=({selected,weights,detectorFraction,sensorFraction=.01,createRecord,onSplit,onSelect})=>{
+  const begin=({selected,weights,detectorFraction,sensorFraction=.01,sensorColor='#90ee90',createRecord,onSplit,onSelect})=>{
     if(active||!enabled.checked||!isMW())return false;
     const snapshot=document.createElement('canvas');snapshot.width=host.clientWidth;snapshot.height=host.clientHeight;
     const ctx=snapshot.getContext('2d');
@@ -99,9 +101,8 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       target.drawImage(source,0,0,w,h);
       const x=detectorFraction*w,y=(index+.5)/count*h;
       target.drawImage(records[index],x,0,w-x,h);
-      if(highlight){
-        target.fillStyle='#ffe476';target.fillRect(x,index/count*h,Math.max(1,sensorFraction*w),Math.max(1,h/count));
-        target.beginPath();target.arc(x,y,Math.max(2,Math.min(6,w*.025)),0,Math.PI*2);target.fill();
+      if(highlight&&session.splitTime<DETECTOR_PULSE_SECONDS*1000){
+        drawBinPulse(target,{x,y:index/count*h,width:Math.max(1,sensorFraction*w),height:Math.max(1,h/count),color:sensorColor,strength:1-session.splitTime/(1000*DETECTOR_PULSE_SECONDS)});
       }
       // Composite the entire system uniformly against the stage background.
       // Applying alpha separately to wave and detector layers would bleed through.

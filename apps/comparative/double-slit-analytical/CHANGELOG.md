@@ -1,5 +1,12 @@
 # Analytical Double Slit releases
 
+## Version 53 — 2026-09-18
+
+- Replace yellow hit flashes with sensor-colored bin enlargement and neutral outlines, lasting 225 ms in all modes.
+- Preserve statistics and current packets when particles/hits per packet changes; apply the new count at the next launch. Keep an active MW branch selection intact.
+- Preview the predicted screen histogram on each drag frame for the slit wall, detector position and detector height. Cancellation restores the original curve; committing changed geometry starts a new record as before.
+
+
 ## Version 52 — 2026-09-18
 
 - Draw clear wall openings between the Gaussian aperture FWHM markers; document that these are schematic edges while Gaussian transmission remains the model.
