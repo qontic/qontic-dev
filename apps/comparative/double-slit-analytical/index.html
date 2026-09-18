@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
     <script>window.qonticTemplateLayout = true;</script>
-    <script src="js/double-slit.js?v=50.1"></script>
+    <script src="js/double-slit.js?v=50.2"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
     <style>
@@ -39,7 +39,7 @@
     </style>
     <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
     <link rel="stylesheet" href="css/qontic-template.css?v=23">
-    <script type="module" src="js/qontic-template.js?v=50.1-engines"></script>
+    <script type="module" src="js/qontic-template.js?v=50.2-engines"></script>
 </head>
 <body>
   <!-- Loading overlay — visible until JS init completes -->
@@ -340,7 +340,7 @@
            </tr>
            <tr class="info-box bohmian-only info-highlight" data-tip="Particles currently shown / maximum allowed">
                <td class="label">Particles:</td>
-               <td align=right class="value"><span id="shownParticles">0</span> / <span id="maxParticlesDisplay">100</span></td> 
+               <td align=right class="value"><span id="shownParticles">0</span> active<span id="maxParticlesDisplay" hidden>100</span></td> 
            </tr>
            <tr class="info-box manyworlds-only info-highlight" data-tip="Finite detector model: each detection splits every existing branch into N sensor-outcome branches. After m detections the count is N^m; weights need not be equal.">
                <td class="label">Branches:</td>
