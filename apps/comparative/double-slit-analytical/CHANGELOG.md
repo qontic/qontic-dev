@@ -1,5 +1,12 @@
 # Analytical Double Slit releases
 
+## Version 51 — 2026-09-18
+
+- Keep high-particle-count playback responsive by yielding between complete physics steps after a 12 ms integration budget. Requested speed becomes best-effort under load; no particles or detector events are dropped.
+- Trim trajectory tails once per displayed frame, sample their drawing vertices at 2 nm intervals, and batch tail/particle drawing. Physics steps and aperture probabilities are unchanged.
+- Make the soft wall more legible and mark each aperture’s intensity FWHM with cyan ticks. Slit width remains Gaussian σ; tooltips explain FWHM = 2.355 σ and overlapping profiles.
+
+
 ## Version 50 — 2026-09-18
 
 - Continuous packet transport through ordinary registrations; batch Orthodox/PW hits per frame instead of pausing after each hit.
