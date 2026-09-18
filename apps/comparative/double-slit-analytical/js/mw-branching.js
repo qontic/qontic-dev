@@ -26,8 +26,8 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
   const showProbabilities=settings.querySelector("#mw-show-probabilities");
   showProbabilities.addEventListener("change",()=>active?.layout?.());
   const cancel=()=>{dwellClock.reset();if(!active)return;cancelAnimationFrame(active.frame);active=null;overlay.hidden=true;grid.replaceChildren();zoom.hidden=true;};
-  const sync=()=>{if(!isRunning())dwellClock.pause();settings.hidden=!isMW();settings.querySelectorAll('.mw-follow').forEach(el=>el.hidden=!enabled.checked);if(!isMW()||!enabled.checked)cancel();};
-  enabled.addEventListener('change',()=>{dwellClock.reset();sync();});mode.addEventListener('change',cancel);
+  const sync=()=>{if(!isRunning())dwellClock.pause();settings.hidden=!isMW();settings.querySelectorAll('.mw-follow').forEach(el=>el.hidden=!enabled.checked);if(!isMW()||!enabled.checked)cancel();if(window.qonticPacketEngine?.enabled)settings.querySelector('.mw-dwell-control').hidden=true;};
+  enabled.addEventListener('change',()=>{dwellClock.reset();sync();window.qonticPacketEngine?.syncBranching();});mode.addEventListener('change',cancel);
   // Cancel before existing input handlers can replace geometry or the record.
   for(const type of ['input','change']) document.addEventListener(type,event=>{
     if(['MaxPart','MaxPart-input','MaxPart-units'].includes(event.target.id))return;

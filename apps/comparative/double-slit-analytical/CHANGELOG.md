@@ -1,5 +1,11 @@
 # Analytical Double Slit releases
 
+## Version 55 — 2026-09-18
+
+- MW slow motion temporarily uses one hit per packet and restores the previous count on exit, preserving recorded statistics.
+- Split at packet-center arrival at the screen, with one distinct fired pixel per branch. Launch the next packet only after branch selection and expansion.
+- Keep the packet visible during branch inspection; suspend packet spacing and hide the obsolete branch dwell control during the tour.
+
 ## Version 54 — 2026-09-18
 
 - Update the distance scale continuously during detector-height dragging, using the preview height and displayed canvas dimensions. Cancelling restores the original scale; release retains the committed scale.
