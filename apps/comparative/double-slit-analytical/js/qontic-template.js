@@ -1,6 +1,6 @@
-import { mountPacketEngine } from './packet-engine.js?v=61';
-import { mountMWBranching } from './mw-branching.js?v=61';
-import { APP_RELEASE } from './release.js?v=61';
+import { mountPacketEngine } from './packet-engine.js?v=62';
+import { mountMWBranching } from './mw-branching.js?v=62';
+import { APP_RELEASE } from './release.js?v=62';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -15,6 +15,7 @@ $(function () {
     <nav class="tabs" aria-label="Application sections">
       <button type="button" data-page="0" class="active">Simulation</button>
       <button type="button" data-page="1">Physics</button>
+      <button type="button" data-page="2">Views</button>
     </nav>`;
   const root = document.getElementById('superContainer');
   root.before(shell);
@@ -25,6 +26,8 @@ $(function () {
   document.querySelector('#superContainer > ul a[href="#rationale"]')?.closest('li').remove();
   document.getElementById('rationale')?.remove();
   $('#superContainer > ul').append('<li><a href="#math-container">Physics</a></li>');
+  const views=document.createElement('div');views.id='rationale';root.append(views);
+  $('#superContainer > ul').append('<li><a href="#rationale">Views</a></li>');
   $('#superContainer').tabs('refresh');
   const pageButtons = shell.querySelectorAll('[data-page]');
   const syncPage = () => {

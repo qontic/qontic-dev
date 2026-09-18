@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## Version 62 — 2026-09-18
+
+- Separate Physics and Views: common equations and approximation limits in Physics; interpretations, visualization and record behavior in Views.
+- Show the exact envelope equation and the longitudinal derivative omitted by the app; distinguish the effective mask from wall-potential scattering and state the unvalidated parameter range.
+
 ## Version 61 — 2026-09-18
 
 - Merge Math and Rationale into one Physics section without duplicated interpretation text.

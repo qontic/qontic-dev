@@ -1,4 +1,4 @@
-import {physicsHTML,physicsEquations} from './physics-content.js?v=61';
+import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=62';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,trimTail,tailOpacity} from './packet-interaction.js?v=59.1';
 import {histogramLayout} from './packet-model.js?v=41';
@@ -55,7 +55,8 @@ export function mountPacketEngine({core,advanced}){
  function ensure(){syncSlowPacketMode();const next=config();if(configFingerprint(next)!==fingerprint)resetEngine();else p.particles=next.particles;}
  function updateMath(){
   packetMath.innerHTML=physicsHTML;
-  for(const node of packetMath.querySelectorAll('[data-equation]')){
+  const views=document.getElementById('rationale');views.innerHTML=viewsHTML;
+  for(const node of [...packetMath.querySelectorAll('[data-equation]'),...views.querySelectorAll('[data-equation]')]){
    const formula=physicsEquations[node.dataset.equation];
    if(typeof katex!=='undefined')katex.render(formula,node,{displayMode:true,throwOnError:false});
    else node.textContent=formula;
