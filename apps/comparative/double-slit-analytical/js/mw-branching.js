@@ -10,7 +10,7 @@ export function createBranchDwellClock(now=()=>performance.now()) {
 }
 // A visual tour of detector records, not propagation of separate world wavefunctions.
 export function mountMWBranching({host,controls,isMW,isRunning}) {
-  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=57',import.meta.url);document.head.append(style);
+  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=57.1',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
   settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow" hidden>Follow branch <select aria-label="Follow branch"><option value="auto">Automatically (Born weights)</option><option value="manual">Choose myself</option></select></label><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><label class="mw-follow" hidden><input type="checkbox" id="mw-show-probabilities"> Show probabilities</label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
   controls.append(settings);
@@ -62,8 +62,8 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       const tileWidth=(width-gap*(columns-1))/columns-2;
       const tileHeight=(height-gap*(rows-1))/rows-2;
       displayLabels=showProbabilities.checked && tileWidth>=minimumLabelWidth && tileHeight>=55;
-      grid.style.width=width+'px';
-      grid.style.height=height+'px';
+      grid.style.width='calc(100% - 10px)';
+      grid.style.height='calc(100% - 10px)';
       grid.style.gridTemplateColumns=`repeat(${columns},minmax(0,1fr))`;
       grid.style.gridTemplateRows=`repeat(${rows},minmax(0,1fr))`;
     };
@@ -107,7 +107,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       // Keep the outcome identifiable even after the brief bin pulse ends.
       // Draw above the probability shading so rare branches remain readable.
       if(highlight){
-        const tileWidth=Math.max(1,(parseFloat(grid.style.width)-gap*(columns-1))/columns-2);
+        const tileWidth=Math.max(1,(grid.clientWidth-gap*(columns-1))/columns-2);
         const radius=Math.max(3,Math.min(10,3*w/tileWidth));
         const markerX=Math.min(w-radius-1,x+Math.max(1,sensorFraction*w)/2);
         const markerY=Math.max(radius+1,Math.min(h-radius-1,y));

@@ -5,8 +5,8 @@
 .mw-branch-settings small{font-size:.85em;line-height:1.4;opacity:.8}
 .mw-branch-overlay{position:absolute;inset:0;z-index:45;background:#0b1725;color:#e9faff;border-radius:4px;overflow:hidden;display:flex;flex-direction:column}
 .mw-branch-status{padding:8px 10px;font:13px/1.4 Inter,Arial,sans-serif;min-height:18px;z-index:2;background:#102333e8}
-.mw-branch-scroll{overflow:auto;flex:1;min-height:0;padding:5px}
-.mw-branch-grid{display:grid;gap:5px;align-content:stretch}
+.mw-branch-scroll{position:relative;overflow:hidden;flex:1;min-height:0;padding:5px}
+.mw-branch-grid{position:absolute;top:5px;left:5px;display:grid;gap:5px;align-content:stretch}
 .mw-branch-tile{display:flex;flex-direction:column;min-width:0;min-height:0;padding:0;border:1px solid #496577;border-radius:4px;overflow:hidden;background:#142737;color:#e9faff;cursor:pointer;font:11px/1.5 Inter,Arial,sans-serif}
 .mw-branch-tile:disabled{opacity:1;cursor:default}
 .mw-branch-tile:not(:disabled):hover,.mw-branch-tile:focus-visible{border-color:#ffe476;outline:2px solid #ffe476;outline-offset:-2px}
