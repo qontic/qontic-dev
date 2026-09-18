@@ -42,14 +42,14 @@ export function sourceTransverse(y,x,p,coeff=sourceCoefficients(p)){
  return {re,im,dr,di,rho,v:rho>1e-26?(re*di-im*dr)/rho:0};
 }
 export function sourceEnvelope(x,t,p){
- const u=x-p.k*t,rho=Math.exp(-u*u/(2*p.sx*p.sx))/(Math.sqrt(2*Math.PI)*p.sx);
+ const u=x-(p.initialCenter??0)-p.k*t,rho=Math.exp(-u*u/(2*p.sx*p.sx))/(Math.sqrt(2*Math.PI)*p.sx);
  return {rho,phase:p.k*x-p.k*p.k*t/2};
 }
 function normal(random){return Math.sqrt(-2*Math.log(Math.max(1e-15,random())))*Math.cos(2*Math.PI*random());}
 export function sampleSource(p,random=Math.random){
- // Preparation is before the mask. With sx <= wall/4, the excluded forward
- // Gaussian tail is <= 3.2e-5 of the source ensemble.
- let x;do{x=p.sx*normal(random);}while(x>=p.wall);
+ // Optional upstream preparation keeps every sampled particle outside the canvas.
+ // A boundary six sigma ahead of the center excludes less than 1e-9 probability.
+ let x;do{x=(p.initialCenter??0)+p.sx*normal(random);}while(x>=Math.min(p.wall,p.initialRight??p.wall));
  const s=p.sourceSigma*Math.sqrt(1+(x/(2*p.k*p.sourceSigma**2))**2);
  return {x0:x,x,y:s*normal(random),done:false,passed:false,absorbed:false,path:[]};
 }

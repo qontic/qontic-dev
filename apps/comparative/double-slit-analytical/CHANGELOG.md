@@ -1,5 +1,13 @@
 # Analytical Double Slit releases
 
+## Version 52 — 2026-09-18
+
+- Draw clear wall openings between the Gaussian aperture FWHM markers; document that these are schematic edges while Gaussian transmission remains the model.
+- Initialize wave packets and particles six longitudinal sigma upstream of the left canvas boundary. All sampled particles enter through the left edge.
+- Flash every registered detector pixel yellow in PW, Orthodox and ordinary MW, including simultaneous hits. Paint on the sensor layer; MW branch views highlight their own complete sensor pixel.
+- Default Packet interval to Auto (0), waiting for all prior outcomes and branch selections. Positive intervals remain available for overlapping pulses.
+
+
 ## Version 51 — 2026-09-18
 
 - Keep high-particle-count playback responsive by yielding between complete physics steps after a 12 ms integration budget. Requested speed becomes best-effort under load; no particles or detector events are dropped.

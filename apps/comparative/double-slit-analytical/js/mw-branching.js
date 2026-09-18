@@ -34,7 +34,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
   for(const id of ['resampleHitsButton','resetBranches']) document.getElementById(id)?.addEventListener('click',cancel,true);
   // Mode switches can originate in several existing controls.
   const observer=new MutationObserver(sync);observer.observe(document.getElementById('sharedControls'),{attributes:true,attributeFilter:['interpretation','running']});sync();
-  const begin=({selected,weights,detectorFraction,createRecord,onSplit,onSelect})=>{
+  const begin=({selected,weights,detectorFraction,sensorFraction=.01,createRecord,onSplit,onSelect})=>{
     if(active||!enabled.checked||!isMW())return false;
     const snapshot=document.createElement('canvas');snapshot.width=host.clientWidth;snapshot.height=host.clientHeight;
     const ctx=snapshot.getContext('2d');
@@ -100,7 +100,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       const x=detectorFraction*w,y=(index+.5)/count*h;
       target.drawImage(records[index],x,0,w-x,h);
       if(highlight){
-        target.fillStyle='#ffe476';target.fillRect(x-2,index/count*h,5,Math.max(2,h/count));
+        target.fillStyle='#ffe476';target.fillRect(x,index/count*h,Math.max(1,sensorFraction*w),Math.max(1,h/count));
         target.beginPath();target.arc(x,y,Math.max(2,Math.min(6,w*.025)),0,Math.PI*2);target.fill();
       }
       // Composite the entire system uniformly against the stage background.
