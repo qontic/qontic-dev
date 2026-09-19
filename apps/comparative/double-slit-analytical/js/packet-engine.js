@@ -29,7 +29,9 @@ export function mountPacketEngine({core,advanced}){
   length.max=Math.max(5,Math.min(200,Math.floor(Math.min(sourcePos,detectorDistance)/4)));if(+length.value>+length.max)length.value=length.max;
   syncPacketInput(length);syncPacketInput(interval);
   const next={source:true,spherical:false,focused:false,sx:+length.value/100,sy:+width.value/100,k:2*Math.PI*100/wavelength,launch:-sourcePos/100,wall:sourcePos/100,screen:(sourcePos+detectorDistance)/100,sourceSigma:+sourceWidth.value/100,bins:Math.max(1,Math.floor(nDetectorPixels)),particles:Math.max(1,Math.min(5000,Math.floor(+document.getElementById('MaxPart-input').value||100))),slits:slit1Open&&slit2Open?2:1};
-  next.centers=[...(slit1Open?[(slit1YWorld-screenHeight/2)/100]:[]),...(slit2Open?[(slit2YWorld-screenHeight/2)/100]:[])].sort((a,b)=>a-b);next.initialRight=-sourceXWorld/100-.03;next.initialCenter=next.initialRight-6*next.sx;next.duration=(next.screen-next.initialCenter+8*next.sx)/next.k;return next;
+  // Use physical inputs directly: a canvas/world round trip introduces tiny
+  // resize-dependent rounding differences that would reset the experiment.
+  next.centers=[...(slit1Open?[-slitSeparation/200]:[]),...(slit2Open?[slitSeparation/200]:[])].sort((a,b)=>a-b);next.initialRight=-worldCanvasDx/1000-.03;next.initialCenter=next.initialRight-6*next.sx;next.duration=(next.screen-next.initialCenter+8*next.sx)/next.k;return next;
  }
  function emissionPeriod(){return slowPacketMode||+interval.value===0?Infinity:(+interval.value)*(particleType==='neutron'?1:.001)/timeUnit;}
  function prepare(){
@@ -340,5 +342,6 @@ export function mountPacketEngine({core,advanced}){
  }
  return {sampleBranch,syncBranching(){ensure();draw();},get viewportWidth(){viewWidth=Math.max(viewWidth,(sourcePos+detectorDistance)/.7);return viewWidth;},get enabled(){return true;},reset:resetEngine,draw,drawWave,drawParticles,histogram,frame,updateMath,hash,pause(){last=null;if(packetAnimationId!==null)cancelAnimationFrame(packetAnimationId);packetAnimationId=null;}};
 }
+
 
 
