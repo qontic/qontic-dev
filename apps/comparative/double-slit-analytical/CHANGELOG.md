@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 77 — 2026-09-19
+
+- Preserve the histogram, hit count and elapsed time when toggling the Pilot-Wave slit-conditioned source option. Replace only the unfinished in-flight packet so the visual change takes effect immediately.
+
 ## Version 76 — 2026-09-19
 
 - Make the Pilot-Wave “Direct particles through slits” option span the full control-panel width, preventing its label from wrapping inside the narrow slider-label column.

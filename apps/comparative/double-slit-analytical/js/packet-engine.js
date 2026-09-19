@@ -1,4 +1,4 @@
-import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=75';
+import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=77';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=68';
 import {histogramLayout} from './packet-model.js?v=41';
@@ -274,7 +274,7 @@ export function mountPacketEngine({core,advanced}){
  for(const [key,el] of [['packetLength',length],['packetWidth',width],['sourceWidth',sourceWidth],['tailLength',tailLength],['packetInterval',interval]]){const n=Number(params.get(key));if(params.has(key)&&n>=+el.min&&n<=+el.max){el.value=n;syncPacketInput(el);}}
  const count=+params.get('packetCount');if(count>=1&&count<=5000)$('#MaxPart-group')[0]?.setValueInFirstUnit(count);
  interval.addEventListener('input',()=>{syncPacketInput(interval);nextEmission=Math.max(t,(pulses.at(-1)?.born??t)+emissionPeriod());});
- directed.addEventListener('change',()=>{localStorage.setItem('qontic-pw-directed-slits',String(directed.checked));if(interpretation==='bohmian'){resetEngine();draw();}});
+ directed.addEventListener('change',()=>{localStorage.setItem('qontic-pw-directed-slits',String(directed.checked));if(interpretation==='bohmian'){particles=[];pulses=[];nextEmission=t;last=null;hold=0;pulseAbsorbed=0;trajectories.length=0;prepare();stats();draw();}});
  for(const control of [length,width,sourceWidth])control.addEventListener('input',()=>{syncPacketInput(control);slitWidthHelp();resetEngine();draw();});
 
  for(const id of ['MaxPart','MaxPart-input'])document.getElementById(id).addEventListener(id==='MaxPart'?'input':'change',()=>queueMicrotask(()=>{ensure();draw();}));
