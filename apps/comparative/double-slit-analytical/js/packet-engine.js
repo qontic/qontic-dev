@@ -1,9 +1,9 @@
-import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=84';
+import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=86';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=84';
-import {histogramLayout} from './packet-model.js?v=84';
-import {aperture,sourceCoefficients,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile} from './source-packet-model.js?v=84';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=84';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=86';
+import {histogramLayout} from './packet-model.js?v=86';
+import {aperture,sourceCoefficients,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile} from './source-packet-model.js?v=86';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=86';
 export function mountPacketEngine({core,advanced}){
  const panel=document.createElement('div');panel.className='packet-settings';
  panel.innerHTML="<div class=\"input-group packet-inline\"><label for=\"packet-source-width\">Source width σ</label><input id=\"packet-source-width\" aria-label=\"Packet source width\" type=\"range\" min=\"50\" max=\"400\" step=\"5\" value=\"200\"><input aria-label=\"Packet source width value\" type=\"number\" min=\"50\" max=\"400\" step=\"5\" value=\"200\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-length\">Packet length σ</label><input id=\"packet-length\" aria-label=\"Packet length\" type=\"range\" min=\"50\" max=\"200\" step=\"5\" value=\"50\"><input aria-label=\"Packet length value\" type=\"number\" min=\"50\" max=\"200\" step=\"5\" value=\"50\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-slit-width\">Slit width σ</label><input id=\"packet-slit-width\" aria-label=\"Packet slit width\" type=\"range\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><input aria-label=\"Packet slit width value\" type=\"number\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><output>nm</output></div>";advanced.prepend(panel);
@@ -81,9 +81,12 @@ export function mountPacketEngine({core,advanced}){
    const a=particles[i];if(a.done)continue;
    if(!isPW){a.schedule={at:(p.screen-a.x0)/p.k,type:'hit',index:samplePixel(law.weights)};a.path=[];}
    else{
-    // Conditional source ensemble: reject preparations already absorbed at t.
+    // Reconstruct the PW ensemble at the packet's present age. Directed mode
+    // is already conditioned analytically on transmission, so it needs one draw;
+    // ordinary mode retains rejection only for histories already absorbed by now.
     let accepted=null;
-    for(let attempt=0;attempt<20000&&!accepted;attempt++){
+    const attempts=directed.checked?1:20000;
+    for(let attempt=0;attempt<attempts&&!accepted;attempt++){
      const b=directed.checked?sampleTransmittedSource(p,Math.random,a.x0):sampleSource(p);
      b.x0=b.x=a.x0;
      if(!directed.checked){
@@ -94,7 +97,7 @@ export function mountPacketEngine({core,advanced}){
      const packetAge=t-a.cohort.born;let age=0;while(age<packetAge&&!b.done){const dt=Math.min(.002,packetAge-age);stepSource(b,dt,p,coeff);age+=dt;}
      if(!b.done)accepted=b;
     }
-    if(accepted){accepted.cohort=a.cohort;particles[i]=accepted;}else throw new Error('Unable to sample surviving preparation; reset with a wider aperture.');
+    if(accepted){accepted.cohort=a.cohort;particles[i]=accepted;}else throw new Error('Unable to reconstruct an active source preparation.');
    }
   }
   lastMode=interpretation;

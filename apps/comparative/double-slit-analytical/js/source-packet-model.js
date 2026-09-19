@@ -2,7 +2,7 @@
 // i (partial_t + k partial_x) u = -partial_y^2 u / 2.
 // The longitudinal envelope translates; longitudinal dispersion and reflection
 // are outside this approximation. No numerical wave-equation solver is used.
-import {gaussian} from './packet-model.js?v=84';
+import {gaussian} from './packet-model.js?v=86';
 
 export function aperture(y,p){
  const sum=p.centers.reduce((n,c)=>n+Math.exp(-((y-c)**2)/(4*p.sy*p.sy)),0);
@@ -46,28 +46,49 @@ export function sourceEnvelope(x,t,p){
  return {rho,phase:p.k*x-p.k*p.k*t/2};
 }
 function normal(random){return Math.sqrt(-2*Math.log(Math.max(1e-15,random())))*Math.cos(2*Math.PI*random());}
-export function sampleSource(p,random=Math.random){
+function sourceWidth(x,p){return p.sourceSigma*Math.sqrt(1+(x/(2*p.k*p.sourceSigma**2))**2);}
+function sampleLongitudinalX(p,random){
  // Optional upstream preparation keeps every sampled particle outside the canvas.
  // A boundary six sigma ahead of the center excludes less than 1e-9 probability.
  let x;do{x=(p.initialCenter??0)+p.sx*normal(random);}while(x>=Math.min(p.wall,p.initialRight??p.wall));
- const s=p.sourceSigma*Math.sqrt(1+(x/(2*p.k*p.sourceSigma**2))**2);
- return {x0:x,x,y:s*normal(random),done:false,passed:false,absorbed:false,path:[]};
+ return x;
+}
+export function sampleSource(p,random=Math.random){
+ const x=sampleLongitudinalX(p,random);
+ return {x0:x,x,y:sourceWidth(x,p)*normal(random),done:false,passed:false,absorbed:false,path:[]};
 }
 export function sampleTransmittedSource(p,random=Math.random,fixedX=null){
- // Draw the incident Born ensemble conditioned on successful transmission.
- // This changes only which PW configurations are displayed; it does not
- // redirect trajectories or alter the wavefunction/guidance field.
- for(let attempt=0;attempt<20000;attempt++){
-  let a;
-  if(fixedX===null)a=sampleSource(p,random);
-  else{
-   const s=p.sourceSigma*Math.sqrt(1+(fixedX/(2*p.k*p.sourceSigma**2))**2);
-   a={x0:fixedX,x:fixedX,y:s*normal(random),done:false,passed:false,absorbed:false,path:[]};
-  }
-  const yWall=advanceSourceY(a.y,a.x,p.wall-a.x,p);
-  if(random()<=aperture(yWall,p)**2){a.conditionedTransmission=true;return a;}
+ // At the wall, the conditional density is exactly
+ // |phi(y,L)|^2 T(y)^2.  Expanding the squared sum of Gaussian apertures
+ // makes this a finite Gaussian mixture (one component per ordered slit pair).
+ // Sampling that mixture avoids rejection, so even vanishingly small total
+ // transmission remains fast and cannot exhaust an attempt limit.
+ const incidentVariance=sourceWidth(p.wall,p)**2;
+ const apertureVariance=p.sy*p.sy;
+ const denominator=incidentVariance+apertureVariance;
+ const variance=incidentVariance*apertureVariance/denominator;
+ const components=[];
+ let maxLogWeight=-Infinity;
+ for(const left of p.centers)for(const right of p.centers){
+  const sum=left+right;
+  const logWeight=-(left*left+right*right)/(4*apertureVariance)
+   +incidentVariance*sum*sum/(8*apertureVariance*denominator);
+  const component={mean:incidentVariance*sum/(2*denominator),logWeight};
+  components.push(component);maxLogWeight=Math.max(maxLogWeight,logWeight);
  }
- throw new Error('Unable to sample a slit-transmitted source configuration.');
+ let totalWeight=0;
+ for(const component of components){
+  component.weight=Math.exp(component.logWeight-maxLogWeight);
+  totalWeight+=component.weight;
+ }
+ let pick=random()*totalWeight,selected=components[components.length-1];
+ for(const component of components){pick-=component.weight;if(pick<=0){selected=component;break;}}
+ const yWall=selected.mean+Math.sqrt(variance)*normal(random);
+ const x=fixedX===null?sampleLongitudinalX(p,random):fixedX;
+ // Incident Gaussian Bohmian trajectories scale with the packet width.
+ // Map the wall sample back analytically to the requested preparation plane.
+ const y=yWall*sourceWidth(x,p)/Math.sqrt(incidentVariance);
+ return {x0:x,x,y,done:false,passed:false,absorbed:false,path:[],conditionedTransmission:true};
 }
 export function advanceSourceY(y,x,dx,p,coeff){
  // Incident Gaussian trajectories have a closed expression; transmitted

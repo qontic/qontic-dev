@@ -1,3 +1,10 @@
+## Version 86 — 2026-09-19
+
+- Replaced rejection sampling for “Direct PW” with the exact analytical Gaussian-mixture sampler for the conditional wall density \(T^2(y)|\phi(y,L)|^2\), then mapped each sample back to its source plane along the exact incident guidance trajectory.
+- Removed the fixed 20,000-attempt failure mode, so directed packets remain fast and reliable even when total slit transmission is extremely small.
+- Removed the retired point-source \(1/r\) wave, guidance, trajectory, detector-distribution, precomputation and rendering paths from the active script; the Gaussian packet engine is now the only physics engine.
+- Aligned active packet-module cache versions.
+
 ## Version 85 — 2026-09-19
 
 - Standardized slider rows throughout Core, Advanced and Display with the same faint solid divider; removed dotted label underlines inside the controls.
