@@ -1,6 +1,6 @@
 import { mountPacketEngine } from './packet-engine.js?v=66';
 import { mountMWBranching } from './mw-branching.js?v=63';
-import { APP_RELEASE } from './release.js?v=66';
+import { APP_RELEASE } from './release.js?v=67';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -350,12 +350,11 @@ $(function () {
   document.querySelector('#canvas-wrapper .qontic-media-toolbar').prepend(document.getElementById('view-label'));
   window.qonticPacketEngine=mountPacketEngine({core,advanced});
   // Capture shortcuts before the shadow controls stop propagation. Respect
-  // editable fields and native Space activation on focused buttons/checkboxes.
+  // editable fields; Space always controls playback, even with toolbar focus.
   document.addEventListener('keydown', event => {
     if(event.defaultPrevented||event.ctrlKey||event.metaKey||event.altKey||event.isComposing)return;
     const target=event.composedPath()[0];
     if(target?.matches?.('input,select,textarea')||target?.isContentEditable)return;
-    if(event.code==='Space'&&target?.closest?.('button,a,[role=button]'))return;
     const actions={Space:()=>document.getElementById('startButton').click(),
       KeyR:()=>document.getElementById('resetButton').click(),
       KeyS:()=>document.querySelector('#canvas-wrapper .qontic-media-toolbar button[aria-label="Screenshot"]')?.click(),

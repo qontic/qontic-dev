@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 67 — 2026-09-19
+
+- Make Space control playback even when a toolbar button retains focus, preventing accidental geometry editing or capture actions. Keep native keyboard behavior in input fields.
+
 ## Version 66 — 2026-09-19
 
 - Hide geometry handles during normal playback; add pencil/right-click editing mode, Escape exit, and pause/resume restoration.
