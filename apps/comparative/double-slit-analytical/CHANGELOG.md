@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## Version 66 — 2026-09-19
+
+- Hide geometry handles during normal playback; add pencil/right-click editing mode, Escape exit, and pause/resume restoration.
+- Keep predicted histogram previews live for all geometry drags and visible throughout editing, even if the probability display was hidden. Cancel unfinished drags on exit; explicit Start exits editing.
+
 ## Version 65 — 2026-09-19
 
 - Restore keyboard shortcuts across the shared controls, respecting text entry and native Space activation; route screenshots to the shared capture toolbar.
@@ -249,4 +254,5 @@ The displayed release is defined in `js/release.js`. For each published app chan
 - Replace Display switches with independent opacity sliders and unify slider styles across Core, Advanced, and Display.
 - Remove particle-based wave masking and fix screen-endpoint initialization.
 - Expand Math and Rationale with readable typography and explicit model limitations.
+
 

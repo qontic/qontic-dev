@@ -55,7 +55,7 @@ export function mountPacketGeometry({host,getGeometry,onCommit,onPreview=()=>{},
    const sign=['ArrowRight','ArrowUp'].includes(e.key)?1:-1;onCommit(dragGeometry(g,kind,sign*step*g.scaleX,(e.key==='ArrowDown'||e.key==='ArrowRight'?1:-1)*step*g.scaleY/2));update();
   });
  }
- return {update};
+ return {update,cancel:()=>finish(false)};
 }
 export function slitWidthFromDrag(width,dy,pixelsPerNm){
  return Math.max(10,Math.min(200,Math.round((width+dy/(Math.sqrt(2*Math.log(2))*pixelsPerNm))/5)*5));
@@ -80,7 +80,7 @@ export function mountSlitWidth({host,getState,onPreview,onCommit,pause,resume}){
   const state=getState();if(!state)return;layer.hidden=!!state.busy||!state.visible;
   buttons.forEach((button,index)=>{const center=state.centers[index];button.hidden=center===undefined;if(button.hidden)return;const sigma=drag?drag.next:state.width;button.style.left=Math.max(30,state.wallFraction*host.clientWidth-34)+'px';button.style.top=Math.max(14,Math.min(host.clientHeight-14,center*host.clientHeight+(drag&&drag.index===index?drag.side:edgeSide(state,index))*Math.sqrt(2*Math.log(2))*sigma*state.scaleY))+'px';button.setAttribute('aria-description','Slit width sigma '+sigma+' nm. Both openings change together.');});
  }
- return {update};
+ return {update,cancel:()=>buttons.forEach(button=>button.dispatchEvent(new Event('pointercancel')))};
 }
 
 
@@ -103,5 +103,6 @@ export function mountSlitSeparation({host,getState,onPreview,onCommit,pause,resu
   return button;
  });
  function update(){const state=getState();layer.hidden=!!state.busy||!state.visible;const sep=drag?drag.next:state.separation;buttons.forEach((button,index)=>{button.hidden=!state.open[index];button.style.left=Math.min(host.clientWidth-30,Math.max(30,state.wallFraction*host.clientWidth+44))+'px';button.style.top=Math.max(14,Math.min(host.clientHeight-45,host.clientHeight/2+(index?1:-1)*Math.max(14,sep*state.scaleY/2)))+'px';button.setAttribute('aria-description','Slit separation '+sep+' nm; width unchanged.');});}
- return {update};
+ return {update,cancel:()=>buttons.forEach(button=>button.dispatchEvent(new Event('pointercancel')))};
 }
+
