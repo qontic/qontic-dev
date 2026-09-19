@@ -1,4 +1,4 @@
-import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=86-phase-angle';
+import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=86-cos-phase';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=86';
 import {histogramLayout} from './packet-model.js?v=86';
@@ -69,7 +69,7 @@ export function mountPacketEngine({core,advanced}){
   }
  }
  function syncMode(){
-  for(const id of ['waveFunctionOption','basicsWaveFunctionOption']){const select=document.getElementById(id);if(!select)continue;const phase=select.querySelector('option[value=Phase]');if(phase&&phase.textContent!=='Phase (φ)')phase.textContent='Phase (φ)';if(!select.value)select.value='Phase';}
+  for(const id of ['waveFunctionOption','basicsWaveFunctionOption']){const select=document.getElementById(id);if(!select)continue;const phase=select.querySelector('option[value=Phase]');if(phase&&phase.textContent!=='Phase (cos θ)')phase.textContent='Phase (cos θ)';if(!select.value)select.value='Phase';}
 
   directedRow.hidden=interpretation!=='bohmian';
   const countLabel=document.querySelector('#MaxPart-group label');if(countLabel)countLabel.textContent=interpretation==='bohmian'?'Part./packet:':'Hits / packet:';
@@ -210,17 +210,15 @@ export function mountPacketEngine({core,advanced}){
    // Display-only contrast boost; zero density stays transparent.
    const weight=-Math.expm1(-3*rawWeight)/-Math.expm1(-3);let value;
    if(mode==='Phase'){
-    // Show the wrapped phase angle arg(Psi) on [-pi, pi].
-    const cosPhase=sourceGrid.phaseCos[n]*env[i].cos-sourceGrid.phaseSin[n]*env[i].sin;
-    const sinPhase=sourceGrid.phaseSin[n]*env[i].cos+sourceGrid.phaseCos[n]*env[i].sin;
-    value=(Math.atan2(sinPhase,cosPhase)+Math.PI)/(2*Math.PI);
+    // Display cos(theta), a smooth scalar representation of the local phase.
+    value=.5+.5*(sourceGrid.phaseCos[n]*env[i].cos-sourceGrid.phaseSin[n]*env[i].sin);
    }else if(mode==='LogPsi2')value=Math.max(0,Math.min(1,(Math.log(Math.max(1e-15,rho/peak))+15)/15));
    else value=Math.sqrt(Math.min(1,rho/peak*8));
    const rgb=paletteColors[Math.round(Math.max(0,Math.min(1,(value-range.min)/span))*1023)];
    data.data[4*n]=.88*rgb[0]+.12*255;data.data[4*n+1]=.88*rgb[1]+.12*255;data.data[4*n+2]=.88*rgb[2]+.12*255;data.data[4*n+3]=alpha*weight;
   }
   fc.putImageData(data,0,0);waveCtx.save();waveCtx.imageSmoothingEnabled=true;waveCtx.imageSmoothingQuality="high";waveCtx.beginPath();waveCtx.rect(0,0,detectorX,canvas.height);waveCtx.clip();waveCtx.drawImage(field,0,0,canvas.width,canvas.height);waveCtx.restore();
-  drawPaletteScale(graphPalette,mode==='Phase'?(2*range.min-1)*Math.PI:range.min,mode==='Phase'?(2*range.max-1)*Math.PI:range.max);
+  drawPaletteScale(graphPalette,mode==='Phase'?2*range.min-1:range.min,mode==='Phase'?2*range.max-1:range.max);
  }
 
  function drawParticles(){
@@ -341,7 +339,7 @@ export function mountPacketEngine({core,advanced}){
   for(const value of ['photon']){const el=document.querySelector('#particleType option[value='+value+']');if(el)el.remove();}
   syncSlowPacketMode();
   if(particleType==='photon'){particleType='electron';$('#particleType').val('electron');}
-  document.querySelector('#waveFunctionOption option[value=Phase]').textContent='Phase (φ)';if(!$('#waveFunctionOption').val())$('#waveFunctionOption').val('Psi2');
+  document.querySelector('#waveFunctionOption option[value=Phase]').textContent='Phase (cos θ)';if(!$('#waveFunctionOption').val())$('#waveFunctionOption').val('Psi2');
   const species=document.createElement('div');species.className='input-group packet-species';const speciesLabel=document.createElement('label');speciesLabel.htmlFor='particleType';speciesLabel.textContent='Particle:';species.append(speciesLabel,document.getElementById('particleType'),directedRow);advanced.prepend(species);
   whichPathDetector='none';updateWhichPathButton();setupGeo(false);reset=0;resetEngine();draw();
  });
