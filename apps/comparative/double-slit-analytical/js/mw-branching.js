@@ -93,7 +93,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     onSplit();
     // Detection has already split the state. Do not keep showing the obsolete incoming packet in branch canvases.
     updateSharedFrame(false);
-    const paint=(target,index,w,h,source=snapshot,highlight=true,opacity=opacities[index],markerScaleX=1,markerScaleY=markerScaleX)=>{
+    const paint=(target,index,w,h,source=snapshot,highlight=true,opacity=opacities[index],markerScaleX=1,markerScaleY=markerScaleX,markerRadius=3)=>{
       target.clearRect(0,0,w,h);
       target.drawImage(source,0,0,w,h);
       const x=detectorFraction*w,y=(index+.5)/count*h;
@@ -108,8 +108,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       // Keep the outcome identifiable even after the brief bin pulse ends.
       // Draw above the probability shading so rare branches remain readable.
       if(highlight){
-        const tileWidth=Math.max(1,(grid.clientWidth-gap*(columns-1))/columns-2);
-        const radius=Math.max(3,Math.min(10,3*w/tileWidth));
+        const radius=markerRadius;
         const markerX=Math.min(w-radius-1,x+Math.max(1,sensorFraction*w)/2);
         const markerY=Math.max(radius+1,Math.min(h-radius-1,y));
         // The branch camera scales the subcanvas, but this outcome marker is
@@ -152,19 +151,27 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       });
       z.restore();
     };
+    const miniatureMarkerRadius=miniature=>{
+      const cssWidth=miniature.getBoundingClientRect().width;
+      const fallback=Math.max(1,(grid.clientWidth-gap*(columns-1))/columns-2);
+      return 3*miniature.width/Math.max(1,cssWidth||fallback);
+    };
     weights.forEach((weight,index)=>{
       const button=document.createElement('button');button.type='button';button.className='mw-branch-tile';
       const percent=(100*weight).toPrecision(3)+'%';button.setAttribute('aria-label',`Follow pixel ${index+1}, weight ${percent}`);button.title=`Pixel ${index+1} · Born weight ${percent}`;
       button.disabled=true;
-      const miniature=document.createElement('canvas');miniature.width=192;miniature.height=Math.round(192/aspect);paint(miniature.getContext('2d'),index,miniature.width,miniature.height);
-      const label=document.createElement('span');label.textContent=labelTexts[index];label.hidden=!displayLabels;button.append(miniature,label);button.addEventListener('click',()=>choose(index));grid.append(button);session.buttons.push(button);session.miniatures.push(miniature);
+      const miniature=document.createElement('canvas');miniature.width=192;miniature.height=Math.round(192/aspect);
+      const label=document.createElement('span');label.textContent=labelTexts[index];label.hidden=!displayLabels;button.append(miniature,label);button.addEventListener('click',()=>choose(index));grid.append(button);
+      paint(miniature.getContext('2d'),index,miniature.width,miniature.height,snapshot,true,opacities[index],1,1,miniatureMarkerRadius(miniature));
+      session.buttons.push(button);session.miniatures.push(miniature);
     });
     // Capture the destination layout before hiding its interactive DOM layer.
     let destinations=[];
     const captureDestinations=()=>{
       const bounds=overlay.getBoundingClientRect();
-      destinations=session.miniatures.map(miniature=>{
+      destinations=session.miniatures.map((miniature,index)=>{
         const r=miniature.getBoundingClientRect();
+        paint(miniature.getContext('2d'),index,miniature.width,miniature.height,snapshot,true,opacities[index],1,1,miniatureMarkerRadius(miniature));
         return {x:r.left-bounds.left,y:r.top-bounds.top,w:r.width,h:r.height};
       });
     };
@@ -220,7 +227,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       if(session.selected!==null)return;
       thumbnailCtx.clearRect(0,0,thumbnail.width,thumbnail.height);
       thumbnailCtx.drawImage(snapshot,0,0,thumbnail.width,thumbnail.height);
-      session.miniatures.forEach((miniature,index)=>paint(miniature.getContext('2d'),index,miniature.width,miniature.height,thumbnail));
+      session.miniatures.forEach((miniature,index)=>paint(miniature.getContext('2d'),index,miniature.width,miniature.height,thumbnail,true,opacities[index],1,1,miniatureMarkerRadius(miniature)));
     };
     const tick=now=>{
       if(active!==session)return;

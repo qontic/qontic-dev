@@ -5,7 +5,8 @@
 - Removed the retired point-source \(1/r\) wave, guidance, trajectory, detector-distribution, precomputation and rendering paths from the active script; the Gaussian packet engine is now the only physics engine.
 - Aligned active packet-module cache versions.
 - Anchored the wave-range sliders at the exact lower-left canvas edge, with the optional palette immediately to their right; rebased the saved position for this layout.
-- Kept the selected Many-Worlds detector-pixel marker at a constant screen size while its subcanvas expands, so it becomes proportionally smaller during the branch zoom.
+- Kept the selected Many-Worlds detector-pixel marker at a constant screen size through branch separation, the completed grid and selected-subcanvas zoom, eliminating the size jump at the grid handoff.
+- Changed the wave phase display from cos φ to the wrapped phase angle φ = arg Ψ on a −π to +π scale.
 
 ## Version 85 — 2026-09-19
 
