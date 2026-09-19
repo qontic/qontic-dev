@@ -313,13 +313,14 @@ $(function () {
   rangePanel.style.left='0px';rangePanel.style.bottom='0px';container.append(rangePanel);
   for(const id of ['paletteScaleCanvas','paletteScaleCanvas1','paletteScaleCanvas2']){
     const palette=document.getElementById(id);rangePanel.append(palette);
+    palette.style.left='78px';
     palette.style.bottom=id==='paletteScaleCanvas1'?'100px':'0px';
   }
-  rangePanel.append(rangeHost);rangeHost.style.bottom='8px';
+  rangePanel.append(rangeHost);rangeHost.style.left='0px';rangeHost.style.bottom='8px';
 
   document.getElementById('waveRangeLabel').hidden=true;
   window.qonticWaveRangeControl=mountValueRange({
-    host:rangeHost,label:'wave display range',movableContainer:rangePanel,storageKey:'qontic-double-slit-range-position-v60',
+    host:rangeHost,label:'wave display range',movableContainer:rangePanel,storageKey:'qontic-double-slit-range-position-v86-left',
     format:value=>formatWaveRangeValue(window.qonticPacketEngine?.enabled && $('#waveFunctionOption').val()==='Phase'?2*value-1:useWebGLWave && $('#waveFunctionOption').val()==='Phase'?value*2*Math.PI:(useWebGLWave || window.qonticPacketEngine?.enabled) && $('#waveFunctionOption').val()==='LogPsi2'?(value*15-15)/Math.log(10):value),
     onChange:({lower,upper})=>{
       waveRangeUserMin=lower;waveRangeUserMax=upper;waveRangeLockedByUser=true;

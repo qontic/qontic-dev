@@ -4,6 +4,7 @@
 - Removed the fixed 20,000-attempt failure mode, so directed packets remain fast and reliable even when total slit transmission is extremely small.
 - Removed the retired point-source \(1/r\) wave, guidance, trajectory, detector-distribution, precomputation and rendering paths from the active script; the Gaussian packet engine is now the only physics engine.
 - Aligned active packet-module cache versions.
+- Anchored the wave-range sliders at the exact lower-left canvas edge, with the optional palette immediately to their right; rebased the saved position for this layout.
 
 ## Version 85 — 2026-09-19
 
