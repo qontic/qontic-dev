@@ -53,6 +53,22 @@ export function sampleSource(p,random=Math.random){
  const s=p.sourceSigma*Math.sqrt(1+(x/(2*p.k*p.sourceSigma**2))**2);
  return {x0:x,x,y:s*normal(random),done:false,passed:false,absorbed:false,path:[]};
 }
+export function sampleTransmittedSource(p,random=Math.random,fixedX=null){
+ // Draw the incident Born ensemble conditioned on successful transmission.
+ // This changes only which PW configurations are displayed; it does not
+ // redirect trajectories or alter the wavefunction/guidance field.
+ for(let attempt=0;attempt<20000;attempt++){
+  let a;
+  if(fixedX===null)a=sampleSource(p,random);
+  else{
+   const s=p.sourceSigma*Math.sqrt(1+(fixedX/(2*p.k*p.sourceSigma**2))**2);
+   a={x0:fixedX,x:fixedX,y:s*normal(random),done:false,passed:false,absorbed:false,path:[]};
+  }
+  const yWall=advanceSourceY(a.y,a.x,p.wall-a.x,p);
+  if(random()<=aperture(yWall,p)**2){a.conditionedTransmission=true;return a;}
+ }
+ throw new Error('Unable to sample a slit-transmitted source configuration.');
+}
 export function advanceSourceY(y,x,dx,p,coeff){
  // Incident Gaussian trajectories have a closed expression; transmitted
  // guidance is integrated along x. Split exactly at the aperture plane.
@@ -70,7 +86,7 @@ export function stepSource(a,dt,p,coeff,random=Math.random){
  const end=a.x+p.k*dt;
  if(!a.passed&&end>=p.wall){
   a.y=advanceSourceY(a.y,a.x,p.wall-a.x,p,coeff);a.x=p.wall;a.passed=true;
-  if(random()>aperture(a.y,p)**2){a.done=a.absorbed=true;return 'absorbed';}
+  if(!a.conditionedTransmission&&random()>aperture(a.y,p)**2){a.done=a.absorbed=true;return 'absorbed';}
  }
  const target=Math.min(end,p.screen);
  a.y=advanceSourceY(a.y,a.x,target-a.x,p,coeff);a.x=target;

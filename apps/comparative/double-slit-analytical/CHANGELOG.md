@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 75 — 2026-09-19
+
+- Add an optional Pilot-Wave-only “Direct particles through slits” preparation. It conditions the incident Born ensemble on slit transmission while leaving the wavefunction and guidance equation unchanged; the default incident ensemble remains unchanged.
+
 ## Version 74 — 2026-09-19
 
 - Show the live finite-model world count in the expanded Many-Worlds canvas. Hide it for other interpretations and keep it synchronized with detections and resets.
