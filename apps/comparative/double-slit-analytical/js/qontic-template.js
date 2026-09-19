@@ -178,7 +178,6 @@ $(function () {
   sensorWidth = 30;
   // Browser zoom supplies consistent sizing across controls and canvas.
   displayPanel.querySelector('#fontTarget').parentElement.parentElement.hidden = true;
-  advanced.append(document.getElementById('resetDefaultsButton'));
   document.getElementById('opacity-box').hidden = true;
   invalidateWaveCache();
   renderSetupFlag = 1;
@@ -276,6 +275,7 @@ $(function () {
   // in world units, all detections, and in-flight trajectories are preserved.
   const container = document.getElementById('canvas-container');
   window.qonticMWBranches = mountMWBranching({host:container,controls:core,isMW:()=>interpretation==='manyworlds',isRunning:()=>isAnimating});
+  core.append(document.getElementById('resetDefaultsButton'));
   const resizeCanvas = () => {
     const width = Math.round(container.clientWidth), height = Math.round(container.clientHeight);
     if (width < 100 || height < 100 || (canvas.width === width && canvas.height === height)) return;
