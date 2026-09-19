@@ -1,3 +1,12 @@
+## Version 85 — 2026-09-19
+
+- Standardized slider rows throughout Core, Advanced and Display with the same faint solid divider; removed dotted label underlines inside the controls.
+- Compressed Advanced slider rows to about 90% of their previous vertical spacing.
+- Moved the Pilot-Wave direct-particle option beside the particle selector, shortened it to “Direct PW,” and moved the full explanation into its tooltip.
+- Placed the Many-Worlds Random/Manual selector and the shortened “Prob.” option on one line.
+- Removed the obsolete incoming wave packet from post-detection slow-motion branch canvases; branch views now show the apparatus and their detector record after splitting.
+- Updated active module cache versions.
+
 ## Version 84 — 2026-09-19
 
 - Changed the default slit separation to 300 nm and the default wall-to-screen distance to 1000 nm; wavelength remains 50 nm and slit width remains 30 nm.

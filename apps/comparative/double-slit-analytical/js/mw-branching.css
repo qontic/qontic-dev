@@ -22,4 +22,4 @@
 .mw-dwell-control input{width:100%;min-width:0;margin:0}
 .mw-dwell-control output{text-align:right;font:inherit;font-variant-numeric:tabular-nums;white-space:nowrap}
 
-.mw-branch-settings .mw-follow-choice{flex-wrap:nowrap}.mw-follow-choice select{flex:1;min-width:0}
+.mw-branch-settings .mw-choice-row{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}.mw-choice-row select{flex:1;min-width:0}.mw-choice-row .mw-probability{margin-left:auto;white-space:nowrap;flex-wrap:nowrap;font-size:12px;cursor:help}.mw-choice-row .mw-probability input{margin:0}

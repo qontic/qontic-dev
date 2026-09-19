@@ -10,9 +10,9 @@ export function createBranchDwellClock(now=()=>performance.now()) {
 }
 // A visual tour of detector records, not propagation of separate world wavefunctions.
 export function mountMWBranching({host,controls,isMW,isRunning}) {
-  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=58',import.meta.url);document.head.append(style);
+  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=85',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
-  settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><label class="mw-follow mw-follow-choice" hidden>Follow <select aria-label="Follow branch" title="Random follows Born probabilities; Manual lets you choose."><option value="auto">Random</option><option value="manual">Manual</option></select></label><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><label class="mw-follow" hidden><input type="checkbox" id="mw-show-probabilities"> Show probabilities</label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
+  settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><div class="mw-follow mw-choice-row" hidden><select aria-label="Branch selection" title="Random follows Born probabilities; Manual lets you choose."><option value="auto">Random</option><option value="manual">Manual</option></select><label class="mw-probability" title="Show branch probabilities"><input type="checkbox" id="mw-show-probabilities"> Prob.</label></div><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
   controls.append(settings);
   const enabled=settings.querySelector('input'),mode=settings.querySelector('select');
   const overlay=document.createElement('div');overlay.className='mw-branch-overlay';overlay.hidden=true;
@@ -41,7 +41,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     const snapshot=document.createElement('canvas');snapshot.width=host.clientWidth;snapshot.height=host.clientHeight;
     const ctx=snapshot.getContext('2d');
     const layers=['waveCanvas','setupCanvas','partCanvas'].map(id=>document.getElementById(id));
-    const updateSharedFrame=()=>{ctx.clearRect(0,0,snapshot.width,snapshot.height);for(const layer of layers)ctx.drawImage(layer,0,0,snapshot.width,snapshot.height);};
+    const updateSharedFrame=(includeIncomingWave=true)=>{ctx.clearRect(0,0,snapshot.width,snapshot.height);if(!includeIncomingWave){ctx.fillStyle='#344f63';ctx.fillRect(0,0,snapshot.width,snapshot.height);}for(const layer of layers)if(includeIncomingWave||layer.id!=='waveCanvas')ctx.drawImage(layer,0,0,snapshot.width,snapshot.height);};
     updateSharedFrame();
     overlay.hidden=false;status.style.opacity='1';zoom.hidden=true;scroll.hidden=false;scroll.style.visibility='';scroll.scrollTop=0;grid.replaceChildren();
     const count=weights.length,aspect=snapshot.width/snapshot.height;
@@ -91,7 +91,8 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     const opacities=weights.map(weight=>0.2+0.8*Math.max(0,weight)/peakWeight);
     const records=weights.map((_,index)=>createRecord(index));
     onSplit();
-    updateSharedFrame();
+    // Detection has already split the state. Do not keep showing the obsolete incoming packet in branch canvases.
+    updateSharedFrame(false);
     const paint=(target,index,w,h,source=snapshot,highlight=true,opacity=opacities[index])=>{
       target.clearRect(0,0,w,h);
       target.drawImage(source,0,0,w,h);
@@ -211,7 +212,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     renderSplit(0);
     session.refresh=()=>{
       if(active!==session||!isRunning())return;
-      updateSharedFrame();
+      updateSharedFrame(false);
       if(session.selected!==null)return;
       thumbnailCtx.clearRect(0,0,thumbnail.width,thumbnail.height);
       thumbnailCtx.drawImage(snapshot,0,0,thumbnail.width,thumbnail.height);

@@ -266,3 +266,21 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
   pointer-events:none;
 }
 .analytical-template .expanded-world-count sup { font-size:.75em; }
+
+
+/* Version 85: use the same quiet solid divider for every control row. */
+.analytical-template #psiTabs label[data-tip],
+.analytical-template #psiTabs div[data-tip] { border-bottom:0; }
+.analytical-template #psiTabs .input-group:has(input[type=range]),
+.analytical-template .analytical-layer {
+  border-bottom:1px solid var(--border-color);
+}
+.analytical-template .analytical-layer + .analytical-layer { border-top:0; }
+.analytical-template #analytical-advanced .input-group:has(input[type=range]) {
+  min-height:25px;
+  margin-bottom:4px;
+  padding-bottom:3px;
+}
+.analytical-template #analytical-advanced .input-group:has(input[type=range]) > label {
+  font-size:12px;
+}
