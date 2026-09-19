@@ -1,5 +1,10 @@
 # Analytical Double Slit releases
 
+## Version 65 — 2026-09-19
+
+- Restore keyboard shortcuts across the shared controls, respecting text entry and native Space activation; route screenshots to the shared capture toolbar.
+- Add labeled Sep handles beside slit centers, distinct from Width handles at aperture edges. Separation moves both centers symmetrically with fixed width, live opening/probability preview, arrow keys and Escape cancellation.
+
 ## Version 64 — 2026-09-18
 
 - Remove the related-paper citation and reference section from Physics; retain the current equations and simulation model.
@@ -244,3 +249,4 @@ The displayed release is defined in `js/release.js`. For each published app chan
 - Replace Display switches with independent opacity sliders and unify slider styles across Core, Advanced, and Display.
 - Remove particle-based wave masking and fix screen-endpoint initialization.
 - Expand Math and Rationale with readable typography and explicit model limitations.
+

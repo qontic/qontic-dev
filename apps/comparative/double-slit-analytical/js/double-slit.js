@@ -4850,6 +4850,7 @@ $(document).ready(function() {
 
       // ============ Keyboard shortcuts ============
       $(document).on('keydown', function(e) {
+         if (window.qonticTemplateLayout) return;
          // Ignore when user is typing in an input/select/textarea
          var tag = e.target.tagName;
          if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
@@ -4925,5 +4926,6 @@ $(document).ready(function() {
       //nHits=1000;
       //resampleHitsFromPsi();
 });
+
 
 

@@ -66,7 +66,7 @@ export function mountSlitWidth({host,getState,onPreview,onCommit,pause,resume}){
  const edgeSide=(state,index)=>state.centers[index]*host.clientHeight+Math.sqrt(2*Math.log(2))*state.width*state.scaleY>host.clientHeight-30?-1:1;
  const buttons=[0,1].map(index=>{
   const button=document.createElement('button');button.type='button';button.className='packet-slit-width-drag';
-  button.textContent='↕';button.setAttribute('aria-label','Resize slit '+(index+1)+' width');
+  button.textContent='↕ Width';button.setAttribute('aria-label','Resize slit '+(index+1)+' width');
   button.title='Drag vertically to resize the slit openings together. Arrow keys adjust width; Escape cancels. Changing width starts a new record.';
   layer.append(button);
   const finish=commit=>{if(!drag||drag.index!==index)return;const d=drag;drag=null;if(frame!==null){cancelAnimationFrame(frame);frame=null;}try{onPreview(null);if(commit&&d.next!==d.start.width)onCommit(d.next);}finally{resume(d.running);update();}};
@@ -78,7 +78,30 @@ export function mountSlitWidth({host,getState,onPreview,onCommit,pause,resume}){
  });
  function update(){
   const state=getState();if(!state)return;layer.hidden=!!state.busy||!state.visible;
-  buttons.forEach((button,index)=>{const center=state.centers[index];button.hidden=center===undefined;if(button.hidden)return;const sigma=drag?drag.next:state.width;button.style.left=(100*state.wallFraction)+'%';button.style.top=Math.max(14,Math.min(host.clientHeight-14,center*host.clientHeight+(drag&&drag.index===index?drag.side:edgeSide(state,index))*Math.sqrt(2*Math.log(2))*sigma*state.scaleY))+'px';button.setAttribute('aria-description','Slit width sigma '+sigma+' nm. Both openings change together.');});
+  buttons.forEach((button,index)=>{const center=state.centers[index];button.hidden=center===undefined;if(button.hidden)return;const sigma=drag?drag.next:state.width;button.style.left=Math.max(30,state.wallFraction*host.clientWidth-34)+'px';button.style.top=Math.max(14,Math.min(host.clientHeight-14,center*host.clientHeight+(drag&&drag.index===index?drag.side:edgeSide(state,index))*Math.sqrt(2*Math.log(2))*sigma*state.scaleY))+'px';button.setAttribute('aria-description','Slit width sigma '+sigma+' nm. Both openings change together.');});
  }
+ return {update};
+}
+
+
+export function slitSeparationFromDrag(start,dy,pixelsPerNm,side){
+ return Math.max(0,Math.min(2000,Math.round(start+2*side*dy/pixelsPerNm)));
+}
+export function mountSlitSeparation({host,getState,onPreview,onCommit,pause,resume}){
+ const layer=document.createElement('div');layer.className='packet-geometry';host.append(layer);
+ let drag=null,frame=null;
+ const buttons=[-1,1].map((side,index)=>{
+  const button=document.createElement('button');button.type='button';button.className='packet-slit-separation-drag';button.textContent='↕ Sep';
+  button.setAttribute('aria-label','Move slit '+(index+1)+' center to change separation');
+  button.title='Drag the slit center up or down to change separation. Both centers move symmetrically; slit width stays fixed. Arrow keys adjust separation; Escape cancels. Changing separation starts a new record.';
+  layer.append(button);
+  function finish(commit){if(!drag||drag.side!==side)return;const d=drag;drag=null;if(frame!==null){cancelAnimationFrame(frame);frame=null;}try{onPreview(null);if(commit&&d.next!==d.start.separation)onCommit(d.next);}finally{resume(d.running);update();}}
+  button.addEventListener('pointerdown',e=>{if(e.button!==0||drag)return;const state=getState();if(state.busy)return;e.preventDefault();e.stopPropagation();drag={side,start:state,y:e.clientY,next:state.separation,running:pause()};button.setPointerCapture(e.pointerId);});
+  button.addEventListener('pointermove',e=>{if(!drag||drag.side!==side)return;drag.next=slitSeparationFromDrag(drag.start.separation,e.clientY-drag.y,drag.start.scaleY,side);if(frame===null)frame=requestAnimationFrame(()=>{frame=null;if(drag){onPreview(drag.next);update();}});});
+  button.addEventListener('pointerup',()=>finish(true));button.addEventListener('pointercancel',()=>finish(false));button.addEventListener('lostpointercapture',()=>finish(false));
+  button.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();finish(false);return;}if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const state=getState(),sign=['ArrowDown','ArrowRight'].includes(e.key)?1:-1;onCommit(Math.max(0,Math.min(2000,state.separation+side*sign*(e.shiftKey?50:10))));update();});
+  return button;
+ });
+ function update(){const state=getState();layer.hidden=!!state.busy||!state.visible;const sep=drag?drag.next:state.separation;buttons.forEach((button,index)=>{button.hidden=!state.open[index];button.style.left=Math.min(host.clientWidth-30,Math.max(30,state.wallFraction*host.clientWidth+44))+'px';button.style.top=Math.max(14,Math.min(host.clientHeight-45,host.clientHeight/2+(index?1:-1)*Math.max(14,sep*state.scaleY/2)))+'px';button.setAttribute('aria-description','Slit separation '+sep+' nm; width unchanged.');});}
  return {update};
 }
