@@ -1,3 +1,7 @@
+## Version 82 — 2026-09-19
+
+- Ensure manually entered packet lengths and slit widths visibly snap to their permitted bounds on Enter or when the field loses focus; the underlying range controls were already clamped.
+
 ## Version 81 — 2026-09-19
 
 - Replaced the approximation warning with validity-preserving control limits: wavelength ≤ 50 nm, slit width σₐ ≥ 30 nm and packet length σₓ ≥ 50 nm.
