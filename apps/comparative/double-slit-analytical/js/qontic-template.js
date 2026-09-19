@@ -1,6 +1,6 @@
-import { mountPacketEngine } from './packet-engine.js?v=66';
+import { mountPacketEngine } from './packet-engine.js?v=68';
 import { mountMWBranching } from './mw-branching.js?v=63';
-import { APP_RELEASE } from './release.js?v=67';
+import { APP_RELEASE } from './release.js?v=68';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';

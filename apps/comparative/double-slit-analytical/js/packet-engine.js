@@ -1,6 +1,6 @@
 import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=64';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=66';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity,screenTailLength} from './packet-interaction.js?v=68';
 import {histogramLayout} from './packet-model.js?v=41';
 import {aperture,sourceCoefficients,sourceTransverse,sourceEnvelope,sampleSource,stepSource,sourceProfile} from './source-packet-model.js?v=52';
 import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=49';
@@ -123,8 +123,15 @@ export function mountPacketEngine({core,advanced}){
    if(interpretation==='bohmian'){
     const event=stepSource(a,dt,p,coeff);
     if(event==='absorbed'){absorbed++;pulseAbsorbed++;a.cohort.absorbed++;}
-    if(event==='hit'){const index=Math.floor((a.y+yOffset)/(screenHeight/100)*p.bins);if(index>=0&&index<p.bins){pending.push({index,cohort:a.cohort});a.cohort.pending++;}else missed++;}
+    if(event==='hit'){const index=Math.floor((a.y+yOffset)/(screenHeight/100)*p.bins);if(index>=0&&index<p.bins){a.screenDetected=true;pending.push({index,cohort:a.cohort});a.cohort.pending++;}else missed++;}
     if(a.done){a.finishedAt=realElapsed;a.cohort.active--;}if(recordTails){const prev=a.path.at(-1);if(!prev||a.done||Math.hypot(a.x-prev[0],a.y-prev[1])>=.02)a.path.push([a.x,a.y]);}
+    if(a.done&&a.screenDetected){
+     trimTail(a.path,+tailLength.value/100);
+     a.tailAt=end;a.tailLength=0;
+     for(let i=1;i<a.path.length;i++)a.tailLength+=Math.hypot(a.path[i][0]-a.path[i-1][0],a.path[i][1]-a.path[i-1][1]);
+     const prev=a.path.at(-2),dx=prev?a.x-prev[0]:0;
+     a.tailSpeed=dx>1e-10?p.k*Math.hypot(dx,a.y-prev[1])/dx:p.k;
+    }
    }else if(a.schedule.at<=end-a.cohort.born+1e-10){
     a.done=true;a.cohort.active--;if(a.schedule.type==='absorbed'){absorbed++;pulseAbsorbed++;a.cohort.absorbed++;}else if(a.schedule.type==='missed')missed++;else{pending.push({index:a.schedule.index,cohort:a.cohort});a.cohort.pending++;}
    }
@@ -156,7 +163,7 @@ export function mountPacketEngine({core,advanced}){
    }
    if(!waiting){if(slow)processPending();else while(pending.length)processPending();}
   }
-  particles=particles.filter(a=>!a.done||(interpretation==='bohmian'&&realElapsed-(a.finishedAt??realElapsed)<.8));
+  particles=particles.filter(a=>!a.done||(interpretation==='bohmian'&&(a.screenDetected?screenTailLength(a.tailLength,a.tailSpeed,t-a.tailAt,+tailLength.value/100)>0:realElapsed-(a.finishedAt??realElapsed)<.8)));
   pulses=pulses.filter(c=>c.active||c.pending||t-c.born<p.duration);
   updateBranchCountDisplay();draw();branch?.refreshFrame();$('#stepTime').text((performance.now()-now).toFixed(1));if(isAnimating)packetAnimationId=requestAnimationFrame(evolveSystem);
  }
@@ -213,8 +220,8 @@ export function mountPacketEngine({core,advanced}){
   partCtx.clearRect(0,0,canvas.width,canvas.height);if(interpretation!=='bohmian')return;
   const tails=shown('plot_trajectories'),dots=shown('plot_particles'),maxTail=+tailLength.value/100,buckets=Array.from({length:9},()=>[]);
   for(const a of particles){
-   trimTail(a.path,maxTail);
-   const opacity=tailOpacity(a.done,a.finishedAt??realElapsed,realElapsed);
+   trimTail(a.path,a.screenDetected?screenTailLength(a.tailLength,a.tailSpeed,t-a.tailAt,maxTail):maxTail);
+   const opacity=a.screenDetected?1:tailOpacity(a.done,a.finishedAt??realElapsed,realElapsed);
    if(!opacity)a.path=[];
    if(tails&&a.path.length)buckets[Math.min(8,Math.ceil(opacity*8))].push(a);
   }

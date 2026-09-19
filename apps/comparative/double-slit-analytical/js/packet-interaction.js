@@ -106,3 +106,8 @@ export function mountSlitSeparation({host,getState,onPreview,onCommit,pause,resu
  return {update,cancel:()=>buttons.forEach(button=>button.dispatchEvent(new Event('pointercancel')))};
 }
 
+
+// Remaining visible path behind a detected particle; elapsed is simulation time.
+export function screenTailLength(length,speed,elapsed,limit){
+ return Math.max(0,Math.min(limit,length-speed*Math.max(0,elapsed)));
+}

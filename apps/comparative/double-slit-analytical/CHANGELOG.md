@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 68 — 2026-09-19
+
+- Retract detected Pilot-Wave tails from their oldest end toward the detector at their arrival speed, using simulation time. Pausing freezes retraction; playback speed controls it. Preserve the brief fade for wall-absorbed/missed particles and leave hit statistics unchanged.
+
 ## Version 67 — 2026-09-19
 
 - Make Space control playback even when a toolbar button retains focus, preventing accidental geometry editing or capture actions. Keep native keyboard behavior in input fields.
