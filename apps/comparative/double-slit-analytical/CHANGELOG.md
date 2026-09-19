@@ -1,3 +1,10 @@
+## Version 80 — 2026-09-19
+
+- Changed the default wavelength from 100 nm to 50 nm, placing the default packet close to the recommended paraxial aperture range and within the narrow-band packet range.
+- Added live, non-blocking validity diagnostics for kσₐ, kσₓ and Δk/k; controls remain unrestricted for exploring the approximation outside its recommended regime.
+- Aligned active packet-physics module cache versions to prevent mixed cached revisions.
+- Removed the unused packet-model sample and prediction functions and clarified in the legacy shell source that the active physics resides in the packet modules.
+
 ## Version 79 — 2026-09-19
 
 - Removed the unused quantum-potential display and its dormant legacy calculation. The active packet app continues to offer phase, |Ψ|², and log(|Ψ|²) displays; packet physics and trajectories are unchanged.

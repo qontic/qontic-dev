@@ -22,28 +22,6 @@ export function advanceY(y,t,dt,p){
  const a=v(y,t),b=v(y+dt*a/2,t+dt/2),c=v(y+dt*b/2,t+dt/2),d=v(y+dt*c,t+dt);
  return y+dt*(a+2*b+2*c+d)/6;
 }
-function normal(random){return Math.sqrt(-2*Math.log(Math.max(1e-15,random())))*Math.cos(2*Math.PI*random());}
-export function sample(p,random=Math.random){
- const x0=p.sx*normal(random);let y;
- if(p.slits===1)y=p.sy*normal(random);
- else for(;;){
-  y=(random()<.5?-1:1)*p.separation/2+p.sy*normal(random);
-  const mixture=(gaussian(y,0,p.sy,-p.separation/2).rho+gaussian(y,0,p.sy,p.separation/2).rho)/2;
-  if(random()*2*mixture<=transverse(y,0,p).rho)break;
- }
- return {x0,x:x0,y,done:false,path:[]};
-}
-export function prediction(p,ymin=-14,ymax=14,dt=.01){
- const bins=Array(p.bins).fill(0),dy=(ymax-ymin)/p.bins;
- for(let t=dt/2;t<p.duration;t+=dt){const g=longitudinal(p.screen,t,p),flux=g.rho*g.v;
-  for(let i=0;i<p.bins;i++){
-   // Composite midpoint quadrature across each detector pixel.
-   for(let j=0;j<4;j++)bins[i]+=flux*transverse(ymin+(i+(j+.5)/4)*dy,t,p).rho*dt*dy/4;
-  }
- }
- return bins;
-}
-
 // Smooth time-integrated screen current, independent of detector pixel count.
 export function screenProfile(p,ymin,ymax,samples=1025,steps=1000){
  const values=Array(samples).fill(0),dy=(ymax-ymin)/(samples-1),dt=p.duration/steps;
