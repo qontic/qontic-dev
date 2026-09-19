@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 74 — 2026-09-19
+
+- Show the live finite-model world count in the expanded Many-Worlds canvas. Hide it for other interpretations and keep it synchronized with detections and resets.
+
 ## Version 73 — 2026-09-19
 
 - Expanded view fills all available width and height by default. Previously saved custom dimensions are still respected; double-clicking the resize grip restores the full-space default.

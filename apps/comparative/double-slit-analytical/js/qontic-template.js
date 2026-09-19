@@ -1,7 +1,7 @@
 import { mountExpandedResize } from './expanded-resize.js?v=72';
 import { mountPacketEngine } from './packet-engine.js?v=70';
 import { mountMWBranching } from './mw-branching.js?v=63';
-import { APP_RELEASE } from './release.js?v=73';
+import { APP_RELEASE } from './release.js?v=74';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -347,6 +347,23 @@ $(function () {
       sync();
     },
   });
+  // Keep the finite detector model's world count visible in expanded MW view.
+  const worldCount = document.createElement('div');
+  worldCount.className = 'expanded-world-count';
+  worldCount.title = document.getElementById('infoBranchCount').closest('tr').dataset.tip;
+  const syncWorldCount = () => {
+    worldCount.hidden = interpretation !== 'manyworlds';
+    const exponent = logNBranches.toFixed(0);
+    const html = 'Worlds: ' + (logNBranches > 0 ? `10<sup>${exponent}</sup>` : '1');
+    if (worldCount.innerHTML !== html) worldCount.innerHTML = html;
+    worldCount.setAttribute('aria-label', logNBranches > 0 ? `Worlds: 10 to the power of ${exponent}` : 'Worlds: 1');
+  };
+  container.append(worldCount);
+  const worldCountObserver = new MutationObserver(syncWorldCount);
+  worldCountObserver.observe(document.getElementById('nhits'), {childList:true,subtree:true,characterData:true});
+  worldCountObserver.observe(document.getElementById('view-label'), {childList:true,subtree:true,characterData:true});
+  worldCountObserver.observe(controls, {attributes:true,attributeFilter:['interpretation']});
+  syncWorldCount();
   mountExpandedResize(container);
   renderSetupFlag=1;window.qonticScaleOverlay.update();if(!isAnimating)drawSystem(currentCycleIndex);
   document.querySelector('#canvas-wrapper .qontic-media-toolbar').prepend(document.getElementById('view-label'));

@@ -256,3 +256,13 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
   width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2;
 }
 .analytical-template .expanded-canvas-resize:focus-visible { outline:2px solid #7ee9fb; outline-offset:2px; }
+
+.analytical-template .expanded-world-count { display:none; }
+.analytical-template .qontic-expanded-dialog .expanded-world-count:not([hidden]) {
+  display:block; position:absolute; top:10px; right:12px; z-index:20;
+  padding:6px 10px; border:1px solid #476477; border-radius:6px;
+  background:rgba(15,23,42,.9); color:#edf8ff;
+  font:500 15px/1.4 Inter,Arial,sans-serif; font-variant-numeric:tabular-nums;
+  pointer-events:none;
+}
+.analytical-template .expanded-world-count sup { font-size:.75em; }
