@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 71 — 2026-09-19
+
+- Maximize the expanded canvas within the viewport while preserving its 4:3 proportions. Combine playback and media tools in one compact row on desktop; stack them on narrow screens.
+
 ## Version 70 — 2026-09-19
 
 - Preserve accumulated histogram counts and simulation progress when expanding, restoring, or resizing the canvas. Derive packet preparation from physical inputs directly so display rounding cannot trigger a reset.
@@ -270,6 +274,7 @@ The displayed release is defined in `js/release.js`. For each published app chan
 - Replace Display switches with independent opacity sliders and unify slider styles across Core, Advanced, and Display.
 - Remove particle-based wave masking and fix screen-endpoint initialization.
 - Expand Math and Rationale with readable typography and explicit model limitations.
+
 
 
 
