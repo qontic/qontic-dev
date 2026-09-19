@@ -142,7 +142,7 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 .analytical-template #Info td.value,
 .analytical-template #Info td.value span { font-weight:500 !important; font-variant-numeric:tabular-nums; }
 .analytical-template .main-container { max-width:calc(var(--qontic-sidebar-width,340px) + 18px + max(320px,(100dvh - 270px)*4/3)); }
-/* One compact control row; fit the largest undistorted canvas to the viewport. */
+/* One compact control row; expanded canvas fills the remaining viewport. */
 .analytical-template .qontic-expanded-dialog[open] {
   display:grid; grid-template-columns:360px minmax(0,1fr);
   grid-template-rows:44px minmax(0,1fr); gap:4px 12px;
@@ -157,8 +157,8 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 }
 .analytical-template .qontic-expanded-dialog #canvas-container {
   grid-column:1 / -1; grid-row:2; align-self:center; justify-self:center;
-  width:min(100%,calc((100dvh - 64px)*4/3)); height:auto !important;
-  aspect-ratio:4/3; margin:0;
+  width:100%; height:100% !important;
+  aspect-ratio:auto; margin:0;
 }
 @media(max-width:800px) {
   .analytical-template .qontic-expanded-dialog[open] {
@@ -170,7 +170,7 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
     grid-column:1; grid-row:2; gap:4px;
   }
   .analytical-template .qontic-expanded-dialog #canvas-container {
-    grid-row:3; width:min(100%,calc((100dvh - 104px)*4/3));
+    grid-row:3;
   }
 }
 .analytical-template .qontic-expanded-dialog #shortcut-hint { display:none; }

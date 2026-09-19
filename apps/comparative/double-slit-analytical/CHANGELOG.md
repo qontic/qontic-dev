@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 73 — 2026-09-19
+
+- Expanded view fills all available width and height by default. Previously saved custom dimensions are still respected; double-clicking the resize grip restores the full-space default.
+
 ## Version 72 — 2026-09-19
 
 - Add an expanded-canvas resize grip with remembered width and height across restore/expand and reloads. Shift-drag preserves proportions; double-click returns to automatic fit. Resize remains display-only and preserves statistics.
