@@ -239,3 +239,20 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
   outline:2px solid var(--slider-thumb);outline-offset:3px;border-radius:4px;
 }
 
+
+/* Custom expanded sizes never affect the normal view or physical geometry. */
+.analytical-template .expanded-canvas-resize { display:none; }
+.analytical-template .qontic-expanded-dialog #canvas-container.has-expanded-size {
+  width:var(--expanded-canvas-width); height:var(--expanded-canvas-height) !important;
+  aspect-ratio:auto;
+}
+.analytical-template .qontic-expanded-dialog .expanded-canvas-resize {
+  display:flex; position:absolute; right:0; bottom:0; z-index:30;
+  align-items:center; justify-content:center; width:28px; height:28px;
+  min-width:28px; padding:3px; border:1px solid #7ee9fb; border-radius:5px 0 0 0;
+  color:#d9f8ff; background:#162d3d; cursor:nwse-resize; touch-action:none;
+}
+.analytical-template .expanded-canvas-resize svg {
+  width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2;
+}
+.analytical-template .expanded-canvas-resize:focus-visible { outline:2px solid #7ee9fb; outline-offset:2px; }

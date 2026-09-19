@@ -1,6 +1,7 @@
+import { mountExpandedResize } from './expanded-resize.js?v=72';
 import { mountPacketEngine } from './packet-engine.js?v=70';
 import { mountMWBranching } from './mw-branching.js?v=63';
-import { APP_RELEASE } from './release.js?v=71';
+import { APP_RELEASE } from './release.js?v=72';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -346,6 +347,7 @@ $(function () {
       sync();
     },
   });
+  mountExpandedResize(container);
   renderSetupFlag=1;window.qonticScaleOverlay.update();if(!isAnimating)drawSystem(currentCycleIndex);
   document.querySelector('#canvas-wrapper .qontic-media-toolbar').prepend(document.getElementById('view-label'));
   window.qonticPacketEngine=mountPacketEngine({core,advanced});

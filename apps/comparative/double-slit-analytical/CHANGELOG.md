@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 72 — 2026-09-19
+
+- Add an expanded-canvas resize grip with remembered width and height across restore/expand and reloads. Shift-drag preserves proportions; double-click returns to automatic fit. Resize remains display-only and preserves statistics.
+
 ## Version 71 — 2026-09-19
 
 - Maximize the expanded canvas within the viewport while preserving its 4:3 proportions. Combine playback and media tools in one compact row on desktop; stack them on narrow screens.
