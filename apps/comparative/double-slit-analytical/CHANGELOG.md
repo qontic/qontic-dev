@@ -1,3 +1,11 @@
+## Version 84 — 2026-09-19
+
+- Changed the default slit separation to 300 nm and the default wall-to-screen distance to 1000 nm; wavelength remains 50 nm and slit width remains 30 nm.
+- Added compact source-position, screen-distance and screen-height sliders to the Advanced panel, with clearer wall-to-screen labeling.
+- Synchronized the displayed geometry, slit-width and slit-separation controls continuously while their canvas handles are dragged; cancelling a drag restores the committed values.
+- Tightened Advanced-panel spacing so the added geometry controls fit without unnecessary crowding.
+- Updated active module cache versions.
+
 ## Version 83 — 2026-09-19
 
 - Set the default wall-to-detector distance to 800 nm so the λ = 50 nm slit packets overlap and produce a visible interference pattern.
