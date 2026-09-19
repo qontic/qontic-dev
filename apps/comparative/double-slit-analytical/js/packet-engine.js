@@ -1,9 +1,9 @@
-import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=82';
+import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=83';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=68';
-import {histogramLayout} from './packet-model.js?v=82';
-import {aperture,sourceCoefficients,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile} from './source-packet-model.js?v=82';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=82';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=83';
+import {histogramLayout} from './packet-model.js?v=83';
+import {aperture,sourceCoefficients,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile} from './source-packet-model.js?v=83';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=83';
 export function mountPacketEngine({core,advanced}){
  const panel=document.createElement('div');panel.className='packet-settings';
  panel.innerHTML="<div class=\"input-group packet-inline\"><label for=\"packet-source-width\">Source width σ</label><input id=\"packet-source-width\" aria-label=\"Packet source width\" type=\"range\" min=\"50\" max=\"400\" step=\"5\" value=\"200\"><input aria-label=\"Packet source width value\" type=\"number\" min=\"50\" max=\"400\" step=\"5\" value=\"200\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-length\">Packet length σ</label><input id=\"packet-length\" aria-label=\"Packet length\" type=\"range\" min=\"50\" max=\"200\" step=\"5\" value=\"50\"><input aria-label=\"Packet length value\" type=\"number\" min=\"50\" max=\"200\" step=\"5\" value=\"50\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-slit-width\">Slit width σ</label><input id=\"packet-slit-width\" aria-label=\"Packet slit width\" type=\"range\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><input aria-label=\"Packet slit width value\" type=\"number\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><output>nm</output></div>";advanced.prepend(panel);

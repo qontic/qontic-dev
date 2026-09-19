@@ -1,9 +1,10 @@
+const GEOMETRY_LIMITS=Object.freeze({wallMin:50,wallMax:1000,distanceMin:50,distanceMax:3000,heightMin:100,heightMax:5000});
 export function dragGeometry(start,kind,dx,dy){
- const total=(start.wall??225)+start.distance;
- const wall=kind==='wall'?Math.max(Math.max(50,total-1000),Math.min(1000,total-50,Math.round((start.wall??225)+dx/start.scaleX))):(start.wall??225);
+ const total=(start.wall??225)+start.distance,L=GEOMETRY_LIMITS;
+ const wall=kind==='wall'?Math.max(Math.max(L.wallMin,total-L.distanceMax),Math.min(L.wallMax,total-L.distanceMin,Math.round((start.wall??225)+dx/start.scaleX))):(start.wall??225);
  const distance=kind==='distance'?Math.round(start.distance+dx/start.scaleX):start.distance;
  const height=kind==='height'?Math.round((start.height+2*dy/start.scaleY)/10)*10:start.height;
- return {wall,distance:kind==='wall'?total-wall:Math.max(50,Math.min(1000,distance)),height:Math.max(100,Math.min(5000,height))};
+ return {wall,distance:kind==='wall'?total-wall:Math.max(L.distanceMin,Math.min(L.distanceMax,distance)),height:Math.max(L.heightMin,Math.min(L.heightMax,height))};
 }
 export function trimTail(path,length){
  if(length<=0){path.length=0;return;}
@@ -17,7 +18,7 @@ export function trimTail(path,length){
 export function tailOpacity(done,at,now){return done?Math.max(0,1-(now-at)/.8):1;}
 export function mountPacketGeometry({host,getGeometry,onCommit,onPreview=()=>{},pause,resume}){
  const layer=document.createElement('div');layer.className='packet-geometry';
- layer.innerHTML='<button type="button" class="packet-detector-drag" aria-label="Move detector screen" title="Drag left or right to move the detector; arrow keys also work; changing geometry starts a new record">↔</button><button type="button" class="packet-height-drag" aria-label="Resize screen height" title="Drag up or down to change screen height; arrow keys also work">↕</button><button type="button" class="packet-wall-drag" aria-label="Move slit wall" title="Drag left or right to move the slit wall. The detector stays in place; changing geometry starts a new record. Arrow keys also work.">↔</button><div class="packet-geometry-guide" hidden></div><output class="packet-geometry-value" hidden></output>';
+ layer.innerHTML='<button type="button" class="packet-detector-drag" aria-label="Move detector screen" title="Drag left or right to move the detector from 50 to 3000 nm beyond the wall; arrow keys also work; changing geometry starts a new record">↔</button><button type="button" class="packet-height-drag" aria-label="Resize screen height" title="Drag up or down to change screen height; arrow keys also work">↕</button><button type="button" class="packet-wall-drag" aria-label="Move slit wall" title="Drag left or right to move the slit wall. The detector stays in place; changing geometry starts a new record. Arrow keys also work.">↔</button><div class="packet-geometry-guide" hidden></div><output class="packet-geometry-value" hidden></output>';
  host.append(layer);const [detector,height,wall]=layer.querySelectorAll('button'),guide=layer.querySelector('div'),value=layer.querySelector('output');let drag=null,previewFrame=null;
  function preview(){if(previewFrame===null)previewFrame=requestAnimationFrame(()=>{previewFrame=null;if(drag)onPreview(drag.next);});}
  function update(){
@@ -43,7 +44,7 @@ export function mountPacketGeometry({host,getGeometry,onCommit,onPreview=()=>{},
    if(!drag||drag.kind!==kind)return;
    const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.next=dragGeometry(drag.start,kind,dx,dy);preview();
    value.textContent=(kind==='wall'?'Slit wall: '+drag.next.wall:kind==='distance'?'Detector distance: '+drag.next.distance:'Screen height: '+drag.next.height)+' nm';
-   if(kind!=='height')guide.style.left=Math.max(0,Math.min(host.clientWidth,(kind==='wall'?drag.start.wallFraction:drag.start.detectorFraction)*host.clientWidth+dx))+'px';
+   if(kind!=='height'){const deltaNm=kind==='wall'?drag.next.wall-drag.start.wall:drag.next.distance-drag.start.distance;guide.style.left=Math.max(0,Math.min(host.clientWidth,(kind==='wall'?drag.start.wallFraction:drag.start.detectorFraction)*host.clientWidth+deltaNm*drag.start.scaleX))+'px';}
   });
   button.addEventListener('pointerup',()=>finish(true));
   button.addEventListener('pointercancel',()=>finish(false));
@@ -58,7 +59,7 @@ export function mountPacketGeometry({host,getGeometry,onCommit,onPreview=()=>{},
  return {update,cancel:()=>finish(false)};
 }
 export function slitWidthFromDrag(width,dy,pixelsPerNm){
- return Math.max(10,Math.min(200,Math.round((width+dy/(Math.sqrt(2*Math.log(2))*pixelsPerNm))/5)*5));
+ return Math.max(30,Math.min(200,Math.round((width+dy/(Math.sqrt(2*Math.log(2))*pixelsPerNm))/5)*5));
 }
 export function mountSlitWidth({host,getState,onPreview,onCommit,pause,resume}){
  const layer=document.createElement('div');layer.className='packet-geometry packet-slit-handles';
@@ -73,7 +74,7 @@ export function mountSlitWidth({host,getState,onPreview,onCommit,pause,resume}){
   button.addEventListener('pointerdown',e=>{if(e.button!==0||drag)return;e.preventDefault();e.stopPropagation();const state=getState();if(state.busy)return;drag={index,side:edgeSide(state,index),start:state,y:e.clientY,next:state.width,running:pause()};button.setPointerCapture(e.pointerId);});
   button.addEventListener('pointermove',e=>{if(!drag||drag.index!==index)return;drag.next=slitWidthFromDrag(drag.start.width,(e.clientY-drag.y)*drag.side,drag.start.scaleY);if(frame===null)frame=requestAnimationFrame(()=>{frame=null;if(drag){onPreview(drag.next);update();}});});
   button.addEventListener('pointerup',()=>finish(true));button.addEventListener('pointercancel',()=>finish(false));button.addEventListener('lostpointercapture',()=>finish(false));
-  button.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();finish(false);return;}if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const state=getState(),sign=['ArrowDown','ArrowRight'].includes(e.key)?1:-1;onCommit(Math.max(10,Math.min(200,state.width+sign*(e.shiftKey?25:5))));update();});
+  button.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();finish(false);return;}if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const state=getState(),sign=['ArrowDown','ArrowRight'].includes(e.key)?1:-1;onCommit(Math.max(30,Math.min(200,state.width+sign*(e.shiftKey?25:5))));update();});
   return button;
  });
  function update(){

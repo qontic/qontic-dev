@@ -2051,7 +2051,7 @@ function precomputePhiArrayWithFixedR( x0, y0, t, r, nPhi) {
 //
 //==============================================================================================================
 // State version: increment when defaults/units change to clear old saved state
-const SIMULATION_STATE_VERSION = 16;
+const SIMULATION_STATE_VERSION = 17;
 
 function getSimulationState() {
   paletteName = window.paletteModule.getCurrentPaletteName();
@@ -3947,13 +3947,13 @@ $(document).ready(function() {
          { value: 'mm', text: 'mm', scale:1.e6 }
          ], true);
 
-      createParameterInput('detector', 'source-position', 'Src. Pos.', 0, 1000, 1, 225, [
+      createParameterInput('detector', 'source-position', 'Src. Pos.', 50, 1000, 1, 225, [
          { value: 'nm', text: 'nm', scale:1 },
          { value: 'um', text: 'µm', scale:1.e3 },
          { value: 'mm', text: 'mm', scale:1.e6 }
          ], true);
 
-      createParameterInput('detector', 'detector-distance', 'Detector Distance', 0, 1000, 1, 400, [
+      createParameterInput('detector', 'detector-distance', 'Detector Distance', 50, 3000, 1, 800, [
             { value: 'nm', text: 'nm', scale:1 },
             { value: 'um', text: 'µm', scale:1.e3 },
             { value: 'mm', text: 'mm', scale:1.e6 }

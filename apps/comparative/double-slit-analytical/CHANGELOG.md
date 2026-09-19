@@ -1,3 +1,10 @@
+## Version 83 — 2026-09-19
+
+- Set the default wall-to-detector distance to 800 nm so the λ = 50 nm slit packets overlap and produce a visible interference pattern.
+- Extended the detector-distance range to 50–3000 nm; larger distances are allowed within the analytical reduced model.
+- Aligned geometry handles with all permitted bounds. Detector and wall guides stop at the legal position during dragging, and slit-width handles no longer enter the forbidden σₐ < 30 nm region before snapping back.
+- Updated active module cache versions and the Physics explanation.
+
 ## Version 82 — 2026-09-19
 
 - Ensure manually entered packet lengths and slit widths visibly snap to their permitted bounds on Enter or when the field loses focus; the underlying range controls were already clamped.
