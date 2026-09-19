@@ -1,6 +1,6 @@
 import { mountExpandedResize } from './expanded-resize.js?v=72';
 import { mountPacketEngine } from './packet-engine.js?v=86';
-import { mountMWBranching } from './mw-branching.js?v=85';
+import { mountMWBranching } from './mw-branching.js?v=86-fixed-marker';
 import { APP_RELEASE } from './release.js?v=86';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';

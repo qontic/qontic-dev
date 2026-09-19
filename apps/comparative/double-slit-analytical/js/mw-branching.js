@@ -93,7 +93,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     onSplit();
     // Detection has already split the state. Do not keep showing the obsolete incoming packet in branch canvases.
     updateSharedFrame(false);
-    const paint=(target,index,w,h,source=snapshot,highlight=true,opacity=opacities[index])=>{
+    const paint=(target,index,w,h,source=snapshot,highlight=true,opacity=opacities[index],markerScaleX=1,markerScaleY=markerScaleX)=>{
       target.clearRect(0,0,w,h);
       target.drawImage(source,0,0,w,h);
       const x=detectorFraction*w,y=(index+.5)/count*h;
@@ -112,10 +112,14 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
         const radius=Math.max(3,Math.min(10,3*w/tileWidth));
         const markerX=Math.min(w-radius-1,x+Math.max(1,sensorFraction*w)/2);
         const markerY=Math.max(radius+1,Math.min(h-radius-1,y));
-        target.save();target.beginPath();target.arc(markerX,markerY,radius,0,2*Math.PI);
+        // The branch camera scales the subcanvas, but this outcome marker is
+        // a screen-space annotation: keep its diameter constant during zoom.
+        target.save();target.translate(markerX,markerY);
+        target.scale(1/Math.max(Number.EPSILON,markerScaleX),1/Math.max(Number.EPSILON,markerScaleY));
+        target.beginPath();target.arc(0,0,radius,0,2*Math.PI);
         target.fillStyle='#ffe66b';target.fill();target.lineWidth=1.5;
         target.strokeStyle='#172332';target.stroke();
-        target.beginPath();target.arc(markerX,markerY,radius+1,0,2*Math.PI);
+        target.beginPath();target.arc(0,0,radius+1,0,2*Math.PI);
         target.lineWidth=.75;target.strokeStyle='#fff7cf';target.stroke();target.restore();
       }
     };
@@ -136,7 +140,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       session.tiles.forEach((tile,index)=>{
         const {x,y,w,h,label}=tile;
         if(tx+(x+w)*scaleX<0||tx+x*scaleX>zoom.width||ty+(y+h+18)*scaleY<0||ty+y*scaleY>zoom.height)return;
-        z.save();z.translate(x,y);paint(z,index,w,h,snapshot,progress<1,opacities[index]+(index===session.selected?(1-opacities[index])*ease:0));
+        z.save();z.translate(x,y);paint(z,index,w,h,snapshot,progress<1,opacities[index]+(index===session.selected?(1-opacities[index])*ease:0),scaleX,scaleY);
         z.fillStyle=index===session.selected?'rgba(85,216,230,'+(.18*(1-ease))+')':'rgba(4,14,24,.22)';
         z.fillRect(0,0,w,h);
         if(displayLabels && w>=minimumLabelWidth){
