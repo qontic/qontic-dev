@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 76 — 2026-09-19
+
+- Make the Pilot-Wave “Direct particles through slits” option span the full control-panel width, preventing its label from wrapping inside the narrow slider-label column.
+
 ## Version 75 — 2026-09-19
 
 - Add an optional Pilot-Wave-only “Direct particles through slits” preparation. It conditions the incident Born ensemble on slit transmission while leaving the wavefunction and guidance equation unchanged; the default incident ensemble remains unchanged.
