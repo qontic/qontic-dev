@@ -828,6 +828,9 @@ red: parseInt(matches[1]),
 //====================================================================================================
 //
 //====================================================================================================
+// Shared saved-preference schema; retained independently of the retired physics engine.
+const SIMULATION_STATE_VERSION = 18;
+
 // The retired point-source (1/r) field and its trajectory/precompute helpers
 // were removed in Version 86. The active model is the Gaussian packet engine.
 
