@@ -1,3 +1,9 @@
+## Version 81 — 2026-09-19
+
+- Replaced the approximation warning with validity-preserving control limits: wavelength ≤ 50 nm, slit width σₐ ≥ 30 nm and packet length σₓ ≥ 50 nm.
+- The allowed combinations therefore satisfy kσₐ ≥ 3.77, kσₓ ≥ 6.28 and Δk/k ≤ 0.080 without coupling the sliders or automatically changing one parameter when another moves.
+- Updated the Physics explanation and aligned active packet-module cache versions.
+
 ## Version 80 — 2026-09-19
 
 - Changed the default wavelength from 100 nm to 50 nm, placing the default packet close to the recommended paraxial aperture range and within the narrow-band packet range.

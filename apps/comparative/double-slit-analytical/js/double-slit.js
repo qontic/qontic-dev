@@ -2051,7 +2051,7 @@ function precomputePhiArrayWithFixedR( x0, y0, t, r, nPhi) {
 //
 //==============================================================================================================
 // State version: increment when defaults/units change to clear old saved state
-const SIMULATION_STATE_VERSION = 15;
+const SIMULATION_STATE_VERSION = 16;
 
 function getSimulationState() {
   paletteName = window.paletteModule.getCurrentPaletteName();
@@ -3976,7 +3976,7 @@ $(document).ready(function() {
             ], false);
 
 
-      createParameterInput('particle', 'wavelength', 'λ', 1, 500, 1, 50, [
+      createParameterInput('particle', 'wavelength', 'λ', 1, 50, 1, 50, [
             { value: 'nm', text: 'nm', scale:1 },
             { value: 'um', text: 'µm', scale:1.e3 },
             { value: 'mm', text: 'mm', scale:1.e6 }
