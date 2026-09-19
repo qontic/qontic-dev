@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 78 — 2026-09-19
+
+- Make the Pilot-Wave slit-conditioning toggle non-disruptive: leave the current packet, histogram and clock unchanged, and apply the new selection only when the next packet is launched.
+
 ## Version 77 — 2026-09-19
 
 - Preserve the histogram, hit count and elapsed time when toggling the Pilot-Wave slit-conditioned source option. Replace only the unfinished in-flight packet so the visual change takes effect immediately.
