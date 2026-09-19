@@ -14,12 +14,6 @@ var amplitudes = [];
 var yHits = [];
 var detectorPsiCacheValid = false; // Flag to cache detector |ψ|² curve
 
-// How often to recompute the full wave image while animating.
-// Larger values mean fewer wave redraws (better performance)
-// at the cost of slightly lower temporal resolution.
-const WAVE_UPDATE_STRIDE = 2;
-let waveRenderFrameCounter = 0;
-
 // Number of cached wave frames per oscillation for dynamic
 // displays (Phase / Real / Imag). After these frames have
 // been computed once for a given parameter set, subsequent
@@ -833,7 +827,6 @@ function renderWaveWithWebGL(t, psiOptionLocal) {
    gl.uniform1f(waveUniforms.u_wave2Opacity, wave2Opacity);
 
    // Choose what the palette encodes: Phase, |Psi|^2, or log(|Psi|^2).
-   // QPotential is handled via the CPU path.
    let mode = 0; // 0 = Phase
    if (psiOptionLocal === 'Psi2') mode = 3;       // 3 = Psi^2
    else if (psiOptionLocal === 'LogPsi2') mode = 4; // 4 = log(Psi^2)
@@ -1825,51 +1818,6 @@ function computeBohmianVelocity(x, y, t, slitNum ) {
 //===============================================================================================================
 //
 //===============================================================================================================
-function computeQuantumPotential(x, y, t) {
-   const dx = 0.001;
-   const dy = 0.001;
-
-   const rMin=10;
-   rSource = Math.sqrt(Math.pow(x-sourceXWorld,2)+ Math.pow(y-sourceYWorld,2));  
-   if ( rSource < rMin ) {
-      x = sourceXWorld+rMin;
-      y = sourceYWorld+rMin;
-   }
-
-   rSlit1 = Math.sqrt(Math.pow(x-wallXWorld,2)+ Math.pow(y-slit1YWorld,2));  
-   if ( rSlit1 < rMin ) {
-      if ( x < wallXWorld ) x = wallXWorld-rMin;
-      else                  x = wallXWorld+rMin;
-      y = slit1YWorld+rMin;
-   }
-
-   rSlit2 = Math.sqrt(Math.pow(x-wallXWorld,2)+ Math.pow(y-slit2YWorld,2));  
-   if ( rSlit2 < rMin ) {
-      if ( x < wallXWorld ) x = wallXWorld-rMin;
-      else                  x = wallXWorld+rMin;
-      y = slit2YWorld+rMin;
-   }
-
-   const psiCenter = psiFunction(x, y, t);
-   const R = Math.sqrt(psiCenter.psi2);
-
-   const psiLeft   = psiFunction(x - dx, y, t);
-   const psiRight  = psiFunction(x + dx, y, t);
-   const psiUp     = psiFunction(x, y + dy, t);
-   const psiDown   = psiFunction(x, y - dy, t);
-
-   const Rxx = (Math.sqrt(psiLeft.psi2) - 2 * R + Math.sqrt(psiRight.psi2)) / (dx * dx);
-   const Ryy = (Math.sqrt(psiDown.psi2) - 2 * R + Math.sqrt(psiUp.psi2)) / (dy * dy);
-
-   const laplacianR = Rxx + Ryy;
-
-   const Q = - (hbar * hbar / (2 * mElectron)) * (laplacianR / (R + epsilon));
-
-
-   if ( Q > 0 ) return  Math.log10(Q);
-   else         return -Math.log10(-Q);
-
-}
 //===============================================================================================================
 //
 //===============================================================================================================
@@ -2657,9 +2605,7 @@ async function generateWaveInfo(tOverride) {
       for (var y = 0; y < canvas.height; y++) {
          var yWorld=y*toWorldY;
 
-         // Always compute Psi and Psi² so we can support Psi²-based
-         // scalar views (e.g., Q-potential uses Psi internally and
-         // LogPsi2 may fall back to this CPU path if WebGL is off).
+         // Compute Psi and Psi² for the density, log-density, and phase views.
          var psiA = psiFunction(xWorld, yWorld, tLocal);
          const psi2Val = psiA.psi2;
 
@@ -2673,9 +2619,7 @@ async function generateWaveInfo(tOverride) {
          if (psi2Log > psi2LogMax) psi2LogMax = psi2Log;
 
          let intensity;
-         if (psiOption == "QPotential") {
-            intensity = computeQuantumPotential(xWorld, yWorld, tLocal);
-         } else if (psiOption == "Psi2") {
+         if (psiOption == "Psi2") {
             // Probability density |ψ|²
             intensity = psi2Val;
          } else if (psiOption == "LogPsi2") {
@@ -3427,10 +3371,7 @@ async function renderWaveFunction(cycleIndex) {
    if (!$("#plot_wave").is(':checked')) return;
 
    const psiOptionLocal = $('#waveFunctionOption').val();
-   // GPU fast path: use WebGL-based wave rendering for the
-   // dynamic Phase, Psi^2, and log(Psi^2) views. QPotential uses
-   // the CPU path so we can reuse the existing scalar computation
-   // and caching.
+   // GPU fast path for the phase, density, and log-density views.
    if (useWebGLWave && (psiOptionLocal === 'Phase' || psiOptionLocal === 'Psi2' || psiOptionLocal === 'LogPsi2')) {
       waveCtx.clearRect(0, 0, canvas.width, canvas.height);
       // For GPU modes, the scalar fed to the palette is always
@@ -3468,22 +3409,10 @@ async function renderWaveFunction(cycleIndex) {
    // palette-based implementation with caching.
    waveCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-   // For time-independent views (QPotential in this setup),
-   // always reuse a single cached wave image across frames.
-   // For dynamic views (Phase / Psi^2 / log(Psi^2)), reuse a fixed
-   // number of phase samples per oscillation, indexed by frame.
-   let cacheKey;
-   let tSample;
-
-   if (psiOptionLocal === 'QPotential') {
-      cacheKey = `static_${psiOptionLocal}`;
-      tSample = 0; // any time is equivalent for these displays
-   } else {
-      const frameIndex = cycleIndex % WAVE_CACHE_FRAMES;
-      cacheKey = `dyn_${psiOptionLocal}_${frameIndex}`;
-      // Sample equally spaced phases over one period
-      tSample = (cyclePeriod / WAVE_CACHE_FRAMES) * frameIndex;
-   }
+   // Reuse a fixed number of phase samples per oscillation, indexed by frame.
+   const frameIndex = cycleIndex % WAVE_CACHE_FRAMES;
+   const cacheKey = `dyn_${psiOptionLocal}_${frameIndex}`;
+   const tSample = (cyclePeriod / WAVE_CACHE_FRAMES) * frameIndex;
 
    let waveData;
    if (waveDataCache[cacheKey]) {
@@ -3517,19 +3446,8 @@ async function drawSystem(cycleIndex) {
 
    const needsNewWave = (lastCycleIndex != cycleIndex);
    if (needsNewWave) {
-      const psiOptionLocal = $('#waveFunctionOption').val();
-      const isStaticView = (psiOptionLocal === 'QPotential');
-
-      if (!isAnimating || !isStaticView) {
-         await renderWaveFunction(cycleIndex);
-         lastCycleIndex = cycleIndex;
-      } else {
-         waveRenderFrameCounter++;
-         if (waveRenderFrameCounter % WAVE_UPDATE_STRIDE === 0) {
-            await renderWaveFunction(cycleIndex);
-            lastCycleIndex = cycleIndex;
-         }
-      }
+      await renderWaveFunction(cycleIndex);
+      lastCycleIndex = cycleIndex;
    }
 
    //await plotWaveFunction2D(time) ;
@@ -3895,17 +3813,7 @@ function updateInterpretationDisplay() {
   if (interpretation === "copenhagen") {
     $("#plot_trajectories").prop("checked", false);
     $("#plot_particles").prop("checked", false);
-   if ( $("#waveFunctionOption").val() == "QPotential" ) $("#waveFunctionOption").val("Phase");
     $("#manyBranchesInfo").hide();
-
-    $("#waveFunctionOption option[value='QPotential']").remove();
-    $("#basicsWaveFunctionOption option[value='QPotential']").remove();
-
-  // Force fallback to Phase if needed
-    const currentVal = $("#waveFunctionOption").val();
-    if (currentVal === "QPotential") {
-       $("#waveFunctionOption").val("Phase").trigger("change");
-    }
     $("#basicsWaveFunctionOption").val($("#waveFunctionOption").val());
 
     
@@ -3913,22 +3821,11 @@ function updateInterpretationDisplay() {
     $("#plot_trajectories").prop("checked", true);
     $("#plot_particles").prop("checked", true);
     $("#manyBranchesInfo").hide();
-  // Re-add QPotential if missing
-    if ($("#waveFunctionOption option[value='QPotential']").length === 0) {
-      $("#waveFunctionOption").append(
-            $("<option>", { value: "QPotential", text: "sgn(Q)log(|Q|)" })
-      );
-      $("#basicsWaveFunctionOption").append(
-            $("<option>", { value: "QPotential", text: "sgn(Q)log(|Q|)" })
-      );
-    }
     $("#basicsWaveFunctionOption").val($("#waveFunctionOption").val());
   } 
   else if (interpretation === "manyworlds") {
     $("#plot_trajectories").prop("checked", false);
     $("#plot_particles").prop("checked", false);
-    if ($("#waveFunctionOption").val() === "QPotential") $("#waveFunctionOption").val("Phase");
-    $("#waveFunctionOption option[value='QPotential'], #basicsWaveFunctionOption option[value='QPotential']").remove();
     $("#basicsWaveFunctionOption").val($("#waveFunctionOption").val());
     $("#manyBranchesInfo").show();
 	

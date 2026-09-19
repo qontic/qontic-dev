@@ -1,4 +1,4 @@
-import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=78';
+import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=79';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=68';
 import {histogramLayout} from './packet-model.js?v=41';
@@ -68,7 +68,7 @@ export function mountPacketEngine({core,advanced}){
   }
  }
  function syncMode(){
-  for(const id of ['waveFunctionOption','basicsWaveFunctionOption']){const select=document.getElementById(id);if(!select)continue;select.querySelector('option[value=QPotential]')?.remove();const phase=select.querySelector('option[value=Phase]');if(phase&&phase.textContent!=='Phase (cos θ)')phase.textContent='Phase (cos θ)';if(!select.value)select.value='Phase';}
+  for(const id of ['waveFunctionOption','basicsWaveFunctionOption']){const select=document.getElementById(id);if(!select)continue;const phase=select.querySelector('option[value=Phase]');if(phase&&phase.textContent!=='Phase (cos θ)')phase.textContent='Phase (cos θ)';if(!select.value)select.value='Phase';}
 
   directedRow.hidden=interpretation!=='bohmian';
   const countLabel=document.querySelector('#MaxPart-group label');if(countLabel)countLabel.textContent=interpretation==='bohmian'?'Particles / packet:':'Hits / packet:';
@@ -330,7 +330,7 @@ export function mountPacketEngine({core,advanced}){
   for(const value of ['photon']){const el=document.querySelector('#particleType option[value='+value+']');if(el)el.remove();}
   syncSlowPacketMode();
   if(particleType==='photon'){particleType='electron';$('#particleType').val('electron');}
-  document.querySelector('#waveFunctionOption option[value=Phase]').textContent='Phase (cos θ)';document.querySelector('#waveFunctionOption option[value=QPotential]')?.remove();if($('#waveFunctionOption').val()==='QPotential'||!$('#waveFunctionOption').val())$('#waveFunctionOption').val('Psi2');
+  document.querySelector('#waveFunctionOption option[value=Phase]').textContent='Phase (cos θ)';if(!$('#waveFunctionOption').val())$('#waveFunctionOption').val('Psi2');
   const species=document.createElement('div');species.className='input-group packet-species';const speciesLabel=document.createElement('label');speciesLabel.htmlFor='particleType';speciesLabel.textContent='Particle:';species.append(speciesLabel,document.getElementById('particleType'));advanced.prepend(species);
   whichPathDetector='none';updateWhichPathButton();setupGeo(false);reset=0;resetEngine();draw();
  });

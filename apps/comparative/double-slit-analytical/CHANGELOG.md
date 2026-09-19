@@ -1,3 +1,7 @@
+## Version 79 — 2026-09-19
+
+- Removed the unused quantum-potential display and its dormant legacy calculation. The active packet app continues to offer phase, |Ψ|², and log(|Ψ|²) displays; packet physics and trajectories are unchanged.
+
 # Analytical Double Slit releases
 
 ## Version 78 — 2026-09-19

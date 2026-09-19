@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
     <script>window.qonticTemplateLayout = true;</script>
-    <script src="js/double-slit.js?v=65"></script>
+    <script src="js/double-slit.js?v=79"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
     <style>
@@ -39,7 +39,7 @@
     </style>
     <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
     <link rel="stylesheet" href="css/qontic-template.css?v=75">
-    <script type="module" src="js/qontic-template.js?v=78-directed-next"></script>
+    <script type="module" src="js/qontic-template.js?v=79-remove-q"></script>
 </head>
 <body>
   <!-- Loading overlay — visible until JS init completes -->
@@ -128,7 +128,6 @@
                   <option value="Phase">&Psi; phase</option>
                   <option value="Psi2">|&Psi;|&sup2;</option>
                   <option value="LogPsi2">log(|&Psi;|&sup2;)</option>
-                  <option value="QPotential">sgn(Q)log(|Q|)</option>
                 </select>
               </div>
             </div>
@@ -227,7 +226,6 @@
 	        <option value="Phase">&Psi; phase</option>
 	        <option value="Psi2">|&Psi;|&sup2;</option>
 	        <option value="LogPsi2">log(|&Psi;|&sup2;)</option>
-	        <option value="QPotential">sgn(Q)log(|Q|)</option>
               </select>
             </div>
           </div>
@@ -292,7 +290,7 @@
           </tr>
           <tr>
            <td>
-             <label data-tip="Whether the wave or Q are shown. The palette of the image can be selected.">
+             <label data-tip="Whether the wave is shown. The palette of the image can be selected.">
                <input type="checkbox" id="plot_wave" class="replot" checked> Psi
              </label>
            </td>
