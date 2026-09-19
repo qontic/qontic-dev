@@ -1,5 +1,9 @@
 # Analytical Double Slit releases
 
+## Version 69 — 2026-09-19
+
+- Clear Pilot-Wave trajectory tails immediately upon screen detection. Preserve detector records and the brief fade of wall-absorbed particles.
+
 ## Version 68 — 2026-09-19
 
 - Retract detected Pilot-Wave tails from their oldest end toward the detector at their arrival speed, using simulation time. Pausing freezes retraction; playback speed controls it. Preserve the brief fade for wall-absorbed/missed particles and leave hit statistics unchanged.
