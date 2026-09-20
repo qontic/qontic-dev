@@ -1,4 +1,4 @@
-## Version 86 — 2026-09-19
+## Version 2.86 — 2026-09-19
 
 - Replaced rejection sampling for “Direct PW” with the exact analytical Gaussian-mixture sampler for the conditional wall density \(T^2(y)|\phi(y,L)|^2\), then mapped each sample back to its source plane along the exact incident guidance trajectory.
 - Removed the fixed 20,000-attempt failure mode, so directed packets remain fast and reliable even when total slit transmission is extremely small.
@@ -356,7 +356,6 @@ The displayed release is defined in `js/release.js`. For each published app chan
 - Replace Display switches with independent opacity sliders and unify slider styles across Core, Advanced, and Display.
 - Remove particle-based wave masking and fix screen-endpoint initialization.
 - Expand Math and Rationale with readable typography and explicit model limitations.
-
 
 
 

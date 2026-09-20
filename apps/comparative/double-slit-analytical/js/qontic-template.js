@@ -1,7 +1,7 @@
 import { mountExpandedResize } from './expanded-resize.js?v=72';
-import { mountPacketEngine } from './packet-engine.js?v=86-truth';
-import { mountMWBranching } from './mw-branching.js?v=86-marker-continuity';
-import { APP_RELEASE } from './release.js?v=86';
+import { mountPacketEngine } from './packet-engine.js?v=2.86-truth';
+import { mountMWBranching } from './mw-branching.js?v=2.86-marker-continuity';
+import { APP_RELEASE } from './release.js?v=2.86';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -320,7 +320,7 @@ $(function () {
 
   document.getElementById('waveRangeLabel').hidden=true;
   window.qonticWaveRangeControl=mountValueRange({
-    host:rangeHost,label:'wave display range',movableContainer:rangePanel,storageKey:'qontic-double-slit-range-position-v86-left',
+    host:rangeHost,label:'wave display range',movableContainer:rangePanel,storageKey:'qontic-double-slit-range-position-v2.86-left',
     format:value=>formatWaveRangeValue(window.qonticPacketEngine?.enabled && $('#waveFunctionOption').val()==='Phase'?2*value-1:useWebGLWave && $('#waveFunctionOption').val()==='Phase'?value*2*Math.PI:(useWebGLWave || window.qonticPacketEngine?.enabled) && $('#waveFunctionOption').val()==='LogPsi2'?(value*15-15)/Math.log(10):value),
     onChange:({lower,upper})=>{
       waveRangeUserMin=lower;waveRangeUserMax=upper;waveRangeLockedByUser=true;
@@ -383,6 +383,4 @@ $(function () {
     if(!actions[event.code])return;event.preventDefault();event.stopImmediatePropagation();if(!event.repeat)actions[event.code]();
   },true);
 });
-
-
 
