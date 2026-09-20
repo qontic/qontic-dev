@@ -1,8 +1,8 @@
-import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=86-cos-phase';
+import {physicsHTML,viewsHTML,physicsEquations} from './physics-content.js?v=86-truth';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=86';
 import {histogramLayout} from './packet-model.js?v=86';
-import {aperture,sourceCoefficients,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile} from './source-packet-model.js?v=86';
+import {aperture,sourceCoefficients,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile} from './source-packet-model.js?v=86-truth';
 import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=86';
 export function mountPacketEngine({core,advanced}){
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -61,7 +61,9 @@ export function mountPacketEngine({core,advanced}){
  function ensure(){syncSlowPacketMode();const next=config();if(configFingerprint(next)!==fingerprint)resetEngine();else p.particles=next.particles;}
  function updateMath(){
   packetMath.innerHTML=physicsHTML;
+  math.removeAttribute('aria-busy');
   const views=document.getElementById('rationale');views.innerHTML=viewsHTML;
+  views.removeAttribute('aria-busy');
   for(const node of [...packetMath.querySelectorAll('[data-equation]'),...views.querySelectorAll('[data-equation]')]){
    const formula=physicsEquations[node.dataset.equation];
    if(typeof katex!=='undefined')katex.render(formula,node,{displayMode:true,throwOnError:false});
@@ -81,23 +83,18 @@ export function mountPacketEngine({core,advanced}){
    const a=particles[i];if(a.done)continue;
    if(!isPW){a.schedule={at:(p.screen-a.x0)/p.k,type:'hit',index:samplePixel(law.weights)};a.path=[];}
    else{
-    // Reconstruct the PW ensemble at the packet's present age. Directed mode
-    // is already conditioned analytically on transmission, so it needs one draw;
-    // ordinary mode retains rejection only for histories already absorbed by now.
-    let accepted=null;
-    const attempts=directed.checked?1:20000;
-    for(let attempt=0;attempt<attempts&&!accepted;attempt++){
-     const b=directed.checked?sampleTransmittedSource(p,Math.random,a.x0):sampleSource(p);
-     b.x0=b.x=a.x0;
-     if(!directed.checked){
-      // sampleSource transverse width depends weakly on x; correct it here.
-      const sigma=p.sourceSigma*Math.sqrt(1+(a.x0/(2*p.k*p.sourceSigma**2))**2);
-      b.y=sigma*Math.sqrt(-2*Math.log(Math.max(1e-15,Math.random())))*Math.cos(2*Math.PI*Math.random());
-     }
-     const packetAge=t-a.cohort.born;let age=0;while(age<packetAge&&!b.done){const dt=Math.min(.002,packetAge-age);stepSource(b,dt,p,coeff);age+=dt;}
-     if(!b.done)accepted=b;
-    }
-    if(accepted){accepted.cohort=a.cohort;particles[i]=accepted;}else throw new Error('Unable to reconstruct an active source preparation.');
+    // Reconstruct the PW ensemble conditioned on still being unresolved at the
+    // current packet age. Before the wall this is the incident Born ensemble.
+    // After the wall, survival is exactly the transmitted ensemble, which the
+    // analytical conditional sampler draws without rejection or an attempt cap.
+    const packetAge=t-a.cohort.born;
+    const crossedWall=packetAge>=(p.wall-a.x0)/p.k;
+    const b=crossedWall||directed.checked
+     ?sampleTransmittedSource(p,Math.random,a.x0)
+     :sampleSource(p,Math.random,a.x0);
+    let age=0;while(age<packetAge&&!b.done){const dt=Math.min(.002,packetAge-age);stepSource(b,dt,p,coeff);age+=dt;}
+    if(b.done)throw new Error('Active-packet reconstruction reached a completed outcome.');
+    b.cohort=a.cohort;particles[i]=b;
    }
   }
   lastMode=interpretation;
@@ -357,6 +354,3 @@ export function mountPacketEngine({core,advanced}){
  }
  return {sampleBranch,syncBranching(){ensure();draw();},get viewportWidth(){viewWidth=Math.max(viewWidth,(sourcePos+detectorDistance)/.7);return viewWidth;},get enabled(){return true;},reset:resetEngine,draw,drawWave,drawParticles,histogram,frame,updateMath,hash,pause(){last=null;if(packetAnimationId!==null)cancelAnimationFrame(packetAnimationId);packetAnimationId=null;}};
 }
-
-
-

@@ -35,6 +35,24 @@ for(let i=0;i<4000;i++){
  for(let n=0;n<3000&&!a.done;n++){const outcome=stepSource(a,.0008,p,coeff,random);assert.notEqual(outcome,'absorbed');}
  assert(a.done&&!a.absorbed,'conditioned source always transmits');directedResults.push(a.y);
 }
+// A fixed longitudinal coordinate is used when an unresolved Orthodox/MW
+// preparation is re-expressed as a Pilot-Wave ensemble.
+for(const x of [-4,-1,1.5]){
+ const samples=Array.from({length:2000},()=>sampleSource(p,random,x));
+ assert(samples.every(a=>a.x===x&&a.x0===x),'fixed source plane');
+ const expectedVariance=p.sourceSigma**2*(1+(x/(2*p.k*p.sourceSigma**2))**2);
+ const observedVariance=samples.reduce((sum,a)=>sum+a.y*a.y,0)/samples.length;
+ assert(Math.abs(observedVariance/expectedVariance-1)<.09,'fixed-plane Born width');
+}
+// The analytical conditional sampler must remain finite and rejection-free
+// when the selectable geometry makes transmission extremely small.
+const stressed={...p,sourceSigma:.5,centers:[-10,10]};
+const stressedCoeff=sourceCoefficients(stressed);
+for(let i=0;i<200;i++){
+ const a=sampleTransmittedSource(stressed,random,-3);
+ for(let n=0;n<6000&&!a.done;n++)stepSource(a,.0008,stressed,stressedCoeff,random);
+ assert(a.done&&!a.absorbed&&Number.isFinite(a.y),'low-transmission conditional sample');
+}
 const profile=sourceProfile(p,-6,6),nInside=results.filter(y=>Math.abs(y)<6).length;
 assert(Math.abs(nInside/12000-profile.integral)<.012,'transmission probability');
 const ordered=results.filter(y=>Math.abs(y)<6).sort((a,b)=>a-b),dy=12/(profile.values.length-1);let cdf=0,maxError=0,j=0;

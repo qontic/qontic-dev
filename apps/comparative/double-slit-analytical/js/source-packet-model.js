@@ -53,8 +53,8 @@ function sampleLongitudinalX(p,random){
  let x;do{x=(p.initialCenter??0)+p.sx*normal(random);}while(x>=Math.min(p.wall,p.initialRight??p.wall));
  return x;
 }
-export function sampleSource(p,random=Math.random){
- const x=sampleLongitudinalX(p,random);
+export function sampleSource(p,random=Math.random,fixedX=null){
+ const x=fixedX===null?sampleLongitudinalX(p,random):fixedX;
  return {x0:x,x,y:sourceWidth(x,p)*normal(random),done:false,passed:false,absorbed:false,path:[]};
 }
 export function sampleTransmittedSource(p,random=Math.random,fixedX=null){
