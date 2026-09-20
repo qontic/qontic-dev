@@ -1,4 +1,18 @@
 body.analytical-template { padding: 0 18px 12px; }
+.analytical-template qontic-controls {
+  --qontic-run-background:#15803d;
+  --qontic-run-border:#22c55e;
+  --qontic-run-color:#fff;
+  --qontic-run-hover-background:#166534;
+  --qontic-run-hover-border:#4ade80;
+  --qontic-run-background-light:#15803d;
+  --qontic-run-color-light:#fff;
+  --qontic-reset-background:#b91c1c;
+  --qontic-reset-border:#ef4444;
+  --qontic-reset-color:#fff;
+  --qontic-reset-hover-background:#991b1b;
+  --qontic-reset-hover-border:#f87171;
+}
 .analytical-template .analytical-shell { width: 100%; max-width: none; margin: auto; }
 .analytical-template #superContainer { padding: 16px 0 0; background: transparent; border: 0; }
 .analytical-template #superContainer > ul,

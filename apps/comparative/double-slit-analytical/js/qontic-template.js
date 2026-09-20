@@ -6,7 +6,7 @@ import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-o
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=range-25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
-import '../../../../shared/qontic-controls.js?v=2.9';
+import '../../../../shared/qontic-controls.js?v=2.86-controls';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
 $(function () {
@@ -383,4 +383,3 @@ $(function () {
     if(!actions[event.code])return;event.preventDefault();event.stopImmediatePropagation();if(!event.repeat)actions[event.code]();
   },true);
 });
-
