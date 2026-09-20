@@ -1,3 +1,9 @@
+## Version 2.87 — 2026-09-20
+
+- Doubled the branch-counter text size in the expanded Many-Worlds view while preserving its compact size in the normal grid.
+- Gave Start/Stop a green treatment and Reset a red treatment for clearer action semantics.
+- Aligned the displayed release and active module cache versions.
+
 ## Version 2.86 — 2026-09-19
 
 - Replaced rejection sampling for “Direct PW” with the exact analytical Gaussian-mixture sampler for the conditional wall density \(T^2(y)|\phi(y,L)|^2\), then mapped each sample back to its source plane along the exact incident guidance trajectory.
@@ -356,6 +362,5 @@ The displayed release is defined in `js/release.js`. For each published app chan
 - Replace Display switches with independent opacity sliders and unify slider styles across Core, Advanced, and Display.
 - Remove particle-based wave masking and fix screen-endpoint initialization.
 - Expand Math and Rationale with readable typography and explicit model limitations.
-
 
 

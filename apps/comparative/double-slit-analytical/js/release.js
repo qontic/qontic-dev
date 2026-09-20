@@ -1,1 +1,1 @@
-export const APP_RELEASE = Object.freeze({version:'2.86',date:'2026-09-19'});
+export const APP_RELEASE = Object.freeze({version:'2.87',date:'2026-09-20'});
