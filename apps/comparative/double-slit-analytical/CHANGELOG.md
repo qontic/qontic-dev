@@ -1,3 +1,9 @@
+## Version 2.92 — 2026-09-22
+
+- Moved reusable two-column layout, panel, host-button, keyboard-shortcut and expanded-canvas-resize behavior into shared Q-Ontic template modules.
+- Switched the analytical app to those shared modules while retaining its slit controls, packet physics, geometry editing, detector statistics and Many-Worlds presentation locally.
+- Made the interpretation label an optional shared media-toolbar element and aligned common Start/Stop and Reset colors across template consumers.
+
 ## Version 2.91 — 2026-09-21
 
 - Extended Pilot-Wave slit coloring to the detector histogram: upper- and lower-slit hits now retain their cyan/orange identity in separate dots and Poisson-style error bars.
