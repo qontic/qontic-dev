@@ -5,11 +5,13 @@ This directory is the canonical, reusable template for simulation-style Q-Ontic 
 ## Canonical files
 
 - `index.html` — complete live reference and markup to copy.
-- `starter.css` — shared simulation layout and control components.
+- `../../shared/qontic-app.css` — reusable two-column layout, panels, and host-app buttons.
+- `starter.css` — demo-canvas and example-content styling only.
 - `qontic-controls.js` — functional control wiring and public API.
 - `template-demo.js` — small example connecting the controls to a canvas.
 - `starter.html` — short entry point for developers.
 - `../../shared/qontic-shell.js` and `.css` — logo, title-purpose tooltip, Demo/Math navigation, footer, and responsive shell.
+- `../../shared/qontic-media.js`, `qontic-shortcuts.js`, and `qontic-expanded-resize.js` — optional canvas tools and standard interactions.
 
 ## Functional contract
 
@@ -61,6 +63,14 @@ controls.setResult('time', '2.4');
 
 Every callback is also emitted as a bubbling event: `qontic:start`, `qontic:stop`, `qontic:autorun`, `qontic:interpretation`, and `qontic:controlchange`.
 
+## Shared layout and host controls
+
+Link `../../shared/qontic-app.css`, then use `qontic-workspace`, `qontic-sidebar`, and `qontic-stage` for the responsive controls-and-canvas arrangement. Use `qontic-panel` and `qontic-control-panel` for the common surface treatment. Legacy apps may retain a small scoped adapter where old ID selectors must be neutralized, but new apps should not reproduce the shared grid or breakpoint rules.
+
+Model-specific buttons use the global `.qontic-app-toggle`, `.active`, `.qontic-app-toggle--wide`, and `.qontic-app-toggle-group` classes. These classes intentionally live in `qontic-app.css`, outside the controls component's shadow DOM, so ordinary app buttons inherit them.
+
+`mountQonticShortcuts` supplies the common Space (play/pause), R (reset), and S (screenshot) behavior and accepts an `additional` action map for model-specific keys. `mountExpandedResize` optionally adds display-only resizing to a canvas in the shared expanded dialog; apps provide their own storage key.
+
 ## Adoption rule
 
-Import `../../shared/qontic-controls.js` and render the `<qontic-controls>` runtime component; do not copy its markup or CSS. Connect its standard events to the app engine.  Do not copy the placeholder physics or force irrelevant controls into an app. The shared runtime component standardizes names, behavior, placement, states, accessibility, and responsive layout; the scientific engine and tab contents remain app-specific. Model-specific buttons must use the shared `.qontic-app-toggle`, `.active`, `.qontic-app-toggle--wide`, and `.qontic-app-toggle-group` classes so they match the common controls in dark and light themes. Compatible updates to the shared component propagate to every connected app.
+Import `../../shared/qontic-controls.js` and render the `<qontic-controls>` runtime component; do not copy its markup or CSS. Connect its standard events to the app engine. Do not copy the placeholder physics or force irrelevant controls into an app. The shared runtime component standardizes names, behavior, placement, states, and accessibility; `qontic-app.css` standardizes the surrounding responsive layout and host controls. The scientific engine and tab contents remain app-specific. Compatible updates to the shared modules propagate to every connected app.

@@ -1,5 +1,5 @@
 <!doctype html><meta charset="utf-8"><title>Shared Q-Ontic controls compatibility</title><h1>Shared controls compatibility</h1><pre id="report">Running</pre><script type="module">
-import "../../shared/qontic-controls.js?v=2.8";
+import "../../shared/qontic-controls.js?v=3.0";
 const results = [];
 function check(name, run) { try { run(); results.push({name,pass:true}); } catch(error) { results.push({name,pass:false,error:error.message}); } }
 function assert(condition,message) { if(!condition) throw Error(message); }

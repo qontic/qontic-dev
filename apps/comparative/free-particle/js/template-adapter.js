@@ -1,6 +1,6 @@
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=6';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
-import '../../../../shared/qontic-controls.js?v=2.8';
+import '../../../../shared/qontic-controls.js?v=3.0';
 
 // The shared component owns presentation; the original engine owns all state.
 // Keep legacy controls as hidden event endpoints so keyboard and export behavior
@@ -10,6 +10,10 @@ function mountFreeParticleTemplate() {
   const app = document.querySelector('.app-outer');
   if (!app || document.body.classList.contains('fp-template')) return;
   const left = app.querySelector('.left-panel');
+  const canvasArea = app.querySelector('.canvas-area');
+  app.classList.add('qontic-workspace');
+  left.classList.add('qontic-sidebar');
+  canvasArea?.classList.add('qontic-stage');
   const cards = [...left.querySelectorAll(':scope > .panel-card')];
   const shell = document.createElement('main');
   shell.className = 'shell fp-shell';
@@ -36,13 +40,13 @@ function mountFreeParticleTemplate() {
     'speed-min':'0.1', 'speed-max':'16', 'speed-step':'0.01', 'speed':String(fp.speed),
   })) controls.setAttribute(name, value);
   const controlPanel = document.createElement('section');
-  controlPanel.className = 'fp-control-panel';
+  controlPanel.className = 'fp-control-panel qontic-panel qontic-control-panel';
   controlPanel.setAttribute('aria-label', 'Free Particle controls');
   const panes = {};
   for (const name of ['core','advanced','display']) {
     const pane = document.createElement('div');
     pane.id = 'fp-controls-' + name;
-    pane.className = 'fp-control-pane';
+    pane.className = 'fp-control-pane qontic-control-body';
     pane.hidden = name !== 'core';
     panes[name] = pane;
   }
@@ -139,7 +143,7 @@ function mountFreeParticleTemplate() {
   controlPanel.after(results);
 
   mountQonticShell({title:'Free Particle', purpose:'Explore wave-packet spreading and detector outcomes in three quantum interpretations.',
-    version:'Free Particle · Q-Ontic shared template 2.8', homeHref:'../../../index.html'});
+    version:'Free Particle · Q-Ontic shared template 3.0', homeHref:'../../../index.html'});
   document.body.classList.add('fp-template');
   sync(); syncPage();
   // Existing resize handler refreshes all canvases after the layout changes.

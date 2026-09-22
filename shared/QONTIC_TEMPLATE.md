@@ -4,6 +4,9 @@ The template is executable shared code, not a set of copied pages:
 
 - `shared/qontic-shell.js` and `.css`: branding, header, navigation, footer.
 - `shared/qontic-controls.js` and `.css`: interpretation, playback, reset, rerun, speed, tabs, and appearance.
+- `shared/qontic-app.css`: opt-in controls-and-canvas layout, panels, reading surfaces, and model-specific button classes.
+- `shared/qontic-shortcuts.js`: common Space, R, and S keyboard behavior with app-supplied handlers.
+- `shared/qontic-expanded-resize.js`: optional display-only canvas resizing in the shared expanded dialog.
 - Each app has a small adapter and scoped layout CSS. The adapter translates shared events into existing engine actions. Physics, accumulated statistics, canvas rendering, and recording belong to the app.
 
 Free Particle uses `apps/comparative/free-particle/js/template-adapter.js`. Its original inputs remain hidden event endpoints so the engine, keyboard shortcuts, and recorder share one behavior. Existing inputs are moved rather than cloned. Shared components must not depend on any Free Particle IDs.
@@ -33,6 +36,7 @@ Use these public attributes and the documented `qontic:*` events. New adapters m
 Import `mountQonticMedia` from `shared/qontic-media.js` and call it with:
 - `stage`: the simulation wrapper; receives the media actions by default.
 - `headerTools: true`: place the icon toolbar beside section tabs in the title header. On narrow screens the groups wrap; during expansion the toolbar moves into the dialog and returns to the header on restore. Omit to retain stage placement.
+- `labelNode`: optional live interpretation or state label placed at the start of the canvas toolbar.
 - `controls`: optional shared controls, moved into the expanded dialog and restored intact.
 - `getCanvases()`: visible canvas layers in painting order (background first); CSS placement is preserved in the exported frame.
 - `beginRecording()`: starts playback and returns an app-defined state token.

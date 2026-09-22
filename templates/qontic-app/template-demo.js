@@ -1,9 +1,11 @@
 import { mountDistanceScale, mountValueRange } from '../../shared/qontic-overlays.js?v=4';
 let demoRange={lower:0,upper:1};
-import { mountQonticMedia } from '../../shared/qontic-media.js?v=range-25';
+import { mountQonticMedia } from '../../shared/qontic-media.js?v=3.0';
+import { mountExpandedResize } from '../../shared/qontic-expanded-resize.js?v=1';
+import { mountQonticShortcuts } from '../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../shared/qontic-shell.js?v=resources-20260916';
-import { mountQonticControls } from './qontic-controls.js?v=2.7';
-mountQonticShell({compactHeader:true,navigation:'breadcrumbs',title:'Functional Simulation Template',eyebrow:'Q-Ontic template library',purpose:'Define a common functional interface for Q-Ontic simulations while allowing each app to connect its own scientific model.',badge:'Canonical starter',version:'Template 2.5 · Refined canvas overlays',homeHref:'../../index.html',labHref:'https://qonticlab.rice.edu/'});
+import { mountQonticControls } from './qontic-controls.js?v=3.0';
+mountQonticShell({compactHeader:true,navigation:'breadcrumbs',title:'Functional Simulation Template',eyebrow:'Q-Ontic template library',purpose:'Define a common functional interface for Q-Ontic simulations while allowing each app to connect its own scientific model.',badge:'Canonical starter',version:'Template 3.0 · Shared layout and interactions',homeHref:'../../index.html',labHref:'https://qonticlab.rice.edu/'});
 const tabs=document.querySelector('.tabs');tabs.addEventListener('click',event=>{const button=event.target.closest('[data-view]');if(!button)return;tabs.querySelectorAll('button').forEach(item=>item.classList.toggle('active',item===button));document.querySelectorAll('[data-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.panel!==button.dataset.view));});
 const canvas=document.querySelector('.demo-canvas'),ctx=canvas.getContext('2d');let running=true,autoRerun=true,time=0,speed=1,seed=.22,interpretation='orthodox';
 const ui=mountQonticControls({onStart:()=>running=true,onStop:()=>running=false,onReset:()=>{time=0;seed=.22;running=false;},onAutorun:event=>autoRerun=event.autoRerun,onInterpretation:event=>interpretation=event.interpretation,onControlchange:event=>{if(event.name==='speed')speed=event.value;}});
@@ -20,4 +22,10 @@ mountQonticMedia({
   getCanvases:()=>[canvas,demoScale.canvas], scaleControl:demoScale, rangeControl:demoRangeControl, filename:'qontic-template', headerTools:false,
   beginRecording:()=>{const previous=running;running=true;ui.setRunning(true);return previous;},
   endRecording:previous=>{running=previous;ui.setRunning(previous);}
+});
+mountExpandedResize({container:document.querySelector('.visualization'),storageKey:'qontic-template-expanded-size'});
+mountQonticShortcuts({
+  togglePlayback:()=>{running=!running;ui.setRunning(running);},
+  reset:()=>{time=0;seed=.22;running=false;ui.setRunning(false);},
+  screenshot:()=>document.querySelector('.visualization .qontic-media-toolbar button[aria-label="Screenshot"]')?.click(),
 });
