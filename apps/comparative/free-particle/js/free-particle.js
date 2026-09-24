@@ -1399,6 +1399,13 @@ function fpMWChooseBranch(sectionIdx) {
   fpPrepareMWZoom(sectionIdx);
   fpManageMWView();
   fpRender();
+  // A pointer event can arrive between animation frames. Restart the manual
+  // branch tour explicitly so the camera cannot be left waiting on a stale id.
+  if (fp.mwChoiceMode === 'manual' && fp.running) {
+    if (fp.animId) cancelAnimationFrame(fp.animId);
+    fp._lastFrameTime_ms = null;
+    fp.animId = requestAnimationFrame(fpStep);
+  }
 }
 
 function fpUpdateMWStatus() {
@@ -1412,7 +1419,10 @@ function fpUpdateMWStatus() {
   const worldsAtDepth = Math.pow(nS, depthNow);
   const branchesGenerated = depthNow * nS;
 
-  if (fp.mwZoom?.complete) {
+  if (!fp.mwFired) {
+    el.innerHTML = '<span style="color:#475569">Approaching detector — branching will occur...</span>'
+      + (path.length ? '<br><span style="color:#64748b">Previously followed: ' + trail + '</span>' : '');
+  } else if (fp.mwZoom?.complete) {
     el.innerHTML = '<span style="color:#34d399">Entered world: ' + trail + '</span>'
       + ' <span style="color:#64748b">— measurement complete; press Start for the next run.</span>';
   } else if (fp.mwZoom) {
@@ -1928,6 +1938,7 @@ function fpRunReset() {
   fp.mwChoiceElapsed_ms = 0;
   fp.mwZoom              = null;
   fp.eventCommitted     = false;
+  if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = true;
 
   fpUpdatePhysics();
   fpBuildGrid();
@@ -1976,6 +1987,7 @@ function fpFullReset() {
   fp.mwChoiceElapsed_ms = 0;
   fp.mwZoom              = null;
   fp.eventCommitted     = false;
+  if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = true;
 
   fpUpdatePhysics();
   fpBuildGrid();
