@@ -109,12 +109,22 @@ function mountFreeParticleTemplate() {
 
   function syncPage() {
     const active = nav.querySelector('.view-tab-active')?.dataset.viewtab || 'sim';
-    left.hidden = active !== 'sim';
+    // The navigation swaps the content inside the stage. Keep the control
+    // column mounted so non-simulation views cannot fall into its grid cell.
+    left.hidden = false;
     nav.querySelectorAll('button').forEach(button => {
       const selected = button.dataset.viewtab === active;
       button.classList.toggle('active',selected);
       button.setAttribute('aria-pressed',String(selected));
     });
+    // A canvas measured while its panel is hidden keeps a zero or stale size.
+    // Wait for the restored stage to complete layout, then use the app's
+    // existing resize handler to redraw at the real dimensions.
+    if (active === 'sim') {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('resize'));
+      }));
+    }
   }
   nav.addEventListener('click',syncPage);
   // Shared media toolbar; retain the app's offline high-resolution MP4 exporter.

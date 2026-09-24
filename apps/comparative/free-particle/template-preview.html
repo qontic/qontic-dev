@@ -1260,8 +1260,11 @@
         tab.classList.add('view-tab-active');
         const panel = document.getElementById('viewpanel-' + tab.dataset.viewtab);
         if (panel) panel.classList.add('view-panel-active');
-        // resize canvases when returning to simulation tab
-        if (tab.dataset.viewtab === 'sim') refreshSimulationSize();
+        // Resize after the restored panel has completed layout. Measuring it
+        // in the click handler can preserve the hidden panel's zero width.
+        if (tab.dataset.viewtab === 'sim') {
+          requestAnimationFrame(() => requestAnimationFrame(refreshSimulationSize));
+        }
       });
     });
   }
@@ -1337,8 +1340,7 @@
 })();
 </script>
 
-<script type="module" src="js/template-adapter.js?v=2"></script>
+<script type="module" src="js/template-adapter.js?v=3"></script>
 </body>
 </html>
-
 
