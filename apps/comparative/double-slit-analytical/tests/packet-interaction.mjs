@@ -6,6 +6,8 @@ assert.equal(dragGeometry(start,'height',0,50).height,1400);
 assert.equal(dragGeometry(start,'distance',-1e6,0).distance,50);
 assert.equal(dragGeometry(start,'height',0,1e6).height,5000);
 assert.equal(slitWidthFromDrag(30,30,1),40,'30 px moves a ±3σ edge by 10 nm');
+assert.equal(slitWidthFromDrag(30,40,1,4,30,100),40,'dragging follows the selected sigma extent');
+assert.equal(slitWidthFromDrag(95,100,1,4,30,100),100,'dynamic half-wall width bound is enforced');
 for(const n of [0,.1,1,10]){
  const path=Array.from({length:100},(_,i)=>[i/10,Math.sin(i/10)]);trimTail(path,n);
  let length=0;for(let i=1;i<path.length;i++)length+=Math.hypot(path[i][0]-path[i-1][0],path[i][1]-path[i-1][1]);assert(length<=n+1e-10);if(!n)assert.equal(path.length,0);

@@ -907,7 +907,7 @@ function restoreSimulationState() {
   updateParameter('source-position', 0, 1000, 1, state.sourcePosition);
   updateParameter('detector-distance', 0, 1000, 1, state.detectorDistance);
   updateParameter('det-pixels', 10, 500, 1, state.nDetectorPixels);
-  updateParameter('screen-height', 100, 5000, 10, state.screenHeight);
+  updateParameter('screen-height', 120, 5000, 10, state.screenHeight);
   if (state.particleRate) {
     updateParameter('particleRate', 1, 100, 1, state.particleRate);
   }
@@ -1576,7 +1576,7 @@ $(document).ready(function() {
          { value: 'nm', text: 'nm', scale:1.e-6 }
          ], true);
          */
-      createParameterInput('detector', 'screen-height', 'Screen Height', 100, 5000, 10, 1200, [
+      createParameterInput('detector', 'screen-height', 'Screen Height', 120, 5000, 10, 1200, [
             { value: 'nm', text: 'nm', scale:1 },
             { value: 'um', text: 'µm', scale:1.e3 },
             { value: 'mm', text: 'mm', scale:1.e6 }

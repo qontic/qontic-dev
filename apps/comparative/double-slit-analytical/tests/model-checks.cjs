@@ -40,7 +40,7 @@ assert(content.includes('incoherent sum'));
 // New packets and in-flight interpretation changes use analytical conditional
 // transmission sampling; no bounded rejection loop remains.
 assert(model.includes('finite Gaussian mixture'));
-assert(engine.includes('sampleTransmittedSource(p,Math.random,a.x0,directed.checked?3:null)'));
+assert(engine.includes('sampleTransmittedSource(p,Math.random,a.x0,directed.checked?p.slitExtentSigma:null)'));
 assert(!engine.includes('const attempts=') && !engine.includes('attempt<20000'));
 
 // Slit coloring is display-only metadata assigned after successful wall
@@ -53,9 +53,10 @@ assert(engine.includes("for(const [side,offset] of [['upper',-2.5],['lower',2.5]
 assert(engine.includes('slitError=Math.sqrt(count)*scale'));
 assert(engine.includes("drawMarker(n-(slitHits.upper?.[i]||0)-(slitHits.lower?.[i]||0),null,0)"));
 assert(engine.includes('clearHitsForPreview()'));
-assert(engine.includes("sampleTransmittedSource(p,Math.random,null,3)"));
-assert(engine.includes('const half=3*(slitPreviewWidth??p.sy*100)*toCanvasY'));
-assert(content.includes('finite slit core extending ±3σₐ'));
+assert(engine.includes('sampleTransmittedSource(p,Math.random,null,p.slitExtentSigma)'));
+assert(engine.includes('const half=p.slitExtentSigma*(slitPreviewWidth??p.sy*100)*toCanvasY'));
+assert(engine.includes('maximumCoreSafeSeparation'));
+assert(content.includes('finite slit core extending ±nσₐ'));
 assert(model.includes('sourceComponents'));
 assert(model.includes('if(p.whichPath)'));
 assert(engine.includes("whichPathDetector!=='none'&&next.centers.length===2"));

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {gaussian,histogramLayout} from '../js/packet-model.js';
-import {aperture,sourceCoefficients,sourceComponents,sourceDensity,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile} from '../js/source-packet-model.js';
+import {aperture,sourceCoefficients,sourceComponents,sourceDensity,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,transmittedCoreFraction,maximumCoreSafeSeparation} from '../js/source-packet-model.js';
 const p={sx:.5,sy:.3,sourceSigma:2,wall:2.25,screen:6.25,k:2*Math.PI,centers:[-2.5,2.5]};
 function integral(f,lo=-30,hi=30,steps=24000){let v=0;const dx=(hi-lo)/steps;for(let i=0;i<steps;i++)v+=f(lo+(i+.5)*dx)*dx;return v;}
 for(const centers of [[-2.5,2.5],[-2.5],[2.5],[-.15,.15]]){
@@ -75,6 +75,13 @@ for(let i=0;i<200;i++){
  assert(a.done&&!a.absorbed&&Number.isFinite(a.y),'low-transmission conditional sample');
  assert(Math.min(...stressed.centers.map(center=>Math.abs(wallY-center)))<=3*stressed.sy+1e-10,'low-transmission slit-core sample stays bounded');
 }
+const defaultGeometry={...p,k:2*Math.PI*100/50,wall:2.25,sourceSigma:2,sy:.3,centers:[-1.5,1.5]};
+const tailGeometry={...defaultGeometry,sourceSigma:.5,centers:[-5,5]};
+assert(Math.abs(transmittedCoreFraction(defaultGeometry,3)-.997427)<2e-6,'default ±3σ cores contain the analytical transmitted density');
+assert(transmittedCoreFraction(tailGeometry,3)<.12,'remote slits expose the off-core Gaussian-tail regime');
+assert(transmittedCoreFraction(defaultGeometry,4)>transmittedCoreFraction(defaultGeometry,3),'expert slit extent changes the represented core analytically');
+assert.equal(Math.floor(100*maximumCoreSafeSeparation({...defaultGeometry,centers:undefined},3,10.2)+1e-9),1020,'default source is wall-limited rather than tail-limited');
+assert.equal(Math.floor(100*maximumCoreSafeSeparation({...tailGeometry,centers:undefined},3,10.2)+1e-9),255,'narrow-source separation stops before the off-core tail regime');
 const profile=sourceProfile(p,-6,6),nInside=results.filter(y=>Math.abs(y)<6).length;
 assert(Math.abs(nInside/12000-profile.integral)<.012,'transmission probability');
 const ordered=results.filter(y=>Math.abs(y)<6).sort((a,b)=>a-b),dy=12/(profile.values.length-1);let cdf=0,maxError=0,j=0;

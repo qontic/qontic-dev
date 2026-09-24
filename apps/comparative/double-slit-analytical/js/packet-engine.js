@@ -2,19 +2,50 @@ import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathVie
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=2.91';
 import {histogramLayout} from './packet-model.js?v=2.91';
-import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile} from './source-packet-model.js?v=2.93';
+import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.93';
 import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=2.93';
 export function mountPacketEngine({core,advanced}){
  const panel=document.createElement('div');panel.className='packet-settings';
- panel.innerHTML="<div class=\"input-group packet-inline\"><label for=\"packet-source-width\">Source width σ</label><input id=\"packet-source-width\" aria-label=\"Packet source width\" type=\"range\" min=\"50\" max=\"400\" step=\"5\" value=\"200\"><input aria-label=\"Packet source width value\" type=\"number\" min=\"50\" max=\"400\" step=\"5\" value=\"200\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-length\">Packet length σ</label><input id=\"packet-length\" aria-label=\"Packet length\" type=\"range\" min=\"50\" max=\"200\" step=\"5\" value=\"50\"><input aria-label=\"Packet length value\" type=\"number\" min=\"50\" max=\"200\" step=\"5\" value=\"50\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-slit-width\">Slit width σ</label><input id=\"packet-slit-width\" aria-label=\"Packet slit width\" type=\"range\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><input aria-label=\"Packet slit width value\" type=\"number\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><output>nm</output></div>";advanced.prepend(panel);
+ panel.innerHTML="<div class=\"input-group packet-inline\"><label for=\"packet-source-width\">Source width σ</label><input id=\"packet-source-width\" aria-label=\"Packet source width\" type=\"range\" min=\"50\" max=\"400\" step=\"5\" value=\"200\"><input aria-label=\"Packet source width value\" type=\"number\" min=\"50\" max=\"400\" step=\"5\" value=\"200\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-length\">Packet length σ</label><input id=\"packet-length\" aria-label=\"Packet length\" type=\"range\" min=\"50\" max=\"200\" step=\"5\" value=\"50\"><input aria-label=\"Packet length value\" type=\"number\" min=\"50\" max=\"200\" step=\"5\" value=\"50\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-slit-width\">Slit width σ</label><input id=\"packet-slit-width\" aria-label=\"Packet slit width\" type=\"range\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><input aria-label=\"Packet slit width value\" type=\"number\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><output>nm</output></div><div class=\"input-group packet-inline packet-expert\"><label for=\"packet-slit-extent\" title=\"Expert control: half-width of each drawn slit core, measured in aperture standard deviations.\">Slit extent</label><input id=\"packet-slit-extent\" aria-label=\"Displayed slit core extent in sigma\" type=\"range\" min=\"1\" max=\"5\" step=\"0.5\" value=\"1.5\"><input aria-label=\"Displayed slit core extent value\" type=\"number\" min=\"1\" max=\"5\" step=\"0.5\" value=\"1.5\"><output>σ</output></div>";advanced.prepend(panel);
  const [sourceWidth,length,width]=panel.querySelectorAll('input[type=range],input[type=checkbox]');
- function slitWidthHelp(){const span=6*Number(width.value);width.title='Gaussian transmission σ = '+width.value+' nm. The clear opening and cyan ticks span ±3σ: '+span.toFixed(0)+' nm total. Direct PW is conditioned to cross within these displayed slit cores; the common wave model retains its Gaussian tails.';width.parentElement.querySelector('label').title=width.title;width.parentElement.querySelector('input[type=number]').title=width.title;}slitWidthHelp();
+ const extent=panel.querySelector('#packet-slit-extent');
+ function slitWidthHelp(){const n=Number(extent.value),span=2*n*Number(width.value);width.title='Gaussian transmission σ = '+width.value+' nm. The clear opening and cyan ticks span ±'+n+'σ: '+span.toFixed(0)+' nm total. Direct PW is conditioned to cross within these displayed slit cores; the common wave model retains its Gaussian tails.';width.parentElement.querySelector('label').title=width.title;width.parentElement.querySelector('input[type=number]').title=width.title;extent.title='Expert control: each drawn opening extends ±'+n+' aperture σ from its center. The full opening is '+span.toFixed(0)+' nm.';extent.parentElement.querySelector('input[type=number]').title=extent.title;}
  length.title='Packet length is limited to at least 50 nm so kσₓ remains in the narrow-band working range for λ ≤ 50 nm.';length.parentElement.querySelector('input[type=number]').title=length.title;
  const tailRow=document.createElement('div');tailRow.innerHTML="<div class=\"input-group packet-inline\"><label for=\"packet-tail-length\">Tail length</label><input id=\"packet-tail-length\" aria-label=\"Trajectory tail length\" type=\"range\" min=\"0\" max=\"2000\" step=\"25\" value=\"250\"><input aria-label=\"Trajectory tail length value\" type=\"number\" min=\"0\" max=\"2000\" step=\"25\" value=\"250\"><output>nm</output></div>";panel.append(tailRow);const tailLength=tailRow.querySelector('input[type=range]');
  const intervalRow=document.createElement('div');intervalRow.innerHTML='<div class="input-group packet-inline"><label for="packet-interval">Packet interval</label><input id="packet-interval" aria-label="Packet interval" title="Time between source launches, in picoseconds of simulation time. Independent of packet speed and width." type="range" min="0" max="300" step="5" value="0"><input aria-label="Packet interval value" type="number" min="0" max="300" step="5" value="0"><output>ps</output></div>';panel.append(intervalRow);const interval=intervalRow.querySelector('input[type=range]');
- const directedRow=document.createElement('label');directedRow.className='bohmian-only packet-directed-inline';directedRow.title='PW postselection: shows only source configurations transmitted through the displayed ±3σ slit cores; it does not add a steering force.';directedRow.innerHTML='<input id="packet-directed-slits" type="checkbox"> Direct PW';const directed=directedRow.querySelector('input');directed.checked=localStorage.getItem('qontic-pw-directed-slits')==='true';
+ function maxTailSafeSeparation(limit,n){
+  const base={sy:+width.value/100,k:2*Math.PI*100/Math.max(1,+document.getElementById('wavelength').value),wall:+document.getElementById('source-position').value/100,sourceSigma:+sourceWidth.value/100};
+  const signs=[...(slit1Open?[-1]:[]),...(slit2Open?[1]:[])];
+  return Math.max(0,Math.floor(100*maximumCoreSafeSeparation(base,n,limit/100,signs)+1e-9));
+ }
+ let dynamicWidthMax=200,dynamicSeparationMax=2000;
+ function applyPacketLimits(){
+  const screenRange=document.getElementById('screen-height'),screenNumber=document.getElementById('screen-height-input');
+  const separationRange=document.getElementById('slit-separation'),separationNumber=document.getElementById('slit-separation-input');
+  const height=Math.max(120,+screenRange.value||1200);
+  screenRange.min=screenNumber.min='120';
+  if(+screenRange.value<120){screenRange.value=screenNumber.value='120';}
+  const extentMax=Math.max(1,Math.min(5,Math.floor(height/(4*30)*2)/2));
+  extent.max=extentMax;extent.parentElement.querySelector('input[type=number]').max=extentMax;
+  if(+extent.value>extentMax)extent.value=extentMax;
+  const n=+extent.value;
+  dynamicWidthMax=Math.max(30,Math.floor(height/(4*n)/5)*5);
+  width.max=width.parentElement.querySelector('input[type=number]').max=dynamicWidthMax;
+  if(+width.value>dynamicWidthMax)width.value=dynamicWidthMax;
+  const wallLimit=Math.max(0,Math.floor(height-2*n*(+width.value)));
+  dynamicSeparationMax=maxTailSafeSeparation(Math.min(2000,wallLimit),n);
+  separationRange.max=separationNumber.max=dynamicSeparationMax;
+  if(+separationRange.value>dynamicSeparationMax)separationRange.value=separationNumber.value=dynamicSeparationMax;
+  slitSeparation=+separationRange.value;
+  screenHeight=+screenRange.value;
+  syncPacketInput(width);syncPacketInput(extent);slitWidthHelp();
+  directedRow.title='PW postselection: shows only source configurations transmitted through the displayed ±'+n+'σ slit cores; it does not add a steering force.';
+  separationRange.title='Maximum '+dynamicSeparationMax+' nm: slit cores stay on the wall and the analytical transmitted probability remains concentrated in the drawn openings.';
+  separationNumber.title=separationRange.title;
+ }
+ const directedRow=document.createElement('label');directedRow.className='bohmian-only packet-directed-inline';directedRow.innerHTML='<input id="packet-directed-slits" type="checkbox"> Direct PW';const directed=directedRow.querySelector('input');directed.checked=localStorage.getItem('qontic-pw-directed-slits')==='true';
  const slitColorRow=document.createElement('label');slitColorRow.className='bohmian-only packet-slit-colors';slitColorRow.title='Color transmitted Pilot-Wave particles and their detector dots/error bars by the slit region containing their actual wall-crossing position. Upper is cyan; lower is orange. This changes only the display.';slitColorRow.innerHTML='<input id="packet-color-by-slit" type="checkbox"> Color by slit <span class="packet-slit-key" aria-hidden="true"><i></i><i></i></span>';const colorBySlit=slitColorRow.querySelector('input');colorBySlit.checked=localStorage.getItem('qontic-pw-color-by-slit')==='true';
- function syncPacketInput(control){const number=control.parentElement.querySelector('input[type=number]');number.value=control.value;number.max=control.max;number.min=control.min;control.parentElement.querySelector('output').textContent=control===interval?(+interval.value===0?'Auto':particleType==='neutron'?'ns':'ps'):'nm';if(control===interval)interval.title='0 = wait until the previous packet has completed all outcomes. Positive values set time between source launches in '+(particleType==='neutron'?'nanoseconds':'picoseconds')+' of simulation time; independent of packet speed and width.';}
+ function syncPacketInput(control){const number=control.parentElement.querySelector('input[type=number]');number.value=control.value;number.max=control.max;number.min=control.min;control.parentElement.querySelector('output').textContent=control===interval?(+interval.value===0?'Auto':particleType==='neutron'?'ns':'ps'):control===extent?'σ':'nm';if(control===interval)interval.title='0 = wait until the previous packet has completed all outcomes. Positive values set time between source launches in '+(particleType==='neutron'?'nanoseconds':'picoseconds')+' of simulation time; independent of packet speed and width.';}
  for(const number of panel.querySelectorAll('input[type=number]')){const commitNumber=()=>{const range=number.parentElement.querySelector('input[type=range]'),value=Number(number.value);if(Number.isFinite(value))range.value=Math.max(+range.min,Math.min(+range.max,value));range.dispatchEvent(new Event('input',{bubbles:true}));};number.addEventListener('change',commitNumber);number.addEventListener('blur',commitNumber);number.addEventListener('keydown',event=>{if(event.key==='Enter'){commitNumber();number.blur();}});}
  tailLength.addEventListener('input',()=>{syncPacketInput(tailLength);for(const a of particles)trimTail(a.path,+tailLength.value/100);draw();});
  let geometryEditing=false,resumeAfterEditing=false;
@@ -35,9 +66,10 @@ export function mountPacketEngine({core,advanced}){
   button.title=button.disabled?'Open both slits to use the which-slit detector.':'Cycle the ideal which-slit detector: none, upper slit, or lower slit. The two detector-tagged waves add incoherently.';
  }
  function config(){
+  applyPacketLimits();
   length.max=Math.max(50,Math.min(200,Math.floor(Math.min(sourcePos,detectorDistance)/4)));if(+length.value>+length.max)length.value=length.max;
   syncPacketInput(length);syncPacketInput(interval);
-  const next={source:true,spherical:false,focused:false,sx:+length.value/100,sy:+width.value/100,k:2*Math.PI*100/wavelength,launch:-sourcePos/100,wall:sourcePos/100,screen:(sourcePos+detectorDistance)/100,sourceSigma:+sourceWidth.value/100,bins:Math.max(1,Math.floor(nDetectorPixels)),particles:Math.max(1,Math.min(5000,Math.floor(+document.getElementById('MaxPart-input').value||100))),slits:slit1Open&&slit2Open?2:1};
+  const next={source:true,spherical:false,focused:false,sx:+length.value/100,sy:+width.value/100,slitExtentSigma:+extent.value,k:2*Math.PI*100/wavelength,launch:-sourcePos/100,wall:sourcePos/100,screen:(sourcePos+detectorDistance)/100,sourceSigma:+sourceWidth.value/100,bins:Math.max(1,Math.floor(nDetectorPixels)),particles:Math.max(1,Math.min(5000,Math.floor(+document.getElementById('MaxPart-input').value||100))),slits:slit1Open&&slit2Open?2:1};
   // Use physical inputs directly: a canvas/world round trip introduces tiny
   // resize-dependent rounding differences that would reset the experiment.
   next.centers=[...(slit1Open?[-slitSeparation/200]:[]),...(slit2Open?[slitSeparation/200]:[])].sort((a,b)=>a-b);next.whichPath=whichPathDetector!=='none'&&next.centers.length===2;next.initialRight=-worldCanvasDx/1000-.03;next.initialCenter=next.initialRight-6*next.sx;next.duration=(next.screen-next.initialCenter+8*next.sx)/next.k;return next;
@@ -45,7 +77,7 @@ export function mountPacketEngine({core,advanced}){
  function emissionPeriod(){return slowPacketMode||+interval.value===0?Infinity:(+interval.value)*(particleType==='neutron'?1:.001)/timeUnit;}
  function prepare(){
   pulse++;const cohort={born:t,count:p.particles,active:p.particles,pending:0,absorbed:0};pulses.push(cohort);
-  for(let i=0;i<p.particles;i++){const a=interpretation==='bohmian'&&directed.checked?sampleTransmittedSource(p,Math.random,null,3):sampleSource(p);if(slowPacketMode)a.x0=a.x=p.initialCenter;a.cohort=cohort;a.schedule=interpretation==='bohmian'?quantumSchedule(a,p,law):{at:(p.screen-a.x0)/p.k,type:'hit',index:samplePixel(law.weights)};particles.push(a);}
+  for(let i=0;i<p.particles;i++){const a=interpretation==='bohmian'&&directed.checked?sampleTransmittedSource(p,Math.random,null,p.slitExtentSigma):sampleSource(p);if(slowPacketMode)a.x0=a.x=p.initialCenter;a.cohort=cohort;a.schedule=interpretation==='bohmian'?quantumSchedule(a,p,law):{at:(p.screen-a.x0)/p.k,type:'hit',index:samplePixel(law.weights)};particles.push(a);}
   nParticles+=p.particles;nextEmission=t+emissionPeriod();
  }
  function resetEngine(){
@@ -98,7 +130,7 @@ export function mountPacketEngine({core,advanced}){
     const packetAge=t-a.cohort.born;
     const crossedWall=packetAge>=(p.wall-a.x0)/p.k;
     const b=crossedWall||directed.checked
-     ?sampleTransmittedSource(p,Math.random,a.x0,directed.checked?3:null)
+     ?sampleTransmittedSource(p,Math.random,a.x0,directed.checked?p.slitExtentSigma:null)
      :sampleSource(p,Math.random,a.x0);
     let age=0;while(age<packetAge&&!b.done){const dt=Math.min(.002,packetAge-age);stepSource(b,dt,p,coeff);age+=dt;}
     if(b.done)throw new Error('Active-packet reconstruction reached a completed outcome.');
@@ -292,9 +324,9 @@ export function mountPacketEngine({core,advanced}){
  }
  function draw(){if(!enabled)return;ensure();syncMode();setupCtx.clearRect(0,0,canvas.width,canvas.height);
   setupCtx.save();if(shown('plot_screen')){setupCtx.globalAlpha=elementOpacity('plot_screen');setupCtx.strokeStyle=colorScreen;if(p.source){
-   // Draw the finite ±3σ slit cores used by Direct PW. The common analytical
+   // Draw the finite expert-selected slit cores used by Direct PW. The common analytical
    // wave remains the untruncated Gaussian aperture documented in Physics.
-   const half=3*(slitPreviewWidth??p.sy*100)*toCanvasY;
+   const half=p.slitExtentSigma*(slitPreviewWidth??p.sy*100)*toCanvasY;
    const openings=displayCenters().map(center=>[Math.max(0,Y(center)-half),Math.min(canvas.height,Y(center)+half)]).filter(([a,b])=>b>a).sort((a,b)=>a[0]-b[0]);
    setupCtx.strokeStyle='#d4e6ef';setupCtx.lineWidth=6;setupCtx.lineCap='butt';setupCtx.beginPath();let cursor=0;
    for(const [top,bottom] of openings){if(top>cursor){setupCtx.moveTo(wallX,cursor);setupCtx.lineTo(wallX,top);}cursor=Math.max(cursor,bottom);}
@@ -311,14 +343,18 @@ export function mountPacketEngine({core,advanced}){
   drawWave();drawParticles();histogram();drawDetection();window.qonticScaleOverlay?.update();geometryControls?.update();slitControls?.update();separationControls?.update();stats();
  }
 
- function hash(){return '&engine=packet&packetOrigin=source&sourceWidth='+sourceWidth.value+'&packetLength='+length.value+'&packetWidth='+width.value+'&packetCount='+p.particles+'&tailLength='+tailLength.value+'&packetInterval='+interval.value;}
+ function hash(){return '&engine=packet&packetOrigin=source&sourceWidth='+sourceWidth.value+'&packetLength='+length.value+'&packetWidth='+width.value+'&slitExtent='+extent.value+'&packetCount='+p.particles+'&tailLength='+tailLength.value+'&packetInterval='+interval.value;}
  const params=new URLSearchParams(location.hash.slice(1));
- for(const [key,el] of [['packetLength',length],['packetWidth',width],['sourceWidth',sourceWidth],['tailLength',tailLength],['packetInterval',interval]]){const n=Number(params.get(key));if(params.has(key)&&n>=+el.min&&n<=+el.max){el.value=n;syncPacketInput(el);}}
+ for(const [key,el] of [['packetLength',length],['packetWidth',width],['slitExtent',extent],['sourceWidth',sourceWidth],['tailLength',tailLength],['packetInterval',interval]]){const n=Number(params.get(key));if(params.has(key)&&n>=+el.min&&n<=+el.max){el.value=n;syncPacketInput(el);}}
+ applyPacketLimits();
  const count=+params.get('packetCount');if(count>=1&&count<=5000)$('#MaxPart-group')[0]?.setValueInFirstUnit(count);
  interval.addEventListener('input',()=>{syncPacketInput(interval);nextEmission=Math.max(t,(pulses.at(-1)?.born??t)+emissionPeriod());});
  directed.addEventListener('change',()=>{localStorage.setItem('qontic-pw-directed-slits',String(directed.checked));syncMode();});
  colorBySlit.addEventListener('change',()=>{localStorage.setItem('qontic-pw-color-by-slit',String(colorBySlit.checked));draw();});
- for(const control of [length,width,sourceWidth])control.addEventListener('input',()=>{syncPacketInput(control);slitWidthHelp();resetEngine();draw();});
+ for(const control of [length,width,sourceWidth,extent])control.addEventListener('input',()=>{applyPacketLimits();syncPacketInput(control);slitWidthHelp();resetEngine();draw();});
+
+ const constrainedInputs=new Set(['slit-separation','source-position','screen-height','wavelength']);
+ document.addEventListener('input',event=>{if(constrainedInputs.has(event.target?.id))applyPacketLimits();},true);
 
  for(const id of ['MaxPart','MaxPart-input'])document.getElementById(id).addEventListener(id==='MaxPart'?'input':'change',()=>queueMicrotask(()=>{ensure();draw();}));
  const syncGeometryReadouts=next=>{
@@ -340,7 +376,7 @@ export function mountPacketEngine({core,advanced}){
 
  const slitControls=mountSlitWidth({
   host:document.getElementById('canvas-container'),
-  getState(){const host=document.getElementById('canvas-container');return {width:+width.value,centers:p?displayCenters().map(center=>Y(center)/canvas.height):[],wallFraction:wallX/canvas.width,scaleY:toCanvasY*host.clientHeight/canvas.height,busy:window.qonticMWBranches?.busy,visible:shown('plot_screen')};},
+  getState(){const host=document.getElementById('canvas-container');return {width:+width.value,minWidth:+width.min,maxWidth:dynamicWidthMax,extentSigma:+extent.value,centers:p?displayCenters().map(center=>Y(center)/canvas.height):[],wallFraction:wallX/canvas.width,scaleY:toCanvasY*host.clientHeight/canvas.height,busy:window.qonticMWBranches?.busy,visible:shown('plot_screen')};},
   onPreview(value){const committed=p?.sy*100??+width.value;slitPreviewWidth=value;const shownWidth=value===null?committed:value;width.value=shownWidth;syncPacketInput(width);if(value!==null&&value!==committed)clearHitsForPreview();draw();if(value!==null){const preview={...p,sy:value/100},predicted=sourceProfile(preview,-yOffset,screenHeight/100-yOffset,2049);histogram({profile:predicted});drawDetection();}},
   onCommit(value){width.value=value;width.dispatchEvent(new Event('input',{bubbles:true}));},
   pause(){const running=isAnimating;if(running)document.getElementById('startButton').click();return running;},
@@ -348,7 +384,7 @@ export function mountPacketEngine({core,advanced}){
  });
  const separationControls=mountSlitSeparation({
   host:document.getElementById('canvas-container'),
-  getState(){const host=document.getElementById('canvas-container');return {separation:slitSeparation,open:[slit1Open,slit2Open],wallFraction:wallX/canvas.width,scaleY:toCanvasY*host.clientHeight/canvas.height,busy:window.qonticMWBranches?.busy,visible:shown('plot_screen')};},
+  getState(){const host=document.getElementById('canvas-container');return {separation:slitSeparation,maxSeparation:dynamicSeparationMax,open:[slit1Open,slit2Open],wallFraction:wallX/canvas.width,scaleY:toCanvasY*host.clientHeight/canvas.height,busy:window.qonticMWBranches?.busy,visible:shown('plot_screen')};},
   onPreview(value){slitPreviewSeparation=value;document.getElementById('slit-separation-group')?.setValueInFirstUnit(value===null?slitSeparation:value);if(value!==null&&value!==slitSeparation)clearHitsForPreview();draw();if(value!==null){const preview={...p,centers:displayCenters()},predicted=sourceProfile(preview,-yOffset,screenHeight/100-yOffset,2049);histogram({profile:predicted});drawDetection();}},
   onCommit(value){document.getElementById('slit-separation-group').setValueInFirstUnit(value);setupGeo(false);reset=0;resetEngine();draw();},
   pause(){const running=isAnimating;if(running)document.getElementById('startButton').click();return running;},
