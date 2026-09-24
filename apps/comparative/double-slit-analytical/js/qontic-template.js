@@ -3,8 +3,8 @@ import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1
 import { mountPacketEngine } from './packet-engine.js?v=2.93-core-layout-2';
 import { mountMWBranching } from './mw-branching.js?v=2.91-marker-continuity';
 import { APP_RELEASE } from './release.js?v=2.93';
-import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
+import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.1';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import '../../../../shared/qontic-controls.js?v=3.1';
@@ -326,8 +326,13 @@ $(function () {
     getUnitsPerPixel:()=>({x:worldCanvasDx/Math.max(1,container.clientWidth),y:(previewScreenHeight??screenHeight)/Math.max(1,container.clientHeight)}),
     format:value=>value>=1e6?(value/1e6).toPrecision(3)+' mm':value>=1e3?(value/1e3).toPrecision(3)+' µm':Number(value.toPrecision(3))+' nm'
   });
+  const formatDistance=value=>Math.abs(value)>=1e6?Number((value/1e6).toPrecision(4))+' mm':Math.abs(value)>=1e3?Number((value/1e3).toPrecision(4))+' µm':Number(value.toPrecision(4))+' nm';
+  const coordinates=mountCoordinateTools({
+    host:container,storageKey:'qontic-double-slit-grid-visible',formatValue:formatDistance,
+    getBounds:()=>({xMin:-wallXWorld,xMax:worldCanvasDx-wallXWorld,yMin:-(previewScreenHeight??screenHeight)/2,yMax:(previewScreenHeight??screenHeight)/2})
+  });
   let lastScaleOpacity=elementOpacity('plot_scales')||1;
-  window.qonticScaleOverlay={previewHeight:height=>{previewScreenHeight=height;scale.update();},update:()=>{scale.setOpacity(elementOpacity('plot_scales'));media?.syncScale();}};
+  window.qonticScaleOverlay={previewHeight:height=>{previewScreenHeight=height;scale.update();coordinates.update();},update:()=>{scale.setOpacity(elementOpacity('plot_scales'));coordinates.update();media?.syncScale();}};
   const rangeHost=document.getElementById('paletteRangeSlider');
   const rangePanel=document.createElement('div');rangePanel.className='qontic-range-panel';
   rangePanel.style.left='0px';rangePanel.style.bottom='0px';container.append(rangePanel);
@@ -353,6 +358,7 @@ $(function () {
   media=mountQonticMedia({
     stage: document.getElementById('canvas-wrapper'), controls,
     filename: 'double-slit', headerTools: false, labelNode:document.getElementById('view-label'), rangeControl:window.qonticWaveRangeControl,
+    coordinateControl:coordinates,
     scaleControl:{getVisible:()=>elementOpacity('plot_scales')>0,setVisible:shown=>{if(!shown)lastScaleOpacity=elementOpacity('plot_scales')||1;const slider=document.getElementById('plot_scales-opacity');slider.value=shown?lastScaleOpacity*100:0;slider.dispatchEvent(new Event('input',{bubbles:true}));slider.dispatchEvent(new Event('change',{bubbles:true}));}},
     getShareUrl: () => location.href.split('#')[0] + buildUrlHash(),
     getCanvases: () => [...container.querySelectorAll('canvas')].sort((a,b) =>

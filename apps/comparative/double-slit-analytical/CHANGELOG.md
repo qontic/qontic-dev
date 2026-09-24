@@ -15,6 +15,7 @@
 - Returned to three control tabs: moved screen distance and height into Core, and moved slit extent and slit balance into Advanced.
 - Fixed restored control limits so mouse and slider edits can retain wall-to-screen distances up to 3000 nm instead of snapping back to 1000 nm.
 - Tightened the Core spacing above the wave display selector and removed the redundant rule and padding above Many-Worlds slow-motion branching.
+- Added reusable template toolbar tools for a responsive physical-coordinate grid and a cursor/ruler mode that reports x, y, Δx, Δy and two-point distance; connected the double-slit canvas to live nanometre coordinates across normal and expanded views.
 
 ## Version 2.92 — 2026-09-22
 
