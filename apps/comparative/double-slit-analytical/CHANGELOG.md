@@ -1,3 +1,11 @@
+## Version 2.93 — 2026-09-24
+
+- Restored the ideal which-slit detector for the Gaussian packet engine, selectable at the upper or lower slit.
+- Propagated the two detector-tagged Gaussian aperture components analytically and formed the screen prediction from their incoherent density sum, removing the interference cross term.
+- In Pilot-Wave view, assigned each transmitted configuration to its detector branch and integrated guidance with the corresponding single-slit effective wave; the retired straight-line construction is not used.
+- Displayed the upper and lower noninterfering waves in cyan and orange, marked the instrumented slit on the wall, and documented the ideal-detector treatment across all three views.
+- Added regression checks for the incoherent density identity and agreement of Pilot-Wave screen crossings with the which-slit prediction.
+
 ## Version 2.92 — 2026-09-22
 
 - Moved reusable two-column layout, panel, host-button, keyboard-shortcut and expanded-canvas-resize behavior into shared Q-Ontic template modules.
