@@ -657,6 +657,7 @@
 
     /* ── MW branch grid ───────────────────────────────────────────── */
     .mw-grid {
+      position: relative;
       display: grid;
       gap: 8px;
       width: 100%;
@@ -677,6 +678,15 @@
       overflow: hidden;
     }
     .mw-mini-wrap canvas { display: block; }
+    .mw-zoom-canvas {
+      position: absolute;
+      inset: 6px;
+      z-index: 4;
+      width: calc(100% - 12px);
+      height: calc(100% - 12px);
+      pointer-events: none;
+    }
+    .mw-zoom-canvas[hidden] { display: none; }
     .mw-grid.mw-choosing .mw-mini-wrap { transition: transform 0.12s; cursor: pointer; }
     .mw-grid.mw-choosing .mw-mini-wrap:hover { transform: scale(1.03); box-shadow: 0 0 0 2px #38bdf8; }
     #fp-mw-status {
@@ -706,7 +716,7 @@
   </style>
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.0">
-  <link rel="stylesheet" href="template-adapter.css?v=6">
+  <link rel="stylesheet" href="template-adapter.css?v=7">
 </head>
 <body>
 
@@ -809,6 +819,23 @@
         Fixed at x&nbsp;=&nbsp;30&nbsp;nm &middot; half-width 4&nbsp;nm
       </p>
     </div>
+
+    <section id="fp-mw-controls" class="fp-mw-controls" aria-label="Many-Worlds branching" hidden>
+      <h3>Branching</h3>
+      <label class="fp-mw-control-row" for="fp-mw-choice-mode">
+        <span>Follow branch</span>
+        <select id="fp-mw-choice-mode" aria-label="Many-Worlds branch selection">
+          <option value="auto" selected>Random (Born)</option>
+          <option value="manual">Manual</option>
+        </select>
+      </label>
+      <label class="fp-mw-control-row" for="fp-mw-choice-delay">
+        <span>Time in grid</span>
+        <input id="fp-mw-choice-delay" type="range" min="0.5" max="5" step="0.1" value="1.5" />
+        <output id="fp-mw-choice-delay-value" for="fp-mw-choice-delay">1.5 s</output>
+      </label>
+      <small>Random follows detector-bin Born weights. Manual waits for a panel click.</small>
+    </section>
 
     <!-- ── Simulation controls ───────────────────────────────────── -->
     <div class="panel-card">
@@ -983,8 +1010,12 @@
           description is updated after detection, while the ontology remains
           unambiguous (a definite trajectory throughout).</li>
         <li><strong>Many-worlds view (Everett):</strong> the wavefunction never
-          collapses.  Instead the universe &ldquo;branches&rdquo;: one branch
-          contains a detector that fired, another does not.  Both are equally real.</li>
+          collapses. At detection, the display separates the possible detector-bin
+          records into subcanvases. One record is followed either randomly according
+          to its Born weight or by manual choice, and is enlarged back to the full
+          view before the next packet begins. Following one record does not remove
+          the other branches; the grid is a coarse-grained visualization of the
+          detector outcomes rather than a microscopic model of decoherence.</li>
       </ul>
     </div><!-- /viewpanel-rationale -->
 
@@ -1132,7 +1163,7 @@
      also updated by JS.
 ================================================================ -->
 
-<script src="js/free-particle.js?v=20260916-theme1"></script>
+<script src="js/free-particle.js?v=20260924-mw-zoom1"></script>
 <script src="js/recorder-ui.js?v=20260914-1"></script>
 <script>
 // ================================================================
@@ -1337,6 +1368,6 @@
 })();
 </script>
 
-<script type="module" src="js/template-adapter.js?v=5"></script>
+<script type="module" src="js/template-adapter.js?v=6"></script>
 </body>
 </html>

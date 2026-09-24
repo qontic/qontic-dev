@@ -115,6 +115,10 @@ let fp = {
   mwBranchPath        : [],         // section indices chosen: [s0, s1, ...]
   mwWaitingForChoice  : false,      // simulation paused – user must click a branch
   mwChoiceCommitted   : false,      // this run's MW branch already tallied into histogram
+  mwChoiceMode        : 'auto',     // 'auto' follows Born weights; 'manual' waits for a click
+  mwChoiceDelay_ms    : 1500,
+  mwChoiceElapsed_ms  : 0,
+  mwZoom              : null,       // selected-branch camera animation
   eventCommitted      : false,      // this run's detection already tallied into histogram
 
   // ── detection stats ───────────────────────────────────────────────────────
@@ -128,6 +132,7 @@ let fp = {
   _mwSplit        : false,      // MW branch canvases built for this run
   _mwSnapProb     : null,       // Float64Array snapshot of |ψ|² at branching moment
   _mwSnapMaxP     : 1e-12,      // corresponding max prob for normalization
+  _mwBranchProb   : null,       // normalized detector-section weights at the split
 
   // ── grid for wavefunction ─────────────────────────────────────────────────
   NX              : 800,        // number of spatial grid points
@@ -1312,9 +1317,73 @@ function fpRenderMWBranch(ctx, W, H, sectionIdx) {
   }
 }
 
-// MW: user clicks a branch canvas to enter that world
+function fpSampleMWBranch() {
+  const weights = Array.isArray(fp._mwBranchProb) && fp._mwBranchProb.length === fp.nSections
+    ? fp._mwBranchProb : new Array(fp.nSections).fill(1 / Math.max(1, fp.nSections));
+  let draw = Math.random();
+  for (let i = 0; i < weights.length; i++) {
+    draw -= Math.max(0, weights[i] || 0);
+    if (draw <= 0) return i;
+  }
+  return Math.max(0, weights.length - 1);
+}
+
+function fpPrepareMWZoom(sectionIdx) {
+  const grid = document.getElementById('fp-mw-grid');
+  const tile = _fpMWCanvases[sectionIdx]?.parentElement;
+  if (!grid || !tile || !_fpMWZoomCanvas) return;
+
+  const inset = 6;
+  const gridRect = grid.getBoundingClientRect();
+  const tileRect = tile.getBoundingClientRect();
+  const width = Math.max(1, Math.round(grid.clientWidth - 2 * inset));
+  const height = Math.max(1, Math.round(grid.clientHeight - 2 * inset));
+  _fpMWZoomCanvas.width = width;
+  _fpMWZoomCanvas.height = height;
+  _fpMWZoomCanvas.hidden = false;
+
+  const source = document.createElement('canvas');
+  source.width = width;
+  source.height = height;
+  fpRenderMWBranch(source.getContext('2d'), width, height, sectionIdx);
+  fp.mwZoom = {
+    sectionIdx,
+    elapsed_ms: 0,
+    duration_ms: 1200,
+    hold_ms: 600,
+    complete: false,
+    source,
+    from: {
+      x: tileRect.left - gridRect.left - inset,
+      y: tileRect.top - gridRect.top - inset,
+      width: tileRect.width,
+      height: tileRect.height,
+    },
+  };
+}
+
+function fpRenderMWZoom() {
+  const zoom = fp.mwZoom;
+  if (!zoom || !_fpMWZoomCanvas) return;
+  const ctx = _fpMWZoomCanvas.getContext('2d');
+  const W = _fpMWZoomCanvas.width;
+  const H = _fpMWZoomCanvas.height;
+  const progress = zoom.complete ? 1 : Math.max(0, Math.min(1, zoom.elapsed_ms / zoom.duration_ms));
+  const ease = progress * progress * (3 - 2 * progress);
+  const x = zoom.from.x * (1 - ease);
+  const y = zoom.from.y * (1 - ease);
+  const width = zoom.from.width + (W - zoom.from.width) * ease;
+  const height = zoom.from.height + (H - zoom.from.height) * ease;
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(zoom.source, x, y, width, height);
+  ctx.strokeStyle = '#7cf2ff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, Math.max(0, width - 2), Math.max(0, height - 2));
+}
+
+// MW: automatic or manual selection enters one detector-record branch.
 function fpMWChooseBranch(sectionIdx) {
-  if (!fp.mwWaitingForChoice) return;
+  if (!fp.mwWaitingForChoice || fp.mwZoom) return;
   if (fp.sectionHits.length !== fp.nSections)
     fp.sectionHits = new Array(fp.nSections).fill(0);
 
@@ -1326,8 +1395,8 @@ function fpMWChooseBranch(sectionIdx) {
     fpCommitDetectionStats(sectionIdx, expected);
     fp.mwChoiceCommitted = true;
   }
-  fp.mwWaitingForChoice = false;
-  fp.postDetectFrames   = 0; // restart the exit countdown
+  fp.mwChoiceElapsed_ms = 0;
+  fpPrepareMWZoom(sectionIdx);
   fpManageMWView();
   fpRender();
 }
@@ -1338,14 +1407,23 @@ function fpUpdateMWStatus() {
   const path  = fp.mwBranchPath;
   const trail = path.map(s => '<b>S' + (s + 1) + '</b>').join(' -> ');
   const depthChosen = path.length;
-  const depthNow    = depthChosen + (fp.mwWaitingForChoice ? 1 : 0);
+  const depthNow    = depthChosen + (fp.mwWaitingForChoice && !fp.mwZoom ? 1 : 0);
   const nS          = Math.max(2, fp.nSections || 2);
   const worldsAtDepth = Math.pow(nS, depthNow);
   const branchesGenerated = depthNow * nS;
 
-  if (fp.mwWaitingForChoice) {
+  if (fp.mwZoom?.complete) {
+    el.innerHTML = '<span style="color:#34d399">Entered world: ' + trail + '</span>'
+      + ' <span style="color:#64748b">— measurement complete; press Start for the next run.</span>';
+  } else if (fp.mwZoom) {
+    el.innerHTML = '<span style="color:#38bdf8">Following S' + (fp.mwZoom.sectionIdx + 1)
+      + ' · other branches continue.</span>';
+  } else if (fp.mwWaitingForChoice) {
+    const instruction = fp.mwChoiceMode === 'manual'
+      ? 'Click a panel to enter that world.'
+      : 'A branch will be followed automatically using its Born weight.';
     el.innerHTML =
-      '<span style="color:#38bdf8">Universe branched. Click a panel to enter that world.</span>'
+      '<span style="color:#38bdf8">Universe branched. ' + instruction + '</span>'
       + (path.length ? '<br><span style="color:#94a3b8">Path so far: ' + trail
         + ' -> <b>?</b></span>' : '')
       + '<br><span style="color:#64748b">Depth: ' + depthNow
@@ -1364,6 +1442,7 @@ function fpUpdateMWStatus() {
 }
 
 let _fpMWCanvases = [];
+let _fpMWZoomCanvas = null;
 
 function fpBuildMWCanvases() {
   const grid = document.getElementById('fp-mw-grid');
@@ -1379,12 +1458,17 @@ function fpBuildMWCanvases() {
     const wrap = document.createElement('div');
     wrap.className = 'mw-mini-wrap';
     const cnv = document.createElement('canvas');
-    cnv.style.cursor = 'pointer';
-    cnv.addEventListener('click', () => { if (fp.mwWaitingForChoice) fpMWChooseBranch(i); });
+    cnv.addEventListener('click', () => {
+      if (fp.mwWaitingForChoice && fp.mwChoiceMode === 'manual') fpMWChooseBranch(i);
+    });
     wrap.appendChild(cnv);
     grid.appendChild(wrap);
     _fpMWCanvases.push(cnv);
   }
+  _fpMWZoomCanvas = document.createElement('canvas');
+  _fpMWZoomCanvas.className = 'mw-zoom-canvas';
+  _fpMWZoomCanvas.hidden = true;
+  grid.appendChild(_fpMWZoomCanvas);
   fpResizeMWCanvases();
 }
 
@@ -1410,6 +1494,12 @@ function fpResizeMWCanvases() {
       wrap.style.height = cellH + 'px';
     }
   });
+  if (_fpMWZoomCanvas && fp.mwZoom) {
+    const {sectionIdx, elapsed_ms, complete} = fp.mwZoom;
+    fpPrepareMWZoom(sectionIdx);
+    fp.mwZoom.elapsed_ms = elapsed_ms;
+    fp.mwZoom.complete = complete;
+  }
 }
 
 function fpRenderMWGrid() {
@@ -1418,6 +1508,7 @@ function fpRenderMWGrid() {
     const ctx = cnv.getContext('2d');
     if (ctx) fpRenderMWBranch(ctx, cnv.width, cnv.height, i);
   });
+  fpRenderMWZoom();
 }
 
 function fpManageMWView() {
@@ -1432,7 +1523,8 @@ function fpManageMWView() {
   if (probw)  probw.style.display  = postSplit ? 'none' : '';
   if (mwgrid) mwgrid.style.display = postSplit ? ''     : 'none';
   if (mwstat) mwstat.style.display = isMW ? '' : 'none';
-  if (mwgrid) mwgrid.classList.toggle('mw-choosing', postSplit && fp.mwWaitingForChoice);
+  if (mwgrid) mwgrid.classList.toggle('mw-choosing', postSplit && fp.mwWaitingForChoice
+    && fp.mwChoiceMode === 'manual' && !fp.mwZoom);
 
   if (postSplit && !fp._mwSplit) {
     fp._mwSplit = true;
@@ -1652,8 +1744,31 @@ function fpStep(timestamp = performance.now()) {
     : Math.max(0, Math.min(100, timestamp - fp._lastFrameTime_ms));
   fp._lastFrameTime_ms = timestamp;
 
-  // Freeze physics while user chooses a Many-Worlds branch.
+  // Pause transport while the branch grid is inspected and the selected
+  // detector record expands back to the full simulation view.
   if (fp.mwWaitingForChoice) {
+    if (fp.running && fp.mwZoom && !fp.mwZoom.complete) {
+      fp.mwZoom.elapsed_ms += elapsed_ms;
+      if (fp.mwZoom.elapsed_ms >= fp.mwZoom.duration_ms + fp.mwZoom.hold_ms) {
+        fp.mwZoom.complete = true;
+        fpRender();
+        if (fp.autoNextCycle) {
+          fp.mwWaitingForChoice = false;
+          fpRunReset();
+          return;
+        }
+        fp.running = false;
+        fp.animId = null;
+        const btnStart = document.getElementById('fp-btn-start');
+        const btnStop = document.getElementById('fp-btn-stop');
+        if (btnStart) btnStart.disabled = false;
+        if (btnStop) btnStop.disabled = true;
+        return;
+      }
+    } else if (fp.running && !fp.mwZoom && fp.mwChoiceMode === 'auto') {
+      fp.mwChoiceElapsed_ms += elapsed_ms;
+      if (fp.mwChoiceElapsed_ms >= fp.mwChoiceDelay_ms) fpMWChooseBranch(fpSampleMWBranch());
+    }
     fpRender();
     if (fp.running) fp.animId = requestAnimationFrame(fpStep);
     return;
@@ -1715,14 +1830,18 @@ function fpStep(timestamp = performance.now()) {
           if (xi >= xd - hw && xi <= xd + hw) pw += fp.prob[i] * dxg;
         }
         if (pw > 0.02) { // branch separation threshold ~ 2% probability in window
+          const branchProb = fpDetectorSectionProbabilities(fp.time_fs).secMass;
           fp.mwFired          = true;
           fp.mwFireTime       = fp.time_fs;
           fp.bDetected        = true;
           fp.bDetectedTime    = fp.time_fs;
           fp.mwWaitingForChoice = true; // pause; user must click a branch to continue
+          fp.mwChoiceElapsed_ms = 0;
+          fp.mwZoom = null;
           // Freeze wavefunction snapshot BEFORE the loop advances any further
           fp._mwSnapProb = fp.prob.slice();
           fp._mwSnapMaxP = fp._maxProb || 1e-12;
+          fp._mwBranchProb = branchProb;
           fpManageMWView(); // reveal branch grid
         }
       }
@@ -1803,8 +1922,11 @@ function fpRunReset() {
   fp._mwSplit         = false;
   fp._mwSnapProb      = null;
   fp._mwSnapMaxP      = 1e-12;
+  fp._mwBranchProb    = null;
   fp.mwWaitingForChoice = false;
   fp.mwChoiceCommitted  = false;
+  fp.mwChoiceElapsed_ms = 0;
+  fp.mwZoom              = null;
   fp.eventCommitted     = false;
 
   fpUpdatePhysics();
@@ -1845,11 +1967,14 @@ function fpFullReset() {
   fp._mwSplit         = false;
   fp._mwSnapProb      = null;
   fp._mwSnapMaxP      = 1e-12;
+  fp._mwBranchProb    = null;
   fp.sectionHits      = new Array(fp.nSections).fill(0);
   fp.sectionExpected  = new Array(fp.nSections).fill(0);
   fp.mwBranchPath     = [];
   fp.mwWaitingForChoice = false;
   fp.mwChoiceCommitted  = false;
+  fp.mwChoiceElapsed_ms = 0;
+  fp.mwZoom              = null;
   fp.eventCommitted     = false;
 
   fpUpdatePhysics();
@@ -1915,6 +2040,30 @@ function fpInit() {
 function fpWireUI() {
   const speedSlider = document.getElementById('fp-speed');
   const speedValue = document.getElementById('fp-speed-value');
+  const mwControls = document.getElementById('fp-mw-controls');
+  const mwChoiceMode = document.getElementById('fp-mw-choice-mode');
+  const mwChoiceDelay = document.getElementById('fp-mw-choice-delay');
+  const mwChoiceDelayValue = document.getElementById('fp-mw-choice-delay-value');
+  function updateMWControls() {
+    if (mwControls) mwControls.hidden = fp.interpMode !== 'manyworlds';
+    if (mwChoiceMode) mwChoiceMode.value = fp.mwChoiceMode;
+    if (mwChoiceDelay) mwChoiceDelay.value = String(fp.mwChoiceDelay_ms / 1000);
+    if (mwChoiceDelayValue) {
+      mwChoiceDelayValue.textContent = (fp.mwChoiceDelay_ms / 1000).toFixed(1) + ' s';
+    }
+  }
+  if (mwChoiceMode) mwChoiceMode.addEventListener('change', () => {
+    fp.mwChoiceMode = mwChoiceMode.value === 'manual' ? 'manual' : 'auto';
+    fp.mwChoiceElapsed_ms = 0;
+    fpManageMWView();
+    fpRender();
+  });
+  if (mwChoiceDelay) mwChoiceDelay.addEventListener('input', () => {
+    fp.mwChoiceDelay_ms = Math.max(500, Math.min(5000,
+      Number(mwChoiceDelay.value) * 1000 || 1500));
+    fp.mwChoiceElapsed_ms = 0;
+    updateMWControls();
+  });
   function updateSpeed() {
     const value = Number(speedSlider.value);
     fp.speed = Number.isFinite(value) ? Math.max(0.1, Math.min(16, value)) : 1;
@@ -1941,12 +2090,14 @@ function fpWireUI() {
     fpRender();
   });
   updateWaveToggle();
+  updateMWControls();
 
   // ── Interpretation ─────────────────────────────────────────────────────────
   document.querySelectorAll('input[name="fp-interp"]').forEach(rb => {
     rb.addEventListener('change', () => {
       fp.interpMode = rb.value;
       updateWaveToggle();
+      updateMWControls();
       fpFullReset();
       fpManageMWView();
     });
@@ -2034,7 +2185,9 @@ function fpWireUI() {
       // After a completed measurement, Start launches the next run directly.
       const resumingCollapse = fp.interpMode === 'collapse' && fp.bDetected
         && fp.collapseElapsed_ms < FP_COLLAPSE_DURATION_MS;
-      if ((fp.bDetected || fp.mwFired) && !resumingCollapse) {
+      const inspectingMW = fp.interpMode === 'manyworlds' && fp.mwWaitingForChoice
+        && !fp.mwZoom?.complete;
+      if ((fp.bDetected || fp.mwFired) && !resumingCollapse && !inspectingMW) {
         fpRunReset();
       }
       fp._lastFrameTime_ms = null;

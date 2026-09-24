@@ -56,6 +56,7 @@ function mountFreeParticleTemplate() {
   panes.core.append($('fp-energy-slider').closest('.slider-row'), $('fp-bin-control'));
   panes.advanced.append($('fp-sigma-row'), $('fp-sigma-y-row'));
   panes.display.append($('fp-display-row'));
+  controlPanel.append($('fp-mw-controls'));
   $('fp-display-row').querySelectorAll('label').forEach(label => label.classList.add('qontic-app-toggle'));
   $('fp-display-row').classList.add('qontic-app-toggle-group');
   cards.forEach(card => card.classList.add('fp-legacy-control'));
