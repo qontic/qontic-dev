@@ -1382,14 +1382,15 @@ function fpRenderMWZoom() {
 }
 
 function fpStartMWZoomLoop() {
-  if (_fpMWZoomFrame) cancelAnimationFrame(_fpMWZoomFrame);
+  if (_fpMWZoomTimer) clearTimeout(_fpMWZoomTimer);
   let last = performance.now();
-  const tick = now => {
+  const tick = () => {
     if (!fp.mwWaitingForChoice || !fp.mwZoom) {
-      _fpMWZoomFrame = null;
+      _fpMWZoomTimer = null;
       return;
     }
-    const dt = Math.min(100, Math.max(0, now - last));
+    const now = performance.now();
+    const dt = Math.max(0, now - last);
     last = now;
     if (fp.running && !fp.mwZoom.complete) {
       fp.mwZoom.elapsed_ms += dt;
@@ -1399,7 +1400,7 @@ function fpStartMWZoomLoop() {
         fp.mwZoom.complete = true;
         fpRenderMWZoom();
         fpUpdateMWStatus();
-        _fpMWZoomFrame = null;
+        _fpMWZoomTimer = null;
         if (fp.autoNextCycle) {
           if (fp.animId) cancelAnimationFrame(fp.animId);
           fp.animId = null;
@@ -1415,9 +1416,9 @@ function fpStartMWZoomLoop() {
         return;
       }
     }
-    _fpMWZoomFrame = requestAnimationFrame(tick);
+    _fpMWZoomTimer = setTimeout(tick, 16);
   };
-  _fpMWZoomFrame = requestAnimationFrame(tick);
+  _fpMWZoomTimer = setTimeout(tick, 16);
 }
 
 // MW: automatic or manual selection enters one detector-record branch.
@@ -1486,7 +1487,7 @@ function fpUpdateMWStatus() {
 
 let _fpMWCanvases = [];
 let _fpMWZoomCanvas = null;
-let _fpMWZoomFrame = null;
+let _fpMWZoomTimer = null;
 
 function fpBuildMWCanvases() {
   const grid = document.getElementById('fp-mw-grid');
@@ -1954,8 +1955,8 @@ function fpRunReset() {
   fp.mwChoiceElapsed_ms = 0;
   fp.mwZoom              = null;
   fp.eventCommitted     = false;
-  if (_fpMWZoomFrame) cancelAnimationFrame(_fpMWZoomFrame);
-  _fpMWZoomFrame = null;
+  if (_fpMWZoomTimer) clearTimeout(_fpMWZoomTimer);
+  _fpMWZoomTimer = null;
   if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = true;
 
   fpUpdatePhysics();
@@ -2005,8 +2006,8 @@ function fpFullReset() {
   fp.mwChoiceElapsed_ms = 0;
   fp.mwZoom              = null;
   fp.eventCommitted     = false;
-  if (_fpMWZoomFrame) cancelAnimationFrame(_fpMWZoomFrame);
-  _fpMWZoomFrame = null;
+  if (_fpMWZoomTimer) clearTimeout(_fpMWZoomTimer);
+  _fpMWZoomTimer = null;
   if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = true;
 
   fpUpdatePhysics();
