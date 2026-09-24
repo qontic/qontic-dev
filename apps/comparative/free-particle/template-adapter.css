@@ -1,5 +1,6 @@
 body.fp-template { margin:0; padding:0 18px 12px; background:var(--bg-primary); }
-.fp-template .fp-shell { max-width:1540px; margin:auto; }
+.fp-template .fp-shell { max-width:none; margin:auto; }
+.fp-template .qontic-workspace { max-width:none; }
 .fp-template .top-bar, .fp-template .fp-legacy-control { display:none !important; }
 .fp-template [hidden] { display:none !important; }
 .fp-template .eyebrow { font-size:10px; text-transform:uppercase; }
