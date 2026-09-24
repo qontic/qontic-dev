@@ -21,7 +21,6 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #psiTabs [hidden] { display: none !important; }
 .analytical-template #basics-container,
 .analytical-template #analytical-advanced,
-.analytical-template #analytical-expert,
 .analytical-template #graphics-parameter-container { padding: 12px 0 0 !important; }
 .analytical-template #particle-parameter-container,
 .analytical-template #detector-parameter-container { padding: 0 !important; }
@@ -102,8 +101,6 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template .analytical-unit[hidden] { display:none; }
 .analytical-template #analytical-advanced .input-group:has(input[type=range]) { margin-bottom:8px; min-height:28px; }
 .analytical-template #analytical-advanced .input-group:has(input[type=range]) > label { width:110px; min-width:110px; font-size:13px; }
-.analytical-template #analytical-expert .input-group:has(input[type=range]) { margin-bottom:8px; min-height:28px; }
-.analytical-template #analytical-expert .input-group:has(input[type=range]) > label { width:110px; min-width:110px; font-size:13px; }
 .analytical-template #analytical-advanced #detector-parameter-container { margin-top:10px; }
 
 /* Display layers: switches and labeled color actions, without a cramped table. */

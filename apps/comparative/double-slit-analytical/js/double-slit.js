@@ -905,7 +905,7 @@ function restoreSimulationState() {
   updateParameter('wavelength', 1, 500, 1, state.wavelength);
   updateParameter('slit-separation', 0, 2000, 1, state.slitSeparation);
   updateParameter('source-position', 0, 1000, 1, state.sourcePosition);
-  updateParameter('detector-distance', 0, 1000, 1, state.detectorDistance);
+  updateParameter('detector-distance', 50, 3000, 1, state.detectorDistance);
   updateParameter('det-pixels', 10, 500, 1, state.nDetectorPixels);
   updateParameter('screen-height', 120, 5000, 10, state.screenHeight);
   if (state.particleRate) {

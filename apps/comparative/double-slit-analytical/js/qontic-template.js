@@ -1,6 +1,6 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?v=2.93-layout-fix-2';
+import { mountPacketEngine } from './packet-engine.js?v=2.93-core-layout';
 import { mountMWBranching } from './mw-branching.js?v=2.91-marker-continuity';
 import { APP_RELEASE } from './release.js?v=2.93';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
@@ -62,7 +62,6 @@ $(function () {
   controls.id = 'sharedControls';
   controls.setAttribute('show-reset', 'true');
   controls.setAttribute('show-autorun', 'false');
-  controls.setAttribute('show-expert', 'true');
   document.getElementById('psiTabs').prepend(controls);
   const themeStyle = document.createElement('style');
   themeStyle.textContent = `:host-context(.qontic-light) .qontic-speed { color: #526a77; }
@@ -79,12 +78,12 @@ $(function () {
   const advanced = document.createElement('div');
   advanced.id = 'analytical-advanced';
   core.after(advanced);
-  const expert = document.createElement('div');
-  expert.id = 'analytical-expert';
-  advanced.after(expert);
   for (const id of ['particle-parameter-container', 'detector-parameter-container']) {
     advanced.append(document.getElementById(id));
   }
+  const basicsParams = document.getElementById('basics-params');
+  basicsParams.append(document.getElementById('detector-distance-group'));
+  basicsParams.append(document.getElementById('screen-height-group'));
   // Keep the engine's unit conversion controls, but present units as quiet text.
   advanced.querySelectorAll('select[id$="-units"]').forEach(select => {
     select.hidden = true;
@@ -193,7 +192,7 @@ $(function () {
   lastCycleIndex = -1;
   if (!isAnimating) drawSystem(currentCycleIndex);
 
-  const panels = {core, advanced, expert, display: document.getElementById('graphics-parameter-container')};
+  const panels = {core, advanced, display: document.getElementById('graphics-parameter-container')};
   const showControls = name => {
     Object.entries(panels).forEach(([key, panel]) => { panel.hidden = key !== name; });
     document.body.classList.toggle('show-advanced', name === 'advanced');
@@ -386,7 +385,7 @@ $(function () {
   syncWorldCount();
   mountExpandedResize({container,storageKey:'qontic-double-slit-expanded-size'});
   renderSetupFlag=1;window.qonticScaleOverlay.update();if(!isAnimating)drawSystem(currentCycleIndex);
-  window.qonticPacketEngine=mountPacketEngine({core,advanced,expert});
+  window.qonticPacketEngine=mountPacketEngine({core,advanced});
   mountQonticShortcuts({
     togglePlayback:()=>document.getElementById('startButton').click(),
     reset:()=>document.getElementById('resetButton').click(),

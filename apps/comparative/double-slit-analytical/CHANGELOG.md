@@ -12,6 +12,8 @@
 - Moved the particle selector, Direct PW and Color by slit into one compact Core row, without the redundant “Particle” label.
 - Added an analytical slit-balance control that attenuates either Gaussian aperture amplitude, including exact one-slit endpoints and a matching visual indication on the wall.
 - Made the wave display selector a compact standard control and kept the detector/histogram at a fixed canvas fraction as physical distances change, with distance scales recalculated to match.
+- Returned to three control tabs: moved screen distance and height into Core, and moved slit extent and slit balance into Advanced.
+- Fixed restored control limits so mouse and slider edits can retain wall-to-screen distances up to 3000 nm instead of snapping back to 1000 nm.
 
 ## Version 2.92 — 2026-09-22
 
