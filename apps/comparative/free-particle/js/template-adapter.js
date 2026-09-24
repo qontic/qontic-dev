@@ -1,6 +1,6 @@
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
-import '../../../../shared/qontic-controls.js?v=3.0';
+import '../../../../shared/qontic-controls.js?v=3.1';
 
 // The shared component owns presentation; the original engine owns all state.
 // Keep legacy controls as hidden event endpoints so keyboard and export behavior
@@ -37,25 +37,25 @@ function mountFreeParticleTemplate() {
   controls.id = 'fp-shared-controls';
   for (const [name, value] of Object.entries({
     'show-reset':'true', 'interpretation':'pw', 'theme':document.documentElement.dataset.theme || 'light',
+    'show-tabs':'false', 'show-appearance':'true',
     'speed-min':'0.1', 'speed-max':'16', 'speed-step':'0.01', 'speed':String(fp.speed),
   })) controls.setAttribute(name, value);
   const controlPanel = document.createElement('section');
   controlPanel.className = 'fp-control-panel qontic-panel qontic-control-panel';
   controlPanel.setAttribute('aria-label', 'Free Particle controls');
-  const panes = {};
-  for (const name of ['core','advanced','display']) {
-    const pane = document.createElement('div');
-    pane.id = 'fp-controls-' + name;
-    pane.className = 'fp-control-pane qontic-control-body';
-    pane.hidden = name !== 'core';
-    panes[name] = pane;
-  }
-  controlPanel.append(controls, ...Object.values(panes));
+  const corePane = document.createElement('div');
+  corePane.id = 'fp-controls-core';
+  corePane.className = 'fp-control-pane qontic-control-body';
+  controlPanel.append(controls, corePane);
   left.prepend(controlPanel);
   // Move existing inputs rather than cloning them or registering a second engine.
-  panes.core.append($('fp-energy-slider').closest('.slider-row'), $('fp-bin-control'));
-  panes.advanced.append($('fp-sigma-row'), $('fp-sigma-y-row'));
-  panes.display.append($('fp-display-row'));
+  corePane.append(
+    $('fp-energy-slider').closest('.slider-row'),
+    $('fp-bin-control'),
+    $('fp-sigma-row'),
+    $('fp-sigma-y-row'),
+    $('fp-display-row'),
+  );
   controlPanel.append($('fp-mw-controls'));
   $('fp-display-row').querySelectorAll('label').forEach(label => label.classList.add('qontic-app-toggle'));
   $('fp-display-row').classList.add('qontic-app-toggle-group');
@@ -91,9 +91,6 @@ function mountFreeParticleTemplate() {
     const radio = document.querySelector(`input[name="fp-interp"][value="${modeMap[event.detail.interpretation]}"]`);
     radio.checked = true;
     radio.dispatchEvent(new Event('change', {bubbles:true})); sync();
-  });
-  controls.addEventListener('qontic:tab', event => {
-    Object.entries(panes).forEach(([name,pane]) => { pane.hidden = name !== event.detail.tab; });
   });
   controls.addEventListener('qontic:theme', event => {
     const current = document.documentElement.dataset.theme || 'light';

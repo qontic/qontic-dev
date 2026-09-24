@@ -29,6 +29,7 @@ This limits the risk; a shared change can still regress multiple apps. The compa
 - `speed-min`, `speed-max`, `speed-step`: configure the speed input. Omitted attributes retain the current default and continue to support older adapters that configured the input directly.
 - `disabled="true"`: disable controls while an app is exporting video. `disabled="false"` restores them.
 - `show-tabs="false"`: hide tabs and the appearance section in a compact expanded-view toolbar. Defaults to visible.
+- `show-appearance="true"`: keep the appearance switch visible when tabs are hidden, for compact single-section control panels.
 
 Use these public attributes and the documented `qontic:*` events. New adapters must not query or modify internal shadow-DOM elements. Keep app styles scoped to an app class.
 
