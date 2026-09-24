@@ -1,13 +1,13 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?v=2.93';
+import { mountPacketEngine } from './packet-engine.js?v=2.93-expert-balance';
 import { mountMWBranching } from './mw-branching.js?v=2.91-marker-continuity';
 import { APP_RELEASE } from './release.js?v=2.93';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
-import '../../../../shared/qontic-controls.js?v=3.0';
+import '../../../../shared/qontic-controls.js?v=3.1';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
 $(function () {
@@ -62,6 +62,7 @@ $(function () {
   controls.id = 'sharedControls';
   controls.setAttribute('show-reset', 'true');
   controls.setAttribute('show-autorun', 'false');
+  controls.setAttribute('show-expert', 'true');
   document.getElementById('psiTabs').prepend(controls);
   const themeStyle = document.createElement('style');
   themeStyle.textContent = `:host-context(.qontic-light) .qontic-speed { color: #526a77; }
@@ -74,6 +75,9 @@ $(function () {
   const advanced = document.createElement('div');
   advanced.id = 'analytical-advanced';
   core.after(advanced);
+  const expert = document.createElement('div');
+  expert.id = 'analytical-expert';
+  advanced.after(expert);
   for (const id of ['particle-parameter-container', 'detector-parameter-container']) {
     advanced.append(document.getElementById(id));
   }
@@ -185,10 +189,10 @@ $(function () {
   lastCycleIndex = -1;
   if (!isAnimating) drawSystem(currentCycleIndex);
 
-  const panels = {core, advanced, display: document.getElementById('graphics-parameter-container')};
+  const panels = {core, advanced, expert, display: document.getElementById('graphics-parameter-container')};
   const showControls = name => {
     Object.entries(panels).forEach(([key, panel]) => { panel.hidden = key !== name; });
-    document.body.classList.toggle('show-advanced', name === 'advanced');
+    document.body.classList.toggle('show-advanced', name === 'advanced' || name === 'expert');
   };
   controls.addEventListener('qontic:tab', event => showControls(event.detail.tab));
   showControls('core');
@@ -378,7 +382,7 @@ $(function () {
   syncWorldCount();
   mountExpandedResize({container,storageKey:'qontic-double-slit-expanded-size'});
   renderSetupFlag=1;window.qonticScaleOverlay.update();if(!isAnimating)drawSystem(currentCycleIndex);
-  window.qonticPacketEngine=mountPacketEngine({core,advanced});
+  window.qonticPacketEngine=mountPacketEngine({core,advanced,expert});
   mountQonticShortcuts({
     togglePlayback:()=>document.getElementById('startButton').click(),
     reset:()=>document.getElementById('resetButton').click(),

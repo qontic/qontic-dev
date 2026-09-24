@@ -33,6 +33,12 @@ for(const x of [which.wall,which.wall+.7,which.screen])for(let y=-8;y<=8;y+=.031
 }
 const coherentProfile=sourceProfile(p,-6,6),whichProfile=sourceProfile(which,-6,6);
 assert(whichProfile.values.some((value,i)=>Math.abs(value-coherentProfile.values[i])>1e-5),'which-slit detector removes the interference pattern');
+const upperFavored={...p,apertureWeights:[1,.35]},upperProfile=sourceProfile(upperFavored,-6,6);
+assert(upperProfile.values.some((value,i)=>Math.abs(value-coherentProfile.values[i])>1e-5),'unequal slit amplitudes change the interference pattern');
+for(let y=-10;y<=10;y+=.01)assert(aperture(y,upperFavored)<=1+1e-12,'weighted aperture remains absorptive');
+const upperOnly={...p,apertureWeights:[1,0]},upperSingle={...p,centers:[p.centers[0]]};
+const upperOnlyProfile=sourceProfile(upperOnly,-6,6),upperSingleProfile=sourceProfile(upperSingle,-6,6);
+assert(upperOnlyProfile.values.every((value,i)=>Math.abs(value-upperSingleProfile.values[i])<1e-12),'balance endpoint is the analytical one-slit field');
 let seed=1729;const random=()=>((seed=(1664525*seed+1013904223)>>>0)+.5)/4294967296;
 const coeff=sourceCoefficients(p),results=[];let absorbed=0;
 for(let i=0;i<12000;i++){

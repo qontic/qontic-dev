@@ -4,22 +4,32 @@
 // are outside this approximation. No numerical wave-equation solver is used.
 import {gaussian} from './packet-model.js?v=2.91';
 
+function apertureWeights(p){
+ return p.apertureWeights?.length===p.centers.length?p.apertureWeights:p.centers.map(()=>1);
+}
+function apertureBound(p){
+ const weights=apertureWeights(p);
+ if(weights.length<2)return weights[0]||1;
+ const high=Math.max(...weights),low=Math.min(...weights);
+ return high+low*Math.exp(-((p.centers[1]-p.centers[0])**2)/(16*p.sy*p.sy));
+}
+
 export function aperture(y,p){
- const sum=p.centers.reduce((n,c)=>n+Math.exp(-((y-c)**2)/(4*p.sy*p.sy)),0);
+ const weights=apertureWeights(p);
+ const sum=p.centers.reduce((n,c,index)=>n+weights[index]*Math.exp(-((y-c)**2)/(4*p.sy*p.sy)),0);
  // Conservative bound ensures an absorptive amplitude mask 0 <= T <= 1,
  // including nearly overlapping apertures.
- const bound=p.centers.length===2?1+Math.exp(-((p.centers[1]-p.centers[0])**2)/(16*p.sy*p.sy)):1;
- return sum/bound;
+ return sum/apertureBound(p);
 }
 export function sourceCoefficients(p){
  const s=p.sourceSigma,t=p.wall/p.k,b=t/(2*s*s),den=1+b*b;
  const incidentReal=1/(4*s*s*den),ar=incidentReal+1/(4*p.sy*p.sy),ai=-b/(4*s*s*den);
  const g=gaussian(0,t,s);
- const bound=p.centers.length===2?1+Math.exp(-((p.centers[1]-p.centers[0])**2)/(16*p.sy*p.sy)):1;
- return p.centers.map(c=>{
+ const bound=apertureBound(p),weights=apertureWeights(p);
+ return p.centers.map((c,index)=>{
   // Expand about each aperture center, avoiding exp(-c²/4sy²) times
   // exp(+c²/4sy²) overflow for narrow, widely separated apertures.
-  const amp=Math.exp(-incidentReal*c*c)/bound,phase=-ai*c*c;
+  const amp=weights[index]*Math.exp(-incidentReal*c*c)/bound,phase=-ai*c*c;
   const r=amp*Math.cos(phase),i=amp*Math.sin(phase);
   return {ar,ai,center:c,br:-2*incidentReal*c,bi:-2*ai*c,cr:g.re*r-g.im*i,ci:g.re*i+g.im*r};
  });
@@ -97,12 +107,14 @@ function transmittedMixture(p){
  const denominator=incidentVariance+apertureVariance;
  const variance=incidentVariance*apertureVariance/denominator;
  const components=[];
+ const weights=apertureWeights(p);
  let maxLogWeight=-Infinity;
  for(let leftIndex=0;leftIndex<p.centers.length;leftIndex++)for(let rightIndex=0;rightIndex<p.centers.length;rightIndex++){
-  if(p.whichPath&&leftIndex!==rightIndex)continue;
+ if(p.whichPath&&leftIndex!==rightIndex)continue;
+  if(!(weights[leftIndex]>0&&weights[rightIndex]>0))continue;
   const left=p.centers[leftIndex],right=p.centers[rightIndex];
   const sum=left+right;
-  const logWeight=-(left*left+right*right)/(4*apertureVariance)
+  const logWeight=Math.log(weights[leftIndex])+Math.log(weights[rightIndex])-(left*left+right*right)/(4*apertureVariance)
    +incidentVariance*sum*sum/(8*apertureVariance*denominator);
   const component={mean:incidentVariance*sum/(2*denominator),logWeight,slitIndex:p.whichPath?leftIndex:null};
   components.push(component);maxLogWeight=Math.max(maxLogWeight,logWeight);

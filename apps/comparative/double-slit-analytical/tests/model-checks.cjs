@@ -47,6 +47,9 @@ assert(!engine.includes('const attempts=') && !engine.includes('attempt<20000'))
 // transmission, and live geometry previews discard the obsolete hit record.
 assert(model.indexOf("return 'absorbed'") < model.indexOf('a.slitSide='));
 assert(engine.includes('packet-color-by-slit'));
+assert(engine.includes('packet-core-options'));
+assert(engine.includes('packet-slit-balance'));
+assert(engine.includes('apertureWeights'));
 assert(engine.includes("slitColors={upper:'#22d3ee',lower:'#ff9f43'}"));
 assert(engine.includes('pending.push({index,cohort:a.cohort,slitSide:a.slitSide})'));
 assert(engine.includes("for(const [side,offset] of [['upper',-2.5],['lower',2.5]])"));

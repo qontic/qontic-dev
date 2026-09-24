@@ -8,6 +8,9 @@
 - Added an expert slit-core extent control (±1σₐ to ±5σₐ, default ±1.5σₐ) and used it consistently for the drawing, handles, Direct-PW conditioning and shared URLs.
 - Dynamically limited slit separation from the exact analytical transmitted density so selectable settings cannot enter the regime where Gaussian-tail transmission lies mainly outside the drawn openings.
 - Limited each visible opening to at most half the wall height, kept both slit cores on the wall, and made the slider and canvas-drag limits move together instead of bouncing back after release.
+- Added an Expert tab and moved the slit-core extent control there, keeping the Advanced tab focused on ordinary packet and geometry settings.
+- Moved the particle selector, Direct PW and Color by slit into one compact Core row, without the redundant “Particle” label.
+- Added an analytical slit-balance control that attenuates either Gaussian aperture amplitude, including exact one-slit endpoints and a matching visual indication on the wall.
 
 ## Version 2.92 — 2026-09-22
 
