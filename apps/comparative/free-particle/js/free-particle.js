@@ -1381,6 +1381,45 @@ function fpRenderMWZoom() {
   ctx.strokeRect(x + 1, y + 1, Math.max(0, width - 2), Math.max(0, height - 2));
 }
 
+function fpStartMWZoomLoop() {
+  if (_fpMWZoomFrame) cancelAnimationFrame(_fpMWZoomFrame);
+  let last = performance.now();
+  const tick = now => {
+    if (!fp.mwWaitingForChoice || !fp.mwZoom) {
+      _fpMWZoomFrame = null;
+      return;
+    }
+    const dt = Math.min(100, Math.max(0, now - last));
+    last = now;
+    if (fp.running && !fp.mwZoom.complete) {
+      fp.mwZoom.elapsed_ms += dt;
+      fpRenderMWZoom();
+      fpUpdateMWStatus();
+      if (fp.mwZoom.elapsed_ms >= fp.mwZoom.duration_ms + fp.mwZoom.hold_ms) {
+        fp.mwZoom.complete = true;
+        fpRenderMWZoom();
+        fpUpdateMWStatus();
+        _fpMWZoomFrame = null;
+        if (fp.autoNextCycle) {
+          if (fp.animId) cancelAnimationFrame(fp.animId);
+          fp.animId = null;
+          fp.mwWaitingForChoice = false;
+          fpRunReset();
+          return;
+        }
+        fp.running = false;
+        const btnStart = document.getElementById('fp-btn-start');
+        const btnStop = document.getElementById('fp-btn-stop');
+        if (btnStart) btnStart.disabled = false;
+        if (btnStop) btnStop.disabled = true;
+        return;
+      }
+    }
+    _fpMWZoomFrame = requestAnimationFrame(tick);
+  };
+  _fpMWZoomFrame = requestAnimationFrame(tick);
+}
+
 // MW: automatic or manual selection enters one detector-record branch.
 function fpMWChooseBranch(sectionIdx) {
   if (!fp.mwWaitingForChoice || fp.mwZoom) return;
@@ -1399,13 +1438,7 @@ function fpMWChooseBranch(sectionIdx) {
   fpPrepareMWZoom(sectionIdx);
   fpManageMWView();
   fpRender();
-  // A pointer event can arrive between animation frames. Restart the manual
-  // branch tour explicitly so the camera cannot be left waiting on a stale id.
-  if (fp.mwChoiceMode === 'manual' && fp.running) {
-    if (fp.animId) cancelAnimationFrame(fp.animId);
-    fp._lastFrameTime_ms = null;
-    fp.animId = requestAnimationFrame(fpStep);
-  }
+  fpStartMWZoomLoop();
 }
 
 function fpUpdateMWStatus() {
@@ -1453,6 +1486,7 @@ function fpUpdateMWStatus() {
 
 let _fpMWCanvases = [];
 let _fpMWZoomCanvas = null;
+let _fpMWZoomFrame = null;
 
 function fpBuildMWCanvases() {
   const grid = document.getElementById('fp-mw-grid');
@@ -1757,25 +1791,7 @@ function fpStep(timestamp = performance.now()) {
   // Pause transport while the branch grid is inspected and the selected
   // detector record expands back to the full simulation view.
   if (fp.mwWaitingForChoice) {
-    if (fp.running && fp.mwZoom && !fp.mwZoom.complete) {
-      fp.mwZoom.elapsed_ms += elapsed_ms;
-      if (fp.mwZoom.elapsed_ms >= fp.mwZoom.duration_ms + fp.mwZoom.hold_ms) {
-        fp.mwZoom.complete = true;
-        fpRender();
-        if (fp.autoNextCycle) {
-          fp.mwWaitingForChoice = false;
-          fpRunReset();
-          return;
-        }
-        fp.running = false;
-        fp.animId = null;
-        const btnStart = document.getElementById('fp-btn-start');
-        const btnStop = document.getElementById('fp-btn-stop');
-        if (btnStart) btnStart.disabled = false;
-        if (btnStop) btnStop.disabled = true;
-        return;
-      }
-    } else if (fp.running && !fp.mwZoom && fp.mwChoiceMode === 'auto') {
+    if (fp.running && !fp.mwZoom && fp.mwChoiceMode === 'auto') {
       fp.mwChoiceElapsed_ms += elapsed_ms;
       if (fp.mwChoiceElapsed_ms >= fp.mwChoiceDelay_ms) fpMWChooseBranch(fpSampleMWBranch());
     }
@@ -1938,6 +1954,8 @@ function fpRunReset() {
   fp.mwChoiceElapsed_ms = 0;
   fp.mwZoom              = null;
   fp.eventCommitted     = false;
+  if (_fpMWZoomFrame) cancelAnimationFrame(_fpMWZoomFrame);
+  _fpMWZoomFrame = null;
   if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = true;
 
   fpUpdatePhysics();
@@ -1987,6 +2005,8 @@ function fpFullReset() {
   fp.mwChoiceElapsed_ms = 0;
   fp.mwZoom              = null;
   fp.eventCommitted     = false;
+  if (_fpMWZoomFrame) cancelAnimationFrame(_fpMWZoomFrame);
+  _fpMWZoomFrame = null;
   if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = true;
 
   fpUpdatePhysics();
