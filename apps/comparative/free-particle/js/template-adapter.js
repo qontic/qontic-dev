@@ -21,16 +21,30 @@ function mountFreeParticleTemplate() {
   const nav = document.querySelector('.view-tab-bar');
   nav.classList.add('tabs');
   nav.setAttribute('aria-label', 'Application sections');
-  nav.querySelector('[data-viewtab="sim"]').textContent = 'Simulation';
-  nav.querySelector('[data-viewtab="physics"]').textContent = 'Math';
-  nav.querySelector('[data-viewtab="compare"]').textContent = 'Compare';
+  const simulationTab = nav.querySelector('[data-viewtab="sim"]');
+  const physicsTab = nav.querySelector('[data-viewtab="physics"]');
+  const viewsTab = nav.querySelector('[data-viewtab="rationale"]');
+  const compareTab = nav.querySelector('[data-viewtab="compare"]');
+  const viewsPanel = $('viewpanel-rationale');
+  const comparePanel = $('viewpanel-compare');
+  simulationTab.textContent = 'Simulation';
+  physicsTab.textContent = 'Physics';
+  viewsTab.textContent = 'Views';
+  viewsTab.dataset.viewtab = 'views';
+  viewsPanel.id = 'viewpanel-views';
+  const comparisonHeading = document.createElement('h4');
+  comparisonHeading.textContent = 'Comparison of views';
+  viewsPanel.append(comparisonHeading, ...comparePanel.children);
+  comparePanel.remove();
+  compareTab.remove();
+  nav.append(simulationTab, physicsTab, viewsTab);
   app.before(shell);
   shell.append(nav, app);
   const modelNote = document.querySelector('.top-bar').nextElementSibling;
   if (modelNote !== shell && modelNote.textContent.includes('Pedagogical')) {
     modelNote.removeAttribute('style');
     modelNote.className = 'fp-model-note';
-    $('viewpanel-rationale').prepend(modelNote);
+    viewsPanel.prepend(modelNote);
   }
 
   const controls = document.createElement('qontic-controls');
@@ -151,7 +165,7 @@ function mountFreeParticleTemplate() {
   controlPanel.after(results);
 
   mountQonticShell({title:'Free Particle', purpose:'Explore wave-packet spreading and detector outcomes in three quantum interpretations.',
-    version:'Free Particle · Q-Ontic shared template 3.0', homeHref:'../../../index.html'});
+    version:'Free Particle · Version 1.10 · 2026-09-24', homeHref:'../../../index.html'});
   document.body.classList.add('fp-template');
   sync(); syncPage();
   // Existing resize handler refreshes all canvases after the layout changes.
