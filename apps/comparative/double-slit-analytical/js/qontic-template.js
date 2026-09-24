@@ -1,6 +1,6 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?v=2.93-expert-balance';
+import { mountPacketEngine } from './packet-engine.js?v=2.93-layout-fix';
 import { mountMWBranching } from './mw-branching.js?v=2.91-marker-continuity';
 import { APP_RELEASE } from './release.js?v=2.93';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
@@ -71,6 +71,10 @@ $(function () {
   controls.shadowRoot.append(themeStyle);
   const core = document.getElementById('basics-container');
   core.prepend(document.getElementById('experiment-bar'));
+  const waveChoice = document.getElementById('basicsWaveFunctionOption').closest('.input-group');
+  const waveChoiceBox = waveChoice.closest('.wave-range-box');
+  waveChoice.classList.add('analytical-wave-choice');
+  waveChoiceBox.replaceWith(waveChoice);
 
   const advanced = document.createElement('div');
   advanced.id = 'analytical-advanced';

@@ -50,6 +50,7 @@ assert(engine.includes('packet-color-by-slit'));
 assert(engine.includes('packet-core-options'));
 assert(engine.includes('packet-slit-balance'));
 assert(engine.includes('apertureWeights'));
+assert(engine.includes('return (sourcePos+detectorDistance)/.7'));
 assert(engine.includes("slitColors={upper:'#22d3ee',lower:'#ff9f43'}"));
 assert(engine.includes('pending.push({index,cohort:a.cohort,slitSide:a.slitSide})'));
 assert(engine.includes("for(const [side,offset] of [['upper',-2.5],['lower',2.5]])"));

@@ -28,6 +28,9 @@ body.analytical-template { padding: 0 18px 12px; }
 .analytical-template #psiTabs h3 { margin: 10px 0; font-size: 13px; color: var(--text-primary); }
 .analytical-template #experiment-bar { display: flex; gap: 8px; padding: 0; border: 0; margin: 0 0 12px; }
 .analytical-template #experiment-bar button { flex: 1; width: auto; }
+.analytical-template .analytical-wave-choice { display:flex; align-items:center; gap:8px; min-height:30px; margin:0 0 8px; padding:0 0 8px; border-bottom:1px solid var(--border-color); }
+.analytical-template .analytical-wave-choice label { flex:0 0 auto; width:auto; min-width:0; margin:0; font-size:13px; }
+.analytical-template .analytical-wave-choice select { flex:0 1 126px; width:126px; padding:4px 6px; }
 .analytical-template #canvas-wrapper { flex: 1 1 0; min-width: 0; }
 .analytical-template #canvas-container { width: 100%; height: auto; aspect-ratio: 4 / 3; min-width: 0; min-height: 0; max-width: none; max-height: none; margin: 8px auto; box-sizing: border-box; }
 .analytical-template #canvas-container > canvas:not([id^="palette"]) { left: 0; top: 0; }
