@@ -125,7 +125,7 @@ let fp = {
   nTrials         : 0,          // run counter
   nHits           : 0,          // runs where a detection occurred
   histogram       : [],         // (legacy)
-  nSections       : 6,          // number of vertical detector bands
+  nSections       : 6,          // number of vertical detector pixels
   sectionHits     : [],         // hit count per band  [nSections]
   sectionExpected : [],         // accumulated expected hits per band from |psi|^2 model
   bDetectedSection: -1,         // which band fired this run (-1 = none)
@@ -1191,7 +1191,7 @@ function fpRenderYProjection() {
     }
   }
 
-  // Detector section guides to compare y-density against detector bands.
+  // Detector section guides to compare y-density against detector pixels.
   ctx.strokeStyle = fpCanvasColor('rgba(255,255,255,0.18)', 'rgba(51,65,85,0.22)');
   ctx.lineWidth = 1;
   for (let i = 1; i < fp.nSections; i++) {

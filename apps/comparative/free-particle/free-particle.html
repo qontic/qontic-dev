@@ -811,9 +811,9 @@
     <div class="panel-card">
       <h3>Detector</h3>
       <div class="slider-row" id="fp-bin-control">
-        <label for="fp-nsect-slider" title="Number of vertical detector bands">Bins:</label>
-        <input type="range" id="fp-nsect-slider" min="2" max="12" step="1" value="6" />
-        <input type="number" id="fp-nsect-input" min="2" max="12" step="1" value="6" aria-label="Detector bin count" />
+        <label for="fp-nsect-slider" title="Number of vertical detector pixels (coarse-grained outcome regions)">Pixels:</label>
+        <input type="range" id="fp-nsect-slider" min="2" max="12" step="1" value="6" aria-label="Detector pixel count" />
+        <input type="number" id="fp-nsect-input" min="2" max="12" step="1" value="6" aria-label="Detector pixel count" />
       </div>
       <p style="font-size:0.72rem; color:var(--text-muted); margin:6px 0 0">
         Fixed at x&nbsp;=&nbsp;30&nbsp;nm &middot; half-width 4&nbsp;nm
@@ -834,7 +834,7 @@
         <input id="fp-mw-choice-delay" type="range" min="0.5" max="5" step="0.1" value="1.5" />
         <output id="fp-mw-choice-delay-value" for="fp-mw-choice-delay">1.5 s</output>
       </label>
-      <small>Random follows detector-bin Born weights. Manual waits for a panel click.</small>
+      <small>Random follows detector-pixel Born weights. Manual waits for a panel click.</small>
     </section>
 
     <!-- ── Simulation controls ───────────────────────────────────── -->
@@ -1010,7 +1010,7 @@
           description is updated after detection, while the ontology remains
           unambiguous (a definite trajectory throughout).</li>
         <li><strong>Many-worlds view (Everett):</strong> the wavefunction never
-          collapses. At detection, the display separates the possible detector-bin
+          collapses. At detection, the display separates the possible detector-pixel
           records into subcanvases. One record is followed either randomly according
           to its Born weight or by manual choice, and is enlarged back to the full
           view before the next packet begins. Following one record does not remove
