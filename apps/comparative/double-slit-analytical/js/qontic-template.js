@@ -1,6 +1,6 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?v=2.93-core-layout';
+import { mountPacketEngine } from './packet-engine.js?v=2.93-core-layout-2';
 import { mountMWBranching } from './mw-branching.js?v=2.91-marker-continuity';
 import { APP_RELEASE } from './release.js?v=2.93';
 import { mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=4';
@@ -85,7 +85,7 @@ $(function () {
   basicsParams.append(document.getElementById('detector-distance-group'));
   basicsParams.append(document.getElementById('screen-height-group'));
   // Keep the engine's unit conversion controls, but present units as quiet text.
-  advanced.querySelectorAll('select[id$="-units"]').forEach(select => {
+  const quietUnits = panel => panel.querySelectorAll('select[id$="-units"]').forEach(select => {
     select.hidden = true;
     const unit = document.createElement('span');
     unit.className = 'analytical-unit';
@@ -97,6 +97,8 @@ $(function () {
     select.addEventListener('change', syncUnit);
     syncUnit();
   });
+  quietUnits(advanced);
+  quietUnits(basicsParams);
   // Keep one visible copy of each control, preserving the original input IDs.
   // The wave quantity selector belongs with the main experiment controls.
   // Reuse the original inputs and color actions in a single readable layer list.
