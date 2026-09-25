@@ -49,7 +49,7 @@ let basePsiPhase = null;  // Float32Array (phase at t=0)
 var idebug=0;
 var canvas;
 var colorDetector="blue"
-var colorHit="black"
+var colorHit="#ef4444"
 var colorPart="red"
 var colorProb="green"
 var colorPsi   ="white"
@@ -893,6 +893,9 @@ function restoreSimulationState() {
   if (!saved) return;
 
   const state = JSON.parse(saved);
+  // Version 2.96 changes the former black default to a visible red. Preserve
+  // every explicitly selected non-black color while migrating the old default.
+  if(state.colors&&['black','#000','#000000','rgb(0, 0, 0)'].includes(String(state.colors.hit).toLowerCase()))state.colors.hit='#ef4444';
   restoreDisplayOpacities(state.displayOpacities);
 
   // Clear old state if version doesn't match (units changed from mm to nm)

@@ -36,12 +36,12 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
   for(const id of ['resetBranches']) document.getElementById(id)?.addEventListener('click',cancel,true);
   // Mode switches can originate in several existing controls.
   const observer=new MutationObserver(sync);observer.observe(document.getElementById('sharedControls'),{attributes:true,attributeFilter:['interpretation','running']});sync();
-  const begin=({selected,weights,detectorFraction,sensorFraction=.01,sensorColor='#90ee90',createRecord,onSplit,onSelect})=>{
+  const begin=({selected,weights,detectorFraction,sensorFraction=.01,sensorColor='#90ee90',createRecord,captureFrame=null,recordFull=false,onSplit,onSelect})=>{
     if(active||!enabled.checked||!isMW())return false;
     const snapshot=document.createElement('canvas');snapshot.width=host.clientWidth;snapshot.height=host.clientHeight;
     const ctx=snapshot.getContext('2d');
     const layers=['waveCanvas','setupCanvas','partCanvas'].map(id=>document.getElementById(id));
-    const updateSharedFrame=(includeIncomingWave=true)=>{ctx.clearRect(0,0,snapshot.width,snapshot.height);if(!includeIncomingWave){ctx.fillStyle='#344f63';ctx.fillRect(0,0,snapshot.width,snapshot.height);}for(const layer of layers)if(includeIncomingWave||layer.id!=='waveCanvas')ctx.drawImage(layer,0,0,snapshot.width,snapshot.height);};
+    const updateSharedFrame=(includeIncomingWave=true)=>{ctx.clearRect(0,0,snapshot.width,snapshot.height);if(captureFrame){captureFrame(ctx,snapshot.width,snapshot.height,includeIncomingWave);return;}if(!includeIncomingWave){ctx.fillStyle='#344f63';ctx.fillRect(0,0,snapshot.width,snapshot.height);}for(const layer of layers)if(includeIncomingWave||layer.id!=='waveCanvas')ctx.drawImage(layer,0,0,snapshot.width,snapshot.height);};
     updateSharedFrame();
     overlay.hidden=false;status.style.opacity='1';zoom.hidden=true;scroll.hidden=false;scroll.style.visibility='';scroll.scrollTop=0;grid.replaceChildren();
     const count=weights.length,aspect=snapshot.width/snapshot.height;
@@ -97,7 +97,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       target.clearRect(0,0,w,h);
       target.drawImage(source,0,0,w,h);
       const x=detectorFraction*w,y=(index+.5)/count*h;
-      target.drawImage(records[index],x,0,w-x,h);
+      if(recordFull)target.drawImage(records[index],0,0,w,h);else target.drawImage(records[index],x,0,w-x,h);
       if(highlight&&session.splitTime<DETECTOR_PULSE_SECONDS*1000){
         drawBinPulse(target,{x,y:index/count*h,width:Math.max(1,sensorFraction*w),height:Math.max(1,h/count),color:sensorColor,strength:1-session.splitTime/(1000*DETECTOR_PULSE_SECONDS)});
       }

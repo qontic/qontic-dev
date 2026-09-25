@@ -29,7 +29,7 @@ function disposeObject(object){
 }
 
 export function mountPacketSurface3D({host}){
- const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
+ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance',preserveDrawingBuffer:true});
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
  renderer.setClearColor(0x0a1723,1);
  renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -44,7 +44,7 @@ export function mountPacketSurface3D({host}){
  const controls=new OrbitControls(camera,renderer.domElement);
  controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=3;controls.maxDistance=12;
  controls.target.set(.15,0,.18);
- let visible=false,lastState=null,frame=0;
+ let visible=false,lastState=null,frame=0,recordObjects=[];
 
  const resetCamera=()=>{camera.position.set(5.25,-4.9,3.65);controls.target.set(.15,0,.18);controls.update();render();};
  resetCamera();
@@ -87,8 +87,9 @@ export function mountPacketSurface3D({host}){
   }
   geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));geometry.computeVertexNormals();
   const mesh=new THREE.Mesh(geometry,new THREE.MeshPhongMaterial({vertexColors:true,transparent:true,opacity:.88,side:THREE.DoubleSide,shininess:38}));
+  mesh.userData.wave=true;
   dynamic.add(mesh);
-  const wire=new THREE.Mesh(geometry.clone(),new THREE.MeshBasicMaterial({color:0xd8f5ff,wireframe:true,transparent:true,opacity:.075}));dynamic.add(wire);
+  const wire=new THREE.Mesh(geometry.clone(),new THREE.MeshBasicMaterial({color:0xd8f5ff,wireframe:true,transparent:true,opacity:.075}));wire.userData.wave=true;dynamic.add(wire);
  }
 
  function addWall(state){
@@ -112,7 +113,7 @@ export function mountPacketSurface3D({host}){
   if(state.showProbability&&state.probability.length){
    const step=Math.max(1,Math.ceil(state.probability.length/300)),points=[];
    for(let i=0;i<state.probability.length;i+=step){const v=i/(state.probability.length-1);points.push(world(1.015,v,base+.9*state.probability[i]));}
-   dynamic.add(line(points,new THREE.LineBasicMaterial({color:color(state.probabilityColor),linewidth:2})));
+   const probability=line(points,new THREE.LineBasicMaterial({color:color(state.probabilityColor),linewidth:2}));dynamic.add(probability);recordObjects.push(probability);
   }
   if(!state.showHits)return;
   const pointPositions=[],pointColors=[],errorPositions=[],errorColors=[];
@@ -122,8 +123,8 @@ export function mountPacketSurface3D({host}){
    pointPositions.push(x+.055,y,z);pointColors.push(c.r,c.g,c.b);
    errorPositions.push(x+.055,y,Math.max(base,z-e),x+.055,y,z+e);errorColors.push(c.r,c.g,c.b,c.r,c.g,c.b);
   }
-  if(pointPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(pointPositions,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(pointColors,3));dynamic.add(new THREE.Points(geometry,new THREE.PointsMaterial({size:.065,sizeAttenuation:true,vertexColors:true})))}
-  if(errorPositions.length)dynamic.add(lines(errorPositions,errorColors,.95));
+  if(pointPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(pointPositions,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(pointColors,3));const points=new THREE.Points(geometry,new THREE.PointsMaterial({size:.065,sizeAttenuation:true,vertexColors:true}));dynamic.add(points);recordObjects.push(points);}
+  if(errorPositions.length){const errors=lines(errorPositions,errorColors,.95);dynamic.add(errors);recordObjects.push(errors);}
  }
 
  function addParticles(state){
@@ -138,11 +139,22 @@ export function mountPacketSurface3D({host}){
  }
 
  function update(state){
-  lastState=state;while(dynamic.children.length)disposeObject(dynamic.children[0]);
+  lastState=state;recordObjects=[];while(dynamic.children.length)disposeObject(dynamic.children[0]);
   addWave(state);addWall(state);addDetector(state);addParticles(state);render();
  }
  function setVisible(next){visible=!!next;renderer.domElement.hidden=!visible;overlay.hidden=!visible;if(visible){resize();if(lastState)update(lastState);cancelAnimationFrame(frame);frame=requestAnimationFrame(animate);}else cancelAnimationFrame(frame);}
+ function capture(context,width,height,{includeWave=true,includeRecords=false}={}){
+  const hidden=[];
+  for(const object of dynamic.children){if(!includeWave&&object.userData.wave){hidden.push(object);object.visible=false;}}
+  if(!includeRecords)for(const object of recordObjects){hidden.push(object);object.visible=false;}
+  renderer.render(scene,camera);context.drawImage(renderer.domElement,0,0,width,height);
+  for(const object of hidden)object.visible=true;renderer.render(scene,camera);
+ }
+ function projectDetector(v,z,width,height){
+  const point=new THREE.Vector3(X_MAX+.095,Y_MAX-v*(Y_MAX-Y_MIN),z).project(camera);
+  return {x:(point.x+1)*width/2,y:(1-point.y)*height/2};
+ }
  function dispose(){cancelAnimationFrame(frame);observer.disconnect();controls.dispose();while(dynamic.children.length)disposeObject(dynamic.children[0]);renderer.dispose();renderer.domElement.remove();overlay.remove();}
  setVisible(false);
- return {update,setVisible,resetCamera,dispose};
+ return {update,setVisible,resetCamera,capture,projectDetector,dispose};
 }

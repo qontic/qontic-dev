@@ -1,3 +1,9 @@
+## Version 2.96 — 2026-09-25
+
+- Changed the default detector-hit and error-bar color from black to red in the 2D and 3D views, including migration of the previous saved black default while preserving other custom colors.
+- Made Many-Worlds slow-motion branches capture the active 3D camera and scene instead of reverting to the legacy 2D canvas layers.
+- Projected each MW branch's retained hits and error bars onto its three-dimensional detector wall while keeping the branch probability curve and outcome marker visible.
+
 ## Version 2.95 — 2026-09-25
 
 - Replaced the fixed oblique 3D illustration with a true WebGL scene using an orbit camera: drag to rotate, wheel or pinch to zoom, right-drag to pan, and double-click or use Reset view to restore the camera.

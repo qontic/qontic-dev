@@ -1,9 +1,9 @@
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations} from './physics-content.js?v=2.95';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations} from './physics-content.js?v=2.96';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=2.91';
 import {histogramLayout} from './packet-model.js?v=2.91';
-import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.95';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=2.95';
+import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.96';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=2.96';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -174,6 +174,16 @@ export function mountPacketEngine({core,advanced}){
   sampleButton.title=nHits===0?'Collect screen hits before sampling another branch.':window.qonticMWBranches?.busy?'Finish choosing the current branch first.':'Sample another detector history with the same number of hits, using the packet outcome probabilities.';
  }
  function addHit(index,slitSide=null,wallY=null){hits[index]++;if(slitSide&&slitHits[slitSide])slitHits[slitSide][index]++;const spectrum=spectrumIndex(wallY);if(spectrum>=0){spectrumHitCounts[index]++;spectrumHitSums[index]+=spectrum;}nHits++;hitMax=Math.max(hitMax,hits[index]);logNBranches+=Math.log10(p.bins);}
+ function createSurfaceRecord(record){
+  const overlay=document.createElement('canvas');overlay.width=canvas.width;overlay.height=canvas.height;const context=overlay.getContext('2d');
+  const {curve}=histogramLayout(record,profile,screenHeight/100,1),maximum=Math.max(1e-30,...curve,...record.map(n=>n+Math.sqrt(n)));
+  if(shown('hit_prob')&&!p.focused){context.strokeStyle=colorProb;context.lineWidth=1.5;context.beginPath();const step=Math.max(1,Math.ceil(curve.length/300));for(let i=0;i<curve.length;i+=step){const point=surface3D.projectDetector(i/(curve.length-1),.08+.9*curve[i]/maximum,overlay.width,overlay.height);i?context.lineTo(point.x,point.y):context.moveTo(point.x,point.y);}context.stroke();}
+  context.strokeStyle=context.fillStyle=colorHit;context.lineWidth=1.5;
+  record.forEach((n,i)=>{if(!n)return;const v=(i+.5)/record.length,z=.08+.9*n/maximum,error=.9*Math.sqrt(n)/maximum;
+   const point=surface3D.projectDetector(v,z,overlay.width,overlay.height),low=surface3D.projectDetector(v,Math.max(.08,z-error),overlay.width,overlay.height),high=surface3D.projectDetector(v,z+error,overlay.width,overlay.height);
+   context.beginPath();context.moveTo(low.x,low.y);context.lineTo(high.x,high.y);context.stroke();context.beginPath();context.arc(point.x,point.y,3,0,2*Math.PI);context.fill();
+  });return overlay;
+ }
  function processPending(){
   if(!pending.length||window.qonticMWBranches?.busy)return;
   const event=pending.shift(),index=event.index;event.cohort.pending--;
@@ -181,8 +191,10 @@ export function mountPacketEngine({core,advanced}){
    event.cohort.branching=true;
    const previous=hits.slice();
    const setRecord=i=>{hits=recordWithHit(previous,i);hitMax=Math.max(...hits);};
-   const started=window.qonticMWBranches.begin({selected:index,weights:law.weights,detectorFraction:detectorX/canvas.width,sensorFraction:sensorWidth/canvas.width,sensorColor:colorSensor,
-    createRecord(i){const strip=document.createElement('canvas'),scale=Math.min(1,256/canvas.height);strip.width=Math.ceil((canvas.width-detectorX)*scale);strip.height=Math.ceil(canvas.height*scale);const context=strip.getContext('2d');context.scale(scale,scale);context.translate(-detectorX,0);histogram({context,hits:recordWithHit(previous,i)});return strip;},
+   const surfaceBranches=surfaceView&&surface3D;
+   const started=window.qonticMWBranches.begin({selected:index,weights:law.weights,detectorFraction:detectorX/canvas.width,sensorFraction:sensorWidth/canvas.width,sensorColor:colorSensor,recordFull:!!surfaceBranches,
+    captureFrame:surfaceBranches?((context,w,h,includeWave)=>surface3D.capture(context,w,h,{includeWave,includeRecords:false})):null,
+    createRecord(i){const record=recordWithHit(previous,i);if(surfaceBranches)return createSurfaceRecord(record);const strip=document.createElement('canvas'),scale=Math.min(1,256/canvas.height);strip.width=Math.ceil((canvas.width-detectorX)*scale);strip.height=Math.ceil(canvas.height*scale);const context=strip.getContext('2d');context.scale(scale,scale);context.translate(-detectorX,0);histogram({context,hits:record});return strip;},
     onSplit(){detectorFlashes.clear();nHits++;logNBranches+=Math.log10(p.bins);setRecord(index);updateBranchCountDisplay();stats();},
     onSelect(i){event.cohort.branching=false;setRecord(i);detectorFlashes.clear();flash=null;last=null;draw();}
    });if(started)return;event.cohort.branching=false;
@@ -237,7 +249,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?v=2.95').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?v=2.96').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});surface3D.setVisible(surfaceView);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
