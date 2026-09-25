@@ -1,3 +1,9 @@
+## Version 2.99 — 2026-09-25
+
+- Replaced wrapped phase angle as a 3D height with smooth cos φ, eliminating the artificial moving cliff at the ±π boundary.
+- Added a remembered Pilot-Wave toolbar control to hide or show the wave without changing the guidance field, particles, statistics or playback.
+- Clarified that Re Ψ and Im Ψ retain genuine carrier oscillations, while cos φ is continuous but does not uniquely determine the phase angle.
+
 ## Version 2.98 — 2026-09-25
 
 - Separated the overlapping 3D slit handles: Width is attached to the upper slit edge and Separation to the lower slit center.

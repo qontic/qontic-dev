@@ -23,6 +23,6 @@ assert.equal(surfaceHeightValue('real',.25,1,0),.75);
 assert.equal(surfaceHeightValue('real',.25,-1,0),.25);
 assert.equal(surfaceHeightValue('imag',1,0,1),1);
 assert.equal(surfaceHeightValue('imag',1,0,-1),0);
-assert.equal(surfaceHeightValue('phase',1,-1,0),1);
-assert(Math.abs(surfaceHeightValue('phase',1,0,-1)-.25)<1e-12);
+assert.equal(surfaceHeightValue('phase',1,-1,0),0);
+assert(Math.abs(surfaceHeightValue('phase',1,0,-1)-.5)<1e-12);
 console.log(JSON.stringify({normalization:'pass',spreading:'pass',gradients:'pass',histogramScale:'pass',surfaceHeights:'pass'}));
