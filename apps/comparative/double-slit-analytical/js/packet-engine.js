@@ -2,7 +2,7 @@ import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathVie
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=2.91';
 import {histogramLayout} from './packet-model.js?v=2.91';
-import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.93-wall-color';
+import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.93-wall-color-2';
 import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=2.93-expert-balance';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
@@ -73,7 +73,7 @@ export function mountPacketEngine({core,advanced}){
   const half=p.slitExtentSigma*p.sy,lo=Math.min(...p.centers)-half,hi=Math.max(...p.centers)+half;
   return Math.max(0,Math.min(spectrumSteps-1,Math.round((wallY-lo)/Math.max(1e-12,hi-lo)*(spectrumSteps-1))));
  }
- function spectrumColor(index){const t=index/Math.max(1,spectrumSteps-1);return `hsl(${270*(1-t)} 88% 58%)`;}
+ function spectrumColor(index){const t=index/Math.max(1,spectrumSteps-1);return `hsl(${270*(1-t)}, 88%, 58%)`;}
  function particleColorGroup(a){
   if(particleColorMode.value==='slit'&&a.slitSide)return a.slitSide;
   if(particleColorMode.value==='spectrum'){const index=spectrumIndex(a.wallY);if(index>=0)return `s${index}`;}
