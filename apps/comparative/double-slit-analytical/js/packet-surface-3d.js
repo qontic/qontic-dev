@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {dragSurfaceGeometry} from './packet-interaction.js?v=2.97';
+import {dragSurfaceGeometry} from './packet-interaction.js?v=2.98';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
 
@@ -57,8 +57,9 @@ export function mountPacketSurface3D({host}){
  const grid=new THREE.GridHelper(4.4,16,0x4a7c90,0x294e60);grid.rotation.x=Math.PI/2;grid.position.set(.1,0,-.018);grid.material.transparent=true;grid.material.opacity=.46;scene.add(grid);
 
  const dynamic=new THREE.Group();scene.add(dynamic);
- const overlay=document.createElement('div');overlay.className='packet-surface-help';overlay.innerHTML='<span>Drag: rotate · Wheel/pinch: zoom · Right-drag: pan</span><button type="button" title="Reset 3D camera">Reset view</button>';
+ const overlay=document.createElement('div');overlay.className='packet-surface-help';overlay.innerHTML='<span>Drag: rotate · Wheel/pinch: zoom · Right-drag: pan</span><label>Height <select aria-label="3D surface height" title="Choose the wave quantity graphed as height. Phase uses the wrapped angle and therefore has a discontinuity where +π meets −π. With which-path tagging, signed and phase heights are density-weighted component displays."><option value="psi2">|Ψ|²</option><option value="phase">Phase θ</option><option value="real">Re Ψ</option><option value="imag">Im Ψ</option></select></label><button type="button" title="Reset 3D camera">Reset view</button>';
  overlay.querySelector('button').addEventListener('click',resetCamera);host.append(overlay);
+ const heightSelect=overlay.querySelector('select');let heightChange=null;heightSelect.addEventListener('change',()=>heightChange?.(heightSelect.value));
  const editor=document.createElement('div');editor.className='packet-surface-editor';editor.hidden=true;
  editor.innerHTML='<button type="button" data-kind="wall" title="Move slit wall">↔ Wall</button><button type="button" data-kind="distance" title="Change wall-to-detector distance">↔ Distance</button><button type="button" data-kind="height" title="Change screen height">↕ Height</button><button type="button" data-kind="width" title="Change both slit widths">↕ Width</button><button type="button" data-kind="separation" title="Change slit separation">↕ Sep</button><output hidden></output>';
  host.append(editor);
@@ -68,8 +69,8 @@ export function mountPacketSurface3D({host}){
  function screenPoint(point){const projected=point.clone().project(camera),width=host.clientWidth,height=host.clientHeight;return {x:(projected.x+1)*width/2,y:(1-projected.y)*height/2};}
  function editorAnchors(){
   if(!lastState)return {};
-  const wallX=X_MIN+lastState.wallFraction*(X_MAX-X_MIN),opening=[...lastState.openings].sort((a,b)=>a[0]-b[0])[0]||[.42,.48],center=(opening[0]+opening[1])/2;
-  return {wall:new THREE.Vector3(wallX,Y_MIN+.12,.2),distance:new THREE.Vector3(X_MAX,Y_MIN+.12,.2),height:new THREE.Vector3(X_MAX,Y_MAX,.2),width:new THREE.Vector3(wallX,Y_MAX-opening[0]*(Y_MAX-Y_MIN),.24),separation:new THREE.Vector3(wallX,Y_MAX-center*(Y_MAX-Y_MIN),.24)};
+  const wallX=X_MIN+lastState.wallFraction*(X_MAX-X_MIN),openings=[...lastState.openings].sort((a,b)=>a[0]-b[0]),upper=openings[0]||[.36,.44],lower=openings[1]||upper,lowerCenter=(lower[0]+lower[1])/2;
+  return {wall:new THREE.Vector3(wallX,Y_MIN+.12,.2),distance:new THREE.Vector3(X_MAX,Y_MIN+.12,.2),height:new THREE.Vector3(X_MAX,Y_MAX,.2),width:new THREE.Vector3(wallX,Y_MAX-upper[0]*(Y_MAX-Y_MIN),.24),separation:new THREE.Vector3(wallX,Y_MAX-lowerCenter*(Y_MAX-Y_MIN),.24)};
  }
  function positionEditor(){if(editor.hidden||!lastState)return;const anchors=editorAnchors();for(const button of editor.querySelectorAll('button[data-kind]')){const point=screenPoint(anchors[button.dataset.kind]);if(editDrag?.kind===button.dataset.kind){point.x+=editDrag.axisX*(editDrag.scalar||0);point.y+=editDrag.axisY*(editDrag.scalar||0);}button.style.left=point.x+'px';button.style.top=point.y+'px';}}
  function render(){if(!visible)return;renderer.render(scene,camera);positionEditor();}
@@ -94,11 +95,11 @@ export function mountPacketSurface3D({host}){
    const n=row*(cols+1)+col,u=col/cols,v=row/rows;
    const i=Math.min(state.gridWidth-1,Math.round(u*state.fieldFraction*(state.gridWidth-1))),j=Math.min(state.gridHeight-1,Math.round(v*(state.gridHeight-1))),source=j*state.gridWidth+i;
    positions.setZ(n,sampleHeight(state,u,v)*SURFACE_HEIGHT);
-   const visibility=(rgba[4*source+3]||0)/255,base=[.055,.13,.18];
+   const visibility=Math.min(1,Math.pow((rgba[4*source+3]||0)/255,.68)*1.18),base=[.035,.095,.135];
    colors[3*n]=base[0]+visibility*((rgba[4*source]||75)/255-base[0]);colors[3*n+1]=base[1]+visibility*((rgba[4*source+1]||150)/255-base[1]);colors[3*n+2]=base[2]+visibility*((rgba[4*source+2]||190)/255-base[2]);
   }
   geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));geometry.computeVertexNormals();
-  const mesh=new THREE.Mesh(geometry,new THREE.MeshPhongMaterial({vertexColors:true,transparent:true,opacity:.88,side:THREE.DoubleSide,shininess:38}));
+  const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.98,side:THREE.DoubleSide}));
   mesh.userData.wave=true;
   dynamic.add(mesh);
   const wire=new THREE.Mesh(geometry.clone(),new THREE.MeshBasicMaterial({color:0xd8f5ff,wireframe:true,transparent:true,opacity:.075}));wire.userData.wave=true;dynamic.add(wire);
@@ -176,8 +177,9 @@ export function mountPacketSurface3D({host}){
   button.addEventListener('pointerup',()=>finishEditor(true));button.addEventListener('pointercancel',()=>finishEditor(false));button.addEventListener('lostpointercapture',()=>finishEditor(false));
  }
  function configureEditor(callbacks){editorCallbacks=callbacks;}
+ function configureHeight(value,onChange){heightSelect.value=value;heightChange=onChange;}
  function setEditing(active){if(!active)finishEditor(false);editor.hidden=!active;controls.enabled=!active;positionEditor();}
  function dispose(){cancelAnimationFrame(frame);observer.disconnect();controls.dispose();while(dynamic.children.length)disposeObject(dynamic.children[0]);renderer.dispose();renderer.domElement.remove();overlay.remove();editor.remove();}
  setVisible(false);
- return {update,setVisible,resetCamera,capture,projectDetector,configureEditor,setEditing,cancelEditor:()=>finishEditor(false),dispose};
+ return {update,setVisible,resetCamera,capture,projectDetector,configureEditor,configureHeight,setEditing,cancelEditor:()=>finishEditor(false),dispose};
 }

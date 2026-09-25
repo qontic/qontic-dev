@@ -1,3 +1,10 @@
+## Version 2.98 — 2026-09-25
+
+- Separated the overlapping 3D slit handles: Width is attached to the upper slit edge and Separation to the lower slit center.
+- Added a persistent 3D Height selector for normalized |Ψ|², wrapped phase θ, normalized Re Ψ and normalized Im Ψ; signed quantities use the middle height as zero and shared links retain the selection.
+- Kept height independent of the ordinary wave-color selection and documented the unavoidable ±π wrap discontinuity in phase height.
+- Increased 3D surface color strength with a brighter opacity response and an unlit vertex-color material, without changing the 2D palette or any dynamics.
+
 ## Version 2.97 — 2026-09-25
 
 - Enabled geometry editing in the interactive 3D view through projected handles attached to the rotated scene.

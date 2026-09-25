@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {gaussian,histogramLayout} from '../js/packet-model.js';
+import {gaussian,histogramLayout,surfaceHeightValue} from '../js/packet-model.js';
 
 for(const t of [0,3,8]){
  let norm=0,moment=0;
@@ -18,4 +18,11 @@ assert.equal(zero.total,0);assert.equal(Math.max(...zero.curve),.5);
 const populated=histogramLayout([1,4,1,0],profile,4,108);
 assert.equal(populated.total,6);assert(Math.max(...populated.curve)>Math.max(...zero.curve));
 assert(Math.max(...populated.curve)*populated.scale<=100+1e-12,'histogram fits canvas');
-console.log(JSON.stringify({normalization:'pass',spreading:'pass',gradients:'pass',histogramScale:'pass'}));
+assert.equal(surfaceHeightValue('psi2',.25,1,0),.25);
+assert.equal(surfaceHeightValue('real',.25,1,0),.75);
+assert.equal(surfaceHeightValue('real',.25,-1,0),.25);
+assert.equal(surfaceHeightValue('imag',1,0,1),1);
+assert.equal(surfaceHeightValue('imag',1,0,-1),0);
+assert.equal(surfaceHeightValue('phase',1,-1,0),1);
+assert(Math.abs(surfaceHeightValue('phase',1,0,-1)-.25)<1e-12);
+console.log(JSON.stringify({normalization:'pass',spreading:'pass',gradients:'pass',histogramScale:'pass',surfaceHeights:'pass'}));

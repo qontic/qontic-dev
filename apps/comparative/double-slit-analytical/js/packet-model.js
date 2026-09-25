@@ -41,3 +41,12 @@ export function histogramLayout(record,profile,screenHeight,width){
  const max=Math.max(1e-30,...curve,...record.map(n=>n+Math.sqrt(n)));
  return {curve,scale:Math.max(0,width-8)/max,total};
 }
+// Display mapping for the optional height graph. Signed quantities use 1/2 as
+// zero so the WebGL surface remains above its plotting plane.
+export function surfaceHeightValue(mode,densityRatio,cosTheta,sinTheta){
+ const density=Math.max(0,Math.min(1,densityRatio)),amplitude=Math.sqrt(density);
+ if(mode==='phase')return .5+Math.atan2(sinTheta,cosTheta)/(2*Math.PI);
+ if(mode==='real')return .5+.5*amplitude*cosTheta;
+ if(mode==='imag')return .5+.5*amplitude*sinTheta;
+ return density;
+}
