@@ -79,32 +79,85 @@ function mountFreeParticleTemplate() {
   $('fp-display-row').querySelectorAll('label').forEach(label => label.classList.add('qontic-app-toggle'));
   $('fp-display-row').classList.add('qontic-app-toggle-group');
 
-  const paletteRow = document.createElement('label');
+  const paletteRow = document.createElement('div');
   paletteRow.className = 'fp-display-control';
   const paletteLabel = document.createElement('span');
   paletteLabel.textContent = 'Wave palette';
-  const paletteSelect = document.createElement('select');
-  paletteSelect.id = 'fp-wave-palette';
-  paletteSelect.setAttribute('aria-label', 'Wave palette');
-  for (const name of window.fpWavePaletteNames || ['Q-Ontic']) {
-    const option = document.createElement('option'); option.value = name; option.textContent = name;
-    paletteSelect.append(option);
-  }
+  const paletteName = document.createElement('span');
+  paletteName.className = 'fp-palette-name';
+  const paletteButton = document.createElement('button');
+  paletteButton.type = 'button';
+  paletteButton.className = 'fp-palette-button';
+  paletteButton.setAttribute('aria-label', 'Choose wave palette');
+  paletteButton.title = 'Choose wave palette';
   const paletteSwatch = document.createElement('i');
   paletteSwatch.className = 'fp-palette-swatch';
+  paletteButton.append(paletteSwatch);
   const paletteGradients = {
-    'Q-Ontic':'#000,#143c3d,#066827,#91111b,#810a50', Gray:'#717171,#e2e2e2',
-    Green:'#5aa664,#d9f0d3', Blue:'#4292c6,#c6dbef', Red:'#67000d,#fcbba1',
-    Yellow:'#8c510a,#ffffbf', Inferno:'#000004,#420a68,#dd513a,#fca50a',
-    Spectral:'#9e0142,#fdae61,#e6f598,#66c2a5,#5e4fa2', RdYlBu:'#d73027,#fee090,#e0f3f8,#4575b4'
+    'Q-Ontic':['#000000','#0a111a','#143c3d','#066827','#6d350d','#91111b','#970c1b','#8c0b3d','#810a50'],
+    Gray:['#717171','#8d8d8d','#aaaaaa','#c6c6c6','#e2e2e2'],
+    Green:['#5aa664','#a6dba0','#d9f0d3'], Blue:['#4292c6','#6baed6','#c6dbef'],
+    Red:['#67000d','#a50f15','#cb181d','#ef3b2c','#fcbba1'], Yellow:['#8c510a','#d8b365','#f6e8c3','#fee08b','#ffffbf'],
+    Inferno:['#000004','#420a68','#932667','#dd513a','#fca50a'],
+    Spectral:['#9e0142','#f46d43','#fdae61','#fee08b','#e6f598','#abdda4','#66c2a5','#3288bd','#5e4fa2'],
+    RdYlBu:['#d73027','#fc8d59','#fee090','#e0f3f8','#91bfdb','#4575b4']
   };
+  let selectedPalette = 'Q-Ontic';
+  const palettePopup = document.createElement('div');
+  palettePopup.className = 'fp-palette-popup';
+  palettePopup.hidden = true;
+  palettePopup.setAttribute('role', 'dialog');
+  palettePopup.setAttribute('aria-modal', 'true');
+  palettePopup.setAttribute('aria-labelledby', 'fp-palette-title');
+  const palettePanel = document.createElement('section');
+  palettePanel.className = 'fp-palette-panel';
+  const paletteTitle = document.createElement('h3');
+  paletteTitle.id = 'fp-palette-title';
+  paletteTitle.textContent = 'Select a Color Palette';
+  const paletteClose = document.createElement('button');
+  paletteClose.type = 'button'; paletteClose.className = 'fp-palette-close';
+  paletteClose.setAttribute('aria-label', 'Close palette chooser'); paletteClose.textContent = 'Close';
+  const paletteGrid = document.createElement('div');
+  paletteGrid.className = 'fp-palette-grid';
+  palettePanel.append(paletteTitle, paletteClose, paletteGrid);
+  palettePopup.append(palettePanel);
+  document.body.append(palettePopup);
+  const closePalette = () => { palettePopup.hidden = true; paletteButton.setAttribute('aria-expanded', 'false'); paletteButton.focus(); };
+  const choosePalette = name => {
+    selectedPalette = name;
+    paletteName.textContent = name;
+    paletteSwatch.style.background = `linear-gradient(90deg,${paletteGradients[name].join(',')})`;
+    paletteGrid.querySelectorAll('.fp-palette-option').forEach(option => {
+      const selected = option.dataset.palette === name;
+      option.classList.toggle('selected', selected);
+      option.setAttribute('aria-pressed', String(selected));
+    });
+    window.fpSetWavePalette?.(name);
+    try { localStorage.setItem('qontic-free-particle-palette', name); } catch (_) {}
+  };
+  for (const name of window.fpWavePaletteNames || ['Q-Ontic']) {
+    const option = document.createElement('button');
+    option.type = 'button'; option.className = 'fp-palette-option'; option.dataset.palette = name;
+    const label = document.createElement('span'); label.className = 'fp-palette-option-label'; label.textContent = name;
+    const swatch = document.createElement('i'); swatch.className = 'fp-palette-option-swatch';
+    swatch.style.background = `linear-gradient(90deg,${paletteGradients[name].join(',')})`;
+    option.append(label, swatch);
+    option.addEventListener('click', () => { choosePalette(name); closePalette(); });
+    paletteGrid.append(option);
+  }
   const syncPalette = () => {
-    paletteSwatch.style.background = `linear-gradient(90deg,${paletteGradients[paletteSelect.value] || paletteGradients['Q-Ontic']})`;
-    window.fpSetWavePalette?.(paletteSelect.value);
-    try { localStorage.setItem('qontic-free-particle-palette', paletteSelect.value); } catch (_) {}
+    choosePalette(selectedPalette);
   };
-  paletteSelect.addEventListener('change', syncPalette);
-  paletteRow.append(paletteLabel, paletteSelect, paletteSwatch);
+  paletteButton.setAttribute('aria-haspopup', 'dialog');
+  paletteButton.setAttribute('aria-expanded', 'false');
+  paletteButton.addEventListener('click', () => {
+    palettePopup.hidden = false; paletteButton.setAttribute('aria-expanded', 'true');
+    paletteGrid.querySelector('.selected')?.focus();
+  });
+  paletteClose.addEventListener('click', closePalette);
+  palettePopup.addEventListener('click', event => { if (event.target === palettePopup) closePalette(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !palettePopup.hidden) closePalette(); });
+  paletteRow.append(paletteLabel, paletteName, paletteButton);
 
   const opacityRow = document.createElement('label');
   opacityRow.className = 'fp-display-control';
@@ -123,7 +176,7 @@ function mountFreeParticleTemplate() {
   displayPane.append(paletteRow, opacityRow);
   try {
     const savedPalette = localStorage.getItem('qontic-free-particle-palette');
-    if (savedPalette && [...paletteSelect.options].some(option => option.value === savedPalette)) paletteSelect.value = savedPalette;
+    if (savedPalette && paletteGradients[savedPalette]) selectedPalette = savedPalette;
     const savedOpacityRaw = localStorage.getItem('qontic-free-particle-wave-opacity');
     if (savedOpacityRaw !== null) {
       const savedOpacity = Number(savedOpacityRaw);
