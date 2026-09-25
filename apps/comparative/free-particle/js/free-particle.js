@@ -1238,83 +1238,38 @@ function fpDrawObserver(ctx, cx, cy, r, color, label) {
 }
 
 function fpRenderMWBranch(ctx, W, H, sectionIdx) {
+  ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = fpCanvasColor('#000', '#ffffff');
   ctx.fillRect(0, 0, W, H);
-  if (!fp.prob) return;
+  if (!fpWaveCanvas || !fpPartCanvas || !fpDetCanvas) return;
 
-  // |\u03c8|² background
-  // Use frozen snapshot so the waveform stays fixed at the branching moment
-  const snapProb = fp._mwSnapProb || fp.prob;
-  const maxP = fp._mwSnapMaxP || fp._maxProb || 1e-12;
-  const N = fp.NX, dxP = W / N;
-  for (let i = 0; i < N; i++) {
-    const t = Math.max(0, Math.min(1, snapProb[i] / maxP));
-    ctx.fillStyle = fpColor(t);
-    ctx.fillRect(Math.round(i * dxP), 0, Math.max(1, Math.ceil(dxP)), H);
-  }
+  // A branch is the real main scene at the split, not a second simplified
+  // visualization. Reuse the exact wave and particle layers, then render the
+  // shared detector layer with this branch's one definite pixel outcome.
+  const previousSection = fp.bDetectedSection;
+  fp.bDetectedSection = sectionIdx;
+  fpRenderDetector();
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(fpWaveCanvas, 0, 0, W, H);
+  ctx.drawImage(fpPartCanvas, 0, 0, W, H);
+  ctx.drawImage(fpDetCanvas, 0, 0, W, H);
+  ctx.restore();
+  fp.bDetectedSection = previousSection;
+  fpRenderDetector();
+}
 
-  // Detector bands
-  const xd_ = (fp.detectorX_nm - fp.xMin_nm) / (fp.xMax_nm - fp.xMin_nm) * W;
-  const hw_ = fp.detectorW_nm / (fp.xMax_nm - fp.xMin_nm) * W;
-  const xL  = Math.round(xd_ - hw_), xR = Math.round(xd_ + hw_);
-  const xAbsorb = Math.max(0, Math.min(W, xL));
-  // Which branch is the "winning" one (our observer's world this run)?
-  const isWinner = fp.bDetectedSection >= 0 && fp.bDetectedSection === sectionIdx;
-  const NS  = fp.nSections;
-  const branchY = Math.round(H * sectionIdx / NS);
-  const branchH = Math.max(1, Math.round(H * (sectionIdx + 1) / NS) - branchY);
-
-  // Branch-specific absorbing detector view:
-  // keep only this section on incident side; remove transmitted side for all branches.
-  ctx.fillStyle = fpCanvasColor('rgba(0,0,0,0.88)', 'rgba(241,245,249,0.88)');
-  ctx.fillRect(0, 0, xAbsorb, branchY);
-  ctx.fillRect(0, branchY + branchH, xAbsorb, Math.max(0, H - (branchY + branchH)));
-  ctx.fillStyle = fpCanvasColor('rgba(0,0,0,0.94)', 'rgba(241,245,249,0.94)');
-  ctx.fillRect(xAbsorb, 0, W - xAbsorb, H);
-
-  for (let si = 0; si < NS; si++) {
-    const sY = Math.round(H * si / NS), sH = Math.round(H * (si + 1) / NS) - sY;
-    const isThis = (si === sectionIdx);
-    ctx.fillStyle = isWinner && isThis ? 'rgba(251,191,36,0.70)'
-                  : isThis             ? 'rgba(80,240,80,0.50)'
-                  :                      'rgba(80,100,200,0.22)';
-    ctx.fillRect(xL, sY, xR - xL, sH);
-  }
-  ctx.strokeStyle = fpCanvasColor('rgba(255,255,255,0.20)', 'rgba(51,65,85,0.25)'); ctx.lineWidth = 0.5;
-  for (let si = 1; si < NS; si++) {
-    const sy = Math.round(H * si / NS);
-    ctx.beginPath(); ctx.moveTo(xL, sy); ctx.lineTo(xR, sy); ctx.stroke();
-  }
-  ctx.strokeStyle = isWinner ? '#fbbf24' : '#50f050'; ctx.lineWidth = 1.5;
-  ctx.strokeRect(xL, 0, xR - xL, H);
-
-  // Section label
-  const fs = Math.max(9, Math.round(H * 0.17));
-  ctx.fillStyle = isWinner ? '#fbbf24' : fpCanvasColor('rgba(200,200,200,0.9)', '#334155');
-  ctx.font = `bold ${fs}px Inter,sans-serif`;
-  ctx.textAlign = 'left'; ctx.fillText('S' + (sectionIdx + 1), 4, fs + 1);
-
-  // Observer — positioned at vertical centre of THIS section, in definite post-measurement state
-  const obsr  = Math.max(4, Math.round(H * 0.09));
-  const sSecY = (sectionIdx + 0.5) / fp.nSections * H;
-  const obsx  = Math.round(W * 0.88);
-  const obsy  = Math.round(Math.max(obsr + 2, Math.min(H - obsr * 6 - 4, sSecY - obsr)));
-  // Gold observer = our world; green = other valid branch
-  fpDrawObserver(ctx, obsx, obsy, obsr,
-    isWinner ? 'rgba(251,191,36,0.95)' : 'rgba(120,255,170,0.92)', '');
-
-  // Hit count bottom-right
-  const cnt = (fp.sectionHits && fp.sectionHits[sectionIdx]) || 0;
-  ctx.fillStyle = isWinner ? '#fbbf24' : (cnt > 0 ? '#34d399' : '#475569');
-  ctx.font = `bold ${fs}px Inter,sans-serif`; ctx.textAlign = 'right';
-  ctx.fillText(cnt, W - 4, H - 3);
-
-  // Gold outer border marks the branch our observer inhabits
-  if (isWinner) {
-    ctx.strokeStyle = '#fbbf24';
-    ctx.lineWidth   = 3;
-    ctx.strokeRect(1.5, 1.5, W - 3, H - 3);
-  }
+function fpCaptureMainScene() {
+  if (!fpWaveCanvas || !fpPartCanvas || !fpDetCanvas) return null;
+  const scene = document.createElement('canvas');
+  scene.width = fpWaveCanvas.width;
+  scene.height = fpWaveCanvas.height;
+  const ctx = scene.getContext('2d');
+  ctx.drawImage(fpWaveCanvas, 0, 0);
+  ctx.drawImage(fpPartCanvas, 0, 0);
+  ctx.drawImage(fpDetCanvas, 0, 0);
+  return scene;
 }
 
 function fpSampleMWBranch() {
@@ -1330,14 +1285,13 @@ function fpSampleMWBranch() {
 
 function fpPrepareMWZoom(sectionIdx) {
   const grid = document.getElementById('fp-mw-grid');
-  const tile = _fpMWCanvases[sectionIdx]?.parentElement;
+  const tile = _fpMWCanvases[sectionIdx];
   if (!grid || !tile || !_fpMWZoomCanvas) return;
 
-  const inset = 6;
   const gridRect = grid.getBoundingClientRect();
   const tileRect = tile.getBoundingClientRect();
-  const width = Math.max(1, Math.round(grid.clientWidth - 2 * inset));
-  const height = Math.max(1, Math.round(grid.clientHeight - 2 * inset));
+  const width = Math.max(1, Math.round(grid.clientWidth));
+  const height = Math.max(1, Math.round(grid.clientHeight));
   _fpMWZoomCanvas.width = width;
   _fpMWZoomCanvas.height = height;
   _fpMWZoomCanvas.hidden = false;
@@ -1354,8 +1308,8 @@ function fpPrepareMWZoom(sectionIdx) {
     complete: false,
     source,
     from: {
-      x: tileRect.left - gridRect.left - inset,
-      y: tileRect.top - gridRect.top - inset,
+      x: tileRect.left - gridRect.left,
+      y: tileRect.top - gridRect.top,
       width: tileRect.width,
       height: tileRect.height,
     },
@@ -1368,6 +1322,19 @@ function fpRenderMWZoom() {
   const ctx = _fpMWZoomCanvas.getContext('2d');
   const W = _fpMWZoomCanvas.width;
   const H = _fpMWZoomCanvas.height;
+  if (zoom.phase === 'restart') {
+    const mix = Math.max(0, Math.min(1, zoom.restartElapsed_ms / zoom.restartDuration_ms));
+    const ease = mix * mix * (3 - 2 * mix);
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+    ctx.drawImage(zoom.source, 0, 0, W, H);
+    if (zoom.nextSource) {
+      ctx.globalAlpha = ease;
+      ctx.drawImage(zoom.nextSource, 0, 0, W, H);
+    }
+    ctx.globalAlpha = 1;
+    return;
+  }
   const progress = zoom.complete ? 1 : Math.max(0, Math.min(1, zoom.elapsed_ms / zoom.duration_ms));
   const ease = progress * progress * (3 - 2 * progress);
   const x = zoom.from.x * (1 - ease);
@@ -1381,18 +1348,49 @@ function fpRenderMWZoom() {
   ctx.strokeRect(x + 1, y + 1, Math.max(0, width - 2), Math.max(0, height - 2));
 }
 
+function fpBeginMWRestartTransition() {
+  const zoom = fp.mwZoom;
+  if (!zoom) return;
+  if (fp.animId) cancelAnimationFrame(fp.animId);
+  fp.animId = null;
+  fp.mwWaitingForChoice = false;
+  fpRunReset({deferAnimation:true, preserveMWZoom:true});
+  zoom.phase = 'restart';
+  zoom.restartElapsed_ms = 0;
+  zoom.restartDuration_ms = 650;
+  zoom.nextSource = fpCaptureMainScene();
+  fp.mwZoom = zoom;
+  const grid = document.getElementById('fp-mw-grid');
+  if (grid) grid.style.display = '';
+  if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = false;
+  fpRenderMWZoom();
+}
+
 function fpStartMWZoomLoop() {
   if (_fpMWZoomTimer) clearTimeout(_fpMWZoomTimer);
   let last = performance.now();
   const tick = () => {
-    if (!fp.mwWaitingForChoice || !fp.mwZoom) {
+    if (!fp.mwZoom || (!fp.mwWaitingForChoice && fp.mwZoom.phase !== 'restart')) {
       _fpMWZoomTimer = null;
       return;
     }
     const now = performance.now();
     const dt = Math.max(0, now - last);
     last = now;
-    if (fp.running && !fp.mwZoom.complete) {
+    if (fp.running && fp.mwZoom.phase === 'restart') {
+      fp.mwZoom.restartElapsed_ms += dt;
+      fpRenderMWZoom();
+      if (fp.mwZoom.restartElapsed_ms >= fp.mwZoom.restartDuration_ms) {
+        fp.mwZoom = null;
+        if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = true;
+        _fpMWZoomTimer = null;
+        fpManageMWView();
+        fpRender();
+        fp._lastFrameTime_ms = null;
+        fp.animId = requestAnimationFrame(fpStep);
+        return;
+      }
+    } else if (fp.running && !fp.mwZoom.complete) {
       fp.mwZoom.elapsed_ms += dt;
       fpRenderMWZoom();
       fpUpdateMWStatus();
@@ -1400,20 +1398,18 @@ function fpStartMWZoomLoop() {
         fp.mwZoom.complete = true;
         fpRenderMWZoom();
         fpUpdateMWStatus();
-        _fpMWZoomTimer = null;
         if (fp.autoNextCycle) {
-          if (fp.animId) cancelAnimationFrame(fp.animId);
-          fp.animId = null;
-          fp.mwWaitingForChoice = false;
-          fpRunReset();
+          fpBeginMWRestartTransition();
+          last = performance.now();
+        } else {
+          _fpMWZoomTimer = null;
+          fp.running = false;
+          const btnStart = document.getElementById('fp-btn-start');
+          const btnStop = document.getElementById('fp-btn-stop');
+          if (btnStart) btnStart.disabled = false;
+          if (btnStop) btnStop.disabled = true;
           return;
         }
-        fp.running = false;
-        const btnStart = document.getElementById('fp-btn-start');
-        const btnStop = document.getElementById('fp-btn-stop');
-        if (btnStart) btnStart.disabled = false;
-        if (btnStop) btnStop.disabled = true;
-        return;
       }
     }
     _fpMWZoomTimer = setTimeout(tick, 16);
@@ -1529,11 +1525,22 @@ function fpResizeMWCanvases() {
   const gH   = grid.clientHeight || Math.round(gW * 0.45);
   const cellW = Math.max(1, Math.floor((gW - pad * 2 - gap * (cols - 1)) / cols));
   const cellH = Math.max(1, Math.floor((gH - pad * 2 - gap * (rows - 1)) / rows));
+  const mainW = fpWaveCanvas?.clientWidth || fpWaveCanvas?.width || 20;
+  const mainH = fpWaveCanvas?.clientHeight || fpWaveCanvas?.height || 9;
+  const aspect = mainW / Math.max(1, mainH);
 
   _fpMWCanvases.forEach(cnv => {
     const wrap = cnv.parentElement;
-    cnv.width  = cellW;
-    cnv.height = cellH;
+    let renderW = cellW;
+    let renderH = Math.max(1, Math.round(renderW / aspect));
+    if (renderH > cellH) {
+      renderH = cellH;
+      renderW = Math.max(1, Math.round(renderH * aspect));
+    }
+    cnv.width  = renderW;
+    cnv.height = renderH;
+    cnv.style.width = renderW + 'px';
+    cnv.style.height = renderH + 'px';
     if (wrap) {
       wrap.style.width  = cellW + 'px';
       wrap.style.height = cellH + 'px';
@@ -1564,8 +1571,11 @@ function fpManageMWView() {
   const mwgrid = document.getElementById('fp-mw-grid');
   const mwstat = document.getElementById('fp-mw-status');
 
-  if (mainWrap) mainWrap.style.display = postSplit ? 'none' : '';
-  if (probw)  probw.style.display  = postSplit ? 'none' : '';
+  // The branch grid overlays only the main canvas. Keeping the surrounding
+  // projection and probability panels in place prevents a layout jump at the
+  // split and gives the zoom exactly the same footprint as the full canvas.
+  if (mainWrap) mainWrap.style.display = '';
+  if (probw)  probw.style.display  = '';
   if (mwgrid) mwgrid.style.display = postSplit ? ''     : 'none';
   if (mwstat) mwstat.style.display = isMW ? '' : 'none';
   if (mwgrid) mwgrid.classList.toggle('mw-choosing', postSplit && fp.mwWaitingForChoice
@@ -1918,7 +1928,7 @@ function fpResetParticle() {
 // ---------------------------------------------------------------------------
 // Run reset — starts a new run, keeping accumulated detection stats
 // ---------------------------------------------------------------------------
-function fpRunReset() {
+function fpRunReset(options = {}) {
   fpClearCollapse();
   const shouldTally = !fp.eventCommitted;
   if (shouldTally) fp.nTrials++;
@@ -1953,11 +1963,13 @@ function fpRunReset() {
   fp.mwWaitingForChoice = false;
   fp.mwChoiceCommitted  = false;
   fp.mwChoiceElapsed_ms = 0;
-  fp.mwZoom              = null;
+  if (!options.preserveMWZoom) fp.mwZoom = null;
   fp.eventCommitted     = false;
-  if (_fpMWZoomTimer) clearTimeout(_fpMWZoomTimer);
-  _fpMWZoomTimer = null;
-  if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = true;
+  if (!options.preserveMWZoom) {
+    if (_fpMWZoomTimer) clearTimeout(_fpMWZoomTimer);
+    _fpMWZoomTimer = null;
+    if (_fpMWZoomCanvas) _fpMWZoomCanvas.hidden = true;
+  }
 
   fpUpdatePhysics();
   fpBuildGrid();
@@ -1977,7 +1989,7 @@ function fpRunReset() {
   fpRender();
 
   // Keep the animation running without requiring a button press
-  if (fp.running) {
+  if (fp.running && !options.deferAnimation) {
     fp.animId = requestAnimationFrame(fpStep);
   }
 }
