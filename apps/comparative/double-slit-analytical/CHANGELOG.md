@@ -1,3 +1,10 @@
+## Version 2.97 — 2026-09-25
+
+- Enabled geometry editing in the interactive 3D view through projected handles attached to the rotated scene.
+- Added direct 3D dragging for slit-wall position, wall-to-detector distance, screen height, slit width and slit separation, with physical limits and rounded increments matching the 2D controls.
+- Reused the existing analytical preview and commit paths so dragging updates the predicted histogram, clears incompatible retained hits, and starts a new record only when the change is committed.
+- Paused camera rotation while editing and retained right-click, the toolbar edit button and Escape as consistent entry/exit controls across 2D and 3D.
+
 ## Version 2.96 — 2026-09-25
 
 - Changed the default detector-hit and error-bar color from black to red in the 2D and 3D views, including migration of the previous saved black default while preserving other custom colors.

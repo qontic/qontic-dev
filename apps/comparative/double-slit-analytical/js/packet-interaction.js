@@ -6,6 +6,17 @@ export function dragGeometry(start,kind,dx,dy){
  const height=kind==='height'?Math.round((start.height+2*dy/start.scaleY)/10)*10:start.height;
  return {wall,distance:kind==='wall'?total-wall:Math.max(L.distanceMin,Math.min(L.distanceMax,distance)),height:Math.max(L.heightMin,Math.min(L.heightMax,height))};
 }
+export function dragSurfaceGeometry(start,kind,worldDelta){
+ const total=start.wall+start.distance,clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+ if(kind==='wall'){
+  const wall=clamp(Math.round(start.wall+worldDelta*total/4),Math.max(start.wallMin,total-start.distanceMax),Math.min(start.wallMax,total-start.distanceMin));
+  return {wall,distance:total-wall,height:start.height};
+ }
+ if(kind==='distance')return {wall:start.wall,distance:clamp(Math.round(start.distance+worldDelta*total/4),start.distanceMin,start.distanceMax),height:start.height};
+ if(kind==='height')return {wall:start.wall,distance:start.distance,height:clamp(Math.round((start.height+2*worldDelta*start.height/3)/10)*10,start.heightMin,start.heightMax)};
+ if(kind==='separation')return clamp(Math.round(start.separation+2*worldDelta*start.height/3),0,start.maxSeparation);
+ return clamp(Math.round((start.width+worldDelta*start.height/(3*start.extentSigma))/5)*5,start.minWidth,start.maxWidth);
+}
 export function trimTail(path,length){
  if(length<=0){path.length=0;return;}
  let travelled=0;

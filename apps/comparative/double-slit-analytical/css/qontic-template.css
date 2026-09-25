@@ -274,6 +274,11 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 .analytical-template .packet-surface-help { position:absolute;left:10px;top:10px;z-index:7;display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid rgba(190,229,241,.22);border-radius:6px;background:rgba(7,20,31,.78);color:#dff7ff;font:11px/1.25 Inter,Arial,sans-serif;pointer-events:none; }
 .analytical-template .packet-surface-help button { pointer-events:auto;padding:3px 7px;border:1px solid #42677a;border-radius:4px;background:#153447;color:#dff7ff;font:inherit;cursor:pointer; }
 .analytical-template .packet-surface-help[hidden],.analytical-template .packet-surface-webgl[hidden] { display:none!important; }
+.analytical-template .packet-surface-editor { position:absolute;inset:0;z-index:8;pointer-events:none; }
+.analytical-template .packet-surface-editor[hidden] { display:none!important; }
+.analytical-template .packet-surface-editor button { position:absolute;transform:translate(-50%,-50%);pointer-events:auto;min-width:54px;padding:4px 7px;border:1px solid #73deef;border-radius:12px;background:rgba(15,48,65,.9);color:#e9fbff;font:600 10px/1.2 Inter,Arial,sans-serif;box-shadow:0 1px 5px rgba(0,0,0,.42);cursor:grab;touch-action:none; }
+.analytical-template .packet-surface-editor button:active { cursor:grabbing;background:#286078; }
+.analytical-template .packet-surface-editor output { position:absolute;right:10px;bottom:10px;padding:5px 8px;border-radius:5px;background:rgba(7,20,31,.84);color:#e9fbff;font:12px Inter,Arial,sans-serif; }
 
 /* One compact opacity slider per layer; zero hides without changing the model. */
 .analytical-template .analytical-layer {display:grid;grid-template-columns:minmax(0,1fr) 68px 38px;gap:8px;min-height:30px;}

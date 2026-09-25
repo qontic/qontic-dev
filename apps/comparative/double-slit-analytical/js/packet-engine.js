@@ -1,9 +1,9 @@
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations} from './physics-content.js?v=2.96';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations} from './physics-content.js?v=2.97';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=2.91';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=2.97';
 import {histogramLayout} from './packet-model.js?v=2.91';
-import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.96';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=2.96';
+import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.97';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=2.97';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -250,8 +250,8 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?v=2.96').then(({mountPacketSurface3D})=>{
-   surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});surface3D.setVisible(surfaceView);draw();return surface3D;
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?v=2.97').then(({mountPacketSurface3D})=>{
+   surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
  }
@@ -446,30 +446,31 @@ export function mountPacketEngine({core,advanced}){
  const clearHitsForPreview=()=>{
   window.qonticMWBranches?.cancel();hits=Array(p.bins).fill(0);slitHits={upper:Array(p.bins).fill(0),lower:Array(p.bins).fill(0)};spectrumHitCounts=Array(p.bins).fill(0);spectrumHitSums=Array(p.bins).fill(0);nHits=0;hitMax=0;logNBranches=0;detectorFlashes.clear();flash=null;updateBranchCountDisplay();stats();
  };
+ function pauseForGeometry(){const running=isAnimating;if(running)document.getElementById('startButton').click();return running;}
+ function resumeAfterGeometry(running){if(running&&!isAnimating)document.getElementById('startButton').click();}
+ function previewGeometry(next){syncGeometryReadouts(next);window.qonticScaleOverlay?.previewHeight(next?.height??null);if(!next){histogram();drawDetection();return;}if(next.wall!==sourcePos||next.distance!==detectorDistance||next.height!==screenHeight)clearHitsForPreview();const preview={...p,wall:next.wall/100,screen:(next.wall+next.distance)/100},ymin=-next.height/200,ymax=next.height/200;const predicted=sourceProfile(preview,ymin,ymax,2049);histogram({profile:predicted,screenHeight:next.height/100});}
+ function commitGeometry(next){if(next.distance===detectorDistance&&next.height===screenHeight&&next.wall===sourcePos)return;document.getElementById('source-position-group').setValueInFirstUnit(next.wall);document.getElementById('detector-distance-group').setValueInFirstUnit(next.distance);document.getElementById('screen-height-group').setValueInFirstUnit(next.height);setupGeo(false);reset=0;resetEngine();draw();}
+ function previewWidth(value){const committed=p?.sy*100??+width.value;slitPreviewWidth=value;const shownWidth=value===null?committed:value;width.value=shownWidth;syncPacketInput(width);if(value!==null&&value!==committed)clearHitsForPreview();draw();if(value!==null){const preview={...p,sy:value/100},predicted=sourceProfile(preview,-yOffset,screenHeight/100-yOffset,2049);histogram({profile:predicted});drawDetection();}}
+ function commitWidth(value){width.value=value;width.dispatchEvent(new Event('input',{bubbles:true}));}
+ function previewSeparation(value){slitPreviewSeparation=value;document.getElementById('slit-separation-group')?.setValueInFirstUnit(value===null?slitSeparation:value);if(value!==null&&value!==slitSeparation)clearHitsForPreview();draw();if(value!==null){const preview={...p,centers:displayCenters()},predicted=sourceProfile(preview,-yOffset,screenHeight/100-yOffset,2049);histogram({profile:predicted});drawDetection();}}
+ function commitSeparation(value){document.getElementById('slit-separation-group').setValueInFirstUnit(value);setupGeo(false);reset=0;resetEngine();draw();}
+ function surfaceEditorState(){return {wall:sourcePos,distance:detectorDistance,height:screenHeight,wallMin:50,wallMax:1000,distanceMin:50,distanceMax:3000,heightMin:100,heightMax:5000,width:+width.value,minWidth:+width.min,maxWidth:dynamicWidthMax,extentSigma:+extent.value,separation:slitSeparation,maxSeparation:dynamicSeparationMax};}
+ function configureSurfaceEditor(){surface3D?.configureEditor({getState:surfaceEditorState,pause:pauseForGeometry,resume:resumeAfterGeometry,preview(kind,value){if(['wall','distance','height'].includes(kind))previewGeometry(value);else if(kind==='width')previewWidth(value);else previewSeparation(value);},commit(kind,value){if(['wall','distance','height'].includes(kind))commitGeometry(value);else if(kind==='width')commitWidth(value);else commitSeparation(value);},cancel(kind){if(['wall','distance','height'].includes(kind))previewGeometry(null);else if(kind==='width')previewWidth(null);else previewSeparation(null);}});}
  const geometryControls=mountPacketGeometry({
   host:document.getElementById('canvas-container'),
   getGeometry(){if(!p)return null;const host=document.getElementById('canvas-container');return {wall:sourcePos,wallFraction:wallX/canvas.width,distance:detectorDistance,height:screenHeight,detectorFraction:detectorX/canvas.width,scaleX:toCanvasX*host.clientWidth/canvas.width,scaleY:toCanvasY*host.clientHeight/canvas.height,busy:window.qonticMWBranches?.busy};},
-  onPreview(next){syncGeometryReadouts(next);window.qonticScaleOverlay?.previewHeight(next?.height??null);if(!next){histogram();drawDetection();return;}if(next.wall!==sourcePos||next.distance!==detectorDistance||next.height!==screenHeight)clearHitsForPreview();const preview={...p,wall:next.wall/100,screen:(next.wall+next.distance)/100},ymin=-next.height/200,ymax=next.height/200;const predicted=sourceProfile(preview,ymin,ymax,2049);histogram({profile:predicted,screenHeight:next.height/100});},
-  onCommit(next){if(next.distance===detectorDistance&&next.height===screenHeight&&next.wall===sourcePos)return;document.getElementById('source-position-group').setValueInFirstUnit(next.wall);document.getElementById('detector-distance-group').setValueInFirstUnit(next.distance);document.getElementById('screen-height-group').setValueInFirstUnit(next.height);setupGeo(false);reset=0;resetEngine();draw();},
-  pause(){const running=isAnimating;if(running)document.getElementById('startButton').click();return running;},
-  resume(running){if(running&&!isAnimating)document.getElementById('startButton').click();}
+  onPreview:previewGeometry,onCommit:commitGeometry,pause:pauseForGeometry,resume:resumeAfterGeometry
  });
 
  const slitControls=mountSlitWidth({
   host:document.getElementById('canvas-container'),
   getState(){const host=document.getElementById('canvas-container');return {width:+width.value,minWidth:+width.min,maxWidth:dynamicWidthMax,extentSigma:+extent.value,centers:p?displayCenters().map(center=>Y(center)/canvas.height):[],wallFraction:wallX/canvas.width,scaleY:toCanvasY*host.clientHeight/canvas.height,busy:window.qonticMWBranches?.busy,visible:shown('plot_screen')};},
-  onPreview(value){const committed=p?.sy*100??+width.value;slitPreviewWidth=value;const shownWidth=value===null?committed:value;width.value=shownWidth;syncPacketInput(width);if(value!==null&&value!==committed)clearHitsForPreview();draw();if(value!==null){const preview={...p,sy:value/100},predicted=sourceProfile(preview,-yOffset,screenHeight/100-yOffset,2049);histogram({profile:predicted});drawDetection();}},
-  onCommit(value){width.value=value;width.dispatchEvent(new Event('input',{bubbles:true}));},
-  pause(){const running=isAnimating;if(running)document.getElementById('startButton').click();return running;},
-  resume(running){if(running&&!isAnimating)document.getElementById('startButton').click();}
+  onPreview:previewWidth,onCommit:commitWidth,pause:pauseForGeometry,resume:resumeAfterGeometry
  });
  const separationControls=mountSlitSeparation({
   host:document.getElementById('canvas-container'),
   getState(){const host=document.getElementById('canvas-container');return {separation:slitSeparation,maxSeparation:dynamicSeparationMax,open:[slit1Open,slit2Open],wallFraction:wallX/canvas.width,scaleY:toCanvasY*host.clientHeight/canvas.height,busy:window.qonticMWBranches?.busy,visible:shown('plot_screen')};},
-  onPreview(value){slitPreviewSeparation=value;document.getElementById('slit-separation-group')?.setValueInFirstUnit(value===null?slitSeparation:value);if(value!==null&&value!==slitSeparation)clearHitsForPreview();draw();if(value!==null){const preview={...p,centers:displayCenters()},predicted=sourceProfile(preview,-yOffset,screenHeight/100-yOffset,2049);histogram({profile:predicted});drawDetection();}},
-  onCommit(value){document.getElementById('slit-separation-group').setValueInFirstUnit(value);setupGeo(false);reset=0;resetEngine();draw();},
-  pause(){const running=isAnimating;if(running)document.getElementById('startButton').click();return running;},
-  resume(running){if(running&&!isAnimating)document.getElementById('startButton').click();}
+  onPreview:previewSeparation,onCommit:commitSeparation,pause:pauseForGeometry,resume:resumeAfterGeometry
  });
  const geometryHost=document.getElementById('canvas-container');
  const toolbar=document.querySelector('#canvas-wrapper .qontic-media-toolbar');
@@ -485,18 +486,19 @@ export function mountPacketEngine({core,advanced}){
   localStorage.setItem('qontic-double-slit-surface-view',String(surfaceView));geometryHost.classList.toggle('packet-surface-3d',surfaceView);
   surfaceButton.setAttribute('aria-pressed',String(surfaceView));surfaceButton.title=surfaceView?'Return to the flat 2D wave map':'Open the interactive 3D wave graph. Drag to rotate and use the wheel or pinch gesture to zoom.';
   surface3D?.setVisible(surfaceView);if(surfaceView)ensureSurface3D();
-  editButton.disabled=surfaceView;geometryHost.dispatchEvent(new CustomEvent('qontic:surface-view',{detail:{active:surfaceView}}));
+  editButton.disabled=false;geometryHost.dispatchEvent(new CustomEvent('qontic:surface-view',{detail:{active:surfaceView}}));
  }
  surfaceButton.addEventListener('click',()=>{if(geometryEditing)setGeometryEditing(false);surfaceView=!surfaceView;syncSurfaceView();draw();});
  function setGeometryEditing(next,restorePlayback=true){
   if(next===geometryEditing)return;
   if(next){if(window.qonticMWBranches?.busy)return;resumeAfterEditing=isAnimating;if(isAnimating)document.getElementById('startButton').click();geometryEditing=true;}
-  else{geometryControls.cancel();slitControls.cancel();separationControls.cancel();geometryEditing=false;}
+  else{geometryControls.cancel();slitControls.cancel();separationControls.cancel();surface3D?.cancelEditor();geometryEditing=false;}
   geometryHost.classList.toggle('editing-geometry',geometryEditing);editButton.setAttribute('aria-pressed',String(geometryEditing));draw();
+  surface3D?.setEditing(surfaceView&&geometryEditing);
   if(!next){const running=resumeAfterEditing;resumeAfterEditing=false;if(restorePlayback&&running&&!isAnimating)document.getElementById('startButton').click();}
  }
  editButton.addEventListener('click',()=>setGeometryEditing(!geometryEditing));
- geometryHost.addEventListener('contextmenu',event=>{if(surfaceView||window.qonticMWBranches?.busy)return;event.preventDefault();setGeometryEditing(!geometryEditing);});
+ geometryHost.addEventListener('contextmenu',event=>{if(window.qonticMWBranches?.busy)return;event.preventDefault();setGeometryEditing(!geometryEditing);});
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&geometryEditing){event.preventDefault();setGeometryEditing(false);}},true);
  // An explicit Start action leaves editing before transport resumes.
  document.getElementById('startButton').addEventListener('click',()=>{if(geometryEditing&&!isAnimating)setGeometryEditing(false,false);},true);

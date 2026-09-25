@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {dragSurfaceGeometry} from './packet-interaction.js?v=2.97';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
 
@@ -58,9 +59,20 @@ export function mountPacketSurface3D({host}){
  const dynamic=new THREE.Group();scene.add(dynamic);
  const overlay=document.createElement('div');overlay.className='packet-surface-help';overlay.innerHTML='<span>Drag: rotate · Wheel/pinch: zoom · Right-drag: pan</span><button type="button" title="Reset 3D camera">Reset view</button>';
  overlay.querySelector('button').addEventListener('click',resetCamera);host.append(overlay);
+ const editor=document.createElement('div');editor.className='packet-surface-editor';editor.hidden=true;
+ editor.innerHTML='<button type="button" data-kind="wall" title="Move slit wall">↔ Wall</button><button type="button" data-kind="distance" title="Change wall-to-detector distance">↔ Distance</button><button type="button" data-kind="height" title="Change screen height">↕ Height</button><button type="button" data-kind="width" title="Change both slit widths">↕ Width</button><button type="button" data-kind="separation" title="Change slit separation">↕ Sep</button><output hidden></output>';
+ host.append(editor);
  renderer.domElement.addEventListener('dblclick',resetCamera);
+ let editorCallbacks=null,editDrag=null;
 
- function render(){if(!visible)return;renderer.render(scene,camera);}
+ function screenPoint(point){const projected=point.clone().project(camera),width=host.clientWidth,height=host.clientHeight;return {x:(projected.x+1)*width/2,y:(1-projected.y)*height/2};}
+ function editorAnchors(){
+  if(!lastState)return {};
+  const wallX=X_MIN+lastState.wallFraction*(X_MAX-X_MIN),opening=[...lastState.openings].sort((a,b)=>a[0]-b[0])[0]||[.42,.48],center=(opening[0]+opening[1])/2;
+  return {wall:new THREE.Vector3(wallX,Y_MIN+.12,.2),distance:new THREE.Vector3(X_MAX,Y_MIN+.12,.2),height:new THREE.Vector3(X_MAX,Y_MAX,.2),width:new THREE.Vector3(wallX,Y_MAX-opening[0]*(Y_MAX-Y_MIN),.24),separation:new THREE.Vector3(wallX,Y_MAX-center*(Y_MAX-Y_MIN),.24)};
+ }
+ function positionEditor(){if(editor.hidden||!lastState)return;const anchors=editorAnchors();for(const button of editor.querySelectorAll('button[data-kind]')){const point=screenPoint(anchors[button.dataset.kind]);if(editDrag?.kind===button.dataset.kind){point.x+=editDrag.axisX*(editDrag.scalar||0);point.y+=editDrag.axisY*(editDrag.scalar||0);}button.style.left=point.x+'px';button.style.top=point.y+'px';}}
+ function render(){if(!visible)return;renderer.render(scene,camera);positionEditor();}
  controls.addEventListener('change',render);
  function animate(){frame=0;if(!visible)return;controls.update();render();if(controls.enableDamping)frame=requestAnimationFrame(animate);}
  function resize(){const width=Math.max(1,host.clientWidth),height=Math.max(1,host.clientHeight);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();render();}
@@ -154,7 +166,18 @@ export function mountPacketSurface3D({host}){
   const point=new THREE.Vector3(X_MAX+.095,Y_MAX-v*(Y_MAX-Y_MIN),z).project(camera);
   return {x:(point.x+1)*width/2,y:(1-point.y)*height/2};
  }
- function dispose(){cancelAnimationFrame(frame);observer.disconnect();controls.dispose();while(dynamic.children.length)disposeObject(dynamic.children[0]);renderer.dispose();renderer.domElement.remove();overlay.remove();}
+ function editorValue(kind,start,worldDelta){
+  return dragSurfaceGeometry(start,kind,worldDelta);
+ }
+ function finishEditor(commit){if(!editDrag)return;const drag=editDrag;editDrag=null;controls.enabled=true;editor.querySelector('output').hidden=true;try{if(commit)editorCallbacks?.commit(drag.kind,drag.value);else editorCallbacks?.cancel(drag.kind);}finally{editorCallbacks?.resume(drag.running);}}
+ for(const button of editor.querySelectorAll('button[data-kind]')){
+  button.addEventListener('pointerdown',event=>{if(event.button!==0||editDrag||!editorCallbacks)return;event.preventDefault();event.stopPropagation();const kind=button.dataset.kind,start=editorCallbacks.getState(),anchor=editorAnchors()[kind],axis=['wall','distance'].includes(kind)?new THREE.Vector3(.5,0,0):new THREE.Vector3(0,.5,0),a=screenPoint(anchor),b=screenPoint(anchor.clone().add(axis)),dx=b.x-a.x,dy=b.y-a.y,length=Math.max(1,Math.hypot(dx,dy));editDrag={kind,start,x:event.clientX,y:event.clientY,axisX:dx/length,axisY:dy/length,pixelsPerWorld:length/.5,value:kind==='width'?start.width:kind==='separation'?start.separation:{wall:start.wall,distance:start.distance,height:start.height},running:editorCallbacks.pause()};controls.enabled=false;button.setPointerCapture(event.pointerId);});
+  button.addEventListener('pointermove',event=>{if(!editDrag||editDrag.kind!==button.dataset.kind)return;const scalar=(event.clientX-editDrag.x)*editDrag.axisX+(event.clientY-editDrag.y)*editDrag.axisY,worldDelta=scalar/editDrag.pixelsPerWorld;editDrag.scalar=scalar;editDrag.value=editorValue(editDrag.kind,editDrag.start,worldDelta);const value=editor.querySelector('output');value.hidden=false;value.textContent=editDrag.kind==='width'?`Slit width: ${editDrag.value} nm`:editDrag.kind==='separation'?`Slit separation: ${editDrag.value} nm`:editDrag.kind==='height'?`Screen height: ${editDrag.value.height} nm`:editDrag.kind==='wall'?`Slit wall: ${editDrag.value.wall} nm`:`Detector distance: ${editDrag.value.distance} nm`;positionEditor();editorCallbacks.preview(editDrag.kind,editDrag.value);});
+  button.addEventListener('pointerup',()=>finishEditor(true));button.addEventListener('pointercancel',()=>finishEditor(false));button.addEventListener('lostpointercapture',()=>finishEditor(false));
+ }
+ function configureEditor(callbacks){editorCallbacks=callbacks;}
+ function setEditing(active){if(!active)finishEditor(false);editor.hidden=!active;controls.enabled=!active;positionEditor();}
+ function dispose(){cancelAnimationFrame(frame);observer.disconnect();controls.dispose();while(dynamic.children.length)disposeObject(dynamic.children[0]);renderer.dispose();renderer.domElement.remove();overlay.remove();editor.remove();}
  setVisible(false);
- return {update,setVisible,resetCamera,capture,projectDetector,dispose};
+ return {update,setVisible,resetCamera,capture,projectDetector,configureEditor,setEditing,cancelEditor:()=>finishEditor(false),dispose};
 }
