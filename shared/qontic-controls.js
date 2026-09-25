@@ -10,13 +10,13 @@ const boolAttr = (element, name, fallback = false) => {
 };
 
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-expert"];
+  static observedAttributes = ["interpretation", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-advanced", "show-expert"];
 
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
-      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=3.1", import.meta.url).href}">
+      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=3.2", import.meta.url).href}">
       <section class="qontic-common-controls" aria-label="Simulation controls">
         <button class="qontic-interpretation" type="button"></button>
         <div class="qontic-run-row" role="group" aria-label="Run controls">
@@ -132,11 +132,14 @@ class QonticControls extends HTMLElement {
     speedInput.setAttribute("aria-label", "Simulation speed");
     root.querySelector(".qontic-speed output").value = `${speed.toFixed(1)}×`;
 
+    const showAdvanced = this.getAttribute("show-advanced") !== "false";
+    const advancedButton = root.querySelector('[data-tab="advanced"]');
+    advancedButton.hidden = !showAdvanced;
     const showExpert = this.getAttribute("show-expert") === "true";
     const expertButton = root.querySelector('[data-tab="expert"]');
     expertButton.hidden = !showExpert;
     let tab = this.getAttribute("active-tab") || "core";
-    if (tab === "expert" && !showExpert) {
+    if ((tab === "advanced" && !showAdvanced) || (tab === "expert" && !showExpert)) {
       tab = "core";
       this.setAttribute("active-tab", tab);
     }

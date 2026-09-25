@@ -1,6 +1,7 @@
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
-import '../../../../shared/qontic-controls.js?v=3.1';
+import '../../../../shared/qontic-controls.js?v=3.2';
+import { mountDistanceScale, mountCoordinateTools } from '../../../../shared/qontic-overlays.js?v=5';
 
 // The shared component owns presentation; the original engine owns all state.
 // Keep legacy controls as hidden event endpoints so keyboard and export behavior
@@ -51,7 +52,7 @@ function mountFreeParticleTemplate() {
   controls.id = 'fp-shared-controls';
   for (const [name, value] of Object.entries({
     'show-reset':'true', 'interpretation':'pw', 'theme':document.documentElement.dataset.theme || 'light',
-    'show-tabs':'false', 'show-appearance':'true',
+    'show-tabs':'true', 'show-advanced':'false', 'show-appearance':'false', 'active-tab':'core',
     'speed-min':'0.1', 'speed-max':'16', 'speed-step':'0.01', 'speed':String(fp.speed),
   })) controls.setAttribute(name, value);
   const controlPanel = document.createElement('section');
@@ -60,7 +61,11 @@ function mountFreeParticleTemplate() {
   const corePane = document.createElement('div');
   corePane.id = 'fp-controls-core';
   corePane.className = 'fp-control-pane qontic-control-body';
-  controlPanel.append(controls, corePane);
+  const displayPane = document.createElement('div');
+  displayPane.id = 'fp-controls-display';
+  displayPane.className = 'fp-control-pane qontic-control-body fp-display-pane';
+  displayPane.hidden = true;
+  controlPanel.append(controls, corePane, displayPane);
   left.prepend(controlPanel);
   // Move existing inputs rather than cloning them or registering a second engine.
   corePane.append(
@@ -68,11 +73,70 @@ function mountFreeParticleTemplate() {
     $('fp-bin-control'),
     $('fp-sigma-row'),
     $('fp-sigma-y-row'),
-    $('fp-display-row'),
   );
-  controlPanel.append($('fp-mw-controls'));
+  displayPane.append($('fp-display-row'));
+  corePane.append($('fp-mw-controls'));
   $('fp-display-row').querySelectorAll('label').forEach(label => label.classList.add('qontic-app-toggle'));
   $('fp-display-row').classList.add('qontic-app-toggle-group');
+
+  const paletteRow = document.createElement('label');
+  paletteRow.className = 'fp-display-control';
+  const paletteLabel = document.createElement('span');
+  paletteLabel.textContent = 'Wave palette';
+  const paletteSelect = document.createElement('select');
+  paletteSelect.id = 'fp-wave-palette';
+  paletteSelect.setAttribute('aria-label', 'Wave palette');
+  for (const name of window.fpWavePaletteNames || ['Q-Ontic']) {
+    const option = document.createElement('option'); option.value = name; option.textContent = name;
+    paletteSelect.append(option);
+  }
+  const paletteSwatch = document.createElement('i');
+  paletteSwatch.className = 'fp-palette-swatch';
+  const paletteGradients = {
+    'Q-Ontic':'#000,#143c3d,#066827,#91111b,#810a50', Gray:'#717171,#e2e2e2',
+    Green:'#5aa664,#d9f0d3', Blue:'#4292c6,#c6dbef', Red:'#67000d,#fcbba1',
+    Yellow:'#8c510a,#ffffbf', Inferno:'#000004,#420a68,#dd513a,#fca50a',
+    Spectral:'#9e0142,#fdae61,#e6f598,#66c2a5,#5e4fa2', RdYlBu:'#d73027,#fee090,#e0f3f8,#4575b4'
+  };
+  const syncPalette = () => {
+    paletteSwatch.style.background = `linear-gradient(90deg,${paletteGradients[paletteSelect.value] || paletteGradients['Q-Ontic']})`;
+    window.fpSetWavePalette?.(paletteSelect.value);
+    try { localStorage.setItem('qontic-free-particle-palette', paletteSelect.value); } catch (_) {}
+  };
+  paletteSelect.addEventListener('change', syncPalette);
+  paletteRow.append(paletteLabel, paletteSelect, paletteSwatch);
+
+  const opacityRow = document.createElement('label');
+  opacityRow.className = 'fp-display-control';
+  const opacityLabel = document.createElement('span'); opacityLabel.textContent = 'Wave opacity';
+  const opacity = document.createElement('input');
+  opacity.type = 'range'; opacity.id = 'fp-wave-opacity'; opacity.min = '0'; opacity.max = '100'; opacity.step = '5'; opacity.value = '100';
+  opacity.setAttribute('aria-label', 'Wave opacity');
+  const opacityValue = document.createElement('output'); opacityValue.value = '100%'; opacityValue.textContent = '100%';
+  const syncOpacity = () => {
+    opacityValue.value = opacity.value + '%'; opacityValue.textContent = opacity.value + '%';
+    window.fpSetWaveOpacity?.(Number(opacity.value) / 100);
+    try { localStorage.setItem('qontic-free-particle-wave-opacity', opacity.value); } catch (_) {}
+  };
+  opacity.addEventListener('input', syncOpacity);
+  opacityRow.append(opacityLabel, opacity, opacityValue);
+  displayPane.append(paletteRow, opacityRow);
+  try {
+    const savedPalette = localStorage.getItem('qontic-free-particle-palette');
+    if (savedPalette && [...paletteSelect.options].some(option => option.value === savedPalette)) paletteSelect.value = savedPalette;
+    const savedOpacityRaw = localStorage.getItem('qontic-free-particle-wave-opacity');
+    if (savedOpacityRaw !== null) {
+      const savedOpacity = Number(savedOpacityRaw);
+      if (Number.isFinite(savedOpacity) && savedOpacity >= 0 && savedOpacity <= 100) opacity.value = String(savedOpacity);
+    }
+  } catch (_) {}
+  syncPalette(); syncOpacity();
+
+  controls.addEventListener('qontic:tab', event => {
+    const display = event.detail.tab === 'display';
+    corePane.hidden = display;
+    displayPane.hidden = !display;
+  });
   cards.forEach(card => card.classList.add('fp-legacy-control'));
   for (const id of ['fp-playback-controls', 'fp-speed-control']) $(id).classList.add('fp-legacy-control');
   for (const [id,label] of [['fp-energy-slider','Energy'],['fp-sigma-slider','Packet width'],['fp-sigmay-slider','Vertical spread']]) $(id).setAttribute('aria-label',label);
@@ -140,9 +204,26 @@ function mountFreeParticleTemplate() {
   nav.addEventListener('click',syncPage);
   // Shared media toolbar; retain the app's offline high-resolution MP4 exporter.
   const stage = $('viewpanel-sim');
-  mountQonticMedia({
+  const canvasHost = $('fp-canvas-wrap');
+  const formatDistance = value => Number(value.toPrecision(4)) + ' nm';
+  let media;
+  const scale = mountDistanceScale({
+    host:canvasHost, storageKey:'qontic-free-particle-scale-position',
+    getUnitsPerPixel:() => ({
+      x:(fp.xMax_nm - fp.xMin_nm) / Math.max(1, canvasHost.clientWidth),
+      y:(fp.yMax_nm - fp.yMin_nm) / Math.max(1, canvasHost.clientHeight),
+    }),
+    format:formatDistance,
+    onVisibilityChange:() => media?.syncScale(),
+  });
+  const coordinates = mountCoordinateTools({
+    host:canvasHost, storageKey:'qontic-free-particle-grid-visible', formatValue:formatDistance,
+    getBounds:() => ({xMin:fp.xMin_nm, xMax:fp.xMax_nm, yMin:fp.yMin_nm, yMax:fp.yMax_nm}),
+  });
+  media = mountQonticMedia({
     stage, controls, filename:'qontic-free-particle',
-    getCanvases: () => [...stage.querySelectorAll('#fpYProjCanvas, #fpWaveCanvas, #fpPartCanvas, #fpDetCanvas, #fpProbCanvas, .mw-mini-wrap canvas')],
+    coordinateControl:coordinates, scaleControl:scale,
+    getCanvases: () => [...stage.querySelectorAll('#fpYProjCanvas, #fpWaveCanvas, #fpPartCanvas, #fpDetCanvas, #fpProbCanvas, .mw-mini-wrap canvas'), scale.canvas, coordinates.canvas],
     onRecord: () => $('fp-btn-record').click(),
   });
   const toolbar = stage.querySelector('.qontic-media-toolbar');

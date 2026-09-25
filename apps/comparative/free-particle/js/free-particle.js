@@ -60,6 +60,8 @@ let fp = {
   interpMode      : 'pilotwave',// 'copenhagen' | 'pilotwave' | 'manyworlds'
   displayMode     : 'prob',     // 'prob' | 'real' | 'imag' | 'phase'
   showPilotWave   : true,       // visual preference only; guidance stays active
+  wavePalette     : 'Q-Ontic',  // shared across all interpretations
+  waveOpacity     : 1,
 
   // ── physical parameters ───────────────────────────────────────────────────
   energy_eV       : 1.0,        // kinetic energy in eV  → sets k, omega
@@ -141,41 +143,8 @@ let fp = {
   prob            : null,       // |ψ|²
 };
 
-// ---------------------------------------------------------------------------
-// Palette  (reuses the project palette mechanism if available, else built-in)
-// ---------------------------------------------------------------------------
-function fpColor(t) {
-  // "Inferno"-like palette from black → purple → orange → yellow
-  t = Math.max(0, Math.min(1, t));
-  const stops = [
-    [0,   [0,   0,   0  ]],
-    [0.25,[72,  0,  101  ]],
-    [0.5, [179, 58,  30  ]],
-    [0.75,[237, 149, 32  ]],
-    [1.0, [252, 255, 164 ]],
-  ];
-  for (let i = 1; i < stops.length; i++) {
-    if (t <= stops[i][0]) {
-      const lo = stops[i-1], hi = stops[i];
-      const f  = (t - lo[0]) / (hi[0] - lo[0]);
-      const r  = Math.round(lo[1][0] + f*(hi[1][0] - lo[1][0]));
-      const g  = Math.round(lo[1][1] + f*(hi[1][1] - lo[1][1]));
-      const b  = Math.round(lo[1][2] + f*(hi[1][2] - lo[1][2]));
-      return `rgb(${r},${g},${b})`;
-    }
-  }
-  return 'rgb(252,255,164)';
-}
-
-// Phase palette: maps [0, 2π] → hue wheel
-function fpPhaseColor(phase) {
-  const h = ((phase / (2*Math.PI)) % 1 + 1) % 1 * 360;
-  return `hsl(${h.toFixed(1)},90%,55%)`;
-}
-
 // DoubleSlit2.0/shaders/wave_render.frag and its ungrouped yellow particles.
-// Keep the legacy palettes above for Many-Worlds. Lookup tables avoid per-pixel
-// trigonometry in the Canvas renderer.
+// Lookup tables avoid per-pixel trigonometry in the Canvas renderer.
 const FP_WAVE_AMPLITUDE_CUTOFF = 0.001;
 const FP_PHASE_AMOUNT = 0.77905591;
 const FP_PALETTE_STEPS = 1024;
@@ -203,6 +172,24 @@ const FP_DENSITY_STOPS = [
   [0.97, [0.549, 0.043, 0.239]],
   [1.00, [0.506, 0.039, 0.314]],
 ];
+// Same named choices exposed by the analytical double-slit display controls.
+// Q-Ontic preserves this app's current house palette as the default.
+const FP_WAVE_PALETTES = {
+  Gray: ['#717171','#8d8d8d','#aaaaaa','#c6c6c6','#e2e2e2'],
+  Green: ['#5aa664','#a6dba0','#d9f0d3'],
+  Blue: ['#4292c6','#6baed6','#c6dbef'],
+  Red: ['#67000d','#a50f15','#cb181d','#ef3b2c','#fcbba1'],
+  Yellow: ['#8c510a','#d8b365','#f6e8c3','#fee08b','#ffffbf'],
+  Inferno: ['#000004','#420a68','#932667','#dd513a','#fca50a'],
+  Spectral: ['#9e0142','#f46d43','#fdae61','#fee08b','#e6f598','#abdda4','#66c2a5','#3288bd','#5e4fa2'],
+  RdYlBu: ['#d73027','#fc8d59','#fee090','#e0f3f8','#91bfdb','#4575b4'],
+};
+const FP_WAVE_PALETTE_RGB = Object.fromEntries(Object.entries(FP_WAVE_PALETTES).map(([name, colors]) => [name,
+  colors.map(hex => {
+    const value = parseInt(hex.slice(1), 16);
+    return [value >> 16, (value >> 8) & 255, value & 255].map(channel => channel / 255);
+  })
+]));
 const FP_DENSITY_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
   const density = i / FP_PALETTE_STEPS;
   const hi = FP_DENSITY_STOPS.findIndex((stop, index) => index > 0 && density <= stop[0]);
@@ -210,11 +197,6 @@ const FP_DENSITY_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) =
   const [hiValue, hiColor] = FP_DENSITY_STOPS[hi];
   const blend = (density - loValue) / (hiValue - loValue);
   return loColor.map((channel, c) => channel + (hiColor[c] - channel) * blend);
-});
-const FP_PHASE_DENSITY_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
-  const I = i / FP_PALETTE_STEPS;
-  return [0.26, 0.13, 0.49].map((lo, c) =>
-    (lo + ([0.72, 0.50, 0.99][c] - lo) * Math.pow(I, 0.7)) * I);
 });
 const FP_PHASE_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
   const phase = (i / FP_PALETTE_STEPS * 2 - 1) * Math.PI;
@@ -231,13 +213,32 @@ function fpWaveIntensity(rho) {
 }
 
 function fpDensityRGB(relativeDensity) {
-  return FP_DENSITY_PALETTE[Math.round(Math.max(0, Math.min(1, relativeDensity)) * FP_PALETTE_STEPS)];
+  const t = Math.max(0, Math.min(1, relativeDensity));
+  if (fp.wavePalette === 'Q-Ontic') return FP_DENSITY_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
+  const palette = FP_WAVE_PALETTE_RGB[fp.wavePalette] || FP_WAVE_PALETTE_RGB.Inferno;
+  const scaled = t * (palette.length - 1);
+  const index = Math.floor(scaled);
+  const blend = scaled - index;
+  const lo = palette[index], hi = palette[Math.min(index + 1, palette.length - 1)];
+  return lo.map((channel, c) => channel + (hi[c] - channel) * blend);
 }
 
 function fpDensityColor(relativeDensity) {
   const rgb = fpDensityRGB(relativeDensity);
-  return `rgb(${rgb.map(v => Math.round(255 * v)).join(',')})`;
+  return `rgba(${rgb.map(v => Math.round(255 * v)).join(',')},${fp.waveOpacity})`;
 }
+
+window.fpWavePaletteNames = ['Q-Ontic', ...Object.keys(FP_WAVE_PALETTES)];
+window.fpSetWavePalette = name => {
+  if (!window.fpWavePaletteNames.includes(name)) return;
+  fp.wavePalette = name;
+  fp._collapseVisual = null;
+  fpRender();
+};
+window.fpSetWaveOpacity = value => {
+  fp.waveOpacity = Math.max(0, Math.min(1, Number(value)));
+  fpRender();
+};
 
 function fpClearCollapse() {
   fp.collapseElapsed_ms = 0;
@@ -882,7 +883,7 @@ function fpRenderWave() {
     for (let i = 0; i < off.width; i++) {
       const v = vals[j * off.width + i];
       let r = 0, g = 0, b = 0, a = 255;
-      if (fp.interpMode !== 'manyworlds' && (mode === 'phase' || mode === 'prob')) {
+      if (mode === 'phase' || mode === 'prob') {
         const rho = probs[j * off.width + i];
         const fade = Math.max(0, Math.min(1, (Math.sqrt(rho) - FP_WAVE_AMPLITUDE_CUTOFF) / FP_WAVE_AMPLITUDE_CUTOFF));
         const visibility = fade * fade * (3 - 2 * fade);
@@ -892,7 +893,7 @@ function fpRenderWave() {
           const phaseIndex = Math.max(0, Math.min(FP_PALETTE_STEPS,
             Math.round((v / Math.PI + 1) * 0.5 * FP_PALETTE_STEPS)));
           const phase = FP_PHASE_PALETTE[phaseIndex];
-          const density = FP_PHASE_DENSITY_PALETTE[colorIndex];
+          const density = fpDensityRGB(colorIndex / FP_PALETTE_STEPS);
           r = ((1 - FP_PHASE_AMOUNT) * density[0] + FP_PHASE_AMOUNT * phase[0] * I) * 255 * visibility;
           g = ((1 - FP_PHASE_AMOUNT) * density[1] + FP_PHASE_AMOUNT * phase[1] * I) * 255 * visibility;
           b = ((1 - FP_PHASE_AMOUNT) * density[2] + FP_PHASE_AMOUNT * phase[2] * I) * 255 * visibility;
@@ -900,41 +901,19 @@ function fpRenderWave() {
           const rgb = fpDensityRGB(rho / maxP2D);
           r = rgb[0] * 255 * visibility; g = rgb[1] * 255 * visibility; b = rgb[2] * 255 * visibility;
         }
-      } else if (mode === 'phase') {
-        // Modulate hue brightness by local amplitude so near-zero regions
-        // appear dark rather than showing noisy colour at the packet edges.
-        const ampWeight = Math.min(1, Math.sqrt(probs[j * off.width + i] / maxP2D));
-        const h = (((v / (2 * Math.PI)) % 1 + 1) % 1) * 6;
-        const xh = 1 - Math.abs((h % 2) - 1);
-        let rr = 0, gg = 0, bb = 0;
-        if (h < 1) { rr = 1; gg = xh; }
-        else if (h < 2) { rr = xh; gg = 1; }
-        else if (h < 3) { gg = 1; bb = xh; }
-        else if (h < 4) { gg = xh; bb = 1; }
-        else if (h < 5) { rr = xh; bb = 1; }
-        else { rr = 1; bb = xh; }
-        r = Math.round(255 * rr * ampWeight);
-        g = Math.round(255 * gg * ampWeight);
-        b = Math.round(255 * bb * ampWeight);
       } else if (mode === 'real' || mode === 'imag') {
         const t = (v - vmin) / Math.max(1e-12, vmax - vmin);
         const dv = t - 0.5;
         r = Math.round(Math.max(0, dv * 2) * 220 + 20);
         b = Math.round(Math.max(0, -dv * 2) * 220 + 20);
         g = Math.round(35 * (1 - 4 * dv * dv));
-      } else {
-        const t = Math.max(0, Math.min(1, v / Math.max(1e-12, maxP2D)));
-        // Inferno-like palette
-        const rr = Math.round(252 * t);
-        const gg = Math.round(255 * Math.pow(t, 1.6));
-        const bb = Math.round(164 * Math.pow(t, 0.6));
-        r = rr; g = gg; b = bb;
       }
       // In light mode, let empty space reveal the light canvas. Keep the
       // existing RGB palette; alpha follows the packet, including signed views.
       if (fpLightCanvas) {
         a = Math.round(255 * Math.min(1, Math.sqrt(probs[j * off.width + i] / maxP2D) * 4));
       }
+      a = Math.round(a * fp.waveOpacity);
       data[p++] = r; data[p++] = g; data[p++] = b; data[p++] = a;
     }
   }
@@ -1180,16 +1159,7 @@ function fpRenderYProjection() {
     if (accum > maxRho) maxRho = accum;
   }
 
-  if (fp.interpMode !== 'manyworlds') {
-    fpDrawDensityProfile(ctx, W, H, rhoY, maxRho, 'y');
-  } else {
-    for (let j = 0; j < H; j++) {
-      const t = Math.max(0, Math.min(1, rhoY[j] / maxRho));
-      const barW = Math.max(1, Math.round((W - 12) * t));
-      ctx.fillStyle = fpColor(t);
-      ctx.fillRect(W - barW - 1, j, barW, 1);
-    }
-  }
+  fpDrawDensityProfile(ctx, W, H, rhoY, maxRho, 'y');
 
   // Detector section guides to compare y-density against detector pixels.
   ctx.strokeStyle = fpCanvasColor('rgba(255,255,255,0.18)', 'rgba(51,65,85,0.22)');
@@ -1613,20 +1583,9 @@ function fpRenderProbPanel() {
   if ((fp.interpMode === 'collapse' || fp.interpMode === 'pilotwave') && fp.bDetected) return;
 
   // Draw the continuous density profile; retain the Many-Worlds rendering.
-  const N     = fp.NX;
   const maxP  = fp._maxProb || 1e-12;
-  const dxPix = W / N;
 
-  if (fp.interpMode !== 'manyworlds') {
-    fpDrawDensityProfile(ctx, W, H, fp.prob, maxP, 'x');
-  } else {
-    for (let i = 0; i < N; i++) {
-      const t = fp.prob[i] / maxP;
-      const bH = Math.round(t * (H - 20));
-      ctx.fillStyle = fpColor(t);
-      ctx.fillRect(Math.round(i * dxPix), H - bH, Math.max(1, Math.ceil(dxPix)), bH);
-    }
-  }
+  fpDrawDensityProfile(ctx, W, H, fp.prob, maxP, 'x');
 
   // detector window marker (map using this panel's own width)
   const xToProbPx = (x_nm) => ((x_nm - fp.xMin_nm) / (fp.xMax_nm - fp.xMin_nm)) * W;
