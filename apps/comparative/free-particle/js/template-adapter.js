@@ -1,7 +1,7 @@
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
 import '../../../../shared/qontic-controls.js?v=3.2';
-import { mountDistanceScale, mountCoordinateTools } from '../../../../shared/qontic-overlays.js?v=5';
+import { mountDistanceScale, mountCoordinateTools } from '../../../../shared/qontic-overlays.js?v=6';
 
 // The shared component owns presentation; the original engine owns all state.
 // Keep legacy controls as hidden event endpoints so keyboard and export behavior
@@ -297,7 +297,8 @@ function mountFreeParticleTemplate() {
   const formatDistance = value => Number(value.toPrecision(4)) + ' nm';
   let media;
   const scale = mountDistanceScale({
-    host:canvasHost, storageKey:'qontic-free-particle-scale-position',
+    host:canvasHost, storageKey:'qontic-free-particle-scale-position-v2',
+    defaultPosition:({hostHeight,height}) => ({x:8,y:Math.max(8,hostHeight-height-8)}),
     getUnitsPerPixel:() => ({
       x:(fp.xMax_nm - fp.xMin_nm) / Math.max(1, canvasHost.clientWidth),
       y:(fp.yMax_nm - fp.yMin_nm) / Math.max(1, canvasHost.clientHeight),
