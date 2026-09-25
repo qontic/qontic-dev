@@ -1,3 +1,8 @@
+## Version 2.102 — 2026-09-25
+
+- Restored a monotonic display-only contrast boost for amplitude-based 3D heights so the transmitted wave remains visible relative to the stronger incident packet.
+- Applied the same enhanced envelope to |Ψ|², Re Ψ and Im Ψ heights while preserving nodes, ordering, particle guidance and all probability calculations.
+
 ## Version 2.101 — 2026-09-25
 
 - Renamed the geometrical detector dimension from “Screen height” to “Screen length” throughout the controls, tooltips, accessibility text and drag readouts to avoid confusion with 3D wave height.

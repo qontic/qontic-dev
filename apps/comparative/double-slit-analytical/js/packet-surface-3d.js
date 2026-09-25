@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {dragSurfaceGeometry} from './packet-interaction.js?v=2.101';
+import {dragSurfaceGeometry} from './packet-interaction.js?v=2.102';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
 
@@ -57,7 +57,7 @@ export function mountPacketSurface3D({host}){
  const grid=new THREE.GridHelper(4.4,16,0x4a7c90,0x294e60);grid.rotation.x=Math.PI/2;grid.position.set(.1,0,-.018);grid.material.transparent=true;grid.material.opacity=.46;scene.add(grid);
 
  const dynamic=new THREE.Group();scene.add(dynamic);
- const overlay=document.createElement('div');overlay.className='packet-surface-help';overlay.innerHTML='<span>Drag: rotate · Wheel/pinch: zoom · Right-drag: pan</span><label>Height <select aria-label="3D surface height" title="Choose the wave quantity graphed as height. cos φ is continuous and avoids the artificial ±π wrap cliff. Carrier motion is slowed for a smooth 3D display only. With which-path tagging, signed and phase heights are density-weighted component displays."><option value="psi2">|Ψ|²</option><option value="phase">cos φ</option><option value="real">Re Ψ</option><option value="imag">Im Ψ</option></select></label><button type="button" title="Reset 3D camera">Reset view</button>';
+ const overlay=document.createElement('div');overlay.className='packet-surface-help';overlay.innerHTML='<span>Drag: rotate · Wheel/pinch: zoom · Right-drag: pan</span><label>Height <select aria-label="3D surface height" title="Choose the wave quantity graphed as height. Amplitude-based heights use a monotonic contrast boost so the transmitted wave remains visible; zeros and ordering are preserved. cos φ avoids the artificial ±π wrap cliff. Carrier motion is slowed for a smooth 3D display only."><option value="psi2">|Ψ|²</option><option value="phase">cos φ</option><option value="real">Re Ψ</option><option value="imag">Im Ψ</option></select></label><button type="button" title="Reset 3D camera">Reset view</button>';
  overlay.querySelector('button').addEventListener('click',resetCamera);host.append(overlay);
  const heightSelect=overlay.querySelector('select');let heightChange=null;heightSelect.addEventListener('change',()=>heightChange?.(heightSelect.value));
  const editor=document.createElement('div');editor.className='packet-surface-editor';editor.hidden=true;
