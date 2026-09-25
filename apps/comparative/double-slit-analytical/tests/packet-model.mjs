@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {gaussian,histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from '../js/packet-model.js';
+import {gaussian,histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfaceZeroLevel,surfacePhaseRate} from '../js/packet-model.js';
 
 for(const t of [0,3,8]){
  let norm=0,moment=0;
@@ -29,6 +29,10 @@ assert.equal(surfaceDisplayDensity(0),0);
 assert.equal(surfaceDisplayDensity(1),1);
 assert(surfaceDisplayDensity(.25)>.25);
 assert(surfaceDisplayDensity(.5)<surfaceDisplayDensity(.75));
+assert.equal(surfaceZeroLevel('psi2'),0);
+assert.equal(surfaceZeroLevel('real'),.36);
+assert.equal(surfaceZeroLevel('imag'),.36);
+assert.equal(surfaceZeroLevel('phase'),.36);
 assert.equal(surfacePhaseRate(1.25),1.25);
 assert.equal(surfacePhaseRate(18),2);
 assert.equal(surfacePhaseRate(-1),0);

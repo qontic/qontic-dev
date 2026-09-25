@@ -54,6 +54,9 @@ export function surfaceDisplayDensity(densityRatio,gain=3){
  const density=Math.max(0,Math.min(1,densityRatio));
  return gain>0?-Math.expm1(-gain*density)/-Math.expm1(-gain):density;
 }
+export function surfaceZeroLevel(mode,height=.72){
+ return ['phase','real','imag'].includes(mode)?height/2:0;
+}
 export function surfacePhaseRate(physicalRate,cap=2){
  return Math.min(Math.max(0,physicalRate),cap);
 }

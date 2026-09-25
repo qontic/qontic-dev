@@ -1,3 +1,8 @@
+## Version 2.103 — 2026-09-25
+
+- Aligned the 3D reference grid, floor, slit wall, detector and histogram baseline with the midpoint zero plane for cos φ, Re Ψ and Im Ψ.
+- Kept the zero plane at the bottom for nonnegative |Ψ|² height, so signed waves now extend visibly above and below the apparatus plane without hiding the geometry.
+
 ## Version 2.102 — 2026-09-25
 
 - Restored a monotonic display-only contrast boost for amplitude-based 3D heights so the transmitted wave remains visible relative to the stronger incident packet.

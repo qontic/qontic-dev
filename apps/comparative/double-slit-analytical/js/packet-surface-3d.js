@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {dragSurfaceGeometry} from './packet-interaction.js?v=2.102';
+import {dragSurfaceGeometry} from './packet-interaction.js?v=2.103';
+import {surfaceZeroLevel} from './packet-model.js?v=2.103';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
 
@@ -69,8 +70,8 @@ export function mountPacketSurface3D({host}){
  function screenPoint(point){const projected=point.clone().project(camera),width=host.clientWidth,height=host.clientHeight;return {x:(projected.x+1)*width/2,y:(1-projected.y)*height/2};}
  function editorAnchors(){
   if(!lastState)return {};
-  const wallX=X_MIN+lastState.wallFraction*(X_MAX-X_MIN),openings=[...lastState.openings].sort((a,b)=>a[0]-b[0]),upper=openings[0]||[.36,.44],lower=openings[1]||upper,lowerCenter=(lower[0]+lower[1])/2;
-  return {wall:new THREE.Vector3(wallX,Y_MIN+.12,.2),distance:new THREE.Vector3(X_MAX,Y_MIN+.12,.2),height:new THREE.Vector3(X_MAX,Y_MAX,.2),width:new THREE.Vector3(wallX,Y_MAX-upper[0]*(Y_MAX-Y_MIN),.24),separation:new THREE.Vector3(wallX,Y_MAX-lowerCenter*(Y_MAX-Y_MIN),.24)};
+  const zero=surfaceZeroLevel(lastState.heightMode,SURFACE_HEIGHT),wallX=X_MIN+lastState.wallFraction*(X_MAX-X_MIN),openings=[...lastState.openings].sort((a,b)=>a[0]-b[0]),upper=openings[0]||[.36,.44],lower=openings[1]||upper,lowerCenter=(lower[0]+lower[1])/2;
+  return {wall:new THREE.Vector3(wallX,Y_MIN+.12,zero+.2),distance:new THREE.Vector3(X_MAX,Y_MIN+.12,zero+.2),height:new THREE.Vector3(X_MAX,Y_MAX,zero+.2),width:new THREE.Vector3(wallX,Y_MAX-upper[0]*(Y_MAX-Y_MIN),zero+.24),separation:new THREE.Vector3(wallX,Y_MAX-lowerCenter*(Y_MAX-Y_MIN),zero+.24)};
  }
  function positionEditor(){if(editor.hidden||!lastState)return;const anchors=editorAnchors();for(const button of editor.querySelectorAll('button[data-kind]')){const point=screenPoint(anchors[button.dataset.kind]);if(editDrag?.kind===button.dataset.kind){point.x+=editDrag.axisX*(editDrag.scalar||0);point.y+=editDrag.axisY*(editDrag.scalar||0);}button.style.left=point.x+'px';button.style.top=point.y+'px';}}
  function render(){if(!visible)return;renderer.render(scene,camera);positionEditor();}
@@ -107,22 +108,22 @@ export function mountPacketSurface3D({host}){
 
  function addWall(state){
   if(!state.showScreen)return;
-  const x=X_MIN+state.wallFraction*(X_MAX-X_MIN),openings=[...state.openings].sort((a,b)=>a[0]-b[0]);let cursor=0;
+  const zero=surfaceZeroLevel(state.heightMode,SURFACE_HEIGHT),x=X_MIN+state.wallFraction*(X_MAX-X_MIN),openings=[...state.openings].sort((a,b)=>a[0]-b[0]);let cursor=0;
   const addSegment=(top,bottom,opacity=1)=>{
    if(bottom<=top)return;
    const yTop=Y_MAX-top*(Y_MAX-Y_MIN),yBottom=Y_MAX-bottom*(Y_MAX-Y_MIN),height=.18;
    const mesh=new THREE.Mesh(new THREE.BoxGeometry(.055,yTop-yBottom,height),new THREE.MeshPhongMaterial({color:0xd9edf4,transparent:opacity<1,opacity}));
-   mesh.position.set(x,(yTop+yBottom)/2,height/2);dynamic.add(mesh);
+   mesh.position.set(x,(yTop+yBottom)/2,zero+height/2);dynamic.add(mesh);
   };
   openings.forEach(([top,bottom],index)=>{addSegment(cursor,top);const transmission=state.apertureWeights[index]??1;if(transmission<1)addSegment(top,bottom,1-transmission);cursor=Math.max(cursor,bottom);});addSegment(cursor,1);
-  const edgePositions=[];for(const [top,bottom] of openings)for(const v of [top,bottom]){const y=Y_MAX-v*(Y_MAX-Y_MIN);edgePositions.push(x-.12,y,.185,x+.12,y,.185);}dynamic.add(lines(edgePositions,null,.9));
-  if(state.whichPathFraction!==null){const marker=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.22),new THREE.MeshPhongMaterial({color:0xffd54a}));marker.position.set(x-.10,Y_MAX-state.whichPathFraction*(Y_MAX-Y_MIN),.18);dynamic.add(marker);}
+  const edgePositions=[];for(const [top,bottom] of openings)for(const v of [top,bottom]){const y=Y_MAX-v*(Y_MAX-Y_MIN);edgePositions.push(x-.12,y,zero+.185,x+.12,y,zero+.185);}dynamic.add(lines(edgePositions,null,.9));
+  if(state.whichPathFraction!==null){const marker=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.22),new THREE.MeshPhongMaterial({color:0xffd54a}));marker.position.set(x-.10,Y_MAX-state.whichPathFraction*(Y_MAX-Y_MIN),zero+.18);dynamic.add(marker);}
  }
 
  function addDetector(state){
   if(!state.showDetector)return;
-  const x=X_MAX+.04,base=.08;
-  const wall=new THREE.Mesh(new THREE.BoxGeometry(.075,Y_MAX-Y_MIN,.16),new THREE.MeshPhongMaterial({color:color(state.detectorColor),transparent:true,opacity:.68}));wall.position.set(x,0,.08);dynamic.add(wall);
+  const zero=surfaceZeroLevel(state.heightMode,SURFACE_HEIGHT),x=X_MAX+.04,base=zero+.08;
+  const wall=new THREE.Mesh(new THREE.BoxGeometry(.075,Y_MAX-Y_MIN,.16),new THREE.MeshPhongMaterial({color:color(state.detectorColor),transparent:true,opacity:.68}));wall.position.set(x,0,base);dynamic.add(wall);
   if(state.showProbability&&state.probability.length){
    const step=Math.max(1,Math.ceil(state.probability.length/300)),points=[];
    for(let i=0;i<state.probability.length;i+=step){const v=i/(state.probability.length-1);points.push(world(1.015,v,base+.9*state.probability[i]));}
@@ -152,7 +153,7 @@ export function mountPacketSurface3D({host}){
  }
 
  function update(state){
-  lastState=state;recordObjects=[];while(dynamic.children.length)disposeObject(dynamic.children[0]);
+  lastState=state;const zero=surfaceZeroLevel(state.heightMode,SURFACE_HEIGHT),signed=zero>0;floor.position.z=zero-.025;floor.material.opacity=signed?.12:.76;floor.material.depthWrite=!signed;grid.position.z=zero-.018;grid.material.opacity=signed?.36:.46;recordObjects=[];while(dynamic.children.length)disposeObject(dynamic.children[0]);
   addWave(state);addWall(state);addDetector(state);addParticles(state);render();
  }
  function setVisible(next){visible=!!next;renderer.domElement.hidden=!visible;overlay.hidden=!visible;if(visible){resize();if(lastState)update(lastState);cancelAnimationFrame(frame);frame=requestAnimationFrame(animate);}else cancelAnimationFrame(frame);}
@@ -164,7 +165,7 @@ export function mountPacketSurface3D({host}){
   for(const object of hidden)object.visible=true;renderer.render(scene,camera);
  }
  function projectDetector(v,z,width,height){
-  const point=new THREE.Vector3(X_MAX+.095,Y_MAX-v*(Y_MAX-Y_MIN),z).project(camera);
+  const point=new THREE.Vector3(X_MAX+.095,Y_MAX-v*(Y_MAX-Y_MIN),surfaceZeroLevel(lastState?.heightMode,SURFACE_HEIGHT)+z).project(camera);
   return {x:(point.x+1)*width/2,y:(1-point.y)*height/2};
  }
  function editorValue(kind,start,worldDelta){
