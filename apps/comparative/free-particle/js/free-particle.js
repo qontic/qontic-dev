@@ -66,7 +66,7 @@ let fp = {
   // ── physical parameters ───────────────────────────────────────────────────
   energy_eV       : 1.0,        // kinetic energy in eV  → sets k, omega
   sigma0_nm       : 2.0,        // initial spatial width of Gaussian (packet mode)
-  sigmaY0_nm      : 33.0,       // initial vertical spread of 2D packet
+  sigmaY0_nm      : 11.0,       // initial vertical spread of 2D packet
   x0_nm           : -20.0,      // initial centre of packet
   detectorX_nm    : 30.0,       // position of detector (nm)
   detectorW_nm    : 4.0,        // half-width of detector window (nm)
@@ -287,7 +287,7 @@ function fpBuildGrid() {
 
 function fpSigmaY0() {
   // User-controlled y spread with sane floor for numerical stability.
-  return Math.max(2, fp.sigmaY0_nm || 0);
+  return Math.max(1, fp.sigmaY0_nm || 0);
 }
 
 // Section probabilities from |psi|^2 inside detector window at time t.
@@ -2146,7 +2146,7 @@ function fpWireUI() {
   const sySlider = document.getElementById('fp-sigmay-slider');
   const syInput  = document.getElementById('fp-sigmay-input');
   function setSigmaY(val) {
-    val = Math.max(8, Math.min(60, parseFloat(val)));
+    val = Math.max(1, Math.min(60, parseFloat(val)));
     fp.sigmaY0_nm = val;
     if (sySlider) sySlider.value = val;
     if (syInput)  syInput.value  = val.toFixed(0);
