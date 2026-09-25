@@ -82,7 +82,8 @@ export function mountPacketSurface3D({host}){
    const n=row*(cols+1)+col,u=col/cols,v=row/rows;
    const i=Math.min(state.gridWidth-1,Math.round(u*state.fieldFraction*(state.gridWidth-1))),j=Math.min(state.gridHeight-1,Math.round(v*(state.gridHeight-1))),source=j*state.gridWidth+i;
    positions.setZ(n,sampleHeight(state,u,v)*SURFACE_HEIGHT);
-   colors[3*n]=(rgba[4*source]||75)/255;colors[3*n+1]=(rgba[4*source+1]||150)/255;colors[3*n+2]=(rgba[4*source+2]||190)/255;
+   const visibility=(rgba[4*source+3]||0)/255,base=[.055,.13,.18];
+   colors[3*n]=base[0]+visibility*((rgba[4*source]||75)/255-base[0]);colors[3*n+1]=base[1]+visibility*((rgba[4*source+1]||150)/255-base[1]);colors[3*n+2]=base[2]+visibility*((rgba[4*source+2]||190)/255-base[2]);
   }
   geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));geometry.computeVertexNormals();
   const mesh=new THREE.Mesh(geometry,new THREE.MeshPhongMaterial({vertexColors:true,transparent:true,opacity:.88,side:THREE.DoubleSide,shininess:38}));
