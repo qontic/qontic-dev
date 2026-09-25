@@ -1,3 +1,10 @@
+## Version 2.95 — 2026-09-25
+
+- Replaced the fixed oblique 3D illustration with a true WebGL scene using an orbit camera: drag to rotate, wheel or pinch to zoom, right-drag to pan, and double-click or use Reset view to restore the camera.
+- Rendered the existing analytical packet field as a genuine height mesh while retaining the selected phase or density display as its surface color; the height remains a graph coordinate and does not enter the dynamics.
+- Added the slit mask and detector as low three-dimensional walls, with the predicted probability curve, retained hit markers, and their square-root count error bars projected vertically above the detector.
+- Lifted Pilot-Wave particles and trajectory tails onto the displayed mesh without changing their two-dimensional guidance calculation, sampling, or accumulated statistics.
+
 ## Version 2.94 — 2026-09-25
 
 - Added an optional 3D wave-surface view without introducing a second physics engine: it renders the same analytical packet field and preserves all particles, trajectories, hits, and statistics when toggled.

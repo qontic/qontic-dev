@@ -259,12 +259,21 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 .analytical-template #canvas-wrapper .qontic-media-toolbar { align-items:center; }
 .analytical-template #canvas-wrapper #view-label { margin:0 auto 0 0; text-align:left; font:400 14px/1.35 Inter,Arial,sans-serif; }
 
-/* The Cartesian overlays describe the flat x–y map and would be misleading on
-   the oblique surface projection. The wave-range palette remains meaningful. */
+/* The Cartesian overlays describe the flat x–y map and would be misleading in
+   the orbit-camera view. */
 .analytical-template #canvas-container.packet-surface-3d .qontic-coordinate-overlay,
 .analytical-template #canvas-container.packet-surface-3d .qontic-coordinate-readout,
 .analytical-template #canvas-container.packet-surface-3d .qontic-distance-scale,
 .analytical-template #canvas-container.packet-surface-3d .packet-geometry { display:none !important; }
+.analytical-template #canvas-container.packet-surface-3d > #setupCanvas,
+.analytical-template #canvas-container.packet-surface-3d > #waveCanvas,
+.analytical-template #canvas-container.packet-surface-3d > #partCanvas,
+.analytical-template #canvas-container.packet-surface-3d > [id^="palette"] { visibility:hidden; }
+.analytical-template #canvas-container > .packet-surface-webgl { position:absolute;inset:0;width:100%;height:100%;z-index:5;display:block;touch-action:none;cursor:grab; }
+.analytical-template #canvas-container > .packet-surface-webgl:active { cursor:grabbing; }
+.analytical-template .packet-surface-help { position:absolute;left:10px;top:10px;z-index:7;display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid rgba(190,229,241,.22);border-radius:6px;background:rgba(7,20,31,.78);color:#dff7ff;font:11px/1.25 Inter,Arial,sans-serif;pointer-events:none; }
+.analytical-template .packet-surface-help button { pointer-events:auto;padding:3px 7px;border:1px solid #42677a;border-radius:4px;background:#153447;color:#dff7ff;font:inherit;cursor:pointer; }
+.analytical-template .packet-surface-help[hidden],.analytical-template .packet-surface-webgl[hidden] { display:none!important; }
 
 /* One compact opacity slider per layer; zero hides without changing the model. */
 .analytical-template .analytical-layer {display:grid;grid-template-columns:minmax(0,1fr) 68px 38px;gap:8px;min-height:30px;}
