@@ -2,7 +2,7 @@ import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathVie
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=2.91';
 import {histogramLayout} from './packet-model.js?v=2.91';
-import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.93-expert-balance';
+import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.93-wall-color';
 import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=2.93-expert-balance';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
@@ -50,7 +50,7 @@ export function mountPacketEngine({core,advanced}){
   separationNumber.title=separationRange.title;
  }
  const directedRow=document.createElement('label');directedRow.className='bohmian-only packet-directed-inline';directedRow.innerHTML='<input id="packet-directed-slits" type="checkbox"> Direct PW';const directed=directedRow.querySelector('input');directed.checked=localStorage.getItem('qontic-pw-directed-slits')==='true';
- const slitColorRow=document.createElement('label');slitColorRow.className='bohmian-only packet-slit-colors';slitColorRow.title='Color transmitted Pilot-Wave particles and their detector dots/error bars by the slit region containing their actual wall-crossing position. Upper is cyan; lower is orange. This changes only the display.';slitColorRow.innerHTML='<input id="packet-color-by-slit" type="checkbox"> Color by slit <span class="packet-slit-key" aria-hidden="true"><i></i><i></i></span>';const colorBySlit=slitColorRow.querySelector('input');colorBySlit.checked=localStorage.getItem('qontic-pw-color-by-slit')==='true';
+ const slitColorRow=document.createElement('label');slitColorRow.className='bohmian-only packet-slit-colors';slitColorRow.title='Pilot-Wave display color. Slits uses cyan/orange and also separates screen-hit markers. Spectrum maps the exact transverse wall-crossing position continuously from violet (top) to red (bottom). This changes only the display.';slitColorRow.innerHTML='<span>PW color</span><select id="packet-particle-color" aria-label="Pilot-Wave particle color"><option value="uniform">Uniform</option><option value="slit">By slit</option><option value="spectrum">Spectrum</option></select>';const particleColorMode=slitColorRow.querySelector('select');particleColorMode.value=localStorage.getItem('qontic-pw-particle-color')||(localStorage.getItem('qontic-pw-color-by-slit')==='true'?'slit':'uniform');
  function syncPacketInput(control){const number=control.parentElement.querySelector('input[type=number]');number.value=control.value;number.max=control.max;number.min=control.min;control.parentElement.querySelector('output').textContent=control===interval?(+interval.value===0?'Auto':particleType==='neutron'?'ns':'ps'):control===extent?'σ':'nm';if(control===interval)interval.title='0 = wait until the previous packet has completed all outcomes. Positive values set time between source launches in '+(particleType==='neutron'?'nanoseconds':'picoseconds')+' of simulation time; independent of packet speed and width.';}
  for(const number of panel.querySelectorAll('input[type=number]')){const commitNumber=()=>{const range=number.parentElement.querySelector('input[type=range]'),value=Number(number.value);if(Number.isFinite(value))range.value=Math.max(+range.min,Math.min(+range.max,value));range.dispatchEvent(new Event('input',{bubbles:true}));};number.addEventListener('change',commitNumber);number.addEventListener('blur',commitNumber);number.addEventListener('keydown',event=>{if(event.key==='Enter'){commitNumber();number.blur();}});}
  tailLength.addEventListener('input',()=>{syncPacketInput(tailLength);for(const a of particles)trimTail(a.path,+tailLength.value/100);draw();});
@@ -59,14 +59,26 @@ export function mountPacketEngine({core,advanced}){
  const displayCenters=()=>slitPreviewSeparation===null?p.centers:[...(slit1Open?[-slitPreviewSeparation/200]:[]),...(slit2Open?[slitPreviewSeparation/200]:[])];
  const detectorFlashes=new Map();
  const style=document.createElement('style');style.textContent='.packet-settings label{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;margin:6px 0}.packet-settings input[type=range]{grid-column:1/-1;width:100%;min-width:0}.packet-settings label:has(input[type=checkbox]){display:flex;gap:8px}.packet-settings .packet-directed-row{display:block!important;width:100%;grid-column:1/-1;margin:6px 0}.packet-settings .packet-directed-row[hidden]{display:none!important}.packet-settings .packet-directed-row>label{display:flex!important;align-items:center;gap:8px;width:100%;margin:0 0 5px;white-space:nowrap}.packet-settings .packet-directed-row input{flex:0 0 auto}.packet-settings .packet-directed-row .packet-note{display:block;width:100%}.packet-note{font-size:.85em;line-height:1.4;opacity:.85}.physics-notation{width:100%;border-collapse:collapse;margin:16px 0}.physics-notation th,.physics-notation td{padding:8px 12px;border-bottom:1px solid #476477;text-align:left;vertical-align:top}.physics-notation td:first-child{min-width:100px}.packet-equation{overflow-x:auto;padding:8px 0}.packet-equation .katex{font-size:1.1em} .packet-settings,.packet-settings label,.packet-note{color:#dcecf4!important}[data-theme=light] .packet-settings,[data-theme=light] .packet-settings label,[data-theme=light] .packet-note{color:#183343!important}#particleRate-group,#sourceOption,label[for=Source]{display:none!important}.packet-settings .packet-inline{display:grid;grid-template-columns:90px minmax(40px,1fr) 58px 24px;gap:6px;align-items:center;margin:5px 0}.packet-settings .packet-inline label{display:block;margin:0;font-size:12px}.packet-settings .packet-inline input[type=range]{grid-column:auto;width:100%}.packet-species{display:flex!important;align-items:center;gap:6px;margin:0 0 4px;padding-bottom:4px;border-bottom:1px solid var(--border-color,#476477)}.packet-species>label:first-child{width:90px;min-width:90px;margin:0;font-size:12px}.packet-species select{min-width:82px}.packet-species .packet-directed-inline{display:flex;align-items:center;gap:4px;width:auto;min-width:0;margin:0 0 0 auto;font-size:12px;white-space:nowrap;cursor:help}.packet-species .packet-directed-inline[hidden]{display:none!important}.packet-species .packet-directed-inline input{margin:0;flex:0 0 auto}.packet-slit-colors{display:flex!important;align-items:center;gap:6px!important;margin:2px 0 4px 96px!important;font-size:12px;white-space:nowrap;cursor:help}.packet-slit-colors[hidden]{display:none!important}.packet-slit-colors input{margin:0}.packet-slit-key{display:inline-flex;gap:3px}.packet-slit-key i{display:block;width:10px;height:10px;border-radius:50%;background:#22d3ee}.packet-slit-key i+ i{background:#ff9f43}.packet-inline input[type=number]{width:100%;box-sizing:border-box;background:transparent;color:inherit;border:1px solid #476477;border-radius:3px;padding:3px}.packet-inline output{font-size:12px}#source-position-group,#detector-distance-group,#screen-height-group{display:grid!important;grid-template-columns:90px minmax(40px,1fr) 58px 24px;gap:6px;align-items:center;margin:5px 0}#source-position-group label,#detector-distance-group label,#screen-height-group label{margin:0;font-size:12px}#source-position-group input[type=range],#detector-distance-group input[type=range],#screen-height-group input[type=range]{grid-column:auto;width:100%;min-width:0}#source-position-group input[type=number],#detector-distance-group input[type=number],#screen-height-group input[type=number]{width:100%;box-sizing:border-box}#analytical-advanced .input-group{margin-bottom:4px}#analytical-advanced h3{margin:6px 0}.packet-geometry{position:absolute;inset:0;pointer-events:none;z-index:6}.packet-geometry[hidden],#canvas-container:not(.editing-geometry) .packet-geometry{display:none}.qontic-media-toolbar button[aria-label="Edit geometry"][aria-pressed="true"]{background:#286078;outline:2px solid #7ee9fb}.packet-geometry button{position:absolute;pointer-events:auto;touch-action:none;color:#d9f8ff;background:rgba(25,76,90,.2);border:1px solid rgba(110,222,239,.45)}.packet-detector-drag{bottom:3px;width:30px;height:28px;transform:translateX(-100%);cursor:ew-resize;border-radius:5px}.packet-slit-separation-drag{width:56px;height:24px;transform:translate(-50%,-50%);cursor:ns-resize;border-radius:12px!important;font-size:10px!important;background:#24394d!important}.packet-slit-separation-drag[hidden]{display:none!important}.packet-slit-width-drag{font-size:10px!important;width:56px;height:24px;transform:translate(-50%,-50%);cursor:ns-resize;border-radius:5px}.packet-slit-width-drag[hidden]{display:none!important}.packet-wall-drag{bottom:3px;width:30px;height:28px;transform:translateX(-50%);cursor:ew-resize;border-radius:5px}.packet-detector-drag:hover,.packet-geometry button:focus-visible{background:rgba(50,170,195,.5);outline:2px solid #7ee9fb}.packet-height-drag{bottom:3px;transform:translateX(0);width:30px;height:28px;cursor:ns-resize;border-radius:5px}.packet-geometry-guide{position:absolute;top:0;bottom:0;border-left:2px dashed #8fecff}.packet-geometry-value{position:absolute;bottom:35px;right:10px;background:#122e40;color:white;padding:5px;border-radius:4px}.packet-unused-row{display:none!important}#waveCanvas,#partCanvas,#setupCanvas{background:transparent!important}#canvas-container{background:#344f63!important}';document.head.append(style);
- const layoutStyle=document.createElement('style');layoutStyle.textContent='.packet-core-options{display:flex!important;align-items:center;gap:8px;margin:0 0 8px;padding:0 0 8px;border-bottom:1px solid var(--border-color,#476477)}.packet-core-options select{flex:1 1 86px;min-width:72px}.packet-core-options .packet-directed-inline,.packet-core-options .packet-slit-colors{display:flex!important;align-items:center;gap:4px!important;width:auto;min-width:0;margin:0!important;font-size:12px;white-space:nowrap}.packet-core-options .packet-directed-inline[hidden],.packet-core-options .packet-slit-colors[hidden]{display:none!important}.packet-core-options input{margin:0;flex:0 0 auto}.packet-settings .packet-balance output{grid-column:3/5;text-align:right;min-width:62px}';document.head.append(layoutStyle);
+ const layoutStyle=document.createElement('style');layoutStyle.textContent='.packet-core-options{display:flex!important;align-items:center;gap:8px;margin:0 0 8px;padding:0 0 8px;border-bottom:1px solid var(--border-color,#476477)}.packet-core-options>select{flex:1 1 78px;min-width:68px}.packet-core-options .packet-directed-inline,.packet-core-options .packet-slit-colors{display:flex!important;align-items:center;gap:4px!important;width:auto;min-width:0;margin:0!important;font-size:12px;white-space:nowrap}.packet-core-options .packet-directed-inline[hidden],.packet-core-options .packet-slit-colors[hidden]{display:none!important}.packet-core-options input{margin:0;flex:0 0 auto}.packet-core-options .packet-slit-colors select{width:74px;min-width:74px;padding:3px 2px;font-size:11px}.packet-settings .packet-balance output{grid-column:3/5;text-align:right;min-width:62px}';document.head.append(layoutStyle);
  const math=document.getElementById('math-container'),packetMath=document.createElement('section');packetMath.className='math-section';math.replaceChildren(packetMath);
  let slowPacketMode=false,savedPacketCount=null;
  let enabled=true,p=null,coeff=null,profile=null,law=null,sourceGrid=null,fingerprint='',particles=[],pending=[],pulses=[],slitHits={upper:[],lower:[]},nextEmission=0,t=0,totalTime=0,pulse=0,absorbed=0,pulseAbsorbed=0,missed=0,last=null,realElapsed=0,timeUnit=1,yOffset=0,finished=false,packetAnimationId=null,visualPhase=0,flash=null,hold=0,lastMode=interpretation;
  const slitColors={upper:'#22d3ee',lower:'#ff9f43'};
+ const spectrumSteps=48;
  const field=document.createElement('canvas'),gridW=640,gridH=480;field.width=gridW;field.height=gridH;const fc=field.getContext('2d');let data=fc.createImageData(gridW,gridH),paletteKey='',paletteColors=null;
  const shown=id=>document.getElementById(id)?.checked;
  const X=x=>(wallXWorld+(p.launch+x)*100)*toCanvasX,Y=y=>(y+yOffset)*100*toCanvasY;
+ function spectrumIndex(wallY){
+  if(!Number.isFinite(wallY)||!p?.centers?.length)return -1;
+  const half=p.slitExtentSigma*p.sy,lo=Math.min(...p.centers)-half,hi=Math.max(...p.centers)+half;
+  return Math.max(0,Math.min(spectrumSteps-1,Math.round((wallY-lo)/Math.max(1e-12,hi-lo)*(spectrumSteps-1))));
+ }
+ function spectrumColor(index){const t=index/Math.max(1,spectrumSteps-1);return `hsl(${270*(1-t)} 88% 58%)`;}
+ function particleColorGroup(a){
+  if(particleColorMode.value==='slit'&&a.slitSide)return a.slitSide;
+  if(particleColorMode.value==='spectrum'){const index=spectrumIndex(a.wallY);if(index>=0)return `s${index}`;}
+  return 'default';
+ }
  function syncWhichPathButton(){
   const button=document.getElementById('toggleWhichPath');if(!button)return;
   button.disabled=p?.centers.length!==2;
@@ -287,23 +299,25 @@ export function mountPacketEngine({core,advanced}){
 
  function drawParticles(){
   partCtx.clearRect(0,0,canvas.width,canvas.height);if(interpretation!=='bohmian')return;
-  const tails=shown('plot_trajectories'),dots=shown('plot_particles'),maxTail=+tailLength.value/100,buckets={default:Array.from({length:9},()=>[]),upper:Array.from({length:9},()=>[]),lower:Array.from({length:9},()=>[])};
+  const tails=shown('plot_trajectories'),dots=shown('plot_particles'),maxTail=+tailLength.value/100;
+  const groups=['default','upper','lower',...Array.from({length:spectrumSteps},(_,i)=>`s${i}`)];
+  const buckets=Object.fromEntries(groups.map(group=>[group,Array.from({length:9},()=>[])]));
   for(const a of particles){
    trimTail(a.path,a.screenDetected?0:maxTail);
    const opacity=tailOpacity(a.done,a.finishedAt??realElapsed,realElapsed);
    if(!opacity)a.path=[];
-   if(tails&&a.path.length)buckets[colorBySlit.checked&&a.slitSide?a.slitSide:'default'][Math.min(8,Math.ceil(opacity*8))].push(a);
+   if(tails&&a.path.length)buckets[particleColorGroup(a)][Math.min(8,Math.ceil(opacity*8))].push(a);
   }
   partCtx.save();partCtx.beginPath();partCtx.rect(0,0,detectorX,canvas.height);partCtx.clip();
-  for(const group of ['default','upper','lower']){
-   partCtx.strokeStyle=group==='default'?colorTraj:slitColors[group];
+  for(const group of groups){
+   partCtx.strokeStyle=group==='default'?colorTraj:group[0]==='s'?spectrumColor(+group.slice(1)):slitColors[group];
    for(let i=1;i<=8;i++){
     if(!buckets[group][i].length)continue;partCtx.globalAlpha=elementOpacity('plot_trajectories')*i/8;partCtx.beginPath();
     for(const a of buckets[group][i]){let first=true;for(const [x,y] of a.path){if(first){partCtx.moveTo(X(x),Y(y));first=false;}else partCtx.lineTo(X(x),Y(y));}}
     partCtx.stroke();
    }
   }
-  if(dots){partCtx.globalAlpha=elementOpacity('plot_particles');for(const group of ['default','upper','lower']){partCtx.fillStyle=group==='default'?colorPart:slitColors[group];partCtx.beginPath();for(const a of particles)if(!a.done&&(colorBySlit.checked&&a.slitSide?a.slitSide:'default')===group){const x=X(a.x),y=Y(a.y);partCtx.moveTo(x+3,y);partCtx.arc(x,y,3,0,2*Math.PI);}partCtx.fill();}}
+  if(dots){partCtx.globalAlpha=elementOpacity('plot_particles');for(const group of groups){partCtx.fillStyle=group==='default'?colorPart:group[0]==='s'?spectrumColor(+group.slice(1)):slitColors[group];partCtx.beginPath();for(const a of particles)if(!a.done&&particleColorGroup(a)===group){const x=X(a.x),y=Y(a.y);partCtx.moveTo(x+3,y);partCtx.arc(x,y,3,0,2*Math.PI);}partCtx.fill();}}
   partCtx.restore();
  }
  function drawDetection(){
@@ -322,7 +336,7 @@ export function mountPacketEngine({core,advanced}){
    if(shown('plot_sensor')){context.globalAlpha=elementOpacity('plot_sensor');const intensity=n/maxRecord;context.fillStyle=`rgb(${rgb.red*intensity},${rgb.green*intensity},${rgb.blue*intensity})`;context.fillRect(detectorX,i*canvas.height/p.bins,sensorWidth,canvas.height/p.bins);}
    if(shown('plot_hits')){
     context.globalAlpha=elementOpacity('plot_hits');
-    const slitResolved=interpretation==='bohmian'&&colorBySlit.checked&&context===setupCtx;
+    const slitResolved=interpretation==='bohmian'&&particleColorMode.value==='slit'&&context===setupCtx;
     if(slitResolved){
      const drawMarker=(count,side,offset)=>{if(!count)return;const slitX=histo+count*scale,slitError=Math.sqrt(count)*scale,slitY=y+offset;context.strokeStyle=context.fillStyle=side?slitColors[side]:colorHit;context.beginPath();context.moveTo(slitX-slitError,slitY);context.lineTo(slitX+slitError,slitY);context.stroke();context.beginPath();context.arc(slitX,slitY,3,0,2*Math.PI);context.fill();};
      for(const [side,offset] of [['upper',-2.5],['lower',2.5]]){
@@ -363,7 +377,7 @@ export function mountPacketEngine({core,advanced}){
  const count=+params.get('packetCount');if(count>=1&&count<=5000)$('#MaxPart-group')[0]?.setValueInFirstUnit(count);
  interval.addEventListener('input',()=>{syncPacketInput(interval);nextEmission=Math.max(t,(pulses.at(-1)?.born??t)+emissionPeriod());});
  directed.addEventListener('change',()=>{localStorage.setItem('qontic-pw-directed-slits',String(directed.checked));syncMode();});
- colorBySlit.addEventListener('change',()=>{localStorage.setItem('qontic-pw-color-by-slit',String(colorBySlit.checked));draw();});
+ particleColorMode.addEventListener('change',()=>{localStorage.setItem('qontic-pw-particle-color',particleColorMode.value);localStorage.removeItem('qontic-pw-color-by-slit');draw();});
  balance.addEventListener('input',()=>{syncBalance();resetEngine();draw();});
  for(const control of [length,width,sourceWidth,extent])control.addEventListener('input',()=>{applyPacketLimits();syncPacketInput(control);slitWidthHelp();resetEngine();draw();});
 

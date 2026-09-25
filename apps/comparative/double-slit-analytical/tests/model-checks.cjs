@@ -46,7 +46,10 @@ assert(!engine.includes('const attempts=') && !engine.includes('attempt<20000'))
 // Slit coloring is display-only metadata assigned after successful wall
 // transmission, and live geometry previews discard the obsolete hit record.
 assert(model.indexOf("return 'absorbed'") < model.indexOf('a.slitSide='));
-assert(engine.includes('packet-color-by-slit'));
+assert(engine.includes('packet-particle-color'));
+assert(engine.includes('<option value="spectrum">Spectrum</option>'));
+assert(engine.includes('spectrumIndex(a.wallY)'));
+assert(model.includes('wallY:yWall'));
 assert(engine.includes('packet-core-options'));
 assert(engine.includes('packet-slit-balance'));
 assert(engine.includes('apertureWeights'));

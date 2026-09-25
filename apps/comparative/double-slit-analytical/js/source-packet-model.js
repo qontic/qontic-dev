@@ -188,7 +188,7 @@ export function sampleTransmittedSource(p,random=Math.random,fixedX=null,slitExt
  const y=yWall*sourceWidth(x,p)/Math.sqrt(incidentVariance);
  const slitIndex=selected.component?.slitIndex??selected.slitIndex;
  const slitSide=slitIndex===null||slitIndex===undefined?undefined:p.centers[slitIndex]<0?'upper':'lower';
- return {x0:x,x,y,done:false,passed:false,absorbed:false,path:[],conditionedTransmission:true,slitIndex,slitSide};
+ return {x0:x,x,y,done:false,passed:false,absorbed:false,path:[],conditionedTransmission:true,slitIndex,slitSide,wallY:yWall};
 }
 export function advanceSourceY(y,x,dx,p,coeff){
  // Incident Gaussian trajectories have a closed expression; transmitted
@@ -217,6 +217,10 @@ export function stepSource(a,dt,p,coeff,random=Math.random){
    }
    a.slitSide=p.centers[a.slitIndex]<0?'upper':'lower';
   }else if(!a.conditionedTransmission&&random()>aperture(a.y,p)**2){a.done=a.absorbed=true;return 'absorbed';}
+  // Display metadata only. Retain the exact transverse coordinate where this
+  // transmitted trajectory crossed the aperture plane so color views can
+  // encode more than a binary upper/lower classification.
+  a.wallY=a.y;
   // Display metadata only: associate a transmitted particle's actual
   // wall-crossing position with the nearest open aperture. This never enters
   // the guidance dynamics or the transmission decision above.

@@ -52,11 +52,11 @@ const whichResults=[];
 for(let i=0;i<4000;i++){
  const a=sampleTransmittedSource(p,random);
  for(let n=0;n<3000&&!a.done;n++){const outcome=stepSource(a,.0008,p,coeff,random);assert.notEqual(outcome,'absorbed');}
- assert(a.done&&!a.absorbed,'conditioned source always transmits');assert(['upper','lower'].includes(a.slitSide),'conditioned particle keeps slit-region metadata');directedResults.push(a.y);
- const core=sampleTransmittedSource(p,random,null,3);let wallY;
- for(let n=0;n<3000&&!core.done;n++){const wasPassed=core.passed,outcome=stepSource(core,.0008,p,coeff,random);assert.notEqual(outcome,'absorbed');if(!wasPassed&&core.passed)wallY=core.y;}
+ assert(a.done&&!a.absorbed,'conditioned source always transmits');assert(['upper','lower'].includes(a.slitSide),'conditioned particle keeps slit-region metadata');assert(Number.isFinite(a.wallY),'conditioned particle retains its exact wall-crossing coordinate');directedResults.push(a.y);
+ const core=sampleTransmittedSource(p,random,null,3),sampledWallY=core.wallY;
+ for(let n=0;n<3000&&!core.done;n++){const outcome=stepSource(core,.0008,p,coeff,random);assert.notEqual(outcome,'absorbed');}
  assert(core.done&&!core.absorbed,'slit-core conditioned source always transmits');
- assert(Math.min(...p.centers.map(center=>Math.abs(wallY-center)))<=3*p.sy+1e-10,'Direct PW crossing stays inside displayed slit core');
+ assert(Math.min(...p.centers.map(center=>Math.abs(core.wallY-center)))<=3*p.sy+1e-10,'Direct PW crossing stays inside displayed slit core');assert(Math.abs(core.wallY-sampledWallY)<1e-12,'wall-crossing color coordinate matches the analytical sample after propagation');
  slitCoreResults.push(core.y);
  const tagged=sampleSource(which,random);
  for(let n=0;n<3000&&!tagged.done;n++)stepSource(tagged,.0008,which,whichCoeff,random);
