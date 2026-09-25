@@ -1,3 +1,10 @@
+## Version 2.94 — 2026-09-25
+
+- Added an optional 3D wave-surface view without introducing a second physics engine: it renders the same analytical packet field and preserves all particles, trajectories, hits, and statistics when toggled.
+- Used display-scaled wave magnitude for surface height and the existing selected quantity for surface color; labelled the extra height explicitly as a graph coordinate rather than a physical spatial direction.
+- Overlaid Pilot-Wave particles and trajectories on the surface for visibility while retaining their physical two-dimensional guidance calculation.
+- Kept the detector histogram flat and unchanged, disabled Cartesian grid/measurement tools in the projected view, and retained the 3D choice in shared links and local preferences.
+
 ## Version 2.93 — 2026-09-24
 
 - Restored the ideal which-slit detector for the Gaussian packet engine, selectable at the upper or lower slit.
@@ -24,7 +31,6 @@
 - Replaced the binary Pilot-Wave color checkbox with Uniform, By slit, and Spectrum modes; Spectrum continuously maps each transmitted particle's exact wall-crossing coordinate without changing its dynamics.
 - Carry the active Pilot-Wave particle colors into the histogram markers and error bars: Uniform uses the particle color, By slit remains resolved, and Spectrum uses the mean incoming hue in each detector bin.
 - Put the compact Direct PW label before its checkbox for a more natural reading order in the Core row.
-- Correct the Direct-PW prediction curve for finite slit-core postselection by transporting the analytical wall density to the detector through the one-dimensional Bohmian CDF map; preserve old hits across toggles with a count-weighted prediction mixture.
 
 ## Version 2.92 — 2026-09-22
 

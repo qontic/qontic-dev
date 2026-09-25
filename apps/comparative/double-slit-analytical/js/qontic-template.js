@@ -1,8 +1,8 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?v=2.93-direct-fixed3';
+import { mountPacketEngine } from './packet-engine.js?v=2.94-surface';
 import { mountMWBranching } from './mw-branching.js?v=2.91-marker-continuity';
-import { APP_RELEASE } from './release.js?v=2.93';
+import { APP_RELEASE } from './release.js?v=2.94';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.1';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -373,6 +373,13 @@ $(function () {
       if (!wasRunning && isAnimating) $('#startButton').trigger('click');
       sync();
     },
+  });
+  container.addEventListener('qontic:surface-view',event=>{
+    const active=!!event.detail?.active;
+    for(const label of ['Grid','Coordinates and measure','Distance scale']){
+      const button=document.querySelector(`#canvas-wrapper .qontic-media-toolbar button[aria-label="${label}"]`);
+      if(button){button.disabled=active;button.title=active?'Available in the 2D coordinate view':'';}
+    }
   });
   // Keep the finite detector model's branch count visible in expanded MW view.
   const worldCount = document.createElement('div');
