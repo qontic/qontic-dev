@@ -153,7 +153,13 @@ function sampleLongitudinalX(p,random){
 }
 export function sampleSource(p,random=Math.random,fixedX=null){
  const x=fixedX===null?sampleLongitudinalX(p,random):fixedX;
- return {x0:x,x,y:sourceWidth(x,p)*normal(random),done:false,passed:false,absorbed:false,path:[]};
+ const y=sourceWidth(x,p)*normal(random);
+ // Before the wall, every incident Bohmian trajectory follows the exact
+ // Gaussian width scaling. Its future aperture-plane coordinate is therefore
+ // known analytically at injection; keeping it as display metadata avoids a
+ // color jump when the particle reaches the wall.
+ const wallY=y*sourceWidth(p.wall,p)/sourceWidth(x,p);
+ return {x0:x,x,y,done:false,passed:false,absorbed:false,path:[],wallY};
 }
 export function sampleTransmittedSource(p,random=Math.random,fixedX=null,slitExtentSigma=null){
  // At the wall, the conditional density is exactly
