@@ -7,6 +7,7 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const shell = read('js/double-slit.js');
 const engine = read('js/packet-engine.js');
 const model = read('js/source-packet-model.js');
+const surface = read('js/packet-surface-3d.js');
 const content = read('js/physics-content.js');
 const html = read('index.html');
 
@@ -78,6 +79,7 @@ assert(model.includes('sourceComponents'));
 assert(model.includes('if(p.whichPath)'));
 assert(engine.includes("whichPathDetector!=='none'&&next.centers.length===2"));
 assert(engine.includes('setWhichPath(){resetEngine();draw();}'));
+assert(surface.includes('state.showWave&&state.heights?sampleHeight'));
 assert(engine.includes("colors=[[34,211,238],[255,159,67]]"));
 
 console.log('PASS: packet engine is authoritative; Physics and Views match the active model.');

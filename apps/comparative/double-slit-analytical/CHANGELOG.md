@@ -1,3 +1,8 @@
+## Version 2.104 — 2026-09-25
+
+- Kept Pilot-Wave particles and trajectory tails at a fixed apparatus-plane z level whenever the 3D wave is hidden, instead of projecting them onto an invisible cached surface.
+- Preserved the optional wave-surface lift only while the wave is visibly rendered; physical x–y guidance remains unchanged in both cases.
+
 ## Version 2.103 — 2026-09-25
 
 - Aligned the 3D reference grid, floor, slit wall, detector and histogram baseline with the midpoint zero plane for cos φ, Re Ψ and Im Ψ.

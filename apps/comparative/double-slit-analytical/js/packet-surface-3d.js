@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {dragSurfaceGeometry} from './packet-interaction.js?v=2.103';
-import {surfaceZeroLevel} from './packet-model.js?v=2.103';
+import {dragSurfaceGeometry} from './packet-interaction.js?v=2.104';
+import {surfaceZeroLevel} from './packet-model.js?v=2.104';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
 
@@ -142,13 +142,14 @@ export function mountPacketSurface3D({host}){
  }
 
  function addParticles(state){
+  const fixedZ=surfaceZeroLevel(state.heightMode,SURFACE_HEIGHT),particleZ=(u,v,lift)=>state.showWave&&state.heights?sampleHeight(state,u,v)*SURFACE_HEIGHT+lift:fixedZ+lift;
   const trailPositions=[],trailColors=[],pointPositions=[],pointColors=[];
   if(state.showTrajectories)for(const trail of state.trails){const c=color(trail.color);for(let i=1;i<trail.points.length;i++){
-   const a=trail.points[i-1],b=trail.points[i],az=sampleHeight(state,a[0],a[1])*SURFACE_HEIGHT+.035,bz=sampleHeight(state,b[0],b[1])*SURFACE_HEIGHT+.035;
+   const a=trail.points[i-1],b=trail.points[i],az=particleZ(a[0],a[1],.035),bz=particleZ(b[0],b[1],.035);
    trailPositions.push(...world(a[0],a[1],az).toArray(),...world(b[0],b[1],bz).toArray());trailColors.push(c.r,c.g,c.b,c.r,c.g,c.b);
   }}
   if(trailPositions.length)dynamic.add(lines(trailPositions,trailColors,.8));
-  if(state.showParticles)for(const particle of state.particles){const c=color(particle.color),z=sampleHeight(state,particle.u,particle.v)*SURFACE_HEIGHT+.06;pointPositions.push(...world(particle.u,particle.v,z).toArray());pointColors.push(c.r,c.g,c.b);}
+  if(state.showParticles)for(const particle of state.particles){const c=color(particle.color),z=particleZ(particle.u,particle.v,.06);pointPositions.push(...world(particle.u,particle.v,z).toArray());pointColors.push(c.r,c.g,c.b);}
   if(pointPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(pointPositions,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(pointColors,3));dynamic.add(new THREE.Points(geometry,new THREE.PointsMaterial({size:.075,sizeAttenuation:true,vertexColors:true})))}
  }
 
