@@ -5,7 +5,10 @@
 - In Pilot-Wave view, assigned each transmitted configuration to its detector branch and integrated guidance with the corresponding single-slit effective wave; the retired straight-line construction is not used.
 - Displayed the upper and lower noninterfering waves in cyan and orange, marked the instrumented slit on the wall, and documented the ideal-detector treatment across all three views.
 - Added regression checks for the incoherent density identity and agreement of Pilot-Wave screen crossings with the which-slit prediction.
-- Added an expert slit-core extent control (±1σₐ to ±5σₐ, default ±1.5σₐ) and used it consistently for the drawing, handles, Direct-PW conditioning and shared URLs.
+- Added an expert slit-core extent control (±1σₐ to ±5σₐ) and used it consistently for the drawing, handles, Direct-PW conditioning and shared URLs. The default is ±3σₐ so the finite core retains 99.73% of an isolated Gaussian slit profile and avoids a conspicuous postselection gap.
+- Removed the duplicate simulation-speed row from Core; the template run controls remain the single speed control.
+- Added an `=` button beside Slit balance to restore equal transmission immediately.
+- Prevented mixed black/colored PW histogram markers after cycling interpretations: By-slit mode now draws one full-count marker per bin and colors retained non-PW hits by the corresponding PW screen side.
 - Dynamically limited slit separation from the exact analytical transmitted density so selectable settings cannot enter the regime where Gaussian-tail transmission lies mainly outside the drawn openings.
 - Limited each visible opening to at most half the wall height, kept both slit cores on the wall, and made the slider and canvas-drag limits move together instead of bouncing back after release.
 - Added an Expert tab and moved the slit-core extent control there, keeping the Advanced tab focused on ordinary packet and geometry settings.

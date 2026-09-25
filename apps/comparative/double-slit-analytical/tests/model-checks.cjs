@@ -63,9 +63,11 @@ assert(engine.includes('pending.push({index,cohort:a.cohort,slitSide:a.slitSide,
 assert(engine.includes("directedRow.innerHTML='Direct PW <input"));
 assert(engine.includes('coreConditionedProfile'));
 assert(engine.includes('directHitTotal*conditioned.values[i]'));
-assert(engine.includes("for(const [side,offset] of [['upper',-2.5],['lower',2.5]])"));
-assert(engine.includes('slitError=Math.sqrt(count)*scale'));
-assert(engine.includes("drawMarker(n-(slitHits.upper?.[i]||0)-(slitHits.lower?.[i]||0),null,0)"));
+assert(engine.includes('const upperDisplay=upper+'));
+assert(engine.includes('const markerColor=upperDisplay>=lowerDisplay?slitColors.upper:slitColors.lower'));
+assert(engine.includes('packet-balance-equal'));
+assert(engine.includes("balance.value='0'"));
+assert(shell.includes("$('#animationStep-group').hide()"));
 assert(engine.includes('clearHitsForPreview()'));
 assert(engine.includes('sampleTransmittedSource(p,Math.random,null,p.slitExtentSigma)'));
 assert(engine.includes('const half=p.slitExtentSigma*(slitPreviewWidth??p.sy*100)*toCanvasY'));

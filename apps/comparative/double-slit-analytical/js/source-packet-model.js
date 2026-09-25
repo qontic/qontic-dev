@@ -267,7 +267,7 @@ function inverseCdf(table,q){
  const span=table.cdf[hi]-table.cdf[lo],f=span>1e-15?(q-table.cdf[lo])/span:0;
  return -table.bound+(lo+f)*table.dy;
 }
-export function coreConditionedProfile(p,ymin,ymax,samples=2049,extentSigma=p.slitExtentSigma??1.5){
+export function coreConditionedProfile(p,ymin,ymax,samples=2049,extentSigma=p.slitExtentSigma??3){
  // Direct PW retains only the displayed finite slit cores while guidance still
  // uses the common analytical Gaussian wave. In one transverse dimension,
  // Bohmian order preservation maps equal full-wave CDF quantiles at the wall

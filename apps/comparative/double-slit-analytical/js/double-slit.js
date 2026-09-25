@@ -1768,11 +1768,13 @@ $(document).ready(function() {
       $("#superContainer").tabs();
 
       // ========== BASICS TAB WIRING ==========
-      // Move wavelength, slit-separation, and speed sliders into the Basics tab
+      // Move wavelength and slit separation into Core. Simulation speed is
+      // already exposed by the template run controls, so keep the legacy input
+      // available to that control without rendering a duplicate row.
       // (they were created by createParameterInput above)
       $('#basics-params').append($('#wavelength-group'));
       $('#basics-params').append($('#slit-separation-group'));
-      $('#basics-params').append($('#animationStep-group'));
+      $('#animationStep-group').hide();
 
       // ========== MIRROR SLIDERS ==========
       // Physics tab: wavelength and sim speed mirrors
