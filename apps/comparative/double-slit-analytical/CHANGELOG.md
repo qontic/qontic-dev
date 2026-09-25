@@ -1,3 +1,8 @@
+## Version 2.105 — 2026-09-25
+
+- Changed the wave-palette button into a live horizontal preview of the selected palette.
+- Kept the preview and its accessible label synchronized when a palette is selected or restored.
+
 ## Version 2.104 — 2026-09-25
 
 - Kept Pilot-Wave particles and trajectory tails at a fixed apparatus-plane z level whenever the 3D wave is hidden, instead of projecting them onto an invisible cached surface.
