@@ -1,3 +1,8 @@
+## Version 2.100 — 2026-09-25
+
+- Capped the display-only carrier-phase motion in the 3D view at 2 rad/s, removing temporal aliasing and abrupt frame-to-frame surface changes.
+- Applied the same slowed display phase to the 3D height and its wave colors while leaving density, trajectories, guidance, probabilities and simulation time unchanged.
+
 ## Version 2.99 — 2026-09-25
 
 - Replaced wrapped phase angle as a 3D height with smooth cos φ, eliminating the artificial moving cliff at the ±π boundary.

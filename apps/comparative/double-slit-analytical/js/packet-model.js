@@ -50,3 +50,6 @@ export function surfaceHeightValue(mode,densityRatio,cosTheta,sinTheta){
  if(mode==='imag')return .5+.5*amplitude*sinTheta;
  return density;
 }
+export function surfacePhaseRate(physicalRate,cap=2){
+ return Math.min(Math.max(0,physicalRate),cap);
+}

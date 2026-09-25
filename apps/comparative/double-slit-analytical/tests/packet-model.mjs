@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {gaussian,histogramLayout,surfaceHeightValue} from '../js/packet-model.js';
+import {gaussian,histogramLayout,surfaceHeightValue,surfacePhaseRate} from '../js/packet-model.js';
 
 for(const t of [0,3,8]){
  let norm=0,moment=0;
@@ -25,4 +25,7 @@ assert.equal(surfaceHeightValue('imag',1,0,1),1);
 assert.equal(surfaceHeightValue('imag',1,0,-1),0);
 assert.equal(surfaceHeightValue('phase',1,-1,0),0);
 assert(Math.abs(surfaceHeightValue('phase',1,0,-1)-.5)<1e-12);
+assert.equal(surfacePhaseRate(1.25),1.25);
+assert.equal(surfacePhaseRate(18),2);
+assert.equal(surfacePhaseRate(-1),0);
 console.log(JSON.stringify({normalization:'pass',spreading:'pass',gradients:'pass',histogramScale:'pass',surfaceHeights:'pass'}));
