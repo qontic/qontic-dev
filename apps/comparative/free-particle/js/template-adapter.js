@@ -74,20 +74,29 @@ function mountFreeParticleTemplate() {
     $('fp-sigma-row'),
     $('fp-sigma-y-row'),
   );
-  displayPane.append($('fp-display-row'));
-  corePane.append($('fp-mw-controls'));
+  const quantitySection = document.createElement('section');
+  quantitySection.className = 'qontic-control-section fp-quantity-section';
+  const quantityTitle = document.createElement('h3');
+  quantityTitle.className = 'qontic-control-section-title';
+  quantityTitle.textContent = 'What to display';
+  quantitySection.append(quantityTitle, $('fp-display-row'));
+  corePane.append(quantitySection, $('fp-mw-controls'));
   $('fp-display-row').querySelectorAll('label').forEach(label => label.classList.add('qontic-app-toggle'));
   $('fp-display-row').classList.add('qontic-app-toggle-group');
 
+  const displayLayers = document.createElement('div');
+  displayLayers.className = 'qontic-display-layers fp-display-layers';
+
   const paletteRow = document.createElement('div');
-  paletteRow.className = 'fp-display-control';
+  paletteRow.className = 'fp-display-control qontic-display-layer';
   const paletteLabel = document.createElement('span');
+  paletteLabel.className = 'qontic-display-layer-label';
   paletteLabel.textContent = 'Wave palette';
   const paletteName = document.createElement('span');
-  paletteName.className = 'fp-palette-name';
+  paletteName.className = 'fp-palette-name qontic-display-layer-value';
   const paletteButton = document.createElement('button');
   paletteButton.type = 'button';
-  paletteButton.className = 'fp-palette-button';
+  paletteButton.className = 'fp-palette-button qontic-color-button';
   paletteButton.setAttribute('aria-label', 'Choose wave palette');
   paletteButton.title = 'Choose wave palette';
   const paletteSwatch = document.createElement('i');
@@ -160,8 +169,8 @@ function mountFreeParticleTemplate() {
   paletteRow.append(paletteLabel, paletteName, paletteButton);
 
   const opacityRow = document.createElement('label');
-  opacityRow.className = 'fp-display-control';
-  const opacityLabel = document.createElement('span'); opacityLabel.textContent = 'Wave opacity';
+  opacityRow.className = 'fp-display-control qontic-display-layer';
+  const opacityLabel = document.createElement('span'); opacityLabel.className = 'qontic-display-layer-label'; opacityLabel.textContent = 'Wave opacity';
   const opacity = document.createElement('input');
   opacity.type = 'range'; opacity.id = 'fp-wave-opacity'; opacity.min = '0'; opacity.max = '100'; opacity.step = '5'; opacity.value = '100';
   opacity.setAttribute('aria-label', 'Wave opacity');
@@ -173,7 +182,30 @@ function mountFreeParticleTemplate() {
   };
   opacity.addEventListener('input', syncOpacity);
   opacityRow.append(opacityLabel, opacity, opacityValue);
-  displayPane.append(paletteRow, opacityRow);
+
+  const makeColorRow = (labelText, id, defaultColor, setterName, storageKey) => {
+    const row = document.createElement('label');
+    row.className = 'qontic-display-layer';
+    const label = document.createElement('span');
+    label.className = 'qontic-display-layer-label';
+    label.textContent = labelText;
+    const input = document.createElement('input');
+    input.type = 'color'; input.id = id; input.value = defaultColor;
+    input.className = 'qontic-color-input';
+    input.setAttribute('aria-label', `Choose ${labelText.toLowerCase()} color`);
+    input.title = input.getAttribute('aria-label');
+    const syncColor = () => {
+      window[setterName]?.(input.value);
+      try { localStorage.setItem(storageKey, input.value); } catch (_) {}
+    };
+    input.addEventListener('input', syncColor);
+    row.append(label, input);
+    return { row, input, sync: syncColor, storageKey };
+  };
+  const detectorColor = makeColorRow('Detector', 'fp-detector-color', '#648cff', 'fpSetDetectorColor', 'qontic-free-particle-detector-color');
+  const hitColor = makeColorRow('Hits', 'fp-hit-color', '#50f050', 'fpSetHitColor', 'qontic-free-particle-hit-color');
+  displayLayers.append(paletteRow, opacityRow, detectorColor.row, hitColor.row);
+  displayPane.append(displayLayers);
   try {
     const savedPalette = localStorage.getItem('qontic-free-particle-palette');
     if (savedPalette && paletteGradients[savedPalette]) selectedPalette = savedPalette;
@@ -182,8 +214,12 @@ function mountFreeParticleTemplate() {
       const savedOpacity = Number(savedOpacityRaw);
       if (Number.isFinite(savedOpacity) && savedOpacity >= 0 && savedOpacity <= 100) opacity.value = String(savedOpacity);
     }
+    for (const control of [detectorColor, hitColor]) {
+      const savedColor = localStorage.getItem(control.storageKey);
+      if (/^#[0-9a-f]{6}$/i.test(savedColor || '')) control.input.value = savedColor;
+    }
   } catch (_) {}
-  syncPalette(); syncOpacity();
+  syncPalette(); syncOpacity(); detectorColor.sync(); hitColor.sync();
 
   controls.addEventListener('qontic:tab', event => {
     const display = event.detail.tab === 'display';
@@ -299,7 +335,7 @@ function mountFreeParticleTemplate() {
   controlPanel.after(results);
 
   mountQonticShell({title:'Free Particle', purpose:'Explore wave-packet spreading and detector outcomes in three quantum interpretations.',
-    version:'Free Particle · Version 1.10 · 2026-09-24', homeHref:'../../../index.html'});
+    version:'Free Particle · Version 1.10 · 2026-09-25', homeHref:'../../../index.html'});
   document.body.classList.add('fp-template');
   sync(); syncPage();
   // Existing resize handler refreshes all canvases after the layout changes.

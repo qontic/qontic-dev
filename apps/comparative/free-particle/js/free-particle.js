@@ -62,6 +62,8 @@ let fp = {
   showPilotWave   : true,       // visual preference only; guidance stays active
   wavePalette     : 'Q-Ontic',  // shared across all interpretations
   waveOpacity     : 1,
+  detectorColor   : '#648cff',
+  hitColor        : '#50f050',
 
   // ── physical parameters ───────────────────────────────────────────────────
   energy_eV       : 1.0,        // kinetic energy in eV  → sets k, omega
@@ -237,6 +239,21 @@ window.fpSetWavePalette = name => {
 };
 window.fpSetWaveOpacity = value => {
   fp.waveOpacity = Math.max(0, Math.min(1, Number(value)));
+  fpRender();
+};
+function fpSafeHexColor(value, fallback) {
+  return /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value).toLowerCase() : fallback;
+}
+function fpColorWithAlpha(hex, alpha) {
+  const value = parseInt(fpSafeHexColor(hex, '#000000').slice(1), 16);
+  return `rgba(${value >> 16},${(value >> 8) & 255},${value & 255},${alpha})`;
+}
+window.fpSetDetectorColor = value => {
+  fp.detectorColor = fpSafeHexColor(value, fp.detectorColor);
+  fpRender();
+};
+window.fpSetHitColor = value => {
+  fp.hitColor = fpSafeHexColor(value, fp.hitColor);
   fpRender();
 };
 
@@ -1071,17 +1088,18 @@ function fpRenderDetector() {
     ctx.fillStyle = fpCanvasColor('rgba(20,30,50,0.55)', 'rgba(226,232,240,0.85)');
     ctx.fillRect(histL + 1, secY + 1, Math.max(1, histW - 2), Math.max(1, secH - 2));
     if (cnt > 0) {
-      ctx.fillStyle = 'rgba(250,204,21,0.40)';
+      ctx.fillStyle = fpColorWithAlpha(fp.hitColor, 0.40);
       ctx.fillRect(histL + 1, secY + 1, barW, Math.max(1, secH - 2));
     }
 
     // Detector zone (left): only event-highlight information.
     const secFired = anyFired && (mwUnchosen || fp.bDetectedSection === i);
-    ctx.fillStyle  = secFired ? 'rgba(80,240,80,0.74)' : 'rgba(100,140,255,0.28)';
-    if (collapse && secFired) ctx.fillStyle = 'rgba(255,223,150,0.10)';
+    ctx.fillStyle = secFired
+      ? fpColorWithAlpha(fp.hitColor, 0.74)
+      : fpColorWithAlpha(fp.detectorColor, 0.28);
     ctx.fillRect(detL, secY, Math.max(1, detR - detL), secH);
     if (collapse && secFired) {
-      ctx.strokeStyle = 'rgba(255,232,163,0.95)';
+      ctx.strokeStyle = fpColorWithAlpha(fp.hitColor, 0.95);
       ctx.lineWidth = 1.5;
       ctx.strokeRect(detL + 1, secY + 1, Math.max(1, detR - detL - 2), Math.max(1, secH - 2));
     }
@@ -1104,21 +1122,19 @@ function fpRenderDetector() {
   }
 
   // Zone borders
-  ctx.strokeStyle = anyFired ? '#50f050' : '#6688ff';
-  if (collapse) ctx.strokeStyle = '#9d88cb';
+  ctx.strokeStyle = anyFired ? fp.hitColor : fp.detectorColor;
   ctx.lineWidth   = 2;
   ctx.strokeRect(detL, 0, Math.max(1, detR - detL), H);
-  ctx.strokeStyle = 'rgba(250,204,21,0.65)';
+  ctx.strokeStyle = fpColorWithAlpha(fp.hitColor, 0.65);
   ctx.lineWidth   = 1;
   ctx.strokeRect(histL, 0, Math.max(1, histR - histL), H);
 
   // Labels
-  ctx.fillStyle = anyFired ? '#50f050' : fpCanvasColor('rgba(180,200,255,0.9)', '#4159a0');
-  if (collapse) ctx.fillStyle = '#ffe8a3';
+  ctx.fillStyle = anyFired ? fp.hitColor : fp.detectorColor;
   ctx.font      = 'bold 12px Inter, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('D', Math.round((detL + detR) * 0.5), 16);
-  ctx.fillStyle = fpCanvasColor('rgba(250,204,21,0.9)', '#806300');
+  ctx.fillStyle = fpColorWithAlpha(fp.hitColor, 0.9);
   ctx.fillText('H', Math.round((histL + histR) * 0.5), 16);
 }
 
@@ -1635,9 +1651,6 @@ function fpRenderSectionHist() {
   const maxH = Math.max(1, ...( hits.length ? hits : [0] ));
   const padL = 6, padR = 6, padB = 18, padT = 4;
   const barW = Math.max(4, Math.floor((W - padL - padR) / nS));
-  const COLORS = ['#3b82f6','#6366f1','#8b5cf6','#a855f7','#ec4899','#ef4444',
-                  '#f97316','#eab308','#22c55e','#14b8a6','#06b6d4','#0ea5e9'];
-
   for (let i = 0; i < nS; i++) {
     const x   = padL + i * barW;
     const cnt = (hits[i] || 0);
@@ -1651,7 +1664,7 @@ function fpRenderSectionHist() {
     // Filled bar
     if (cnt > 0) {
       ctx.globalAlpha = 0.6 + 0.4 * t;
-      ctx.fillStyle   = COLORS[i % COLORS.length];
+      ctx.fillStyle   = fp.hitColor;
       ctx.fillRect(x + 1, H - padB - bH, barW - 2, bH);
       ctx.globalAlpha = 1;
       const labelY = Math.max(padT + 10, H - padB - bH - 2);
@@ -1670,7 +1683,7 @@ function fpRenderSectionHist() {
 
   // Wave-model expected counts per section (gold ticks), accumulated run-by-run.
   if (fp.nHits >= 4 && expHits.length === nS) {
-    ctx.strokeStyle = 'rgba(250,204,21,0.95)';
+    ctx.strokeStyle = fpColorWithAlpha(fp.hitColor, 0.95);
     ctx.lineWidth = 2;
     for (let i = 0; i < nS; i++) {
       const x = padL + i * barW;

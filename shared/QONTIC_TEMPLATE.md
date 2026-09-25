@@ -4,12 +4,18 @@ The template is executable shared code, not a set of copied pages:
 
 - `shared/qontic-shell.js` and `.css`: branding, header, navigation, footer.
 - `shared/qontic-controls.js` and `.css`: interpretation, playback, reset, rerun, speed, tabs, and appearance.
-- `shared/qontic-app.css`: opt-in controls-and-canvas layout, panels, reading surfaces, and model-specific button classes.
+- `shared/qontic-app.css`: opt-in controls-and-canvas layout, panels, reading surfaces, compact control sections, and display-layer/color controls.
 - `shared/qontic-shortcuts.js`: common Space, R, and S keyboard behavior with app-supplied handlers.
 - `shared/qontic-expanded-resize.js`: optional display-only canvas resizing in the shared expanded dialog.
 - Each app has a small adapter and scoped layout CSS. The adapter translates shared events into existing engine actions. Physics, accumulated statistics, canvas rendering, and recording belong to the app.
 
 Free Particle uses `apps/comparative/free-particle/js/template-adapter.js`. Its original inputs remain hidden event endpoints so the engine, keyboard shortcuts, and recorder share one behavior. Existing inputs are moved rather than cloned. Shared components must not depend on any Free Particle IDs.
+
+## Core and Display conventions
+
+Core contains the controls needed to run and understand the model, including a compact “What to display” quantity selector when the canvas can show alternative mathematical fields. Display contains appearance only: layer visibility/opacity, wave palettes, and colors for elements such as detectors and hits.
+
+Use `qontic-control-section` with `qontic-control-section-title` for a titled group inside Core. Use `qontic-display-layers`, `qontic-display-layer`, and `qontic-display-layer-label` for the compact Display list. Color targets use `qontic-color-input` for a native color chooser or `qontic-color-button` for an app-supplied chooser such as the wave-palette dialog. These classes provide layout and appearance only; adapters own state and engine events.
 
 ## Safe shared updates
 
