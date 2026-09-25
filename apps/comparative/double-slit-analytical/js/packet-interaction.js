@@ -29,7 +29,7 @@ export function trimTail(path,length){
 export function tailOpacity(done,at,now){return done?Math.max(0,1-(now-at)/.8):1;}
 export function mountPacketGeometry({host,getGeometry,onCommit,onPreview=()=>{},pause,resume}){
  const layer=document.createElement('div');layer.className='packet-geometry';
- layer.innerHTML='<button type="button" class="packet-detector-drag" aria-label="Move detector screen" title="Drag left or right to move the detector from 50 to 3000 nm beyond the wall; arrow keys also work; changing geometry starts a new record">↔</button><button type="button" class="packet-height-drag" aria-label="Resize screen height" title="Drag up or down to change screen height; arrow keys also work">↕</button><button type="button" class="packet-wall-drag" aria-label="Move slit wall" title="Drag left or right to move the slit wall. The detector stays in place; changing geometry starts a new record. Arrow keys also work.">↔</button><div class="packet-geometry-guide" hidden></div><output class="packet-geometry-value" hidden></output>';
+ layer.innerHTML='<button type="button" class="packet-detector-drag" aria-label="Move detector screen" title="Drag left or right to move the detector from 50 to 3000 nm beyond the wall; arrow keys also work; changing geometry starts a new record">↔</button><button type="button" class="packet-height-drag" aria-label="Resize screen length" title="Drag up or down to change screen length; arrow keys also work">↕ Length</button><button type="button" class="packet-wall-drag" aria-label="Move slit wall" title="Drag left or right to move the slit wall. The detector stays in place; changing geometry starts a new record. Arrow keys also work.">↔</button><div class="packet-geometry-guide" hidden></div><output class="packet-geometry-value" hidden></output>';
  host.append(layer);const [detector,height,wall]=layer.querySelectorAll('button'),guide=layer.querySelector('div'),value=layer.querySelector('output');let drag=null,previewFrame=null;
  function preview(){if(previewFrame===null)previewFrame=requestAnimationFrame(()=>{previewFrame=null;if(drag)onPreview(drag.next);});}
  function update(){
@@ -37,7 +37,7 @@ export function mountPacketGeometry({host,getGeometry,onCommit,onPreview=()=>{},
   layer.hidden=!!g.busy;wall.style.left=(100*g.wallFraction)+'%';
   detector.style.left=(100*g.detectorFraction)+'%';height.style.left=(100*g.detectorFraction)+'%';
   detector.setAttribute('aria-description','Detector distance '+g.distance+' nm. Moving the detector starts a new record.');
-  height.setAttribute('aria-description','Screen height '+g.height+' nm. Resizing starts a new record.');
+  height.setAttribute('aria-description','Screen length '+g.height+' nm. Resizing starts a new record.');
  }
  function finish(commit){
   if(!drag)return;const d=drag;drag=null;guide.hidden=value.hidden=true;
@@ -54,7 +54,7 @@ export function mountPacketGeometry({host,getGeometry,onCommit,onPreview=()=>{},
   button.addEventListener('pointermove',e=>{
    if(!drag||drag.kind!==kind)return;
    const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.next=dragGeometry(drag.start,kind,dx,dy);preview();
-   value.textContent=(kind==='wall'?'Slit wall: '+drag.next.wall:kind==='distance'?'Detector distance: '+drag.next.distance:'Screen height: '+drag.next.height)+' nm';
+   value.textContent=(kind==='wall'?'Slit wall: '+drag.next.wall:kind==='distance'?'Detector distance: '+drag.next.distance:'Screen length: '+drag.next.height)+' nm';
    if(kind!=='height'){const deltaNm=kind==='wall'?drag.next.wall-drag.start.wall:drag.next.distance-drag.start.distance;guide.style.left=Math.max(0,Math.min(host.clientWidth,(kind==='wall'?drag.start.wallFraction:drag.start.detectorFraction)*host.clientWidth+deltaNm*drag.start.scaleX))+'px';}
   });
   button.addEventListener('pointerup',()=>finish(true));

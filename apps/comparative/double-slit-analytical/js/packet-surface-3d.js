@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {dragSurfaceGeometry} from './packet-interaction.js?v=2.100';
+import {dragSurfaceGeometry} from './packet-interaction.js?v=2.101';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
 
@@ -61,7 +61,7 @@ export function mountPacketSurface3D({host}){
  overlay.querySelector('button').addEventListener('click',resetCamera);host.append(overlay);
  const heightSelect=overlay.querySelector('select');let heightChange=null;heightSelect.addEventListener('change',()=>heightChange?.(heightSelect.value));
  const editor=document.createElement('div');editor.className='packet-surface-editor';editor.hidden=true;
- editor.innerHTML='<button type="button" data-kind="wall" title="Move slit wall">↔ Wall</button><button type="button" data-kind="distance" title="Change wall-to-detector distance">↔ Distance</button><button type="button" data-kind="height" title="Change screen height">↕ Height</button><button type="button" data-kind="width" title="Change both slit widths">↕ Width</button><button type="button" data-kind="separation" title="Change slit separation">↕ Sep</button><output hidden></output>';
+ editor.innerHTML='<button type="button" data-kind="wall" title="Move slit wall">↔ Wall</button><button type="button" data-kind="distance" title="Change wall-to-detector distance">↔ Distance</button><button type="button" data-kind="height" title="Change screen length">↕ Length</button><button type="button" data-kind="width" title="Change both slit widths">↕ Width</button><button type="button" data-kind="separation" title="Change slit separation">↕ Sep</button><output hidden></output>';
  host.append(editor);
  renderer.domElement.addEventListener('dblclick',resetCamera);
  let editorCallbacks=null,editDrag=null;
@@ -173,7 +173,7 @@ export function mountPacketSurface3D({host}){
  function finishEditor(commit){if(!editDrag)return;const drag=editDrag;editDrag=null;controls.enabled=true;editor.querySelector('output').hidden=true;try{if(commit)editorCallbacks?.commit(drag.kind,drag.value);else editorCallbacks?.cancel(drag.kind);}finally{editorCallbacks?.resume(drag.running);}}
  for(const button of editor.querySelectorAll('button[data-kind]')){
   button.addEventListener('pointerdown',event=>{if(event.button!==0||editDrag||!editorCallbacks)return;event.preventDefault();event.stopPropagation();const kind=button.dataset.kind,start=editorCallbacks.getState(),anchor=editorAnchors()[kind],axis=['wall','distance'].includes(kind)?new THREE.Vector3(.5,0,0):new THREE.Vector3(0,.5,0),a=screenPoint(anchor),b=screenPoint(anchor.clone().add(axis)),dx=b.x-a.x,dy=b.y-a.y,length=Math.max(1,Math.hypot(dx,dy));editDrag={kind,start,x:event.clientX,y:event.clientY,axisX:dx/length,axisY:dy/length,pixelsPerWorld:length/.5,value:kind==='width'?start.width:kind==='separation'?start.separation:{wall:start.wall,distance:start.distance,height:start.height},running:editorCallbacks.pause()};controls.enabled=false;button.setPointerCapture(event.pointerId);});
-  button.addEventListener('pointermove',event=>{if(!editDrag||editDrag.kind!==button.dataset.kind)return;const scalar=(event.clientX-editDrag.x)*editDrag.axisX+(event.clientY-editDrag.y)*editDrag.axisY,worldDelta=scalar/editDrag.pixelsPerWorld;editDrag.scalar=scalar;editDrag.value=editorValue(editDrag.kind,editDrag.start,worldDelta);const value=editor.querySelector('output');value.hidden=false;value.textContent=editDrag.kind==='width'?`Slit width: ${editDrag.value} nm`:editDrag.kind==='separation'?`Slit separation: ${editDrag.value} nm`:editDrag.kind==='height'?`Screen height: ${editDrag.value.height} nm`:editDrag.kind==='wall'?`Slit wall: ${editDrag.value.wall} nm`:`Detector distance: ${editDrag.value.distance} nm`;positionEditor();editorCallbacks.preview(editDrag.kind,editDrag.value);});
+  button.addEventListener('pointermove',event=>{if(!editDrag||editDrag.kind!==button.dataset.kind)return;const scalar=(event.clientX-editDrag.x)*editDrag.axisX+(event.clientY-editDrag.y)*editDrag.axisY,worldDelta=scalar/editDrag.pixelsPerWorld;editDrag.scalar=scalar;editDrag.value=editorValue(editDrag.kind,editDrag.start,worldDelta);const value=editor.querySelector('output');value.hidden=false;value.textContent=editDrag.kind==='width'?`Slit width: ${editDrag.value} nm`:editDrag.kind==='separation'?`Slit separation: ${editDrag.value} nm`:editDrag.kind==='height'?`Screen length: ${editDrag.value.height} nm`:editDrag.kind==='wall'?`Slit wall: ${editDrag.value.wall} nm`:`Detector distance: ${editDrag.value.distance} nm`;positionEditor();editorCallbacks.preview(editDrag.kind,editDrag.value);});
   button.addEventListener('pointerup',()=>finishEditor(true));button.addEventListener('pointercancel',()=>finishEditor(false));button.addEventListener('lostpointercapture',()=>finishEditor(false));
  }
  function configureEditor(callbacks){editorCallbacks=callbacks;}

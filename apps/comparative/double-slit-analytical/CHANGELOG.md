@@ -1,3 +1,9 @@
+## Version 2.101 — 2026-09-25
+
+- Renamed the geometrical detector dimension from “Screen height” to “Screen length” throughout the controls, tooltips, accessibility text and drag readouts to avoid confusion with 3D wave height.
+- Labeled the corresponding 2D and 3D geometry handles “Length.”
+- Made the drawn slit openings follow Direct PW’s fixed ±3σ preparation window, eliminating the misleading appearance of trajectories crossing solid wall while preserving the selected expert extent in other views.
+
 ## Version 2.100 — 2026-09-25
 
 - Capped the display-only carrier-phase motion in the 3D view at 2 rad/s, removing temporal aliasing and abrupt frame-to-frame surface changes.

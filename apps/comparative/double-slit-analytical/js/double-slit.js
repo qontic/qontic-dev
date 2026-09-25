@@ -489,7 +489,7 @@ function createParameterInput(containerId, id, label, min, max, step, value, uni
       'slit-separation' : 'Slit Separation',
       'source-position' : 'Source Position',
       'detector-distance' : 'Wall-to-screen Distance',
-      'screen-height' : 'Screen Height',
+      'screen-height' : 'Screen Length',
       'det-pixels' : 'Detector Pixels',
       'wavelength' : 'Wavelength',
       'particleRate' : 'Number of particles injected per second in real time (your clock, not simulation time)',
@@ -1579,7 +1579,7 @@ $(document).ready(function() {
          { value: 'nm', text: 'nm', scale:1.e-6 }
          ], true);
          */
-      createParameterInput('detector', 'screen-height', 'Screen Height', 120, 5000, 10, 1200, [
+      createParameterInput('detector', 'screen-height', 'Screen Length', 120, 5000, 10, 1200, [
             { value: 'nm', text: 'nm', scale:1 },
             { value: 'um', text: 'µm', scale:1.e3 },
             { value: 'mm', text: 'mm', scale:1.e6 }
