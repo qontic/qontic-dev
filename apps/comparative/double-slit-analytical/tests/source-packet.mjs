@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {gaussian,histogramLayout} from '../js/packet-model.js';
-import {aperture,sourceCoefficients,sourceComponents,sourceDensity,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,transmittedCoreFraction,maximumCoreSafeSeparation} from '../js/source-packet-model.js';
+import {aperture,sourceCoefficients,sourceComponents,sourceDensity,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,coreConditionedProfile,transmittedCoreFraction,maximumCoreSafeSeparation} from '../js/source-packet-model.js';
+import {detectorLaw} from '../js/packet-outcomes.js';
 const p={sx:.5,sy:.3,sourceSigma:2,wall:2.25,screen:6.25,k:2*Math.PI,centers:[-2.5,2.5]};
 function integral(f,lo=-30,hi=30,steps=24000){let v=0;const dx=(hi-lo)/steps;for(let i=0;i<steps;i++)v+=f(lo+(i+.5)*dx)*dx;return v;}
 for(const centers of [[-2.5,2.5],[-2.5],[2.5],[-.15,.15]]){
@@ -88,6 +89,11 @@ assert(transmittedCoreFraction(tailGeometry,3)<.12,'remote slits expose the off-
 assert(transmittedCoreFraction(defaultGeometry,4)>transmittedCoreFraction(defaultGeometry,3),'expert slit extent changes the represented core analytically');
 assert.equal(Math.floor(100*maximumCoreSafeSeparation({...defaultGeometry,centers:undefined},3,10.2)+1e-9),1020,'default source is wall-limited rather than tail-limited');
 assert.equal(Math.floor(100*maximumCoreSafeSeparation({...tailGeometry,centers:undefined},3,10.2)+1e-9),255,'narrow-source separation stops before the off-core tail regime');
+const screenshotGeometry={...p,source:true,sx:.5,sy:.3,slitExtentSigma:1.5,k:2*Math.PI*100/50,launch:-2.25,wall:2.25,screen:21.32,sourceSigma:2,bins:100,centers:[-2.6,2.6],apertureWeights:[1,1],whichPath:false};
+const directedProfile=coreConditionedProfile(screenshotGeometry,-9.35,9.35,2049,1.5),directedLaw=detectorLaw(screenshotGeometry,directedProfile,-9.35,9.35);
+assert.equal(directedLaw.weights[49],0,'finite-core Direct PW predicts the first empty central bin');
+assert.equal(directedLaw.weights[50],0,'finite-core Direct PW predicts the second empty central bin');
+assert(directedLaw.weights[48]>.01&&directedLaw.weights[51]>.01,'finite-core curve retains the adjacent central fringes');
 const profile=sourceProfile(p,-6,6),nInside=results.filter(y=>Math.abs(y)<6).length;
 assert(Math.abs(nInside/12000-profile.integral)<.012,'transmission probability');
 const ordered=results.filter(y=>Math.abs(y)<6).sort((a,b)=>a-b),dy=12/(profile.values.length-1);let cdf=0,maxError=0,j=0;
