@@ -18,6 +18,8 @@
 - Added reusable template toolbar tools for a responsive physical-coordinate grid and a cursor/ruler mode that reports x, y, Δx, Δy and two-point distance; connected the double-slit canvas to live nanometre coordinates across normal and expanded views.
 - Aligned every Core parameter row to the same label, slider, numeric-value, and unit columns, with one consistent range-track style.
 - Replaced the binary Pilot-Wave color checkbox with Uniform, By slit, and Spectrum modes; Spectrum continuously maps each transmitted particle's exact wall-crossing coordinate without changing its dynamics.
+- Carry the active Pilot-Wave particle colors into the histogram markers and error bars: Uniform uses the particle color, By slit remains resolved, and Spectrum uses the mean incoming hue in each detector bin.
+- Put the compact Direct PW label before its checkbox for a more natural reading order in the Core row.
 
 ## Version 2.92 — 2026-09-22
 
