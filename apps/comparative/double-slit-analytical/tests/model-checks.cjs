@@ -40,7 +40,7 @@ assert(content.includes('incoherent sum'));
 // New packets and in-flight interpretation changes use analytical conditional
 // transmission sampling; no bounded rejection loop remains.
 assert(model.includes('finite Gaussian mixture'));
-assert(engine.includes('sampleTransmittedSource(p,Math.random,a.x0,directed.checked?p.slitExtentSigma:null)'));
+assert(engine.includes('sampleTransmittedSource(p,Math.random,a.x0,directed.checked?3:null)'));
 assert(!engine.includes('const attempts=') && !engine.includes('attempt<20000'));
 
 // Slit coloring is display-only metadata assigned after successful wall
@@ -59,17 +59,17 @@ assert(engine.includes('apertureWeights'));
 assert(engine.includes('return (sourcePos+detectorDistance)/.7'));
 assert(shell.includes("updateParameter('detector-distance', 50, 3000"));
 assert(engine.includes("slitColors={upper:'#22d3ee',lower:'#ff9f43'}"));
-assert(engine.includes('pending.push({index,cohort:a.cohort,slitSide:a.slitSide,wallY:a.wallY,directed:a.directed})'));
+assert(engine.includes('pending.push({index,cohort:a.cohort,slitSide:a.slitSide,wallY:a.wallY})'));
 assert(engine.includes("directedRow.innerHTML='Direct PW <input"));
-assert(engine.includes('coreConditionedProfile'));
-assert(engine.includes('directHitTotal*conditioned.values[i]'));
+assert(!engine.includes('coreConditionedProfile'));
+assert(!model.includes('coreConditionedProfile'));
 assert(engine.includes('const upperDisplay=upper+'));
 assert(engine.includes('const markerColor=upperDisplay>=lowerDisplay?slitColors.upper:slitColors.lower'));
 assert(engine.includes('packet-balance-equal'));
 assert(engine.includes("balance.value='0'"));
 assert(shell.includes("$('#animationStep-group').hide()"));
 assert(engine.includes('clearHitsForPreview()'));
-assert(engine.includes('sampleTransmittedSource(p,Math.random,null,p.slitExtentSigma)'));
+assert(engine.includes('sampleTransmittedSource(p,Math.random,null,3)'));
 assert(engine.includes('const half=p.slitExtentSigma*(slitPreviewWidth??p.sy*100)*toCanvasY'));
 assert(engine.includes('maximumCoreSafeSeparation'));
 assert(content.includes('finite slit core extending ±nσₐ'));
