@@ -46,9 +46,10 @@ assert(model.includes('finite Gaussian mixture'));
 assert(engine.includes('sampleTransmittedSource(p,Math.random,a.x0,directed.checked?3:null)'));
 assert(!engine.includes('const attempts=') && !engine.includes('attempt<20000'));
 
-// Slit coloring is display-only metadata assigned after successful wall
-// transmission, and live geometry previews discard the obsolete hit record.
-assert(model.indexOf("return 'absorbed'") < model.indexOf('a.slitSide='));
+// Slit coloring is display-only metadata assigned from the analytically known
+// aperture-plane crossing at injection, and remains stable across the wall.
+assert(model.includes('const slitSide=classifySlitSide(wallY,p)'));
+assert(model.includes('a.slitSide=classifySlitSide(a.y,p)'));
 assert(engine.includes('packet-particle-color'));
 assert(engine.includes('<option value="spectrum">Spectrum</option>'));
 assert(engine.includes('spectrumIndex(a.wallY)'));

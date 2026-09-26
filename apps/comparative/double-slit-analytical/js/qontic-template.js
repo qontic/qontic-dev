@@ -1,8 +1,8 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?v=2.105';
-import { mountMWBranching } from './mw-branching.js?v=2.105';
-import { APP_RELEASE } from './release.js?v=2.105';
+import { mountPacketEngine } from './packet-engine.js?v=2.106';
+import { mountMWBranching } from './mw-branching.js?v=2.106';
+import { APP_RELEASE } from './release.js?v=2.106';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.1';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
@@ -105,7 +105,7 @@ $(function () {
   const displayPanel = document.getElementById('graphics-parameter-container');
   const layerTable = displayPanel.querySelector('table');
   const layers = document.createElement('div');
-  layers.className = 'analytical-layers qontic-display-layers';
+  layers.className = 'analytical-layers';
   layerTable.before(layers);
   const updateWavePalettePreview = () => {
     const canvas = document.getElementById('openPaletteBtn');
@@ -146,10 +146,9 @@ $(function () {
     const input = document.getElementById(id);
     const oldLabel = input.closest('label');
     const row = document.createElement('div');
-    row.className = 'analytical-layer qontic-display-layer' + (input.closest('.bohmian-only') ? ' bohmian-only' : '');
+    row.className = 'analytical-layer' + (input.closest('.bohmian-only') ? ' bohmian-only' : '');
     if (input.closest('.bohmian-only')) row.style.display = input.closest('.bohmian-only').style.display;
     const label = document.createElement('label');
-    label.classList.add('qontic-display-layer-label');
     label.htmlFor = id + '-opacity';
     label.title = oldLabel.dataset.tip || name;
     // Keep engine visibility endpoints, but make opacity the visible control.
@@ -195,7 +194,7 @@ $(function () {
       if (color.tagName === 'CANVAS') {
         const paletteButton = document.createElement('button');
         paletteButton.type = 'button';
-        paletteButton.className = 'analytical-palette-button qontic-color-button';
+        paletteButton.className = 'analytical-palette-button';
         paletteButton.setAttribute('aria-label', color.title);
         paletteButton.title = color.title;
         paletteButton.append(color);
@@ -204,7 +203,6 @@ $(function () {
         updateWavePalettePreview();
       } else {
         color.type = 'button';
-        color.classList.add('qontic-color-button');
         row.append(color);
       }
     }
