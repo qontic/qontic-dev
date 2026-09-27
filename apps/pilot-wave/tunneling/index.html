@@ -1,132 +1,24 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bohmian Tunneling (WebGL2)</title>
-    <link rel="stylesheet" href="../../../shared/back-home.css" />
-  <style>
-    html, body { margin:0; height:100%; background:#000; overflow:hidden; font-family: system-ui, sans-serif; }
-    #wrap { position:relative; width:100%; height:100%; }
-    canvas { width:100%; height:100%; display:block; }
-    #ui {
-      position:absolute; left:12px; top:12px; width:330px;
-      background:rgba(5,16,36,0.62); color:#d9e6f8; padding:12px 12px 10px;
-      border:1px solid rgba(116,174,255,0.22); border-radius:10px;
-      backdrop-filter: blur(6px);
-      user-select:none;
-    }
-    #ui h3 { margin:0 0 8px 0; font-size:14px; font-weight:600; color:#fff; }
-    .row { display:flex; align-items:center; gap:10px; margin:6px 0; }
-    .row label { width:120px; font-size:12px; color:#b9cce5; }
-    .row input[type="range"] { flex:1; }
-    .row .val { width:76px; text-align:right; font-variant-numeric: tabular-nums; font-size:12px; color:#fff; }
-    .btns { display:flex; gap:10px; margin-top:8px; }
-    button {
-      flex:1; padding:8px 10px; border-radius:8px; border:1px solid rgba(132,192,255,0.26);
-      background:rgba(68,130,210,0.14); color:#fff; cursor:pointer;
-    }
-    button:hover { background:rgba(86,150,232,0.22); }
-    button.selected { background:rgba(64,156,255,0.35); border-color:rgba(64,156,255,0.6); }
-    button.recording { background:rgba(210,62,62,0.35); border-color:rgba(255,100,100,0.65); }
-    button:disabled { opacity:0.55; cursor:not-allowed; }
-    #record {
-      position:fixed; right:12px; bottom:12px; z-index:1000;
-      flex:0 0 auto; padding:8px 13px; border-radius:6px;
-      border:1px solid rgba(80,140,255,0.38);
-      background:rgba(4,10,30,0.88); color:#b8d4ff;
-      font:12px "JetBrains Mono","Courier New",monospace;
-      box-shadow:0 4px 18px rgba(0,0,20,0.65);
-      backdrop-filter:blur(8px);
-    }
-    #record:hover {
-      border-color:rgba(85,136,255,0.8);
-      color:#e8f2ff;
-    }
-    #record.recording {
-      background:rgba(125,26,24,0.88);
-      border-color:rgba(255,100,100,0.72);
-      color:#ffd0ca;
-    }
-    #record:disabled {
-      cursor:not-allowed;
-      opacity:0.58;
-    }
-    .toggle-group { display:flex; gap:6px; flex:1; }
-    .toggle-group button { flex:1; padding:6px 8px; font-size:11px; }
-    .stat { margin-top:8px; font-size:12px; color:#b9cce5; line-height:1.35; }
-    .stat b { color:#fff; font-weight:600; }
-    #theory {
-      position:absolute; right:12px; top:12px; width:380px; max-width:calc(100vw - 24px);
-      max-height:calc(100vh - 24px); overflow:auto;
-      background:rgba(5,16,36,0.62); color:#d9e6f8; padding:12px;
-      border:1px solid rgba(116,174,255,0.22); border-radius:10px;
-      backdrop-filter: blur(6px);
-      user-select:none;
-    }
-    #theory.is-minimized { width:160px; overflow:hidden; }
-    .panel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .panel-head h3 { margin:0; font-size:14px; font-weight:600; color:#fff; }
-    .panel-toggle {
-      flex:0 0 auto; width:34px; height:28px; padding:0;
-      display:flex; align-items:center; justify-content:center;
-      font-size:16px; line-height:1;
-    }
-    #theorybody { margin-top:10px; font-size:13px; line-height:1.45; color:#c8d9ef; }
-    #theorybody[hidden] { display:none; }
-    #theorybody p { margin:0 0 10px; }
-    .math {
-      margin:8px 0 10px; padding:9px 11px; overflow-x:auto;
-      border:1px solid rgba(132,192,255,0.18); border-radius:8px;
-      background:rgba(8,23,51,0.54); color:#eef7ff;
-      font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;
-      font-size:16px; line-height:1.55; white-space:nowrap;
-    }
-    .mi { font-style:italic; }
-    .frac {
-      display:inline-grid; grid-template-rows:auto auto; vertical-align:middle;
-      text-align:center; line-height:1.05; margin:0 0.12em;
-    }
-    .frac .top { border-bottom:1px solid currentColor; padding:0 0.18em 0.05em; }
-    .frac .bottom { padding:0.05em 0.18em 0; }
-    .note { color:#9fbce0; }
-    @media (max-width: 760px) {
-      #ui { width:calc(100vw - 48px); }
-      #theory { top:auto; bottom:12px; width:calc(100vw - 48px); }
-      #theory.is-minimized { width:160px; }
-    }
-  </style>
-  <script defer src="../../../shared/back-home.js"></script>
-</head>
-<body>
-  <div id="wrap">
-    <canvas id="c"></canvas>
-    <div id="ui">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
-  <h3 style="margin:0; font-size:14px; font-weight:600; color:#fff;">Bohmian Tunneling</h3>
-  <button id="minui" title="Minimize/expand" style="
-    width:34px; height:28px; padding:0;
-    border-radius:8px; border:1px solid rgba(132,192,255,0.26);
-    background:rgba(68,130,210,0.14); color:#fff; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; font-size:16px; line-height:1;
-  ">▾</button>
-</div>
-      <div id="uibody">
-  <div id="controls"></div>
-  <div class="btns">
-    <button id="reset">Reset (R)</button>
-    <button id="pause">Pause</button>
-  </div>
-  <div class="stat" id="stats"></div>
-</div>
-    </div>
-    <button id="record">Start Recording</button>
-    <div id="theory" class="is-minimized" aria-label="Theory panel">
-      <div class="panel-head">
-        <h3>Theory</h3>
-        <button id="mintheory" class="panel-toggle" title="Minimize/expand" aria-expanded="false">+</button>
-      </div>
-      <div id="theorybody" hidden>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quantum Tunneling — Q-Ontic Lab</title>
+<link rel="stylesheet" href="../../../shared/qontic-shell.css">
+<link rel="stylesheet" href="../../../shared/qontic-app.css">
+<link rel="stylesheet" href="./template.css">
+</head><body><main class="shell">
+<header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Quantum Tunneling</h1></div></header>
+<nav class="tabs" aria-label="Views"><button type="button" class="active" data-view="demo">Simulation</button><button type="button" data-view="math">Math</button></nav>
+<section class="qontic-workspace" data-panel="demo">
+<aside class="qontic-sidebar qontic-panel qontic-control-panel"><h2>Controls</h2>
+<qontic-controls show-interpretation="false" show-reset="true" show-autorun="false" show-speed="false" running="true" active-tab="core"></qontic-controls>
+<div class="qontic-control-body" id="controls">
+<div class="control-pane" data-control-pane="core"></div>
+<div class="control-pane" data-control-pane="advanced" hidden></div>
+<div class="control-pane" data-control-pane="display" hidden></div>
+</div></aside>
+<div class="qontic-stage qontic-panel" id="wrap"><canvas id="c" aria-label="Pilot-wave tunneling simulation"></canvas>
+<div id="stats" role="status"></div><button id="record" type="button">Start Recording</button></div>
+</section>
+<section class="details-panel qontic-panel qontic-reading-panel" data-panel="math" hidden><h2>Physics of tunneling</h2>
         <p>A wave packet approaches a finite potential barrier. Classically, a particle with too little energy would turn back; quantum mechanically, the wave penetrates the barrier and can leave a transmitted packet on the far side.</p>
         <div class="math">
           <span class="mi">i</span>&hbar;<span class="frac"><span class="top">&part;&psi;</span><span class="bottom">&part;t</span></span>
@@ -176,9 +68,5 @@
           <span class="frac"><span class="top">&hbar;<span class="mi">s</span><sub>z</sub></span><span class="bottom"><span class="mi">m</span>&rho;</span></span>
           (&part;<sub>y</sub>&rho;, -&part;<sub>x</sub>&rho;)
         </div>
-      </div>
-    </div>
-  </div>
-  <script type="module" src="./main.js"></script>
-</body>
-</html>
+      </section>
+</main><script type="module" src="./main.js"></script></body></html>
