@@ -1,3 +1,6 @@
+import "../../../shared/qontic-controls.js";
+import { mountQonticShell } from "../../../shared/qontic-shell.js";
+
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
 if (!gl) throw new Error("WebGL2 not available.");
@@ -114,7 +117,25 @@ const recordingState = {
   pendingFileName: "",
 };
 
-const controls = document.getElementById("controls");
+mountQonticShell({ title: "Quantum Tunneling", purpose: "Explore the wave packet and pilot-wave paths through a finite potential barrier.", badge: "Pilot Wave", homeHref: "../../index.html" });
+const commonControls = document.querySelector("qontic-controls");
+const panes = Object.fromEntries([...document.querySelectorAll("[data-control-pane]")].map(node => [node.dataset.controlPane, node]));
+let controls = panes.core;
+commonControls.addEventListener("qontic:tab", ({ detail }) => {
+  for (const [name, pane] of Object.entries(panes)) pane.hidden = name !== detail.tab;
+});
+for (const button of document.querySelectorAll("[data-view]")) button.addEventListener("click", () => {
+  const view = button.dataset.view;
+  for (const tab of document.querySelectorAll("[data-view]")) tab.classList.toggle("active", tab === button);
+  for (const panel of document.querySelectorAll("[data-panel]")) panel.hidden = panel.dataset.panel !== view;
+  if (view === "demo") requestAnimationFrame(() => { rebuildSimulation(); applyViewTransform(); });
+});
+const stageResize = new ResizeObserver(() => {
+  if (document.querySelector('[data-panel="demo"]').hidden || !simW) return;
+  rebuildSimulation();
+  applyViewTransform();
+});
+stageResize.observe(document.getElementById("wrap"));
 const statsEl = document.getElementById("stats");
 
 function fmt(v) {
@@ -222,18 +243,23 @@ function addSectionHeader(label) {
   controls.appendChild(header);
 }
 
+controls = panes.advanced;
 addSectionHeader("Performance");
 addSlider("simScale", "sim scale", 0.25, 1.0, 0.05, () => rebuildSimulation());
 addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
 
+controls = panes.core;
 addSectionHeader("Physical Parameters");
 addSlider("p0", "momentum p", 0.5, 8.0, 0.1, () => resetAll());
+controls = panes.advanced;
 addSlider("dt", "dt", 0.01, 0.04, 0.001);
+controls = panes.core;
 //addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
 addSlider("V0", "barrier V0", 0.0, BARRIER_V0_MAX, 0.1, () => resetAll());
 addSlider("barrierThick", "barrier thickness", 4.0, 150.0, 1.0, () => resetAll());
+controls = panes.advanced;
 addSlider("absorbPx", "absorb boundary", 0.0, 60.0, 1.0);
 addSlider("spinMagnitude", "spin |s|", 0.0, 2.0, 0.5);
 {
@@ -294,10 +320,13 @@ addSlider("spinMagnitude", "spin |s|", 0.0, 2.0, 0.5);
   controls.appendChild(row);
 }
 
+controls = panes.display;
 addSectionHeader("Visual Parameters");
 addToggleInt("showPhase", "show phase");
 addToggleInt("showParticles", "show particles");
+controls = panes.core;
 addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
+controls = panes.display;
 addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
 addSlider("dotGain", "particle brightness", 0.1, 3.0, 0.1);
 
@@ -310,21 +339,13 @@ addSlider("trailWidth", "trail width (px)", 1, 9.0, 1);
 //addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
 //addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
 
-document.getElementById("reset").onclick = () => resetAll();
-const pauseButton = document.getElementById("pause");
 const recordButton = document.getElementById("record");
-
-function syncPauseButton() {
-  pauseButton.textContent = paused ? "Resume" : "Pause";
-}
-
+commonControls.addEventListener("qontic:start", () => { paused = false; });
+commonControls.addEventListener("qontic:stop", () => { paused = true; });
+commonControls.addEventListener("qontic:reset", () => resetAll());
 function togglePause() {
   paused = !paused;
-  syncPauseButton();
-}
-
-function canRecordCanvas() {
-  return typeof MediaRecorder !== "undefined" && typeof canvas.captureStream === "function" && !!chooseRecordingMimeType();
+  commonControls.setAttribute("running", String(!paused));
 }
 
 function isRecording() {
@@ -500,44 +521,13 @@ function downloadPendingRecording(clearAfterClick) {
   }
 }
 
-pauseButton.onclick = togglePause;
 recordButton.onclick = toggleRecording;
-syncPauseButton();
 syncRecordingButton();
-
-window.addEventListener("keydown", (e) => {
-  if (e.key.toLowerCase() === "r") resetAll();
-  if (e.key === " ") togglePause();
+window.addEventListener("keydown", event => {
+  if (event.target.closest("input, button, textarea, select") || event.altKey || event.ctrlKey || event.metaKey) return;
+  if (event.key.toLowerCase() === "r") resetAll();
+  if (event.key === " ") { event.preventDefault(); togglePause(); }
 });
-
-const uiBody = document.getElementById("uibody");
-const minBtn = document.getElementById("minui");
-minBtn.textContent = "-";
-
-let uiMinimized = false;
-minBtn.onclick = () => {
-  uiMinimized = !uiMinimized;
-  uiBody.style.display = uiMinimized ? "none" : "block";
-  minBtn.textContent = uiMinimized ? "+" : "-";
-};
-
-const theoryPanel = document.getElementById("theory");
-const theoryBody = document.getElementById("theorybody");
-const theoryBtn = document.getElementById("mintheory");
-
-let theoryMinimized = true;
-function syncTheoryPanel() {
-  theoryPanel.classList.toggle("is-minimized", theoryMinimized);
-  theoryBody.hidden = theoryMinimized;
-  theoryBtn.textContent = theoryMinimized ? "+" : "-";
-  theoryBtn.setAttribute("aria-expanded", String(!theoryMinimized));
-}
-
-theoryBtn.onclick = () => {
-  theoryMinimized = !theoryMinimized;
-  syncTheoryPanel();
-};
-syncTheoryPanel();
 
 const view = {
   zoom: 1,
