@@ -3,20 +3,20 @@
 <title>Quantum Tunneling — Q-Ontic Lab</title>
 <link rel="stylesheet" href="../../../shared/qontic-shell.css">
 <link rel="stylesheet" href="../../../shared/qontic-app.css">
-<link rel="stylesheet" href="./template.css?v=3.0.1">
+<link rel="stylesheet" href="./template.css?v=3.1">
 </head><body><main class="shell">
 <header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Quantum Tunneling</h1></div></header>
 <nav class="tabs" aria-label="Views"><button type="button" class="active" data-view="demo">Simulation</button><button type="button" data-view="math">Math</button></nav>
 <section class="qontic-workspace" data-panel="demo">
 <aside class="qontic-sidebar qontic-panel qontic-control-panel"><h2>Controls</h2>
-<qontic-controls show-interpretation="false" show-reset="true" show-autorun="false" show-speed="false" running="true" active-tab="core"></qontic-controls>
+<qontic-controls show-interpretation="false" show-reset="true" show-autorun="true" auto-run="true" show-speed="false" running="true" active-tab="core"></qontic-controls>
 <div class="qontic-control-body" id="controls">
 <div class="control-pane" data-control-pane="core"></div>
 <div class="control-pane" data-control-pane="advanced" hidden></div>
 <div class="control-pane" data-control-pane="display" hidden></div>
 </div></aside>
-<div class="qontic-stage qontic-panel" id="wrap"><canvas id="c" aria-label="Pilot-wave tunneling simulation"></canvas>
-<div id="stats" role="status"></div><button id="record" type="button">Start Recording</button></div>
+<div class="qontic-stage qontic-panel" id="wrap"><div id="canvas-host"><canvas id="c" aria-label="Pilot-wave tunneling simulation"></canvas>
+<div id="stats" role="status"></div><button id="record" type="button">Start Recording</button></div></div>
 </section>
 <section class="details-panel qontic-panel qontic-reading-panel" data-panel="math" hidden><h2>Physics of tunneling</h2>
         <p>A wave packet approaches a finite potential barrier. Classically, a particle with too little energy would turn back; quantum mechanically, the wave penetrates the barrier and can leave a transmitted packet on the far side.</p>
@@ -69,4 +69,4 @@
           (&part;<sub>y</sub>&rho;, -&part;<sub>x</sub>&rho;)
         </div>
       </section>
-</main><script type="module" src="./main.js?v=3.0.1"></script></body></html>
+</main><script type="module" src="./main.js?v=3.1"></script></body></html>
