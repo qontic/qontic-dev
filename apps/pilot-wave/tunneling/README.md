@@ -16,8 +16,8 @@ WebGL2 Bohmian mechanics Tunneling simulation with two selectable guiding laws.
 - `R` resets, `Space` starts or stops, and `S` saves a screenshot.
 - Core contains physical parameters, guiding law, and particle count. Advanced contains numerical settings. Display contains the palette, particles, trails, and phase controls.
 - The simulation toolbar provides screenshot, recording, sharing, expanded view, a grid, coordinate measurement, and a distance scale. The Display tab sets the physical length calibration (default 1 nm per simulation-grid step). The solver has no unique physical length; the app interprets its model mass as an electron mass and derives length, momentum, energy, and time units consistently from the chosen length and reduced Planck constant. Changing the calibration updates every physical label without changing trajectories. Counts, ratios, and screen marker widths use their respective display units.
-- The simulation status compares the incoming central kinetic energy `p0²/(2m)` with the barrier height. With the default numerical settings, the incoming central energy is above the barrier; raise the barrier or lower momentum to study the below-barrier regime.
-- The packet now approaches the horizontal barrier at normal incidence. Pauli spin guidance may bend trajectories transversely even before the barrier; select Schrodinger guidance to compare paths without the spin current.
+- The simulation status shows the total incoming central kinetic energy and its normal component `p0²/(4m)` for the 45° launch. The normal component governs the below-barrier comparison. With the default numerical settings it is only slightly above the barrier in the continuum estimate; packet spread and finite-grid dispersion affect the detailed behavior.
+- The packet approaches the horizontal barrier diagonally by design. Pauli spin guidance can also bend trajectories before the barrier; select Schrodinger guidance to compare paths without the spin current.
 - The particle-freeze boundary is half its previous distance from each edge. The wave absorber itself keeps its original width and strength.
 
 ## License and Credit
