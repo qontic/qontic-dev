@@ -55,7 +55,7 @@ const params = {
   dotGain: 1.,
 
   showTrail: 1,
-  trailHalfLife: 100.0,
+  trailHalfLife: 99.0,
   trailVisGain: .8,
   trailVisGamma: 1,
   trailStampGain: 0.55,
@@ -156,7 +156,57 @@ function fmt(v) {
   return v.toFixed(3).replace(/\.?0+$/, "");
 }
 
-function addSlider(key, label, min, max, step, onChange = null) {
+// The solver uses dimensionless grid steps. Interpret one step as L meters and
+// one model mass as the electron mass; the physical scales then follow from ℏ.
+const SI = {
+  hbar: 1.054571817e-34, electronMass: 9.1093837139e-31,
+  electronVolt: 1.602176634e-19, lightSpeed: 299792458,
+};
+function physicalScale() {
+  const length = params.nmPerGridCell * 1e-9;
+  const momentum = SI.hbar / (params.hbar * length);
+  return {
+    momentumEVc: momentum * SI.lightSpeed / SI.electronVolt,
+    energyMeV: momentum * momentum * params.mass / (SI.electronMass * SI.electronVolt) * 1000,
+    timeFs: params.hbar * SI.electronMass * length * length / (SI.hbar * params.mass) * 1e15,
+  };
+}
+function formatDistance(value) {
+  return Math.abs(value) >= 1000 ? `${fmt(value / 1000)} µm` : `${fmt(value)} nm`;
+}
+function formatEnergy(meV) {
+  return Math.abs(meV) >= 1000 ? `${fmt(meV / 1000)} eV` : `${fmt(meV)} meV`;
+}
+function formatTime(fs) {
+  return Math.abs(fs) >= 1000 ? `${fmt(fs / 1000)} ps` : `${fmt(fs)} fs`;
+}
+function formatSliderValue(key, value) {
+  const units = physicalScale();
+  switch (key) {
+    case "p0": return `${fmt(value * units.momentumEVc)} eV/c`;
+    case "V0": return formatEnergy(value * units.energyMeV);
+    case "packetSigma": case "barrierThick": case "absorbPx":
+      return formatDistance(value * params.nmPerGridCell);
+    case "dt": case "trailHalfLife": return formatTime(value * units.timeFs);
+    case "spinMagnitude": return `${fmt(value)} ℏ`;
+    case "dotSize": case "trailWidth": return `${fmt(value)} screen px`;
+    case "dotGain": case "simScale": return `${fmt(value)}×`;
+    case "stepsPerFrame": return `${Math.round(value)} steps/frame`;
+    case "nParticles": return `${Math.round(value)} particles`;
+    case "nmPerGridCell": return `${fmt(value)} nm/step`;
+    default: return fmt(value);
+  }
+}
+const sliderReadouts = [];
+function refreshSliderReadouts() {
+  for (const { key, input, val } of sliderReadouts) {
+    const label = formatSliderValue(key, parseFloat(input.value));
+    val.textContent = label;
+    input.setAttribute("aria-valuetext", label);
+  }
+}
+
+function addSlider(key, label, min, max, step, onChange = null, commitOnly = false) {
   const row = document.createElement("div");
   row.className = "row";
 
@@ -169,22 +219,33 @@ function addSlider(key, label, min, max, step, onChange = null) {
   input.max = max;
   input.step = step;
   input.value = params[key];
+  input.id = `control-${key}`;
+  lab.htmlFor = input.id;
 
   const val = document.createElement("div");
   val.className = "val";
-  val.textContent = fmt(params[key]);
+  val.textContent = formatSliderValue(key, params[key]);
+  input.setAttribute("aria-valuetext", val.textContent);
 
   input.addEventListener("input", () => {
     const v = parseFloat(input.value);
-    params[key] = v;
-    val.textContent = fmt(v);
+    if (!commitOnly) params[key] = v;
+    if (key === "nmPerGridCell") refreshSliderReadouts();
+    else {
+      val.textContent = formatSliderValue(key, v);
+      input.setAttribute("aria-valuetext", val.textContent);
+    }
   });
-  input.addEventListener("change", () => onChange && onChange());
+  input.addEventListener("change", () => {
+    if (commitOnly) params[key] = parseFloat(input.value);
+    if (onChange) onChange();
+  });
 
   row.appendChild(lab);
   row.appendChild(input);
   row.appendChild(val);
   controls.appendChild(row);
+  sliderReadouts.push({ key, input, val });
 }
 
 function addToggleInt(key, label) {
@@ -257,23 +318,23 @@ function addSectionHeader(label) {
 
 controls = panes.advanced;
 addSectionHeader("Performance");
-addSlider("simScale", "sim scale", 0.25, 1.0, 0.05, () => rebuildSimulation());
+addSlider("simScale", "Grid resolution", 0.25, 1.0, 0.05, () => rebuildSimulation());
 addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
 
 controls = panes.core;
 addSectionHeader("Physical Parameters");
-addSlider("p0", "momentum p", 0.5, 8.0, 0.1, () => resetAll());
+addSlider("p0", "Momentum p", 0.5, 8.0, 0.1, () => resetAll());
 controls = panes.advanced;
-addSlider("dt", "dt", 0.01, 0.04, 0.001);
+addSlider("dt", "Time step", 0.01, 0.04, 0.001);
 controls = panes.core;
 //addSlider("packetX", "packet start x", 0.05, 0.95, 0.01, () => resetAll());
 //addSlider("packetY", "packet start y", 0.05, 0.95, 0.01, () => resetAll());
-addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
-addSlider("V0", "barrier V0", 0.0, BARRIER_V0_MAX, 0.1, () => resetAll());
-addSlider("barrierThick", "barrier thickness", 4.0, 150.0, 1.0, () => resetAll());
+addSlider("packetSigma", "Packet width σ", 8.0, 80.0, 1.0, () => resetAll());
+addSlider("V0", "Barrier height", 0.0, BARRIER_V0_MAX, 0.1, () => resetAll());
+addSlider("barrierThick", "Barrier width", 4.0, 150.0, 1.0, () => resetAll());
 controls = panes.advanced;
-addSlider("absorbPx", "absorb boundary", 0.0, 60.0, 1.0);
-addSlider("spinMagnitude", "spin |s|", 0.0, 2.0, 0.5);
+addSlider("absorbPx", "Absorber width", 0.0, 60.0, 1.0);
+addSlider("spinMagnitude", "Spin |s|", 0.0, 2.0, 0.5);
 controls = panes.core;
 {
   const row = document.createElement("div");
@@ -339,21 +400,26 @@ addCycleButton("paletteId", "wave palette", PALETTE_NAMES);
 addToggleInt("showPhase", "show phase");
 addToggleInt("showParticles", "show particles");
 controls = panes.core;
-addSlider("nParticles", "particle count", 1, 3000, 1, () => rebuildParticles());
+addSlider("nParticles", "Particle count", 1, 3000, 1, () => {
+  if (!simW) return; // The initial build will use the selected count.
+  resetAll();
+  paused = false;
+  commonControls.setAttribute("running", "true");
+}, true);
 controls = panes.display;
-addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
-addSlider("dotGain", "particle brightness", 0.1, 3.0, 0.1);
+addSlider("dotSize", "Marker size", 2.0, 16.0, 0.5);
+addSlider("dotGain", "Brightness", 0.1, 3.0, 0.1);
 
 addToggleInt("showTrail", "draw trails");
 addSlider("trailHalfLife", "trail half-life", 1.0, 100.0, 1.0);
 //addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
 //addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
-addSlider("trailWidth", "trail width (px)", 1, 9.0, 1);
+addSlider("trailWidth", "Trail width", 1, 9.0, 1);
 addSectionHeader("Scale calibration");
-addSlider("nmPerGridCell", "nm / grid step", 0.1, 10.0, 0.1, () => { scale.update(); coordinates.update(); });
+addSlider("nmPerGridCell", "Length scale", 0.1, 10.0, 0.1, () => { scale.update(); coordinates.update(); });
 const calibrationNote = document.createElement("p");
 calibrationNote.className = "calibration-note";
-calibrationNote.textContent = "Display scale only; the simulation dynamics are unchanged.";
+calibrationNote.textContent = "Electron mass assumed. The length scale sets the physical interpretation of the run; length, momentum, energy, and time labels change together without changing trajectories.";
 controls.appendChild(calibrationNote);
 
 //addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
@@ -566,9 +632,6 @@ const view = {
 };
 
 const canvasHost = document.getElementById("canvas-host");
-const formatDistance = value => Math.abs(value) >= 1000
-  ? `${Number((value / 1000).toPrecision(3))} µm`
-  : `${Number(value.toPrecision(3))} nm`;
 const gridUnitsPerPixel = () => ({
   x: params.nmPerGridCell * Math.max(64, Math.floor(canvas.width * params.simScale)) / Math.max(1, canvas.clientWidth * view.zoom),
   y: params.nmPerGridCell * Math.max(64, Math.floor(canvas.height * params.simScale)) / Math.max(1, canvas.clientHeight * view.zoom),
@@ -1337,15 +1400,21 @@ function render() {
 
 function guidingModeLabel() {
   if ((params.guidingMode | 0) === 1) {
-    return `${GUIDING_MODE_NAMES[1]} (${params.spinSign > 0 ? "up" : "down"}, |s| = ${fmt(params.spinMagnitude)} hbar)`;
+    return `${GUIDING_MODE_NAMES[1]} (${params.spinSign > 0 ? "up" : "down"}, |s| = ${fmt(params.spinMagnitude)} ℏ)`;
   }
   return GUIDING_MODE_NAMES[params.guidingMode | 0] ?? GUIDING_MODE_NAMES[0];
 }
 
 function updateStats() {
+  const units = physicalScale();
+  const incomingEnergy = params.p0 * params.p0 / (2 * params.mass) * units.energyMeV;
+  const barrierEnergy = params.V0 * units.energyMeV;
   statsEl.innerHTML =
     `<b>Guiding</b>: ${guidingModeLabel()}<br>` +
-    `<b>Sim Grid</b>: ${simW} x ${simH} (${fmt(params.simScale)}x)`;
+    `<b>Domain</b>: ${formatDistance(simW * params.nmPerGridCell)} × ${formatDistance(simH * params.nmPerGridCell)}<br>` +
+    `<b>Incoming energy</b>: ${formatEnergy(incomingEnergy)}; <b>barrier</b>: ${formatEnergy(barrierEnergy)} ` +
+    `(${incomingEnergy < barrierEnergy ? "below" : "at or above"} barrier)<br>` +
+    `<b>Elapsed</b>: ${formatTime(elapsedSimulationTime * units.timeFs)}`;
 }
 
 function rebuildSimulation() {
@@ -1380,8 +1449,6 @@ async function main() {
   buildPrograms();
   rebuildSimulation();
   updateStats();
-
-  params.trailHalfLife*=0.99;
 
   requestAnimationFrame(function loop() {
     resizeCanvas();
