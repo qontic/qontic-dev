@@ -810,7 +810,7 @@ async function loadShaders() {
     "density_step.frag",
     "density_render.frag",
   ];
-  await Promise.all(files.map(async (f) => { SH[f] = await loadText(base + f + "?v=3.5"); }));
+  await Promise.all(files.map(async (f) => { SH[f] = await loadText(base + f + "?v=3.6"); }));
 }
 
 let progWaveInit, progWaveStep, progWaveRender;
@@ -1430,12 +1430,13 @@ function guidingModeLabel() {
 function updateStats() {
   const units = physicalScale();
   const incomingEnergy = params.p0 * params.p0 / (2 * params.mass) * units.energyMeV;
+  const normalEnergy = incomingEnergy / 2; // The launch direction is (1, 1)/sqrt(2).
   const barrierEnergy = params.V0 * units.energyMeV;
   statsEl.innerHTML =
     `<b>Guiding</b>: ${guidingModeLabel()}<br>` +
     `<b>Domain</b>: ${formatDistance(simW * params.nmPerGridCell)} × ${formatDistance(simH * params.nmPerGridCell)}<br>` +
-    `<b>Incoming energy</b>: ${formatEnergy(incomingEnergy)}; <b>barrier</b>: ${formatEnergy(barrierEnergy)} ` +
-    `(${incomingEnergy < barrierEnergy ? "below" : "at or above"} barrier)<br>` +
+    `<b>Incoming E</b>: ${formatEnergy(incomingEnergy)}; <b>normal E</b>: ${formatEnergy(normalEnergy)}<br>` +
+    `<b>Barrier</b>: ${formatEnergy(barrierEnergy)} (central normal E ${normalEnergy < barrierEnergy ? "below" : "at or above"} barrier)<br>` +
     `<b>Elapsed</b>: ${formatTime(elapsedSimulationTime * units.timeFs)}`;
 }
 
