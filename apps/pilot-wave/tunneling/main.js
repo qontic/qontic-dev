@@ -63,6 +63,7 @@ const params = {
   trailBlendMode: 1,
 
   paletteId: 5,
+  nmPerGridCell: 1.0,
 };
 
 const PALETTE_NAMES = [
@@ -348,6 +349,12 @@ addSlider("trailHalfLife", "trail half-life", 1.0, 100.0, 1.0);
 //addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
 //addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
 addSlider("trailWidth", "trail width (px)", 1, 9.0, 1);
+addSectionHeader("Scale calibration");
+addSlider("nmPerGridCell", "nm / grid step", 0.1, 10.0, 0.1, () => { scale.update(); coordinates.update(); });
+const calibrationNote = document.createElement("p");
+calibrationNote.className = "calibration-note";
+calibrationNote.textContent = "Display scale only; the simulation dynamics are unchanged.";
+controls.appendChild(calibrationNote);
 
 //addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
 //addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
@@ -559,15 +566,17 @@ const view = {
 };
 
 const canvasHost = document.getElementById("canvas-host");
-const formatGridDistance = value => `${Number(value.toPrecision(3))} grid px`;
+const formatDistance = value => Math.abs(value) >= 1000
+  ? `${Number((value / 1000).toPrecision(3))} µm`
+  : `${Number(value.toPrecision(3))} nm`;
 const gridUnitsPerPixel = () => ({
-  x: Math.max(64, Math.floor(canvas.width * params.simScale)) / Math.max(1, canvas.clientWidth * view.zoom),
-  y: Math.max(64, Math.floor(canvas.height * params.simScale)) / Math.max(1, canvas.clientHeight * view.zoom),
+  x: params.nmPerGridCell * Math.max(64, Math.floor(canvas.width * params.simScale)) / Math.max(1, canvas.clientWidth * view.zoom),
+  y: params.nmPerGridCell * Math.max(64, Math.floor(canvas.height * params.simScale)) / Math.max(1, canvas.clientHeight * view.zoom),
 });
 const scale = mountDistanceScale({
   host: canvasHost,
   getUnitsPerPixel: gridUnitsPerPixel,
-  format: formatGridDistance,
+  format: formatDistance,
   storageKey: "qontic-tunneling-scale-position",
 });
 const coordinates = mountCoordinateTools({
@@ -581,7 +590,7 @@ const coordinates = mountCoordinateTools({
       yMax: (canvasHost.clientHeight - view.offsetY) * units.y,
     };
   },
-  formatValue: formatGridDistance,
+  formatValue: formatDistance,
   storageKey: "qontic-tunneling-grid-visible",
 });
 mountQonticMedia({
@@ -716,7 +725,7 @@ async function loadShaders() {
     "density_step.frag",
     "density_render.frag",
   ];
-  await Promise.all(files.map(async (f) => { SH[f] = await loadText(base + f); }));
+  await Promise.all(files.map(async (f) => { SH[f] = await loadText(base + f + "?v=3.2"); }));
 }
 
 let progWaveInit, progWaveStep, progWaveRender;
@@ -1118,8 +1127,8 @@ function drawKillBoundary() {
   const base = params.absorbPx + params.particleKillMargin;
   const absDistX = 1.5 * base;
   const absDistY = 1.0 * base;
-  const freezeDistX = 1.5 * absDistX;
-  const freezeDistY = 1.5 * absDistY;
+  const freezeDistX = 0.75 * absDistX;
+  const freezeDistY = 0.75 * absDistY;
 
   const scaleX = canvas.width / simW;
   const scaleY = canvas.height / simH;
