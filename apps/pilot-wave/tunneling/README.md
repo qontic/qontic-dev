@@ -17,6 +17,7 @@ WebGL2 Bohmian mechanics Tunneling simulation with two selectable guiding laws.
 - Core contains physical parameters, guiding law, and particle count. Advanced contains numerical settings. Display contains the palette, particles, trails, and phase controls.
 - The simulation toolbar provides screenshot, recording, sharing, expanded view, a grid, coordinate measurement, and a distance scale. The Display tab sets the physical length calibration (default 1 nm per simulation-grid step). The solver has no unique physical length; the app interprets its model mass as an electron mass and derives length, momentum, energy, and time units consistently from the chosen length and reduced Planck constant. Changing the calibration updates every physical label without changing trajectories. Counts, ratios, and screen marker widths use their respective display units.
 - The simulation status compares the incoming central kinetic energy `p0²/(2m)` with the barrier height. With the default numerical settings, the incoming central energy is above the barrier; raise the barrier or lower momentum to study the below-barrier regime.
+- The packet now approaches the horizontal barrier at normal incidence. Pauli spin guidance may bend trajectories transversely even before the barrier; select Schrodinger guidance to compare paths without the spin current.
 - The particle-freeze boundary is half its previous distance from each edge. The wave absorber itself keeps its original width and strength.
 
 ## License and Credit
