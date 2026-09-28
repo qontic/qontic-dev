@@ -180,35 +180,40 @@ function formatEnergy(meV) {
 function formatTime(fs) {
   return Math.abs(fs) >= 1000 ? `${fmt(fs / 1000)} ps` : `${fmt(fs)} fs`;
 }
-function formatSliderValue(key, value) {
+function sliderDisplay(key, value) {
   const units = physicalScale();
   switch (key) {
-    case "p0": return `${fmt(value * units.momentumEVc)} eV/c`;
-    case "V0": return formatEnergy(value * units.energyMeV);
+    case "p0": return { value: value * units.momentumEVc, unit: "eV/c", factor: units.momentumEVc };
+    case "V0": return { value: value * units.energyMeV, unit: "meV", factor: units.energyMeV };
     case "packetSigma": case "barrierThick": case "absorbPx":
-      return formatDistance(value * params.nmPerGridCell);
-    case "dt": case "trailHalfLife": return formatTime(value * units.timeFs);
-    case "spinMagnitude": return `${fmt(value)} ℏ`;
-    case "dotSize": case "trailWidth": return `${fmt(value)} screen px`;
-    case "dotGain": case "simScale": return `${fmt(value)}×`;
-    case "stepsPerFrame": return `${Math.round(value)} steps/frame`;
-    case "nParticles": return `${Math.round(value)} particles`;
-    case "nmPerGridCell": return `${fmt(value)} nm/step`;
-    default: return fmt(value);
+      return { value: value * params.nmPerGridCell, unit: "nm", factor: params.nmPerGridCell };
+    case "dt": return { value: value * units.timeFs, unit: "fs", factor: units.timeFs };
+    case "trailHalfLife": return { value: value * units.timeFs / 1000, unit: "ps", factor: units.timeFs / 1000 };
+    case "spinMagnitude": return { value, unit: "ℏ", factor: 1 };
+    case "dotSize": case "trailWidth": return { value, unit: "screen px", factor: 1 };
+    case "dotGain": case "simScale": return { value, unit: "×", factor: 1 };
+    case "stepsPerFrame": return { value, unit: "steps/frame", factor: 1 };
+    case "nParticles": return { value, unit: "particles", factor: 1 };
+    case "nmPerGridCell": return { value, unit: "nm/step", factor: 1 };
+    default: return { value, unit: "", factor: 1 };
   }
+}
+function sliderNumber(value) {
+  return String(Number(value.toPrecision(5)));
 }
 const sliderReadouts = [];
 function refreshSliderReadouts() {
-  for (const { key, input, val } of sliderReadouts) {
-    const label = formatSliderValue(key, parseFloat(input.value));
-    val.textContent = label;
-    input.setAttribute("aria-valuetext", label);
+  for (const { key, input, number, unit } of sliderReadouts) {
+    const display = sliderDisplay(key, parseFloat(input.value));
+    number.value = sliderNumber(display.value);
+    unit.textContent = display.unit;
+    input.setAttribute("aria-valuetext", `${number.value} ${display.unit}`.trim());
   }
 }
 
 function addSlider(key, label, min, max, step, onChange = null, commitOnly = false) {
   const row = document.createElement("div");
-  row.className = "row";
+  row.className = "row slider-row";
 
   const lab = document.createElement("label");
   lab.textContent = label;
@@ -222,30 +227,43 @@ function addSlider(key, label, min, max, step, onChange = null, commitOnly = fal
   input.id = `control-${key}`;
   lab.htmlFor = input.id;
 
-  const val = document.createElement("div");
-  val.className = "val";
-  val.textContent = formatSliderValue(key, params[key]);
-  input.setAttribute("aria-valuetext", val.textContent);
+  const number = document.createElement("input");
+  number.className = "slider-number";
+  number.type = "number";
+  number.step = "any";
+  number.setAttribute("aria-label", `${label} value`);
+  const unit = document.createElement("span");
+  unit.className = "slider-unit";
+
+  function commitValue(raw) {
+    if (!Number.isFinite(raw)) { refreshSliderReadouts(); return; }
+    const clamped = Math.min(max, Math.max(min, raw));
+    const snapped = Math.min(max, Math.max(min, min + Math.round((clamped - min) / step) * step));
+    input.value = String(Number(snapped.toFixed(8)));
+    params[key] = parseFloat(input.value);
+    refreshSliderReadouts();
+    if (onChange) onChange();
+  }
 
   input.addEventListener("input", () => {
     const v = parseFloat(input.value);
     if (!commitOnly) params[key] = v;
-    if (key === "nmPerGridCell") refreshSliderReadouts();
-    else {
-      val.textContent = formatSliderValue(key, v);
-      input.setAttribute("aria-valuetext", val.textContent);
-    }
+    refreshSliderReadouts();
   });
   input.addEventListener("change", () => {
-    if (commitOnly) params[key] = parseFloat(input.value);
-    if (onChange) onChange();
+    commitValue(parseFloat(input.value));
+  });
+  number.addEventListener("change", () => {
+    commitValue(parseFloat(number.value) / sliderDisplay(key, parseFloat(input.value)).factor);
   });
 
   row.appendChild(lab);
   row.appendChild(input);
-  row.appendChild(val);
+  row.appendChild(number);
+  row.appendChild(unit);
   controls.appendChild(row);
-  sliderReadouts.push({ key, input, val });
+  sliderReadouts.push({ key, input, number, unit });
+  refreshSliderReadouts();
 }
 
 function addToggleInt(key, label) {
@@ -393,6 +411,10 @@ controls = panes.core;
   row.appendChild(val);
   controls.appendChild(row);
 }
+const guidanceNote = document.createElement("p");
+guidanceNote.className = "calibration-note";
+guidanceNote.textContent = "Pauli spin guidance can curve paths before the barrier. Select Schrodinger to see paths without the spin current.";
+panes.core.appendChild(guidanceNote);
 
 controls = panes.display;
 addSectionHeader("Visual Parameters");
@@ -788,7 +810,7 @@ async function loadShaders() {
     "density_step.frag",
     "density_render.frag",
   ];
-  await Promise.all(files.map(async (f) => { SH[f] = await loadText(base + f + "?v=3.2"); }));
+  await Promise.all(files.map(async (f) => { SH[f] = await loadText(base + f + "?v=3.5"); }));
 }
 
 let progWaveInit, progWaveStep, progWaveRender;
