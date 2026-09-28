@@ -1,6 +1,8 @@
 import "../../../shared/qontic-controls.js";
 import { mountQonticShell } from "../../../shared/qontic-shell.js";
 import { mountQonticMedia } from "../../../shared/qontic-media.js";
+import { mountCoordinateTools, mountDistanceScale } from "../../../shared/qontic-overlays.js";
+import { mountQonticShortcuts } from "../../../shared/qontic-shortcuts.js";
 
 const canvas = document.getElementById("c");
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false, preserveDrawingBuffer: true });
@@ -99,6 +101,8 @@ const GUIDING_MODE_NAMES = [
 const BARRIER_V0_MAX = 12.0;
 
 let paused = false;
+let autoRun = true;
+let elapsedSimulationTime = 0;
 const RECORDING_CONFIG = {
   fps: 60,
   videoBitsPerSecond: 14_000_000,
@@ -118,7 +122,7 @@ const recordingState = {
   pendingFileName: "",
 };
 
-mountQonticShell({ title: "Quantum Tunneling", purpose: "Explore the wave packet and pilot-wave paths through a finite potential barrier.", badge: "Pilot Wave", navigation: "breadcrumbs", compactHeader: true, homeHref: "../../../index.html", version: "Quantum Tunneling · Template 3.0" });
+mountQonticShell({ title: "Quantum Tunneling", purpose: "Explore the wave packet and pilot-wave paths through a finite potential barrier.", badge: "Pilot Wave", navigation: "breadcrumbs", compactHeader: true, homeHref: "../../../index.html", version: "Quantum Tunneling · 2026-09-28" });
 const commonControls = document.querySelector("qontic-controls");
 const panes = Object.fromEntries([...document.querySelectorAll("[data-control-pane]")].map(node => [node.dataset.controlPane, node]));
 let controls = panes.core;
@@ -129,7 +133,11 @@ for (const button of document.querySelectorAll("[data-view]")) button.addEventLi
   const view = button.dataset.view;
   for (const tab of document.querySelectorAll("[data-view]")) tab.classList.toggle("active", tab === button);
   for (const panel of document.querySelectorAll("[data-panel]")) panel.hidden = panel.dataset.panel !== view;
-  if (view === "demo") requestAnimationFrame(applyViewTransform);
+  if (view === "demo") requestAnimationFrame(() => {
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    if (canvas.width !== Math.floor(canvas.clientWidth * dpr) || canvas.height !== Math.floor(canvas.clientHeight * dpr)) rebuildSimulation();
+    applyViewTransform();
+  });
 });
 const stageResize = new ResizeObserver(() => {
   if (document.querySelector('[data-panel="demo"]').hidden || !simW) return;
@@ -265,6 +273,7 @@ addSlider("barrierThick", "barrier thickness", 4.0, 150.0, 1.0, () => resetAll()
 controls = panes.advanced;
 addSlider("absorbPx", "absorb boundary", 0.0, 60.0, 1.0);
 addSlider("spinMagnitude", "spin |s|", 0.0, 2.0, 0.5);
+controls = panes.core;
 {
   const row = document.createElement("div");
   row.className = "row";
@@ -325,6 +334,7 @@ addSlider("spinMagnitude", "spin |s|", 0.0, 2.0, 0.5);
 
 controls = panes.display;
 addSectionHeader("Visual Parameters");
+addCycleButton("paletteId", "wave palette", PALETTE_NAMES);
 addToggleInt("showPhase", "show phase");
 addToggleInt("showParticles", "show particles");
 controls = panes.core;
@@ -343,17 +353,11 @@ addSlider("trailWidth", "trail width (px)", 1, 9.0, 1);
 //addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
 
 const recordButton = document.getElementById("record");
-const media = mountQonticMedia({
-  stage: document.getElementById("wrap"),
-  controls: commonControls,
-  getCanvases: () => [canvas],
-  filename: "qontic-tunneling",
-  onRecord: () => recordButton.click(),
-});
 recordButton.hidden = true;
 commonControls.addEventListener("qontic:start", () => { paused = false; });
 commonControls.addEventListener("qontic:stop", () => { paused = true; });
 commonControls.addEventListener("qontic:reset", () => resetAll());
+commonControls.addEventListener("qontic:autorun", ({ detail }) => { autoRun = detail.autoRun; });
 commonControls.addEventListener("qontic:theme", ({ detail }) => {
   document.documentElement.classList.toggle("qontic-light", detail.theme === "light");
 });
@@ -542,10 +546,10 @@ function downloadPendingRecording(clearAfterClick) {
 
 recordButton.onclick = toggleRecording;
 syncRecordingButton();
-window.addEventListener("keydown", event => {
-  if (event.target.closest("input, button, textarea, select") || event.altKey || event.ctrlKey || event.metaKey) return;
-  if (event.key.toLowerCase() === "r") resetAll();
-  if (event.key === " ") { event.preventDefault(); togglePause(); }
+mountQonticShortcuts({
+  togglePlayback: togglePause,
+  reset: resetAll,
+  screenshot: () => document.querySelector("#wrap .qontic-media-toolbar button[aria-label='Screenshot']")?.click(),
 });
 
 const view = {
@@ -553,6 +557,39 @@ const view = {
   offsetX: 0,
   offsetY: 0,
 };
+
+const canvasHost = document.getElementById("canvas-host");
+const formatGridDistance = value => `${Number(value.toPrecision(3))} grid px`;
+const gridUnitsPerPixel = () => ({
+  x: Math.max(64, Math.floor(canvas.width * params.simScale)) / Math.max(1, canvas.clientWidth * view.zoom),
+  y: Math.max(64, Math.floor(canvas.height * params.simScale)) / Math.max(1, canvas.clientHeight * view.zoom),
+});
+const scale = mountDistanceScale({
+  host: canvasHost,
+  getUnitsPerPixel: gridUnitsPerPixel,
+  format: formatGridDistance,
+  storageKey: "qontic-tunneling-scale-position",
+});
+const coordinates = mountCoordinateTools({
+  host: canvasHost,
+  getBounds: () => {
+    const units = gridUnitsPerPixel();
+    return {
+      xMin: -view.offsetX * units.x,
+      xMax: (canvasHost.clientWidth - view.offsetX) * units.x,
+      yMin: -view.offsetY * units.y,
+      yMax: (canvasHost.clientHeight - view.offsetY) * units.y,
+    };
+  },
+  formatValue: formatGridDistance,
+  storageKey: "qontic-tunneling-grid-visible",
+});
+mountQonticMedia({
+  stage: document.getElementById("wrap"), controls: commonControls,
+  filename: "qontic-tunneling", onRecord: () => recordButton.click(),
+  scaleControl: scale, coordinateControl: coordinates,
+  getCanvases: () => [canvas, scale.canvas, coordinates.canvas],
+});
 
 function clampViewOffset() {
   const w = canvas.clientWidth;
@@ -567,6 +604,8 @@ function applyViewTransform() {
   clampViewOffset();
   canvas.style.transformOrigin = "0 0";
   canvas.style.transform = `translate(${view.offsetX}px, ${view.offsetY}px) scale(${view.zoom})`;
+  scale.update();
+  coordinates.update();
 }
 
 canvas.addEventListener("wheel", (e) => {
@@ -813,6 +852,7 @@ let densW = 0, densH = 0;
 let densTexA = null, densTexB = null, densFboA = null, densFboB = null, densFlip = 0;
 
 function resizeCanvas() {
+  if (!canvas.clientWidth || !canvas.clientHeight) return;
   const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
   const w = Math.floor(canvas.clientWidth * dpr);
   const h = Math.floor(canvas.clientHeight * dpr);
@@ -1314,12 +1354,16 @@ function rebuildSimulation() {
   resetWave();
   rebuildParticles();
   rebuildDensity();
+  elapsedSimulationTime = 0;
+  scale.update();
+  coordinates.update();
 }
 
 function resetAll() {
   resetWave();
   rebuildParticles();
   clearDensity();
+  elapsedSimulationTime = 0;
 }
 
 async function main() {
@@ -1340,6 +1384,9 @@ async function main() {
         particleUpdate();
       }
       densityStepAndStamp();
+      elapsedSimulationTime += steps * params.dt;
+      // Let the reflected and transmitted packets leave through the absorbing edges.
+      if (autoRun && elapsedSimulationTime >= 2.5 * simH * params.mass / Math.max(0.1, params.p0)) resetAll();
     }
 
     render();
