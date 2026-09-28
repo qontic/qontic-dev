@@ -31,9 +31,10 @@ BoundaryAction boundaryAction(vec2 xPx) {
   float base = uAbsorbPx + uParticleKillMarginPx;
   float absDistX = 1.5 * base;
   float absDistY = 1.0 * base;
-  float freezeDistX = 1.5 * absDistX;
+  // Freeze at the entrance to the wave absorber, rather than well before it.
+  float freezeDistX = 0.75 * absDistX;
   float freezeDistXLeft = freezeDistX * 1.20;
-  float freezeDistY = 1.5 * absDistY;
+  float freezeDistY = 0.75 * absDistY;
 
   float w = float(uSimRes.x) - 1.0;
   float h = float(uSimRes.y) - 1.0;
