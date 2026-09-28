@@ -14,7 +14,8 @@ WebGL2 Bohmian mechanics Tunneling simulation with two selectable guiding laws.
 - `Auto rerun` starts another packet after a travel-time interval estimated from the grid height and incoming momentum. It is on by default.
 - `R` resets, `Space` starts or stops, and `S` saves a screenshot.
 - Core contains physical parameters, guiding law, and particle count. Advanced contains numerical settings. Display contains the palette, particles, trails, and phase controls.
-- The simulation toolbar provides screenshot, recording, sharing, expanded view, a grid, coordinate measurement, and a distance scale. Distances are given in simulation-grid pixels, not physical units.
+- The simulation toolbar provides screenshot, recording, sharing, expanded view, a grid, coordinate measurement, and a distance scale. The Display tab sets an explicit length calibration (default 1 nm per simulation-grid step). Its nanometer or micrometer labels are a chosen visualization scale; the model does not specify a unique physical length and changing this setting does not alter the dynamics.
+- The particle-freeze boundary is half its previous distance from each edge. The wave absorber itself keeps its original width and strength.
 
 ## License and Credit
 
