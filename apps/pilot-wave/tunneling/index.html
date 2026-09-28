@@ -3,7 +3,7 @@
 <title>Quantum Tunneling — Q-Ontic Lab</title>
 <link rel="stylesheet" href="../../../shared/qontic-shell.css">
 <link rel="stylesheet" href="../../../shared/qontic-app.css">
-<link rel="stylesheet" href="./template.css?v=3.2">
+<link rel="stylesheet" href="./template.css?v=3.4">
 </head><body><main class="shell">
 <header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Quantum Tunneling</h1></div></header>
 <nav class="tabs" aria-label="Views"><button type="button" class="active" data-view="demo">Simulation</button><button type="button" data-view="math">Math</button></nav>
@@ -39,6 +39,7 @@
           &psi;<sub>barrier</sub> &sim; <span class="mi">e</span><sup>-&kappa;<span class="mi">y</span></sup>
         </div>
         <p>The visible density is the Born density. Reflection and tunneling are two parts of the same evolving wave packet.</p>
+        <p>The controls interpret one model mass as the electron mass and one grid step as the chosen length scale (default 1 nm). Physical momentum, energy, and time follow from this length and the reduced Planck constant. Changing the scale relabels the same simulated trajectories; it does not change the numerical run. The incoming energy and barrier height are shown together in the simulation.</p>
         <div class="math">
           &rho;(<span class="mi">x</span>,<span class="mi">t</span>) = |&psi;|<sup>2</sup>,
           &nbsp;&nbsp;
@@ -69,4 +70,4 @@
           (&part;<sub>y</sub>&rho;, -&part;<sub>x</sub>&rho;)
         </div>
       </section>
-</main><script type="module" src="./main.js?v=3.2"></script></body></html>
+</main><script type="module" src="./main.js?v=3.4"></script></body></html>
