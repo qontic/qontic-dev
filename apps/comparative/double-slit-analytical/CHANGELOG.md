@@ -1,3 +1,8 @@
+## Version 2.113 — 2026-09-29
+
+- Removed the larger-header mode and its button; the shared template now always uses the compact header.
+- On phones, section tabs use short labels and the active interpretation becomes a compact O/PW/MW badge.
+
 ## Version 2.112 — 2026-09-29
 
 - Added a remembered Hide Header control with a small restore button that remains available while the header is hidden.

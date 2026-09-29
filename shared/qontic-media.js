@@ -2,13 +2,20 @@
 export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = true, labelNode = null, scaleControl = null, rangeControl = null, coordinateControl = null}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.4', import.meta.url);
+    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.6', import.meta.url);
     link.dataset.qonticMedia = ''; document.head.append(link);
   }
   const toolbar = document.createElement('div'); toolbar.className = 'qontic-media-toolbar';
   toolbar.setAttribute('role','group'); toolbar.setAttribute('aria-label','Simulation tools');
   if (labelNode) {
     labelNode.classList.add('qontic-stage-label');
+    const syncCompactLabel = () => {
+      const label = labelNode.textContent.trim();
+      labelNode.dataset.compactLabel = label.split(/[\s-]+/).filter(Boolean).map(word => word[0]).join('').toUpperCase() || label;
+      labelNode.title = label;
+    };
+    syncCompactLabel();
+    new MutationObserver(syncCompactLabel).observe(labelNode, {childList:true,subtree:true,characterData:true});
     toolbar.append(labelNode);
   }
   const icons = {
@@ -92,17 +99,17 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       titleRow.append(tools);
       if (tabs) tools.append(tabs);
     }
-    const densityButton = tools.querySelector('.qontic-header-density-toggle');
+    const endControl = tools.querySelector('.qontic-header-end-control');
     if (labelNode?.parentElement === toolbar) {
       labelHome = document.createComment('Simulation state label position');
-      if (densityButton) {
-        tools.insertBefore(labelHome, densityButton);
-        tools.insertBefore(labelNode, densityButton);
+      if (endControl) {
+        tools.insertBefore(labelHome, endControl);
+        tools.insertBefore(labelNode, endControl);
       } else {
         tools.append(labelHome, labelNode);
       }
     }
-    if (densityButton) tools.insertBefore(toolbar, densityButton);
+    if (endControl) tools.insertBefore(toolbar, endControl);
     else tools.append(toolbar);
   } else stage.prepend(toolbar);
   const toolbarHome = document.createComment('Simulation tools position');

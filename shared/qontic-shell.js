@@ -2,8 +2,6 @@ const DEFAULTS = Object.freeze({
   title: 'Quantum demonstration',
   eyebrow: 'Q-Ontic interactive laboratory',
   purpose: '',
-  compactHeader: false,
-  headerDensityControl: true,
   headerVisibilityControl: true,
   navigation: 'legacy',
   showSiteNavigation: true,
@@ -23,15 +21,8 @@ function decorateShell(shell, settings) {
 
   shell.dataset.qonticShell = 'true';
   shell.classList.add('qontic-template');
-  header.classList.add('qontic-app-header');
+  header.classList.add('qontic-app-header', 'qontic-compact-header');
   if (!header.id) header.id = 'qontic-app-header';
-  const densityStorageKey = 'qontic-header-density';
-  let compactHeader = settings.compactHeader;
-  try {
-    const savedDensity = localStorage.getItem(densityStorageKey);
-    if (savedDensity === 'compact' || savedDensity === 'comfortable') compactHeader = savedDensity === 'compact';
-  } catch (_) {}
-  header.classList.toggle('qontic-compact-header', compactHeader);
 
   const currentTitle = header.querySelector('h1');
   const titleGroup = currentTitle?.parentElement;
@@ -54,33 +45,11 @@ function decorateShell(shell, settings) {
       headerTools.append(tabs);
     }
 
-    if (settings.headerDensityControl) {
-      const densityButton = document.createElement('button');
-      densityButton.type = 'button';
-      densityButton.className = 'qontic-header-density-toggle';
-      densityButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14M5 20h14M8 9l4 3 4-3M8 15l4-3 4 3"/></svg>';
-      const syncDensityButton = () => {
-        const compact = header.classList.contains('qontic-compact-header');
-        densityButton.setAttribute('aria-pressed', String(compact));
-        densityButton.setAttribute('aria-label', compact ? 'Use larger header' : 'Use compact header');
-        densityButton.dataset.tooltip = compact ? 'Use larger header' : 'Use compact header';
-      };
-      densityButton.addEventListener('click', () => {
-        const compact = !header.classList.contains('qontic-compact-header');
-        header.classList.toggle('qontic-compact-header', compact);
-        try { localStorage.setItem(densityStorageKey, compact ? 'compact' : 'comfortable'); } catch (_) {}
-        syncDensityButton();
-        window.dispatchEvent(new Event('resize'));
-      });
-      headerTools.append(densityButton);
-      syncDensityButton();
-    }
-
     if (settings.headerVisibilityControl) {
       const visibilityStorageKey = 'qontic-header-visibility';
       const hideButton = document.createElement('button');
       hideButton.type = 'button';
-      hideButton.className = 'qontic-header-density-toggle qontic-header-visibility-toggle';
+      hideButton.className = 'qontic-header-icon-button qontic-header-visibility-toggle qontic-header-end-control';
       hideButton.setAttribute('aria-label', 'Hide header');
       hideButton.setAttribute('aria-controls', header.id);
       hideButton.dataset.tooltip = 'Hide header';
@@ -88,7 +57,7 @@ function decorateShell(shell, settings) {
 
       const restoreButton = document.createElement('button');
       restoreButton.type = 'button';
-      restoreButton.className = 'qontic-header-density-toggle qontic-header-restore';
+      restoreButton.className = 'qontic-header-icon-button qontic-header-restore';
       restoreButton.setAttribute('aria-label', 'Show header');
       restoreButton.setAttribute('aria-controls', header.id);
       restoreButton.dataset.tooltip = 'Show header';
@@ -174,9 +143,15 @@ function decorateShell(shell, settings) {
   }
 
   const keepTabsConcise = () => {
-    const mathTab = [...(tabs?.querySelectorAll('button') ?? [])]
-      .find((button) => button.textContent.trim() === 'Details & Math');
+    const buttons = [...(tabs?.querySelectorAll('button') ?? [])];
+    const mathTab = buttons.find((button) => button.textContent.trim() === 'Details & Math');
     if (mathTab) mathTab.textContent = 'Math';
+    const compactLabels = { Simulation: 'Sim', Physics: 'Phys', Views: 'Views', Math: 'Math', Rationale: 'Why' };
+    for (const button of buttons) {
+      const label = button.textContent.trim();
+      button.dataset.compactLabel = compactLabels[label] || label.slice(0, 4);
+      if (!button.title) button.title = label;
+    }
   };
   keepTabsConcise();
   if (tabs) new MutationObserver(keepTabsConcise).observe(tabs, { childList: true, subtree: true });

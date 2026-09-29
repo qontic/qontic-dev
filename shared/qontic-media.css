@@ -43,7 +43,8 @@
 @media(max-width:560px) {
   .qontic-header-tools {align-items:flex-start;gap:5px 8px;}
   .qontic-header-tools .qontic-media-toolbar {gap:4px;}
-  .qontic-header-tools > .qontic-stage-label {min-height:38px;display:inline-flex;align-items:center;}
+  .qontic-header-tools > .qontic-stage-label {display:inline-flex;min-width:28px;min-height:36px;padding:0 6px;align-items:center;justify-content:center;box-sizing:border-box;border:1px solid #294b60;border-radius:6px;font-size:0;}
+  .qontic-header-tools > .qontic-stage-label::after {content:attr(data-compact-label);font-size:10px;line-height:1;}
   .qontic-header-tools .qontic-media-action {width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;flex-basis:38px!important;}
 }
 
