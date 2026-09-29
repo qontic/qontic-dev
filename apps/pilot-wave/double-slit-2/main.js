@@ -5,7 +5,7 @@ import { WhichSlitMeasurement } from "./which-slit.js";
 import { assignRadialGroups } from "./particle-colors.js";
 import { paintPhaseLegend, phaseLegendLayout } from "./phase-legend.js";
 import { sampleWhichSlitStart } from "./which-slit-launch.js";
-import { installTemplateShell } from "./template-shell.js?v=2";
+import { installTemplateShell } from "./template-shell.js?v=3";
 import { mountQonticMedia } from "../../../shared/qontic-media.js";
 import { mountDistanceScale, mountCoordinateTools } from "../../../shared/qontic-overlays.js";
 import { mountQonticShortcuts } from "../../../shared/qontic-shortcuts.js";
