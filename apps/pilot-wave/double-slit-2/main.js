@@ -1767,11 +1767,26 @@ function resetAll({ preserveHistogram = Boolean(params.whichSlit) } = {}) {
   beginInitialHold();
 }
 
-window.addEventListener("resize", () => {
+window.addEventListener("resize", event => {
   if (!simulationReady && !frameRecordingActive) return;
   if (template?.workspace.hidden) return;
   if (frameRecordingActive) {
     resizeDuringRecording = true;
+    return;
+  }
+  // The shared Expand/Restore control dispatches a synthetic resize after
+  // moving the stage. Keep the wave, particle buffers, and detector counts.
+  if (template && !event.isTrusted) {
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const previousWidth = canvas.width / dpr;
+    const previousHeight = canvas.height / dpr;
+    if (previousWidth > 0 && previousHeight > 0) {
+      view.offsetX *= canvas.clientWidth / previousWidth;
+      view.offsetY *= canvas.clientHeight / previousHeight;
+    }
+    resizeCanvas();
+    applyViewTransform();
+    render();
     return;
   }
   rebuildSimulation();
