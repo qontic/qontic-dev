@@ -491,7 +491,7 @@ export function mountPacketEngine({core,advanced}){
   onPreview:previewSeparation,onCommit:commitSeparation,pause:pauseForGeometry,resume:resumeAfterGeometry
  });
  const geometryHost=document.getElementById('canvas-container');
- const toolbar=document.querySelector('#canvas-wrapper .qontic-media-toolbar');
+ const toolbar=document.querySelector('.qontic-media-toolbar');
  const editButton=document.createElement('button');editButton.type='button';editButton.className=toolbar.querySelector('button').className;
  editButton.setAttribute('aria-label','Edit geometry');editButton.setAttribute('aria-pressed','false');
  editButton.title='Edit geometry · right-click canvas. Drag handles to preview the predicted histogram; Escape exits.';

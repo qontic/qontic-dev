@@ -1,8 +1,8 @@
 // Optional shared presentation tools. Models supply canvas layers and playback hooks.
-export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = false, labelNode = null, scaleControl = null, rangeControl = null, coordinateControl = null}) {
+export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = true, labelNode = null, scaleControl = null, rangeControl = null, coordinateControl = null}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.1', import.meta.url);
+    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.2', import.meta.url);
     link.dataset.qonticMedia = ''; document.head.append(link);
   }
   const toolbar = document.createElement('div'); toolbar.className = 'qontic-media-toolbar';
@@ -79,7 +79,8 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       setTimeout(()=>setAction(share,'share','Share link','Copy a link to this simulation'),1800);
     }catch(error){notice.textContent='Could not copy the link. Please use the address bar.';}
   });
-  // Opt-in header placement keeps existing media consumers unchanged.
+  // Header placement is the template default; pass headerTools:false for a
+  // model whose controls must remain attached to the simulation stage.
   const titleRow = headerTools && stage.closest('.shell')?.querySelector('.qontic-title-row');
   if (titleRow) {
     titleRow.classList.add('qontic-title-with-tools');
@@ -90,7 +91,9 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       titleRow.append(tools);
       if (tabs) tools.append(tabs);
     }
-    tools.append(toolbar);
+    const densityButton = tools.querySelector('.qontic-header-density-toggle');
+    if (densityButton) tools.insertBefore(toolbar, densityButton);
+    else tools.append(toolbar);
   } else stage.prepend(toolbar);
   const toolbarHome = document.createComment('Simulation tools position');
   toolbar.before(toolbarHome);

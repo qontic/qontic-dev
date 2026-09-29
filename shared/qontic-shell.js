@@ -3,6 +3,7 @@ const DEFAULTS = Object.freeze({
   eyebrow: 'Q-Ontic interactive laboratory',
   purpose: '',
   compactHeader: false,
+  headerDensityControl: true,
   navigation: 'legacy',
   showSiteNavigation: true,
   breadcrumbs: null,
@@ -22,7 +23,13 @@ function decorateShell(shell, settings) {
   shell.dataset.qonticShell = 'true';
   shell.classList.add('qontic-template');
   header.classList.add('qontic-app-header');
-  if (settings.compactHeader) header.classList.add('qontic-compact-header');
+  const densityStorageKey = 'qontic-header-density';
+  let compactHeader = settings.compactHeader;
+  try {
+    const savedDensity = localStorage.getItem(densityStorageKey);
+    if (savedDensity === 'compact' || savedDensity === 'comfortable') compactHeader = savedDensity === 'compact';
+  } catch (_) {}
+  header.classList.toggle('qontic-compact-header', compactHeader);
 
   const currentTitle = header.querySelector('h1');
   const titleGroup = currentTitle?.parentElement;
@@ -37,9 +44,34 @@ function decorateShell(shell, settings) {
     titleRow.className = 'qontic-title-row';
     currentTitle.before(titleRow);
     titleRow.append(currentTitle);
+    const headerTools = document.createElement('div');
+    headerTools.className = 'qontic-header-tools';
+    titleRow.append(headerTools);
     if (tabs) {
       tabs.classList.add('qontic-view-tabs');
-      titleRow.append(tabs);
+      headerTools.append(tabs);
+    }
+
+    if (settings.headerDensityControl) {
+      const densityButton = document.createElement('button');
+      densityButton.type = 'button';
+      densityButton.className = 'qontic-header-density-toggle';
+      densityButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14M5 20h14M8 9l4 3 4-3M8 15l4-3 4 3"/></svg>';
+      const syncDensityButton = () => {
+        const compact = header.classList.contains('qontic-compact-header');
+        densityButton.setAttribute('aria-pressed', String(compact));
+        densityButton.setAttribute('aria-label', compact ? 'Use larger header' : 'Use compact header');
+        densityButton.dataset.tooltip = compact ? 'Use larger header' : 'Use compact header';
+      };
+      densityButton.addEventListener('click', () => {
+        const compact = !header.classList.contains('qontic-compact-header');
+        header.classList.toggle('qontic-compact-header', compact);
+        try { localStorage.setItem(densityStorageKey, compact ? 'compact' : 'comfortable'); } catch (_) {}
+        syncDensityButton();
+        window.dispatchEvent(new Event('resize'));
+      });
+      headerTools.append(densityButton);
+      syncDensityButton();
     }
 
     if (settings.purpose) {

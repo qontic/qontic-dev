@@ -1,12 +1,12 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?v=2.108';
-import { mountMWBranching } from './mw-branching.js?v=2.108';
-import { APP_RELEASE } from './release.js?v=2.108';
+import { mountPacketEngine } from './packet-engine.js?v=2.109';
+import { mountMWBranching } from './mw-branching.js?v=2.109';
+import { APP_RELEASE } from './release.js?v=2.109';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.1';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.2';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
-import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
+import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.2';
 import '../../../../shared/qontic-controls.js?v=3.1';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
@@ -382,7 +382,7 @@ $(function () {
   let media;
   media=mountQonticMedia({
     stage: document.getElementById('canvas-wrapper'), controls,
-    filename: 'double-slit', headerTools: false, labelNode:document.getElementById('view-label'), rangeControl:window.qonticWaveRangeControl,
+    filename: 'double-slit', labelNode:document.getElementById('view-label'), rangeControl:window.qonticWaveRangeControl,
     coordinateControl:coordinates,
     scaleControl:{getVisible:()=>elementOpacity('plot_scales')>0,setVisible:shown=>{if(!shown)lastScaleOpacity=elementOpacity('plot_scales')||1;const slider=document.getElementById('plot_scales-opacity');slider.value=shown?lastScaleOpacity*100:0;slider.dispatchEvent(new Event('input',{bubbles:true}));slider.dispatchEvent(new Event('change',{bubbles:true}));}},
     getShareUrl: () => location.href.split('#')[0] + buildUrlHash(),
@@ -402,7 +402,7 @@ $(function () {
   container.addEventListener('qontic:surface-view',event=>{
     const active=!!event.detail?.active;
     for(const label of ['Grid','Coordinates and measure','Distance scale']){
-      const button=document.querySelector(`#canvas-wrapper .qontic-media-toolbar button[aria-label="${label}"]`);
+      const button=document.querySelector(`.qontic-media-toolbar button[aria-label="${label}"]`);
       if(button){button.disabled=active;button.title=active?'Available in the 2D coordinate view':'';}
     }
   });
@@ -429,7 +429,7 @@ $(function () {
   mountQonticShortcuts({
     togglePlayback:()=>document.getElementById('startButton').click(),
     reset:()=>document.getElementById('resetButton').click(),
-    screenshot:()=>document.querySelector('#canvas-wrapper .qontic-media-toolbar button[aria-label="Screenshot"]')?.click(),
+    screenshot:()=>document.querySelector('.qontic-media-toolbar button[aria-label="Screenshot"]')?.click(),
     additional:{
       KeyV:()=>{if(!viewLocked)document.getElementById('toggleView').click();},
       KeyW:()=>{const select=document.getElementById('waveFunctionOption');select.selectedIndex=(select.selectedIndex+1)%select.options.length;$(select).trigger('change');},

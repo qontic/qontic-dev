@@ -1,3 +1,8 @@
+## Version 2.109 — 2026-09-29
+
+- Moved the canvas utility controls into the application header beside Simulation, Physics, and Views.
+- Added a remembered compact/comfortable header toggle with a smaller logo and title in compact mode.
+
 ## Version 2.108 — 2026-09-29
 
 - Scale the observed histogram to its largest upper error-bar endpoint, n + √n, so every square-root error bar is fully visible while the prediction retains its independent probability-density scale.
