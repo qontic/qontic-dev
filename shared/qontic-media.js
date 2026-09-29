@@ -2,7 +2,7 @@
 export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = true, labelNode = null, scaleControl = null, rangeControl = null, coordinateControl = null}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.3', import.meta.url);
+    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.4', import.meta.url);
     link.dataset.qonticMedia = ''; document.head.append(link);
   }
   const toolbar = document.createElement('div'); toolbar.className = 'qontic-media-toolbar';
@@ -82,6 +82,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   // Header placement is the template default; pass headerTools:false for a
   // model whose controls must remain attached to the simulation stage.
   const titleRow = headerTools && stage.closest('.shell')?.querySelector('.qontic-title-row');
+  let labelHome;
   if (titleRow) {
     titleRow.classList.add('qontic-title-with-tools');
     let tools = titleRow.querySelector('.qontic-header-tools');
@@ -92,6 +93,15 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       if (tabs) tools.append(tabs);
     }
     const densityButton = tools.querySelector('.qontic-header-density-toggle');
+    if (labelNode?.parentElement === toolbar) {
+      labelHome = document.createComment('Simulation state label position');
+      if (densityButton) {
+        tools.insertBefore(labelHome, densityButton);
+        tools.insertBefore(labelNode, densityButton);
+      } else {
+        tools.append(labelHome, labelNode);
+      }
+    }
     if (densityButton) tools.insertBefore(toolbar, densityButton);
     else tools.append(toolbar);
   } else stage.prepend(toolbar);
@@ -110,11 +120,17 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
         controls.setAttribute('show-tabs','false'); controls.setAttribute('show-interpretation','false');
         expanded.append(controls);
       }
-      if (titleRow) stage.prepend(toolbar);
+      if (titleRow) {
+        if (labelHome && labelNode) toolbar.prepend(labelNode);
+        stage.prepend(toolbar);
+      }
       expanded.append(stage); expanded.showModal();
     } else {
       expanded.close(); home.replaceWith(stage);
-      if (titleRow) toolbarHome.after(toolbar);
+      if (titleRow) {
+        toolbarHome.after(toolbar);
+        if (labelHome && labelNode) labelHome.after(labelNode);
+      }
       if (controls) {
         controlHome.replaceWith(controls);
         for (const [name, value] of attributes) value === null ? controls.removeAttribute(name) : controls.setAttribute(name,value);

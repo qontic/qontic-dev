@@ -1,3 +1,7 @@
+## Version 2.111 — 2026-09-29
+
+- Kept the section tabs and interpretation label left-aligned while moving the Screenshot and other canvas actions to the right edge of the responsive header.
+
 ## Version 2.110 — 2026-09-29
 
 - Left-aligned the section tabs, interpretation label, and header tool groups.
