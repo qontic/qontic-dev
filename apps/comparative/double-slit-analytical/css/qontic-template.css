@@ -69,7 +69,7 @@ body.analytical-template { padding: 0 18px 12px; }
 }
 
 @media (max-width: 600px) {
-  .analytical-template #leftPanel { display: flex; }
+  .analytical-template #leftPanel { display:flex; flex-direction:column; width:100%; }
   .analytical-template .qontic-app-header { min-height: 0; padding-block: 8px; }
   .analytical-template .qontic-brand img { width: 42px; height: 42px; }
   .analytical-template .qontic-app-title h1 { font-size: 25px; }
@@ -79,6 +79,8 @@ body.analytical-template { padding: 0 18px 12px; }
   .analytical-template #psiTabs { padding: 10px; }
   .analytical-template #canvas-wrapper { flex: none; }
   .analytical-template #Info { width: 100%; }
+  .analytical-template #canvas-container { width:100%; margin-block:6px; }
+  .analytical-template #shortcut-hint { display:none; }
 }
 
 @media (max-width: 600px) {

@@ -160,11 +160,22 @@
   .qontic-workspace {
     grid-template-columns: minmax(0, 1fr);
     max-width: 100%;
+    gap: 12px;
   }
+  .qontic-stage { width:100%; }
 }
 
 @media (max-width: 600px) {
   :root { --qontic-layout-gap: 8px; }
   .qontic-control-panel { padding: 10px; }
   .qontic-reading-panel { padding: 12px; }
+  .qontic-panel,.qontic-stage { max-width:100%; }
+  .qontic-app-toggle { min-height:40px; }
+  .qontic-display-layer { min-height:40px; }
+  .qontic-display-layer input[type="range"] { min-height:28px; }
+}
+
+@media (pointer: coarse) {
+  .qontic-app-toggle,.qontic-color-input,.qontic-color-button { min-height:40px; }
+  .qontic-display-layer input[type="range"] { min-height:30px; }
 }

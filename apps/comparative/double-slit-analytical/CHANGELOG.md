@@ -1,3 +1,8 @@
+## Version 2.110 — 2026-09-29
+
+- Left-aligned the section tabs, interpretation label, and header tool groups.
+- Added responsive desktop, tablet, and phone layouts with wrapping header controls, stacked workspaces, compact branding, and touch-sized controls.
+
 ## Version 2.109 — 2026-09-29
 
 - Moved the canvas utility controls into the application header beside Simulation, Physics, and Views.
