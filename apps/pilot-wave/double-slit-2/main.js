@@ -609,9 +609,9 @@ if (template) {
     document.documentElement.classList.toggle("qontic-light", detail.theme === "light");
   });
   mountQonticShortcuts({
-    togglePlayback: togglePause,
-    reset: resetAll,
-    screenshot: () => template.stage.querySelector('.qontic-media-toolbar button[aria-label="Screenshot"]')?.click(),
+    togglePlayback: () => { if (!frameRecordingActive) togglePause(); },
+    reset: () => { if (!frameRecordingActive) resetAll(); },
+    screenshot: () => { if (!frameRecordingActive) template.stage.querySelector('.qontic-media-toolbar button[aria-label="Screenshot"]')?.click(); },
   });
   window.addEventListener("qontic:view-change", () => {
     resetPlaybackClock();
@@ -1981,6 +1981,7 @@ window.BohmianDoubleSlit = {
     if (template) {
       template.commonControls.setAttribute("disabled", "true");
       template.stage.querySelector(".qontic-media-toolbar").inert = true;
+      document.querySelector("main.shell .tabs").inert = true;
     }
     resetPlaybackClock();
   },
@@ -1989,6 +1990,7 @@ window.BohmianDoubleSlit = {
     if (template) {
       template.commonControls.removeAttribute("disabled");
       template.stage.querySelector(".qontic-media-toolbar").inert = false;
+      document.querySelector("main.shell .tabs").inert = false;
     }
     if (resizeDuringRecording && recordingViewport) {
       // Resizing during export must not reset the saved live run.
