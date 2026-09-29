@@ -11,7 +11,7 @@ export function installTemplateShell() {
   const controlBody = document.getElementById("controls");
   const shell = document.createElement("main");
   shell.className = "shell";
-  shell.innerHTML = `<header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Double Slit 2.0</h1></div></header>
+  shell.innerHTML = `<header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Double Slit 2.0</h1></div><a class="classic-link" href="../double-slit-2-classic/">Compare original version ↗</a></header>
     <nav class="tabs" aria-label="Views"><button type="button" class="active" data-view="demo">Simulation</button><button type="button" data-view="math">Math</button></nav>`;
 
   const workspace = document.createElement("section");
