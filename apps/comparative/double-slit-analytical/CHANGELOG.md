@@ -1,3 +1,8 @@
+## Version 2.114 — 2026-09-29
+
+- Replaced the individually wrapped phone toolbar buttons with one three-dot Simulation tools button and a labeled floating menu that is closed by default.
+- Close the phone tool menu after an action, an outside press, or Escape, while preserving the full toolbar on larger screens and in expanded view.
+
 ## Version 2.113 — 2026-09-29
 
 - Removed the larger-header mode and its button; the shared template now always uses the compact header.

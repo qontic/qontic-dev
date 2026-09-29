@@ -2,7 +2,7 @@
 export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = true, labelNode = null, scaleControl = null, rangeControl = null, coordinateControl = null}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.6', import.meta.url);
+    link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.7', import.meta.url);
     link.dataset.qonticMedia = ''; document.head.append(link);
   }
   const toolbar = document.createElement('div'); toolbar.className = 'qontic-media-toolbar';
@@ -89,7 +89,13 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   // Header placement is the template default; pass headerTools:false for a
   // model whose controls must remain attached to the simulation stage.
   const titleRow = headerTools && stage.closest('.shell')?.querySelector('.qontic-title-row');
-  let labelHome;
+  let labelHome, mediaMenuButton, headerToolGroup;
+  const closeMediaMenu = ({restoreFocus = false} = {}) => {
+    if (!headerToolGroup?.classList.contains('qontic-media-menu-open')) return;
+    headerToolGroup.classList.remove('qontic-media-menu-open');
+    mediaMenuButton?.setAttribute('aria-expanded','false');
+    if (restoreFocus) mediaMenuButton?.focus();
+  };
   if (titleRow) {
     titleRow.classList.add('qontic-title-with-tools');
     let tools = titleRow.querySelector('.qontic-header-tools');
@@ -99,6 +105,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       titleRow.append(tools);
       if (tabs) tools.append(tabs);
     }
+    headerToolGroup = tools;
     const endControl = tools.querySelector('.qontic-header-end-control');
     if (labelNode?.parentElement === toolbar) {
       labelHome = document.createComment('Simulation state label position');
@@ -109,8 +116,39 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
         tools.append(labelHome, labelNode);
       }
     }
-    if (endControl) tools.insertBefore(toolbar, endControl);
-    else tools.append(toolbar);
+    toolbar.id = document.getElementById('qontic-media-tools') ? `qontic-media-tools-${Date.now()}` : 'qontic-media-tools';
+    mediaMenuButton = document.createElement('button');
+    mediaMenuButton.type = 'button';
+    mediaMenuButton.className = 'qontic-header-icon-button qontic-media-menu-toggle';
+    mediaMenuButton.setAttribute('aria-label','Simulation tools');
+    mediaMenuButton.setAttribute('aria-controls',toolbar.id);
+    mediaMenuButton.setAttribute('aria-expanded','false');
+    mediaMenuButton.dataset.tooltip = 'Simulation tools';
+    mediaMenuButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>';
+    if (endControl) {
+      tools.insertBefore(toolbar, endControl);
+      tools.insertBefore(mediaMenuButton, endControl);
+    } else tools.append(toolbar,mediaMenuButton);
+    mediaMenuButton.addEventListener('click',event=>{
+      event.stopPropagation();
+      const open=tools.classList.toggle('qontic-media-menu-open');
+      mediaMenuButton.setAttribute('aria-expanded',String(open));
+      if(open) requestAnimationFrame(()=>toolbar.querySelector('button:not(:disabled)')?.focus());
+    });
+    toolbar.addEventListener('click',event=>{
+      if(event.target.closest('button')) closeMediaMenu();
+    });
+    document.addEventListener('pointerdown',event=>{
+      if(!tools.contains(event.target)) closeMediaMenu();
+    });
+    document.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&tools.classList.contains('qontic-media-menu-open')){
+        event.preventDefault();event.stopPropagation();closeMediaMenu({restoreFocus:true});
+      }
+    },true);
+    const phoneMedia=matchMedia('(max-width: 560px)');
+    const closeWideMenu=event=>{if(!event.matches)closeMediaMenu();};
+    phoneMedia.addEventListener?.('change',closeWideMenu);
   } else stage.prepend(toolbar);
   const toolbarHome = document.createComment('Simulation tools position');
   toolbar.before(toolbarHome);
@@ -120,6 +158,7 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   const setExpanded = value => {
     if (value === expanded.open) return;
     if (value) {
+      closeMediaMenu();
       home = document.createComment('Simulation position'); stage.replaceWith(home);
       if (controls) {
         controlHome = document.createComment('Playback position'); controls.replaceWith(controlHome);
