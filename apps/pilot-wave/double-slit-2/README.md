@@ -2,6 +2,12 @@
 
 Standalone copy of the full-applet Bohmian double-slit WebGL2 simulation from qontic-dev/notebooks/double-slit-webgl.
 
+## Shared page template
+
+The normal app page uses the shared Q-Ontic header, Simulation/Math views, Core/Advanced/Display controls, run/reset/speed controls, and the stage toolbar for screenshot, recording settings, sharing, expansion, grid, measurement, and distance scale. Experiment and physical controls are in Core; performance and the existing frame-rendered video exporter are in Advanced; wave, particle, histogram, color, and view controls are in Display. The ruler uses an explicit, display-only length calibration (default 1 nm per grid step). Its choice does not change the numerical simulation.
+
+The `?embed=1` and `?renderer=video` modes keep their original full-canvas layout and preset behavior. The template recording button opens the existing high-resolution video export settings; it does not replace that exporter.
+
 The original full-applet.html is the project index.html. The simulation-speed.js helper is included locally.
 
 Each new run holds the initial wave and particles still for 0.5 seconds before motion begins. This is a visual pause, with no trajectory precomputation or hidden physics steps. Manual pause also freezes this opening interval; returning from a paused or hidden tab does not accumulate time to catch up. Playback still advances the existing fixed number of physics steps per rendered frame.
