@@ -17,7 +17,15 @@ const phaseLegendCanvas = document.getElementById("phase-legend");
 let phaseLegendPlacement = null;
 const rightHistogram = new RightDetectorHistogram(document.getElementById("detector-histogram"));
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: false, stencil: false });
-if (!gl) throw new Error("WebGL2 not available.");
+if (!gl) {
+  if (template) {
+    const notice = document.createElement("p");
+    notice.className = "webgl-notice";
+    notice.textContent = "This simulation requires WebGL2. Open it in a desktop browser with WebGL2 enabled.";
+    template.wrap.append(notice);
+  }
+  throw new Error("WebGL2 not available.");
+}
 
 gl.disable(gl.DEPTH_TEST);
 gl.disable(gl.CULL_FACE);
@@ -578,7 +586,6 @@ addSlider("trailHalfLife", "trail half-life", 1.0, 150.0, 1.0);
 
 removeEmptySectionHeaders();
 syncWhichSlitControls();
-if (template) template.panes.advanced.append(document.getElementById("export-options"));
 
 const pauseButton = document.getElementById("pause");
 function togglePause() {
