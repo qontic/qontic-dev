@@ -102,6 +102,12 @@
   font: 400 12px/1.4 Inter,Arial,sans-serif; pointer-events: none; opacity: 0; visibility: hidden;
 }
 .qontic-header-density-toggle:hover::after,.qontic-header-density-toggle:focus-visible::after { opacity: 1; visibility: visible; }
+.qontic-header-restore {
+  position:fixed; top:6px; right:6px; z-index:300;
+  box-shadow:0 4px 16px #0008;
+}
+.qontic-header-restore[hidden] { display:none!important; }
+.qontic-header-hidden .qontic-app-header { display:none!important; }
 
 .qontic-app-title h1 {
   margin: 0;

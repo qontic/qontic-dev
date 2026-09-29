@@ -163,6 +163,9 @@
     gap: 12px;
   }
   .qontic-stage { width:100%; }
+  .qontic-workspace > .qontic-stage { grid-column:1; grid-row:1; }
+  .qontic-workspace > .qontic-sidebar { grid-column:1; grid-row:2; }
+  .qontic-sidebar-divider { display:none!important; }
 }
 
 @media (max-width: 600px) {

@@ -1,3 +1,8 @@
+## Version 2.112 — 2026-09-29
+
+- Added a remembered Hide Header control with a small restore button that remains available while the header is hidden.
+- On tablet and phone widths, the simulation canvas now appears before the controls and statistics.
+
 ## Version 2.111 — 2026-09-29
 
 - Kept the section tabs and interpretation label left-aligned while moving the Screenshot and other canvas actions to the right edge of the responsive header.

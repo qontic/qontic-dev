@@ -4,6 +4,7 @@ const DEFAULTS = Object.freeze({
   purpose: '',
   compactHeader: false,
   headerDensityControl: true,
+  headerVisibilityControl: true,
   navigation: 'legacy',
   showSiteNavigation: true,
   breadcrumbs: null,
@@ -23,6 +24,7 @@ function decorateShell(shell, settings) {
   shell.dataset.qonticShell = 'true';
   shell.classList.add('qontic-template');
   header.classList.add('qontic-app-header');
+  if (!header.id) header.id = 'qontic-app-header';
   const densityStorageKey = 'qontic-header-density';
   let compactHeader = settings.compactHeader;
   try {
@@ -72,6 +74,41 @@ function decorateShell(shell, settings) {
       });
       headerTools.append(densityButton);
       syncDensityButton();
+    }
+
+    if (settings.headerVisibilityControl) {
+      const visibilityStorageKey = 'qontic-header-visibility';
+      const hideButton = document.createElement('button');
+      hideButton.type = 'button';
+      hideButton.className = 'qontic-header-density-toggle qontic-header-visibility-toggle';
+      hideButton.setAttribute('aria-label', 'Hide header');
+      hideButton.setAttribute('aria-controls', header.id);
+      hideButton.dataset.tooltip = 'Hide header';
+      hideButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M8 14l4-4 4 4M12 10v9"/></svg>';
+
+      const restoreButton = document.createElement('button');
+      restoreButton.type = 'button';
+      restoreButton.className = 'qontic-header-density-toggle qontic-header-restore';
+      restoreButton.setAttribute('aria-label', 'Show header');
+      restoreButton.setAttribute('aria-controls', header.id);
+      restoreButton.dataset.tooltip = 'Show header';
+      restoreButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18h14M8 10l4 4 4-4M12 5v9"/></svg>';
+      document.body.append(restoreButton);
+
+      const setHeaderHidden = (hidden, persist = true) => {
+        document.body.classList.toggle('qontic-header-hidden', hidden);
+        restoreButton.hidden = !hidden;
+        if (persist) {
+          try { localStorage.setItem(visibilityStorageKey, hidden ? 'hidden' : 'shown'); } catch (_) {}
+        }
+        window.dispatchEvent(new Event('resize'));
+      };
+      hideButton.addEventListener('click', () => { setHeaderHidden(true); restoreButton.focus(); });
+      restoreButton.addEventListener('click', () => { setHeaderHidden(false); hideButton.focus(); });
+      headerTools.append(hideButton);
+      let initiallyHidden = false;
+      try { initiallyHidden = localStorage.getItem(visibilityStorageKey) === 'hidden'; } catch (_) {}
+      setHeaderHidden(initiallyHidden, false);
     }
 
     if (settings.purpose) {
