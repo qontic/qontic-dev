@@ -1,6 +1,7 @@
 .double-slit-template, .double-slit-template body { min-height:100%; height:auto; overflow:auto; background:#07121d; color:#d9edf7; }
 .double-slit-template .shell { max-width:none; margin:0 auto; padding:10px; }
 .double-slit-template .shell > header { min-height:56px; }
+.double-slit-template .classic-link { align-self:center; color:#8ce7f0; font-size:13px; white-space:nowrap; }
 .double-slit-template .tabs { display:flex; gap:8px; margin:8px 0; }
 .double-slit-template .tabs button { flex:0 0 auto; }
 .double-slit-template .tabs button.active { border-color:#55d8e6; color:#7cecff; }
