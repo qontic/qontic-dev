@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {dragSurfaceGeometry} from './packet-interaction.js?v=2.107';
-import {surfaceZeroLevel} from './packet-model.js?v=2.107';
+import {dragSurfaceGeometry} from './packet-interaction.js?v=2.108';
+import {surfaceZeroLevel} from './packet-model.js?v=2.108';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
 
@@ -135,7 +135,7 @@ export function mountPacketSurface3D({host}){
    if(!state.hits[i])continue;
    const v=(i+.5)/state.hits.length,y=Y_MAX-v*(Y_MAX-Y_MIN),z=base+.9*state.hitHeights[i],e=.9*state.hitErrors[i],c=color(state.hitColors[i]);
    pointPositions.push(x+.055,y,z);pointColors.push(c.r,c.g,c.b);
-   errorPositions.push(x+.055,y,Math.max(base,z-e),x+.055,y,Math.min(base+.9,z+e));errorColors.push(c.r,c.g,c.b,c.r,c.g,c.b);
+   errorPositions.push(x+.055,y,Math.max(base,z-e),x+.055,y,z+e);errorColors.push(c.r,c.g,c.b,c.r,c.g,c.b);
   }
   if(pointPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(pointPositions,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(pointColors,3));const points=new THREE.Points(geometry,new THREE.PointsMaterial({size:.065,sizeAttenuation:true,vertexColors:true}));dynamic.add(points);recordObjects.push(points);}
   if(errorPositions.length){const errors=lines(errorPositions,errorColors,.95);dynamic.add(errors);recordObjects.push(errors);}

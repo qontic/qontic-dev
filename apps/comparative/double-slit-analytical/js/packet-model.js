@@ -41,7 +41,7 @@ export function histogramLayout(record,profile,screenHeight,width){
  const curve=profile.values.map(v=>v/Math.max(1e-30,profile.integral));
  const available=Math.max(0,width-8);
  const predictionMaximum=Math.max(1e-30,...curve);
- const hitMaximum=Math.max(1,...record);
+ const hitMaximum=Math.max(1,...record.map(n=>n+Math.sqrt(n)));
  return {curve,predictionScale:available/predictionMaximum,hitScale:available/hitMaximum,total,binHeight};
 }
 // Display mapping for the optional height graph. Signed quantities use 1/2 as

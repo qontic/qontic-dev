@@ -1,3 +1,8 @@
+## Version 2.108 — 2026-09-29
+
+- Scale the observed histogram to its largest upper error-bar endpoint, n + √n, so every square-root error bar is fully visible while the prediction retains its independent probability-density scale.
+- Apply the complete-error-bar scaling consistently in the 2D histogram, interactive 3D detector wall and Many-Worlds branch records.
+
 ## Version 2.107 — 2026-09-29
 
 - Normalize the green analytical probability-density curve to fill the histogram panel independently of the number of recorded hits.
