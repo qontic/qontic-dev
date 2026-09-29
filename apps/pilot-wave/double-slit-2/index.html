@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Double Slit 2.0 — Draft · Q-Ontic Lab</title>
   <meta name="description" content="WebGL2 Bohmian double-slit simulation with Schrodinger and Pauli spin-1/2 guiding laws." />
+  <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
+  <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <script>
     if (new URLSearchParams(window.location.search).get("embed") === "1") {
       document.documentElement.classList.add("is-embedded");
@@ -131,6 +133,7 @@
     html.is-embedded canvas { cursor:pointer; }
     html.is-embedded #ui h3 { font-size:13px; }
   </style>
+  <link rel="stylesheet" href="./template.css?v=1" />
 </head>
 <body>
   <div id="wrap">
@@ -215,7 +218,7 @@
       </div>
     </div>
   </div>
-  <script type="module" src="./main.js"></script>
+  <script type="module" src="./main.js?v=1"></script>
   <script>
     const catalogBack = document.getElementById("catalog-back");
     const appParams = new URLSearchParams(window.location.search);
