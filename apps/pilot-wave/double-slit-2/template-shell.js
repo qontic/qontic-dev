@@ -45,7 +45,7 @@ export function installTemplateShell() {
     controlBody.append(pane);
     panes[name] = pane;
   }
-  panes.advanced.append(document.getElementById("export-options"));
+  panes.advanced.append(ui.querySelector("#export-options"));
   theory.classList.add("details-panel", "qontic-panel", "qontic-reading-panel");
   theory.dataset.panel = "math";
   theory.hidden = true;
