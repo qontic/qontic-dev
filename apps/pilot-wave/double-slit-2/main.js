@@ -608,7 +608,7 @@ if (template) {
   });
   window.addEventListener("qontic:view-change", () => {
     resetPlaybackClock();
-    if (!template.workspace.hidden) requestAnimationFrame(() => {
+    if (!template.workspace.hidden && simulationReady) requestAnimationFrame(() => {
       const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
       if (canvas.width !== Math.floor(canvas.clientWidth * dpr) || canvas.height !== Math.floor(canvas.clientHeight * dpr)) rebuildSimulation();
       applyViewTransform();
@@ -1761,6 +1761,7 @@ function resetAll({ preserveHistogram = Boolean(params.whichSlit) } = {}) {
 }
 
 window.addEventListener("resize", () => {
+  if (!simulationReady && !frameRecordingActive) return;
   if (template?.workspace.hidden) return;
   if (frameRecordingActive) {
     resizeDuringRecording = true;
