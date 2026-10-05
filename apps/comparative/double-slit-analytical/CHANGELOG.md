@@ -1,3 +1,10 @@
+## 2.120 — 2026-10-05
+
+- Physics explains reduced-model probability current, streamline slope and physical arrow-shaft arc length.
+- Views explains field markers across interpretations, density fades and capped display motion; distinguishes the overlay from particle histories and weak-measurement reconstruction.
+- Corrected the histogram explanation to the shared expected-count scale introduced in 2.116. No physics or overlay behavior changed.
+- Rollback: backup/before-flow-math-2.119-20261005.
+
 ## 2.119 — 2026-10-05
 
 - Flow Length and Separation use physical nm units. Arrow shafts follow the flow curve for the selected arc length.

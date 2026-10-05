@@ -33,9 +33,8 @@ export function screenProfile(p,ymin,ymax,samples=1025,steps=1000){
  const integral=values.reduce((sum,v,i)=>sum+v*((i===0||i===samples-1)?.5:1),0)*dy;
  return {values,integral};
 }
-// The smooth prediction is displayed as a probability-density shape, while the
-// observed counts use their own scale. This keeps the prediction readable before
-// enough hits have accumulated for the two normalized shapes to agree visually.
+// Convert the smooth probability density to expected bin counts so the
+// prediction, observations and error bars use a common count scale.
 export function histogramLayout(record,profile,screenHeight,width){
  const total=record.reduce((a,b)=>a+b,0),binHeight=screenHeight/record.length;
  const curve=profile.values.map(v=>v/Math.max(1e-30,profile.integral));
