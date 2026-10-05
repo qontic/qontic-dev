@@ -100,7 +100,7 @@ export function flowMarkerStep(dt,k,scale,spacing){
 export function flowOpacity(ratio){
  // A soft density gate avoids visible pop-in at a hard threshold.
  const q=Math.max(0,ratio),fade=q/(q+.002);
- return .9*fade*Math.min(1,Math.sqrt(q));
+ return .9*fade;
 }
 export function flowPathY(path,x){
  const i=flowPathIndex(path,x);if(i===null)return null;
