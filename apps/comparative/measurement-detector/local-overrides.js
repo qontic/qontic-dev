@@ -49,7 +49,7 @@ const updatedDetails = `
   <div class="math-display"><strong>Ψ(t<sub>r</sub>+T<sub>r</sub>;x,y,z) = Ψ(t<sub>r</sub>;x,y,z − G<sub>z</sub>B(y))</strong></div>
   <p>B(y) partitions the Y axis into readout intervals. The smoothly gated unitary gradually translates each interval into a distinct, well-separated Z packet during the readout interval. The Z position width σ<sub>z</sub> controls the resolution, and its allowed range keeps neighboring channels distinguishable. The readout acts directly on Y, not X; Z records the result of the complete weak measurement. Comparing Z with the earlier X region illustrates its statistical character. The 3D renderer fades the far Gaussian tails gradually; this visibility treatment does not alter the analytical state.</p>
   <h2>Finite interaction duration</h2>
-  <p>The X–Y coupling may be impulsive or have finite duration τ. For finite τ, a characteristic can cross a detector boundary while the interaction is active. Its final translation is the exact time average of the region values encountered along x(s) = ξ + v<sub>x</sub>s, and the horizontal smearing scale is v<sub>x</sub>τ. The later Y–Z readout has a finite duration and a smooth coupling envelope, so the Z packets separate continuously.</p>
+  <p>Both interactions have finite duration and smooth coupling envelopes. During the X–Y interval, the Y packets separate continuously. A characteristic can cross a detector boundary while the interaction is active, so its final translation is the exact envelope-weighted average of the region values encountered along x(s) = ξ + v<sub>x</sub>s; the horizontal smearing scale is v<sub>x</sub>τ. During the later Y–Z interval, the Z packets likewise separate continuously.</p>
   <h2>Marginal and conditional displays</h2>
   <p>Before the readout, each marginal display is a projection of the same unitary three-coordinate state in all three interpretation views. The hidden coordinate is integrated out:</p>
   <div class="math-display"><strong>ρ<sub>XY</sub>(x,y,t) = ∫dz |Ψ(x,y,z,t)|² &nbsp; · &nbsp; ρ<sub>XZ</sub>(x,z,t) = ∫dy |Ψ(x,y,z,t)|² &nbsp; · &nbsp; ρ<sub>YZ</sub>(y,z,t) = ∫dx |Ψ(x,y,z,t)|²</strong></div>
@@ -92,8 +92,8 @@ const CONTROL_REGISTRY = Object.freeze({
   trailLength: { category: 'visual', originalLabel: 'Trail length' },
 });
 
-let localVolumeDensity = 3.6, localLabelScale = 1.3, localTrailLength = 3, localInteractionDuration = 0, localPostReadoutTime = 6.8;
-let localWeakDetectorX = 0, localStrongDetectorX = 3, localXPositionWidth=.92, localYPositionWidth=.82, localZPointerWidth = .26, localViewMode = 'xy', localInterpretation = 'pilot';
+let localVolumeDensity = 3.6, localLabelScale = 1.3, localTrailLength = 3, localInteractionDuration = 1.5, localPostReadoutTime = 6.8;
+let localWeakDetectorX = 0, localStrongDetectorX = 4.5, localXPositionWidth=.92, localYPositionWidth=.82, localZPointerWidth = .26, localViewMode = 'xy', localInterpretation = 'pilot';
 let localWaveColors = true, localParticleColors = false, localLightTheme = false, graphicsActive = false;
 let localAnnotations = false;
 let localSpeed = 1, localPlaying = false, localPlaybackEnded = false;
@@ -101,11 +101,11 @@ const sendModelControl = (type, value) => document.querySelector('.lab iframe')?
 
 function ensureThemedMeasurementFrame(root = document) {
   const frame = root.querySelector?.('.lab iframe') ?? (root.matches?.('.lab iframe') ? root : null);
-  if (!frame || frame.dataset.templateFrameVersion === '1.59') return;
+  if (!frame || frame.dataset.templateFrameVersion === '1.60') return;
   const url = new URL(frame.getAttribute('src') || frame.src, location.href);
   if (!url.pathname.endsWith('/measurement.html')) return;
-  frame.dataset.templateFrameVersion = '1.59';
-  url.searchParams.set('v', '1.59');
+  frame.dataset.templateFrameVersion = '1.60';
+  url.searchParams.set('v', '1.60');
   frame.src = url.href;
 }
 
