@@ -372,7 +372,7 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
   font-size:12px;
 }
 
-/* Three compact flow-control rows. */
+/* Two compact flow-control rows. */
 .flow-control-row { display:flex; align-items:center; gap:8px; font-size:11px; }
 .flow-settings .flow-toggle { display:flex; align-items:center; gap:4px; white-space:nowrap; width:auto; margin:0; font-size:11px; }
 .flow-toggle input { margin:0; flex:none; }
@@ -383,4 +383,6 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 
 .flow-help { cursor:help; color:#b8dbe8; font-size:12px; }
 .flow-control-row { margin:6px 0; }
-.flow-settings .flow-control-row:last-of-type .flow-spacing { margin-left:auto; }
+.flow-settings .flow-control-row .flow-spacing { margin-left:auto; }
+.flow-settings .flow-spacing input[type=range] { grid-column:auto; width:40px; min-width:24px; }
+.flow-settings .flow-spacing label { display:block; white-space:nowrap; }

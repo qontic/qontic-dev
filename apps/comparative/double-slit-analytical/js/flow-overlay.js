@@ -19,11 +19,11 @@ export function traceFlow(seed,p,coeff=sourceCoefficients(p),steps=360) {
 }
 export function mountFlowOverlay({host,redraw}) {
  const panel=document.createElement('fieldset');panel.className='packet-settings flow-settings';
- panel.innerHTML='<legend>Flow visualization · 2D <span class="flow-help" tabindex="0" aria-label="About the flow visualization" title="Calculated current velocity in all three views. Yellow arrows move along the calculated flow; they are sampling markers, not individual particles. Orange streamlines are field curves; PW particle trails show individual histories. Arrow lengths are normalized for readability. Separation sets the spacing between streamlines.">ⓘ</span></legend><div class="flow-control-row"><label class="flow-toggle"><input id="flow-arrows" aria-label="Flow arrows" type="checkbox"> Arrows</label></div><div class="input-group packet-inline"><label for="flow-length">Arrow length</label><input id="flow-length" type="range" min="6" max="28" value="14"><output>14 px</output></div><div class="flow-control-row"><label class="flow-toggle"><input id="flow-lines" type="checkbox"> Streamlines</label><div class="flow-spacing"><label for="flow-spacing">Separation</label><input id="flow-spacing" aria-label="Streamline separation" type="range" min="4" max="30" value="8"><output>8 px</output></div></div><p id="flow-status" role="status" style="font-size:12px" hidden></p>';
+ panel.innerHTML='<legend>Flow visualization · 2D <span class="flow-help" tabindex="0" aria-label="About the flow visualization" title="Calculated current velocity in all three views. Yellow arrows move along the calculated flow; they are sampling markers, not individual particles. Orange streamlines are field curves; PW particle trails show individual histories. Arrow lengths are normalized for readability. Marker animation uses small forward steps to stay readable at high speeds; simulation timing is unchanged. Separation sets the spacing between streamlines.">ⓘ</span></legend><div class="flow-control-row"><label class="flow-toggle"><input id="flow-arrows" aria-label="Flow arrows" type="checkbox"> Arrows</label><div class="flow-spacing"><label for="flow-length">Length</label><input id="flow-length" aria-label="Arrow length" type="range" min="6" max="28" value="14"><output>14 px</output></div></div><div class="flow-control-row"><label class="flow-toggle"><input id="flow-lines" type="checkbox"> Streamlines</label><div class="flow-spacing"><label for="flow-spacing">Separation</label><input id="flow-spacing" aria-label="Streamline separation" type="range" min="4" max="30" value="8"><output>8 px</output></div></div><p id="flow-status" role="status" style="font-size:12px" hidden></p>';
  host.append(panel);
  const arrows=panel.querySelector('#flow-arrows'),lines=panel.querySelector('#flow-lines'),spacing=panel.querySelector('#flow-spacing'),length=panel.querySelector('#flow-length'),status=panel.querySelector('#flow-status');
  for(const input of panel.querySelectorAll('input'))input.addEventListener('input',()=>{if(input.type==='range')input.nextElementSibling.textContent=input.value+' px';redraw();});
- let cachedKey='',paths=[],incidentSeeds=[];
+ let cachedKey='',paths=[],incidentSeeds=[],markerTime=null,markerTravel=0;
  return {draw({ctx,p,coeff,pulses,t,X,Y,width,height,yOffset,surfaceView}) {
   const message=surfaceView?'Switch to 2D to see the flow overlay.':p.whichPath?'Flow overlay paused during which-slit detection.':'';
   if(status.textContent!==message)status.textContent=message;status.hidden=!message;
@@ -44,9 +44,14 @@ export function mountFlowOverlay({host,redraw}) {
    for(let y=-yOffset;y<=height/scaleY-yOffset;y+=44/Math.abs(scaleY))incidentSeeds.push(y);
   }
   const left=Math.max(0,X(p.initialCenter-6*p.sx)),right=Math.min(width,X(p.screen)),wall=X(p.wall);
-  const markerSpacing=44,offset=flowMarkerOffset(t,p.k,scaleX,markerSpacing),samples=[];
-  // This spatial lattice advances with the model's constant forward velocity.
-  // Transverse positions are evaluated on the same flow curves each frame.
+  const markerSpacing=44;
+  if(markerTime!==null&&t<markerTime)markerTravel=0; // Explicit simulation reset.
+  markerTravel+=flowMarkerStep(markerTime===null?0:t-markerTime,p.k,scaleX,markerSpacing);
+  markerTime=t;
+  const offset=markerTravel%markerSpacing,samples=[];
+  // Repeated markers alias as backward motion if a frame advances too far.
+  // Bound display travel to one eighth of their spacing, independently of physics.
+  // Transverse positions still follow the calculated field curves.
   for(let px=left+offset;px<right;px+=markerSpacing){
    const x=p.wall+(px-wall)/scaleX;
    if(x<p.wall){
@@ -74,7 +79,9 @@ export function mountFlowOverlay({host,redraw}) {
  }};
 }
 
-export function flowMarkerOffset(t,k,scale,spacing){return ((k*t*scale)%spacing+spacing)%spacing;}
+export function flowMarkerStep(dt,k,scale,spacing){
+ return Math.min(spacing/8,Math.max(0,dt*k*Math.abs(scale)));
+}
 export function flowOpacity(ratio){
  // A soft density gate avoids visible pop-in at a hard threshold.
  const q=Math.max(0,ratio),fade=q/(q+.002);

@@ -1,3 +1,9 @@
+## 2.118 — 2026-10-05
+
+- Arrows checkbox, Length slider and value share one row; Streamlines and Separation share the next.
+- Limit animated marker displacement per frame to prevent backward temporal aliasing at high speeds or after long frames. Physics timing and detector statistics are unchanged; tooltip explains the display limit.
+- Rollback: backup/before-arrow-alias-fix-2.117-20261005.
+
 ## 2.117 — 2026-10-05
 
 - Three flow-control rows: arrows; arrow length; streamlines and separation. Explanation moved to an information tooltip.
