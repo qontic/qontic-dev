@@ -41,8 +41,13 @@ export function histogramLayout(record,profile,screenHeight,width){
  const curve=profile.values.map(v=>v/Math.max(1e-30,profile.integral));
  const available=Math.max(0,width-8);
  const predictionMaximum=Math.max(1e-30,...curve);
- const hitMaximum=Math.max(1,...record.map(n=>n+Math.sqrt(n)));
- return {curve,predictionScale:available/predictionMaximum,hitScale:available/hitMaximum,total,binHeight};
+ // A probability density and a count histogram require the conversion N*dy.
+ // One shared maximum preserves their relative amplitudes and includes error bars.
+ const referenceTotal=Math.max(1,total),countsPerDensity=referenceTotal*binHeight;
+ const expectedCurve=curve.map(value=>value*countsPerDensity);
+ const maximum=Math.max(1e-30,predictionMaximum*countsPerDensity,...record.map(n=>n+Math.sqrt(n)));
+ return {curve,predictionScale:available*countsPerDensity/maximum,hitScale:available/maximum,total,binHeight,
+  probabilityHeights:expectedCurve.map(value=>value/maximum),hitHeights:record.map(n=>n/maximum),hitErrors:record.map(n=>Math.sqrt(n)/maximum)};
 }
 // Display mapping for the optional height graph. Signed quantities use 1/2 as
 // zero so the WebGL surface remains above its plotting plane.

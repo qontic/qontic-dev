@@ -18,8 +18,8 @@ export function traceFlow(seed,p,coeff=sourceCoefficients(p),steps=360) {
  return points;
 }
 export function mountFlowOverlay({host,redraw}) {
- const panel=document.createElement('fieldset');panel.className='packet-settings';
- panel.innerHTML='<legend>Flow visualization · 2D</legend><label><input id="flow-arrows" type="checkbox"> Flow arrows</label> <label><input id="flow-lines" type="checkbox"> Streamlines</label><div class="input-group packet-inline"><label for="flow-spacing">Arrow spacing</label><input id="flow-spacing" type="range" min="24" max="80" value="44"><output>44 px</output></div><div class="input-group packet-inline"><label for="flow-length">Arrow length</label><input id="flow-length" type="range" min="6" max="28" value="14"><output>14 px</output></div><p style="font-size:12px;line-height:1.45">Calculated current velocity in all three views. Yellow streamlines are field curves; PW particle trails show individual histories. Arrow lengths are normalized for readability.</p><p id="flow-status" role="status" style="font-size:12px"></p>';
+ const panel=document.createElement('fieldset');panel.className='packet-settings flow-settings';
+ panel.innerHTML='<legend>Flow visualization · 2D</legend><div class="flow-control-row"><label class="flow-toggle"><input id="flow-arrows" aria-label="Flow arrows" type="checkbox"> Arrows</label><label class="flow-toggle"><input id="flow-lines" type="checkbox"> Streamlines</label><div class="flow-spacing"><label for="flow-spacing">Spacing</label><input id="flow-spacing" aria-label="Arrow spacing" type="range" min="24" max="80" value="44"><output>44 px</output></div></div><div class="input-group packet-inline"><label for="flow-length">Arrow length</label><input id="flow-length" type="range" min="6" max="28" value="14"><output>14 px</output></div><p style="font-size:12px;line-height:1.45">Calculated current velocity in all three views. Orange streamlines are field curves; PW particle trails show individual histories. Arrow lengths are normalized for readability.</p><p id="flow-status" role="status" style="font-size:12px"></p>';
  host.append(panel);
  const arrows=panel.querySelector('#flow-arrows'),lines=panel.querySelector('#flow-lines'),spacing=panel.querySelector('#flow-spacing'),length=panel.querySelector('#flow-length'),status=panel.querySelector('#flow-status');
  for(const input of panel.querySelectorAll('input'))input.addEventListener('input',()=>{if(input.type==='range')input.nextElementSibling.textContent=input.value+' px';redraw();});
@@ -43,17 +43,17 @@ export function mountFlowOverlay({host,redraw}) {
   if(lines.checked){
    const key=JSON.stringify(p);
    if(key!==cachedKey){cachedKey=key;paths=[];for(const center of p.centers)for(const offset of [-1.5,-1,-.5,0,.5,1,1.5])paths.push(traceFlow(center+offset*p.sy,p,coeff));}
-   ctx.strokeStyle='#ffe16b';ctx.lineWidth=1.25;
+   ctx.strokeStyle='#ffad4a';ctx.lineWidth=1.25;
    for(const path of paths)for(let i=1;i<path.length;i++){
     const [x,y]=path[i],rho=density(x,y);if(rho<peak*.002)continue;
     ctx.globalAlpha=Math.min(.85,Math.sqrt(rho/peak));ctx.beginPath();ctx.moveTo(X(path[i-1][0]),Y(path[i-1][1]));ctx.lineTo(X(x),Y(y));ctx.stroke();
    }
   }
-  if(arrows.checked){ctx.strokeStyle='#76edf1';ctx.lineWidth=1.3;for(const s of samples){
+  if(arrows.checked){ctx.strokeStyle='#ffe14a';ctx.lineWidth=1.6;ctx.shadowColor='#17252f';ctx.shadowBlur=2;for(const s of samples){
    if(s.rho<peak*.002)continue;
    const slope=flowSlope(s.x,s.y,p,coeff);if(!Number.isFinite(slope))continue;
    const angle=Math.atan2(slope*(Y(1)-Y(0)),X(1)-X(0)),l=+length.value,dx=Math.cos(angle),dy=Math.sin(angle),ex=s.px+l*dx/2,ey=s.py+l*dy/2;
-   ctx.globalAlpha=Math.min(.9,Math.sqrt(s.rho/peak));ctx.beginPath();ctx.moveTo(s.px-l*dx/2,s.py-l*dy/2);ctx.lineTo(ex,ey);ctx.moveTo(ex-4*dx+3*dy,ey-4*dy-3*dx);ctx.lineTo(ex,ey);ctx.lineTo(ex-4*dx-3*dy,ey-4*dy+3*dx);ctx.stroke();
+   ctx.globalAlpha=.3+.6*Math.min(1,Math.sqrt(s.rho/peak));ctx.beginPath();ctx.moveTo(s.px-l*dx/2,s.py-l*dy/2);ctx.lineTo(ex,ey);ctx.moveTo(ex-4*dx+3*dy,ey-4*dy-3*dx);ctx.lineTo(ex,ey);ctx.lineTo(ex-4*dx-3*dy,ey-4*dy+3*dx);ctx.stroke();
   }}ctx.restore();
  }};
 }

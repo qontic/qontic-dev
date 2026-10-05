@@ -1,3 +1,8 @@
+## 2.116 — 2026-10-05
+
+- Flow toggles and arrow spacing share one compact row; yellow arrows and orange streamlines contrast with blue waves.
+- Probability curves and hit histograms now share a count scale (N × bin width × normalized density), including 3D and branch previews.
+
 ## 2.115 — 2026-10-05
 
 - Optional 2D current-velocity arrows and calculated streamlines in Display, shared by all interpretations; default off.

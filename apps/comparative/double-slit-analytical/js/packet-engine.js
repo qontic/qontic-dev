@@ -1,8 +1,8 @@
-import {mountFlowOverlay} from './flow-overlay.js?v=2.115';
+import {mountFlowOverlay} from './flow-overlay.js?v=2.116';
 import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations} from './physics-content.js?v=2.108';
 import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?v=59';
 import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?v=2.108';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?v=2.108';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?v=2.116';
 import {aperture,sourceCoefficients,sourceComponents,sourceTransverse,sourceEnvelope,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?v=2.108';
 import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?v=2.108';
 export function mountPacketEngine({core,advanced}){
@@ -187,10 +187,10 @@ export function mountPacketEngine({core,advanced}){
  function addHit(index,slitSide=null,wallY=null){hits[index]++;if(slitSide&&slitHits[slitSide])slitHits[slitSide][index]++;const spectrum=spectrumIndex(wallY);if(spectrum>=0){spectrumHitCounts[index]++;spectrumHitSums[index]+=spectrum;}nHits++;hitMax=Math.max(hitMax,hits[index]);logNBranches+=Math.log10(p.bins);}
  function createSurfaceRecord(record){
   const overlay=document.createElement('canvas');overlay.width=canvas.width;overlay.height=canvas.height;const context=overlay.getContext('2d');
-  const {curve}=histogramLayout(record,profile,screenHeight/100,1),predictionMaximum=Math.max(1e-30,...curve),hitMaximum=Math.max(1,...record.map(n=>n+Math.sqrt(n)));
-  if(shown('hit_prob')&&!p.focused){context.strokeStyle=colorProb;context.lineWidth=1.5;context.beginPath();const step=Math.max(1,Math.ceil(curve.length/300));for(let i=0;i<curve.length;i+=step){const point=surface3D.projectDetector(i/(curve.length-1),.08+.9*curve[i]/predictionMaximum,overlay.width,overlay.height);i?context.lineTo(point.x,point.y):context.moveTo(point.x,point.y);}context.stroke();}
+  const {probabilityHeights,hitHeights,hitErrors}=histogramLayout(record,profile,screenHeight/100,1);
+  if(shown('hit_prob')&&!p.focused){context.strokeStyle=colorProb;context.lineWidth=1.5;context.beginPath();const step=Math.max(1,Math.ceil(probabilityHeights.length/300));for(let i=0;i<probabilityHeights.length;i+=step){const point=surface3D.projectDetector(i/(probabilityHeights.length-1),.08+.9*probabilityHeights[i],overlay.width,overlay.height);i?context.lineTo(point.x,point.y):context.moveTo(point.x,point.y);}context.stroke();}
   context.strokeStyle=context.fillStyle=colorHit;context.lineWidth=1.5;
-  record.forEach((n,i)=>{if(!n)return;const v=(i+.5)/record.length,z=.08+.9*n/hitMaximum,error=.9*Math.sqrt(n)/hitMaximum;
+  record.forEach((n,i)=>{if(!n)return;const v=(i+.5)/record.length,z=.08+.9*hitHeights[i],error=.9*hitErrors[i];
    const point=surface3D.projectDetector(v,z,overlay.width,overlay.height),low=surface3D.projectDetector(v,Math.max(.08,z-error),overlay.width,overlay.height),high=surface3D.projectDetector(v,z+error,overlay.width,overlay.height);
    context.beginPath();context.moveTo(low.x,low.y);context.lineTo(high.x,high.y);context.stroke();context.beginPath();context.arc(point.x,point.y,3,0,2*Math.PI);context.fill();
   });return overlay;
@@ -279,7 +279,7 @@ export function mountPacketEngine({core,advanced}){
   if(!surfaceView||!surface3D||!p)return;
   const half=displayExtentSigma()*(slitPreviewWidth??p.sy*100)*toCanvasY;
   const openings=displayCenters().map(center=>[Math.max(0,(Y(center)-half)/canvas.height),Math.min(1,(Y(center)+half)/canvas.height)]).filter(([a,b])=>b>a);
-  const {curve}=histogramLayout(hits,profile,screenHeight/100,1),predictionMaximum=Math.max(1e-30,...curve),hitMaximum=Math.max(1,...hits.map(n=>n+Math.sqrt(n)));
+  const {probabilityHeights,hitHeights,hitErrors}=histogramLayout(hits,profile,screenHeight/100,1);
   const trails=[],points=[];
   if(interpretation==='bohmian')for(const a of particles){
    const group=particleColorGroup(a),opacity=tailOpacity(a.done,a.finishedAt??realElapsed,realElapsed);
@@ -289,7 +289,7 @@ export function mountPacketEngine({core,advanced}){
   surface3D.update({gridWidth:gridW,gridHeight:gridH,fieldFraction:detectorX/canvas.width,heightMode:surfaceHeightMode,heights:surfaceHeights,rgba:data.data,
    showWave:waveShown(),showScreen:shown('plot_screen')&&p.source,showDetector:shown('plot_detector'),showProbability:shown('hit_prob')&&!p.focused,showHits:shown('plot_hits'),showParticles:shown('plot_particles'),showTrajectories:shown('plot_trajectories'),
    wallFraction:wallX/detectorX,openings,apertureWeights:p.apertureWeights||[],whichPathFraction:p.whichPath?(Y(p.centers[whichPathDetector==='slit2'?1:0])/canvas.height):null,
-   detectorColor:colorDetector,probabilityColor:colorProb,probability:curve.map(value=>value/predictionMaximum),hits,hitHeights:hits.map(value=>value/hitMaximum),hitErrors:hits.map(value=>Math.sqrt(value)/hitMaximum),hitColors:hits.map((value,index)=>hitMarkerColor(index,value)),particles:points,trails});
+   detectorColor:colorDetector,probabilityColor:colorProb,probability:probabilityHeights,hits,hitHeights,hitErrors,hitColors:hits.map((value,index)=>hitMarkerColor(index,value)),particles:points,trails});
  }
  function drawSourceWave(){
   waveCtx.clearRect(0,0,canvas.width,canvas.height);waveCtx.fillStyle='#344f63';waveCtx.fillRect(0,0,canvas.width,canvas.height);if(!waveShown())return;

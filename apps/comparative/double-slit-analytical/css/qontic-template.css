@@ -371,3 +371,12 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 .analytical-template #analytical-advanced .input-group:has(input[type=range]) > label {
   font-size:12px;
 }
+
+/* Compact flow toggles and spacing share one row, including narrow sidebars. */
+.flow-control-row { display:flex; align-items:center; gap:8px; font-size:11px; }
+.flow-settings .flow-toggle { display:flex; align-items:center; gap:4px; white-space:nowrap; width:auto; margin:0; font-size:11px; }
+.flow-toggle input { margin:0; flex:none; }
+.flow-spacing { display:flex; align-items:center; gap:4px; flex:1; min-width:0; }
+.flow-settings .flow-spacing label { width:auto; margin:0; font-size:11px; }
+.flow-spacing input[type=range] { width:40px; min-width:24px; flex:1; margin:0; }
+.flow-spacing output { white-space:nowrap; font-size:11px; }
