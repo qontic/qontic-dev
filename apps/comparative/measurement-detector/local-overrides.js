@@ -88,11 +88,11 @@ const CONTROL_REGISTRY = Object.freeze({
   strongDetectorPosition: { category: 'advanced' }, postMeasurementTime: { category: 'advanced' },
   particleColors: { category: 'advanced', originalLabel: 'Color runs by region' },
   waveColors: { category: 'visual', originalLabel: 'Show region colors' },
-  labelScale: { category: 'visual' }, volumeDensity: { category: 'visual' },
+  labelScale: { category: 'visual' }, volumeDensity: { category: 'visual' }, volumeBrightness: { category: 'visual' },
   trailLength: { category: 'visual', originalLabel: 'Trail length' },
 });
 
-let localVolumeDensity = 3.0, localLabelScale = 1.3, localTrailLength = 3, localInteractionDuration = 1.5, localPostReadoutTime = 6.8;
+let localVolumeDensity = 3.0, localVolumeBrightness = 0.65, localLabelScale = 1.3, localTrailLength = 3, localInteractionDuration = 1.5, localPostReadoutTime = 6.8;
 let localWeakDetectorX = 0, localStrongDetectorX = 6, localXPositionWidth=.92, localYPositionWidth=.82, localZPointerWidth = .26, localViewMode = 'xy', localInterpretation = 'pilot';
 let localWaveColorMode = 'start', localWaveColors = true, localParticleColors = false, localLightTheme = false, graphicsActive = false;
 let localAnnotations = false;
@@ -101,11 +101,11 @@ const sendModelControl = (type, value) => document.querySelector('.lab iframe')?
 
 function ensureThemedMeasurementFrame(root = document) {
   const frame = root.querySelector?.('.lab iframe') ?? (root.matches?.('.lab iframe') ? root : null);
-  if (!frame || frame.dataset.templateFrameVersion === '1.64') return;
+  if (!frame || frame.dataset.templateFrameVersion === '1.65') return;
   const url = new URL(frame.getAttribute('src') || frame.src, location.href);
   if (!url.pathname.endsWith('/measurement.html')) return;
-  frame.dataset.templateFrameVersion = '1.64';
-  url.searchParams.set('v', '1.64');
+  frame.dataset.templateFrameVersion = '1.65';
+  url.searchParams.set('v', '1.65');
   frame.src = url.href;
 }
 
@@ -237,11 +237,12 @@ function installGraphicsTab(root = document) {
       <label title="Colors label detector regions and do not alter the quantum state. From start shows the labeling immediately; Emerge shows the buildup of the X–Y correlation.">Region colors <select data-control="waveColorMode" aria-label="Region color timing"><option value="start" selected>From start</option><option value="emerge">Emerge during X–Y</option><option value="off">Off</option></select></label>
       <label>Label size <output>${Math.round(localLabelScale*100)}%</output></label><input data-control="labelScale" type="range" min="0.8" max="1.8" step="0.05" value="${localLabelScale}">
       <label>3D wave visibility <output>${localVolumeDensity.toFixed(1)}</output></label><input data-control="volumeDensity" type="range" min="0.5" max="8" step="0.1" value="${localVolumeDensity}">
+      <label>3D brightness <output>${Math.round(localVolumeBrightness*100)}%</output></label><input data-control="volumeBrightness" type="range" min="0.25" max="1.25" step="0.05" value="${localVolumeBrightness}" title="Adjust rendered 3D color intensity without changing the wavefunction or density.">
       <label>Trail length <output>${localTrailLength.toFixed(1)} t</output></label><input data-control="trailLength" type="range" min="0" max="15" step="0.25" value="${localTrailLength}">`;
     tablist.after(panel);
     panel.querySelector('[data-control="lightTheme"]').addEventListener('change',(event)=>{localLightTheme=event.target.checked;document.body.classList.toggle('qontic-light',localLightTheme);sendModelControl('lightTheme',localLightTheme)});
     panel.querySelector('[data-control="waveColorMode"]').addEventListener('change',(event)=>{localWaveColorMode=event.target.value;localWaveColors=localWaveColorMode!=='off';sendModelControl('waveColorMode',localWaveColorMode)});
-    panel.querySelectorAll('input[type="range"][data-control]').forEach((input)=>input.addEventListener('input',()=>{const value=+input.value,output=input.previousElementSibling.querySelector('output');if(input.dataset.control==='labelScale'){localLabelScale=value;output.textContent=`${Math.round(value*100)}%`}if(input.dataset.control==='volumeDensity'){localVolumeDensity=value;output.textContent=value.toFixed(1)}if(input.dataset.control==='trailLength'){localTrailLength=value;output.textContent=value===0?'Off':`${value.toFixed(1)} t`}sendModelControl(input.dataset.control,value)}));
+    panel.querySelectorAll('input[type="range"][data-control]').forEach((input)=>input.addEventListener('input',()=>{const value=+input.value,output=input.previousElementSibling.querySelector('output');if(input.dataset.control==='labelScale'){localLabelScale=value;output.textContent=`${Math.round(value*100)}%`}if(input.dataset.control==='volumeDensity'){localVolumeDensity=value;output.textContent=value.toFixed(1)}if(input.dataset.control==='volumeBrightness'){localVolumeBrightness=value;output.textContent=`${Math.round(value*100)}%`}if(input.dataset.control==='trailLength'){localTrailLength=value;output.textContent=value===0?'Off':`${value.toFixed(1)} t`}sendModelControl(input.dataset.control,value)}));
   }
   syncControlTabs();
   syncPilotWaveParticleControl();
