@@ -1,3 +1,10 @@
+## 2.115 — 2026-10-05
+
+- Optional 2D current-velocity arrows and calculated streamlines in Display, shared by all interpretations; default off.
+- Arrow density and length controls; fade weak-density regions. Suppressed in 3D and during which-slit detection.
+- Pre-change rollback branch: backup/double-slit-before-flow-2.114-20261005 (commit 1a2ba0bc50a43fb7435b6cd43e936fd8b724ae7a). Restore only this app directory from that branch to retain unrelated later changes.
+- This release visualizes analytical flow; it does not simulate weak-measurement readings.
+
 ## Version 2.114 — 2026-09-29
 
 - Replaced the individually wrapped phone toolbar buttons with one three-dot Simulation tools button and a labeled floating menu that is closed by default.
