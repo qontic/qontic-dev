@@ -40,14 +40,14 @@ const updatedDetails = `
   <h2>Why the coupling contains p<sub>y</sub></h2>
   <p>Since p<sub>y</sub> = −iℏ∂/∂y generates translations, a pointer packet correlated with region <i>j</i> evolves as φ<sub>0</sub>(y) → φ<sub>0</sub>(y − G a<sub>j</sub>), where G = ∫g<sub>τ</sub>(t)dt. Thus the measured position information is encoded immediately in pointer position.</p>
   <div class="math-display"><strong>φ<sub>j</sub>(y) = φ<sub>0</sub>(y − G a<sub>j</sub>)</strong></div>
-  <h2>Coupling and readout</h2>
-  <p>For small G relative to the Y position width σ<sub>y</sub>, the translated pointer packets overlap. The pointer therefore provides only limited information about the system region. The later Y–Z interaction records the pointer result in distinguishable Z channels. Together, the coupling and readout constitute one weak measurement of X.</p>
+  <h2>Two interactions, one weak measurement</h2>
+  <p>For small G relative to the Y position width σ<sub>y</sub>, the translated pointer packets overlap. The X–Y system–pointer interaction therefore provides only limited information about the system region. The later Y–Z pointer–record interaction stores that pointer result in distinguishable Z channels. Together, the two interactions constitute one weak measurement of X.</p>
   <p>When the number of detector regions changes, the app automatically expands the total Y and Z output spans so that the separation of neighboring recorded channels, measured relative to the corresponding packet width, remains unchanged.</p>
-  <h2>Recording the pointer</h2>
-  <p>The readout interaction couples the pointer coordinate Y to the record coordinate Z:</p>
-  <div class="equation"><span>smooth finite readout</span><strong>H<sub>YZ</sub>(t) = g<sub>z</sub>(t)B(y)p<sub>z</sub></strong><span>∫g<sub>z</sub>(t)dt = G<sub>z</sub></span></div>
+  <h2>The Y–Z pointer–record interaction</h2>
+  <p>The second interaction couples the pointer coordinate Y to the record coordinate Z:</p>
+  <div class="equation"><span>smooth Y–Z interaction</span><strong>H<sub>YZ</sub>(t) = g<sub>z</sub>(t)B(y)p<sub>z</sub></strong><span>∫g<sub>z</sub>(t)dt = G<sub>z</sub></span></div>
   <div class="math-display"><strong>Ψ(t<sub>r</sub>+T<sub>r</sub>;x,y,z) = Ψ(t<sub>r</sub>;x,y,z − G<sub>z</sub>B(y))</strong></div>
-  <p>B(y) partitions the Y axis into readout intervals. The smoothly gated unitary gradually translates each interval into a distinct, well-separated Z packet during the readout interval. The Z position width σ<sub>z</sub> controls the resolution, and its allowed range keeps neighboring channels distinguishable. The readout acts directly on Y, not X; Z records the result of the complete weak measurement. Comparing Z with the earlier X region illustrates its statistical character. The 3D renderer fades the far Gaussian tails gradually; this visibility treatment does not alter the analytical state.</p>
+  <p>B(y) partitions the Y axis into readout intervals. The smoothly gated unitary gradually translates each interval into a distinct, well-separated Z packet during the Y–Z interaction interval. The Z position width σ<sub>z</sub> controls the resolution, and its allowed range keeps neighboring channels distinguishable. The Y–Z interaction acts directly on Y, not X; Z records the result of the complete weak measurement. Comparing Z with the earlier X region illustrates its statistical character. The 3D renderer fades the far Gaussian tails gradually; this visibility treatment does not alter the analytical state.</p>
   <h2>Finite interaction duration</h2>
   <p>Both interactions have finite duration and smooth coupling envelopes. During the X–Y interval, the Y packets separate continuously. A characteristic can cross a detector boundary while the interaction is active, so its final translation is the exact envelope-weighted average of the region values encountered along x(s) = ξ + v<sub>x</sub>s; the horizontal smearing scale is v<sub>x</sub>τ. During the later Y–Z interval, the Z packets likewise separate continuously.</p>
   <h2>Marginal and conditional displays</h2>
@@ -93,7 +93,7 @@ const CONTROL_REGISTRY = Object.freeze({
 });
 
 let localVolumeDensity = 3.6, localLabelScale = 1.3, localTrailLength = 3, localInteractionDuration = 1.5, localPostReadoutTime = 6.8;
-let localWeakDetectorX = 0, localStrongDetectorX = 4.5, localXPositionWidth=.92, localYPositionWidth=.82, localZPointerWidth = .26, localViewMode = 'xy', localInterpretation = 'pilot';
+let localWeakDetectorX = 0, localStrongDetectorX = 6, localXPositionWidth=.92, localYPositionWidth=.82, localZPointerWidth = .26, localViewMode = 'xy', localInterpretation = 'pilot';
 let localWaveColors = true, localParticleColors = false, localLightTheme = false, graphicsActive = false;
 let localAnnotations = false;
 let localSpeed = 1, localPlaying = false, localPlaybackEnded = false;
@@ -101,11 +101,11 @@ const sendModelControl = (type, value) => document.querySelector('.lab iframe')?
 
 function ensureThemedMeasurementFrame(root = document) {
   const frame = root.querySelector?.('.lab iframe') ?? (root.matches?.('.lab iframe') ? root : null);
-  if (!frame || frame.dataset.templateFrameVersion === '1.60') return;
+  if (!frame || frame.dataset.templateFrameVersion === '1.61') return;
   const url = new URL(frame.getAttribute('src') || frame.src, location.href);
   if (!url.pathname.endsWith('/measurement.html')) return;
-  frame.dataset.templateFrameVersion = '1.60';
-  url.searchParams.set('v', '1.60');
+  frame.dataset.templateFrameVersion = '1.61';
+  url.searchParams.set('v', '1.61');
   frame.src = url.href;
 }
 
@@ -265,12 +265,12 @@ function installAdvancedDetectorControls(root = document) {
     <input aria-label="Measurement interaction duration" data-control="duration" type="range" min="0" max="2.5" step="0.05" value="${localInteractionDuration}">
     <label title="Free-evolution time displayed after readout.">Post-readout <output>${localPostReadoutTime.toFixed(1)} t</output></label>
     <input aria-label="Post-readout evolution time" data-control="postMeasurementTime" type="range" min="2" max="18" step="0.5" value="${localPostReadoutTime}">
-    <label title="X position of the X–Y coupling plane.">Coupling Pos. <output>${localWeakDetectorX.toFixed(2)}</output></label>
+    <label title="X position of the X–Y coupling plane.">X–Y Start Pos. <output>${localWeakDetectorX.toFixed(2)}</output></label>
     <input aria-label="Coupling plane x position" data-control="weakDetectorPosition" type="range" min="-1.5" max="1.5" step="0.1" value="${localWeakDetectorX}">
-    <label title="X position of the Y–Z readout plane. A minimum gap is enforced.">Readout Start Pos. <output>${localStrongDetectorX.toFixed(2)}</output></label>
-    <input aria-label="Readout plane x position" data-control="strongDetectorPosition" type="range" min="0.5" max="5" step="0.1" value="${localStrongDetectorX}">
+    <label title="X position where the Y–Z pointer–record interaction starts. A minimum gap is enforced.">Y–Z Start Pos. <output>${localStrongDetectorX.toFixed(2)}</output></label>
+    <input aria-label="Y–Z interaction start x position" data-control="strongDetectorPosition" type="range" min="0.5" max="7" step="0.1" value="${localStrongDetectorX}">
     <label class="check-control"><span><input data-control="particleColors" type="checkbox" ${localParticleColors ? 'checked' : ''}> Color Pilot-wave runs by region</span></label>
-    <p class="detector-plane-note">Coupling and readout-start positions set the interaction locations. The readout lasts 1.5 time units; its start and end appear as planes in 3D and as labeled lines in projections.</p>
+    <p class="detector-plane-note">The X–Y and Y–Z start positions set the two interaction locations. Each interaction lasts 1.5 time units; its start and end appear as planes in 3D and as labeled lines in projections.</p>
     <p class="strong-readout-note">Z channels are constrained to remain distinguishable.</p>`;
   const yWidthInput = heading.parentElement.querySelector('input[aria-label*="sigma y"]');
   (yWidthInput ?? heading).after(wrap);
