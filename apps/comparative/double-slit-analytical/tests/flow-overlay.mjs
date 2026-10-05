@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {flowSlope,traceFlow,flowMarkerStep,flowOpacity,flowPathY} from '../js/flow-overlay.js';
+import {flowSlope,traceFlow,flowMarkerStep,flowOpacity,flowPathY,extendIncidentFlow,flowArrowBody} from '../js/flow-overlay.js';
 import {sourceTransverse,sourceCoefficients} from '../js/source-packet-model.js';
 const p={sx:.5,sy:.3,sourceSigma:2,wall:2.25,screen:12.25,k:2*Math.PI,centers:[-1.5,1.5]};
 for(const centers of [[-1.5,1.5],[-1.5],[1.5]]){
@@ -35,3 +35,21 @@ assert.equal(flowPathY([[0,0],[1,2],[2,3]],.5),1);
 assert.equal(flowPathY([[0,0],[1,2],[2,3]],1.5),2.5);
 assert.equal(flowPathY([[0,0],[1,2]],2),null);
 console.log('Continuous marker motion, path interpolation and fade checks passed.');
+
+// Track the same arrowhead through the wall and up to the detector, rather
+// than testing only the wrapped phase of interchangeable columns.
+for(const seed of p.centers){
+ const path=extendIncidentFlow(traceFlow(seed,p),-3,p);
+ assert(Math.abs(flowPathY(path,p.wall-1e-7)-flowPathY(path,p.wall+1e-7))<1e-6,'slit-plane position is continuous');
+ let previous=-Infinity;
+ for(const x of [p.wall-.05,p.wall-1e-6,p.wall,p.wall+1e-6,p.wall+.05,p.screen-.05,p.screen-1e-6]){
+  const body=flowArrowBody(path,x,20),head=body.at(-1);
+  assert.equal(head[0],x,'head stays at its transported position during direction changes');
+  assert(head[0]>previous,'head never goes backward near wall or screen');previous=head[0];
+  const arc=body.slice(1).reduce((sum,b,i)=>sum+Math.hypot(b[0]-body[i][0],b[1]-body[i][1]),0);
+  assert(Math.abs(arc*100-20)<1e-9,'shaft arc length is 20 nm in physical coordinates');
+ }
+ assert.equal(flowArrowBody(path,p.screen+.01,20).length,0,'exited marker is removed rather than recycled at screen');
+}
+assert.equal(flowPathY([[0,0],[.1,1],[2,3]],1.05),2,'nonuniform incident/transmitted mesh interpolates correctly');
+console.log('Boundary continuity, forward arrowheads and physical length checks passed.');

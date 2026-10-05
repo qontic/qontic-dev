@@ -1,3 +1,10 @@
+## 2.119 — 2026-10-05
+
+- Flow Length and Separation use physical nm units. Arrow shafts follow the flow curve for the selected arc length.
+- Continuous transmitted marker paths through the slit plane; arrowheads anchor forward motion even when the field turns.
+- Fixed opacity reference and boundary fade prevent earlier arrows brightening as the leading arrows leave the wall or screen.
+- Rollback: backup/before-flow-boundaries-2.118-20261005.
+
 ## 2.118 — 2026-10-05
 
 - Arrows checkbox, Length slider and value share one row; Streamlines and Separation share the next.
