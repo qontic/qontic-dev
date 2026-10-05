@@ -1,3 +1,8 @@
+## 2.117 — 2026-10-05
+
+- Three flow-control rows: arrows; arrow length; streamlines and separation. Explanation moved to an information tooltip.
+- Arrow markers advance continuously along analytical flow curves with smooth density fades. Streamline separation now controls curve spacing.
+
 ## 2.116 — 2026-10-05
 
 - Flow toggles and arrow spacing share one compact row; yellow arrows and orange streamlines contrast with blue waves.
