@@ -1,5 +1,5 @@
 // Optional shared presentation tools. Models supply canvas layers and playback hooks.
-export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = true, labelNode = null, scaleControl = null, rangeControl = null, coordinateControl = null}) {
+export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = true, labelNode = null, scaleControl = null, rangeControl = null, coordinateControl = null, dynamicCanvases = false}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.8', import.meta.url);
@@ -220,7 +220,8 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
     if (recording) { stop(); return; }
     if (!duration.reportValidity()) return;
     try {
-      const layers = getCanvases().filter(canvas => {const r=canvas.getBoundingClientRect();return r.width>0 && r.height>0;});
+      const visibleCanvases = () => getCanvases().filter(canvas => {const r=canvas.getBoundingClientRect();return r.width>0 && r.height>0;});
+      const layers = visibleCanvases();
       if (!layers.length) throw new Error('Open the simulation view before recording.');
       const bounds = layers.map(c => c.getBoundingClientRect());
       const left = Math.min(...bounds.map(r=>r.left)), top = Math.min(...bounds.map(r=>r.top));
@@ -231,7 +232,8 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
       const draw = () => {
         ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-primary').trim() || '#0f172a';
         ctx.fillRect(0,0,output.width,output.height);
-        layers.forEach((canvas,i) => { const r=bounds[i];ctx.drawImage(canvas,(r.left-left)*output.width/width,(r.top-top)*output.height/height,r.width*output.width/width,r.height*output.height/height); });
+        const frameLayers = dynamicCanvases ? visibleCanvases() : layers;
+        frameLayers.forEach((canvas,i) => { const r=dynamicCanvases?canvas.getBoundingClientRect():bounds[i];ctx.drawImage(canvas,(r.left-left)*output.width/width,(r.top-top)*output.height/height,r.width*output.width/width,r.height*output.height/height); });
       };
       draw(); stream = output.captureStream(0); const captureTrack = stream.getVideoTracks()[0];
       const mimeType = ['video/webm;codecs=vp8','video/webm;codecs=vp9','video/webm','video/mp4'].find(type=>MediaRecorder.isTypeSupported(type));
@@ -263,3 +265,4 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   window.addEventListener('pagehide',()=>{stop();if(url)URL.revokeObjectURL(url);});
   return {setExpanded, stopRecording:stop, syncScale, syncRange, syncCoordinates};
 }
+
