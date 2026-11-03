@@ -114,6 +114,10 @@
     .hotel-cards .meta { display:block; color:var(--muted); font-size:.8rem; margin-top:.15rem; }
     #acc-map-canvas { height:460px; max-width:100%; border:1px solid var(--line); }
     .map-note { margin-top:.35rem; }
+    .venue-photos { margin:0 0 .8rem; }
+    .venue-photos .strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.4rem; }
+    .venue-photos img { width:100%; max-width:100%; aspect-ratio:3/4; height:auto; object-fit:cover; display:block; }
+    .venue-photos figcaption { padding-top:.3rem; color:var(--muted); font-size:.72rem; }
     .consent { max-width:62ch; margin:0 0 .8rem; color:var(--muted); font-size:.92rem; }
     #participant-count { margin-top:1.4rem; }
     .people-block + .people-block { margin-top:1.4rem; }
@@ -234,7 +238,14 @@
     <div id="venue" class="tab-panel" role="tabpanel" aria-labelledby="tab-venue">
       <div class="venue-grid">
         <div>
-          <figure class="venue-hero"><img src="https://global.rice.edu/_astro/image002-1.By1NjzXl_cQ5rf.jpg" alt="Courtyard at the Rice Global Paris Center" width="2048" height="1152" loading="lazy" /><figcaption>Rice Global Paris Center courtyard · Photo: Rice Global</figcaption></figure>
+          <figure class="venue-photos">
+            <div class="strip">
+              <img src="rgp-door.jpg" alt="Blue street door of the Rice Global Paris Center at 5 rue Sainte-Croix de la Bretonnerie" width="900" height="1200" loading="lazy" />
+              <img src="rgp-courtyard.jpg" alt="Half-timbered courtyard of the Rice Global Paris Center" width="900" height="1200" loading="lazy" />
+              <img src="rgp-entrance.jpg" alt="Entrance to the Rice Global Paris Center from its courtyard" width="900" height="1200" loading="lazy" />
+            </div>
+            <figcaption>From the street door at no. 5, through the courtyard, to the center's entrance.</figcaption>
+          </figure>
           <h2>Rice Global Paris Center</h2>
           <p>The meeting takes place at Rice University's center in the Marais, one of the oldest neighborhoods in Paris. The building dates from 1540 and was built as a private residence in the reign of Francis I. It is set back from the street around a private courtyard and garden, and now hosts research meetings, conferences, and student programs.</p>
           <p>The meeting room seats 35, which sets the size of the meeting. The center is air-conditioned.</p>
