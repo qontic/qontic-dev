@@ -115,8 +115,9 @@
     #acc-map-canvas { height:460px; max-width:100%; border:1px solid var(--line); }
     .map-note { margin-top:.35rem; }
     .venue-photos { margin:0 0 .8rem; }
-    .venue-photos .strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.4rem; }
-    .venue-photos img { width:100%; max-width:100%; aspect-ratio:3/4; height:auto; object-fit:cover; display:block; }
+    .venue-photos .gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.4rem; }
+    .venue-photos img { width:100%; max-width:100%; aspect-ratio:1/1; height:auto; object-fit:cover; display:block; }
+    .venue-photos img.wide { grid-column:1 / -1; aspect-ratio:3/2; }
     .venue-photos figcaption { padding-top:.3rem; color:var(--muted); font-size:.72rem; }
     .consent { max-width:62ch; margin:0 0 .8rem; color:var(--muted); font-size:.92rem; }
     #participant-count { margin-top:1.4rem; }
@@ -239,12 +240,12 @@
       <div class="venue-grid">
         <div>
           <figure class="venue-photos">
-            <div class="strip">
-              <img src="rgp-door.jpg" alt="Blue street door of the Rice Global Paris Center at 5 rue Sainte-Croix de la Bretonnerie" width="900" height="1200" loading="lazy" />
-              <img src="rgp-courtyard.jpg" alt="Half-timbered courtyard of the Rice Global Paris Center" width="900" height="1200" loading="lazy" />
-              <img src="rgp-entrance.jpg" alt="Entrance to the Rice Global Paris Center from its courtyard" width="900" height="1200" loading="lazy" />
+            <div class="gallery">
+              <img class="wide" src="rgp-facade.jpg" alt="Courtyard façade of the Rice Global Paris Center" loading="lazy" />
+              <img src="rgp-garden.jpg" alt="Conference participants in the center's garden courtyard" loading="lazy" />
+              <img src="rgp-entrance.jpg" alt="Entrance to the Rice Global Paris Center" loading="lazy" style="object-position:center 60%" />
             </div>
-            <figcaption>From the street door at no. 5, through the courtyard, to the center's entrance.</figcaption>
+            <figcaption>The courtyard, the garden, and the entrance to the center.</figcaption>
           </figure>
           <h2>Rice Global Paris Center</h2>
           <p>The meeting takes place at Rice University's center in the Marais, one of the oldest neighborhoods in Paris. The building dates from 1540 and was built as a private residence in the reign of Francis I. It is set back from the street around a private courtyard and garden, and now hosts research meetings, conferences, and student programs.</p>
