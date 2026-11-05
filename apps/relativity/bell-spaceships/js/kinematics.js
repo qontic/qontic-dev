@@ -65,9 +65,20 @@ export function rearFrameView(model, tB) {
   return { tB, tC, xB: B.x, xC: C.x, vB: B.v, D, tauB: B.tau, tauC: C.tau, vRel };
 }
 
-// Elongation of a thread of rest length L stretched between the ships,
-// measured in the rear ship's instantaneous rest frame.
-export function strainAt(model, tB) {
+// Elongation of the thread in the launch frame, treated quasi-statically
+// (Bell's Lorentzian argument): a thread moving at speed v has natural length
+// L/gamma(v); it spans the launch-frame gap between the ships. Its speed is
+// taken as the mean of the two ships' speeds. Exact for Bell's case (both
+// ships always have the same speed) and once the ships coast.
+export function strainAt(model, t) {
+  if (t <= 0) return 0;
+  const B = shipState(model, 0, t), C = shipState(model, 1, t);
+  return gammaOf(0.5 * (B.v + C.v)) * (C.x - B.x) / model.L - 1;
+}
+
+// Elongation measured instead as the proper distance in the rear ship's
+// momentary rest frame (used for comparison only).
+export function strainRearFrame(model, tB) {
   return rearFrameView(model, tB).D / model.L - 1;
 }
 
@@ -76,8 +87,8 @@ export function runEnd(model) {
   return tAcc * 1.2 + 2.5 * model.L;
 }
 
-// First rear-ship launch time at which the elongation reaches breakStrain,
-// or null if the thread survives the whole run (and the coasting afterwards).
+// First launch-frame time at which the elongation reaches breakStrain,
+// or null if the thread survives the whole run.
 export function findBreak(model, breakStrain, tEnd = runEnd(model)) {
   const n = 600;
   let prevT = 0;
@@ -95,6 +106,16 @@ export function findBreak(model, breakStrain, tEnd = runEnd(model)) {
     prevT = t;
   }
   return null;
+}
+
+// Launch-frame time of the rear ship's event whose line of simultaneity
+// (in its momentary rest frame) passes through the event (x, t).
+export function rearTimeFor(model, x, t) {
+  const g = (tB) => { const B = shipState(model, 0, tB); return t - tB - B.v * (x - B.x); };
+  let lo = t - 10 * (1 + Math.abs(x)), hi = t + 1e-9;
+  while (g(lo) < 0) lo -= 10 * (1 + Math.abs(x));
+  for (let k = 0; k < 80; k++) { const mid = 0.5 * (lo + hi); if (g(mid) > 0) lo = mid; else hi = mid; }
+  return 0.5 * (lo + hi);
 }
 
 // Speed above which a thread with the given breaking elongation must break in

@@ -1,0 +1,142 @@
+// Physics for the "Bell's atom" notebook. Units: c = 1, electron mass m = 1,
+// initial orbit radius r0 = 1. The nucleus-electron coupling K = Z e^2 (Gaussian
+// units) is chosen so that the circular orbit speed is v0 = sqrt(K) (0.1 c by
+// default; Bell notes that a heavy nucleus makes the computation feasible).
+// The orbit lies in the x-z plane; the nucleus moves along +z.
+
+export const gammaOf = (v) => 1 / Math.sqrt(1 - v * v);
+
+// Field of a charge (strength K) moving uniformly at speed V along z, at the
+// point (x, z) measured from the charge's present position (Heaviside 1889;
+// Bell 1976, eq. 1). Returns E components, the magnetic field component B_y,
+// and the scalar potential phi.
+export function movingChargeField(x, z, V, K = 1) {
+  const g = gammaOf(V);
+  const s2 = x * x + g * g * z * z;
+  const d3 = Math.pow(s2, 1.5);
+  const Ex = (K * g * x) / d3;
+  const Ez = (K * g * z) / d3;
+  return { Ex, Ez, By: V * Ex, phi: (K * g) / Math.sqrt(s2) };
+}
+
+// Smooth speed program for the nucleus: 0 -> Vf over a time Tacc (smoothstep),
+// then constant. Position is integrated analytically.
+export function makeProgram(Vf, Tacc) {
+  const V = (t) => { const s = Math.min(Math.max(t / Tacc, 0), 1); return Vf * (3 * s * s - 2 * s * s * s); };
+  const z = (t) => {
+    if (t <= 0) return 0;
+    const s = Math.min(t / Tacc, 1);
+    const base = Vf * Tacc * (s ** 3 - 0.5 * s ** 4);
+    return t > Tacc ? base + Vf * (t - Tacc) : base;
+  };
+  // d(gamma V)/dt: the rate of change of momentum per unit mass needed to keep up
+  const dU = (t) => {
+    const s = t / Tacc;
+    if (s <= 0 || s >= 1) return 0;
+    const v = V(t);
+    return (Vf * (6 * s - 6 * s * s)) / Tacc / Math.pow(1 - v * v, 1.5);
+  };
+  return { V, z, dU, Vf, Tacc };
+}
+
+// Bell's atom: an electron in the field of a nucleus that is gently pushed to
+// speed Vf. With pushElectron = true the electron also receives the push
+// m d(gamma V)/dt, as both particles would in a uniform field acting on mass;
+// see the notebook text for why.
+export class BellAtom {
+  constructor({ v0 = 0.1, Vf = 0.8, rampOrbits = 100, pushElectron = true, stepsPerOrbit = 300 } = {}) {
+    this.K = v0 * v0;
+    this.v0 = v0;
+    this.T0 = (2 * Math.PI) / v0;
+    this.prog = makeProgram(Vf, rampOrbits * this.T0);
+    this.push = pushElectron;
+    this.dt = this.T0 / stepsPerOrbit;
+    this.reset();
+  }
+
+  reset() {
+    const p0 = this.v0 / Math.sqrt(1 - this.v0 * this.v0);
+    this.t = 0;
+    this.s = [1, 0, 0, p0]; // x, z (lab), px, pz
+    this.orbit = null; // extents of the revolution in progress
+    this.last = null; // measured extents and period of the last complete revolution
+    this.lastCross = null;
+  }
+
+  deriv([x, z, px, pz], t) {
+    const V = this.prog.V(t);
+    const f = movingChargeField(x, z - this.prog.z(t), V, this.K);
+    const gp = Math.sqrt(1 + px * px + pz * pz);
+    const vx = px / gp, vz = pz / gp;
+    // electron charge -1: F = -(E + v x B), with B = (0, By, 0)
+    const Fx = -(f.Ex - vz * f.By);
+    const Fz = -(f.Ez + vx * f.By) + (this.push ? this.prog.dU(t) : 0);
+    return [vx, vz, Fx, Fz];
+  }
+
+  step(n = 1) {
+    const h = this.dt;
+    for (let i = 0; i < n; i++) {
+      const s = this.s, t = this.t;
+      const k1 = this.deriv(s, t);
+      const a = s.map((v, j) => v + 0.5 * h * k1[j]);
+      const k2 = this.deriv(a, t + 0.5 * h);
+      const b = s.map((v, j) => v + 0.5 * h * k2[j]);
+      const k3 = this.deriv(b, t + 0.5 * h);
+      const c = s.map((v, j) => v + h * k3[j]);
+      const k4 = this.deriv(c, t + h);
+      const next = s.map((v, j) => v + (h / 6) * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]));
+      this.track(s[0], next[0], next[1] - this.prog.z(t + h), t + h);
+      this.s = next;
+      this.t = t + h;
+    }
+  }
+
+  // Track extents relative to the nucleus; a revolution ends at each upward
+  // crossing of x = 0.
+  track(xPrev, x, zRel, t) {
+    if (!this.orbit) this.orbit = { xmin: x, xmax: x, zmin: zRel, zmax: zRel };
+    const o = this.orbit;
+    o.xmin = Math.min(o.xmin, x); o.xmax = Math.max(o.xmax, x);
+    o.zmin = Math.min(o.zmin, zRel); o.zmax = Math.max(o.zmax, zRel);
+    if (xPrev < 0 && x >= 0) {
+      if (this.lastCross !== null) {
+        this.last = {
+          width: o.xmax - o.xmin,
+          length: o.zmax - o.zmin,
+          period: t - this.lastCross,
+          V: this.prog.V(t),
+        };
+      }
+      this.lastCross = t;
+      this.orbit = null;
+    }
+  }
+
+  get rel() { return { x: this.s[0], z: this.s[1] - this.prog.z(this.t), t: this.t, V: this.prog.V(this.t) }; }
+}
+
+// Run an atom through its ramp and record one or more revolutions while it
+// coasts. Returns lab-frame electron events and the nucleus worldline offset.
+export function steadyOrbit({ v0 = 0.1, Vf = 0.8, rampOrbits = 100, revolutions = 3, samplesPerOrbit = 300 } = {}) {
+  const atom = new BellAtom({ v0, Vf, rampOrbits, stepsPerOrbit: samplesPerOrbit });
+  const Tacc = atom.prog.Tacc;
+  while (atom.t < Tacc + 3 * atom.T0) atom.step(50);
+  const g = gammaOf(Vf);
+  const n = Math.round(revolutions * g * samplesPerOrbit);
+  const events = [];
+  for (let i = 0; i < n; i++) {
+    atom.step(1);
+    events.push({ t: atom.t, x: atom.s[0], z: atom.s[1] });
+  }
+  // nucleus during coasting: z = c0 + Vf t
+  const c0 = atom.prog.z(atom.t) - Vf * atom.t;
+  return { events, c0, Vf, gamma: g, T0: atom.T0, measured: atom.last };
+}
+
+// Lorentz transformation to the variables of an observer moving with speed V
+// along z (Bell 1976, eqs. 12-14).
+export function toPrimed({ t, x, z }, V) {
+  const g = gammaOf(V);
+  return { t: g * (t - V * z), x, z: g * (z - V * t) };
+}

@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.1.1';
-import { makeModel, shipState, rearFrameView, findBreak, criticalBeta, runEnd, gammaOf } from './kinematics.js?v=0.1.0';
+import { APP_RELEASE } from './release.js?v=0.2.0';
+import { makeModel, shipState, rearFrameView, strainAt, rearTimeFor, findBreak, criticalBeta, runEnd, gammaOf } from './kinematics.js?v=0.2.0';
 
 mountQonticShell({
   title: "Bell's Spaceships",
@@ -26,8 +26,8 @@ const ctx = canvas.getContext('2d');
 const controlsEl = $('qontic-controls');
 
 const state = {
-  mode: 'bell', beta: 0.9, breakStrain: 0.2, accel: 0.6, layout: 'all',
-  show: { clocks: true, atoms: false, ghost: true, marks: true, signal: true, simul: true, predict: true },
+  mode: 'bell', beta: 0.9, breakStrain: 0.2, accel: 0.2, layout: 'lab',
+  show: { clocks: false, atoms: false, ghost: true, marks: true, signal: true, simul: true, predict: true },
   t: T0, running: false, autoRun: false, speed: 1,
   prediction: null, predictionAsked: false, finished: false,
 };
@@ -41,8 +41,10 @@ function rebuild() {
   tBreak = findBreak(model, state.breakStrain, tEnd);
   breakEvent = null;
   if (tBreak !== null) {
-    const v = rearFrameView(model, tBreak);
-    breakEvent = { tB: tBreak, x: 0.5 * (v.xB + v.xC), t: 0.5 * (v.tB + v.tC), vB: v.vB, tauB: v.tauB, vC: shipState(model, 1, v.tC).v };
+    // the break, as an event: mid-thread at launch-frame time tBreak
+    const B = shipState(model, 0, tBreak), C = shipState(model, 1, tBreak);
+    const x = 0.5 * (B.x + C.x);
+    breakEvent = { t: tBreak, x, v: 0.5 * (B.v + C.v), tauB: B.tau, tRear: rearTimeFor(model, x, tBreak), strain: strainAt(model, tBreak) };
   }
   dMax = state.mode === 'bell' ? model.gammaF : 1;
   updateHints();
@@ -55,8 +57,7 @@ function resetRun() {
   state.prediction = null;
   state.predictionAsked = false;
   controlsEl.setAttribute('running', 'false');
-  $('#verdict').classList.add('hidden');
-  updatePredictionPanel();
+  showStep('setup');
 }
 
 // ---------------------------------------------------------------- controls
@@ -77,17 +78,16 @@ function updateHints() {
     : 'Front ship: same proper acceleration as the rear ship.';
   const v = `${fmt(state.beta)} c`, pct = `${Math.round(state.breakStrain * 100)}%`;
   const engines = state.mode === 'bell'
-    ? `B and C have <b>identical engines running the same program</b>: the same push, cut off when each reaches ${v}. So, as A sees it, the two ships always have the same speed, and <b>the distance between them stays L</b>.`
-    : `This time <b>C's engine is set gentler than B's</b> (proper acceleration a/(1 + aL/c²) instead of a). Both cut off when they reach ${v}.`;
+    ? `When it arrives, B and C fire <b>identical engines running the same program</b> and stop at ${v}. So, as A sees it, the ships always have the same speed and <b>stay L apart</b>.`
+    : `When it arrives, B and C fire their engines and stop at ${v}. This time <b>C's engine is set gentler than B's</b>.`;
   $('#setupList').innerHTML = [
-    'Two spaceships, <b>B</b> (rear) and <b>C</b> (front), float at rest a distance <b>L</b> apart. A third, <b>A</b>, sits halfway between them and stays at rest throughout.',
-    'A fragile <b>thread</b> is tied from B to C. Its rest length is exactly L, so at the start it is just taut.',
-    'A sends a <b>light flash</b>. It reaches B and C at the same moment in A\u2019s frame, and both fire their engines then.',
+    'Spaceships <b>B</b> (rear) and <b>C</b> (front) float at rest a distance <b>L</b> apart. <b>A</b>, halfway between them, stays at rest.',
+    `A fragile <b>thread</b>, just long enough, joins B to C. It snaps if it is stretched by more than <b>${pct}</b>.`,
+    'A sends a <b>light flash</b>, which reaches B and C at the same moment.',
     engines,
-    `The thread can stretch by up to <b>${pct}</b> before it snaps.`,
   ].map((x) => `<li>${x}</li>`).join('');
-  $('#predictionText').textContent = `When the ships are cruising at ${v}, is the thread still intact, or has it snapped?`;
-  $('#setupNext').textContent = state.show.predict ? 'Next: the question' : 'Got it';
+  $('#predictionText').textContent = `What happens to the thread as the ships speed up to ${v}? Pick the answer and the reason closest to yours.`;
+  $('#setupNext').textContent = state.show.predict ? 'Next: the question' : 'Start';
 }
 
 function setPressed(group, attr, value) {
@@ -107,15 +107,37 @@ function syncControls() {
   document.querySelectorAll('[data-toggle]').forEach((b) => b.setAttribute('aria-pressed', String(state.show[b.dataset.toggle])));
 }
 
+// ---------------------------------------------------------------- story strip (setup, question, live line, verdict)
+function showStep(step) {
+  ['setup', 'question', 'run', 'verdict'].forEach((k) => $(`#${k}Step`).classList.toggle('hidden', k !== step));
+  state.step = step;
+}
+$('#setupNext').addEventListener('click', () => {
+  if (state.show.predict) showStep('question'); else start();
+});
+$('#setupBack').addEventListener('click', () => showStep('setup'));
+$('#showSetup').addEventListener('click', () => {
+  if (state.running) { state.running = false; controlsEl.setAttribute('running', 'false'); }
+  showStep('setup');
+});
+document.querySelectorAll('[data-predict]').forEach((b) => b.addEventListener('click', () => {
+  const p = b.dataset.predict;
+  state.prediction = p === 'skip' ? null : p;
+  start();
+}));
+
 $('#beta').addEventListener('input', (e) => { state.beta = +e.target.value; rebuild(); resetRun(); });
 $('#breakStrain').addEventListener('input', (e) => { state.breakStrain = +e.target.value / 100; rebuild(); resetRun(); });
 $('#accel').addEventListener('input', (e) => { state.accel = +e.target.value; rebuild(); resetRun(); });
 document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
   state.mode = b.dataset.mode; setPressed('.mode-group', 'data-mode', state.mode); rebuild(); resetRun();
 }));
-document.querySelectorAll('[data-layout]').forEach((b) => b.addEventListener('click', () => {
-  state.layout = b.dataset.layout; setPressed('.view-group', 'data-layout', state.layout);
-}));
+document.querySelectorAll('[data-layout]').forEach((b) => b.addEventListener('click', () => setLayout(b.dataset.layout)));
+function setLayout(layout) {
+  state.layout = layout; setPressed('.view-group', 'data-layout', layout);
+  document.querySelectorAll('.ship-only').forEach((e) => e.classList.toggle('hidden', !['frames', 'all'].includes(layout)));
+  $('.canvas-host').classList.toggle('tall', layout !== 'lab');
+}
 document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', () => {
   const key = b.dataset.toggle;
   state.show[key] = !state.show[key];
@@ -134,39 +156,12 @@ controlsEl.addEventListener('qontic:tab', (e) => {
 });
 
 function start() {
-  if (state.finished || state.t >= tEnd) { state.t = T0; state.finished = false; $('#verdict').classList.add('hidden'); }
+  if (state.finished || state.t >= tEnd) { state.t = T0; state.finished = false; }
   state.predictionAsked = true;
-  $('#prediction').classList.add('hidden');
+  showStep('run');
   state.running = true;
   controlsEl.setAttribute('running', 'true');
 }
-
-function showStep(step) {
-  $('#setupStep').classList.toggle('hidden', step !== 'setup');
-  $('#questionStep').classList.toggle('hidden', step !== 'question');
-}
-function updatePredictionPanel() {
-  const show = !state.predictionAsked && !state.running && state.t <= T0;
-  if (show) showStep('setup');
-  $('#prediction').classList.toggle('hidden', !show);
-}
-$('#setupNext').addEventListener('click', () => {
-  if (state.show.predict) showStep('question');
-  else { state.predictionAsked = true; $('#prediction').classList.add('hidden'); }
-});
-$('#setupBack').addEventListener('click', () => showStep('setup'));
-$('#showSetup').addEventListener('click', () => {
-  if (state.running) { state.running = false; controlsEl.setAttribute('running', 'false'); }
-  showStep('setup');
-  $('#prediction').classList.remove('hidden');
-});
-document.querySelectorAll('[data-predict]').forEach((b) => b.addEventListener('click', () => {
-  const p = b.dataset.predict;
-  state.prediction = p === 'skip' ? null : p;
-  state.predictionAsked = true;
-  $('#prediction').classList.add('hidden');
-  if (p !== 'skip') start();
-}));
 
 // Section tabs (Simulation / Physics / Rationale)
 document.querySelector('.tabs').addEventListener('click', (event) => {
@@ -193,9 +188,9 @@ function readUrl() {
   const num = (k, lo, hi) => { const v = parseFloat(q.get(k)); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : null; };
   const b = num('beta', 0.05, 0.99); if (b !== null) state.beta = b;
   const e = num('snap', 1, 150); if (e !== null) state.breakStrain = Math.round(e) / 100;
-  const a = num('a', 0.1, 2); if (a !== null) state.accel = a;
+  const a = num('a', 0.05, 1); if (a !== null) state.accel = a;
   if (q.get('mode') === 'rigid') state.mode = 'rigid';
-  if (['all', 'frames', 'spacetime'].includes(q.get('view'))) state.layout = q.get('view');
+  if (['lab', 'all', 'frames', 'spacetime'].includes(q.get('view'))) state.layout = q.get('view');
 }
 function shareUrl() {
   const u = new URL(location.href);
@@ -277,7 +272,7 @@ function drawThreadSegment(xa, xb, y, color, sag = 0) {
 
 // Atoms of the thread with their electric fields flattened by 1/gamma.
 function drawAtoms(xa, xb, y, gamma, P, s, n = 9) {
-  const r = Math.max(3, Math.min(9, 0.035 * s));
+  const r = Math.max(4, Math.min(12, 0.045 * s));
   for (let i = 0; i <= n; i++) {
     const x = xa + ((xb - xa) * i) / n;
     ctx.strokeStyle = P.muted; ctx.lineWidth = 1; ctx.globalAlpha = 0.75;
@@ -307,6 +302,7 @@ function panelFrame(r, title, P, right = '', short = title) {
 function layoutRects(W, H) {
   const g = 10;
   if (state.layout === 'spacetime') return { st: { x: g, y: g, w: W - 2 * g, h: H - 2 * g } };
+  if (state.layout === 'lab') return { lab: { x: g, y: g, w: W - 2 * g, h: H - 2 * g } };
   if (state.layout === 'frames') {
     const h = (H - 3 * g) / 2;
     return { lab: { x: g, y: g, w: W - 2 * g, h }, ship: { x: g, y: 2 * g + h, w: W - 2 * g, h } };
@@ -328,7 +324,8 @@ function layoutRects(W, H) {
 // Pixels per L shared by both frame panels, so lengths can be compared directly.
 function frameScale(rects) {
   const w = (rects.lab || rects.ship).w;
-  return Math.min(w * 0.46, (w * 0.9) / (dMax + 2 * SHIP_LEN + 0.15));
+  const span = rects.ship ? dMax : 1;
+  return Math.min(w * 0.46, (w * 0.9) / (span + 2 * SHIP_LEN + 0.15));
 }
 
 // ---------------------------------------------------------------- panels
@@ -370,13 +367,13 @@ function drawThreadLaunch(X, y, s, t, B, C, P) {
   const g = gammaOf(0.5 * (B.v + C.v));
   const tb = breakEvent ? breakEvent.t : Infinity;
   if (t < tb) {
-    const strain = rearFrameView(model, Math.max(t, 0)).D - 1;
-    if (state.show.ghost) bracket(xa, xa + s / g, y - Math.max(22, s * 0.11), `relaxed length ${fmt(1 / g)} L`, P);
-    drawThreadSegment(xa, xb, y, strainColor(t > 0 ? strain : 0, P));
+    const strain = strainAt(model, t);
+    if (state.show.ghost) bracket(xa, xa + s / g, y - Math.max(24, s * 0.12), `natural length ${fmt(1 / g)} L`, P);
+    drawThreadSegment(xa, xb, y, strainColor(strain, P));
     if (state.show.atoms) drawAtoms(xa, xb, y, g, P, s);
     return;
   }
-  // broken: each half recoils toward its relaxed (contracted) length
+  // broken: each half recoils toward its natural (contracted) length
   const u = Math.min(1, (t - tb) / SNAP), ease = 1 - (1 - u) ** 3;
   const gB = gammaOf(B.v), gC = gammaOf(C.v);
   const half = 0.5 * (xb - xa);
@@ -418,13 +415,13 @@ function drawShipPanel(r, s, P) {
   if (state.show.signal && pre) drawSignal(X, y, state.t, P);
 
   const xa = X(0), xb = X(v.D);
-  const broken = breakEvent && tB >= breakEvent.tB && !pre;
+  const broken = breakEvent && tB >= breakEvent.tRear && !pre;
   if (!broken) {
     if (state.show.ghost) bracket(xa, xa + s, y - Math.max(22, s * 0.11), 'rest length L', P);
-    drawThreadSegment(xa, xb, y, strainColor(v.D - 1, P));
+    drawThreadSegment(xa, xb, y, strainColor(strainAt(model, tB), P));
     if (state.show.atoms) drawAtoms(xa, xb, y, gammaOf(0.5 * v.vRel), P, s);
   } else {
-    const u = Math.min(1, (tB - breakEvent.tB) / SNAP), ease = 1 - (1 - u) ** 3;
+    const u = Math.min(1, (tB - breakEvent.tRear) / SNAP), ease = 1 - (1 - u) ** 3;
     const half = 0.5 * (xb - xa);
     const l = half + (0.5 * s - half) * ease;
     drawThreadSegment(xa, xa + l, y, P.ok, 6 * ease);
@@ -499,6 +496,7 @@ function drawSpacetime(r, P) {
   const oy = r.y + r.h - m.b - ((r.h - m.t - m.b) - k * (tmax - tmin)) / 2;
   const SX = (x) => ox + (x - xmin) * k, SY = (t) => oy - (t - tmin) * k;
   const t = state.t;
+  ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y + 26, r.w, r.h - 26); ctx.clip();
 
   // grid
   ctx.lineWidth = 1; ctx.strokeStyle = P.grid;
@@ -509,7 +507,7 @@ function drawSpacetime(r, P) {
   ctx.save(); ctx.translate(r.x + 13, SY(tmax) + 30); ctx.rotate(-Math.PI / 2); label('ct / L', 0, 0, { color: P.muted, size: 10.5, align: 'right' }); ctx.restore();
 
   // thread history between the worldlines, sliced along B's lines of simultaneity
-  const tStop = Math.min(t, breakEvent ? breakEvent.tB : Infinity, tEnd);
+  const tStop = Math.min(t, breakEvent ? breakEvent.tRear : Infinity, tEnd);
   if (tStop > tmin) {
     const n = 140;
     let prev = null;
@@ -518,7 +516,7 @@ function drawSpacetime(r, P) {
       const sl = tb <= 0 ? { xB: 0, tB: tb, xC: 1, tC: tb, D: 1 } : rearFrameView(model, tb);
       const cur = [SX(sl.xB), SY(sl.tB), SX(sl.xC), SY(sl.tC)];
       if (prev) {
-        ctx.fillStyle = strainColor(sl.D - 1, P); ctx.globalAlpha = 0.28;
+        ctx.fillStyle = strainColor(strainAt(model, sl.tB), P); ctx.globalAlpha = 0.28;
         ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(prev[2], prev[3]); ctx.lineTo(cur[2], cur[3]); ctx.lineTo(cur[0], cur[1]); ctx.closePath(); ctx.fill();
       }
       prev = cur;
@@ -573,6 +571,7 @@ function drawSpacetime(r, P) {
     if (t > 0) { const v = rearFrameView(model, t); dot(SX(v.xC), SY(v.tC), P.C, false); }
   }
   if (breakEvent && t >= breakEvent.t) star(SX(breakEvent.x), SY(breakEvent.t), P.bad);
+  ctx.restore();
 }
 
 function dot(x, y, color, filled) {
@@ -605,53 +604,92 @@ function render() {
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
   const rects = layoutRects(W, H);
-  const broken = breakEvent && Math.max(state.t, 0) >= breakEvent.tB;
-  const view = state.t > 0 ? rearFrameView(model, state.t) : { D: 1, tauB: state.t, vB: 0 };
-  const strain = broken ? 0 : view.D - 1;
+  const t = state.t;
+  const broken = breakEvent && t >= breakEvent.t;
+  const strain = broken ? 0 : strainAt(model, t);
   if (rects.lab) {
     const s = frameScale(rects);
     drawLaunchPanel(rects.lab, s, P);
-    drawGauge(rects.lab, state.t > 0 ? strain : 0, P, broken);
-    drawShipPanel(rects.ship, s, P);
+    drawGauge(rects.lab, strain, P, broken);
+    if (rects.ship) drawShipPanel(rects.ship, s, P);
   }
-  if (rects.st) { drawSpacetime(rects.st, P); if (!rects.lab) drawGauge(rects.st, state.t > 0 ? strain : 0, P, broken); }
+  if (rects.st) { drawSpacetime(rects.st, P); if (!rects.lab) drawGauge(rects.st, strain, P, broken); }
 
-  const B = shipState(model, 0, state.t), C = shipState(model, 1, state.t);
-  setResult('t', `${fmt(state.t)} L/c`);
-  setResult('tau', `${fmt(B.tau)} L/c`);
-  setResult('v', `${fmt(B.v)} c`);
+  const B = shipState(model, 0, t), C = shipState(model, 1, t);
+  const vMean = 0.5 * (B.v + C.v), natural = 1 / gammaOf(vMean);
+  const sepShip = t > 0 ? rearFrameView(model, t).D : 1;
+  setResult('v', `${fmt(vMean)} c`);
   setResult('sepLab', `${fmt(C.x - B.x)} L`);
-  setResult('sepShip', `${fmt(view.D)} L`);
+  setResult('natural', `${fmt(natural)} L`);
   setResult('strain', broken ? '—' : `${Math.round(Math.max(0, strain) * 100)}%`);
-  setResult('status', broken ? `snapped at τB = ${fmt(breakEvent.tauB)}` : 'intact');
+  setResult('sepShip', `${fmt(sepShip)} L`);
+  setResult('status', broken ? `snapped at ${fmt(breakEvent.v)} c` : 'intact');
+  updateLiveLine(t, vMean, C.x - B.x, natural, strain, broken);
 }
 function setResult(name, value) { const o = document.querySelector(`[data-result="${name}"]`); if (o && o.value !== value) o.value = value; }
+
+function updateLiveLine(t, v, gap, natural, strain, broken) {
+  if (state.step !== 'run') return;
+  let text;
+  if (t < 0) text = 'A\u2019s light flash is on its way to B and C.';
+  else if (broken) text = `Snapped at ${fmt(breakEvent.v)} c: the gap was ${fmt(gap)} L, the thread\u2019s natural length only ${fmt(1 / gammaOf(breakEvent.v))} L.`;
+  else text = `Speed ${fmt(v)} c · gap between ships ${fmt(gap)} L · thread\u2019s natural length ${fmt(natural)} L · stretch ${Math.round(Math.max(0, strain) * 100)}% (snaps at ${Math.round(state.breakStrain * 100)}%)`;
+  const el = $('#liveLine');
+  if (el.textContent !== text) el.textContent = text;
+}
+
+const FEEDBACK = {
+  bell: {
+    'h-gap': 'The gap does stay L in A\u2019s frame. That is the whole point: a moving thread is in equilibrium only at L/γ, so holding it at L stretches it.',
+    'h-together': 'The thread shrinks, but the gap does not. Identical engines started together keep the ships L apart in A\u2019s frame. A gap that shrinks with the thread is what the Rigid program arranges.',
+    's-thread': 'That is the reason, in A\u2019s frame.',
+    's-pull': 'In A\u2019s frame the front ship never pulls away: the gap stays L. In the ships\u2019 own frame it does, because there C started first. Same fact, told in another frame.',
+  },
+  rigid: {
+    'h-gap': 'Here the gap did not stay L in A\u2019s frame: the gentler front engine let it shrink to L/γ, matching the thread.',
+    'h-together': 'That is the reason: the gap shrinks along with the thread.',
+    's-thread': 'The moving thread does shrink, but here the gap shrinks with it, so nothing is stretched.',
+    's-pull': 'The front ship accelerates more gently here, so the rear ship closes in rather than falling behind.',
+  },
+};
 
 function finish() {
   state.finished = true;
   const snapped = breakEvent !== null;
-  const stillAccelerating = snapped && breakEvent.tB < model.ships[0].t1;
-  const outcome = snapped
-    ? `The thread snapped ${stillAccelerating ? 'while the ships were still accelerating' : 'while the ships were coasting'}, with the rear ship at ${fmt(breakEvent.vB)} c (its clock read ${fmt(breakEvent.tauB)} L/c).`
-    : 'The thread held.';
-  const why = state.mode === 'bell'
-    ? 'In the launch frame the ships stay L apart while the moving thread contracts. In the ships’ frame they end up γL apart.'
-    : 'The front ship accelerated more gently, so in the ships’ frame the distance stayed L. In the launch frame ships and thread contract together.';
+  const g = model.gammaF, pct = Math.round((g - 1) * 100), lim = Math.round(state.breakStrain * 100);
+  let outcome;
+  if (state.mode === 'rigid') outcome = `The thread held. In A\u2019s frame the gap shrank to ${fmt(1 / g)} L, together with the thread.`;
+  else if (snapped) outcome = `The thread snapped when the ships reached ${fmt(breakEvent.v)} c. The gap was still 1.00 L, but the thread\u2019s natural length had fallen to ${fmt(1 / gammaOf(breakEvent.v))} L.`;
+  else outcome = `The thread held, but only just: at ${fmt(state.beta)} c its natural length is ${fmt(1 / g)} L and the gap is 1.00 L, a ${pct}% stretch, below the ${lim}% limit. Above ${fmt(criticalBeta(state.breakStrain))} c it snaps.`;
   let lead = '';
   if (state.prediction) {
-    const right = (state.prediction === 'breaks') === snapped;
-    lead = `<strong>${right ? 'As you predicted.' : 'Not what you predicted.'}</strong> `;
+    const right = snapped === state.prediction.startsWith('s');
+    lead = `<strong>${right ? 'Your prediction was right.' : 'Not what you predicted.'}</strong> `;
+    outcome += ` <span class="feedback">${FEEDBACK[state.mode][state.prediction]}</span>`;
   }
-  const el = $('#verdict');
-  el.innerHTML = `${lead}${outcome} ${why}`;
-  el.classList.remove('hidden');
+  $('#verdict').innerHTML = lead + outcome;
+  const next = [];
+  if (state.mode === 'bell') next.push(['rigid', 'Try the Rigid program']);
+  else next.push(['bell', 'Back to identical engines']);
+  if (state.layout === 'lab') next.push(['frames', 'See it from the ships\u2019 frame']);
+  next.push(['again', 'Run again']);
+  $('#nextSteps').innerHTML = next.map(([k, l]) => `<button type="button" class="qontic-app-toggle" data-next="${k}">${l}</button>`).join('');
+  showStep('verdict');
 }
+$('#nextSteps').addEventListener('click', (e) => {
+  const k = e.target.closest('[data-next]')?.dataset.next;
+  if (!k) return;
+  if (k === 'rigid' || k === 'bell') { state.mode = k; setPressed('.mode-group', 'data-mode', k); rebuild(); resetRun(); }
+  else if (k === 'frames') { setLayout('frames'); state.t = T0; state.finished = false; start(); }
+  else { state.t = T0; state.finished = false; start(); }
+});
 
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (state.running) {
+    if (state.step !== 'run') showStep('run');
     const rate = (tEnd - T0) / 14; // a full run takes about 14 s at speed 1
     state.t += dt * rate * state.speed;
     if (state.t >= tEnd) {
@@ -682,5 +720,6 @@ mountQonticShortcuts({
 
 rebuild();
 syncControls();
+setLayout(state.layout);
 resetRun();
 requestAnimationFrame(frame);

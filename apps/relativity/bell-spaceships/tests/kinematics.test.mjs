@@ -1,6 +1,6 @@
 // Run with: node apps/relativity/bell-spaceships/tests/kinematics.test.mjs
 import assert from 'node:assert/strict';
-import { makeModel, shipState, rearFrameView, strainAt, findBreak, criticalBeta, runEnd, gammaOf } from '../js/kinematics.js';
+import { makeModel, shipState, rearFrameView, strainAt, strainRearFrame, findBreak, criticalBeta, runEnd, gammaOf, rearTimeFor } from '../js/kinematics.js';
 
 const close = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} vs ${b}`);
 let passed = 0;
@@ -64,13 +64,35 @@ test('Break threshold matches critical speed', () => {
   assert.equal(findBreak(makeModel({ beta: 0.99, mode: 'rigid' }), 0.01), null, 'rigid never breaks');
 });
 
-test('Bell: strain is non-negative and bounded by gamma_f - 1 during acceleration', () => {
+test('Bell: launch-frame strain is exactly gamma(v) - 1', () => {
+  const m = makeModel({ beta: 0.9, accel: 0.2, mode: 'bell' });
+  for (const t of [0.5, 2, 5, 12]) close(strainAt(m, t), gammaOf(shipState(m, 0, t).v) - 1, 1e-12, `t=${t}`);
+});
+
+test('Bell: the thread snaps exactly when the ships reach the critical speed', () => {
+  const eps = 0.2, m = makeModel({ beta: 0.9, accel: 0.2, mode: 'bell' });
+  close(shipState(m, 0, findBreak(m, eps)).v, criticalBeta(eps), 1e-9, 'v at break');
+});
+
+test('Rear-frame strain also bounded by gamma_f - 1, equal once coasting', () => {
   const m = makeModel({ beta: 0.9, accel: 0.6, mode: 'bell' });
   const end = runEnd(m);
   for (let k = 0; k <= 200; k++) {
-    const s = strainAt(m, (end * k) / 200);
+    const s = strainRearFrame(m, (end * k) / 200);
     assert.ok(s >= -1e-12 && s <= m.gammaF - 1 + 1e-9, `strain ${s}`);
   }
+  close(strainRearFrame(m, end), strainAt(m, end), 1e-9, 'coasting');
+});
+
+test('Rigid: launch-frame strain stays within 2.5% of zero at a = 0.2', () => {
+  const m = makeModel({ beta: 0.95, accel: 0.2, mode: 'rigid' });
+  const end = runEnd(m);
+  for (let k = 0; k <= 200; k++) assert.ok(Math.abs(strainAt(m, (end * k) / 200)) < 0.025);
+});
+
+test('rearTimeFor inverts the rear frame simultaneity', () => {
+  const m = makeModel({ beta: 0.9, accel: 0.3, mode: 'bell' });
+  for (const tB of [0.5, 3, 8]) { const v = rearFrameView(m, tB); close(rearTimeFor(m, 0.5 * (v.xB + v.xC), 0.5 * (v.tB + v.tC)), tB, 1e-7, `tB=${tB}`); }
 });
 
 console.log(`${passed} tests passed`);

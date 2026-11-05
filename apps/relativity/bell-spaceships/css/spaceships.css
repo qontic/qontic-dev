@@ -33,7 +33,8 @@ body.spaceship-app.qontic-light { background: #eef3f6; color: #183747; }
 
 .spaceship-app .visualization { position: relative; overflow: hidden; background: linear-gradient(145deg, #06131e, #0a2131); }
 .qontic-light.spaceship-app .visualization { background: #fbfdfe; }
-.spaceship-app .canvas-host { position: relative; width: 100%; height: clamp(420px, calc(100dvh - 160px), 860px); }
+.spaceship-app .canvas-host { position: relative; width: 100%; height: clamp(340px, calc(100dvh - 330px), 700px); }
+.spaceship-app .canvas-host.tall { height: clamp(460px, calc(100dvh - 260px), 860px); }
 .spaceship-app #stage { display: block; width: 100%; height: 100%; }
 
 .spaceship-app .results-panel { margin-top: 12px; overflow: hidden; }
@@ -48,18 +49,6 @@ body.spaceship-app.qontic-light { background: #eef3f6; color: #183747; }
 .qontic-light.spaceship-app .results-body { color: #35505f; }
 .qontic-light.spaceship-app .results-body output { color: #9a6200; }
 
-.spaceship-app .prediction,
-.spaceship-app .verdict { position: absolute; left: 50%; top: 14px; z-index: 6; transform: translateX(-50%); width: min(440px, calc(100% - 28px)); padding: 12px 14px; border: 1px solid #42657a; border-radius: 9px; background: #07131bf2; box-shadow: 0 8px 24px #0009; font-size: 13px; line-height: 1.45; }
-.spaceship-app .prediction p { margin: 0 0 8px; }
-.spaceship-app .prediction-title { color: #7cecff; font-weight: 600; }
-.spaceship-app .prediction-buttons { display: flex; gap: 8px; }
-.spaceship-app .prediction-buttons button { flex: 1; }
-.spaceship-app .verdict { top: auto; bottom: 14px; left: 14px; transform: none; width: min(420px, calc(100% - 28px)); }
-.spaceship-app .verdict strong { color: #f0ca61; }
-.qontic-light.spaceship-app .prediction,
-.qontic-light.spaceship-app .verdict { background: #ffffffef; border-color: #92adbb; box-shadow: 0 6px 18px #0002; }
-.qontic-light.spaceship-app .prediction-title { color: #075c69; }
-.qontic-light.spaceship-app .verdict strong { color: #9a6200; }
 
 .spaceship-app .details-panel { max-width: 860px; margin: 0 auto; padding: 18px 26px 24px; line-height: 1.6; font-size: 15px; }
 .spaceship-app .details-panel h2 { margin: 22px 0 6px; font-size: 17px; color: #7cecff; }
@@ -73,13 +62,12 @@ body.spaceship-app.qontic-light { background: #eef3f6; color: #183747; }
 
 @media (max-width: 760px) {
   .spaceship-app .shell { padding: 0 10px 14px; }
-  .spaceship-app .canvas-host { height: 780px; }
+  .spaceship-app .canvas-host { height: 420px; }
+  .spaceship-app .canvas-host.tall { height: 760px; }
   .spaceship-app .results-body { font-size: 11px; gap: 3px 8px; }
-  .spaceship-app .verdict { width: calc(100% - 28px); left: 14px; bottom: 14px; }
   .spaceship-app .details-panel { padding: 14px 14px 20px; font-size: 14px; }
 }
 
-.spaceship-app .prediction { width: min(540px, calc(100% - 28px)); max-height: calc(100% - 28px); overflow-y: auto; }
 .spaceship-app .setup-list { margin: 0 0 10px; padding-left: 20px; }
 .spaceship-app .setup-list li { margin: 0 0 6px; }
 .spaceship-app .setup-list b { color: #7cecff; font-weight: 600; }
@@ -88,3 +76,25 @@ body.spaceship-app.qontic-light { background: #eef3f6; color: #183747; }
 .spaceship-app .link-button { border: 0; padding: 0; background: none; color: #70e2ed; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
 .qontic-light.spaceship-app .link-button { color: #0b6f7d; }
 .spaceship-app #showSetup { width: 100%; }
+
+/* Story strip below the canvas: setup, question, live readout, verdict. Never covers the simulation. */
+.spaceship-app .story { padding: 12px 14px 14px; border-top: 1px solid #23465a; font-size: 14px; line-height: 1.5; min-height: 92px; }
+.spaceship-app .story-title { margin: 0 0 8px; font-weight: 600; color: #7cecff; }
+.spaceship-app .story .setup-list { margin: 0 0 10px; padding-left: 20px; columns: 2 300px; column-gap: 28px; }
+.spaceship-app .story .setup-list li { break-inside: avoid; }
+.spaceship-app .story-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.spaceship-app .story-buttons button { flex: 0 1 auto; }
+.spaceship-app .reason-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+.spaceship-app .reason-buttons button { text-align: left; white-space: normal; line-height: 1.35; padding: 8px 10px; }
+.spaceship-app .story-links { margin: 8px 0 0; font-size: 12px; color: #7f98a7; }
+.spaceship-app .story-live { margin: 0; font-variant-numeric: tabular-nums; color: #d6e9f2; font-size: 15px; }
+.spaceship-app #verdict { margin-bottom: 10px; }
+.spaceship-app #verdict strong { color: #f0ca61; }
+.spaceship-app #verdict .feedback { display: block; margin-top: 6px; color: #afc4d3; }
+.spaceship-app .spoiler-note { padding: 8px 12px; border: 1px solid #42657a; border-radius: 7px; color: #f0ca61; font-size: 14px; }
+.qontic-light.spaceship-app .story { border-top-color: #c9d9e0; }
+.qontic-light.spaceship-app .story-title { color: #075c69; }
+.qontic-light.spaceship-app .story-live { color: #183747; }
+.qontic-light.spaceship-app #verdict strong { color: #9a6200; }
+.qontic-light.spaceship-app #verdict .feedback { color: #35505f; }
+.qontic-light.spaceship-app .spoiler-note { color: #9a6200; border-color: #c9d9e0; }

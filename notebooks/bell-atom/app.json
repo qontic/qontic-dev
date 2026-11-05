@@ -1,0 +1,13 @@
+{
+  "id": "bell-atom-notebook",
+  "title": "Bell's Atom: Why Moving Things Contract",
+  "type": "notebook",
+  "category": "relativity",
+  "module": "bell-spaceships",
+  "topics": ["special-relativity", "length-contraction", "lorentzian-pedagogy"],
+  "level": "intermediate",
+  "description": "John Bell's 'Lorentzian pedagogy' step by step: the field of a moving charge, an electron orbit that contracts as its nucleus is pushed, a thread that must snap, and a moving observer who cannot tell she is moving.",
+  "tags": ["Notebook", "Relativity", "Bell", "Simulation"],
+  "entry": "index.html",
+  "status": "draft"
+}
