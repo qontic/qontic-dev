@@ -1,4 +1,4 @@
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.1.1';
+import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.1.2';
 
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d);
