@@ -45,6 +45,11 @@ check('Theme and tab events keep existing payloads',()=>{
  c.setAttribute('show-tabs','true');root.querySelector('[data-tab="display"]').click();assert(events.at(-1).detail.tab==='display','tab payload');
  c.setAttribute('theme','dark');root.querySelector('.qontic-theme-toggle').click();assert(events.at(-1).detail.theme==='light','theme payload');
 });
+check('Optional interpretations list cycles only when requested',()=>{
+ const extra=document.createElement('qontic-controls');extra.setAttribute('interpretations','cpn,pw,mw,sc');extra.setAttribute('interpretation','mw');document.body.append(extra);
+ const button=extra.shadowRoot.querySelector('.qontic-interpretation');let last;extra.addEventListener('qontic:interpretation',e=>last=e.detail.interpretation);
+ button.click();assert(last==='sc' && button.textContent==='Spontaneous Collapse','sc entry');button.click();assert(last==='cpn','wraps to orthodox');extra.remove();
+});
 document.getElementById('report').textContent=JSON.stringify(results,null,2);
 
 </script>

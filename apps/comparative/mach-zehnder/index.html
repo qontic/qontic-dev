@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atom Mach–Zehnder Interferometer</title>
+<link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/starter.css?v=3.0">
+<link rel="stylesheet" href="css/template-v2.css?v=3.0">
+<link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
+<link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
+<link rel="stylesheet" href="css/mach-zehnder.css?v=0.1">
+</head>
+<body>
+<main class="shell mz-app">
+<header><div><p class="eyebrow">Q-Ontic comparative simulation</p><h1>Atom Mach–Zehnder Interferometer</h1></div><span class="truth">Prediction mode</span></header>
+<nav class="tabs" aria-label="App views"><button class="active" data-view="demo">Simulation</button><button data-view="math">Physics</button><button data-view="log">Prediction log</button></nav>
+
+<section class="lab qontic-workspace" data-panel="demo">
+<aside class="controls qontic-sidebar qontic-panel qontic-control-panel">
+<h2>Controls</h2>
+<section class="always-controls" aria-label="Simulation and interpretation controls">
+<qontic-controls interpretation="cpn" interpretations="cpn,pw,mw,sc" running="false" auto-run="false" show-reset="true" speed="1" speed-min="0.25" speed-max="3" speed-step="0.05" active-tab="core"></qontic-controls>
+</section>
+<div class="control-tab-body qontic-control-body">
+<div class="control-pane" data-control-pane="core">
+  <div class="qontic-control-section">
+    <p class="qontic-control-section-title">Second beam splitter</p>
+    <div class="qontic-app-toggle-group" data-setup="bs2">
+      <button class="qontic-app-toggle active" type="button" aria-pressed="true" data-value="in">In place</button>
+      <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="out">Removed</button>
+    </div>
+  </div>
+  <div class="qontic-control-section">
+    <p class="qontic-control-section-title">In the upper arm</p>
+    <div class="qontic-app-toggle-group mz-three" data-setup="object">
+      <button class="qontic-app-toggle active" type="button" aria-pressed="true" data-value="none">Nothing</button>
+      <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="marker">Which-way marker</button>
+      <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="bomb">Bomb</button>
+    </div>
+  </div>
+
+  <form class="mz-predict" id="mz-predict" autocomplete="off">
+    <p class="qontic-control-section-title">Your prediction</p>
+    <fieldset class="mz-options" id="mz-options"><legend class="mz-sr">What will the detectors show?</legend></fieldset>
+    <div class="mz-confidence" role="radiogroup" aria-label="Confidence">
+      <span>Confidence</span>
+      <div id="mz-confidence"></div>
+    </div>
+    <label class="mz-reason" for="mz-reason-input"><span>Why? One sentence</span>
+      <textarea id="mz-reason-input" rows="2" placeholder="e.g. the bomb blocks one path, so…"></textarea></label>
+    <button class="qontic-app-toggle qontic-app-toggle--wide mz-lock" type="submit" id="mz-lock">Lock prediction</button>
+  </form>
+
+  <div class="mz-run">
+    <button class="qontic-app-toggle" type="button" id="mz-one">Send one atom</button>
+    <button class="qontic-app-toggle" type="button" id="mz-many">Send 200 atoms</button>
+  </div>
+  <p class="core-hint" id="mz-hint">Lock a prediction to run this setup.</p>
+
+  <section class="mz-feedback" id="mz-feedback" hidden aria-live="polite">
+    <p class="mz-verdict" id="mz-verdict"></p>
+    <p class="mz-common" id="mz-common"></p>
+    <p class="mz-explain"><strong id="mz-explain-label"></strong> <span id="mz-explain"></span></p>
+  </section>
+</div>
+
+<div class="control-pane hidden" data-control-pane="advanced">
+  <div class="qontic-control-section">
+    <p class="qontic-control-section-title">Marker size</p>
+    <div class="qontic-app-toggle-group" data-setup="markerSize">
+      <button class="qontic-app-toggle active" type="button" aria-pressed="true" data-value="micro">Microscopic</button>
+      <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="macro">Macroscopic</button>
+    </div>
+    <p class="core-hint">Matters only for spontaneous collapse: a macroscopic marker collapses the state at the marker. The statistics do not change.</p>
+  </div>
+  <div class="toggle-row"><span>Ask for a prediction before each setup</span><button class="toggle" data-mz-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction"></button></div>
+  <div class="toggle-row"><span>Starting position (pilot wave)</span><button class="toggle" data-mz-toggle="fixedStart" aria-pressed="false" aria-label="Use a fixed starting position"></button></div>
+  <label class="control-row" id="mz-start-row" hidden><span>Position in packet</span><input id="mz-start" type="range" min="0.01" max="0.99" step="0.01" value="0.30"><output>0.30</output></label>
+</div>
+
+<div class="control-pane hidden" data-control-pane="display">
+  <div class="qontic-display-layers">
+    <div class="qontic-display-layer"><span class="qontic-display-layer-label">Wave</span><button class="toggle" data-mz-toggle="wave" aria-pressed="true" aria-label="Show wave"></button></div>
+    <div class="qontic-display-layer"><span class="qontic-display-layer-label">Configuration-space panel</span><button class="toggle" data-mz-toggle="config" aria-pressed="true" aria-label="Show configuration-space panel"></button></div>
+    <div class="qontic-display-layer"><span class="qontic-display-layer-label">Labels</span><button class="toggle" data-mz-toggle="labels" aria-pressed="true" aria-label="Show labels"></button></div>
+  </div>
+</div>
+</div>
+</aside>
+
+<div class="visualization qontic-stage qontic-panel">
+<canvas class="demo-canvas mz-canvas" aria-label="Mach–Zehnder interferometer simulation"></canvas>
+<p class="canvas-caption" id="mz-caption">Choose a setup, make a prediction, then send atoms.</p>
+<aside class="results-panel" data-results-panel><div class="results-head"><strong>Detector counts</strong><button data-results-collapse aria-label="Collapse results">−</button></div>
+<div class="results-body mz-counts">
+<span>D1</span><output data-result="d1">0</output>
+<span>D2</span><output data-result="d2">0</output>
+<span>Bomb</span><output data-result="bomb">0</output>
+<span>Atoms</span><output data-result="total">0</output>
+</div></aside>
+</div>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="math">
+<h2>What the app shows</h2>
+<p>Atoms enter a Mach–Zehnder interferometer. The first beam splitter divides each atom's wave between an upper and a lower arm; mirrors bring the arms together at a second beam splitter, which is tuned so that every atom leaves toward D1 and D2 stays dark. You can remove the second beam splitter, place a which-way marker in the upper arm, or place a bomb there that is destroyed if it absorbs an atom.</p>
+<h2>Statistics</h2>
+<table class="mz-table">
+<thead><tr><th scope="col">Setup</th><th scope="col">D1</th><th scope="col">D2</th><th scope="col">Bomb</th></tr></thead>
+<tbody>
+<tr><td>Beam splitter in, nothing in the arm</td><td>1</td><td>0</td><td>–</td></tr>
+<tr><td>Beam splitter removed, nothing in the arm</td><td>1/2</td><td>1/2</td><td>–</td></tr>
+<tr><td>Which-way marker, beam splitter in or out</td><td>1/2</td><td>1/2</td><td>–</td></tr>
+<tr><td>Bomb, beam splitter in</td><td>1/4</td><td>1/4</td><td>1/2</td></tr>
+<tr><td>Bomb, beam splitter removed</td><td>1/2</td><td>0</td><td>1/2</td></tr>
+</tbody></table>
+<h2>Four accounts</h2>
+<p><strong>Orthodox.</strong> The wave function collapses when a measurement occurs; here, when a detector or the bomb registers the atom. Decoherence explains why the marker removes interference without anyone reading it.</p>
+<p><strong>Pilot wave.</strong> The atom always has a position and is guided by the wave, which never collapses. With the second beam splitter removed, the trajectories through the crossing are computed from the guiding equation for two freely moving Gaussian packets (ħ = m = 1); they cannot cross the symmetry line. The beam splitter itself is modelled as instantaneous: which output the atom takes depends on where it sits in its packet.</p>
+<p><strong>Many worlds.</strong> The wave function never collapses. A record, while it persists, splits it into branches that no longer interfere.</p>
+<p><strong>Spontaneous collapse.</strong> A modified theory (GRW and related models): collapse is a physical process, extremely rare for one atom and effectively immediate once many particles are displaced, as in a detector or a bomb. It predicts small deviations from standard quantum mechanics; experiments have narrowed its parameters and excluded some versions.</p>
+<h2>Experiments and limits</h2>
+<p>The bomb tester was proposed by Elitzur and Vaidman (1993) and realized with photons by Kwiat et al. (1995). Wheeler's delayed-choice experiment has been done with photons (Jacques et al. 2007) and single atoms (Manning et al. 2015). Student difficulties with the beam-splitter and which-way questions are documented for photon interferometers (Marshman &amp; Singh 2016). The app uses atoms because pilot wave has no accepted theory of photon trajectories.</p>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="log">
+<h2>Prediction log</h2>
+<p>Each locked prediction is stored in this browser with the setup, the interpretation shown, your confidence and reason, and the result. Nothing is sent anywhere.</p>
+<div class="mz-log-actions">
+<button class="qontic-app-toggle" type="button" id="mz-log-copy">Copy as JSON</button>
+<button class="qontic-app-toggle" type="button" id="mz-log-download">Download JSON</button>
+<button class="qontic-app-toggle" type="button" id="mz-log-clear">Clear log</button>
+<span class="core-hint" id="mz-log-status" aria-live="polite"></span>
+</div>
+<div class="mz-log-wrap"><table class="mz-table" id="mz-log-table"><thead><tr><th scope="col">Time</th><th scope="col">Setup</th><th scope="col">Prediction</th><th scope="col">Conf.</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+</section>
+</main>
+<script type="module" src="js/app.js?v=0.1"></script>
+</body>
+</html>
