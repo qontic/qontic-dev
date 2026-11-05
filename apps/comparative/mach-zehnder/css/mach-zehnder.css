@@ -67,7 +67,3 @@
 .mz-terms dd { margin: 0 0 6px; color: var(--qontic-muted, #829aa8); line-height: 1.45; }
 .qontic-light .mz-terms { color: #142b3a; }
 
-/* Step banner (prediction mode): step 1 locks the setup, step 2 invites predictions. */
-.mz-app .mz-step { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--accent, #58d5e8); border-radius: 8px; background: color-mix(in srgb, var(--accent, #58d5e8) 10%, transparent); font-size: 13px; line-height: 1.45; }
-.mz-app .mz-step strong { display: block; margin-bottom: 2px; }
-.mz-app .qontic-app-toggle:disabled, .mz-app input[type=range]:disabled { opacity: .4; cursor: not-allowed; }

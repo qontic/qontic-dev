@@ -1,5 +1,12 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.12 — 2026-11-05
+No first step: every setup is open from the start.
+- The plain interferometer (beam splitter in, nothing in the arms) is a prediction item at every preset phase, 0° included. At 0° it is the documented beam-splitter item: many students predict D1 and D2 equally.
+- The step banners and the locked controls of 0.11 are removed.
+- Dark-port labels ("phase 0°: D2 dark", bright and dark port) appear only after "nothing in the arms" has been run at the current phase, so they never give away that item. A bomb item run first therefore shows no dark port yet.
+- With prediction mode off, labels show at once and the hint says atoms can be sent freely.
+
 ## 0.11 — 2026-11-05
 The first step is explicit and the word "calibration" is gone.
 - Prediction mode opens with a "Step 1 of 2" banner: second beam splitter in place, nothing in the arms, phase 0°; send a few atoms, no prediction. The setup and phase controls are locked until the first atom arrives, so no prediction can be made and then refused.

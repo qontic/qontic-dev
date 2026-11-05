@@ -2,9 +2,9 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.11';
+import { APP_RELEASE } from './release.js?v=0.12';
 import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint, PHASE_PRESETS, phaseDeg, isPreset, darkPort } from './physics.js?v=0.9';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY, commonAtPhase, explainAtPhase } from './content.js?v=0.11';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY, commonAtPhase, explainAtPhase } from './content.js?v=0.12';
 import { waveBranches, computeField, paintField } from './waves.js?v=0.3';
 
 // Study arm (IUSE design). ?arm=orthodox gives the comparison arm: the same app,
@@ -52,8 +52,6 @@ const writeLog = entries => { memoryLog = entries; try { localStorage.setItem(LO
 const state = {
   setup: { bs2: true, object: 'none', markerSize: 'micro', delta: 0 },
   compare: false,
-  calibrated: false, // step 1 (first look at phase 0°) done
-  movedOn: false,    // a setup was changed after step 1
   view: 'orthodox', running: false, autoRerun: false, speed: 1,
   display: { wave: true, config: true, labels: true, predict: true, fixedStart: false },
   fixedU: .3,
@@ -86,7 +84,6 @@ document.querySelectorAll('[data-setup]').forEach(group => group.addEventListene
   const name = group.dataset.setup, value = button.dataset.value;
   if (name === 'compare') { state.compare = value === 'all'; document.querySelector('[data-results-panel]').hidden = state.compare; return; }
   state.setup[name] = name === 'bs2' ? value === 'in' : value;
-  if (state.calibrated) state.movedOn = true;
   if (name !== 'markerSize') { state.atom = null; state.running = false; ui.setRunning(false); }
   syncPanel();
 }));
@@ -102,7 +99,6 @@ const phaseInput = document.getElementById('mz-phase');
 const phaseGroup = document.querySelector('[data-phase]');
 function setPhase(d) {
   state.setup.delta = d * Math.PI / 180;
-  if (state.calibrated) state.movedOn = true;
   phaseInput.value = String(d); phaseInput.nextElementSibling.value = `${d}°`;
   phaseGroup.querySelectorAll('button').forEach(b => { const on = +b.dataset.deg === Math.abs(d) && isPreset(state.setup); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
   state.atom = null; state.running = false; ui.setRunning(false); syncPanel();
@@ -156,36 +152,12 @@ document.getElementById('mz-predict').addEventListener('submit', event => {
   syncPanel();
 });
 
-// Step 1 (prediction mode only): before any prediction, the student sends atoms
-// through the plain interferometer at phase 0° and sees that they all reach D1.
-// The setup and phase controls stay locked until the first atom arrives.
-const isCalibration = () => state.setup.bs2 && state.setup.object === 'none' && deg() === 0;
-const inStep1 = () => state.display.predict && !state.calibrated;
-const needsCalibration = () => inStep1() && !isCalibration();
-const stepBox = document.getElementById('mz-step');
-const lockables = () => document.querySelectorAll('[data-setup="bs2"] button, [data-setup="object"] button, [data-phase] button, #mz-phase');
-function pressOnly(selector, test) { document.querySelectorAll(selector).forEach(b => { const on = test(b); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); }); }
-function syncStep() {
-  const step1 = inStep1();
-  if (step1 && !isCalibration()) {
-    // Return to the step-1 setup (e.g. after prediction mode was switched back on).
-    Object.assign(state.setup, { bs2: true, object: 'none', delta: 0 });
-    pressOnly('[data-setup="bs2"] button', b => b.dataset.value === 'in');
-    pressOnly('[data-setup="object"] button', b => b.dataset.value === 'none');
-    pressOnly('[data-phase] button', b => b.dataset.deg === '0');
-    phaseInput.value = '0'; phaseInput.nextElementSibling.value = '0°';
-    state.atom = null;
-  }
-  lockables().forEach(n => { n.disabled = step1; });
-  const show = state.display.predict && (step1 || !state.movedOn);
-  stepBox.hidden = !show;
-  if (!show) return;
-  stepBox.innerHTML = step1
-    ? '<strong>Step 1 of 2: see how the interferometer behaves.</strong> Second beam splitter in place, nothing in the arms, phase 0°. Send a few atoms; no prediction needed. The other settings unlock when the first atom arrives.'
-    : '<strong>Step 2: predict.</strong> With nothing in the arms at phase 0°, every atom reached D1: D2 stays dark. Now choose a setup or a phase, make a prediction, then send atoms.';
-}
-const showTuning = () => state.calibrated || !state.display.predict;
-const canRun = () => !needsCalibration() && (!state.display.predict || explore() || isCalibration() || Boolean(state.predictions[key()]));
+// Every preset setup is a prediction item, including the plain interferometer.
+// The dark-port labels describe the result of "nothing in the arms" at the current
+// phase, so in prediction mode they appear only after that setup has been run.
+const baselineRun = () => (state.tallies[`in-none-p${deg()}`]?.total || 0) > 0;
+const showTuning = () => !state.display.predict || baselineRun();
+const canRun = () => !state.display.predict || explore() || Boolean(state.predictions[key()]);
 const hint = document.getElementById('mz-hint');
 const flashHint = () => { hint.classList.remove('mz-flash'); void hint.offsetWidth; hint.classList.add('mz-flash'); };
 
@@ -194,19 +166,17 @@ document.getElementById('mz-many').addEventListener('click', () => {
   if (!canRun()) return flashHint();
   const t = tally();
   for (let i = 0; i < 200; i++) { const r = outcome(state.setup, Math.random()).result; t[r]++; t.total++; }
-  if (isCalibration()) state.calibrated = true;
   launch(); state.paused = false; state.running = true; ui.setRunning(true);
   syncPanel();
 });
 
 let lastKey = null;
 function syncPanel() {
-  syncStep();
   buildOptions();
   const p = state.predictions[key()];
   if (key() !== lastKey) { lastKey = key(); if (!p) { draft = { option: null, confidence: null }; reasonInput.value = ''; } }
   const locked = canRun();
-  document.getElementById('mz-predict').hidden = !state.display.predict || explore() || isCalibration();
+  document.getElementById('mz-predict').hidden = !state.display.predict || explore();
   if (p) draft = { option: p.option, confidence: p.confidence };
   optionsBox.querySelectorAll('input').forEach(input => { input.checked = input.value === draft.option; input.disabled = Boolean(p); input.closest('.mz-option').classList.toggle('is-selected', input.checked); });
   confBox.querySelectorAll('.mz-conf').forEach(b => { const on = +b.dataset.value === draft.confidence; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); b.disabled = Boolean(p); });
@@ -218,7 +188,7 @@ function syncPanel() {
   document.getElementById('mz-one').disabled = !locked;
   document.getElementById('mz-many').disabled = !locked;
   const t = tally();
-  hint.textContent = isCalibration() && state.display.predict ? (state.calibrated ? 'Every atom reaches D1. Choose another setup or phase and predict.' : 'Send a few atoms. No prediction needed for this one.')
+  hint.textContent = !state.display.predict ? 'Prediction mode is off (Advanced tab): send atoms freely.'
     : explore() ? `${deg()}° is for free exploration: no prediction. The prediction items use 0°, 60°, 90°, 120° and 180°.` : !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
     : t.total < 100 ? `Send at least 100 atoms to compare with your prediction (${t.total} so far).` : ONE_ACCOUNT ? 'Change the setup to explore further.' : 'Change the setup or the interpretation to explore further.';
   ['d1', 'd2', 'bomb', 'total'].forEach(name => ui.setResult(name, String(t[name])));
@@ -242,7 +212,7 @@ function syncPanel() {
 
 function evaluate() {
   const p = state.predictions[key()], t = tally(), verdict = document.getElementById('mz-verdict');
-  if (!p || explore() || isCalibration() || t.total < 100) { verdict.textContent = ''; verdict.className = 'mz-verdict'; return; }
+  if (!p || explore() || t.total < 100) { verdict.textContent = ''; verdict.className = 'mz-verdict'; return; }
   const correct = correctOption(state.setup);
   const ok = p.option === correct;
   // Lower-case the first word only when it is an ordinary word (not D1, D2).
@@ -308,7 +278,6 @@ function finishAtom() {
   const a = state.atom;
   if (a.counted) return;
   a.counted = true;
-  if (isCalibration()) state.calibrated = true;
   const t = tally(); t[a.o.result]++; t.total++;
   syncPanel();
 }
@@ -558,10 +527,10 @@ function mwText(s) {
 }
 function captionText(s, result) {
   if (!state.atom) {
-    if (!showTuning()) return 'Step 1: send a few atoms through the plain interferometer and see where they go.';
+    if (!showTuning()) return 'Choose a setup and a phase, make a prediction, then send atoms.';
     if (!state.setup.bs2) return 'With the second beam splitter removed, the upper beam heads to D2 and the lower beam to D1. Make a prediction, then send atoms.';
     const dark = darkPort(state.setup);
-    return `${dark ? `At phase ${deg()}°, ${dark} stays dark with nothing in the arms.` : `At phase ${deg()}° there is no dark port.`} Choose a setup, make a prediction, then send atoms.`;
+    return `${dark ? `At phase ${deg()}°, ${dark} stays dark with nothing in the arms.` : `At phase ${deg()}° there is no dark port.`} ${state.display.predict ? 'Choose a setup, make a prediction, then send atoms.' : 'Send atoms.'}`;
   }
   if (result === 'bomb' && s >= G.sObj) return 'The bomb absorbed the atom and exploded.';
   if (V === 'many-worlds') { const t = mwText(s); if (t) return t; }
