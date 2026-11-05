@@ -2,7 +2,7 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.0';
+import { APP_RELEASE } from './release.js?v=0.2.1';
 import { makeModel, shipState, rearFrameView, strainAt, rearTimeFor, findBreak, criticalBeta, runEnd, gammaOf } from './kinematics.js?v=0.2.0';
 
 mountQonticShell({
@@ -70,9 +70,12 @@ function updateHints() {
   $('#breakOut').value = `${Math.round(state.breakStrain * 100)}%`;
   const bc = criticalBeta(state.breakStrain);
   $('#critHint').textContent = state.mode === 'bell'
-    ? `With identical programs the thread snaps if the final speed is above ${fmt(bc)} c.`
-    : 'With the rigid program the thread is never stretched.';
+    ? `With the same engines the thread snaps if the final speed is above ${fmt(bc)} c.`
+    : 'With the gentler front engine the thread is never stretched.';
   $('#accelOut').value = fmt(state.accel);
+  $('#modeHint').textContent = state.mode === 'bell'
+    ? 'Same program, same start: in A\u2019s frame the gap stays L while the moving thread gets shorter.'
+    : 'C accelerates a little more gently, so in A\u2019s frame the gap shrinks along with the thread, as a strong thread pulling the ships together would make it.';
   $('#frontAccelHint').textContent = state.mode === 'rigid'
     ? `Front ship: a/(1 + aL/c²) = ${fmt(model.ships[1].a, 3)} c²/L.`
     : 'Front ship: same proper acceleration as the rear ship.';
@@ -358,6 +361,13 @@ function drawLaunchPanel(r, s, P) {
   drawShip(X(B.x), y, lenB, hPx, P.B, true, t > 0 && t < model.ships[0].t1, P);
   drawShip(X(C.x), y, lenC, hPx, P.C, false, t > 0 && t < model.ships[1].t1, P);
   shipLabels(X(B.x) - lenB / 2, X(C.x) + lenC / 2, y, hPx, B, C, B.tau, C.tau, P, true);
+  if (t > 0) {
+    const gap = C.x - B.x, nat = 1 / gammaOf(0.5 * (B.v + C.v));
+    const note = state.mode === 'bell'
+      ? `gap held at ${fmt(gap)} L · thread's natural length ${fmt(nat)} L`
+      : `gap shrinking with the thread: gap ${fmt(gap)} L · natural length ${fmt(nat)} L`;
+    label(note, X(0.5 * (B.x + C.x)), y + hPx + 44, { color: state.mode === 'bell' ? P.text : P.B, size: 12.5, align: 'center' });
+  }
   ctx.restore();
   return { sep: C.x - B.x, v: B.v };
 }
@@ -641,7 +651,7 @@ function updateLiveLine(t, v, gap, natural, strain, broken) {
 const FEEDBACK = {
   bell: {
     'h-gap': 'The gap does stay L in A\u2019s frame. That is the whole point: a moving thread is in equilibrium only at L/γ, so holding it at L stretches it.',
-    'h-together': 'The thread shrinks, but the gap does not. Identical engines started together keep the ships L apart in A\u2019s frame. A gap that shrinks with the thread is what the Rigid program arranges.',
+    'h-together': 'The thread shrinks, but the gap does not. Identical engines started together keep the ships L apart in A\u2019s frame. A gap that shrinks with the thread needs a gentler front engine; try it.',
     's-thread': 'That is the reason, in A\u2019s frame.',
     's-pull': 'In A\u2019s frame the front ship never pulls away: the gap stays L. In the ships\u2019 own frame it does, because there C started first. Same fact, told in another frame.',
   },
@@ -669,7 +679,7 @@ function finish() {
   }
   $('#verdict').innerHTML = lead + outcome;
   const next = [];
-  if (state.mode === 'bell') next.push(['rigid', 'Try the Rigid program']);
+  if (state.mode === 'bell') next.push(['rigid', 'Try a gentler front engine']);
   else next.push(['bell', 'Back to identical engines']);
   if (state.layout === 'lab') next.push(['frames', 'See it from the ships\u2019 frame']);
   next.push(['again', 'Run again']);

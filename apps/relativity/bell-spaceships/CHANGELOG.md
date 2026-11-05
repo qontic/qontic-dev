@@ -1,5 +1,10 @@
 # Bell's Spaceships — changelog
 
+## 0.2.1 (2026-11-05)
+- Engines renamed "Same engines (Bell)" / "Front engine gentler" (was Identical / Rigid), with a one-line hint for each.
+- Launch frame shows "gap held at … L" or "gap shrinking with the thread" during the run.
+- Physics tab: why a gentler front engine keeps the thread intact, and its link to Bell's strong-thread proviso.
+
 ## 0.2.0 (2026-11-05)
 After a review by ten simulated students (project doc 2026-11-05-bell-spaceships-student-review).
 - Launch frame alone is the default view; ships' frame and spacetime are reveals (View: Launch frame / + Ships' frame / Spacetime / All).

@@ -27,12 +27,13 @@
     <div class="control-tab-body qontic-control-body">
       <div class="control-pane" data-control-pane="core">
         <div class="qontic-control-section">
-          <div class="qontic-control-section-title">Acceleration program</div>
-          <div class="qontic-app-toggle-group mode-group" role="group" aria-label="Acceleration program">
-            <button class="qontic-app-toggle active" type="button" data-mode="bell" aria-pressed="true" title="Both ships run the same acceleration program, started at the same launch-frame time. This is Bell's question.">Identical (Bell)</button>
-            <button class="qontic-app-toggle" type="button" data-mode="rigid" aria-pressed="false" title="The front ship accelerates more gently, so the proper distance between the ships never changes (Born-rigid motion).">Rigid</button>
+          <div class="qontic-control-section-title">Engines</div>
+          <div class="qontic-app-toggle-group mode-group" role="group" aria-label="Engines">
+            <button class="qontic-app-toggle active" type="button" data-mode="bell" aria-pressed="true" title="Both ships run the same acceleration program, started at the same moment in A's frame. This is Bell's question.">Same engines (Bell)</button>
+            <button class="qontic-app-toggle" type="button" data-mode="rigid" aria-pressed="false" title="The front ship accelerates a little more gently, so in A's frame the gap shrinks along with the thread (Born-rigid motion).">Front engine gentler</button>
           </div>
         </div>
+        <p class="core-hint" id="modeHint"></p>
         <label class="control-row" title="Speed at which both ships stop accelerating and coast, as a fraction of c.">
           <span>Final speed</span><input id="beta" type="range" min="0.05" max="0.99" step="0.01" value="0.90" aria-label="Final speed as a fraction of c"><output id="betaOut">0.90 c</output>
         </label>
@@ -55,7 +56,7 @@
       </div>
 
       <div class="control-pane hidden" data-control-pane="advanced">
-        <label class="control-row" title="Proper acceleration of the rear ship, in units of c²/L. In the rigid program the front ship's is a/(1 + aL/c²).">
+        <label class="control-row" title="Proper acceleration of the rear ship, in units of c²/L. With a gentler front engine the front ship's is a/(1 + aL/c²).">
           <span>Rear acceleration</span><input id="accel" type="range" min="0.05" max="1" step="0.05" value="0.2" aria-label="Proper acceleration of the rear ship in units of c squared over L"><output id="accelOut">0.20</output>
         </label>
         <p class="core-hint">Proper acceleration in units of c²/L, where L is the initial distance between the ships. Bell's argument assumes gentle acceleration (aL ≪ c²), so that the thread is always close to equilibrium. The final state does not depend on it.</p>
@@ -138,7 +139,9 @@
   <p>The spacetime diagram plots the worldlines in A's frame, time upward, light at 45°. The horizontal dashed line joins events that happen at the same time for A; the gap along it stays L. The tilted line joins events at the same time for B; the gap along it grows. The shaded band is the thread's history, and the red star marks the break.</p>
 
   <h2>A thread that does not break</h2>
-  <p>Choose <em>Rigid</em>. Now the front ship's proper acceleration is a/(1 + aL/c²), lower than the rear ship's a. In A's frame the gap shrinks along with the thread, to L/γ, and the thread is never stretched. In the ships' frame the distance stays L. This is Born-rigid motion; Nikolić discusses an accelerated rod in these terms (Ref. 4 under Rationale).</p>
+  <p>Contraction by itself breaks nothing: the ships contract too, and nobody expects them to break. The thread breaks only because the gap between its ends is held at L while its natural length shrinks.</p>
+  <p>Choose <em>Front engine gentler</em>. Now the front ship's proper acceleration is a/(1 + aL/c²), a little lower than the rear ship's a. In A's frame the front ship gains speed slightly more slowly, so the rear ship closes in: the gap shrinks along with the thread, to L/γ, and the thread is never stretched. In the ships' frame the distance stays L. Both ships end at the same speed, just closer together.</p>
+  <p>This is the motion a strong thread would force on two light ships by pulling them together, Bell's proviso; here the engines are tuned to produce it, so the thread has nothing to do. It is called Born-rigid motion; Nikolić discusses an accelerated rod in these terms (Ref. 4 under Rationale).</p>
 
   <h2>What the model assumes</h2>
   <ul>
@@ -171,6 +174,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.2.0"></script>
+<script type="module" src="js/app.js?v=0.2.1"></script>
 </body>
 </html>
