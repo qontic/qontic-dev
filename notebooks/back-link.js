@@ -6,7 +6,6 @@
     { slug: "free-packet-2d", title: "Free Packet 2D" },
     { slug: "klein-tunneling", title: "Klein Tunneling" },
     { slug: "particle-box-3d", title: "Particle Box 3D" },
-    { slug: "potential-well-revision-4-6", title: "Potential Well Revision" },
     { slug: "quantum-equilibrium-relaxation", title: "Quantum Equilibrium Relaxation" },
     { slug: "stern-gerlach-close-up", title: "Stern-Gerlach Close-Up" },
     { slug: "tunneling", title: "Tunneling" }
