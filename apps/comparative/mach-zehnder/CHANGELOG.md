@@ -1,5 +1,12 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.11 — 2026-11-05
+The first step is explicit and the word "calibration" is gone.
+- Prediction mode opens with a "Step 1 of 2" banner: second beam splitter in place, nothing in the arms, phase 0°; send a few atoms, no prediction. The setup and phase controls are locked until the first atom arrives, so no prediction can be made and then refused.
+- Then a "Step 2" banner states what step 1 showed (every atom reached D1, D2 stays dark) and invites predictions; it disappears at the first change of setup or phase.
+- Switching prediction mode back on before step 1 is done returns to the step-1 setup.
+- Fix: the prediction form ignored `hidden` (a `display: grid` rule overrode it), so it showed during the first step and at exploration phases. Hidden elements are now hidden.
+
 ## 0.10 — 2026-11-05
 Orthodox account with decoherence, and a comparison-arm configuration for the IUSE study design.
 - Orthodox explanations and compare answers give the decoherence account: the marker or bomb becomes entangled with the path, parts tied to different states cannot interfere, and collapse (the postulate) still picks the outcome.

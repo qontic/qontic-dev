@@ -2,7 +2,7 @@
 // All accounts give the same detector statistics; they differ in what they say happens.
 
 export const COMMON = {
-  'in-none': 'Calibration: with the second beam splitter in place and nothing in the arms, every atom reaches D1 and D2 never fires. This is how the interferometer is tuned.',
+  'in-none': 'All accounts agree: with the second beam splitter in place, nothing in the arms and phase 0°, every atom reaches D1 and D2 never fires.',
   'out-none': 'All accounts agree: D1 and D2 each fire half the time.',
   'in-marker': 'All accounts agree: D1 and D2 each fire half the time. The marker removes the interference even though nobody reads it.',
   'out-marker': 'All accounts agree: D1 and D2 each fire half the time, exactly as without the marker.',

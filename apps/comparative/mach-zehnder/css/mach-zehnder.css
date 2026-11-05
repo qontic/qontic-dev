@@ -58,7 +58,7 @@
 .mz-option.is-selected span { color: #7cecff; }
 .mz-option.is-selected { outline: 1px solid var(--qontic-accent, #55d8e6); outline-offset: 2px; border-radius: 4px; }
 .qontic-light .mz-option.is-selected span { color: #075c69; }
-.mz-app [data-bomb-row][hidden] { display: none; }
+.mz-app [hidden] { display: none !important; }
 .mz-tuning { margin: 2px 0 0; }
 .mz-terms { margin-top: 10px; font-size: 12.5px; color: var(--qontic-text, #d9edf7); }
 .mz-terms summary { cursor: pointer; color: var(--qontic-muted, #829aa8); }
@@ -66,3 +66,8 @@
 .mz-terms dt { font-weight: 600; }
 .mz-terms dd { margin: 0 0 6px; color: var(--qontic-muted, #829aa8); line-height: 1.45; }
 .qontic-light .mz-terms { color: #142b3a; }
+
+/* Step banner (prediction mode): step 1 locks the setup, step 2 invites predictions. */
+.mz-app .mz-step { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--accent, #58d5e8); border-radius: 8px; background: color-mix(in srgb, var(--accent, #58d5e8) 10%, transparent); font-size: 13px; line-height: 1.45; }
+.mz-app .mz-step strong { display: block; margin-bottom: 2px; }
+.mz-app .qontic-app-toggle:disabled, .mz-app input[type=range]:disabled { opacity: .4; cursor: not-allowed; }
