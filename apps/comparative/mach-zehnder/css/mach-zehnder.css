@@ -58,3 +58,9 @@
 .qontic-light .mz-option.is-selected span { color: #075c69; }
 .mz-app [data-bomb-row][hidden] { display: none; }
 .mz-tuning { margin: 2px 0 0; }
+.mz-terms { margin-top: 10px; font-size: 12.5px; color: var(--qontic-text, #d9edf7); }
+.mz-terms summary { cursor: pointer; color: var(--qontic-muted, #829aa8); }
+.mz-terms dl { margin: 8px 0 0; display: grid; gap: 4px; }
+.mz-terms dt { font-weight: 600; }
+.mz-terms dd { margin: 0 0 6px; color: var(--qontic-muted, #829aa8); line-height: 1.45; }
+.qontic-light .mz-terms { color: #142b3a; }

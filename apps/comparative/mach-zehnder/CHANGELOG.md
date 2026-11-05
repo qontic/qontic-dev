@@ -1,5 +1,15 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.8 — 2026-11-05
+Fixes from a ten-persona design walkthrough.
+- Calibration run first (beam splitter in, nothing in the arms): no prediction, and the tuning labels appear only after it.
+- Setup 4 (beam splitter removed, marker) has its own question: "Does the marker change which detector clicks?"
+- Spontaneous-collapse answers update as collapse happens; collapse times are consistent (3.6 or 3.2 million years; about 100 ns).
+- Orthodox and spontaneous collapse are visibly different: an in-flight tag ("no measurement yet" or the collapse clock) and different collapse labels.
+- Pilot wave: on-diagram notes on turning back versus going straight; arm-to-detector labels when the beam splitter is removed; caption on the crossing fringes; symmetry caveat on the Physics tab.
+- Many worlds: detector labels inside the copies, a faster split, "no record, no split" wording.
+- Colour legend, glossary of terms, clearer bomb options and question, neutral reasoning placeholder.
+
 ## 0.7 — 2026-11-05
 - Many worlds uses the same text and the same tile labels (weight · record · detector) in the single view and the side-by-side view.
 

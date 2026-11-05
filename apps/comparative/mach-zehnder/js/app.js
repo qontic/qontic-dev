@@ -3,8 +3,8 @@ import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
 import { APP_RELEASE } from './release.js?v=0.3';
-import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.3';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS } from './content.js?v=0.3';
+import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.8';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY } from './content.js?v=0.8';
 import { waveBranches, computeField, paintField } from './waves.js?v=0.3';
 
 mountQonticShell({
@@ -35,6 +35,7 @@ const writeLog = entries => { memoryLog = entries; try { localStorage.setItem(LO
 const state = {
   setup: { bs2: true, object: 'none', markerSize: 'micro', delta: 0 },
   compare: false,
+  calibrated: false,
   view: 'orthodox', running: false, autoRerun: false, speed: 1,
   display: { wave: true, config: true, labels: true, predict: true, fixedStart: false },
   fixedU: .3,
@@ -98,11 +99,13 @@ function buildOptions() {
     const label = OPTIONS.find(([o]) => o === id)[1];
     const row = document.createElement('label');
     row.className = 'mz-option';
-    row.innerHTML = `<input type="radio" name="mz-option" id="mz-opt-${id}" value="${id}"><span>${id === 'd1' && state.setup.object === 'bomb' ? 'The bomb never absorbs an atom; only D1 clicks' : label}</span>`;
+    row.innerHTML = `<input type="radio" name="mz-option" id="mz-opt-${id}" value="${id}"><span>${id === 'd1' && state.setup.object === 'bomb' ? 'No atom is ever absorbed; all reach D1' : label}</span>`;
     optionsBox.append(row);
   });
 }
 buildOptions();
+const glossary = document.getElementById('mz-glossary');
+GLOSSARY.forEach(([term, def]) => { const dt = document.createElement('dt'); dt.textContent = term; const dd = document.createElement('dd'); dd.textContent = def; glossary.append(dt, dd); });
 const confBox = document.getElementById('mz-confidence');
 const confNames = ['Guessing', 'Unsure', 'Somewhat sure', 'Sure', 'Certain'];
 for (let i = 1; i <= 5; i++) {
@@ -125,7 +128,10 @@ document.getElementById('mz-predict').addEventListener('submit', event => {
   syncPanel();
 });
 
-const canRun = () => !state.display.predict || detuned() || Boolean(state.predictions[key()]);
+const isCalibration = () => state.setup.bs2 && state.setup.object === 'none' && !detuned();
+const needsCalibration = () => state.display.predict && !state.calibrated && !isCalibration();
+const showTuning = () => state.calibrated || !state.display.predict;
+const canRun = () => !needsCalibration() && (!state.display.predict || detuned() || isCalibration() || Boolean(state.predictions[key()]));
 const hint = document.getElementById('mz-hint');
 const flashHint = () => { hint.classList.remove('mz-flash'); void hint.offsetWidth; hint.classList.add('mz-flash'); };
 
@@ -143,8 +149,8 @@ function syncPanel() {
   buildOptions();
   const p = state.predictions[key()];
   if (key() !== lastKey) { lastKey = key(); if (!p) { draft = { option: null, confidence: null }; reasonInput.value = ''; } }
-  const locked = Boolean(p) || !state.display.predict || detuned();
-  document.getElementById('mz-predict').hidden = !state.display.predict || detuned();
+  const locked = canRun();
+  document.getElementById('mz-predict').hidden = !state.display.predict || detuned() || isCalibration();
   if (p) draft = { option: p.option, confidence: p.confidence };
   optionsBox.querySelectorAll('input').forEach(input => { input.checked = input.value === draft.option; input.disabled = Boolean(p); input.closest('.mz-option').classList.toggle('is-selected', input.checked); });
   confBox.querySelectorAll('.mz-conf').forEach(b => { const on = +b.dataset.value === draft.confidence; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); b.disabled = Boolean(p); });
@@ -156,13 +162,16 @@ function syncPanel() {
   document.getElementById('mz-one').disabled = !locked;
   document.getElementById('mz-many').disabled = !locked;
   const t = tally();
-  hint.textContent = detuned() ? 'Prediction mode assumes a tuned interferometer (phase 0). With this phase, explore freely.' : !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
+  hint.textContent = isCalibration() ? (state.calibrated ? 'Calibration done: every atom reaches D1. Now choose another setup and predict.' : 'Calibration run: send a few atoms to see how the interferometer is tuned. No prediction needed.')
+    : needsCalibration() ? 'Run the calibration first: second beam splitter in place, nothing in the arm.'
+    : detuned() ? 'Prediction mode assumes a tuned interferometer (phase 0). With this phase, explore freely.' : !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
     : t.total < 100 ? `Send at least 100 atoms to compare with your prediction (${t.total} so far).` : 'Change the setup or the interpretation to explore further.';
   ['d1', 'd2', 'bomb', 'total'].forEach(name => ui.setResult(name, String(t[name])));
   document.querySelectorAll('[data-bomb-row]').forEach(n => { n.hidden = state.setup.object !== 'bomb'; });
   const deg = Math.round(state.setup.delta * 180 / Math.PI);
   document.getElementById('mz-tuning').textContent = !state.setup.bs2
-    ? 'Removed: nothing recombines; each beam goes straight on to a detector.'
+    ? 'Removed: nothing recombines. The upper beam heads to D2 and the lower beam to D1.'
+    : !showTuning() ? 'In place. Start with the calibration run: nothing in the arms, send a few atoms and see where they go.'
     : deg === 0 ? 'In place, tuned so that with nothing in the arms every atom reaches D1 and D2 stays dark (phase 0°; Advanced tab).'
     : `In place, detuned by ${deg}° (Advanced tab): with nothing in the arms D2 now fires ${Math.round(100 * Math.sin(state.setup.delta / 2) ** 2)}% of the time.`;
   evaluate();
@@ -180,7 +189,7 @@ function syncPanel() {
 
 function evaluate() {
   const p = state.predictions[key()], t = tally(), verdict = document.getElementById('mz-verdict');
-  if (!p || detuned() || t.total < 100) { verdict.textContent = ''; verdict.className = 'mz-verdict'; return; }
+  if (!p || detuned() || isCalibration() || t.total < 100) { verdict.textContent = ''; verdict.className = 'mz-verdict'; return; }
   const correct = correctOption(state.setup);
   const ok = p.option === correct;
   const label = id => OPTIONS.find(([o]) => o === id)[1].toLowerCase();
@@ -245,6 +254,7 @@ function finishAtom() {
   const a = state.atom;
   if (a.counted) return;
   a.counted = true;
+  if (isCalibration()) state.calibrated = true;
   const t = tally(); t[a.o.result]++; t.total++;
   syncPanel();
 }
@@ -300,26 +310,29 @@ function drawApparatus(c, s, result) {
     ctx.fillStyle = hit ? c.flash : 'transparent'; ctx.strokeStyle = hit ? c.flash : c.optic; ctx.lineWidth = 2 * view.k;
     ctx.beginPath(); ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     if (state.display.labels) label(name, { x: d.x + 34, y: d.y }, c.text, 'left', 16);
-    if (state.display.labels && state.setup.bs2 && Math.abs(state.setup.delta) < 1e-3)
-      label(name === 'D1' ? 'bright port' : 'dark port', { x: d.x + 34, y: d.y + 22 }, c.muted, 'left', 12);
+    const minor = state.display.labels && view.k > .45;
+    if (minor && state.setup.bs2 && showTuning() && Math.abs(state.setup.delta) < 1e-3)
+      label(name === 'D1' ? 'bright port' : 'dark port', { x: d.x, y: d.y + 32 }, c.muted, 'center', 12);
+    if (minor && !state.setup.bs2)
+      label(name === 'D1' ? 'from lower arm' : 'from upper arm', { x: d.x, y: d.y + 32 }, c.muted, 'center', 12);
   });
-  if (state.display.labels && state.setup.bs2) {
+  if (state.display.labels && view.k > .45 && state.setup.bs2 && showTuning()) {
     const deg = Math.round(state.setup.delta * 180 / Math.PI);
-    label(deg === 0 ? 'tuned: D2 dark' : `detuned by ${deg}°`, { x: G.BS2.x, y: G.BS2.y - 48 }, deg === 0 ? c.wave : c.flash, 'center', 12);
+    label(deg === 0 ? 'tuned: D2 dark' : `detuned by ${deg}°`, { x: G.BS2.x, y: G.BS2.y + 64 }, deg === 0 ? c.wave : c.flash, 'center', 12);
   }
   if (state.setup.object === 'marker') {
     const p = T(G.OBJ);
     ctx.strokeStyle = c.a; ctx.lineWidth = 2 * view.k;
     ctx.strokeRect(p.x - 14 * view.k, p.y - 14 * view.k, 28 * view.k, 28 * view.k);
-    if (state.display.labels) label('Marker', { x: G.OBJ.x - 22, y: G.OBJ.y - 4 }, c.a, 'right');
+    if (state.display.labels && view.k > .45) label('Marker', { x: G.OBJ.x - 22, y: G.OBJ.y - 4 }, c.a, 'right');
   }
   if (state.setup.object === 'bomb') {
     const exploded = WORLD ? WORLD.exploded : state.atom && result === 'bomb' && s >= G.sObj;
     const p = T(G.OBJ);
     ctx.fillStyle = exploded ? c.flash : c.bomb; ctx.beginPath(); ctx.arc(p.x, p.y, (exploded ? 22 : 13) * view.k, 0, Math.PI * 2); ctx.fill();
-    if (state.display.labels) label(exploded ? 'Bomb exploded' : 'Bomb', { x: G.OBJ.x - 24, y: G.OBJ.y - 4 }, c.bomb, 'right');
+    if (state.display.labels && view.k > .45) label(exploded ? 'Bomb exploded' : 'Bomb', { x: G.OBJ.x - 24, y: G.OBJ.y - 4 }, c.bomb, 'right');
   }
-  if (state.display.labels) {
+  if (state.display.labels && view.k > .45) {
     label('Source', { x: G.S.x - 9, y: G.S.y + 36 }, c.muted, 'center', 12);
     label('BS1', { x: G.BS1.x, y: G.BS1.y + 46 }, c.muted, 'center', 12);
     label(state.setup.bs2 ? 'BS2' : 'BS2 removed', { x: G.BS2.x, y: G.BS2.y + 46 }, c.muted, 'center', 12);
@@ -354,8 +367,19 @@ function fieldsFor(s, result) {
   return fieldCache;
 }
 
+function flightTag(c, s, result) {
+  if (!state.atom || view.k < .3) return;
+  if (V === 'orthodox') {
+    const measured = (state.setup.object === 'bomb' && s >= G.sObj) || s >= G.total - 1;
+    label(measured ? 'a measurement occurred: collapse' : 'no measurement yet: no collapse', { x: 500, y: 18 }, measured ? c.flash : c.muted, 'center', 12);
+  } else if (V === 'spontaneous-collapse') {
+    const st = scState(s, result);
+    label(`collapse clock: ${formatTime(1 / (LAMBDA * st.n))}${st.collapsed ? ' \u2192 collapsed' : ''}`, { x: 500, y: 18 }, st.collapsed ? c.flash : c.muted, 'center', 12);
+  }
+}
 function drawWave(c, s, result) {
   if (!state.display.wave || !state.atom) return;
+  flightTag(c, s, result);
   const atDetectors = s >= G.total - 1;
   const collapseViews = V === 'orthodox' || V === 'spontaneous-collapse';
   if (atDetectors && collapseViews && result !== 'bomb') {
@@ -381,6 +405,24 @@ function drawWave(c, s, result) {
   const img = paintField(fields, branchColor, V === 'pilot-wave' ? .55 : 1);
   ctx.imageSmoothingEnabled = true;
   ctx.drawImage(img, view.ox, view.oy, 1000 * view.k, 600 * view.k);
+  if (fields.length > 1 && view.k > .3 && !state.compare) {
+    const items = state.setup.object === 'marker'
+      ? [[branchColor('a'), 'part with the atom in the upper arm (marker flipped)'], [branchColor('b'), 'part with the atom in the lower arm (marker ready)']]
+      : [[branchColor('b'), 'part with the bomb intact']];
+    items.forEach(([col, text], i) => { blob({ x: 590, y: 548 + i * 22 }, 9, col, .95); label(text, { x: 606, y: 548 + i * 22 }, c.muted, 'left', 12); });
+  }
+  waveNotes(c, s);
+}
+
+// Short on-diagram notes where the picture needs a word of explanation.
+function waveNotes(c, s) {
+  if (!state.display.labels || view.k < .45 || state.setup.bs2 || !state.atom) return;
+  const near = s > G.sBS2 - 140 && s < G.sBS2 + 160;
+  if (!near) return;
+  if (state.setup.object === 'none' && V !== 'many-worlds')
+    label('fringes where the two beams overlap; still 50/50 at the detectors', { x: G.BS2.x, y: G.BS2.y + 86 }, c.muted, 'center', 12);
+  if (V === 'pilot-wave')
+    label(state.setup.object === 'none' ? 'trajectories cannot cross here: the atom turns back' : 'other part marked or gone: the atom goes straight on', { x: G.BS2.x, y: G.BS2.y - 64 }, c.flash, 'center', 12);
 }
 
 function drawParticle(c, s) {
@@ -457,7 +499,7 @@ function mwText(s) {
   return null;
 }
 function captionText(s, result) {
-  if (!state.atom) return state.setup.bs2 ? 'The interferometer is tuned so that D2 stays dark. Choose a setup, make a prediction, then send atoms.' : 'With the second beam splitter removed, the beams cross and go straight on. Make a prediction, then send atoms.';
+  if (!state.atom) return !showTuning() ? 'Start with the calibration run: second beam splitter in place, nothing in the arms. Send a few atoms and see where they go.' : state.setup.bs2 ? 'The interferometer is tuned so that D2 stays dark. Choose a setup, make a prediction, then send atoms.' : 'With the second beam splitter removed, the upper beam heads to D2 and the lower beam to D1. Make a prediction, then send atoms.';
   if (result === 'bomb' && s >= G.sObj) return 'The bomb absorbed the atom and exploded.';
   if (V === 'many-worlds') { const t = mwText(s); if (t) return t; }
   if (s >= G.total - 1) return result === 'd1' ? 'D1 clicked.' : 'D2 clicked.' + (state.setup.object === 'bomb' && state.setup.bs2 ? ' The bomb is live, and it absorbed nothing.' : '');
@@ -480,7 +522,7 @@ function answerFor(name, s, result) {
   if (!atom) return a.q;
   if (name === 'many-worlds') { const t = mwText(s); if (t) return t; }
   let text = a[name];
-  if (typeof text === 'function') text = text({ arm: atom.o.arm === 'U' ? 'upper' : 'lower', result, done: s >= G.total - 1 || (result === 'bomb' && s >= G.sObj) });
+  if (typeof text === 'function') text = text({ arm: atom.o.arm === 'U' ? 'upper' : 'lower', result, done: s >= G.total - 1 || (result === 'bomb' && s >= G.sObj), pastObject: s >= G.sObj });
   return text;
 }
 
@@ -491,7 +533,7 @@ function collapseMark(c, point, since) {
   ctx.strokeStyle = c.flash; ctx.globalAlpha = 1 - t; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(q.x, q.y, (14 + 60 * t) * view.k, 0, Math.PI * 2); ctx.stroke();
   ctx.globalAlpha = 1;
-  if (view.k > .3) label(V === 'orthodox' ? 'measurement → collapse' : 'collapse', { x: point.x, y: point.y - 34 - 20 * t }, c.flash, 'center', 13);
+  if (view.k > .3) label(V === 'orthodox' ? 'measurement \u2192 collapse (postulate)' : 'collapse (physical process)', { x: point.x + 30, y: point.y + 30 + 10 * t }, c.flash, 'left', 12);
 }
 
 // ---------- spontaneous collapse: how much is in superposition ----------
@@ -574,7 +616,7 @@ function mwInfo(s) {
     const first = obj === 'marker' ? (o.arm === 'U' ? 'a' : 'b') : obj === 'bomb' ? (o.result === 'bomb' ? 'x' : 'b') : 'w';
     actual = s >= G.total - 1 ? (first === 'x' ? 'x' : first + o.result) : first;
   }
-  return { list, prev, progress: prev ? ease(Math.max(0, Math.min(1, (elapsed - tEvent) / 900))) : 1, zoom: s >= G.total - 1 && list.length > 1 ? ease(Math.max(0, Math.min(1, (elapsed - tDet - 2300) / 900))) : 0, actual };
+  return { list, prev, progress: prev ? ease(Math.max(0, Math.min(1, (elapsed - tEvent) / 600))) : 1, zoom: s >= G.total - 1 && list.length > 1 ? ease(Math.max(0, Math.min(1, (elapsed - tDet - 2300) / 900))) : 0, actual };
 }
 function drawMW(c, s, result, R, compact = false) {
   const info = mwInfo(s);
@@ -593,7 +635,7 @@ function drawMW(c, s, result, R, compact = false) {
     ctx.save(); ctx.globalAlpha = alpha;
     ctx.beginPath(); ctx.rect(rect.x - 2, rect.y - 2, rect.w + 4, rect.h + 4); ctx.clip();
     if (info.list.length > 1) { ctx.strokeStyle = wd.id === info.actual && info.zoom > 0 ? c.wave : c.beam; ctx.lineWidth = 1; ctx.strokeRect(rect.x, rect.y, rect.w, rect.h); }
-    state.display.labels = savedLabels && view.k > .5;
+    state.display.labels = savedLabels;
     WORLD = { outcome: wd.outcome || null, exploded: Boolean(wd.exploded) };
     drawApparatus(c, s, result);
     if (state.display.wave && f && !wd.exploded) {
@@ -671,11 +713,6 @@ function frame(now) {
       if (name === 'many-worlds') drawMW(c, s, result, { x: x0 + 6, y: y0 + 22, w: qw - 12, h: qh - 58 }, true);
       else { drawApparatus(c, s, result); drawWave(c, s, result); drawParticle(c, s); }
       ctx.restore();
-      if (name === 'spontaneous-collapse' && state.atom) {
-        const st = scState(s, result);
-        ctx.fillStyle = st.collapsed ? c.flash : c.muted; ctx.font = '11px Inter, Arial, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-        ctx.fillText(`collapse expected in ${formatTime(1 / (LAMBDA * st.n))}${st.collapsed ? ' → collapsed' : ''}`, x0 + qw - 10, y0 + 7);
-      }
       ctx.fillStyle = name === state.view ? c.wave : c.text;
       ctx.font = '600 13px Inter, Arial, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillText(VIEW_LABEL[name], x0 + 10, y0 + 6);

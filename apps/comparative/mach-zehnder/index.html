@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/template-v2.css?v=3.0">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/mach-zehnder.css?v=0.5">
+<link rel="stylesheet" href="css/mach-zehnder.css?v=0.8">
 </head>
 <body>
 <main class="shell mz-app">
@@ -57,7 +57,7 @@
       <div id="mz-confidence"></div>
     </div>
     <label class="mz-reason" for="mz-reason-input"><span>Why? One sentence</span>
-      <textarea id="mz-reason-input" rows="2" placeholder="e.g. the two parts of the wave…"></textarea></label>
+      <textarea id="mz-reason-input" rows="2" placeholder="Your reasoning in one sentence"></textarea></label>
     <button class="qontic-app-toggle qontic-app-toggle--wide mz-lock" type="submit" id="mz-lock">Lock prediction</button>
   </form>
 
@@ -67,6 +67,7 @@
   </div>
   <p class="core-hint" id="mz-hint">Lock a prediction to run this setup.</p>
 
+  <details class="mz-terms"><summary>Terms used in the explanations</summary><dl id="mz-glossary"></dl></details>
   <section class="mz-feedback" id="mz-feedback" hidden aria-live="polite">
     <p class="mz-verdict" id="mz-verdict"></p>
     <p class="mz-common" id="mz-common"></p>
@@ -130,9 +131,9 @@
 </tbody></table>
 <h2>Four accounts</h2>
 <p><strong>Orthodox.</strong> The wave function collapses when a measurement occurs; here, when a detector or the bomb registers the atom. Decoherence explains why the marker removes interference without anyone reading it.</p>
-<p><strong>Pilot wave.</strong> The atom always has a position and is guided by the wave, which never collapses. With the second beam splitter removed, the trajectories through the crossing are computed from the guiding equation for two freely moving Gaussian packets (ħ = m = 1); they cannot cross the symmetry line. The beam splitter itself is modelled as instantaneous: which output the atom takes depends on where it sits in its packet.</p>
+<p><strong>Pilot wave.</strong> The atom always has a position and is guided by the wave, which never collapses. With the second beam splitter removed, the trajectories through the crossing are computed from the guiding equation for two freely moving Gaussian packets (ħ = m = 1); they cannot cross the symmetry line. This relies on the two packets being identical and arriving symmetrically; with unequal packets the turning point moves. The beam splitter itself is modelled as instantaneous: which output the atom takes depends on where it sits in its packet.</p>
 <p><strong>Many worlds.</strong> The wave function never collapses. A record, while it persists, splits it into branches that no longer interfere. The app shows each split as copies of the whole apparatus, labelled with their Born weights, and then follows the copy that matches the detector you see. With the interferometer tuned and nothing in the arms, only one outcome has weight and the world does not split.</p>
-<p><strong>Spontaneous collapse.</strong> A modified theory (GRW and related models): collapse is a physical process, extremely rare for one atom and effectively immediate once many particles are displaced, as in a detector or a bomb. The collapse clock uses the original GRW rate, 10<sup>−16</sup> s<sup>−1</sup> per nucleon: one rubidium-87 atom alone would wait about 4 million years, while a detector or bomb with about 10<sup>23</sup> nucleons displaced collapses within about 100 ns. A microscopic marker adds only a few nucleons, so collapse still waits for the detector. It predicts small deviations from standard quantum mechanics; experiments have narrowed its parameters and excluded some versions.</p>
+<p><strong>Spontaneous collapse.</strong> A modified theory (GRW and related models): collapse is a physical process, extremely rare for one atom and effectively immediate once many particles are displaced, as in a detector or a bomb. The collapse clock uses the original GRW rate, 10<sup>−16</sup> s<sup>−1</sup> per nucleon: one rubidium-87 atom alone would wait about 3.6 million years (3.2 million with a microscopic marker of about a dozen extra nucleons), while a detector or bomb with about 10<sup>23</sup> nucleons displaced collapses within about 100 ns. A microscopic marker adds only a few nucleons, so collapse still waits for the detector. It predicts small deviations from standard quantum mechanics; experiments have narrowed its parameters and excluded some versions.</p>
 <h2>Experiments and limits</h2>
 <p>The bomb tester was proposed by Elitzur and Vaidman (1993) and realized with photons by Kwiat et al. (1995). Wheeler's delayed-choice experiment has been done with photons (Jacques et al. 2007) and single atoms (Manning et al. 2015). Student difficulties with the beam-splitter and which-way questions are documented for photon interferometers (Marshman &amp; Singh 2016). The app uses atoms because pilot wave has no accepted theory of photon trajectories.</p>
 </section>
@@ -149,6 +150,6 @@
 <div class="mz-log-wrap"><table class="mz-table" id="mz-log-table"><thead><tr><th scope="col">Time</th><th scope="col">Setup</th><th scope="col">Prediction</th><th scope="col">Conf.</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.7"></script>
+<script type="module" src="js/app.js?v=0.8"></script>
 </body>
 </html>

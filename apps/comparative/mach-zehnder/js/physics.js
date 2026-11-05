@@ -31,7 +31,7 @@ export const OPTIONS = [
   ['d2', 'Only D2 clicks'],
   ['both', 'D1 and D2 about equally'],
   ['abs-d1', 'Some atoms absorbed by the bomb; the rest only at D1'],
-  ['abs-both', 'Some atoms absorbed by the bomb; the rest split between D1 and D2'],
+  ['abs-both', 'Some atoms absorbed by the bomb; the rest reach D1 and D2 about equally'],
   ['abs-d2', 'Some atoms absorbed by the bomb; the rest only at D2'],
 ];
 

@@ -2,7 +2,7 @@
 // Gaussian packet with a carrier wave; parts in the same branch are added as
 // complex amplitudes (so they interfere), different branches add as densities
 // (so they do not). Beam splitters act on the half-plane beyond their plate.
-import { G } from './physics.js?v=0.3';
+import { G } from './physics.js?v=0.8';
 
 export const SIGMA = 20;   // packet width, virtual px (0.5 units at 40 px/unit)
 export const KWAVE = 0.75; // carrier wavenumber, rad per virtual px (30 units^-1)
