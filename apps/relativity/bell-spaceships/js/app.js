@@ -9,7 +9,7 @@ mountQonticShell({
   title: "Bell's Spaceships",
   eyebrow: 'Q-Ontic · Relativity',
   navigation: 'breadcrumbs',
-  purpose: 'Two ships joined by a thread accelerate identically. Does the thread break? The same events in the launch frame, the ships’ frame and spacetime.',
+  purpose: 'Two ships joined by a thread accelerate identically. Does the thread break? Answered first in one frame, as Bell suggested, then in the ships’ frame and spacetime.',
   badge: 'Relativity',
   version: `Bell's spaceships · Version ${APP_RELEASE.version} · ${APP_RELEASE.date}`,
   homeHref: '../../../index.html',
