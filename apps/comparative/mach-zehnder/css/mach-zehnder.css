@@ -3,8 +3,6 @@
 .mz-app .qontic-control-section-title { margin: 0; color: var(--qontic-muted, #829aa8); font-size: 12px; letter-spacing: .04em; }
 .mz-app .qontic-app-toggle-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .mz-app .qontic-app-toggle-group.mz-three { grid-template-columns: 1fr 1.5fr 1fr; }
-.mz-app .qontic-app-toggle-group.mz-five { grid-template-columns: repeat(5, 1fr); }
-.mz-app .qontic-app-toggle-group.mz-five .qontic-app-toggle { padding-left: 2px; padding-right: 2px; }
 .mz-app .qontic-app-toggle { font-size: 12.5px; padding: 6px 6px; }
 .mz-app .qontic-app-toggle:disabled { opacity: .45; cursor: not-allowed; }
 .mz-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -66,4 +64,3 @@
 .mz-terms dt { font-weight: 600; }
 .mz-terms dd { margin: 0 0 6px; color: var(--qontic-muted, #829aa8); line-height: 1.45; }
 .qontic-light .mz-terms { color: #142b3a; }
-

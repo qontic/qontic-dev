@@ -1,18 +1,10 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
-## 0.12 — 2026-11-05
-No first step: every setup is open from the start.
-- The plain interferometer (beam splitter in, nothing in the arms) is a prediction item at every preset phase, 0° included. At 0° it is the documented beam-splitter item: many students predict D1 and D2 equally.
-- The step banners and the locked controls of 0.11 are removed.
-- Dark-port labels ("phase 0°: D2 dark", bright and dark port) appear only after "nothing in the arms" has been run at the current phase, so they never give away that item. A bomb item run first therefore shows no dark port yet.
-- With prediction mode off, labels show at once and the hint says atoms can be sent freely.
-
-## 0.11 — 2026-11-05
-The first step is explicit and the word "calibration" is gone.
-- Prediction mode opens with a "Step 1 of 2" banner: second beam splitter in place, nothing in the arms, phase 0°; send a few atoms, no prediction. The setup and phase controls are locked until the first atom arrives, so no prediction can be made and then refused.
-- Then a "Step 2" banner states what step 1 showed (every atom reached D1, D2 stays dark) and invites predictions; it disappears at the first change of setup or phase.
-- Switching prediction mode back on before step 1 is done returns to the step-1 setup.
-- Fix: the prediction form ignored `hidden` (a `display: grid` rule overrode it), so it showed during the first step and at exploration phases. Hidden elements are now hidden.
+## 0.13 — 2026-11-05
+Back to a fixed phase: the interferometer is always tuned so that, with nothing in the arms, every atom reaches D1 and D2 stays dark. 0.9, 0.11 and 0.12 (phase as a control) are withdrawn; 0.10 (decoherence, `?arm=orthodox`) is kept.
+- The phase controls are gone, including the Advanced slider.
+- Behaviour as in 0.8: a first run with nothing in the arms shows the tuning before the other setups.
+- Kept fixes: hidden elements stay hidden (the prediction form no longer shows during the first run); verdicts no longer lower-case D1 and D2.
 
 ## 0.10 — 2026-11-05
 Orthodox account with decoherence, and a comparison-arm configuration for the IUSE study design.
@@ -22,15 +14,8 @@ Orthodox account with decoherence, and a comparison-arm configuration for the IU
 - Glossary: Decoherence added; configuration space described for all accounts.
 - `?arm=orthodox` shows only the orthodox account: no interpretation switch, no side-by-side view, other accounts hidden on the Physics tab and in the glossary. The prediction log records the arm.
 
-## 0.9 — 2026-11-05
-The phase between the arms is now a main control, not an Advanced setting.
-- Presets 0°, 60°, 90°, 120°, 180° (P(D2) = 0, 1/4, 1/2, 3/4, 1), each a prediction item; calibration stays at 0°. Any other value (Advanced slider) is free exploration with no prediction.
-- Prediction options for the detector split now include 3/4 : 1/4 and 1/4 : 3/4, always all five, so the list does not hint at the answer.
-- Marker and bomb items at any preset phase: the counts do not depend on the phase, and the text says so ("the marker flattens the fringe").
-- Bomb tester away from 0°: the dark port moves (D1 at 180°) or disappears. The text gives the likelihood ratio of each click; a click favours a live bomb only for |φ| < 60°.
-- Pilot wave, beam splitter removed: trajectories computed with the relative phase. Upper-arm atoms still end at D1 for every phase (checked numerically); at intermediate phases atoms near the axis cross it by under a pixel. Notes now say trajectories cannot cross each other.
-- Labels: "phase φ: D2 dark / D1 dark / no dark port", bright and dark port follow the phase. Physics tab and glossary updated. The log records the phase.
-- Fix: verdicts no longer lower-case D1 and D2.
+## 0.9, 0.11, 0.12 — 2026-11-05 (withdrawn in 0.13)
+Phase between the arms as a main control, with presets as prediction items; then a locked first step; then no first step. Withdrawn: the logic became confusing.
 
 ## 0.8 — 2026-11-05
 Fixes from a ten-persona design walkthrough.
