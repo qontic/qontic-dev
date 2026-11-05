@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/spaceships.css?v=0.1.0">
+<link rel="stylesheet" href="css/spaceships.css?v=0.1.1">
 </head>
 <body class="spaceship-app">
 <main class="shell">
@@ -49,6 +49,7 @@
             <button class="qontic-app-toggle" type="button" data-layout="spacetime" aria-pressed="false">Spacetime</button>
           </div>
         </div>
+        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
         <div class="toggle-row"><span>Ask for a prediction</span><button class="toggle" type="button" data-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction before each run"></button></div>
       </div>
 
@@ -86,13 +87,23 @@
   <div class="visualization qontic-stage qontic-panel">
     <div class="canvas-host">
       <canvas id="stage" aria-label="Bell's spaceship simulation"></canvas>
-      <div class="prediction hidden" id="prediction" role="dialog" aria-labelledby="predictionTitle">
-        <p class="prediction-title" id="predictionTitle">Before you press Start</p>
-        <p id="predictionText">Both ships fire identical engines at the same moment. The thread can stretch by 20% before it snaps. Does it snap?</p>
-        <div class="prediction-buttons">
-          <button type="button" class="qontic-app-toggle" data-predict="breaks">It snaps</button>
-          <button type="button" class="qontic-app-toggle" data-predict="holds">It holds</button>
-          <button type="button" class="qontic-app-toggle" data-predict="skip">Skip</button>
+      <div class="prediction hidden" id="prediction" role="dialog" aria-labelledby="setupTitle">
+        <div id="setupStep">
+          <p class="prediction-title" id="setupTitle">The setup</p>
+          <ol class="setup-list" id="setupList"></ol>
+          <div class="prediction-buttons">
+            <button type="button" class="qontic-app-toggle" id="setupNext">Next: the question</button>
+          </div>
+        </div>
+        <div id="questionStep" class="hidden">
+          <p class="prediction-title">The question</p>
+          <p id="predictionText"></p>
+          <div class="prediction-buttons">
+            <button type="button" class="qontic-app-toggle" data-predict="breaks">It snaps</button>
+            <button type="button" class="qontic-app-toggle" data-predict="holds">It holds</button>
+            <button type="button" class="qontic-app-toggle" data-predict="skip">Skip</button>
+          </div>
+          <p class="setup-back"><button type="button" class="link-button" id="setupBack">Back to the setup</button></p>
         </div>
       </div>
       <div class="verdict hidden" id="verdict" role="status"></div>
@@ -102,9 +113,10 @@
 </section>
 
 <section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="physics">
+  <h2>The setup</h2>
+  <p>Three spaceships A, B and C float at rest. B and C are a distance L apart, and A sits halfway between them. A fragile thread is tied from B to C. A sends a light signal; when it arrives, B and C fire identical engines and run identical acceleration programs. Seen from A, the two ships therefore have the same speed at every moment and stay a distance L apart. </p>
   <h2>The question</h2>
-  <p>Three spaceships A, B and C float at rest. B and C are a distance L apart, and A sits halfway between them. A fragile thread is tied from B to C. A sends a light signal; when it arrives, B and C fire identical engines and run identical acceleration programs. Seen from A, the two ships therefore have the same speed at every moment and stay a distance L apart. Does the thread break?</p>
-  <p>The answer is yes, once the speed is high enough. The app shows why in three ways.</p>
+  <p>Does the thread break? The answer is yes, once the speed is high enough. The app shows why in three ways.</p>
 
   <h2>In the launch frame</h2>
   <p>This is A's frame, the one the ships start from. The ships keep a fixed distance L. The thread moves with them, and a moving thread is shorter than the same thread at rest by the factor 1/γ, where γ = 1/√(1 − v²/c²). The thread would like to be L/γ long but is held at L, so it is stretched by a fraction γ − 1. A thread that snaps at elongation ε breaks once γ &gt; 1 + ε, that is, above</p>
@@ -150,6 +162,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.1.0"></script>
+<script type="module" src="js/app.js?v=0.1.1"></script>
 </body>
 </html>

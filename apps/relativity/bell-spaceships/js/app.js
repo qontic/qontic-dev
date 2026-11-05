@@ -2,7 +2,7 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.1.0';
+import { APP_RELEASE } from './release.js?v=0.1.1';
 import { makeModel, shipState, rearFrameView, findBreak, criticalBeta, runEnd, gammaOf } from './kinematics.js?v=0.1.0';
 
 mountQonticShell({
@@ -75,9 +75,19 @@ function updateHints() {
   $('#frontAccelHint').textContent = state.mode === 'rigid'
     ? `Front ship: a/(1 + aL/c²) = ${fmt(model.ships[1].a, 3)} c²/L.`
     : 'Front ship: same proper acceleration as the rear ship.';
-  $('#predictionText').textContent = state.mode === 'bell'
-    ? `Both ships fire identical engines at the same moment and stop at ${fmt(state.beta)} c. The thread can stretch by ${Math.round(state.breakStrain * 100)}% before it snaps. Does it snap?`
-    : `The front ship’s engine is set gentler than the rear’s. Both stop at ${fmt(state.beta)} c. The thread can stretch by ${Math.round(state.breakStrain * 100)}% before it snaps. Does it snap?`;
+  const v = `${fmt(state.beta)} c`, pct = `${Math.round(state.breakStrain * 100)}%`;
+  const engines = state.mode === 'bell'
+    ? `B and C have <b>identical engines running the same program</b>: the same push, cut off when each reaches ${v}. So, as A sees it, the two ships always have the same speed, and <b>the distance between them stays L</b>.`
+    : `This time <b>C's engine is set gentler than B's</b> (proper acceleration a/(1 + aL/c²) instead of a). Both cut off when they reach ${v}.`;
+  $('#setupList').innerHTML = [
+    'Two spaceships, <b>B</b> (rear) and <b>C</b> (front), float at rest a distance <b>L</b> apart. A third, <b>A</b>, sits halfway between them and stays at rest throughout.',
+    'A fragile <b>thread</b> is tied from B to C. Its rest length is exactly L, so at the start it is just taut.',
+    'A sends a <b>light flash</b>. It reaches B and C at the same moment in A\u2019s frame, and both fire their engines then.',
+    engines,
+    `The thread can stretch by up to <b>${pct}</b> before it snaps.`,
+  ].map((x) => `<li>${x}</li>`).join('');
+  $('#predictionText').textContent = `When the ships are cruising at ${v}, is the thread still intact, or has it snapped?`;
+  $('#setupNext').textContent = state.show.predict ? 'Next: the question' : 'Got it';
 }
 
 function setPressed(group, attr, value) {
@@ -110,7 +120,7 @@ document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('cl
   const key = b.dataset.toggle;
   state.show[key] = !state.show[key];
   b.setAttribute('aria-pressed', String(state.show[key]));
-  if (key === 'predict') updatePredictionPanel();
+  if (key === 'predict') updateHints();
 }));
 
 controlsEl.addEventListener('qontic:start', () => start());
@@ -131,10 +141,25 @@ function start() {
   controlsEl.setAttribute('running', 'true');
 }
 
+function showStep(step) {
+  $('#setupStep').classList.toggle('hidden', step !== 'setup');
+  $('#questionStep').classList.toggle('hidden', step !== 'question');
+}
 function updatePredictionPanel() {
-  const show = state.show.predict && !state.predictionAsked && !state.running && state.t <= T0;
+  const show = !state.predictionAsked && !state.running && state.t <= T0;
+  if (show) showStep('setup');
   $('#prediction').classList.toggle('hidden', !show);
 }
+$('#setupNext').addEventListener('click', () => {
+  if (state.show.predict) showStep('question');
+  else { state.predictionAsked = true; $('#prediction').classList.add('hidden'); }
+});
+$('#setupBack').addEventListener('click', () => showStep('setup'));
+$('#showSetup').addEventListener('click', () => {
+  if (state.running) { state.running = false; controlsEl.setAttribute('running', 'false'); }
+  showStep('setup');
+  $('#prediction').classList.remove('hidden');
+});
 document.querySelectorAll('[data-predict]').forEach((b) => b.addEventListener('click', () => {
   const p = b.dataset.predict;
   state.prediction = p === 'skip' ? null : p;
@@ -149,6 +174,7 @@ document.querySelector('.tabs').addEventListener('click', (event) => {
   if (!button) return;
   document.querySelectorAll('.tabs [data-view]').forEach((b) => b.classList.toggle('active', b === button));
   document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== button.dataset.view));
+  if (button.dataset.view !== 'sim' && state.running) { state.running = false; controlsEl.setAttribute('running', 'false'); }
 });
 
 // Collapsible results panel
@@ -574,6 +600,7 @@ function drawGauge(r, strain, P, broken = false) {
 function render() {
   const P = palette();
   const ratio = devicePixelRatio || 1, W = canvas.clientWidth, H = canvas.clientHeight;
+  if (W < 40 || H < 40) return; // canvas hidden (another section tab is open)
   if (canvas.width !== Math.round(W * ratio) || canvas.height !== Math.round(H * ratio)) { canvas.width = Math.round(W * ratio); canvas.height = Math.round(H * ratio); }
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
@@ -633,7 +660,7 @@ function frame(now) {
       else { state.running = false; controlsEl.setAttribute('running', 'false'); finish(); }
     }
   }
-  render();
+  try { render(); } catch (err) { console.error(err); }
   requestAnimationFrame(frame);
 }
 

@@ -78,3 +78,13 @@ body.spaceship-app.qontic-light { background: #eef3f6; color: #183747; }
   .spaceship-app .verdict { width: calc(100% - 28px); left: 14px; bottom: 14px; }
   .spaceship-app .details-panel { padding: 14px 14px 20px; font-size: 14px; }
 }
+
+.spaceship-app .prediction { width: min(540px, calc(100% - 28px)); max-height: calc(100% - 28px); overflow-y: auto; }
+.spaceship-app .setup-list { margin: 0 0 10px; padding-left: 20px; }
+.spaceship-app .setup-list li { margin: 0 0 6px; }
+.spaceship-app .setup-list b { color: #7cecff; font-weight: 600; }
+.qontic-light.spaceship-app .setup-list b { color: #075c69; }
+.spaceship-app .setup-back { margin: 8px 0 0 !important; text-align: right; }
+.spaceship-app .link-button { border: 0; padding: 0; background: none; color: #70e2ed; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.qontic-light.spaceship-app .link-button { color: #0b6f7d; }
+.spaceship-app #showSetup { width: 100%; }
