@@ -1,10 +1,11 @@
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
-import { mountQonticControls } from './qontic-controls.js?v=0.1';
-import { APP_RELEASE } from './release.js?v=0.1';
-import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.1';
-import { COMMON, EXPLAIN, VIEW_LABEL } from './content.js?v=0.1';
+import { mountQonticControls } from './qontic-controls.js?v=0.3';
+import { APP_RELEASE } from './release.js?v=0.3';
+import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.3';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS } from './content.js?v=0.3';
+import { waveBranches, computeField, paintField } from './waves.js?v=0.3';
 
 mountQonticShell({
   compactHeader: true, navigation: 'breadcrumbs',
@@ -32,14 +33,17 @@ const writeLog = entries => { memoryLog = entries; try { localStorage.setItem(LO
 
 // ---------- state ----------
 const state = {
-  setup: { bs2: true, object: 'none', markerSize: 'micro' },
+  setup: { bs2: true, object: 'none', markerSize: 'micro', delta: 0 },
+  compare: false,
   view: 'orthodox', running: false, autoRerun: false, speed: 1,
   display: { wave: true, config: true, labels: true, predict: true, fixedStart: false },
   fixedU: .3,
   atom: null, // { u, start, path, pathLen, result, clicked }
   tallies: {}, predictions: {},
 };
-const key = () => `${state.setup.bs2 ? 'in' : 'out'}-${state.setup.object}`;
+const baseKey = () => `${state.setup.bs2 ? 'in' : 'out'}-${state.setup.object}`;
+const detuned = () => state.setup.bs2 && state.setup.object === 'none' && Math.abs(state.setup.delta) > 1e-3;
+const key = () => baseKey() + (detuned() ? `-phase${Math.round(state.setup.delta * 180 / Math.PI)}` : '');
 const tally = () => (state.tallies[key()] ||= { d1: 0, d2: 0, bomb: 0, total: 0 });
 
 // ---------- controls ----------
@@ -57,6 +61,7 @@ document.querySelectorAll('[data-setup]').forEach(group => group.addEventListene
   if (!button) return;
   group.querySelectorAll('button').forEach(b => { const on = b === button; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
   const name = group.dataset.setup, value = button.dataset.value;
+  if (name === 'compare') { state.compare = value === 'all'; document.querySelector('[data-results-panel]').hidden = state.compare; return; }
   state.setup[name] = name === 'bs2' ? value === 'in' : value;
   if (name !== 'markerSize') { state.atom = null; state.running = false; ui.setRunning(false); }
   syncPanel();
@@ -69,6 +74,13 @@ document.querySelectorAll('[data-mz-toggle]').forEach(button => button.addEventL
   document.getElementById('mz-start-row').hidden = !state.display.fixedStart;
   syncPanel();
 }));
+const phaseInput = document.getElementById('mz-phase');
+phaseInput.addEventListener('input', () => {
+  const deg = +phaseInput.value;
+  phaseInput.nextElementSibling.value = `${deg}°`;
+  state.setup.delta = deg * Math.PI / 180;
+  state.atom = null; syncPanel();
+});
 const startInput = document.getElementById('mz-start');
 startInput.addEventListener('input', () => { state.fixedU = +startInput.value; startInput.nextElementSibling.value = (+startInput.value).toFixed(2); });
 
@@ -102,7 +114,7 @@ document.getElementById('mz-predict').addEventListener('submit', event => {
   syncPanel();
 });
 
-const canRun = () => !state.display.predict || Boolean(state.predictions[key()]);
+const canRun = () => !state.display.predict || detuned() || Boolean(state.predictions[key()]);
 const hint = document.getElementById('mz-hint');
 const flashHint = () => { hint.classList.remove('mz-flash'); void hint.offsetWidth; hint.classList.add('mz-flash'); };
 
@@ -119,8 +131,8 @@ let lastKey = null;
 function syncPanel() {
   const p = state.predictions[key()];
   if (key() !== lastKey) { lastKey = key(); if (!p) { draft = { option: null, confidence: null }; reasonInput.value = ''; } }
-  const locked = Boolean(p) || !state.display.predict;
-  document.getElementById('mz-predict').hidden = !state.display.predict;
+  const locked = Boolean(p) || !state.display.predict || detuned();
+  document.getElementById('mz-predict').hidden = !state.display.predict || detuned();
   if (p) draft = { option: p.option, confidence: p.confidence };
   optionsBox.querySelectorAll('input').forEach(input => { input.checked = input.value === draft.option; input.disabled = Boolean(p); input.closest('.mz-option').classList.toggle('is-selected', input.checked); });
   confBox.querySelectorAll('.mz-conf').forEach(b => { const on = +b.dataset.value === draft.confidence; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); b.disabled = Boolean(p); });
@@ -132,15 +144,17 @@ function syncPanel() {
   document.getElementById('mz-one').disabled = !locked;
   document.getElementById('mz-many').disabled = !locked;
   const t = tally();
-  hint.textContent = !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
+  hint.textContent = detuned() ? 'Prediction mode assumes a tuned interferometer (phase 0). With this phase, explore freely.' : !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
     : t.total < 100 ? `Send at least 100 atoms to compare with your prediction (${t.total} so far).` : 'Change the setup or the interpretation to explore further.';
   ['d1', 'd2', 'bomb', 'total'].forEach(name => ui.setResult(name, String(t[name])));
   evaluate();
   const fb = document.getElementById('mz-feedback');
   fb.hidden = t.total === 0;
-  document.getElementById('mz-common').textContent = COMMON[key()];
+  document.getElementById('mz-common').textContent = detuned()
+    ? `All accounts agree: with a phase difference of ${Math.round(state.setup.delta * 180 / Math.PI)}°, D1 fires with probability ${(probabilities(state.setup).d1).toFixed(2)} and D2 with ${(probabilities(state.setup).d2).toFixed(2)}.`
+    : COMMON[baseKey()];
   document.getElementById('mz-explain-label').textContent = `${VIEW_LABEL[state.view]}:`;
-  let text = EXPLAIN[state.view][key()];
+  let text = EXPLAIN[state.view][baseKey()];
   if (state.view === 'spontaneous-collapse' && state.setup.object === 'marker' && state.setup.markerSize === 'macro' && state.setup.bs2)
     text = 'A macroscopic marker moves many particles, so the state collapses at the marker: the atom is then in one arm only, a single part reaches the second beam splitter, and D1 and D2 are equally likely.';
   document.getElementById('mz-explain').textContent = text;
@@ -148,7 +162,7 @@ function syncPanel() {
 
 function evaluate() {
   const p = state.predictions[key()], t = tally(), verdict = document.getElementById('mz-verdict');
-  if (!p || t.total < 100) { verdict.textContent = ''; verdict.className = 'mz-verdict'; return; }
+  if (!p || detuned() || t.total < 100) { verdict.textContent = ''; verdict.className = 'mz-verdict'; return; }
   const correct = correctOption(state.setup);
   const ok = p.option === correct;
   const label = id => OPTIONS.find(([o]) => o === id)[1].toLowerCase();
@@ -219,6 +233,7 @@ const colors = () => {
     : { beam: '#23465b', optic: '#7cc9d6', text: '#d9edf7', muted: '#7f98a8', wave: '#58d5e8', a: '#e0ad27', b: '#b49cff', particle: '#ffffff', flash: '#ffd166', panel: '#08151fcc', bomb: '#ff7a5c' };
 };
 let view = { k: 1, ox: 0, oy: 0 };
+let V = 'orthodox';
 const T = p => ({ x: view.ox + p.x * view.k, y: view.oy + p.y * view.k });
 
 function blob(p, r, color, alpha) {
@@ -255,7 +270,7 @@ function drawApparatus(c, s, result) {
   [['D1', G.D1, G.dUp], ['D2', G.D2, G.dDown]].forEach(([name, d]) => {
     const p = T(d), size = 30 * view.k;
     const probs = probabilities(state.setup);
-    const hit = arrived && (state.view === 'many-worlds' && result !== 'bomb' ? probs[name.toLowerCase()] > 0 : result === name.toLowerCase());
+    const hit = arrived && (V === 'many-worlds' && result !== 'bomb' ? probs[name.toLowerCase()] > 0 : result === name.toLowerCase());
     ctx.fillStyle = hit ? c.flash : 'transparent'; ctx.strokeStyle = hit ? c.flash : c.optic; ctx.lineWidth = 2 * view.k;
     ctx.beginPath(); ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     if (state.display.labels) label(name, { x: d.x + 34, y: d.y }, c.text, 'left', 16);
@@ -282,8 +297,8 @@ function drawApparatus(c, s, result) {
 // Which branches are drawn in each account at arc length s.
 function visibleBranches(s, result) {
   let list = branches(state.setup, s);
-  const collapsesAtObject = state.view === 'orthodox' ? state.setup.object === 'bomb'
-    : state.view === 'spontaneous-collapse' ? state.setup.object === 'bomb' || (state.setup.object === 'marker' && state.setup.markerSize === 'macro') : false;
+  const collapsesAtObject = V === 'orthodox' ? state.setup.object === 'bomb'
+    : V === 'spontaneous-collapse' ? state.setup.object === 'bomb' || (state.setup.object === 'marker' && state.setup.markerSize === 'macro') : false;
   if (collapsesAtObject && s >= G.sObj) {
     if (result === 'bomb') return [];
     const arm = state.atom.o.arm;
@@ -292,33 +307,42 @@ function visibleBranches(s, result) {
   return list;
 }
 
+let fieldCache = null;
+function fieldsFor(s, result) {
+  // Densities per branch, cached per frame; collapse views reuse them with a renormalized branch.
+  if (fieldCache && fieldCache.s === s && fieldCache.key === key()) return fieldCache;
+  const list = waveBranches(state.setup, s, state.setup.delta);
+  const all = computeField(list, s);
+  let collapsed = all;
+  if (state.setup.object !== 'none' && s >= G.sObj && result !== 'bomb') {
+    const keep = state.setup.object === 'bomb' ? 'b' : (state.atom.o.arm === 'U' ? 'a' : 'b');
+    collapsed = computeField(list.filter(b => b.key === keep), s, { [keep]: Math.SQRT2 });
+  }
+  fieldCache = { s, key: key(), all, collapsed };
+  return fieldCache;
+}
+
 function drawWave(c, s, result) {
   if (!state.display.wave || !state.atom) return;
-  const list = visibleBranches(s, result);
   const atDetectors = s >= G.total - 1;
-  const collapseAtDetector = state.view === 'orthodox' || state.view === 'spontaneous-collapse';
-  list.forEach((b, i) => {
-    if (b.exploded) return;
-    let color = c.wave;
-    if (state.view === 'many-worlds' && list.length > 1) color = b.key === 'a' ? c.a : c.b;
-    if ((state.view === 'orthodox' || state.view === 'spontaneous-collapse') && list.length > 1) color = b.key === 'a' ? c.a : c.wave;
-    if (state.view === 'pilot-wave' && list.length > 1) color = b.key === 'a' ? c.a : c.b;
-    const strength = state.view === 'pilot-wave' ? .38 : .75;
-    b.comps.forEach(([comp, w]) => {
-      if (atDetectors && collapseAtDetector) {
-        const target = result === 'd1' ? 'p1' : 'p2';
-        if (comp !== target) return;
-        blob(componentPoint(comp, s), 24, color, .95);
-        return;
-      }
-      if (w * b.weight < 1e-6) return;
-      blob(componentPoint(comp, s), 26, color, strength * Math.sqrt(w * b.weight));
-    });
-  });
+  const collapseViews = V === 'orthodox' || V === 'spontaneous-collapse';
+  if (atDetectors && collapseViews) {
+    blob(result === 'd1' ? G.D1 : G.D2, 26, c.wave, .95);
+    return;
+  }
+  const collapsesAtObject = V === 'orthodox' ? state.setup.object === 'bomb'
+    : V === 'spontaneous-collapse' ? state.setup.object === 'bomb' || (state.setup.object === 'marker' && state.setup.markerSize === 'macro') : false;
+  if (collapsesAtObject && result === 'bomb' && s >= G.sObj) return;
+  const f = fieldsFor(s, result);
+  const fields = collapsesAtObject && s >= G.sObj ? f.collapsed : f.all;
+  const branchColor = k => fields.length < 2 ? c.wave : V === 'many-worlds' || V === 'pilot-wave' ? (k === 'a' ? c.a : c.b) : (k === 'a' ? c.a : c.wave);
+  const img = paintField(fields, branchColor, V === 'pilot-wave' ? .55 : 1);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(img, view.ox, view.oy, 1000 * view.k, 600 * view.k);
 }
 
 function drawParticle(c, s) {
-  if (state.view !== 'pilot-wave' || !state.atom) return;
+  if (V !== 'pilot-wave' || !state.atom) return;
   const a = state.atom;
   const f = Math.min(1, s / a.pathLen);
   const { point, index } = pathPoint(a.path, f);
@@ -355,7 +379,7 @@ function drawConfigPanel(c, s, result) {
     if (b.exploded) { if (rows.length > 1) spots.push({ x: colX.U, y: rowY[1], color: c.bomb, alpha: .9, absorbed: true }); return; }
     const row = obj === 'marker' && b.label === 'Marker flipped' ? 1 : 0;
     let color = c.wave;
-    if (list.length > 1 && state.view !== 'orthodox' && state.view !== 'spontaneous-collapse') color = b.key === 'a' ? c.a : c.b;
+    if (list.length > 1 && V !== 'orthodox' && V !== 'spontaneous-collapse') color = b.key === 'a' ? c.a : c.b;
     else if (list.length > 1) color = b.key === 'a' ? c.a : c.wave;
     if (s < G.sBS1) spots.push({ x: colX.in, y: rowY[0], color, alpha: .8 });
     else b.arms.forEach(arm => spots.push({ x: atBS2 ? colX.meet : colX[arm], y: rowY[row], color, alpha: .75 / Math.sqrt(b.arms.length) }));
@@ -370,7 +394,7 @@ function drawConfigPanel(c, s, result) {
     const overlap = meetRows.length > 1 && meetRows.every(y => y === meetRows[0]);
     label(overlap ? 'parts overlap: they interfere' : meetRows.length > 1 ? 'parts cannot overlap' : 'one part only', { x: x0 + w / 2, y: y0 + h - 12 }, overlap ? c.wave : c.a, 'center', 11);
   }
-  if (state.view === 'pilot-wave') {
+  if (V === 'pilot-wave') {
     const a = state.atom.o;
     const row = obj === 'marker' && a.arm === 'U' && s >= G.sObj ? 1 : obj === 'bomb' && a.result === 'bomb' && s >= G.sObj ? 1 : 0;
     const x = s < G.sBS1 ? colX.in : atBS2 ? colX.meet : colX[a.arm];
@@ -382,14 +406,31 @@ function drawConfigPanel(c, s, result) {
 function captionText(s, result) {
   if (!state.atom) return 'Choose a setup, make a prediction, then send atoms.';
   if (result === 'bomb' && s >= G.sObj) return 'The bomb absorbed the atom and exploded.';
-  if (s >= G.total - 1 && state.view === 'many-worlds') {
+  if (s >= G.total - 1 && V === 'many-worlds') {
     const pr = probabilities(state.setup);
     if (pr.d1 > 0 && pr.d2 > 0) return 'Both detectors click, each in its own branch. You find yourself in the branch where ' + (result === 'd1' ? 'D1' : 'D2') + ' clicked.';
   }
   if (s >= G.total - 1) return result === 'd1' ? 'D1 clicked.' : 'D2 clicked.' + (state.setup.object === 'bomb' && state.setup.bs2 ? ' The bomb is live, and it absorbed nothing.' : '');
   if (s < G.sBS1) return 'An atom leaves the source.';
-  if (s < G.sBS2) return state.view === 'pilot-wave' ? 'The atom takes one arm; its wave takes both.' : 'The wave travels both arms.';
+  if (s < G.sBS2) return V === 'pilot-wave' ? 'The atom takes one arm; its wave takes both.' : 'The wave travels both arms.';
   return state.setup.bs2 ? 'The two arms meet at the second beam splitter.' : 'The beams cross where the second beam splitter used to be.';
+}
+
+function wrapText(text, x, yBottom, maxWidth, lineHeight) {
+  const words = text.split(' '), lines = [];
+  let line = '';
+  words.forEach(w => { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; } else line = test; });
+  if (line) lines.push(line);
+  lines.slice(-3).reverse().forEach((l, i) => ctx.fillText(l, x, yBottom - i * lineHeight));
+}
+const questionFor = () => ANSWERS[baseKey()].q;
+function answerFor(name, s, result) {
+  const a = ANSWERS[baseKey()];
+  const atom = state.atom;
+  if (!atom) return a.q;
+  let text = a[name];
+  if (typeof text === 'function') text = text({ arm: atom.o.arm === 'U' ? 'upper' : 'lower', result, done: s >= G.total - 1 || (result === 'bomb' && s >= G.sObj) });
+  return text;
 }
 
 let lastFrame = performance.now();
@@ -407,22 +448,46 @@ function frame(now) {
   if (state.atom) {
     const a = state.atom;
     a.elapsed += dt * state.speed;
-    const stopAt = a.o.result === 'bomb' ? G.sObj : G.total;
+    const stopAt = G.total; // the wave keeps going in every account, even after an absorption in this branch
     s = Math.min(stopAt, (a.elapsed / DURATION) * G.total);
     result = a.o.result;
     if (s >= stopAt) {
       finishAtom();
-      if (a.elapsed > DURATION * (stopAt / G.total) + 700 && state.running) {
+      if (a.elapsed > DURATION + 700 && state.running) {
         if (state.autoRerun) launch();
         else { state.running = false; ui.setRunning(false); }
       }
     }
   }
-  drawApparatus(c, s, result);
-  drawWave(c, s, result);
-  drawParticle(c, s);
-  drawConfigPanel(c, s, result);
-  caption.textContent = captionText(s, result);
+  if (!state.compare) {
+    V = state.view;
+    drawApparatus(c, s, result);
+    drawWave(c, s, result);
+    drawParticle(c, s);
+    drawConfigPanel(c, s, result);
+    caption.textContent = captionText(s, result);
+  } else {
+    const views = ['orthodox', 'pilot-wave', 'many-worlds', 'spontaneous-collapse'];
+    const qw = width / 2, qh = (height - 34) / 2;
+    views.forEach((name, i) => {
+      V = name;
+      const x0 = (i % 2) * qw, y0 = Math.floor(i / 2) * qh;
+      const kk = Math.min((qw - 12) / 1000, (qh - 54) / 600);
+      view = { k: kk, ox: x0 + (qw - 1000 * kk) / 2, oy: y0 + 22 };
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, qw, qh); ctx.clip();
+      drawApparatus(c, s, result);
+      drawWave(c, s, result);
+      drawParticle(c, s);
+      ctx.restore();
+      ctx.fillStyle = name === state.view ? c.wave : c.text;
+      ctx.font = '600 13px Inter, Arial, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(VIEW_LABEL[name], x0 + 10, y0 + 6);
+      ctx.fillStyle = c.muted; ctx.font = '12px Inter, Arial, sans-serif'; ctx.textBaseline = 'bottom';
+      wrapText(answerFor(name, s, result), x0 + 10, y0 + qh - 6, qw - 20, 15);
+      ctx.strokeStyle = c.beam; ctx.lineWidth = 1; ctx.strokeRect(x0 + .5, y0 + .5, qw - 1, qh - 1);
+    });
+    caption.textContent = questionFor() + ' Detector counts are identical in all four.';
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/template-v2.css?v=3.0">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/mach-zehnder.css?v=0.2">
+<link rel="stylesheet" href="css/mach-zehnder.css?v=0.3">
 </head>
 <body>
 <main class="shell mz-app">
@@ -25,6 +25,13 @@
 </section>
 <div class="control-tab-body qontic-control-body">
 <div class="control-pane" data-control-pane="core">
+  <div class="qontic-control-section">
+    <p class="qontic-control-section-title">Show</p>
+    <div class="qontic-app-toggle-group" data-setup="compare">
+      <button class="qontic-app-toggle active" type="button" aria-pressed="true" data-value="one">One account</button>
+      <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="all">All four side by side</button>
+    </div>
+  </div>
   <div class="qontic-control-section">
     <p class="qontic-control-section-title">Second beam splitter</p>
     <div class="qontic-app-toggle-group" data-setup="bs2">
@@ -67,6 +74,8 @@
 </div>
 
 <div class="control-pane hidden" data-control-pane="advanced">
+  <label class="control-row"><span>Phase between arms</span><input id="mz-phase" type="range" min="-180" max="180" step="5" value="0"><output>0°</output></label>
+  <p class="core-hint">At 0° the interferometer is tuned so that D2 is dark. Other phases need the second beam splitter in place and nothing in the arms to matter.</p>
   <div class="qontic-control-section">
     <p class="qontic-control-section-title">Marker size</p>
     <div class="qontic-app-toggle-group" data-setup="markerSize">
@@ -106,6 +115,8 @@
 <section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="math">
 <h2>What the app shows</h2>
 <p>Atoms enter a Mach–Zehnder interferometer. The first beam splitter divides each atom's wave between an upper and a lower arm; mirrors bring the arms together at a second beam splitter, which is tuned so that every atom leaves toward D1 and D2 stays dark. You can remove the second beam splitter, place a which-way marker in the upper arm, or place a bomb there that is destroyed if it absorbs an atom.</p>
+<h2>The wave</h2>
+<p>The wave is drawn as Gaussian packets with a carrier wave. Parts of the wave in the same branch are added as complex amplitudes, so where they overlap they form real interference fringes: before the second beam splitter, and where the beams cross when it is removed. Parts in different branches, for example after the which-way marker, are added as densities and show no fringes. The packets do not spread, and mirrors and beam splitters act instantly on the part of a packet that has reached them. The phase between the arms (Advanced tab) sets how the wave divides between D1 and D2: P(D2) = sin²(φ/2).</p>
 <h2>Statistics</h2>
 <table class="mz-table">
 <thead><tr><th scope="col">Setup</th><th scope="col">D1</th><th scope="col">D2</th><th scope="col">Bomb</th></tr></thead>
@@ -137,6 +148,6 @@
 <div class="mz-log-wrap"><table class="mz-table" id="mz-log-table"><thead><tr><th scope="col">Time</th><th scope="col">Setup</th><th scope="col">Prediction</th><th scope="col">Conf.</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.2"></script>
+<script type="module" src="js/app.js?v=0.3"></script>
 </body>
 </html>

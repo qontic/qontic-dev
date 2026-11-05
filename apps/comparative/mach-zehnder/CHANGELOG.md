@@ -1,5 +1,11 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.3 — 2026-11-05
+- Wave drawn as Gaussian packets with carrier waves: real interference fringes where parts of one branch overlap, none across branches.
+- Compare mode: all four accounts side by side for the same atom, each answering the setup's key question.
+- Phase between the arms (Advanced); prediction mode applies only at the tuned phase.
+- The wave continues to the detectors after an absorption in another branch.
+
 ## 0.2 — 2026-11-05
 - The chosen prediction stays highlighted after it is locked.
 

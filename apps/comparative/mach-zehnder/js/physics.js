@@ -43,7 +43,7 @@ export function correctOption(setup) {
 
 export function probabilities(setup) {
   if (setup.object === 'bomb') return setup.bs2 ? { d1: .25, d2: .25, bomb: .5 } : { d1: .5, d2: 0, bomb: .5 };
-  if (setup.object === 'none' && setup.bs2) return { d1: 1, d2: 0, bomb: 0 };
+  if (setup.object === 'none' && setup.bs2) { const c2 = Math.cos((setup.delta || 0) / 2) ** 2; return { d1: c2, d2: 1 - c2, bomb: 0 }; }
   return { d1: .5, d2: .5, bomb: 0 };
 }
 
@@ -56,7 +56,7 @@ export function outcome(setup, u) {
   let result;
   if (setup.object === 'bomb' && arm === 'U') result = 'bomb';
   else if (setup.bs2) {
-    if (setup.object === 'none') result = 'd1';
+    if (setup.object === 'none') result = u < Math.cos((setup.delta || 0) / 2) ** 2 ? 'd1' : 'd2';
     else result = u2 < .5 ? 'd1' : 'd2';
   } else if (setup.object === 'none') {
     // Pilot-wave trajectories cannot cross the symmetry line: the upper packet's

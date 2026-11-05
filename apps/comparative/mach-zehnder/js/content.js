@@ -51,3 +51,34 @@ export const VIEW_LABEL = {
   'many-worlds': 'Many Worlds',
   'spontaneous-collapse': 'Spontaneous Collapse',
 };
+
+// Compare mode: one question per setup, answered by each account for the atom shown.
+const pathQ = 'Which way did this atom go?';
+const pathAnswers = {
+  orthodox: 'No fact of the matter: the wave took both arms until a detector clicked.',
+  'pilot-wave': ({ arm, result, done }) => done && result !== 'bomb' ? `The ${arm} arm, and it still reached ${result.toUpperCase()}.` : `The ${arm} arm; its wave took both.`,
+  'many-worlds': 'Both arms, in a single world; the world splits only when a detector fires.',
+  'spontaneous-collapse': 'No fact yet: a single atom almost never collapses. The detector settles it.',
+};
+const markerQ = 'Why is there no interference, although nobody reads the marker?';
+const markerAnswers = {
+  orthodox: 'The path is entangled with the marker (or, in textbook terms, the marker measured it).',
+  'pilot-wave': 'The two parts of the wave sit at different marker positions, so they cannot overlap and steer the atom together.',
+  'many-worlds': 'The record split the world into two branches, and branches do not interfere.',
+  'spontaneous-collapse': 'Entanglement removes the interference first; collapse comes later, at a detector or a macroscopic marker.',
+};
+const bombQ = 'Did the bomb interact with the atom?';
+const bombAnswers = {
+  orthodox: ({ result, done }) => done && result === 'bomb' ? 'Yes: the state collapsed onto the bomb’s arm and it absorbed the atom.' : 'Not by absorbing it, yet it measured the atom: the state collapsed because nothing happened.',
+  'pilot-wave': ({ arm, result }) => result === 'bomb' ? 'Yes: the atom was in the bomb’s arm.' : `No: the atom took the ${arm} arm. Only the empty part of the wave reached the bomb.`,
+  'many-worlds': ({ result }) => result === 'bomb' ? 'In this branch, yes: the bomb absorbed the atom.' : 'Not in this branch. In another branch the bomb absorbed the atom and exploded.',
+  'spontaneous-collapse': 'Exploded and intact bombs differ macroscopically, so collapse quickly picked one.',
+};
+export const ANSWERS = {
+  'in-none': { q: pathQ, ...pathAnswers },
+  'out-none': { q: pathQ, ...pathAnswers },
+  'in-marker': { q: markerQ, ...markerAnswers },
+  'out-marker': { q: markerQ, ...markerAnswers },
+  'in-bomb': { q: bombQ, ...bombAnswers },
+  'out-bomb': { q: bombQ, ...bombAnswers },
+};
