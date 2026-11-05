@@ -1,5 +1,8 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.7 — 2026-11-05
+- Many worlds uses the same text and the same tile labels (weight · record · detector) in the single view and the side-by-side view.
+
 ## 0.6 — 2026-11-05
 - Stop freezes the atom mid-flight; Start continues it. Sending atoms switches the button to Stop.
 

@@ -445,14 +445,21 @@ function drawConfigPanel(c, s, result) {
   }
 }
 
+function mwText(s) {
+  if (!state.atom) return null;
+  const info = mwInfo(s), n = info.list.length;
+  const exploded = info.list.some(wd => wd.exploded);
+  if (s >= G.total - 1) {
+    if (n === 1) return 'Only one detector outcome has any weight, so the world does not split.';
+    return `The world has split into ${n} copies, weighted by the Born rule${exploded ? ' (one of them with the bomb exploded)' : ''}. You are in one of them.`;
+  }
+  if (n > 1) return `The ${state.setup.object === 'bomb' ? 'bomb' : 'marker'} made a record: the world has split into 2 copies that no longer interfere.`;
+  return null;
+}
 function captionText(s, result) {
   if (!state.atom) return state.setup.bs2 ? 'The interferometer is tuned so that D2 stays dark. Choose a setup, make a prediction, then send atoms.' : 'With the second beam splitter removed, the beams cross and go straight on. Make a prediction, then send atoms.';
   if (result === 'bomb' && s >= G.sObj) return 'The bomb absorbed the atom and exploded.';
-  if (V === 'many-worlds') {
-    const info = mwInfo(s);
-    if (s >= G.total - 1) return info.list.length > 1 ? `The detectors split the world into ${info.list.length} copies, weighted by the Born rule. You are in one of them.` : 'Only one detector outcome has any weight, so the world does not split.';
-    if (info.list.length > 1) return `The ${state.setup.object === 'bomb' ? 'bomb' : 'marker'} made a record: the world has split into two copies that no longer interfere.`;
-  }
+  if (V === 'many-worlds') { const t = mwText(s); if (t) return t; }
   if (s >= G.total - 1) return result === 'd1' ? 'D1 clicked.' : 'D2 clicked.' + (state.setup.object === 'bomb' && state.setup.bs2 ? ' The bomb is live, and it absorbed nothing.' : '');
   if (s < G.sBS1) return 'An atom leaves the source.';
   if (s < G.sBS2) return V === 'pilot-wave' ? 'The atom takes one arm; its wave takes both.' : 'The wave travels both arms.';
@@ -471,6 +478,7 @@ function answerFor(name, s, result) {
   const a = ANSWERS[baseKey()];
   const atom = state.atom;
   if (!atom) return a.q;
+  if (name === 'many-worlds') { const t = mwText(s); if (t) return t; }
   let text = a[name];
   if (typeof text === 'function') text = text({ arm: atom.o.arm === 'U' ? 'upper' : 'lower', result, done: s >= G.total - 1 || (result === 'bomb' && s >= G.sObj) });
   return text;
@@ -528,15 +536,15 @@ function outcomeProbs(branch) {
 }
 function mwStages() {
   const obj = state.setup.object;
-  const s0 = [{ id: 'w', branch: null, w: 1, text: '' }];
+  const s0 = [{ id: 'w', branch: null, w: 1 }];
   let s1 = null;
-  if (obj === 'marker') s1 = [{ id: 'a', parent: 'w', branch: 'a', w: .5, text: 'marker flipped' }, { id: 'b', parent: 'w', branch: 'b', w: .5, text: 'marker ready' }];
-  if (obj === 'bomb') s1 = [{ id: 'x', parent: 'w', branch: 'x', exploded: true, w: .5, text: 'bomb exploded' }, { id: 'b', parent: 'w', branch: 'b', w: .5, text: 'bomb intact' }];
+  if (obj === 'marker') s1 = [{ id: 'a', parent: 'w', branch: 'a', w: .5, record: 'marker flipped' }, { id: 'b', parent: 'w', branch: 'b', w: .5, record: 'marker ready' }];
+  if (obj === 'bomb') s1 = [{ id: 'x', parent: 'w', branch: 'x', exploded: true, w: .5, record: 'bomb exploded' }, { id: 'b', parent: 'w', branch: 'b', w: .5, record: 'bomb intact' }];
   const base = s1 || s0;
   const s2 = [];
   base.forEach(wd => {
     if (wd.exploded) { s2.push({ ...wd, parent: wd.id }); return; }
-    Object.entries(outcomeProbs(wd.branch)).forEach(([o, p]) => { if (p > 1e-6) s2.push({ id: wd.id + o, parent: wd.id, branch: wd.branch, outcome: o, w: wd.w * p, text: [wd.text, `${o.toUpperCase()} clicked`].filter(Boolean).join(' · ') }); });
+    Object.entries(outcomeProbs(wd.branch)).forEach(([o, p]) => { if (p > 1e-6) s2.push({ id: wd.id + o, parent: wd.id, branch: wd.branch, outcome: o, w: wd.w * p, record: wd.record }); });
   });
   return { s0, s1, s2 };
 }
@@ -600,8 +608,9 @@ function drawMW(c, s, result, R, compact = false) {
     if (info.list.length > 1 && info.progress > .6 && info.zoom < .5) {
       ctx.globalAlpha = Math.min(alpha, 1); ctx.fillStyle = wd.id === info.actual ? c.wave : c.text;
       ctx.font = '11px Inter, Arial, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-      const tag = compact || rect.w < 230 ? (wd.outcome ? wd.outcome.toUpperCase() : wd.text.split(' ').slice(-1)[0]) : wd.text;
-      ctx.fillText(`${fraction(wd.w)}${tag ? ' · ' + tag : ''}`, rect.x + 2, rect.y - 3);
+      const short = compact || rect.w < 230;
+      const parts = [fraction(wd.w), wd.record ? (short ? wd.record.split(' ').slice(-1)[0] : wd.record) : null, wd.outcome ? (short ? wd.outcome.toUpperCase() : `${wd.outcome.toUpperCase()} clicked`) : null].filter(Boolean);
+      ctx.fillText(parts.join(' · '), rect.x + 2, rect.y - 3);
       ctx.globalAlpha = 1;
     }
   });
