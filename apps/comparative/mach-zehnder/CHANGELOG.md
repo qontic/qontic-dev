@@ -1,5 +1,9 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.5 — 2026-11-05
+- The tuning is explicit: "tuned: D2 dark" at the second beam splitter, bright and dark port labels, and a sentence under the beam-splitter control.
+- Prediction answers and detector counts match the setup: bomb answers and the bomb counter appear only with a bomb.
+
 ## 0.4 — 2026-11-05
 - Many worlds: each record splits the apparatus into weighted copies (as in the analytical double slit), then the view follows the copy you are in.
 - Spontaneous collapse: collapse clock with the GRW rate, and a visible collapse when the wave reaches a macroscopic object.

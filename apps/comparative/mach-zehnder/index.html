@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/template-v2.css?v=3.0">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/mach-zehnder.css?v=0.3">
+<link rel="stylesheet" href="css/mach-zehnder.css?v=0.5">
 </head>
 <body>
 <main class="shell mz-app">
@@ -38,6 +38,7 @@
       <button class="qontic-app-toggle active" type="button" aria-pressed="true" data-value="in">In place</button>
       <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="out">Removed</button>
     </div>
+    <p class="core-hint mz-tuning" id="mz-tuning"></p>
   </div>
   <div class="qontic-control-section">
     <p class="qontic-control-section-title">In the upper arm</p>
@@ -56,7 +57,7 @@
       <div id="mz-confidence"></div>
     </div>
     <label class="mz-reason" for="mz-reason-input"><span>Why? One sentence</span>
-      <textarea id="mz-reason-input" rows="2" placeholder="e.g. the bomb blocks one path, so…"></textarea></label>
+      <textarea id="mz-reason-input" rows="2" placeholder="e.g. the two parts of the wave…"></textarea></label>
     <button class="qontic-app-toggle qontic-app-toggle--wide mz-lock" type="submit" id="mz-lock">Lock prediction</button>
   </form>
 
@@ -101,12 +102,12 @@
 
 <div class="visualization qontic-stage qontic-panel">
 <canvas class="demo-canvas mz-canvas" aria-label="Mach–Zehnder interferometer simulation"></canvas>
-<p class="canvas-caption" id="mz-caption">Choose a setup, make a prediction, then send atoms.</p>
+<p class="canvas-caption" id="mz-caption">The interferometer is tuned so that D2 stays dark. Choose a setup, make a prediction, then send atoms.</p>
 <aside class="results-panel" data-results-panel><div class="results-head"><strong>Detector counts</strong><button data-results-collapse aria-label="Collapse results">−</button></div>
 <div class="results-body mz-counts">
 <span>D1</span><output data-result="d1">0</output>
 <span>D2</span><output data-result="d2">0</output>
-<span>Bomb</span><output data-result="bomb">0</output>
+<span data-bomb-row hidden>Bomb</span><output data-result="bomb" data-bomb-row hidden>0</output>
 <span>Atoms</span><output data-result="total">0</output>
 </div></aside>
 </div>
@@ -148,6 +149,6 @@
 <div class="mz-log-wrap"><table class="mz-table" id="mz-log-table"><thead><tr><th scope="col">Time</th><th scope="col">Setup</th><th scope="col">Prediction</th><th scope="col">Conf.</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.4"></script>
+<script type="module" src="js/app.js?v=0.5"></script>
 </body>
 </html>

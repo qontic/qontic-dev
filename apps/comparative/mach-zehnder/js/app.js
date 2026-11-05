@@ -86,12 +86,23 @@ startInput.addEventListener('input', () => { state.fixedU = +startInput.value; s
 
 // ---------- prediction form ----------
 const optionsBox = document.getElementById('mz-options');
-OPTIONS.forEach(([id, label]) => {
-  const row = document.createElement('label');
-  row.className = 'mz-option';
-  row.innerHTML = `<input type="radio" name="mz-option" id="mz-opt-${id}" value="${id}"><span>${label}</span>`;
-  optionsBox.append(row);
-});
+let shownOptions = '';
+function buildOptions() {
+  // Offer only answers that fit the setup: bomb answers only when a bomb is in the arm.
+  const ids = state.setup.object === 'bomb' ? ['d1', 'abs-d1', 'abs-both', 'abs-d2'] : ['d1', 'd2', 'both'];
+  const sig = ids.join();
+  if (sig === shownOptions) return;
+  shownOptions = sig;
+  optionsBox.querySelectorAll('.mz-option').forEach(n => n.remove());
+  ids.forEach(id => {
+    const label = OPTIONS.find(([o]) => o === id)[1];
+    const row = document.createElement('label');
+    row.className = 'mz-option';
+    row.innerHTML = `<input type="radio" name="mz-option" id="mz-opt-${id}" value="${id}"><span>${id === 'd1' && state.setup.object === 'bomb' ? 'The bomb never absorbs an atom; only D1 clicks' : label}</span>`;
+    optionsBox.append(row);
+  });
+}
+buildOptions();
 const confBox = document.getElementById('mz-confidence');
 const confNames = ['Guessing', 'Unsure', 'Somewhat sure', 'Sure', 'Certain'];
 for (let i = 1; i <= 5; i++) {
@@ -129,6 +140,7 @@ document.getElementById('mz-many').addEventListener('click', () => {
 
 let lastKey = null;
 function syncPanel() {
+  buildOptions();
   const p = state.predictions[key()];
   if (key() !== lastKey) { lastKey = key(); if (!p) { draft = { option: null, confidence: null }; reasonInput.value = ''; } }
   const locked = Boolean(p) || !state.display.predict || detuned();
@@ -147,6 +159,12 @@ function syncPanel() {
   hint.textContent = detuned() ? 'Prediction mode assumes a tuned interferometer (phase 0). With this phase, explore freely.' : !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
     : t.total < 100 ? `Send at least 100 atoms to compare with your prediction (${t.total} so far).` : 'Change the setup or the interpretation to explore further.';
   ['d1', 'd2', 'bomb', 'total'].forEach(name => ui.setResult(name, String(t[name])));
+  document.querySelectorAll('[data-bomb-row]').forEach(n => { n.hidden = state.setup.object !== 'bomb'; });
+  const deg = Math.round(state.setup.delta * 180 / Math.PI);
+  document.getElementById('mz-tuning').textContent = !state.setup.bs2
+    ? 'Removed: nothing recombines; each beam goes straight on to a detector.'
+    : deg === 0 ? 'In place, tuned so that with nothing in the arms every atom reaches D1 and D2 stays dark (phase 0°; Advanced tab).'
+    : `In place, detuned by ${deg}° (Advanced tab): with nothing in the arms D2 now fires ${Math.round(100 * Math.sin(state.setup.delta / 2) ** 2)}% of the time.`;
   evaluate();
   const fb = document.getElementById('mz-feedback');
   fb.hidden = t.total === 0;
@@ -275,7 +293,13 @@ function drawApparatus(c, s, result) {
     ctx.fillStyle = hit ? c.flash : 'transparent'; ctx.strokeStyle = hit ? c.flash : c.optic; ctx.lineWidth = 2 * view.k;
     ctx.beginPath(); ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     if (state.display.labels) label(name, { x: d.x + 34, y: d.y }, c.text, 'left', 16);
+    if (state.display.labels && state.setup.bs2 && Math.abs(state.setup.delta) < 1e-3)
+      label(name === 'D1' ? 'bright port' : 'dark port', { x: d.x + 34, y: d.y + 22 }, c.muted, 'left', 12);
   });
+  if (state.display.labels && state.setup.bs2) {
+    const deg = Math.round(state.setup.delta * 180 / Math.PI);
+    label(deg === 0 ? 'tuned: D2 dark' : `detuned by ${deg}°`, { x: G.BS2.x, y: G.BS2.y - 48 }, deg === 0 ? c.wave : c.flash, 'center', 12);
+  }
   if (state.setup.object === 'marker') {
     const p = T(G.OBJ);
     ctx.strokeStyle = c.a; ctx.lineWidth = 2 * view.k;
@@ -415,7 +439,7 @@ function drawConfigPanel(c, s, result) {
 }
 
 function captionText(s, result) {
-  if (!state.atom) return 'Choose a setup, make a prediction, then send atoms.';
+  if (!state.atom) return state.setup.bs2 ? 'The interferometer is tuned so that D2 stays dark. Choose a setup, make a prediction, then send atoms.' : 'With the second beam splitter removed, the beams cross and go straight on. Make a prediction, then send atoms.';
   if (result === 'bomb' && s >= G.sObj) return 'The bomb absorbed the atom and exploded.';
   if (V === 'many-worlds') {
     const info = mwInfo(s);
