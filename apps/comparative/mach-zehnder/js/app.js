@@ -2,15 +2,32 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.9';
+import { APP_RELEASE } from './release.js?v=0.10';
 import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint, PHASE_PRESETS, phaseDeg, isPreset, darkPort } from './physics.js?v=0.9';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, commonAtPhase, explainAtPhase } from './content.js?v=0.9';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY, commonAtPhase, explainAtPhase } from './content.js?v=0.10';
 import { waveBranches, computeField, paintField } from './waves.js?v=0.3';
+
+// Study arm (IUSE design). ?arm=orthodox gives the comparison arm: the same app,
+// setups, tasks and timing, but only the orthodox account with decoherence.
+// Any other value, or none, offers all four accounts.
+const ARM = new URLSearchParams(location.search).get('arm') === 'orthodox' ? 'orthodox-only' : 'all-accounts';
+const ONE_ACCOUNT = ARM === 'orthodox-only';
+if (ONE_ACCOUNT) {
+  document.querySelector('qontic-controls').setAttribute('interpretations', 'cpn');
+  document.querySelector('qontic-controls').setAttribute('show-interpretation', 'false');
+  const show = (n, on) => { n.hidden = !on; n.style.display = on ? '' : 'none'; };
+  show(document.querySelector('[data-setup="compare"]').closest('.qontic-control-section'), false);
+  document.querySelectorAll('[data-account]').forEach(n => show(n, n.dataset.account === 'orthodox'));
+  document.querySelectorAll('[data-all-accounts]').forEach(n => show(n, false));
+  document.querySelectorAll('[data-one-account]').forEach(n => show(n, true));
+}
+const agree = text => ONE_ACCOUNT ? text.replace(/^All accounts agree: /, '').replace(/^./, ch => ch.toUpperCase()) : text;
 
 mountQonticShell({
   compactHeader: true, navigation: 'breadcrumbs',
   title: 'Atom Mach–Zehnder Interferometer', eyebrow: 'Q-Ontic comparative simulation',
-  purpose: 'Predict what the detectors show when the second beam splitter is removed, a which-way marker is added, or a bomb sits in one arm, then compare four accounts of what happens.',
+  purpose: ONE_ACCOUNT ? 'Predict what the detectors show when the second beam splitter is removed, a which-way marker is added, or a bomb sits in one arm, then see how quantum mechanics accounts for it.'
+    : 'Predict what the detectors show when the second beam splitter is removed, a which-way marker is added, or a bomb sits in one arm, then compare four accounts of what happens.',
   badge: 'Prediction mode', version: `App ${APP_RELEASE.version} · ${APP_RELEASE.date}`,
   homeHref: '../../../index.html', labHref: 'https://qonticlab.rice.edu/',
 });
@@ -113,7 +130,7 @@ function buildOptions() {
 }
 buildOptions();
 const glossary = document.getElementById('mz-glossary');
-GLOSSARY.forEach(([term, def]) => { const dt = document.createElement('dt'); dt.textContent = term; const dd = document.createElement('dd'); dd.textContent = def; glossary.append(dt, dd); });
+GLOSSARY.filter(([term]) => !ONE_ACCOUNT || !GLOSSARY_ONLY[term]).forEach(([term, def]) => { const dt = document.createElement('dt'); dt.textContent = term; const dd = document.createElement('dd'); dd.textContent = def; glossary.append(dt, dd); });
 const confBox = document.getElementById('mz-confidence');
 const confNames = ['Guessing', 'Unsure', 'Somewhat sure', 'Sure', 'Certain'];
 for (let i = 1; i <= 5; i++) {
@@ -173,7 +190,7 @@ function syncPanel() {
   hint.textContent = isCalibration() ? (state.calibrated ? 'Calibration done: every atom reaches D1. Now choose another setup and predict.' : 'Calibration run: send a few atoms to see how the interferometer is tuned. No prediction needed.')
     : needsCalibration() ? 'Run the calibration first: second beam splitter in place, nothing in the arm, phase 0°.'
     : explore() ? `${deg()}° is for free exploration: no prediction. The prediction items use 0°, 60°, 90°, 120° and 180°.` : !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
-    : t.total < 100 ? `Send at least 100 atoms to compare with your prediction (${t.total} so far).` : 'Change the setup or the interpretation to explore further.';
+    : t.total < 100 ? `Send at least 100 atoms to compare with your prediction (${t.total} so far).` : ONE_ACCOUNT ? 'Change the setup to explore further.' : 'Change the setup or the interpretation to explore further.';
   ['d1', 'd2', 'bomb', 'total'].forEach(name => ui.setResult(name, String(t[name])));
   document.querySelectorAll('[data-bomb-row]').forEach(n => { n.hidden = state.setup.object !== 'bomb'; });
   const d = deg();
@@ -185,8 +202,8 @@ function syncPanel() {
   evaluate();
   const fb = document.getElementById('mz-feedback');
   fb.hidden = t.total === 0;
-  document.getElementById('mz-common').textContent = commonAtPhase(baseKey(), d, pNone()) ?? COMMON[baseKey()];
-  document.getElementById('mz-explain-label').textContent = `${VIEW_LABEL[state.view]}:`;
+  document.getElementById('mz-common').textContent = agree(commonAtPhase(baseKey(), d, pNone()) ?? COMMON[baseKey()]);
+  document.getElementById('mz-explain-label').textContent = ONE_ACCOUNT ? 'What happens:' : `${VIEW_LABEL[state.view]}:`;
   let text = explainAtPhase(state.view, baseKey(), d, pNone()) ?? EXPLAIN[state.view][baseKey()];
   if (state.view === 'spontaneous-collapse' && state.setup.object === 'marker' && state.setup.markerSize === 'macro' && state.setup.bs2)
     text = 'A macroscopic marker moves many particles, so the state collapses at the marker: the atom is then in one arm only, a single part reaches the second beam splitter, and D1 and D2 are equally likely.';
@@ -205,7 +222,7 @@ function evaluate() {
   if (!p.logged) {
     p.logged = true;
     const entries = readLog();
-    entries.push({ time: new Date().toISOString(), app: 'mach-zehnder', release: APP_RELEASE.version, setup: { secondBeamSplitter: state.setup.bs2, upperArm: state.setup.object, phaseDeg: deg() }, interpretationShown: p.view, prediction: p.option, confidence: p.confidence, reason: p.reason, correctAnswer: correct, correct: ok, counts: { ...t } });
+    entries.push({ time: new Date().toISOString(), app: 'mach-zehnder', release: APP_RELEASE.version, arm: ARM, setup: { secondBeamSplitter: state.setup.bs2, upperArm: state.setup.object, phaseDeg: deg() }, interpretationShown: p.view, prediction: p.option, confidence: p.confidence, reason: p.reason, correctAnswer: correct, correct: ok, counts: { ...t } });
     writeLog(entries);
   }
 }
@@ -379,7 +396,9 @@ function flightTag(c, s, result) {
   if (!state.atom || view.k < .3) return;
   if (V === 'orthodox') {
     const measured = (state.setup.object === 'bomb' && s >= G.sObj) || s >= G.total - 1;
-    label(measured ? 'a measurement occurred: collapse' : 'no measurement yet: no collapse', { x: 500, y: 18 }, measured ? c.flash : c.muted, 'center', 12);
+    const decohered = state.setup.object === 'marker' && s >= G.sObj;
+    label(measured ? 'a measurement occurred: collapse' : decohered ? 'marker entangled with the path: interference lost (decoherence), no collapse yet' : 'no measurement yet: no collapse',
+      { x: 500, y: 18 }, measured ? c.flash : decohered ? c.a : c.muted, 'center', 12);
   } else if (V === 'spontaneous-collapse') {
     const st = scState(s, result);
     label(`collapse clock: ${formatTime(1 / (LAMBDA * st.n))}${st.collapsed ? ' \u2192 collapsed' : ''}`, { x: 500, y: 18 }, st.collapsed ? c.flash : c.muted, 'center', 12);
@@ -454,7 +473,7 @@ function drawConfigPanel(c, s, result) {
   ctx.beginPath(); ctx.roundRect(p.x, p.y, w * view.k, h * view.k, 8 * view.k); ctx.fill(); ctx.stroke();
   const obj = state.setup.object;
   const rows = obj === 'marker' ? ['Marker ready', 'Marker flipped'] : obj === 'bomb' ? ['Bomb intact', 'Bomb exploded'] : ['No record'];
-  label('Configuration space', { x: x0 + 12, y: y0 + 16 }, c.text, 'left', 12);
+  label(V === 'orthodox' ? 'Joint state: path × ' + (obj === 'none' ? 'arms' : obj) : 'Configuration space', { x: x0 + 12, y: y0 + 16 }, c.text, 'left', 12);
   const colX = { U: x0 + 110, L: x0 + 170, meet: x0 + 232, in: x0 + 140 };
   const rowY = rows.map((_, i) => y0 + 70 + i * 62);
   rows.forEach((r, i) => { label(r, { x: x0 + 12, y: rowY[i] }, c.muted, 'left', 11); line({ x: x0 + 92, y: rowY[i] }, { x: x0 + w - 10, y: rowY[i] }, c.beam, 1, [3, 4]); });
@@ -484,7 +503,8 @@ function drawConfigPanel(c, s, result) {
   if (atBS2 && s < G.total) {
     const meetRows = spots.filter(sp => !sp.absorbed && sp.x === colX.meet).map(sp => sp.y);
     const overlap = meetRows.length > 1 && meetRows.every(y => y === meetRows[0]);
-    label(overlap ? 'parts overlap: they interfere' : meetRows.length > 1 ? 'parts cannot overlap' : 'one part only', { x: x0 + w / 2, y: y0 + h - 12 }, overlap ? c.wave : c.a, 'center', 11);
+    const apart = V === 'orthodox' ? 'different marker states: no interference' : 'parts cannot overlap';
+    label(overlap ? 'parts overlap: they interfere' : meetRows.length > 1 ? apart : 'one part only', { x: x0 + w / 2, y: y0 + h - 12 }, overlap ? c.wave : c.a, 'center', 11);
   }
   if (V === 'pilot-wave') {
     const a = state.atom.o;

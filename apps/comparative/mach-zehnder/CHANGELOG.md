@@ -1,5 +1,13 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.10 — 2026-11-05
+Orthodox account with decoherence, and a comparison-arm configuration for the IUSE study design.
+- Orthodox explanations and compare answers give the decoherence account: the marker or bomb becomes entangled with the path, parts tied to different states cannot interfere, and collapse (the postulate) still picks the outcome.
+- Orthodox in-flight tag after the marker: "interference lost (decoherence), no collapse yet".
+- Orthodox panel titled "Joint state", with "different marker states: no interference" where the parts fail to meet.
+- Glossary: Decoherence added; configuration space described for all accounts.
+- `?arm=orthodox` shows only the orthodox account: no interpretation switch, no side-by-side view, other accounts hidden on the Physics tab and in the glossary. The prediction log records the arm.
+
 ## 0.9 — 2026-11-05
 The phase between the arms is now a main control, not an Advanced setting.
 - Presets 0°, 60°, 90°, 120°, 180° (P(D2) = 0, 1/4, 1/2, 3/4, 1), each a prediction item; calibration stays at 0°. Any other value (Advanced slider) is free exploration with no prediction.

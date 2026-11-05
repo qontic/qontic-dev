@@ -18,3 +18,7 @@ Prototype for the NSF IUSE proposal "Building Physical Intuition in Quantum Mech
 
 ## Shared change
 `shared/qontic-controls.js` gained an optional `interpretations` attribute (e.g. `cpn,pw,mw,sc`) and an optional `sc` entry. Without the attribute the cycle is unchanged; `templates/qontic-app/controls-check.html` has a new check.
+
+## Study arms
+
+For the comparison arm of a study, open the app with `?arm=orthodox`. Students then see the same setups, prediction tasks and timing, but only the orthodox account with decoherence: the interpretation switch and the side-by-side view are hidden, and so are the other accounts on the Physics tab. Without the parameter all four accounts are offered. Each prediction-log entry records `arm` as `orthodox-only` or `all-accounts`.

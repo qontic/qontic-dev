@@ -12,11 +12,11 @@ export const COMMON = {
 
 export const EXPLAIN = {
   orthodox: {
-    'in-none': 'The wave splits at the first beam splitter and travels both arms. At the second beam splitter the two parts add at D1 and cancel at D2. The state collapses when D1 clicks.',
+    'in-none': 'The wave splits at the first beam splitter and travels both arms. Nothing in the arms is changed by the atom’s path, so the two parts stay coherent: at the second beam splitter they add at D1 and cancel at D2. The state collapses when D1 clicks.',
     'out-none': 'With the second beam splitter removed nothing recombines. Each part of the wave heads to one detector, and the state collapses onto whichever detector clicks.',
-    'in-marker': 'The marker becomes entangled with the atom’s path: the two parts of the wave are tied to different marker states, so they no longer interfere at the second beam splitter. This alone removes the interference, whether or not you call it a measurement. Collapse at the detectors then gives D1 and D2 equally.',
+    'in-marker': 'Decoherence: the marker becomes entangled with the atom’s path. The part of the wave in the upper arm goes with “marker flipped”, the part in the lower arm with “marker ready”, and parts tied to different marker states cannot interfere. Nobody needs to read the marker, and nothing has collapsed yet. At the detectors the state collapses (the postulate) and D1 and D2 are equally likely.',
     'out-marker': 'Nothing recombines, so the marker changes nothing here. Collapse happens at whichever detector clicks.',
-    'in-bomb': 'The bomb acts as a measurement of the upper arm. Half the time the state collapses onto the upper arm and the bomb absorbs the atom. Otherwise it collapses onto the lower arm, a single part arrives at the second beam splitter, and D1 and D2 are equally likely.',
+    'in-bomb': 'Decoherence: the bomb becomes entangled with the path (exploded or intact), so the two arms can no longer interfere. Because the bomb is a large object, the orthodox account applies collapse here: half the time onto the upper arm, and the bomb absorbs the atom. Otherwise onto the lower arm; a single part arrives at the second beam splitter, and D1 and D2 are equally likely.',
     'out-bomb': 'Half the time the bomb absorbs the atom. Otherwise the state collapses onto the lower arm, which leads straight to D1.',
   },
   'pilot-wave': {
@@ -64,7 +64,7 @@ const pathAnswers = {
 };
 const markerQ = 'Why is there no interference, although nobody reads the marker?';
 const markerAnswers = {
-  orthodox: 'The path became entangled with the marker. That alone removes the interference; nobody needs to read the marker.',
+  orthodox: 'Decoherence: the path became entangled with the marker, and parts tied to different marker states cannot interfere. Nobody needs to read the marker, and nothing has collapsed yet.',
   'pilot-wave': 'The two parts of the wave go with different marker states (ready or flipped), so they cannot overlap and steer the atom together.',
   'many-worlds': 'The record split the world into two copies, and the copies do not interfere.',
   'spontaneous-collapse': ({ done }) => done ? 'Entanglement removed the interference; collapse happened later, at the detector.' : 'Entanglement removes the interference without any collapse; a microscopic marker is far too small to collapse.',
@@ -78,7 +78,7 @@ const markerOutAnswers = {
 };
 const bombQ = 'Did the atom touch the bomb?';
 const bombAnswers = {
-  orthodox: ({ result, pastObject }) => !pastObject ? 'Not yet decided: the bomb will act as a measurement of the upper arm.' : result === 'bomb' ? 'Yes: the state collapsed onto the bomb’s arm and the bomb absorbed the atom.' : 'No, yet the bomb acted as a measurement: the state collapsed onto the lower arm although nothing was absorbed.',
+  orthodox: ({ result, pastObject }) => !pastObject ? 'Not yet decided: the bomb will act as a measurement of the upper arm.' : result === 'bomb' ? 'Yes: the state collapsed onto the bomb’s arm and the bomb absorbed the atom.' : 'No. The bomb became entangled with the path, which ended the interference, and the state collapsed onto the lower arm although nothing was absorbed.',
   'pilot-wave': ({ arm, result }) => result === 'bomb' ? 'Yes: the atom was in the bomb’s arm.' : `No: the atom took the ${arm} arm. Only the empty part of the wave reached the bomb.`,
   'many-worlds': ({ result, pastObject }) => !pastObject ? 'Both possibilities are still in one world.' : result === 'bomb' ? 'In this copy, yes: the bomb absorbed the atom.' : 'Not in this copy. In another copy the bomb absorbed the atom and exploded.',
   'spontaneous-collapse': ({ result, pastObject }) => !pastObject ? 'Not yet: the wave has not reached the bomb.' : result === 'bomb' ? 'Yes: collapse picked “exploded” within about 100 ns.' : 'No: collapse picked “intact” within about 100 ns.',
@@ -92,13 +92,17 @@ export const ANSWERS = {
   'out-bomb': { q: bombQ, ...bombAnswers },
 };
 
+// Terms that belong to one account only; hidden when that account is not offered.
+export const GLOSSARY_ONLY = { 'Copy of the world': 'many-worlds' };
+
 export const GLOSSARY = [
   ['Entangled', 'The atom’s path and another object (the marker, the bomb) can no longer be described separately: each path goes with its own state of the object.'],
   ['Record', 'A lasting physical difference in some object that depends on which path the atom took, read or not.'],
+  ['Decoherence', 'Loss of interference between two parts of the wave once each part is tied to a different state of another object (a marker, a bomb, a detector). It explains why the interference disappears, not which outcome occurs.'],
   ['Collapse', 'In the orthodox and spontaneous-collapse accounts, the sudden change of the wave to one outcome. Orthodox: at a measurement (a postulate). Spontaneous collapse: a physical process, fast only when many particles are involved.'],
   ['Copy of the world', 'Many worlds: after a record, the wave splits into parts that no longer interfere; each part is a separate world. Its weight is the Born-rule probability.'],
   ['Born rule', 'The probability of an outcome is the squared size of the wave for that outcome.'],
-  ['Configuration space', 'A combined picture with one axis for the atom’s position and one for the marker or bomb. Pilot wave: two parts of the wave steer the atom together only if they overlap there.'],
+  ['Configuration space', 'A combined picture with one axis for the atom’s path and one for the marker or bomb. Two parts of the wave interfere only if they overlap there; parts tied to different marker or bomb states do not (decoherence). Pilot wave: they steer the atom together only if they overlap.'],
   ['Phase between the arms', 'An extra delay of one arm relative to the other. It decides how the recombined wave divides between D1 and D2: P(D2) = sin²(φ/2). It matters only where the two parts of the wave meet in the same branch.'],
   ['Bright and dark port', 'At phase 0°, every atom leaves toward D1 (bright port) and none toward D2 (dark port). At 180° they swap. In between there is no dark port.'],
 ];
