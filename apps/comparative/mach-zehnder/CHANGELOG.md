@@ -1,5 +1,8 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.6 — 2026-11-05
+- Stop freezes the atom mid-flight; Start continues it. Sending atoms switches the button to Stop.
+
 ## 0.5 — 2026-11-05
 - The tuning is explicit: "tuned: D2 dark" at the second beam splitter, bright and dark port labels, and a sentence under the beam-splitter control.
 - Prediction answers and detector counts match the setup: bomb answers and the bomb counter appear only with a bomb.

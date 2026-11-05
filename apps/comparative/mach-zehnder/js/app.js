@@ -48,8 +48,8 @@ const tally = () => (state.tallies[key()] ||= { d1: 0, d2: 0, bomb: 0, total: 0 
 
 // ---------- controls ----------
 const ui = mountQonticControls({
-  onStart: () => { if (!canRun()) { ui.setRunning(false); flashHint(); return; } state.running = true; if (!state.atom || state.atom.counted) launch(); },
-  onStop: () => { state.running = false; },
+  onStart: () => { if (!canRun()) { ui.setRunning(false); flashHint(); return; } resume(); },
+  onStop: () => { pause(); },
   onReset: () => { state.running = false; ui.setRunning(false); state.atom = null; state.tallies[key()] = { d1: 0, d2: 0, bomb: 0, total: 0 }; delete state.predictions[key()]; syncPanel(); },
   onAutorun: ({ autoRerun }) => { state.autoRerun = autoRerun; },
   onInterpretation: ({ interpretation }) => { state.view = interpretation; syncPanel(); },
@@ -129,12 +129,12 @@ const canRun = () => !state.display.predict || detuned() || Boolean(state.predic
 const hint = document.getElementById('mz-hint');
 const flashHint = () => { hint.classList.remove('mz-flash'); void hint.offsetWidth; hint.classList.add('mz-flash'); };
 
-document.getElementById('mz-one').addEventListener('click', () => { if (!canRun()) return flashHint(); launch(); });
+document.getElementById('mz-one').addEventListener('click', () => { if (!canRun()) return flashHint(); launch(); state.paused = false; state.running = true; ui.setRunning(true); });
 document.getElementById('mz-many').addEventListener('click', () => {
   if (!canRun()) return flashHint();
   const t = tally();
   for (let i = 0; i < 200; i++) { const r = outcome(state.setup, Math.random()).result; t[r]++; t.total++; }
-  launch();
+  launch(); state.paused = false; state.running = true; ui.setRunning(true);
   syncPanel();
 });
 
@@ -226,6 +226,13 @@ clearButton.addEventListener('click', () => {
 
 // ---------- atoms ----------
 const DURATION = 3400;
+// Stop freezes the atom where it is; Start continues it, or sends a new atom if the last one has finished.
+function pause() { state.paused = true; state.running = false; ui.setRunning(false); }
+function resume() {
+  state.paused = false; state.running = true; ui.setRunning(true);
+  if (!state.atom || state.atom.elapsed > DURATION + holdTime()) launch();
+}
+const holdTime = () => (state.compare || state.view === 'many-worlds') ? 3800 : 700;
 function launch() {
   const u = state.display.fixedStart ? state.fixedU : Math.random();
   const o = outcome(state.setup, u);
@@ -616,13 +623,13 @@ function frame(now) {
   let s = 0, result = null;
   if (state.atom) {
     const a = state.atom;
-    a.elapsed += dt * state.speed;
+    if (!state.paused) a.elapsed += dt * state.speed;
     const stopAt = G.total; // the wave keeps going in every account, even after an absorption in this branch
     s = Math.min(stopAt, (a.elapsed / DURATION) * G.total);
     result = a.o.result;
     if (s >= stopAt) {
       finishAtom();
-      if (a.elapsed > DURATION + ((state.compare || state.view === 'many-worlds') ? 3800 : 700) && state.running) {
+      if (a.elapsed > DURATION + holdTime() && state.running) {
         if (state.autoRerun) launch();
         else { state.running = false; ui.setRunning(false); }
       }
@@ -676,11 +683,11 @@ requestAnimationFrame(frame);
 mountQonticMedia({
   stage: document.querySelector('.visualization'), controls: document.querySelector('qontic-controls'),
   getCanvases: () => [canvas], filename: 'qontic-mach-zehnder',
-  beginRecording: () => { const previous = state.running; if (canRun()) { state.running = true; ui.setRunning(true); if (!state.atom) launch(); } return previous; },
-  endRecording: previous => { state.running = previous; ui.setRunning(previous); },
+  beginRecording: () => { const previous = state.running; if (canRun()) resume(); return previous; },
+  endRecording: previous => { if (!previous) pause(); },
 });
 mountQonticShortcuts({
-  togglePlayback: () => { if (!canRun()) return flashHint(); state.running = !state.running; ui.setRunning(state.running); if (state.running && !state.atom) launch(); },
+  togglePlayback: () => { if (!canRun()) return flashHint(); if (state.running) pause(); else resume(); },
   reset: () => document.querySelector('qontic-controls').dispatchEvent(new CustomEvent('qontic:reset', { detail: {}, bubbles: true })),
   screenshot: () => document.querySelector('.qontic-media-toolbar button[aria-label="Screenshot"]')?.click(),
 });
