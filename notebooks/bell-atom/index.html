@@ -6,7 +6,7 @@
 <title>Bell's Atom: Why Moving Things Contract — Q-Ontic Lab</title>
 <meta name="description" content="Follow John Bell's 'Lorentzian pedagogy': the field of a moving charge, an electron orbit that contracts as its nucleus is pushed, a thread that must snap, and a moving observer who cannot tell she is moving.">
 <link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg">
-<link rel="stylesheet" href="css/notebook.css?v=0.1.0">
+<link rel="stylesheet" href="css/notebook.css?v=0.1.1">
 </head>
 <body>
 <div class="page">
@@ -71,7 +71,7 @@
     <p>Bell's simplest piece of matter is a classical atom: one electron going round a much heavier nucleus. Start it at rest with a circular orbit, then push the nucleus gently until it moves at speed v. Follow the electron with the field of section 2, the Lorentz force, and Lorentz's relation between momentum and velocity, p = mv/√(1 − v²/c²). Bell's result: the orbit becomes an ellipse shorter by 1/γ along the motion, and it goes round more slowly, by the factor γ.<sup><a href="#ref-1">1</a></sup></p>
     <p>Nothing in this calculation refers to a moving observer, to clocks being synchronized, or to the relativity of simultaneity. It is one frame, Maxwell's equations and relativistic mechanics.</p>
   </div>
-  <p class="notice"><b>What to notice:</b> the orbit, drawn around the nucleus, flattens as the speed rises. Compare the measured ratio with 1/γ, and the measured period with γ. Both are read from the last complete revolution.</p>
+  <p class="notice"><b>What to notice:</b> the orbit, drawn around the nucleus, flattens as the speed rises. Compare the measured ratio with 1/γ, and the measured period with γ. Both are read from the last complete revolution. The yellow bar shows the nucleus speed, from 0 to c.</p>
   <div class="section-body">
     <div class="canvas-card"><canvas id="atomCanvas" aria-label="Electron orbit as the nucleus speeds up"></canvas></div>
     <div class="controls">
@@ -91,7 +91,7 @@
     </div>
   </div>
   <details class="derivation"><summary>How the push is applied, and why it matters</summary><div class="body">
-    <p>Bell applied the force to the nucleus only and let the electron follow. In this purely classical model that choice causes a problem: any steady force on a Kepler orbit slowly changes its eccentricity, by an amount that does not shrink when the push is made slower. The orbit would end up eccentric for reasons that have nothing to do with relativity. Untick the box to see it.</p>
+    <p>Bell applied the force to the nucleus only and let the electron follow. In this purely classical model that choice causes a problem: any steady force on a Kepler orbit slowly changes its eccentricity, by an amount that does not shrink when the push is made slower. The orbit would end up eccentric for reasons that have nothing to do with relativity. Untick the box to see it: within a few tens of orbits the orbit is so eccentric that the electron passes through the region of the nucleus, where this model breaks down, and the run stops.</p>
     <p>The notebook therefore pushes both particles in proportion to their mass, as a uniform gravitational field would. Then, at low speeds, the atom is simply carried along, and whatever happens at high speed comes from the electromagnetic and relativistic dynamics alone. Bell himself stressed that the contraction is expected only for gentle acceleration of a system held together by its internal forces.<sup><a href="#ref-1">1</a></sup></p>
     <p>The equations solved, with the nucleus at z<sub>N</sub>(t) moving at V(t): dp/dt = −e(E + v × B/c) + m d(γ<sub>V</sub>V)/dt ẑ, v = p/√(m² + p²/c²), with E and B the uniform-motion field of section 2 at the current speed V(t). Fourth-order Runge–Kutta, 300 steps per orbit.</p>
   </div></details>
@@ -129,7 +129,7 @@
     <p class="formula">t′ = γ(t − vz/c²),&nbsp;&nbsp; z′ = γ(z − vt),&nbsp;&nbsp; x′ = x,</p>
     <p>the Lorentz transformation. In her coordinates the moving atom is a circle that goes round in the rest period, exactly like an atom at rest. Maxwell's equations and the Lorentz force keep the same form in these variables, so nothing she can measure tells her she is moving.<sup><a href="#ref-1">1</a></sup></p>
   </div>
-  <p class="notice"><b>What to notice:</b> the same electron, after the push, in two sets of variables. Left, A's: a flattened orbit that goes round slowly; her ruler (white bar) is shortened with it. Right, hers: a circle with the rest period, and a ruler of full length.</p>
+  <p class="notice"><b>What to notice:</b> the same electron, after the push, in two sets of variables, shown at the same reading of her clock. Left, A's: a flattened orbit; her ruler (white bar) is shortened with it, and A's clock runs γ times faster than hers. Right, hers: a circle that goes round once per rest period of her clock, and a ruler of full length.</p>
   <div class="section-body">
     <div class="canvas-card"><canvas id="observerCanvas" aria-label="The moving atom in the launch frame and in the moving observer's variables"></canvas></div>
     <div class="controls">
@@ -141,11 +141,11 @@
         <span>Period in t / rest period</span><output id="obsPerLab">—</output>
         <span>Period in t′ / rest period</span><output id="obsPerPrime">—</output>
       </div>
-      <p class="mini">Both pictures use the same simulated electron (section 3's model after the push). The right one is the left one transformed, event by event.</p>
+      <p class="mini">Both pictures use the same simulated electron (section 3's model after the push). The right one is the left one transformed, event by event. Her clock travels with the atom.</p>
     </div>
   </div>
   <details class="derivation"><summary>Details and math</summary><div class="body">
-    <p>During coasting the nucleus moves as z = c₀ + vt. Its primed position, z′ = γ(c₀ + vt − vt) = γc₀, is constant: in her variables the nucleus is at rest. Each electron event (t, x, z) is transformed with the formulas above; the orbit is drawn about the nucleus. The small departure from a perfect circle and from the rest period (about 1–2%) comes from the finite length of the push in the simulation.</p>
+    <p>During coasting the nucleus moves as z = c₀ + vt. Its primed position, z′ = γ(c₀ + vt − vt) = γc₀, is constant: in her variables the nucleus is at rest. Each electron event (t, x, z) is transformed with the formulas above; the orbit is drawn about the nucleus. The remaining departures from a perfect circle and from the rest period, below 1% and largest at 0.95 c, come from the finite length of the push in the simulation.</p>
     <p>The inverse transformation has the same form with v replaced by −v. So A, seen from her coordinates, has short rulers and slow clocks too. Each can account for the other's measurements, and neither can show the other to be the one really moving.<sup><a href="#ref-1">1</a></sup></p>
   </div></details>
 </section>
@@ -191,8 +191,8 @@
   </ol>
 </section>
 
-<footer class="footer"><span>Bell's atom notebook · Version 0.1.0 · 2026-11-05</span><span>Q-Ontic Lab, Rice University · <a href="mailto:qonticlab@rice.edu">qonticlab@rice.edu</a></span></footer>
+<footer class="footer"><span>Bell's atom notebook · Version 0.1.1 · 2026-11-05</span><span>Q-Ontic Lab, Rice University · <a href="mailto:qonticlab@rice.edu">qonticlab@rice.edu</a></span></footer>
 </div>
-<script type="module" src="js/notebook.js?v=0.1.0"></script>
+<script type="module" src="js/notebook.js?v=0.1.1"></script>
 </body>
 </html>

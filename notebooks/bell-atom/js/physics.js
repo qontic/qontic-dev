@@ -1,6 +1,7 @@
 // Physics for the "Bell's atom" notebook. Units: c = 1, electron mass m = 1,
 // initial orbit radius r0 = 1. The nucleus-electron coupling K = Z e^2 (Gaussian
-// units) is chosen so that the circular orbit speed is v0 = sqrt(K) (0.1 c by
+// units) is K = v0^2 with v0 = 0.1 c; the orbit speed is set slightly below v0 so that
+// the orbit is exactly circular for a relativistic electron (0.1 c by
 // default; Bell notes that a heavy nucleus makes the computation feasible).
 // The orbit lies in the x-z plane; the nucleus moves along +z.
 
@@ -46,8 +47,11 @@ export function makeProgram(Vf, Tacc) {
 export class BellAtom {
   constructor({ v0 = 0.1, Vf = 0.8, rampOrbits = 100, pushElectron = true, stepsPerOrbit = 300 } = {}) {
     this.K = v0 * v0;
-    this.v0 = v0;
-    this.T0 = (2 * Math.PI) / v0;
+    // Exactly circular orbit of radius 1 for a relativistic electron:
+    // K / r^2 = gamma m v^2 / r, i.e. v^2 / sqrt(1 - v^2) = K.
+    const K2 = this.K * this.K;
+    this.v0 = Math.sqrt((Math.sqrt(K2 * K2 + 4 * K2) - K2) / 2);
+    this.T0 = (2 * Math.PI) / this.v0;
     this.prog = makeProgram(Vf, rampOrbits * this.T0);
     this.push = pushElectron;
     this.dt = this.T0 / stepsPerOrbit;
@@ -61,6 +65,7 @@ export class BellAtom {
     this.orbit = null; // extents of the revolution in progress
     this.last = null; // measured extents and period of the last complete revolution
     this.lastCross = null;
+    this.lost = null; // set when the electron leaves the region where the model holds
   }
 
   deriv([x, z, px, pz], t) {
@@ -77,6 +82,7 @@ export class BellAtom {
   step(n = 1) {
     const h = this.dt;
     for (let i = 0; i < n; i++) {
+      if (this.lost) return;
       const s = this.s, t = this.t;
       const k1 = this.deriv(s, t);
       const a = s.map((v, j) => v + 0.5 * h * k1[j]);
@@ -89,6 +95,10 @@ export class BellAtom {
       this.track(s[0], next[0], next[1] - this.prog.z(t + h), t + h);
       this.s = next;
       this.t = t + h;
+      // A nearly radial orbit takes the point electron through the nucleus,
+      // where a fixed-step integration (and the classical model) fails.
+      const r = Math.hypot(next[0], next[1] - this.prog.z(this.t));
+      if (r < BellAtom.R_MIN || r > BellAtom.R_MAX) this.lost = { t: this.t, r, V: this.prog.V(this.t) };
     }
   }
 
@@ -113,6 +123,9 @@ export class BellAtom {
     }
   }
 
+  static R_MIN = 0.1;
+  static R_MAX = 3;
+
   get rel() { return { x: this.s[0], z: this.s[1] - this.prog.z(this.t), t: this.t, V: this.prog.V(this.t) }; }
 }
 
@@ -121,7 +134,8 @@ export class BellAtom {
 export function steadyOrbit({ v0 = 0.1, Vf = 0.8, rampOrbits = 100, revolutions = 3, samplesPerOrbit = 300 } = {}) {
   const atom = new BellAtom({ v0, Vf, rampOrbits, stepsPerOrbit: samplesPerOrbit });
   const Tacc = atom.prog.Tacc;
-  while (atom.t < Tacc + 3 * atom.T0) atom.step(50);
+  while (atom.t < Tacc + 3 * atom.T0 && !atom.lost) atom.step(50);
+  if (atom.lost) throw new Error('steadyOrbit: electron lost during the push');
   const g = gammaOf(Vf);
   const n = Math.round(revolutions * g * samplesPerOrbit);
   const events = [];

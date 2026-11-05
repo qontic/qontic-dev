@@ -1,4 +1,4 @@
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.1.0';
+import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.1.1';
 
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d);
@@ -101,8 +101,8 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     $('#atomRampOut').value = `${ui.ramp.value} orbits`;
     draw();
   }
-  function setPlaying(p) { playing = p; ui.play.textContent = p ? 'Pause' : (finished ? 'Continue' : 'Play'); }
-  ui.play.addEventListener('click', () => setPlaying(!playing));
+  function setPlaying(p) { playing = p; ui.play.textContent = p ? 'Pause' : (finished ? 'Replay' : 'Play'); }
+  ui.play.addEventListener('click', () => { if (finished) restart(); setPlaying(!playing); });
   $('#atomRestart').addEventListener('click', () => { restart(); setPlaying(true); });
   [ui.V, ui.ramp, ui.push].forEach((el) => el.addEventListener('input', () => { restart(); }));
   ui.speed.addEventListener('input', () => { $('#atomSpeedOut').value = `${ui.speed.value}×`; });
@@ -111,7 +111,8 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     const c = prepare(canvas); if (!c) return;
     const { ctx, w, h } = c;
     const { x, z, V } = atom.rel, g = gammaOf(V);
-    const cx = w / 2, cy = h / 2 - 8, R = Math.min(w * 0.3, h * 0.36);
+    const narrow = w < 560;
+    const cx = w / 2, cy = h / 2 - (narrow ? 2 : 8), R = Math.min(w * 0.3, h * 0.33);
     // reference: rest orbit and the ellipse expected at the current speed
     ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2;
     ctx.strokeStyle = 'rgba(207,227,245,0.25)'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
@@ -125,18 +126,36 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     }
     ctx.fillStyle = COLORS.orange; ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = COLORS.cyan; ctx.beginPath(); ctx.arc(cx + z * R, cy - x * R, 5, 0, Math.PI * 2); ctx.fill();
-    text(ctx, 'orbit drawn around the nucleus · dashed grey: orbit at rest · dashed green: expected at this speed', 12, 20, { color: COLORS.muted, size: 11.5 });
-    // speed bar
-    const bw = Math.min(260, w * 0.45), bx = w - bw - 14, by = h - 22;
+    if (narrow) {
+      text(ctx, 'orbit drawn around the nucleus', 12, 20, { color: COLORS.muted, size: 11.5 });
+      text(ctx, 'dashed grey: at rest · dashed green: expected', 12, 36, { color: COLORS.muted, size: 11.5 });
+    } else {
+      text(ctx, 'orbit drawn around the nucleus · dashed grey: orbit at rest · dashed green: expected at this speed', 12, 20, { color: COLORS.muted, size: 11.5 });
+    }
+    // speed bar, scaled from 0 to c
+    const bw = Math.min(260, w * 0.45), bx = w - bw - 14, by = h - 26;
     ctx.fillStyle = COLORS.grid; ctx.fillRect(bx, by, bw, 7);
     ctx.fillStyle = COLORS.gold; ctx.fillRect(bx, by, bw * V, 7);
+    text(ctx, '0', bx, by + 18, { color: COLORS.muted, size: 10.5, align: 'left' });
+    text(ctx, 'c', bx + bw, by + 18, { color: COLORS.muted, size: 10.5, align: 'right' });
     text(ctx, `nucleus speed ${fmt(V)} c · γ = ${fmt(g)}`, bx + bw, by - 6, { color: COLORS.ink, size: 12, align: 'right' });
     const done = atom.t > atom.prog.Tacc;
-    text(ctx, done ? 'push finished: coasting' : 'being pushed…', bx + bw, by - 24, { color: done ? COLORS.green : COLORS.gold, size: 12, align: 'right' });
-    motionArrow(ctx, 12, h - 16);
-    // readouts
+    const status = atom.lost ? 'stopped: electron lost' : done ? 'push finished: coasting' : atom.t === 0 ? 'ready' : 'being pushed…';
+    text(ctx, status, bx + bw, by - 24, { color: atom.lost ? COLORS.red : done ? COLORS.green : COLORS.gold, size: 12, align: 'right' });
+    motionArrow(ctx, 12, h - (narrow ? 44 : 16), narrow ? 'motion' : 'direction of motion');
+    if (atom.lost) {
+      const msg = [`After ${fmt(atom.lost.t / atom.T0, 0)} orbits the orbit had become so eccentric`,
+        'that the electron passed through the nucleus region.',
+        'The model breaks down there, so the run stops.'];
+      const lw = Math.min(w - 24, 400), lx = cx - lw / 2, ly = 48;
+      ctx.fillStyle = 'rgba(7,16,32,0.88)'; ctx.strokeStyle = COLORS.red; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(lx, ly, lw, 66, 8); ctx.fill(); ctx.stroke();
+      msg.forEach((m, i) => text(ctx, m, cx, ly + 20 + i * 17, { color: COLORS.ink, size: narrow ? 11 : 12, align: 'center' }));
+    }
+    // readouts: measured over the last complete revolution, compared with the
+    // values expected at the speed the nucleus had during that revolution
     $('#atomVnow').value = `${fmt(V)} c`;
-    const L = atom.last;
+    const L = atom.lost ? null : atom.last;
     $('#atomRatio').value = L ? fmt(L.length / L.width, 3) : '—';
     $('#atomRatioExp').value = fmt(1 / gammaOf(L ? L.V : V), 3);
     $('#atomPeriod').value = L ? fmt(L.period / atom.T0, 2) : '—';
@@ -154,7 +173,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
       }
       const keep = Math.round(1.15 * 300 * gammaOf(atom.rel.V));
       if (trail.length > keep) trail.splice(0, trail.length - keep);
-      if (!finished && atom.t > atom.prog.Tacc + 6 * atom.T0 * gammaOf(atom.prog.Vf)) { finished = true; setPlaying(false); }
+      if (!finished && (atom.lost || atom.t > atom.prog.Tacc + 6 * atom.T0 * gammaOf(atom.prog.Vf))) { finished = true; setPlaying(false); }
     }
     if (visible) draw();
     requestAnimationFrame(frame);
@@ -183,7 +202,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     const c = prepare(canvas); if (!c) return;
     const { ctx, w, h } = c;
     const V = +sV.value, g = gammaOf(V), eps = +sE.value / 100, isStrong = strong.checked;
-    const S = w * 0.6, y = h * 0.52, N = 7;
+    const S = w * 0.6, y = h * 0.52, N = w < 500 ? 5 : 7;
     const gap = isStrong ? 1 / g : 1;
     const natural = 1 / g, stretch = gap / natural - 1, broken = !isStrong && stretch > eps;
     const xc = w / 2, xa = xc - (gap * S) / 2, xb = xc + (gap * S) / 2;
@@ -224,7 +243,11 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     $('#threadEpsOut').value = `${sE.value}%`;
     $('#threadGap').value = `${fmt(gap)} L`;
     $('#threadNat').value = `${fmt(natural)} L`;
-    $('#threadStretch').value = broken ? `${Math.round(stretch * 100)}%: snapped` : `${Math.round(Math.max(0, stretch) * 100)}%`;
+    const out = $('#threadStretch');
+    out.value = broken ? `${Math.round(stretch * 100)}%: snapped` : `${Math.round(Math.max(0, stretch) * 100)}%`;
+    out.style.color = broken ? '#b91c1c' : '';
+    sE.disabled = isStrong;
+    sE.closest('.row').style.opacity = isStrong ? 0.45 : '';
   }
   [sV, sE, strong].forEach((el) => el.addEventListener('input', draw));
   addEventListener('resize', draw);
@@ -251,7 +274,14 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
       for (let i = 1; i < arr.length; i++) if (arr[i - 1].x < 0 && arr[i].x >= 0) cr.push(arr[i].t);
       return cr.length > 1 ? (cr[cr.length - 1] - cr[0]) / (cr.length - 1) : NaN;
     };
-    data = { V, g, lab, prime, T0: o.T0, ratioLab: extent(lab), ratioPrime: extent(prime), perLab: period(lab) / o.T0, perPrime: period(prime) / o.T0 };
+    // One parameter drives both pictures: tau, the time on her clock, which
+    // travels with the nucleus (z = c0 + V t, so t' = t/gamma - gamma V c0 there).
+    // The left picture shows A's time t at which her clock reads tau; the right
+    // shows her time t' = tau. Both then show (nearly) the same electron event.
+    const tOf = (tau) => g * (tau + g * V * o.c0);
+    const tauOf = (t) => t / g - g * V * o.c0;
+    const tau0 = Math.max(prime[0].t, tauOf(lab[0].t)), tau1 = Math.min(prime[prime.length - 1].t, tauOf(lab[lab.length - 1].t));
+    data = { V, g, lab, prime, T0: o.T0, tOf, tau0, tau1, ratioLab: extent(lab), ratioPrime: extent(prime), perLab: period(lab) / o.T0, perPrime: period(prime) / o.T0 };
     $('#obsVOut').value = `${fmt(V)} c`;
     $('#obsRatioLab').value = fmt(data.ratioLab, 3);
     $('#obsRatioPrime').value = fmt(data.ratioPrime, 3);
@@ -261,8 +291,9 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
   }
   // index of the sample whose time is closest to t (arrays sorted by time)
   const at = (arr, t) => { let lo = 0, hi = arr.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (arr[m].t < t) lo = m; else hi = m; } return hi; };
-  function panel(ctx, x0, w, h, title, arr, t, rulerLen, clockLabel) {
-    const cx = x0 + w / 2, cy = h / 2 + 4, R = Math.min(w * 0.36, h * 0.3);
+  function panel(ctx, x0, w, h, title, arr, t, rulerLen, clockLabels, reserve = 0) {
+    const top = 18 * clockLabels.length + 30, avail = h - top - reserve - 46;
+    const R = Math.min(w * 0.36, avail / 2), cx = x0 + w / 2, cy = top + avail / 2;
     ctx.strokeStyle = 'rgba(207,227,245,0.18)'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
     const i1 = at(arr, t), span = Math.round(arr.length / 3.2);
     ctx.lineWidth = 2;
@@ -277,24 +308,27 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     ctx.strokeStyle = COLORS.white; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx - rulerLen * R, ry); ctx.lineTo(cx + rulerLen * R, ry); ctx.stroke();
     text(ctx, 'her ruler', cx, ry + 16, { color: COLORS.muted, size: 11, align: 'center' });
     text(ctx, title, x0 + 12, 22, { color: COLORS.ink, size: 13, weight: 600 });
-    text(ctx, clockLabel, x0 + 12, 40, { color: COLORS.gold, size: 12 });
+    clockLabels.forEach((l, i) => text(ctx, l, x0 + 12, 40 + 17 * i, { color: i ? COLORS.muted : COLORS.gold, size: 12 }));
   }
   function draw() {
     const c = prepare(canvas); if (!c || !data) return;
     const { ctx, w, h } = c;
     const wide = w > 560;
-    const { lab, prime, g, T0 } = data;
-    const tl = lab[0].t + (clock % (lab[lab.length - 1].t - lab[0].t - 1));
-    const tp = prime[0].t + (clock % (prime[prime.length - 1].t - prime[0].t - 1));
+    const { lab, prime, g, T0, tOf, tau0, tau1 } = data;
+    const tau = tau0 + (clock % (tau1 - tau0));
+    const tl = tOf(tau), tp = tau;
+    const herClock = `${fmt((tau - tau0) / T0, 1)} rest periods`;
+    const labLabels = [`A's clock: ${fmt((tl - tOf(tau0)) / T0, 1)} rest periods`, `her clock (on the atom): ${herClock}`];
+    const herLabels = [`her clock: ${herClock}`];
     if (wide) {
-      panel(ctx, 0, w / 2, h, "A's variables (x, z, t)", lab, tl, 1 / g, `A's clock: ${fmt((tl - lab[0].t) / T0, 1)} rest periods`);
-      panel(ctx, w / 2, w / 2, h, "Her variables (x′, z′, t′)", prime, tp, 1, `her clock: ${fmt((tp - prime[0].t) / T0, 1)} rest periods`);
+      panel(ctx, 0, w / 2, h, "A's variables (x, z, t)", lab, tl, 1 / g, labLabels, 14);
+      panel(ctx, w / 2, w / 2, h, "Her variables (x′, z′, t′)", prime, tp, 1, herLabels, 14);
       ctx.strokeStyle = COLORS.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(w / 2, 10); ctx.lineTo(w / 2, h - 10); ctx.stroke();
     } else {
-      ctx.save(); ctx.scale(1, 1);
-      panel(ctx, 0, w, h / 2, "A's variables", lab, tl, 1 / g, `A's clock: ${fmt((tl - lab[0].t) / T0, 1)} rest periods`);
+      ctx.save();
+      panel(ctx, 0, w, h / 2, "A's variables (x, z, t)", lab, tl, 1 / g, labLabels);
       ctx.translate(0, h / 2);
-      panel(ctx, 0, w, h / 2, "Her variables", prime, tp, 1, `her clock: ${fmt((tp - prime[0].t) / T0, 1)} rest periods`);
+      panel(ctx, 0, w, h / 2, "Her variables (x′, z′, t′)", prime, tp, 1, herLabels, 22);
       ctx.restore();
     }
     motionArrow(ctx, 12, h - 12, 'atom moves this way (in A’s frame)');
