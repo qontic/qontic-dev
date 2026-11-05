@@ -1,5 +1,10 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.4 — 2026-11-05
+- Many worlds: each record splits the apparatus into weighted copies (as in the analytical double slit), then the view follows the copy you are in.
+- Spontaneous collapse: collapse clock with the GRW rate, and a visible collapse when the wave reaches a macroscopic object.
+- Orthodox: the collapse postulate is marked where it is applied.
+
 ## 0.3 — 2026-11-05
 - Wave drawn as Gaussian packets with carrier waves: real interference fringes where parts of one branch overlap, none across branches.
 - Compare mode: all four accounts side by side for the same atom, each answering the setup's key question.

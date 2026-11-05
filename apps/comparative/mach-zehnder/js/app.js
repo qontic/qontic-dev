@@ -234,6 +234,7 @@ const colors = () => {
 };
 let view = { k: 1, ox: 0, oy: 0 };
 let V = 'orthodox';
+let WORLD = null; // many-worlds tile being drawn: { outcome, exploded }
 const T = p => ({ x: view.ox + p.x * view.k, y: view.oy + p.y * view.k });
 
 function blob(p, r, color, alpha) {
@@ -270,7 +271,7 @@ function drawApparatus(c, s, result) {
   [['D1', G.D1, G.dUp], ['D2', G.D2, G.dDown]].forEach(([name, d]) => {
     const p = T(d), size = 30 * view.k;
     const probs = probabilities(state.setup);
-    const hit = arrived && (V === 'many-worlds' && result !== 'bomb' ? probs[name.toLowerCase()] > 0 : result === name.toLowerCase());
+    const hit = WORLD ? arrived && WORLD.outcome === name.toLowerCase() : arrived && result === name.toLowerCase();
     ctx.fillStyle = hit ? c.flash : 'transparent'; ctx.strokeStyle = hit ? c.flash : c.optic; ctx.lineWidth = 2 * view.k;
     ctx.beginPath(); ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     if (state.display.labels) label(name, { x: d.x + 34, y: d.y }, c.text, 'left', 16);
@@ -282,7 +283,7 @@ function drawApparatus(c, s, result) {
     if (state.display.labels) label('Marker', { x: G.OBJ.x - 22, y: G.OBJ.y - 4 }, c.a, 'right');
   }
   if (state.setup.object === 'bomb') {
-    const exploded = state.atom && result === 'bomb' && s >= G.sObj;
+    const exploded = WORLD ? WORLD.exploded : state.atom && result === 'bomb' && s >= G.sObj;
     const p = T(G.OBJ);
     ctx.fillStyle = exploded ? c.flash : c.bomb; ctx.beginPath(); ctx.arc(p.x, p.y, (exploded ? 22 : 13) * view.k, 0, Math.PI * 2); ctx.fill();
     if (state.display.labels) label(exploded ? 'Bomb exploded' : 'Bomb', { x: G.OBJ.x - 24, y: G.OBJ.y - 4 }, c.bomb, 'right');
@@ -326,14 +327,24 @@ function drawWave(c, s, result) {
   if (!state.display.wave || !state.atom) return;
   const atDetectors = s >= G.total - 1;
   const collapseViews = V === 'orthodox' || V === 'spontaneous-collapse';
-  if (atDetectors && collapseViews) {
+  if (atDetectors && collapseViews && result !== 'bomb') {
+    const since = state.atom.elapsed - DURATION;
+    if (since < 450) { const f0 = fieldsFor(s, result); ctx.globalAlpha = 1 - since / 450; ctx.drawImage(paintField(f0.all, () => c.wave, 1), view.ox, view.oy, 1000 * view.k, 600 * view.k); ctx.globalAlpha = 1; }
     blob(result === 'd1' ? G.D1 : G.D2, 26, c.wave, .95);
+    collapseMark(c, result === 'd1' ? G.D1 : G.D2, since);
     return;
   }
   const collapsesAtObject = V === 'orthodox' ? state.setup.object === 'bomb'
     : V === 'spontaneous-collapse' ? state.setup.object === 'bomb' || (state.setup.object === 'marker' && state.setup.markerSize === 'macro') : false;
-  if (collapsesAtObject && result === 'bomb' && s >= G.sObj) return;
+  const tObj = DURATION * G.sObj / G.total, sinceObj = state.atom.elapsed - tObj;
+  if (collapsesAtObject && s >= G.sObj) collapseMark(c, G.OBJ, sinceObj);
   const f = fieldsFor(s, result);
+  if (collapsesAtObject && s >= G.sObj && sinceObj < 450) {
+    ctx.globalAlpha = 1 - sinceObj / 450;
+    ctx.drawImage(paintField(f.all, () => c.wave, 1), view.ox, view.oy, 1000 * view.k, 600 * view.k);
+    ctx.globalAlpha = 1;
+  }
+  if (collapsesAtObject && result === 'bomb' && s >= G.sObj) return;
   const fields = collapsesAtObject && s >= G.sObj ? f.collapsed : f.all;
   const branchColor = k => fields.length < 2 ? c.wave : V === 'many-worlds' || V === 'pilot-wave' ? (k === 'a' ? c.a : c.b) : (k === 'a' ? c.a : c.wave);
   const img = paintField(fields, branchColor, V === 'pilot-wave' ? .55 : 1);
@@ -406,9 +417,10 @@ function drawConfigPanel(c, s, result) {
 function captionText(s, result) {
   if (!state.atom) return 'Choose a setup, make a prediction, then send atoms.';
   if (result === 'bomb' && s >= G.sObj) return 'The bomb absorbed the atom and exploded.';
-  if (s >= G.total - 1 && V === 'many-worlds') {
-    const pr = probabilities(state.setup);
-    if (pr.d1 > 0 && pr.d2 > 0) return 'Both detectors click, each in its own branch. You find yourself in the branch where ' + (result === 'd1' ? 'D1' : 'D2') + ' clicked.';
+  if (V === 'many-worlds') {
+    const info = mwInfo(s);
+    if (s >= G.total - 1) return info.list.length > 1 ? `The detectors split the world into ${info.list.length} copies, weighted by the Born rule. You are in one of them.` : 'Only one detector outcome has any weight, so the world does not split.';
+    if (info.list.length > 1) return `The ${state.setup.object === 'bomb' ? 'bomb' : 'marker'} made a record: the world has split into two copies that no longer interfere.`;
   }
   if (s >= G.total - 1) return result === 'd1' ? 'D1 clicked.' : 'D2 clicked.' + (state.setup.object === 'bomb' && state.setup.bs2 ? ' The bomb is live, and it absorbed nothing.' : '');
   if (s < G.sBS1) return 'An atom leaves the source.';
@@ -433,6 +445,139 @@ function answerFor(name, s, result) {
   return text;
 }
 
+// A brief mark where the state collapses: the postulate (orthodox) or a physical event (spontaneous collapse).
+function collapseMark(c, point, since) {
+  if (since < 0 || since > 1100) return;
+  const q = T(point), t = since / 1100;
+  ctx.strokeStyle = c.flash; ctx.globalAlpha = 1 - t; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(q.x, q.y, (14 + 60 * t) * view.k, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = 1;
+  if (view.k > .3) label(V === 'orthodox' ? 'measurement → collapse' : 'collapse', { x: point.x, y: point.y - 34 - 20 * t }, c.flash, 'center', 13);
+}
+
+// ---------- spontaneous collapse: how much is in superposition ----------
+const LAMBDA = 1e-16; // GRW collapse rate per nucleon, s^-1 (original GRW value)
+function scState(s, result) {
+  const obj = state.setup.object;
+  const arrived = s >= G.total - 1 && result !== 'bomb';
+  if (arrived) return { what: 'detector (~10²³ nucleons displaced)', n: 1e23, collapsed: true };
+  if (obj === 'bomb' && s >= G.sObj) return { what: 'bomb (~10²³ nucleons)', n: 1e23, collapsed: true };
+  if (obj === 'marker' && state.setup.markerSize === 'macro' && s >= G.sObj) return { what: 'macroscopic marker (~10²⁰ nucleons)', n: 1e20, collapsed: true };
+  if (obj === 'marker' && s >= G.sObj) return { what: 'atom + microscopic marker (~100 nucleons)', n: 100, collapsed: false };
+  return { what: 'one rubidium-87 atom (87 nucleons)', n: 87, collapsed: false };
+}
+const formatTime = t => t > 3.15e13 ? `${(t / 3.15e13).toFixed(1)} million years` : t > 3.15e7 ? `${(t / 3.15e7).toFixed(0)} years` : t >= 1 ? `${t.toFixed(1)} s` : t >= 1e-3 ? `${(t * 1e3).toFixed(1)} ms` : t >= 1e-6 ? `${(t * 1e6).toFixed(1)} µs` : `${(t * 1e9).toFixed(0)} ns`;
+function drawCollapseClock(c, s, result) {
+  if (!state.display.config) return;
+  const st = scState(s, result), tau = 1 / (LAMBDA * st.n);
+  const x0 = 30, y0 = 404, w = 270, h = 180, p = T({ x: x0, y: y0 });
+  ctx.fillStyle = c.panel; ctx.strokeStyle = c.beam; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(p.x, p.y, w * view.k, h * view.k, 8 * view.k); ctx.fill(); ctx.stroke();
+  label('Collapse clock (GRW)', { x: x0 + 12, y: y0 + 16 }, c.text, 'left', 12);
+  label('In superposition:', { x: x0 + 12, y: y0 + 42 }, c.muted, 'left', 11);
+  label(st.what, { x: x0 + 12, y: y0 + 60 }, c.text, 'left', 11);
+  label('Expected time to collapse:', { x: x0 + 12, y: y0 + 86 }, c.muted, 'left', 11);
+  label(formatTime(tau) + (st.collapsed ? '  → collapsed' : ''), { x: x0 + 12, y: y0 + 104 }, st.collapsed ? c.flash : c.text, 'left', 12);
+  // log scale from 10 ns to 10^15 s
+  const bx = x0 + 14, bw = w - 28, by = y0 + 140, frac = Math.max(0, Math.min(1, (Math.log10(tau) + 8) / 23));
+  line({ x: bx, y: by }, { x: bx + bw, y: by }, c.beam, 4);
+  line({ x: bx, y: by }, { x: bx + bw * frac, y: by }, st.collapsed ? c.flash : c.wave, 4);
+  label('10 ns', { x: bx, y: by + 16 }, c.muted, 'left', 9);
+  label('1 s', { x: bx + bw * 8 / 23, y: by + 16 }, c.muted, 'center', 9);
+  label('30 Myr', { x: bx + bw, y: by + 16 }, c.muted, 'right', 9);
+}
+
+// ---------- many worlds: the world splits into copies ----------
+const fraction = w => Math.abs(w - 1) < 1e-6 ? '1' : Math.abs(w - .5) < 1e-6 ? '1/2' : Math.abs(w - .25) < 1e-6 ? '1/4' : `${Math.round(w * 100)}%`;
+function outcomeProbs(branch) {
+  const bs2 = state.setup.bs2;
+  if (branch === null) { if (!bs2) return { d1: .5, d2: .5 }; const p = probabilities(state.setup); return { d1: p.d1, d2: p.d2 }; }
+  if (bs2) return { d1: .5, d2: .5 };
+  return branch === 'a' ? { d2: 1 } : { d1: 1 };
+}
+function mwStages() {
+  const obj = state.setup.object;
+  const s0 = [{ id: 'w', branch: null, w: 1, text: '' }];
+  let s1 = null;
+  if (obj === 'marker') s1 = [{ id: 'a', parent: 'w', branch: 'a', w: .5, text: 'marker flipped' }, { id: 'b', parent: 'w', branch: 'b', w: .5, text: 'marker ready' }];
+  if (obj === 'bomb') s1 = [{ id: 'x', parent: 'w', branch: 'x', exploded: true, w: .5, text: 'bomb exploded' }, { id: 'b', parent: 'w', branch: 'b', w: .5, text: 'bomb intact' }];
+  const base = s1 || s0;
+  const s2 = [];
+  base.forEach(wd => {
+    if (wd.exploded) { s2.push({ ...wd, parent: wd.id }); return; }
+    Object.entries(outcomeProbs(wd.branch)).forEach(([o, p]) => { if (p > 1e-6) s2.push({ id: wd.id + o, parent: wd.id, branch: wd.branch, outcome: o, w: wd.w * p, text: [wd.text, `${o.toUpperCase()} clicked`].filter(Boolean).join(' · ') }); });
+  });
+  return { s0, s1, s2 };
+}
+function tileLayout(list, R) {
+  const m = list.length, cols = m <= 3 ? m : Math.ceil(Math.sqrt(m)), rows = Math.ceil(m / cols), gap = 10, lab = 16;
+  const tw = Math.min((R.w - gap * (cols - 1)) / cols, ((R.h - rows * lab - gap * (rows - 1)) / rows) * 1000 / 600);
+  const th = tw * 600 / 1000, gw = cols * tw + (cols - 1) * gap, gh = rows * (th + lab) + (rows - 1) * gap;
+  const out = {};
+  list.forEach((wd, i) => {
+    const cx = i % cols, cy = Math.floor(i / cols);
+    out[wd.id] = { x: R.x + (R.w - gw) / 2 + cx * (tw + gap), y: R.y + (R.h - gh) / 2 + cy * (th + lab + gap) + lab, w: tw, h: th };
+  });
+  return out;
+}
+const lerpRect = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, w: a.w + (b.w - a.w) * t, h: a.h + (b.h - a.h) * t });
+const ease = t => t * t * (3 - 2 * t);
+function mwInfo(s) {
+  const st = mwStages();
+  const atom = state.atom, elapsed = atom ? atom.elapsed : 0;
+  const tObj = DURATION * G.sObj / G.total, tDet = DURATION;
+  let list = st.s0, prev = null, tEvent = 0;
+  if (atom && s >= G.total - 1) { list = st.s2; prev = st.s1 || st.s0; tEvent = tDet; }
+  else if (atom && st.s1 && s >= G.sObj) { list = st.s1; prev = st.s0; tEvent = tObj; }
+  let actual = null;
+  if (atom) {
+    const o = atom.o, obj = state.setup.object;
+    const first = obj === 'marker' ? (o.arm === 'U' ? 'a' : 'b') : obj === 'bomb' ? (o.result === 'bomb' ? 'x' : 'b') : 'w';
+    actual = s >= G.total - 1 ? (first === 'x' ? 'x' : first + o.result) : first;
+  }
+  return { list, prev, progress: prev ? ease(Math.max(0, Math.min(1, (elapsed - tEvent) / 900))) : 1, zoom: s >= G.total - 1 && list.length > 1 ? ease(Math.max(0, Math.min(1, (elapsed - tDet - 2300) / 900))) : 0, actual };
+}
+function drawMW(c, s, result, R, compact = false) {
+  const info = mwInfo(s);
+  const now = tileLayout(info.list, R), before = info.prev ? tileLayout(info.prev, R) : null;
+  const full = tileLayout([{ id: 'full' }], R).full;
+  const maxW = Math.max(...info.list.map(wd => wd.w));
+  const f = state.atom ? fieldsFor(s, result) : null;
+  const savedLabels = state.display.labels;
+  info.list.forEach(wd => {
+    let rect = now[wd.id];
+    if (before && info.progress < 1) rect = lerpRect(before[wd.parent] || rect, rect, info.progress);
+    let alpha = info.list.length > 1 ? .35 + .65 * wd.w / maxW : 1;
+    if (info.zoom > 0) { if (wd.id === info.actual) { rect = lerpRect(rect, full, info.zoom); alpha = alpha + (1 - alpha) * info.zoom; } else alpha *= 1 - info.zoom; }
+    if (alpha < .02) return;
+    view = { k: rect.w / 1000, ox: rect.x, oy: rect.y };
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.beginPath(); ctx.rect(rect.x - 2, rect.y - 2, rect.w + 4, rect.h + 4); ctx.clip();
+    if (info.list.length > 1) { ctx.strokeStyle = wd.id === info.actual && info.zoom > 0 ? c.wave : c.beam; ctx.lineWidth = 1; ctx.strokeRect(rect.x, rect.y, rect.w, rect.h); }
+    state.display.labels = savedLabels && view.k > .5;
+    WORLD = { outcome: wd.outcome || null, exploded: Boolean(wd.exploded) };
+    drawApparatus(c, s, result);
+    if (state.display.wave && f && !wd.exploded) {
+      if (wd.outcome) blob(wd.outcome === 'd1' ? G.D1 : G.D2, 26, c.wave, .95);
+      else {
+        const fields = wd.branch === null ? f.all : f.all.filter(x => x.key === wd.branch);
+        ctx.drawImage(paintField(fields, () => c.wave, 1), view.ox, view.oy, 1000 * view.k, 600 * view.k);
+      }
+    }
+    WORLD = null; state.display.labels = savedLabels;
+    ctx.restore();
+    if (info.list.length > 1 && info.progress > .6 && info.zoom < .5) {
+      ctx.globalAlpha = Math.min(alpha, 1); ctx.fillStyle = wd.id === info.actual ? c.wave : c.text;
+      ctx.font = '11px Inter, Arial, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      const tag = compact || rect.w < 230 ? (wd.outcome ? wd.outcome.toUpperCase() : wd.text.split(' ').slice(-1)[0]) : wd.text;
+      ctx.fillText(`${fraction(wd.w)}${tag ? ' · ' + tag : ''}`, rect.x + 2, rect.y - 3);
+      ctx.globalAlpha = 1;
+    }
+  });
+  return info;
+}
+
+const resultsPanel = document.querySelector('[data-results-panel]');
 let lastFrame = performance.now();
 function frame(now) {
   const ratio = devicePixelRatio || 1, width = canvas.clientWidth, height = canvas.clientHeight;
@@ -453,7 +598,7 @@ function frame(now) {
     result = a.o.result;
     if (s >= stopAt) {
       finishAtom();
-      if (a.elapsed > DURATION + 700 && state.running) {
+      if (a.elapsed > DURATION + ((state.compare || state.view === 'many-worlds') ? 3800 : 700) && state.running) {
         if (state.autoRerun) launch();
         else { state.running = false; ui.setRunning(false); }
       }
@@ -461,12 +606,20 @@ function frame(now) {
   }
   if (!state.compare) {
     V = state.view;
-    drawApparatus(c, s, result);
-    drawWave(c, s, result);
-    drawParticle(c, s);
-    drawConfigPanel(c, s, result);
+    resultsPanel.hidden = false;
+    if (V === 'many-worlds') {
+      const info = drawMW(c, s, result, { x: 8, y: 4, w: width - 16, h: height - 38 });
+      resultsPanel.hidden = info.list.length > 1 && info.zoom < 1;
+    }
+    else {
+      drawApparatus(c, s, result);
+      drawWave(c, s, result);
+      drawParticle(c, s);
+      if (V === 'spontaneous-collapse') drawCollapseClock(c, s, result); else drawConfigPanel(c, s, result);
+    }
     caption.textContent = captionText(s, result);
   } else {
+    resultsPanel.hidden = true;
     const views = ['orthodox', 'pilot-wave', 'many-worlds', 'spontaneous-collapse'];
     const qw = width / 2, qh = (height - 34) / 2;
     views.forEach((name, i) => {
@@ -475,10 +628,14 @@ function frame(now) {
       const kk = Math.min((qw - 12) / 1000, (qh - 54) / 600);
       view = { k: kk, ox: x0 + (qw - 1000 * kk) / 2, oy: y0 + 22 };
       ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, qw, qh); ctx.clip();
-      drawApparatus(c, s, result);
-      drawWave(c, s, result);
-      drawParticle(c, s);
+      if (name === 'many-worlds') drawMW(c, s, result, { x: x0 + 6, y: y0 + 22, w: qw - 12, h: qh - 58 }, true);
+      else { drawApparatus(c, s, result); drawWave(c, s, result); drawParticle(c, s); }
       ctx.restore();
+      if (name === 'spontaneous-collapse' && state.atom) {
+        const st = scState(s, result);
+        ctx.fillStyle = st.collapsed ? c.flash : c.muted; ctx.font = '11px Inter, Arial, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        ctx.fillText(`collapse expected in ${formatTime(1 / (LAMBDA * st.n))}${st.collapsed ? ' → collapsed' : ''}`, x0 + qw - 10, y0 + 7);
+      }
       ctx.fillStyle = name === state.view ? c.wave : c.text;
       ctx.font = '600 13px Inter, Arial, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillText(VIEW_LABEL[name], x0 + 10, y0 + 6);
