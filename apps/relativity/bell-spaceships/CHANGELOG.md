@@ -1,5 +1,11 @@
 # Bell's Spaceships — changelog
 
+## 0.3.0 (2026-11-05)
+- Front engine is now a continuous setting k (front proper acceleration a/(1 + k·aL/c²)) with presets "Same as rear (Bell)" (k = 0) and "Exactly right" (k = 1), replacing the two-way toggle. Final stretch (γ − 1)(1 − k): only k = 1 keeps the thread at its natural length; k < 1 still stretches it (and it can snap), k > 1 leaves it slack (drawn sagging).
+- One prediction question (It snaps / It holds), asked only on the first run.
+- Physics tab: the formula and why k = 1 is a special tuning (Bell's strong-thread proviso).
+- Tests: final-stretch formula for several k (15 tests).
+
 ## 0.2.1 (2026-11-05)
 - Engines renamed "Same engines (Bell)" / "Front engine gentler" (was Identical / Rigid), with a one-line hint for each.
 - Launch frame shows "gap held at … L" or "gap shrinking with the thread" during the run.

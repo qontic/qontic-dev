@@ -1,6 +1,6 @@
 // Run with: node apps/relativity/bell-spaceships/tests/kinematics.test.mjs
 import assert from 'node:assert/strict';
-import { makeModel, shipState, rearFrameView, strainAt, strainRearFrame, findBreak, criticalBeta, runEnd, gammaOf, rearTimeFor } from '../js/kinematics.js';
+import { finalStrain, makeModel, shipState, rearFrameView, strainAt, strainRearFrame, findBreak, criticalBeta, runEnd, gammaOf, rearTimeFor } from '../js/kinematics.js';
 
 const close = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} vs ${b}`);
 let passed = 0;
@@ -93,6 +93,19 @@ test('Rigid: launch-frame strain stays within 2.5% of zero at a = 0.2', () => {
 test('rearTimeFor inverts the rear frame simultaneity', () => {
   const m = makeModel({ beta: 0.9, accel: 0.3, mode: 'bell' });
   for (const tB of [0.5, 3, 8]) { const v = rearFrameView(m, tB); close(rearTimeFor(m, 0.5 * (v.xB + v.xC), 0.5 * (v.tB + v.tC)), tB, 1e-7, `tB=${tB}`); }
+});
+
+test('Final stretch is (gamma - 1)(1 - k) for any front-engine setting', () => {
+  for (const k of [0, 0.3, 0.8, 1, 1.4]) {
+    const m = makeModel({ beta: 0.85, accel: 0.25, k });
+    close(strainAt(m, runEnd(m)), finalStrain(m), 1e-9, `k=${k}`);
+    close(finalStrain(m), (m.gammaF - 1) * (1 - k), 1e-15, 'formula');
+  }
+});
+
+test('Only k = 1 keeps the thread unstretched; k slightly off stretches or slackens it', () => {
+  const at = (k) => finalStrain(makeModel({ beta: 0.9, accel: 0.2, k }));
+  assert.ok(at(0.9) > 0.1 && at(1.1) < -0.1 && Math.abs(at(1)) < 1e-12);
 });
 
 console.log(`${passed} tests passed`);

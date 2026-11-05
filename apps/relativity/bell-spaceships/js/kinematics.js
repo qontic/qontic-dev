@@ -5,22 +5,33 @@
 // front ship C at x = L. At t = 0 (launch frame) both start a constant proper
 // acceleration and stop accelerating when they reach the final speed beta.
 //
-//   mode 'bell'  : both ships have the same proper acceleration a (Bell's case).
-//   mode 'rigid' : Born-rigid motion. The rear ship has proper acceleration a,
-//                  the front ship a / (1 + a L); both worldlines share one
-//                  Rindler pivot, so the proper distance between them stays L.
+//   k : how much gentler the front engine is. The front ship's proper
+//       acceleration is a / (1 + k a L), i.e. 1/a_C = 1/a + k L.
+//       k = 0: both ships have the same proper acceleration (Bell's case).
+//       k = 1: Born-rigid motion; both worldlines share one Rindler pivot and
+//              the proper distance between the ships stays L.
+//   After both coast at beta, the launch-frame gap is L - k L (1 - 1/gamma),
+//   so a thread of rest length L ends stretched by (gamma - 1)(1 - k):
+//   only k = 1 leaves it at its natural length.
+//   (mode 'bell' / 'rigid' is accepted as k = 0 / 1.)
 
-export function makeModel({ beta = 0.9, accel = 0.6, L = 1, mode = 'bell' } = {}) {
+export function makeModel({ beta = 0.9, accel = 0.6, L = 1, k, mode = 'bell' } = {}) {
+  if (k === undefined) k = mode === 'rigid' ? 1 : 0;
   const b = Math.min(Math.max(beta, 1e-4), 0.9999);
   const gf = 1 / Math.sqrt(1 - b * b);
   const ships = [0, L].map((x0, index) => {
-    const a = mode === 'rigid' && index === 1 ? accel / (1 + accel * L) : accel;
+    const a = index === 1 ? accel / (1 + k * accel * L) : accel;
     const t1 = (gf * b) / a; // launch-frame time at which the ship reaches beta
     const x1 = x0 + (Math.sqrt(1 + (a * t1) ** 2) - 1) / a;
     const tau1 = Math.asinh(a * t1) / a;
     return { x0, a, t1, x1, tau1 };
   });
-  return { beta: b, gammaF: gf, accel, L, mode, ships };
+  return { beta: b, gammaF: gf, accel, L, k, mode: k === 0 ? 'bell' : k === 1 ? 'rigid' : 'tuned', ships };
+}
+
+// Final elongation once both ships coast: (gamma - 1)(1 - k).
+export function finalStrain(model) {
+  return (model.gammaF - 1) * (1 - model.k);
 }
 
 // State of ship i (0 = rear B, 1 = front C) at launch-frame time t.

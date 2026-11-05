@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/spaceships.css?v=0.2.0">
+<link rel="stylesheet" href="css/spaceships.css?v=0.3.0">
 </head>
 <body class="spaceship-app">
 <main class="shell">
@@ -27,12 +27,15 @@
     <div class="control-tab-body qontic-control-body">
       <div class="control-pane" data-control-pane="core">
         <div class="qontic-control-section">
-          <div class="qontic-control-section-title">Engines</div>
-          <div class="qontic-app-toggle-group mode-group" role="group" aria-label="Engines">
-            <button class="qontic-app-toggle active" type="button" data-mode="bell" aria-pressed="true" title="Both ships run the same acceleration program, started at the same moment in A's frame. This is Bell's question.">Same engines (Bell)</button>
-            <button class="qontic-app-toggle" type="button" data-mode="rigid" aria-pressed="false" title="The front ship accelerates a little more gently, so in A's frame the gap shrinks along with the thread (Born-rigid motion).">Front engine gentler</button>
+          <div class="qontic-control-section-title">Front engine</div>
+          <div class="qontic-app-toggle-group k-group" role="group" aria-label="Front engine presets">
+            <button class="qontic-app-toggle active" type="button" data-k="0" aria-pressed="true" title="Both ships run the same acceleration program. This is Bell's question.">Same as rear (Bell)</button>
+            <button class="qontic-app-toggle" type="button" data-k="1" aria-pressed="false" title="The one setting that keeps the thread at its natural length (Born-rigid motion).">Exactly right</button>
           </div>
         </div>
+        <label class="control-row" title="0: same engines. 1: the front ship's proper acceleration is a/(1 + aL/c²), the one setting that keeps the thread at its natural length.">
+          <span>Gentler by k</span><input id="kSlider" type="range" min="0" max="1.5" step="0.05" value="0" aria-label="How much gentler the front engine is"><output id="kOut">0.00</output>
+        </label>
         <p class="core-hint" id="modeHint"></p>
         <label class="control-row" title="Speed at which both ships stop accelerating and coast, as a fraction of c.">
           <span>Final speed</span><input id="beta" type="range" min="0.05" max="0.99" step="0.01" value="0.90" aria-label="Final speed as a fraction of c"><output id="betaOut">0.90 c</output>
@@ -52,7 +55,7 @@
           </div>
         </div>
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
-        <div class="toggle-row"><span>Ask for a prediction</span><button class="toggle" type="button" data-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction before each run"></button></div>
+        <div class="toggle-row"><span>Ask for a prediction (first run)</span><button class="toggle" type="button" data-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction before each run"></button></div>
       </div>
 
       <div class="control-pane hidden" data-control-pane="advanced">
@@ -97,11 +100,9 @@
       </div>
       <div id="questionStep" class="story-step hidden">
         <p class="story-title" id="predictionText"></p>
-        <div class="reason-buttons">
-          <button type="button" class="qontic-app-toggle" data-predict="h-gap">It holds: the ships stay L apart, so nothing pulls on the thread.</button>
-          <button type="button" class="qontic-app-toggle" data-predict="h-together">It holds: the thread and the gap shrink together.</button>
-          <button type="button" class="qontic-app-toggle" data-predict="s-thread">It snaps: the moving thread shrinks, but the gap stays L.</button>
-          <button type="button" class="qontic-app-toggle" data-predict="s-pull">It snaps: the front ship pulls away from the rear one.</button>
+        <div class="story-buttons">
+          <button type="button" class="qontic-app-toggle" data-predict="snaps">It snaps</button>
+          <button type="button" class="qontic-app-toggle" data-predict="holds">It holds</button>
         </div>
         <p class="story-links"><button type="button" class="link-button" id="setupBack">Back to the setup</button> · <button type="button" class="link-button" data-predict="skip">Skip and just run it</button></p>
       </div>
@@ -138,16 +139,18 @@
   <h2>In spacetime</h2>
   <p>The spacetime diagram plots the worldlines in A's frame, time upward, light at 45°. The horizontal dashed line joins events that happen at the same time for A; the gap along it stays L. The tilted line joins events at the same time for B; the gap along it grows. The shaded band is the thread's history, and the red star marks the break.</p>
 
-  <h2>A thread that does not break</h2>
-  <p>Contraction by itself breaks nothing: the ships contract too, and nobody expects them to break. The thread breaks only because the gap between its ends is held at L while its natural length shrinks.</p>
-  <p>Choose <em>Front engine gentler</em>. Now the front ship's proper acceleration is a/(1 + aL/c²), a little lower than the rear ship's a. In A's frame the front ship gains speed slightly more slowly, so the rear ship closes in: the gap shrinks along with the thread, to L/γ, and the thread is never stretched. In the ships' frame the distance stays L. Both ships end at the same speed, just closer together.</p>
-  <p>This is the motion a strong thread would force on two light ships by pulling them together, Bell's proviso; here the engines are tuned to produce it, so the thread has nothing to do. It is called Born-rigid motion; Nikolić discusses an accelerated rod in these terms (Ref. 4 under Rationale).</p>
+  <h2>Changing the front engine</h2>
+  <p>Contraction by itself breaks nothing: the ships contract too, and nobody expects them to break. The thread breaks because the gap between its ends does not shrink with it.</p>
+  <p>The slider <em>Gentler by k</em> sets the front ship's proper acceleration to a/(1 + k·aL/c²). With a gentler front engine C gains speed a little more slowly, and B closes in. Once both coast at speed v, the gap in A's frame is L − kL(1 − 1/γ), and the thread is stretched by</p>
+  <p class="formula">(γ − 1)(1 − k).</p>
+  <p>Only k = 1 leaves the thread exactly at its natural length L/γ: the gap shrinks with it, and in the ships' frame the distance stays L. This is Born-rigid motion (Nikolić, Ref. 4 under Rationale). It is a special tuning, not something that happens by itself: below k = 1 the thread is still stretched and can snap; above it the ships end closer than the thread's natural length and it goes slack.</p>
+  <p>What k = 1 does with engines, a strong thread would do on its own if the ships were light: pull them into exactly this motion. That is Bell's proviso.</p>
 
   <h2>What the model assumes</h2>
   <ul>
     <li>Units with c = 1. Lengths in units of L, times in units of L/c.</li>
     <li>Each ship has a constant proper acceleration until it reaches the final speed, then coasts. The default acceleration is gentle (aL = 0.2 c²).</li>
-    <li>The thread has no mass and does not pull on the ships. Its elongation is computed as in Bell's argument: in A's frame, the gap divided by the natural length L/γ at the ships' speed. In Bell's case this is exactly γ − 1 at every moment. In the rigid case the two ships briefly have different speeds and the mean speed is used; the error is below 2.5%.</li>
+    <li>The thread has no mass and does not pull on the ships. Its elongation is computed as in Bell's argument: in A's frame, the gap divided by the natural length L/γ at the ships' speed. In Bell's case this is exactly γ − 1 at every moment. With a gentler front engine the two ships briefly have different speeds and the mean speed is used; the error is below 2.5%, so differences under 3% are shown as taut.</li>
     <li>The ships' frame and the spacetime diagram show the distance in the rear ship's momentary rest frame. It equals γL once the ships coast; during the acceleration it is somewhat larger, because in that frame the front ship is ahead in its program.</li>
     <li>The break is drawn at the middle of the thread. The recoil of the two halves is schematic.</li>
   </ul>
@@ -174,6 +177,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.2.1"></script>
+<script type="module" src="js/app.js?v=0.3.0"></script>
 </body>
 </html>
