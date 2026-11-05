@@ -1,4 +1,4 @@
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.1.2';
+import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.1.3';
 
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d);
@@ -118,7 +118,9 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     ctx.strokeStyle = 'rgba(207,227,245,0.25)'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = 'rgba(84,224,160,0.6)'; ctx.beginPath(); ctx.ellipse(cx, cy, R / g, R, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
-    // trail
+    // trail, kept clear of the caption and the speed bar
+    const top = narrow ? 44 : 28;
+    ctx.save(); ctx.beginPath(); ctx.rect(0, top, w, h - top - 56); ctx.clip();
     ctx.lineWidth = 2;
     for (let i = 1; i < trail.length; i++) {
       ctx.strokeStyle = `rgba(79,195,255,${(i / trail.length) * 0.95})`;
@@ -126,6 +128,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     }
     ctx.fillStyle = COLORS.orange; ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = COLORS.cyan; ctx.beginPath(); ctx.arc(cx + z * R, cy - x * R, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
     if (narrow) {
       text(ctx, 'orbit drawn around the nucleus', 12, 20, { color: COLORS.muted, size: 11.5 });
       text(ctx, 'dashed grey: at rest · dashed green: expected', 12, 36, { color: COLORS.muted, size: 11.5 });
@@ -140,18 +143,14 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     text(ctx, 'c', bx + bw, by + 18, { color: COLORS.muted, size: 10.5, align: 'right' });
     text(ctx, `nucleus speed ${fmt(V)} c · γ = ${fmt(g)}`, bx + bw, by - 6, { color: COLORS.ink, size: 12, align: 'right' });
     const done = atom.t > atom.prog.Tacc;
-    const status = atom.lost ? 'stopped: electron lost' : done ? 'push finished: coasting' : atom.t === 0 ? 'ready' : 'being pushed…';
+    const status = atom.lost ? 'stopped: electron lost' : done ? 'push finished: coasting' : V < 0.005 ? 'push starting…' : 'being pushed…';
     text(ctx, status, bx + bw, by - 24, { color: atom.lost ? COLORS.red : done ? COLORS.green : COLORS.gold, size: 12, align: 'right' });
     motionArrow(ctx, 12, h - (narrow ? 44 : 16), narrow ? 'motion' : 'direction of motion');
+    const msgEl = $('#atomMsg');
     if (atom.lost) {
-      const msg = [`After ${fmt(atom.lost.t / atom.T0, 0)} orbits the orbit had become so eccentric`,
-        'that the electron passed through the nucleus region.',
-        'The model breaks down there, so the run stops.'];
-      const lw = Math.min(w - 24, 400), lx = cx - lw / 2, ly = 48;
-      ctx.fillStyle = 'rgba(7,16,32,0.88)'; ctx.strokeStyle = COLORS.red; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.roundRect(lx, ly, lw, 66, 8); ctx.fill(); ctx.stroke();
-      msg.forEach((m, i) => text(ctx, m, cx, ly + 20 + i * 17, { color: COLORS.ink, size: narrow ? 11 : 12, align: 'center' }));
-    }
+      msgEl.textContent = `Stopped after ${fmt(atom.lost.t / atom.T0, 0)} orbits: with only the nucleus pushed, the orbit became so eccentric that the electron passed through the region of the nucleus, where this model breaks down. See “How the push is applied” below.`;
+      msgEl.hidden = false;
+    } else msgEl.hidden = true;
     // readouts: measured over the last complete revolution, compared with the
     // values expected at the speed the nucleus had during that revolution
     $('#atomVnow').value = `${fmt(V)} c`;
@@ -186,8 +185,8 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
 // ------------------------------------------------------------- 4. atoms to thread
 (() => {
   const canvas = $('#threadCanvas'), sV = $('#threadV'), sE = $('#threadEps'), strong = $('#threadStrong');
-  function spring(ctx, x0, x1, y, coils, color, width = 1.4) {
-    const n = coils * 2, amp = 5, len = x1 - x0;
+  function spring(ctx, x0, x1, y, coils, color, width = 1.4, amp = 5) {
+    const n = coils * 2, len = x1 - x0;
     ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x0, y);
     for (let i = 1; i < n; i++) ctx.lineTo(x0 + (len * i) / n, y + (i % 2 ? -amp : amp));
     ctx.lineTo(x1, y); ctx.stroke();
@@ -220,7 +219,9 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     const r = Math.min((S / N) * 0.28, h * 0.14);
     const cell = (natural * S) / N;
     let positions;
-    if (!broken) positions = Array.from({ length: N }, (_, i) => xa + ((i + 0.5) * (gap * S)) / N);
+    // equal springs: N atoms of width 2r/gamma and N + 1 springs fill the gap
+    const sp = (gap * S - (N * 2 * r) / g) / (N + 1);
+    if (!broken) positions = Array.from({ length: N }, (_, i) => xa + (i + 1) * sp + ((2 * i + 1) * r) / g);
     else {
       const left = Math.ceil(N / 2), right = N - left;
       positions = [...Array.from({ length: left }, (_, i) => xa + (i + 0.5) * cell), ...Array.from({ length: right }, (_, i) => xb - (right - i - 0.5) * cell)];
@@ -230,7 +231,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     for (let i = 0; i < pts.length - 1; i++) {
       const a = pts[i] + (i === 0 ? 0 : r / g), b = pts[i + 1] - (i === pts.length - 2 ? 0 : r / g);
       if (broken && i === Math.ceil(N / 2)) continue;
-      spring(ctx, a, b, y, 4, color);
+      spring(ctx, a, b, y, 4, color, 1.4, isStrong || broken ? 5 : 5 / (1 + 4 * Math.max(0, stretch)));
     }
     positions.forEach((px) => {
       ctx.strokeStyle = COLORS.cyan; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(px, y, r / g, r, 0, 0, Math.PI * 2); ctx.stroke();
@@ -240,7 +241,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     text(ctx, isStrong ? 'strong thread: it pulls the light ships together' : 'massive ships: the engines hold the gap at L', 12, 20, { color: COLORS.muted, size: 11.5 });
     motionArrow(ctx, 12, h - 14);
     $('#threadVOut').value = `${fmt(V)} c`;
-    $('#threadEpsOut').value = `${sE.value}%`;
+    $('#threadEpsOut').value = isStrong ? 'not used' : `${sE.value}%`;
     $('#threadGap').value = `${fmt(gap)} L`;
     $('#threadNat').value = `${fmt(natural)} L`;
     const out = $('#threadStretch');
@@ -317,12 +318,12 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     const { lab, prime, g, T0, tOf, tau0, tau1 } = data;
     const tau = tau0 + (clock % (tau1 - tau0));
     const tl = tOf(tau), tp = tau;
-    const herClock = `${fmt((tau - tau0) / T0, 1)} rest periods`;
-    const labLabels = [`A's clock: ${fmt((tl - tOf(tau0)) / T0, 1)} rest periods`, `her clock (on the atom): ${herClock}`];
+    const herClock = `${fmt((tau - tau0) / T0, 2)} rest periods`;
+    const labLabels = [`A's clock: ${fmt((tl - tOf(tau0)) / T0, 2)} rest periods`, `her clock (on the atom): ${herClock}`];
     const herLabels = [`her clock: ${herClock}`];
     if (wide) {
-      panel(ctx, 0, w / 2, h, "A's variables (x, z, t)", lab, tl, 1 / g, labLabels, 14);
-      panel(ctx, w / 2, w / 2, h, "Her variables (x′, z′, t′)", prime, tp, 1, herLabels, 14);
+      panel(ctx, 0, w / 2, h, "A's variables (x, z, t)", lab, tl, 1 / g, labLabels, 26);
+      panel(ctx, w / 2, w / 2, h, "Her variables (x′, z′, t′)", prime, tp, 1, herLabels, 26);
       ctx.strokeStyle = COLORS.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(w / 2, 10); ctx.lineTo(w / 2, h - 10); ctx.stroke();
     } else {
       ctx.save();

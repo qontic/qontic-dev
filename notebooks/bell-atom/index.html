@@ -6,7 +6,7 @@
 <title>Bell's Atom: Why Moving Things Contract — Q-Ontic Lab</title>
 <meta name="description" content="Follow John Bell's 'Lorentzian pedagogy': the field of a moving charge, an electron orbit that contracts as its nucleus is pushed, a thread that must snap, and a moving observer who cannot tell she is moving.">
 <link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg">
-<link rel="stylesheet" href="css/notebook.css?v=0.1.2">
+<link rel="stylesheet" href="css/notebook.css?v=0.1.3">
 </head>
 <body>
 <div class="page">
@@ -15,6 +15,7 @@
   <p class="crumbs"><a href="https://qonticlab.rice.edu/">Q-Ontic Lab</a> › <a href="../../index.html">Resources</a> › Bell's atom</p>
   <h1>Bell's atom: why moving things contract</h1>
   <p class="lead">In 1976 John Bell asked how special relativity should be taught so that students could answer his spaceship question. His suggestion was the older road of FitzGerald, Larmor, Lorentz and Poincaré: stay in one frame, and ask what happens to a piece of matter when it is set moving. This notebook walks that road with a simulation of the atom Bell used.</p>
+  <p class="prereq"><b>You will need:</b> the factor γ = 1/√(1 − v²/c²), which grows from 1 at rest without limit as v approaches c; Coulomb's law; and the idea that a moving charge also feels a magnetic force. Sections 1 and 4 can be read on their own. About 30 minutes.</p>
   <nav class="nav" aria-label="Sections">
     <a href="#s1">1. The puzzle</a><a href="#s2">2. A moving charge</a><a href="#s3">3. Bell's atom</a><a href="#s4">4. From atoms to a thread</a><a href="#s5">5. The moving observer</a><a href="#s6">6. Lorentz or Einstein?</a><a href="#refs">References</a>
   </nav>
@@ -24,15 +25,15 @@
 <section class="section" id="s1">
   <div class="section-head"><h2>1. The puzzle</h2><p class="purpose">Two ships, one thread, identical engines.</p></div>
   <div class="prose">
-    <p>Ships B and C float at rest a distance L apart, joined by a fragile thread that is just long enough. A, at rest halfway between them, sends a light flash that reaches both at the same moment, and both fire identical engines running the same program. Seen from A, the ships always have the same speed, so the gap between them stays L. Does the thread break?</p>
+    <p>Ships B and C float at rest a distance L apart, joined by a fragile thread that is exactly L long. A, at rest halfway between them, sends a light flash that reaches both at the same moment, and both fire identical engines running the same program. Seen from A, the ships always have the same speed, so the gap between them stays L. Does the thread break?</p>
     <p>Bell put this to colleagues at CERN; by his account, an informal poll of the theorists there gave a clear consensus that it would not. Answer here first, then try it in the <a href="../../apps/relativity/bell-spaceships/index.html">Bell's Spaceships app</a>.</p>
   </div>
   <div class="quiz" data-quiz>
-    <p class="q">In A's frame the gap stays L. What happens to the thread?</p>
+    <p class="q">In A's frame the gap stays L. Does the thread break?</p>
     <div class="options">
-      <button type="button" data-ok="false" data-fb="Most of Bell's colleagues chose this. It assumes that the thread's natural length does not depend on its speed. Sections 2 to 4 show that a thread held together by electric forces settles at a shorter length when it moves; with its ends held L apart, it is stretched.">Nothing: it moves along with the ships and keeps its length.</button>
-      <button type="button" data-ok="true" data-fb="Yes. In A's frame a thread moving at speed v is in equilibrium at length L/γ. The ships hold its ends L apart, so it is stretched by γ − 1, and it snaps once that exceeds what it can take, as Dewan and Beran showed in 1959. The question this notebook answers is why a moving thread should be shorter.">It is stretched, because a moving thread is shorter than at rest but the gap is not.</button>
-      <button type="button" data-ok="false" data-fb="The gap does not shrink in A's frame: both ships run the same program from the same start. (A gap that shrinks with the thread requires the front ship to accelerate a little more gently; and only one setting of it works; try the app's front-engine slider.)">It is fine: thread and gap both shrink by the same factor.</button>
+      <button type="button" data-ok="false" data-fb="Most of Bell's colleagues chose this. It assumes that the thread's natural length does not depend on its speed. Sections 2 to 4 show that a thread held together by electric forces becomes shorter when it moves; with its ends held L apart, it is stretched.">It does not break: thread and ships simply move together.</button>
+      <button type="button" data-ok="true" data-fb="Yes. In A's frame a thread moving at speed v is in equilibrium at length L/γ, shorter than at rest. The ships hold its ends L apart, so it is stretched by γ − 1, and it snaps once that is more than it can take, as Dewan and Beran showed in 1959. The question this notebook answers is why a moving thread should be shorter.">It breaks.</button>
+      <button type="button" data-ok="false" data-fb="The thread does get shorter, but the gap does not: in A's frame both ships run the same program from the same start, so they always have the same speed and stay L apart.">It does not break: thread and gap both shrink by the same factor.</button>
     </div>
     <p class="fb" hidden></p>
   </div>
@@ -42,17 +43,17 @@
 <section class="section" id="s2">
   <div class="section-head"><h2>2. The field of a moving charge</h2><p class="purpose">Matter is held together by electric forces. Start with a single charge.</p></div>
   <div class="prose">
-    <p>At rest, the field of a charge is the same in every direction, and its surfaces of equal potential are spheres. Set the charge moving at speed v and Maxwell's equations give a different field: the surfaces of equal potential become ellipsoids shorter by the factor 1/γ along the motion, where γ = 1/√(1 − v²/c²). The field gets weaker ahead and behind and stronger at the sides. Heaviside worked this out in 1889.<sup><a href="#ref-2">2</a></sup> In the same year FitzGerald proposed that bodies moving through the ether are shortened along their motion, to explain the null result of Michelson and Morley.<sup><a href="#ref-3">3</a></sup></p>
+    <p>At rest, the field of a charge is the same in every direction, and its surfaces of equal potential are spheres. Set the charge moving at speed v and Maxwell's equations give a different field: the surfaces of equal potential become ellipsoids shorter by the factor 1/γ along the motion, where γ = 1/√(1 − v²/c²). The field gets weaker ahead of and behind the charge, and stronger in the directions perpendicular to the motion (above and below in the picture). Heaviside worked this out in 1889.<sup><a href="#ref-2">2</a></sup> In the same year FitzGerald proposed that bodies moving through the ether are shortened along their motion, to explain the null result of Michelson and Morley.<sup><a href="#ref-3">3</a></sup></p>
   </div>
-  <p class="notice"><b>What to notice:</b> raise the speed. The equal-potential curves (rings) flatten by exactly 1/γ. The arrows still point straight away from the charge, but they crowd toward the sides.</p>
+  <p class="notice"><b>What to notice:</b> raise the speed. The equal-potential curves (rings) flatten by exactly 1/γ. The arrows still point straight away from the charge, but they get longer above and below and shorter ahead and behind.</p>
   <div class="section-body">
     <div class="canvas-card"><canvas id="fieldCanvas" aria-label="Field of a moving charge"></canvas></div>
     <div class="controls">
       <div class="row"><label for="fieldV">Speed of the charge <output id="fieldVOut">0.00 c</output></label><input id="fieldV" type="range" min="0" max="0.95" step="0.01" value="0"></div>
       <div class="readout">
         <span>γ</span><output id="fieldGamma">1.00</output>
-        <span>Ring length / width</span><output id="fieldRatio" class="hl">1.00</output>
-        <span>Field at the side / ahead, same distance</span><output id="fieldSide">1.00</output>
+        <span>Ring length along motion / width</span><output id="fieldRatio" class="hl">1.00</output>
+        <span>Field above / ahead, same distance</span><output id="fieldSide">1.00</output>
       </div>
       <p class="mini">Distances are measured from the charge's present position. The ratio in the last row is γ³.</p>
     </div>
@@ -68,11 +69,16 @@
 <section class="section" id="s3">
   <div class="section-head"><h2>3. Bell's atom</h2><p class="purpose">An electron orbiting a nucleus that is pushed gently to high speed.</p></div>
   <div class="prose">
-    <p>Bell's simplest piece of matter is a classical atom: one electron going round a much heavier nucleus. Start it at rest with a circular orbit, then push the nucleus gently until it moves at speed v. Follow the electron with the field of section 2, the Lorentz force, and Lorentz's relation between momentum and velocity, p = mv/√(1 − v²/c²). Bell's result: the orbit becomes an ellipse shorter by 1/γ along the motion, and it goes round more slowly, by the factor γ.<sup><a href="#ref-1">1</a></sup></p>
-    <p>Why should a flattened field give a flattened orbit? At rest, the pull on the electron depends only on its distance from the nucleus, so the orbit that balances it is a circle. Once the nucleus moves, its field has the flattened shape of section 2. The moving electron also feels a magnetic force, and its momentum grows with speed faster than in Newton's mechanics. Bell's point is that when all three are taken into account, the orbit is flattened in exactly the proportion of the field, and it goes round more slowly by γ.</p>
-    <p>Nothing in this calculation refers to a moving observer, to clocks being synchronized, or to the relativity of simultaneity. It is one frame, Maxwell's equations and relativistic mechanics.</p>
+    <p>Bell's simplest piece of matter is a classical atom: one electron going round a much heavier nucleus. Start it at rest with a circular orbit, then push the nucleus gently until it moves at speed v. (The simulation pushes the electron too, in proportion to its mass, so that the push itself does not distort the orbit; the box below the simulation explains why.) Follow the electron with the field of section 2, the Lorentz force, and Lorentz's relation between momentum and velocity, p = mv/√(1 − v²/c²). Bell's result: the orbit becomes an ellipse shorter by 1/γ along the motion, and it goes round more slowly, by the factor γ.<sup><a href="#ref-1">1</a></sup></p>
+    <p>Why should a flattened field give a flattened orbit? Think of an electron moving slowly round the nucleus while both travel at speed v. Two things change, in different ways along the motion and across it.</p>
+    <ul>
+      <li><b>Along the motion</b>, the pull of the nucleus is weaker, by γ², than at rest (section 2). The electron is also harder to speed up or slow down in this direction: its inertia is γ³ times its rest mass.</li>
+      <li><b>Across the motion</b>, the electric pull is stronger, by γ, but the magnetic force on the moving electron cancels most of it, leaving 1/γ of the rest value. The inertia in this direction is γ times the rest mass.</li>
+    </ul>
+    <p>Both directions then obey the same equation of motion as an atom at rest with a pull γ² times weaker, provided distances along the motion are counted γ times larger. So the orbit is a circle in that stretched measure, which is an ellipse flattened by 1/γ, and it goes round γ times more slowly. The box below the simulation gives the equations.</p>
+    <p>This is no accident. Maxwell's equations and Lorentz's momentum law already have the symmetry that section 5 describes; Bell's calculation shows that symmetry at work in one frame. Nothing in it refers to a moving observer, to clocks being synchronized, or to the relativity of simultaneity.</p>
   </div>
-  <p class="notice"><b>What to notice:</b> the orbit, drawn around the nucleus, flattens as the speed rises. Compare the measured ratio with 1/γ, and the measured period with γ. Both are read from the last complete revolution. The yellow bar shows the nucleus speed, from 0 to c.</p>
+  <p class="notice"><b>What to notice:</b> the orbit, drawn around the nucleus, flattens as the speed rises. Compare the measured ratio with 1/γ, and the measured period with γ. Both are read from the last complete revolution, and the expected values use the nucleus speed during that revolution, which during the push lags slightly behind the speed shown. The yellow bar shows the nucleus speed, from 0 to c.</p>
   <div class="section-body">
     <div class="canvas-card"><canvas id="atomCanvas" aria-label="Electron orbit as the nucleus speeds up"></canvas></div>
     <div class="controls">
@@ -84,15 +90,21 @@
       <div class="readout">
         <span>Nucleus speed</span><output id="atomVnow">0.00 c</output>
         <span>Length / width of orbit</span><output id="atomRatio" class="hl">—</output>
-        <span>Expected 1/γ</span><output id="atomRatioExp">1.00</output>
+        <span>Expected 1/γ (last revolution)</span><output id="atomRatioExp">1.00</output>
         <span>Period / rest period</span><output id="atomPeriod" class="hl">—</output>
-        <span>Expected γ</span><output id="atomPeriodExp">1.00</output>
+        <span>Expected γ (last revolution)</span><output id="atomPeriodExp">1.00</output>
       </div>
-      <p class="mini">Electron speed in the orbit 0.1 c; the classical radiation of the orbiting electron is ignored, as in Bell's model.</p>
+      <p class="mini warn" id="atomMsg" hidden></p>
+      <p class="mini">Electron speed in the orbit, measured in the atom's own frame: 0.1 c; the classical radiation of the orbiting electron is ignored, as in Bell's model.</p>
     </div>
   </div>
+  <details class="derivation"><summary>Why the orbit is flattened: the equations</summary><div class="body">
+    <p>Let the orbit lie in the x–z plane, with the atom moving along z at speed v, and let the electron move slowly round the nucleus (0.1 c here). With the nucleus at the origin, s² = x² + γ²z² and K = Ze² (Gaussian units), the field of section 2 pulls the electron with the electric force −Kγz/s³ along the motion and −Kγx/s³ across it. The electron moves at about v, so it also feels the magnetic force of B = (v/c) × E, which pushes against the electric force across the motion and reduces it by the factor 1 − v²/c² = 1/γ², to −Kx/(γs³). Its inertia is γ³m along the motion and γm across it. To leading order,</p>
+    <p class="formula">γ³m z̈ = −Kγz/s³,&nbsp;&nbsp; γm ẍ = −Kx/(γs³).</p>
+    <p>With Z = γz this is Z̈ = −(K/γ²) Z/s³ and ẍ = −(K/γ²) x/s³, where s² = x² + Z²: the Kepler problem with the force reduced by γ². A circular orbit of the rest radius is therefore a solution, with angular frequency reduced by γ. In x and z it is an ellipse flattened by 1/γ that goes round γ times more slowly. The simulation solves the full equations, without these approximations, and finds the same result.</p>
+  </div></details>
   <details class="derivation"><summary>How the push is applied, and why it matters</summary><div class="body">
-    <p>Bell applied the force to the nucleus only and let the electron follow. In this purely classical model that choice causes a problem: any steady force on a Kepler orbit slowly changes its eccentricity, by an amount that does not shrink when the push is made slower. The orbit would end up eccentric for reasons that have nothing to do with relativity. Untick the box to see it: within a few tens of orbits the orbit is so eccentric that the electron passes through the region of the nucleus, where this model breaks down, and the run stops.</p>
+    <p>Bell applied the force to the nucleus only and let the electron follow.<sup><a href="#ref-1">1</a></sup> In this purely classical model that choice causes a problem: any steady force on a Kepler orbit slowly changes its eccentricity, by an amount that does not shrink when the push is made slower. The orbit would end up eccentric for reasons that have nothing to do with relativity. Untick the box to see it: after about twenty orbits at the default settings the orbit is so eccentric that the electron passes through the region of the nucleus, where this model breaks down, and the run stops.</p>
     <p>The notebook therefore pushes both particles in proportion to their mass, roughly as a uniform gravitational field would (the push on the electron uses the nucleus's speed, not its own). Then, at low speeds, the atom is simply carried along, and whatever happens at high speed comes from the electromagnetic and relativistic dynamics alone. Bell himself stressed that the contraction is expected only for gentle acceleration of a system held together by its internal forces.<sup><a href="#ref-1">1</a></sup></p>
     <p>The equations solved, with the nucleus at z<sub>N</sub>(t) moving at V(t): dp/dt = −e(E + v × B/c) + m d(γ<sub>V</sub>V)/dt ẑ, v = p/√(m² + p²/c²), with E and B the uniform-motion field of section 2 at the current speed V(t). The additional field caused by the nucleus's acceleration, small for a gentle push, is neglected. Fourth-order Runge–Kutta, 300 steps per orbit.</p>
   </div></details>
@@ -104,14 +116,14 @@
   <div class="prose">
     <p>A thread is a chain of atoms held in place by the same kind of forces. Bell argues that any group of charges confined to a region of length L at rest is, once set gently moving, confined to a region shorter by 1/γ.<sup><a href="#ref-1">1</a></sup> So the thread's natural length at speed v is L/γ. In the spaceship problem the engines hold its ends L apart: it is stretched by γ − 1, and it snaps if that is more than it can take, as Dewan and Beran had shown.<sup><a href="#ref-6">6</a></sup></p>
     <p>Bell adds a proviso. If the thread were strong and the ships light, the thread would pull the ships together instead, and the whole system would contract without breaking. The spaceship question assumes the opposite: ships far too massive for the thread to move.</p>
-    <p>Every observer agrees that the thread breaks: a broken thread is broken in any frame. They explain it differently. In A's frame the thread shrinks while the gap stays L; in the ships' frame the thread keeps its length while the ships move apart.</p>
+    <p>Every observer agrees that the thread breaks: a broken thread is broken in any frame. They explain it differently. In A's frame the thread shrinks while the gap stays L. In the ships' frame the thread keeps its length while the ships move apart, because in that frame the front engine fired first.</p>
   </div>
-  <p class="notice"><b>What to notice:</b> the atoms' orbits (ellipses) flatten with speed and want to sit closer together; the bonds between them (springs) are pulled long. Switch to a strong thread and the ships come together instead.</p>
+  <p class="notice"><b>What to notice:</b> the atoms' orbits (ellipses) flatten with speed and want to sit closer together, as the bracket shows; the bonds between them (springs) are pulled long. The springs turn gold close to the snapping point. The ships are made of atoms too, so they are drawn shorter as well. Switch to a strong thread and the ships come together instead.</p>
   <div class="section-body">
     <div class="canvas-card short"><canvas id="threadCanvas" aria-label="A thread made of atoms between two ships"></canvas></div>
     <div class="controls">
       <div class="row"><label for="threadV">Speed of ships and thread <output id="threadVOut">0.00 c</output></label><input id="threadV" type="range" min="0" max="0.95" step="0.01" value="0"></div>
-      <div class="row"><label for="threadEps">Thread snaps at <output id="threadEpsOut">20%</output></label><input id="threadEps" type="range" min="5" max="100" step="5" value="20"></div>
+      <div class="row"><label for="threadEps">Thread snaps at a stretch of <output id="threadEpsOut">20%</output></label><input id="threadEps" type="range" min="5" max="100" step="5" value="20"></div>
       <label class="check"><input id="threadStrong" type="checkbox"><span>Strong thread, light ships (Bell's proviso)</span></label>
       <div class="readout">
         <span>Gap between ships</span><output id="threadGap">1.00 L</output>
@@ -127,11 +139,11 @@
 <section class="section" id="s5">
   <div class="section-head"><h2>5. The moving observer</h2><p class="purpose">Her rulers and clocks are made of atoms too.</p></div>
   <div class="prose">
-    <p>Now imagine an observer travelling with the atom. Her rulers are made of atoms, so they are shorter by 1/γ. Her clocks are atoms too, so they run slow: one tick of hers lasts γ ticks on A's clock. She sets her clocks in agreement by light signals, assuming light takes as long to go one way as the other, as it would if she were at rest. This is a convention: she cannot check it without clocks that are already synchronized. Bell shows that the coordinates she then uses are exactly</p>
+    <p>Now imagine an observer travelling with the atom. Her rulers are made of atoms, so they are shorter by 1/γ. Her clocks are atoms too, so in A's frame they run slow: while her clock advances by one second, A's advances by γ seconds. She sets her clocks in agreement by light signals, assuming light takes as long to go one way as the other, as it would if she were at rest. This is a convention: she cannot check it without clocks that are already synchronized. Bell shows that the coordinates she then uses are exactly</p>
     <p class="formula">t′ = γ(t − vz/c²),&nbsp;&nbsp; z′ = γ(z − vt),&nbsp;&nbsp; x′ = x,</p>
-    <p>the Lorentz transformation. In her coordinates the moving atom is a circle that goes round in the rest period, exactly like an atom at rest. Maxwell's equations and the Lorentz force keep the same form in these variables, so nothing she can measure tells her she is moving.<sup><a href="#ref-1">1</a></sup></p>
+    <p>the Lorentz transformation. In her coordinates the moving atom is a circle that goes round in the rest period, exactly like an atom at rest. Maxwell's equations and the Lorentz force keep the same form in these variables, so nothing she can measure tells her she is moving.<sup><a href="#ref-1">1</a></sup> The effect is mutual: using her variables, she finds A's rulers short and A's clocks slow. Each can account for the other's measurements, and neither can show the other to be the one really moving.</p>
   </div>
-  <p class="notice"><b>What to notice:</b> the same electron, after the push, in two sets of variables, shown at the same reading of her clock. Left, A's: a flattened orbit; her ruler (white bar) is shortened with it, and A's clock runs γ times faster than hers. Right, hers: a circle that goes round once per rest period of her clock, and a ruler of full length.</p>
+  <p class="notice"><b>What to notice:</b> the same electron, after the push, in two sets of variables, both shown when her clock (which travels with the atom) reads the same. Left, A's variables: a flattened orbit, her ruler (white bar) shortened with it, and her clock running slow compared with A's. Right, her variables: a circle that goes round once per rest period, and a ruler of full length. The two pictures show nearly, but not exactly, the same moment of the electron's motion, because the two sets of variables disagree about which events are simultaneous.</p>
   <div class="section-body">
     <div class="canvas-card"><canvas id="observerCanvas" aria-label="The moving atom in the launch frame and in the moving observer's variables"></canvas></div>
     <div class="controls">
@@ -148,7 +160,7 @@
   </div>
   <details class="derivation"><summary>Details and math</summary><div class="body">
     <p>During coasting the nucleus moves as z = c₀ + vt. Its primed position, z′ = γ(c₀ + vt − vt) = γc₀, is constant: in her variables the nucleus is at rest. Each electron event (t, x, z) is transformed with the formulas above; the orbit is drawn about the nucleus. The remaining departures from a perfect circle and from the rest period, below 1% and largest at 0.95 c, come from the finite length of the push in the simulation.</p>
-    <p>The inverse transformation has the same form with v replaced by −v. So A, seen from her coordinates, has short rulers and slow clocks too. Each can account for the other's measurements, and neither can show the other to be the one really moving.<sup><a href="#ref-1">1</a></sup></p>
+    <p>The inverse transformation has the same form with v replaced by −v, which is why the effect is mutual.<sup><a href="#ref-1">1</a></sup></p>
   </div></details>
 </section>
 
@@ -163,9 +175,10 @@
     <div class="card"><h3>The shorter road (Einstein, 1905)</h3>
       <p><b>Starts from:</b> the principle that the laws look the same to every uniformly moving observer, and the constancy of the speed of light.</p>
       <p><b>Gets:</b> the Lorentz transformation at once, for every kind of matter and force, without a model of either.</p>
-      <p><b>Answers directly:</b> anything symmetric between frames. The thread is answered in the ships' momentary rest frame: there the ships move apart, so the thread is stretched.</p></div>
+      <p><b>Answers directly:</b> anything symmetric between frames. The thread is answered in the ships' momentary rest frame: there the front engine fires first, the ships move apart, and the thread is stretched.</p></div>
   </div>
   <div class="prose">
+    <p>Einstein described the difference himself. Some theories, he wrote, are <i>constructive</i>: they build a picture of phenomena from simple models, as the kinetic theory of gases does. Others are <i>theories of principle</i>: they start from general principles found in experience, as thermodynamics does. Special relativity, in his account, is a theory of principle.<sup><a href="#ref-8">8</a></sup> The longer road is the constructive account of the same effects.</p>
     <p>Bell judged that the facts of physics do not force either philosophy. He valued Einstein's approach for its power and elegance, and argued that students should also be taken along the longer road, because it shows that the laws in one frame account for everything, including what moving observers see, and builds the instincts that the spaceship question tests.<sup><a href="#ref-1">1</a></sup></p>
     <p>The dynamical account has limits that Bell himself noted. Classical electromagnetism cannot explain why atoms are stable, and real matter is held together by forces it does not include; the argument has to assume that all of them share the same symmetry. Brown and Pooley state the point clearly: the argument shows that contraction follows if the laws of matter have Lorentz symmetry, but not why they have it.<sup><a href="#ref-4">4</a>,<a href="#ref-5">5</a></sup> Einstein himself later wrote that, strictly, rods and clocks ought to be described as solutions of the basic equations rather than as self-sufficient entities; he had treated them as independent because those equations were not yet known well enough.<sup><a href="#ref-7">7</a></sup> Which road gives the explanation remains a live question among philosophers of physics.</p>
     <p>For Q-Ontic, this is a case where two accounts agree on every prediction and tell different stories about what happens. Quantum mechanics has a similar situation: pilot-wave theory and many worlds tell different stories but agree on every prediction. Spontaneous-collapse models do not, and experiments are testing them.</p>
@@ -174,7 +187,7 @@
     <p class="q">Which statement fits Bell's view?</p>
     <div class="options">
       <button type="button" data-ok="false" data-fb="No. In the longer road the laws are written in one frame, but observers in uniform motion find the same laws, so no experiment singles that frame out. Bell held that the facts do not decide whether such a frame exists.">The longer road shows there is a true state of rest: the frame in which Maxwell's equations hold.</button>
-      <button type="button" data-ok="true" data-fb="Yes. Same predictions; Bell recommended the longer road as an aid to understanding, not as a rival theory.">Both roads make the same predictions; the longer one builds physical intuition about moving matter.</button>
+      <button type="button" data-ok="true" data-fb="Yes. Both make the same predictions; Bell recommended the longer road because it builds the instincts that questions like the spaceship one test.">Both roads make the same predictions; the longer one builds physical intuition about moving matter.</button>
       <button type="button" data-ok="false" data-fb="No. Both make the same predictions; that is why Bell called the choice a matter of philosophy, and of teaching.">The two roads predict different results for fast-moving objects, which experiments can test.</button>
     </div>
     <p class="fb" hidden></p>
@@ -191,11 +204,12 @@
     <li id="ref-5">H. R. Brown, <em>Physical Relativity: Space-time Structure from a Dynamical Perspective</em> (Oxford University Press, 2005).</li>
     <li id="ref-6">E. M. Dewan and M. J. Beran, “Note on stress effects due to relativistic contraction,” <em>American Journal of Physics</em> <strong>27</strong>, 517–518 (1959).</li>
     <li id="ref-7">A. Einstein, “Autobiographical notes,” in <em>Albert Einstein: Philosopher-Scientist</em>, edited by P. A. Schilpp (Open Court, La Salle, IL, 1969; first published 1949), Vol. 1, pp. 1–94; see pp. 59 and 61.</li>
+    <li id="ref-8">A. Einstein, “Time, space, and gravitation,” <em>The Times</em> (London), 28 November 1919. Reprinted as “What is the theory of relativity?” in A. Einstein, <em>Ideas and Opinions</em>.</li>
   </ol>
 </section>
 
-<footer class="footer"><span>Bell's atom notebook · Version 0.1.2 · 2026-11-05</span><span>Q-Ontic Lab, Rice University · <a href="mailto:qonticlab@rice.edu">qonticlab@rice.edu</a></span></footer>
+<footer class="footer"><span>Bell's atom notebook · Version 0.1.3 · 2026-11-05</span><span>Q-Ontic Lab, Rice University · <a href="mailto:qonticlab@rice.edu">qonticlab@rice.edu</a></span></footer>
 </div>
-<script type="module" src="js/notebook.js?v=0.1.2"></script>
+<script type="module" src="js/notebook.js?v=0.1.3"></script>
 </body>
 </html>
