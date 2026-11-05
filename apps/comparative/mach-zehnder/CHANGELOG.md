@@ -1,5 +1,15 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.9 — 2026-11-05
+The phase between the arms is now a main control, not an Advanced setting.
+- Presets 0°, 60°, 90°, 120°, 180° (P(D2) = 0, 1/4, 1/2, 3/4, 1), each a prediction item; calibration stays at 0°. Any other value (Advanced slider) is free exploration with no prediction.
+- Prediction options for the detector split now include 3/4 : 1/4 and 1/4 : 3/4, always all five, so the list does not hint at the answer.
+- Marker and bomb items at any preset phase: the counts do not depend on the phase, and the text says so ("the marker flattens the fringe").
+- Bomb tester away from 0°: the dark port moves (D1 at 180°) or disappears. The text gives the likelihood ratio of each click; a click favours a live bomb only for |φ| < 60°.
+- Pilot wave, beam splitter removed: trajectories computed with the relative phase. Upper-arm atoms still end at D1 for every phase (checked numerically); at intermediate phases atoms near the axis cross it by under a pixel. Notes now say trajectories cannot cross each other.
+- Labels: "phase φ: D2 dark / D1 dark / no dark port", bright and dark port follow the phase. Physics tab and glossary updated. The log records the phase.
+- Fix: verdicts no longer lower-case D1 and D2.
+
 ## 0.8 — 2026-11-05
 Fixes from a ten-persona design walkthrough.
 - Calibration run first (beam splitter in, nothing in the arms): no prediction, and the tuning labels appear only after it.

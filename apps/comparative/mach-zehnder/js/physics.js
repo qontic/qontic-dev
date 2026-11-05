@@ -33,12 +33,29 @@ export const OPTIONS = [
   ['abs-d1', 'Some atoms absorbed by the bomb; the rest only at D1'],
   ['abs-both', 'Some atoms absorbed by the bomb; the rest reach D1 and D2 about equally'],
   ['abs-d2', 'Some atoms absorbed by the bomb; the rest only at D2'],
+  ['mostly-d1', 'About 3/4 at D1 and 1/4 at D2'],
+  ['mostly-d2', 'About 1/4 at D1 and 3/4 at D2'],
 ];
+
+// Phase presets offered as prediction items: P(D2) = 0, 1/4, 1/2, 3/4, 1.
+export const PHASE_PRESETS = [0, 60, 90, 120, 180];
+export const phaseDeg = setup => Math.round((setup.delta || 0) * 180 / Math.PI);
+export const isPreset = setup => PHASE_PRESETS.includes(Math.abs(phaseDeg(setup)));
 
 export function correctOption(setup) {
   if (setup.object === 'bomb') return setup.bs2 ? 'abs-both' : 'abs-d1';
-  if (setup.object === 'none' && setup.bs2) return 'd1';
+  if (setup.object === 'none' && setup.bs2) {
+    const p2 = probabilities(setup).d2;
+    return p2 < .05 ? 'd1' : p2 > .95 ? 'd2' : p2 < .4 ? 'mostly-d1' : p2 > .6 ? 'mostly-d2' : 'both';
+  }
   return 'both';
+}
+
+// Which detector, if any, never fires with nothing in the arms (the dark port).
+export function darkPort(setup) {
+  if (!setup.bs2) return null;
+  const c2 = Math.cos((setup.delta || 0) / 2) ** 2;
+  return c2 > .999 ? 'D2' : c2 < .001 ? 'D1' : null;
 }
 
 export function probabilities(setup) {
@@ -56,6 +73,8 @@ export function outcome(setup, u) {
   let result;
   if (setup.object === 'bomb' && arm === 'U') result = 'bomb';
   else if (setup.bs2) {
+    // Trajectories keep their order: the top fraction cos^2(delta/2) of the
+    // ensemble goes to D1 (a model assumption for the instantaneous splitter).
     if (setup.object === 'none') result = u < Math.cos((setup.delta || 0) / 2) ** 2 ? 'd1' : 'd2';
     else result = u2 < .5 ? 'd1' : 'd2';
   } else if (setup.object === 'none') {
@@ -123,8 +142,11 @@ const cexp = a => { const m = Math.exp(a.re); return C(m * Math.cos(a.im), m * M
 // Exact free evolution (hbar = m = 1) of two equal Gaussian packets that cross
 // at the second beam-splitter position with the splitter removed. Returns the
 // Bohmian trajectory of an atom starting in the upper packet at transverse
-// offset w (units of the packet width). Local units: 1 unit = 40 px.
-export function crossingTrajectory(w, { K = 30, sigma = .5, R = 3, steps = 1200 } = {}) {
+// offset w (units of the packet width; w > 0 is away from the axis). The lower
+// packet carries the relative phase relPhase. For relPhase = 0 or pi the density is
+// mirror-symmetric and no trajectory crosses the axis; for other phases
+// trajectories do cross it, but never each other. Local units: 1 unit = 40 px.
+export function crossingTrajectory(w, { relPhase = 0, K = 30, sigma = .5, R = 3, steps = 1200 } = {}) {
   const dU = G.dDown, dL = G.dUp;
   const k = [mul(dU, K), mul(dL, K)];
   const r0 = [mul(dU, -R), mul(dL, -R)];
@@ -135,7 +157,7 @@ export function crossingTrajectory(w, { K = 30, sigma = .5, R = 3, steps = 1200 
     let psi = C(0), gx = C(0), gy = C(0);
     for (let j = 0; j < 2; j++) {
       const dx = r.x - r0[j].x - k[j].x * t, dy = r.y - r0[j].y - k[j].y * t;
-      const phase = k[j].x * (r.x - r0[j].x) + k[j].y * (r.y - r0[j].y);
+      const phase = k[j].x * (r.x - r0[j].x) + k[j].y * (r.y - r0[j].y) + (j === 1 ? relPhase : 0);
       const expo = cadd(cmul(C(-(dx * dx + dy * dy) / (2 * s2)), ia), C(0, phase));
       const phi = cexp(expo);
       psi = cadd(psi, phi);
@@ -179,8 +201,10 @@ export function pilotWavePath(setup, u) {
   const pts = [add(G.S, P(0, offsetPx * .4)), add(G.BS1, mul(n1, offsetPx)), add(M, mul(n1, offsetPx)), add(M, mul(n2, offsetPx))];
   if (result === 'bomb') return { pts: [...pts.slice(0, 2), add(G.OBJ, mul(n1, offsetPx))], result, arm };
   if (!setup.bs2 && setup.object === 'none') {
-    // The crossing is computed from the guiding equation, mirrored for the lower packet.
-    let local = crossingTrajectory(Math.abs(w) < .05 ? .05 : Math.abs(w));
+    // The crossing is computed from the guiding equation, mirrored for the lower
+    // packet. Mirroring swaps the packets, so the relative phase changes sign.
+    const delta = setup.delta || 0;
+    let local = crossingTrajectory(Math.abs(w) < .05 ? .05 : Math.abs(w), { relPhase: arm === 'U' ? delta : -delta });
     if (arm === 'L') local = local.map(p => P(p.x, 2 * G.BS2.y - p.y));
     const last = local[local.length - 1], prev = local[local.length - 8];
     const dir = unit(sub(last, prev));

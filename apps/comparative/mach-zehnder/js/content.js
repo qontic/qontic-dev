@@ -99,5 +99,52 @@ export const GLOSSARY = [
   ['Copy of the world', 'Many worlds: after a record, the wave splits into parts that no longer interfere; each part is a separate world. Its weight is the Born-rule probability.'],
   ['Born rule', 'The probability of an outcome is the squared size of the wave for that outcome.'],
   ['Configuration space', 'A combined picture with one axis for the atom’s position and one for the marker or bomb. Pilot wave: two parts of the wave steer the atom together only if they overlap there.'],
-  ['Bright and dark port', 'With the interferometer tuned, every atom leaves toward D1 (bright port) and none toward D2 (dark port).'],
+  ['Phase between the arms', 'An extra delay of one arm relative to the other. It decides how the recombined wave divides between D1 and D2: P(D2) = sin²(φ/2). It matters only where the two parts of the wave meet in the same branch.'],
+  ['Bright and dark port', 'At phase 0°, every atom leaves toward D1 (bright port) and none toward D2 (dark port). At 180° they swap. In between there is no dark port.'],
 ];
+
+// ---------- text that depends on the phase ----------
+const FRAC = { 0: '0', .25: '1/4', .5: '1/2', .75: '3/4', 1: '1' };
+export const frac = p => { const r = Math.round(p * 1000) / 1000; return FRAC[r] ?? p.toFixed(2); };
+
+// "All accounts agree" line when the phase is not 0; null means use COMMON.
+export function commonAtPhase(base, deg, pNone) {
+  if (deg === 0) return null;
+  const at = `at ${deg}°`;
+  switch (base) {
+    case 'in-none': return `All accounts agree: ${at}, D1 fires with probability ${frac(pNone.d1)} and D2 with ${frac(pNone.d2)}.${Math.abs(deg) === 180 ? ' D1 is now the dark port.' : ''}`;
+    case 'out-none': return 'All accounts agree: D1 and D2 each fire half the time, for every phase. The phase only shifts the fringes where the beams cross.';
+    case 'in-marker': return `All accounts agree: D1 and D2 each fire half the time, for every phase. Without the marker, ${at} the split would be ${frac(pNone.d1)} : ${frac(pNone.d2)}; with it, the phase no longer matters.`;
+    case 'out-marker': return 'All accounts agree: D1 and D2 each fire half the time, for every phase, exactly as without the marker.';
+    case 'out-bomb': return 'All accounts agree: half the atoms are absorbed by the bomb and the rest reach D1, for every phase.';
+    case 'in-bomb': {
+      const head = 'All accounts agree: half the atoms are absorbed by the bomb, a quarter reach D1 and a quarter reach D2, for every phase.';
+      if (pNone.d1 < .001) return `${head} At ${deg}°, D1 is the dark port: without a bomb it never fires, so now a D1 click shows a live bomb that absorbed nothing.`;
+      // Likelihood ratio of each click: P(click | live bomb) = 1/4 against P(click | no bomb).
+      const r = { D1: .25 / pNone.d1, D2: .25 / pNone.d2 };
+      const best = r.D1 > r.D2 ? 'D1' : 'D2';
+      const verdict = r[best] > 1.05 ? `a ${best} click favours a live bomb, ${r[best].toFixed(1)} to 1, but proves nothing`
+        : r[best] > .95 ? `a ${best} click is equally likely with or without a bomb and tells you nothing`
+        : 'both clicks are more likely without a bomb, so only an explosion reveals it';
+      return `${head} But without a bomb, ${at} D1 fires with probability ${frac(pNone.d1)} and D2 with ${frac(pNone.d2)}. There is no dark port: ${verdict}.`;
+    }
+    default: return null;
+  }
+}
+
+// Account-specific explanation when the phase changes the story; null means use EXPLAIN.
+export function explainAtPhase(view, base, deg, pNone) {
+  if (deg === 0) return null;
+  const a = frac(pNone.d1), b = frac(pNone.d2), dark = Math.abs(deg) === 180;
+  if (base === 'in-none') return {
+    orthodox: `The wave splits at the first beam splitter and travels both arms. At the second beam splitter the two parts add with a phase difference of ${deg}°: the probability is cos²(φ/2) = ${a} at D1 and sin²(φ/2) = ${b} at D2. The state collapses onto whichever detector clicks.`,
+    'pilot-wave': `The atom goes through one arm only; the wave goes through both. The recombined wave guides the atom, and which detector it reaches depends on where it sits in the wave, not on which arm it took. ${dark ? 'At 180° the wave guides every atom to D2.' : `At ${deg}° the wave guides ${a} of the atoms to D1 and ${b} to D2.`}`,
+    'many-worlds': dark ? 'Nothing inside the interferometer makes a record. At 180° only D2 has any weight, so the world does not split.' : `Nothing inside the interferometer makes a record, so nothing splits there. At the detectors the world splits into two copies: D1 with weight ${a} and D2 with weight ${b}.`,
+    'spontaneous-collapse': 'A single atom almost never collapses on its own (about 3.6 million years on average). Nothing collapses inside the interferometer. When a detector registers the atom, about 10²³ of its nucleons move, and collapse follows within about 100 ns.',
+  }[view];
+  if (base === 'in-bomb' && view === 'pilot-wave')
+    return 'If the atom is in the upper arm, the bomb absorbs it. If it is in the lower arm, only the empty part of the wave reaches the bomb. Tied to an exploded bomb, that part no longer guides the atom, so the atom reaches D1 or D2 equally. The phase acted only through the empty part, which is why it no longer matters.';
+  if (base === 'out-none' && view === 'pilot-wave')
+    return `The two wave packets cross with a phase difference of ${deg}°, which shifts the fringes. Trajectories cannot cross each other, so an atom from the upper arm still turns back and ends at D1, and one from the lower arm at D2, for every phase. ${dark ? '' : 'Away from 0° and 180° the fringes are no longer symmetric, and atoms very close to the axis can cross it slightly.'}`.trim();
+  return null;
+}

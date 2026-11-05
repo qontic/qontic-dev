@@ -2,9 +2,9 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.3';
-import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.8';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY } from './content.js?v=0.8';
+import { APP_RELEASE } from './release.js?v=0.9';
+import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint, PHASE_PRESETS, phaseDeg, isPreset, darkPort } from './physics.js?v=0.9';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, commonAtPhase, explainAtPhase } from './content.js?v=0.9';
 import { waveBranches, computeField, paintField } from './waves.js?v=0.3';
 
 mountQonticShell({
@@ -43,8 +43,12 @@ const state = {
   tallies: {}, predictions: {},
 };
 const baseKey = () => `${state.setup.bs2 ? 'in' : 'out'}-${state.setup.object}`;
-const detuned = () => state.setup.bs2 && state.setup.object === 'none' && Math.abs(state.setup.delta) > 1e-3;
-const key = () => baseKey() + (detuned() ? `-phase${Math.round(state.setup.delta * 180 / Math.PI)}` : '');
+const deg = () => phaseDeg(state.setup);
+// Phases off the presets are for free exploration: no prediction is asked.
+const explore = () => !isPreset(state.setup);
+const key = () => `${baseKey()}-p${deg()}`;
+// Detector probabilities with nothing in the arms, at the current phase.
+const pNone = () => probabilities({ ...state.setup, object: 'none' });
 const tally = () => (state.tallies[key()] ||= { d1: 0, d2: 0, bomb: 0, total: 0 });
 
 // ---------- controls ----------
@@ -76,12 +80,15 @@ document.querySelectorAll('[data-mz-toggle]').forEach(button => button.addEventL
   syncPanel();
 }));
 const phaseInput = document.getElementById('mz-phase');
-phaseInput.addEventListener('input', () => {
-  const deg = +phaseInput.value;
-  phaseInput.nextElementSibling.value = `${deg}°`;
-  state.setup.delta = deg * Math.PI / 180;
-  state.atom = null; syncPanel();
-});
+const phaseGroup = document.querySelector('[data-phase]');
+function setPhase(d) {
+  state.setup.delta = d * Math.PI / 180;
+  phaseInput.value = String(d); phaseInput.nextElementSibling.value = `${d}°`;
+  phaseGroup.querySelectorAll('button').forEach(b => { const on = +b.dataset.deg === Math.abs(d) && isPreset(state.setup); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
+  state.atom = null; state.running = false; ui.setRunning(false); syncPanel();
+}
+phaseInput.addEventListener('input', () => setPhase(+phaseInput.value));
+phaseGroup.addEventListener('click', event => { const b = event.target.closest('button[data-deg]'); if (b) setPhase(+b.dataset.deg); });
 const startInput = document.getElementById('mz-start');
 startInput.addEventListener('input', () => { state.fixedU = +startInput.value; startInput.nextElementSibling.value = (+startInput.value).toFixed(2); });
 
@@ -90,7 +97,8 @@ const optionsBox = document.getElementById('mz-options');
 let shownOptions = '';
 function buildOptions() {
   // Offer only answers that fit the setup: bomb answers only when a bomb is in the arm.
-  const ids = state.setup.object === 'bomb' ? ['d1', 'abs-d1', 'abs-both', 'abs-d2'] : ['d1', 'd2', 'both'];
+  // All five splits are always offered, so the list does not hint at the answer.
+  const ids = state.setup.object === 'bomb' ? ['d1', 'abs-d1', 'abs-both', 'abs-d2'] : ['d1', 'mostly-d1', 'both', 'mostly-d2', 'd2'];
   const sig = ids.join();
   if (sig === shownOptions) return;
   shownOptions = sig;
@@ -128,10 +136,10 @@ document.getElementById('mz-predict').addEventListener('submit', event => {
   syncPanel();
 });
 
-const isCalibration = () => state.setup.bs2 && state.setup.object === 'none' && !detuned();
+const isCalibration = () => state.setup.bs2 && state.setup.object === 'none' && deg() === 0;
 const needsCalibration = () => state.display.predict && !state.calibrated && !isCalibration();
 const showTuning = () => state.calibrated || !state.display.predict;
-const canRun = () => !needsCalibration() && (!state.display.predict || detuned() || isCalibration() || Boolean(state.predictions[key()]));
+const canRun = () => !needsCalibration() && (!state.display.predict || explore() || isCalibration() || Boolean(state.predictions[key()]));
 const hint = document.getElementById('mz-hint');
 const flashHint = () => { hint.classList.remove('mz-flash'); void hint.offsetWidth; hint.classList.add('mz-flash'); };
 
@@ -150,7 +158,7 @@ function syncPanel() {
   const p = state.predictions[key()];
   if (key() !== lastKey) { lastKey = key(); if (!p) { draft = { option: null, confidence: null }; reasonInput.value = ''; } }
   const locked = canRun();
-  document.getElementById('mz-predict').hidden = !state.display.predict || detuned() || isCalibration();
+  document.getElementById('mz-predict').hidden = !state.display.predict || explore() || isCalibration();
   if (p) draft = { option: p.option, confidence: p.confidence };
   optionsBox.querySelectorAll('input').forEach(input => { input.checked = input.value === draft.option; input.disabled = Boolean(p); input.closest('.mz-option').classList.toggle('is-selected', input.checked); });
   confBox.querySelectorAll('.mz-conf').forEach(b => { const on = +b.dataset.value === draft.confidence; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); b.disabled = Boolean(p); });
@@ -163,25 +171,23 @@ function syncPanel() {
   document.getElementById('mz-many').disabled = !locked;
   const t = tally();
   hint.textContent = isCalibration() ? (state.calibrated ? 'Calibration done: every atom reaches D1. Now choose another setup and predict.' : 'Calibration run: send a few atoms to see how the interferometer is tuned. No prediction needed.')
-    : needsCalibration() ? 'Run the calibration first: second beam splitter in place, nothing in the arm.'
-    : detuned() ? 'Prediction mode assumes a tuned interferometer (phase 0). With this phase, explore freely.' : !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
+    : needsCalibration() ? 'Run the calibration first: second beam splitter in place, nothing in the arm, phase 0°.'
+    : explore() ? `${deg()}° is for free exploration: no prediction. The prediction items use 0°, 60°, 90°, 120° and 180°.` : !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
     : t.total < 100 ? `Send at least 100 atoms to compare with your prediction (${t.total} so far).` : 'Change the setup or the interpretation to explore further.';
   ['d1', 'd2', 'bomb', 'total'].forEach(name => ui.setResult(name, String(t[name])));
   document.querySelectorAll('[data-bomb-row]').forEach(n => { n.hidden = state.setup.object !== 'bomb'; });
-  const deg = Math.round(state.setup.delta * 180 / Math.PI);
+  const d = deg();
   document.getElementById('mz-tuning').textContent = !state.setup.bs2
-    ? 'Removed: nothing recombines. The upper beam heads to D2 and the lower beam to D1.'
-    : !showTuning() ? 'In place. Start with the calibration run: nothing in the arms, send a few atoms and see where they go.'
-    : deg === 0 ? 'In place, tuned so that with nothing in the arms every atom reaches D1 and D2 stays dark (phase 0°; Advanced tab).'
-    : `In place, detuned by ${deg}° (Advanced tab): with nothing in the arms D2 now fires ${Math.round(100 * Math.sin(state.setup.delta / 2) ** 2)}% of the time.`;
+    ? 'Removed: nothing recombines. The upper beam heads to D2 and the lower beam to D1. The phase only moves the fringes where they cross.'
+    : !showTuning() ? 'In place. Start with the calibration run at phase 0°: nothing in the arms, send a few atoms and see where they go.'
+    : d === 0 ? 'In place. At phase 0°, with nothing in the arms, every atom reaches D1 and D2 stays dark.'
+    : 'In place. The phase decides how atoms divide between D1 and D2 when nothing is in the arms.';
   evaluate();
   const fb = document.getElementById('mz-feedback');
   fb.hidden = t.total === 0;
-  document.getElementById('mz-common').textContent = detuned()
-    ? `All accounts agree: with a phase difference of ${Math.round(state.setup.delta * 180 / Math.PI)}°, D1 fires with probability ${(probabilities(state.setup).d1).toFixed(2)} and D2 with ${(probabilities(state.setup).d2).toFixed(2)}.`
-    : COMMON[baseKey()];
+  document.getElementById('mz-common').textContent = commonAtPhase(baseKey(), d, pNone()) ?? COMMON[baseKey()];
   document.getElementById('mz-explain-label').textContent = `${VIEW_LABEL[state.view]}:`;
-  let text = EXPLAIN[state.view][baseKey()];
+  let text = explainAtPhase(state.view, baseKey(), d, pNone()) ?? EXPLAIN[state.view][baseKey()];
   if (state.view === 'spontaneous-collapse' && state.setup.object === 'marker' && state.setup.markerSize === 'macro' && state.setup.bs2)
     text = 'A macroscopic marker moves many particles, so the state collapses at the marker: the atom is then in one arm only, a single part reaches the second beam splitter, and D1 and D2 are equally likely.';
   document.getElementById('mz-explain').textContent = text;
@@ -189,16 +195,17 @@ function syncPanel() {
 
 function evaluate() {
   const p = state.predictions[key()], t = tally(), verdict = document.getElementById('mz-verdict');
-  if (!p || detuned() || isCalibration() || t.total < 100) { verdict.textContent = ''; verdict.className = 'mz-verdict'; return; }
+  if (!p || explore() || isCalibration() || t.total < 100) { verdict.textContent = ''; verdict.className = 'mz-verdict'; return; }
   const correct = correctOption(state.setup);
   const ok = p.option === correct;
-  const label = id => OPTIONS.find(([o]) => o === id)[1].toLowerCase();
+  // Lower-case the first word only when it is an ordinary word (not D1, D2).
+  const label = id => { const t = OPTIONS.find(([o]) => o === id)[1]; return /^[A-Z][a-z]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t; };
   verdict.className = `mz-verdict ${ok ? 'is-right' : 'is-wrong'}`;
   verdict.textContent = ok ? `Your prediction matches: ${label(correct)}.` : `Not this time. You predicted “${label(p.option)}”; the detectors show ${label(correct)}.`;
   if (!p.logged) {
     p.logged = true;
     const entries = readLog();
-    entries.push({ time: new Date().toISOString(), app: 'mach-zehnder', release: APP_RELEASE.version, setup: { secondBeamSplitter: state.setup.bs2, upperArm: state.setup.object }, interpretationShown: p.view, prediction: p.option, confidence: p.confidence, reason: p.reason, correctAnswer: correct, correct: ok, counts: { ...t } });
+    entries.push({ time: new Date().toISOString(), app: 'mach-zehnder', release: APP_RELEASE.version, setup: { secondBeamSplitter: state.setup.bs2, upperArm: state.setup.object, phaseDeg: deg() }, interpretationShown: p.view, prediction: p.option, confidence: p.confidence, reason: p.reason, correctAnswer: correct, correct: ok, counts: { ...t } });
     writeLog(entries);
   }
 }
@@ -211,7 +218,7 @@ function renderLog() {
   if (!entries.length) { body.innerHTML = '<tr><td colspan="5">No predictions yet. Lock a prediction and send at least 100 atoms.</td></tr>'; return; }
   entries.slice().reverse().forEach(e => {
     const tr = document.createElement('tr');
-    const setup = `${e.setup.secondBeamSplitter ? 'BS2 in' : 'BS2 out'}, ${e.setup.upperArm}`;
+    const setup = `${e.setup.secondBeamSplitter ? 'BS2 in' : 'BS2 out'}, ${e.setup.upperArm}, ${e.setup.phaseDeg ?? 0}°`;
     const pred = OPTIONS.find(([o]) => o === e.prediction)?.[1] || e.prediction;
     [new Date(e.time).toLocaleString(), setup, pred, String(e.confidence), e.correct ? 'Right' : 'Wrong'].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.append(td); });
     body.append(tr);
@@ -311,14 +318,15 @@ function drawApparatus(c, s, result) {
     ctx.beginPath(); ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     if (state.display.labels) label(name, { x: d.x + 34, y: d.y }, c.text, 'left', 16);
     const minor = state.display.labels && view.k > .45;
-    if (minor && state.setup.bs2 && showTuning() && Math.abs(state.setup.delta) < 1e-3)
-      label(name === 'D1' ? 'bright port' : 'dark port', { x: d.x, y: d.y + 32 }, c.muted, 'center', 12);
+    const dark = darkPort(state.setup);
+    if (minor && dark && showTuning())
+      label(name === dark ? 'dark port' : 'bright port', { x: d.x, y: d.y + 32 }, c.muted, 'center', 12);
     if (minor && !state.setup.bs2)
       label(name === 'D1' ? 'from lower arm' : 'from upper arm', { x: d.x, y: d.y + 32 }, c.muted, 'center', 12);
   });
   if (state.display.labels && view.k > .45 && state.setup.bs2 && showTuning()) {
-    const deg = Math.round(state.setup.delta * 180 / Math.PI);
-    label(deg === 0 ? 'tuned: D2 dark' : `detuned by ${deg}°`, { x: G.BS2.x, y: G.BS2.y + 64 }, deg === 0 ? c.wave : c.flash, 'center', 12);
+    const dark = darkPort(state.setup);
+    label(`phase ${deg()}°: ${dark ? `${dark} dark` : 'no dark port'}`, { x: G.BS2.x, y: G.BS2.y + 64 }, dark ? c.wave : c.flash, 'center', 12);
   }
   if (state.setup.object === 'marker') {
     const p = T(G.OBJ);
@@ -422,7 +430,7 @@ function waveNotes(c, s) {
   if (state.setup.object === 'none' && V !== 'many-worlds')
     label('fringes where the two beams overlap; still 50/50 at the detectors', { x: G.BS2.x, y: G.BS2.y + 86 }, c.muted, 'center', 12);
   if (V === 'pilot-wave')
-    label(state.setup.object === 'none' ? 'trajectories cannot cross here: the atom turns back' : 'other part marked or gone: the atom goes straight on', { x: G.BS2.x, y: G.BS2.y - 64 }, c.flash, 'center', 12);
+    label(state.setup.object === 'none' ? 'trajectories cannot cross each other: the atom turns back' : 'other part marked or gone: the atom goes straight on', { x: G.BS2.x, y: G.BS2.y - 64 }, c.flash, 'center', 12);
 }
 
 function drawParticle(c, s) {
@@ -499,7 +507,12 @@ function mwText(s) {
   return null;
 }
 function captionText(s, result) {
-  if (!state.atom) return !showTuning() ? 'Start with the calibration run: second beam splitter in place, nothing in the arms. Send a few atoms and see where they go.' : state.setup.bs2 ? 'The interferometer is tuned so that D2 stays dark. Choose a setup, make a prediction, then send atoms.' : 'With the second beam splitter removed, the upper beam heads to D2 and the lower beam to D1. Make a prediction, then send atoms.';
+  if (!state.atom) {
+    if (!showTuning()) return 'Start with the calibration run: second beam splitter in place, nothing in the arms, phase 0°. Send a few atoms and see where they go.';
+    if (!state.setup.bs2) return 'With the second beam splitter removed, the upper beam heads to D2 and the lower beam to D1. Make a prediction, then send atoms.';
+    const dark = darkPort(state.setup);
+    return `${dark ? `At phase ${deg()}°, ${dark} stays dark with nothing in the arms.` : `At phase ${deg()}° there is no dark port.`} Choose a setup, make a prediction, then send atoms.`;
+  }
   if (result === 'bomb' && s >= G.sObj) return 'The bomb absorbed the atom and exploded.';
   if (V === 'many-worlds') { const t = mwText(s); if (t) return t; }
   if (s >= G.total - 1) return result === 'd1' ? 'D1 clicked.' : 'D2 clicked.' + (state.setup.object === 'bomb' && state.setup.bs2 ? ' The bomb is live, and it absorbed nothing.' : '');
