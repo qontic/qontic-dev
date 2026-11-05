@@ -122,7 +122,7 @@ function syncPanel() {
   const locked = Boolean(p) || !state.display.predict;
   document.getElementById('mz-predict').hidden = !state.display.predict;
   if (p) draft = { option: p.option, confidence: p.confidence };
-  optionsBox.querySelectorAll('input').forEach(input => { input.checked = input.value === draft.option; input.disabled = Boolean(p); });
+  optionsBox.querySelectorAll('input').forEach(input => { input.checked = input.value === draft.option; input.disabled = Boolean(p); input.closest('.mz-option').classList.toggle('is-selected', input.checked); });
   confBox.querySelectorAll('.mz-conf').forEach(b => { const on = +b.dataset.value === draft.confidence; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); b.disabled = Boolean(p); });
   reasonInput.disabled = Boolean(p);
   if (p) reasonInput.value = p.reason;

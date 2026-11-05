@@ -1,5 +1,8 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.2 — 2026-11-05
+- The chosen prediction stays highlighted after it is locked.
+
 ## 0.1 — 2026-11-05
 - First prototype on the shared Q-Ontic template.
 - Setups: second beam splitter in or removed; nothing, a which-way marker, or a bomb in the upper arm.

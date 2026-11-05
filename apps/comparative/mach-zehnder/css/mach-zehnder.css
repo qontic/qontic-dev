@@ -53,3 +53,6 @@
 .qontic-light .mz-app .controls > h2 { color: #142b3a; }
 .qontic-light .mz-app .results-body span { color: #3d596a; }
 .qontic-light .mz-app .results-body output { color: #8a5a00; }
+.mz-option.is-selected span { color: #7cecff; }
+.mz-option.is-selected { outline: 1px solid var(--qontic-accent, #55d8e6); outline-offset: 2px; border-radius: 4px; }
+.qontic-light .mz-option.is-selected span { color: #075c69; }
