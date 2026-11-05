@@ -61,6 +61,7 @@ jobs:
             --exclude='.git/' \
             --exclude='public-qontic/' \
             --exclude='.github/workflows/' \
+            --exclude='archive/' \
             ./ public-qontic/
 
       - name: Remove unpublished notebooks and apps
