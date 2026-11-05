@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bell's Spaceships — Q-Ontic Lab</title>
+<meta name="description" content="Two spaceships joined by a thread accelerate identically. Does the thread break? John Bell's question to the CERN theory division, shown in the launch frame, the ships' frame and spacetime.">
+<link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
+<link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
+<link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
+<link rel="stylesheet" href="css/spaceships.css?v=0.1.0">
+</head>
+<body class="spaceship-app">
+<main class="shell">
+<header><div><p class="eyebrow">Q-Ontic · Relativity</p><h1>Bell's Spaceships</h1></div></header>
+<nav class="tabs" aria-label="App sections">
+  <button class="active" type="button" data-view="sim">Simulation</button>
+  <button type="button" data-view="physics">Physics</button>
+  <button type="button" data-view="rationale">Rationale</button>
+</nav>
+
+<section class="lab qontic-workspace" data-panel="sim">
+  <aside class="controls qontic-sidebar qontic-panel qontic-control-panel">
+    <section class="always-controls" aria-label="Simulation controls">
+      <qontic-controls show-interpretation="false" running="false" auto-run="false" show-reset="true" speed="1" speed-min="0.25" speed-max="3" speed-step="0.25" active-tab="core"></qontic-controls>
+    </section>
+    <div class="control-tab-body qontic-control-body">
+      <div class="control-pane" data-control-pane="core">
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Acceleration program</div>
+          <div class="qontic-app-toggle-group mode-group" role="group" aria-label="Acceleration program">
+            <button class="qontic-app-toggle active" type="button" data-mode="bell" aria-pressed="true" title="Both ships run the same acceleration program, started at the same launch-frame time. This is Bell's question.">Identical (Bell)</button>
+            <button class="qontic-app-toggle" type="button" data-mode="rigid" aria-pressed="false" title="The front ship accelerates more gently, so the proper distance between the ships never changes (Born-rigid motion).">Rigid</button>
+          </div>
+        </div>
+        <label class="control-row" title="Speed at which both ships stop accelerating and coast, as a fraction of c.">
+          <span>Final speed</span><input id="beta" type="range" min="0.05" max="0.99" step="0.01" value="0.90" aria-label="Final speed as a fraction of c"><output id="betaOut">0.90 c</output>
+        </label>
+        <p class="core-hint" id="gammaHint">γ = 2.29</p>
+        <label class="control-row" title="Elongation at which the thread snaps, measured relative to its rest length.">
+          <span>Thread snaps at</span><input id="breakStrain" type="range" min="1" max="150" step="1" value="20" aria-label="Elongation at which the thread breaks, in percent"><output id="breakOut">20%</output>
+        </label>
+        <p class="core-hint" id="critHint"></p>
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">View</div>
+          <div class="qontic-app-toggle-group view-group" role="group" aria-label="View">
+            <button class="qontic-app-toggle active" type="button" data-layout="all" aria-pressed="true">All</button>
+            <button class="qontic-app-toggle" type="button" data-layout="frames" aria-pressed="false">Two frames</button>
+            <button class="qontic-app-toggle" type="button" data-layout="spacetime" aria-pressed="false">Spacetime</button>
+          </div>
+        </div>
+        <div class="toggle-row"><span>Ask for a prediction</span><button class="toggle" type="button" data-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction before each run"></button></div>
+      </div>
+
+      <div class="control-pane hidden" data-control-pane="advanced">
+        <label class="control-row" title="Proper acceleration of the rear ship, in units of c²/L. In the rigid program the front ship's is a/(1 + aL/c²).">
+          <span>Rear acceleration</span><input id="accel" type="range" min="0.1" max="2" step="0.05" value="0.6" aria-label="Proper acceleration of the rear ship in units of c squared over L"><output id="accelOut">0.60</output>
+        </label>
+        <p class="core-hint">Proper acceleration in units of c²/L, where L is the initial distance between the ships. Gentler acceleration makes a longer run; the final state does not depend on it.</p>
+        <p class="core-hint" id="frontAccelHint"></p>
+      </div>
+
+      <div class="control-pane hidden" data-control-pane="display">
+        <div class="toggle-row"><span>Clocks on the ships</span><button class="toggle" type="button" data-toggle="clocks" aria-pressed="true" aria-label="Show ship clocks"></button></div>
+        <div class="toggle-row"><span>Atoms of the thread</span><button class="toggle" type="button" data-toggle="atoms" aria-pressed="false" aria-label="Show the atoms of the thread and their contracted fields"></button></div>
+        <div class="toggle-row"><span>Relaxed-length marker</span><button class="toggle" type="button" data-toggle="ghost" aria-pressed="true" aria-label="Show the length the thread would have if it were not stretched"></button></div>
+        <div class="toggle-row"><span>Launch-frame distance marks</span><button class="toggle" type="button" data-toggle="marks" aria-pressed="true" aria-label="Show distance marks at rest in the launch frame"></button></div>
+        <div class="toggle-row"><span>Start signal from A</span><button class="toggle" type="button" data-toggle="signal" aria-pressed="true" aria-label="Show the light signal that starts both ships"></button></div>
+        <div class="toggle-row"><span>Lines of simultaneity</span><button class="toggle" type="button" data-toggle="simul" aria-pressed="true" aria-label="Show lines of simultaneity on the spacetime diagram"></button></div>
+      </div>
+    </div>
+    <section class="results-panel qontic-panel" data-results-panel aria-label="Results">
+      <div class="results-head"><strong>Results</strong><button type="button" data-results-collapse aria-label="Collapse results">−</button></div>
+      <div class="results-body">
+        <span>Launch-frame time t</span><output data-result="t">—</output>
+        <span>Rear-ship clock τ<sub>B</sub></span><output data-result="tau">—</output>
+        <span>Rear-ship speed</span><output data-result="v">—</output>
+        <span>Distance, launch frame</span><output data-result="sepLab">—</output>
+        <span>Distance, rear-ship frame</span><output data-result="sepShip">—</output>
+        <span>Thread elongation</span><output data-result="strain">—</output>
+        <span>Thread</span><output data-result="status">—</output>
+      </div>
+    </section>
+  </aside>
+
+  <div class="visualization qontic-stage qontic-panel">
+    <div class="canvas-host">
+      <canvas id="stage" aria-label="Bell's spaceship simulation"></canvas>
+      <div class="prediction hidden" id="prediction" role="dialog" aria-labelledby="predictionTitle">
+        <p class="prediction-title" id="predictionTitle">Before you press Start</p>
+        <p id="predictionText">Both ships fire identical engines at the same moment. The thread can stretch by 20% before it snaps. Does it snap?</p>
+        <div class="prediction-buttons">
+          <button type="button" class="qontic-app-toggle" data-predict="breaks">It snaps</button>
+          <button type="button" class="qontic-app-toggle" data-predict="holds">It holds</button>
+          <button type="button" class="qontic-app-toggle" data-predict="skip">Skip</button>
+        </div>
+      </div>
+      <div class="verdict hidden" id="verdict" role="status"></div>
+
+    </div>
+  </div>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="physics">
+  <h2>The question</h2>
+  <p>Three spaceships A, B and C float at rest. B and C are a distance L apart, and A sits halfway between them. A fragile thread is tied from B to C. A sends a light signal; when it arrives, B and C fire identical engines and run identical acceleration programs. Seen from A, the two ships therefore have the same speed at every moment and stay a distance L apart. Does the thread break?</p>
+  <p>The answer is yes, once the speed is high enough. The app shows why in three ways.</p>
+
+  <h2>In the launch frame</h2>
+  <p>This is A's frame, the one the ships start from. The ships keep a fixed distance L. The thread moves with them, and a moving thread is shorter than the same thread at rest by the factor 1/γ, where γ = 1/√(1 − v²/c²). The thread would like to be L/γ long but is held at L, so it is stretched by a fraction γ − 1. A thread that snaps at elongation ε breaks once γ &gt; 1 + ε, that is, above</p>
+  <p class="formula">v<sub>c</sub> = c √(1 − 1/(1 + ε)²).</p>
+  <p>The ships contract by the same factor; only the gap between them does not, because nothing connects their engines except the agreed program.</p>
+
+  <h2>Why a moving thread contracts</h2>
+  <p>Bell's own explanation works entirely in the launch frame. The thread is held together by electric forces between its atoms. The field of a moving charge is flattened along the direction of motion by 1/γ. Atoms in equilibrium in those flattened fields sit closer together, so the thread in equilibrium is shorter. Bell showed in a simple model (an electron orbiting a nucleus) that Maxwell's equations by themselves give this contraction. Turn on <em>Atoms of the thread</em> under Display to see the flattened fields.</p>
+
+  <h2>In the ships' frame</h2>
+  <p>The second panel is the instantaneous rest frame of the rear ship B. There, the two ships did not start at the same moment: the front ship C started first, so it pulls ahead. When both coast, they are at rest relative to each other a distance γL apart. The thread, of rest length L, is stretched by γ − 1. The same number, by a different route. The clock on C reads ahead of B's by γvL/c², which is relativity of simultaneity at work.</p>
+
+  <h2>In spacetime</h2>
+  <p>The spacetime diagram plots the two worldlines in the launch frame, with time upward and light rays at 45°. The horizontal dashed line joins events simultaneous for A; their distance stays L. The tilted line joins events simultaneous for B; along it the distance grows. The shaded band is the thread's history, colored by its elongation, and a red mark shows where it breaks.</p>
+
+  <h2>A thread that does not break</h2>
+  <p>Choose <em>Rigid</em>. Now the front ship's proper acceleration is a/(1 + aL/c²), lower than the rear ship's a. The two worldlines are hyperbolas with a common center, the proper distance between the ships stays L, and the thread is never stretched. In the launch frame the ships approach each other until they are L/γ apart, contracting together with the thread. This is Born-rigid motion. Nikolić discusses the contraction of an accelerated rod in these terms (Ref. 4, listed under Rationale).</p>
+
+  <h2>What the model assumes</h2>
+  <ul>
+    <li>Units with c = 1. Lengths in units of L, times in units of L/c.</li>
+    <li>Each ship has a constant proper acceleration until it reaches the chosen final speed, then coasts.</li>
+    <li>The thread has no mass and does not pull on the ships. Its elongation is the proper distance between its ends, measured in the rear ship's instantaneous rest frame, divided by its rest length L. While the ships coast this is exact in every frame. During acceleration the thread's parts move at different speeds and the measure depends on that choice; the rear frame is used throughout.</li>
+    <li>With this measure the elongation while the ships accelerate is larger than γ(v) − 1 for the rear ship's current speed v, because in the rear ship's frame the front ship is ahead in its program. A thread can therefore snap during the acceleration even though the final-speed criterion above is what decides whether it snaps at all.</li>
+    <li>The break time is computed in the rear ship's frame and the break is drawn at the middle of the thread. The snapping back of the two halves is drawn schematically.</li>
+  </ul>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="rationale">
+  <h2>Bell's question at CERN</h2>
+  <p>John Bell described this problem in 1976, in an essay on how to teach special relativity. He put it to a distinguished experimental physicist, who refused to accept that the thread breaks and thought Bell had misread relativity. They took it to the CERN Theory Division. An informal canvass there produced, by Bell's account, a clear consensus that the thread would not break. Bell added that many who first answer wrongly reach the right answer with some thought, often by working out how things look to B or C.<sup><a href="#ref-1">1</a></sup> The same effect had been analysed earlier by Dewan and Beran.<sup><a href="#ref-2">2</a>,<a href="#ref-3">3</a></sup></p>
+
+  <h2>Why it belongs here</h2>
+  <p>Bell drew a lesson about teaching from it. The usual relativity course moves straight to the symmetry between frames and treats contraction as a matter of how we measure. Students who learn it that way have trouble with a question asked in one frame about one physical object. Bell argued for also teaching the older route of FitzGerald, Larmor, Lorentz and Poincaré: work in one frame, and ask how forces acting inside moving matter change its shape. That account and Einstein's give identical predictions. Bell did not ask teachers to drop Einstein's approach. He wanted students to know both, because the first gives a physical picture of what happens to the thread.<sup><a href="#ref-1">1</a></sup></p>
+  <p>This is the theme of Q-Ontic in a setting where nobody disputes the physics. Two accounts make the same predictions and tell different stories about what is happening. Each makes some questions easy and others hard. Seeing both side by side here may make it easier to take the same view of the formulations of quantum mechanics, where the accounts also agree on predictions and differ on the picture.</p>
+
+  <h2>References</h2>
+  <ol class="references">
+    <li id="ref-1">J. S. Bell, “How to teach special relativity,” <em>Progress in Scientific Culture</em> <strong>1</strong> (2) (1976). Reprinted in J. S. Bell, <em>Speakable and Unspeakable in Quantum Mechanics</em> (Cambridge University Press, 1987; 2nd ed. 2004), pp. 67–80.</li>
+    <li id="ref-2">E. M. Dewan and M. J. Beran, “Note on stress effects due to relativistic contraction,” <em>American Journal of Physics</em> <strong>27</strong>, 517–518 (1959).</li>
+    <li id="ref-3">E. M. Dewan, “Stress effects due to Lorentz contraction,” <em>American Journal of Physics</em> <strong>31</strong>, 383–386 (1963).</li>
+    <li id="ref-4">H. Nikolić, “Relativistic contraction of an accelerated rod,” <em>American Journal of Physics</em> <strong>67</strong>, 1007–1012 (1999).</li>
+  </ol>
+</section>
+</main>
+<script type="module" src="js/app.js?v=0.1.0"></script>
+</body>
+</html>
