@@ -1,5 +1,8 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.15 — 2026-11-06
+- Marker states renamed: "marker untouched" (lower arm) and "marker marked" (upper arm), replacing "ready" and "flipped". "Flipped" suggested a phase flip; the marker removes the interference, it does not shift it.
+
 ## 0.14 — 2026-11-05
 Fixes from a ten-student review (eight on the full app, two on `?arm=orthodox`).
 - First run (beam splitter in, nothing in the arms) counts as soon as atoms are sent, so changing the setup while the first atom flies no longer locks the app. Until it is done, other setups show no prediction form, only a plain instruction. The word "calibration" is gone.

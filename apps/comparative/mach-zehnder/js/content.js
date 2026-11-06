@@ -14,7 +14,7 @@ export const EXPLAIN = {
   orthodox: {
     'in-none': 'The wave splits at the first beam splitter and travels both arms. Nothing in the arms is changed by the atom’s path, so the two parts stay coherent: at the second beam splitter they add at D1 and cancel at D2. The state collapses when D1 clicks.',
     'out-none': 'With the second beam splitter removed nothing recombines. Each part of the wave heads to one detector, and the state collapses onto whichever detector clicks.',
-    'in-marker': 'Decoherence: the marker becomes entangled with the atom’s path. The part of the wave in the upper arm goes with “marker flipped”, the part in the lower arm with “marker ready”, and parts tied to different marker states cannot interfere. Nobody needs to read the marker, and nothing has collapsed yet. At the detectors the state collapses (the postulate) and D1 and D2 are equally likely.',
+    'in-marker': 'Decoherence: the marker becomes entangled with the atom’s path. The part of the wave in the upper arm goes with “marker marked”, the part in the lower arm with “marker untouched”, and parts tied to different marker states cannot interfere. Nobody needs to read the marker, and nothing has collapsed yet. At the detectors the state collapses (the postulate) and D1 and D2 are equally likely.',
     'out-marker': 'Nothing recombines, so the marker changes nothing here. Collapse happens at whichever detector clicks.',
     'in-bomb': 'Decoherence: the bomb becomes entangled with the path (exploded or intact), so the two arms can no longer interfere. Because the bomb is a large object, the orthodox account applies collapse here: half the time onto the upper arm, and the bomb absorbs the atom. Otherwise onto the lower arm; a single part arrives at the second beam splitter, and D1 and D2 are equally likely.',
     'out-bomb': 'Half the time the bomb absorbs the atom. Otherwise the state collapses onto the lower arm, which leads straight to D1.',
@@ -22,7 +22,7 @@ export const EXPLAIN = {
   'pilot-wave': {
     'in-none': 'The atom goes through one arm only; the wave goes through both. At the second beam splitter the two parts of the wave recombine and guide the atom to D1, whichever arm it took.',
     'out-none': 'The two wave packets cross, but trajectories cannot cross the symmetry line between them (computed here from the guiding equation for two identical packets). So an atom from the upper arm turns back at the crossing and ends at D1, not at D2, where its beam was heading. Reading the path off the detector is wrong in pilot wave.',
-    'in-marker': 'The marker is part of the system. In the panel below, the part of the wave with the atom in the upper arm goes with “marker flipped”, the other with “marker ready”. At the second beam splitter the two parts no longer overlap in this combined picture, so the empty part cannot steer the atom: D1 and D2 are each reached half the time.',
+    'in-marker': 'The marker is part of the system. In the panel below, the part of the wave with the atom in the upper arm goes with “marker marked”, the other with “marker untouched”. At the second beam splitter the two parts no longer overlap in this combined picture, so the empty part cannot steer the atom: D1 and D2 are each reached half the time.',
     'out-marker': 'The two parts of the wave go with different marker states, so they no longer steer the atom together. The atom goes straight through the crossing: upper arm to D2, lower arm to D1. Without the marker it would turn back at the crossing.',
     'in-bomb': 'If the atom is in the upper arm, the bomb absorbs it. If it is in the lower arm, only the empty part of the wave reaches the bomb. That part becomes tied to an exploded bomb, which is not what happened, so it can no longer cancel the wave at D2: the atom reaches D1 or D2 equally. A D2 click means the wave touched the bomb and the atom did not.',
     'out-bomb': 'Atoms in the upper arm are absorbed by the bomb; atoms in the lower arm go straight to D1, because nothing is left in the upper arm to turn them back.',
@@ -30,7 +30,7 @@ export const EXPLAIN = {
   'many-worlds': {
     'in-none': 'Nothing inside the interferometer makes a record, so nothing splits there. The two parts of the wave recombine at the second beam splitter and only D1 has any weight, so even at the detector the world does not split.',
     'out-none': 'When the detectors fire, the world splits into two copies of equal weight: one where D1 clicked and one where D2 clicked.',
-    'in-marker': 'The marker records the path, and the world splits into two copies: marker flipped and marker ready. While the record persists the copies do not interfere, so at the detectors each splits again. D1 and D2 each carry total weight one half.',
+    'in-marker': 'The marker records the path, and the world splits into two copies: marker marked and marker untouched. While the record persists the copies do not interfere, so at the detectors each splits again. D1 and D2 each carry total weight one half.',
     'out-marker': 'The marker splits the world into two copies; in each, the atom reaches one detector.',
     'in-bomb': 'The bomb splits the world. In one copy, of weight one half, it explodes. In the other nothing was absorbed and only the lower part of the wave reaches the second beam splitter, so the D1 and D2 copies each get weight one quarter.',
     'out-bomb': 'An explosion copy of weight one half, and an intact copy in which the atom reaches D1.',
@@ -65,7 +65,7 @@ const pathAnswers = {
 const markerQ = 'Why is there no interference, although nobody reads the marker?';
 const markerAnswers = {
   orthodox: 'Decoherence: the path became entangled with the marker, and parts tied to different marker states cannot interfere. Nobody needs to read the marker, and nothing has collapsed yet.',
-  'pilot-wave': 'The two parts of the wave go with different marker states (ready or flipped), so they cannot overlap and steer the atom together.',
+  'pilot-wave': 'The two parts of the wave go with different marker states (untouched or marked), so they cannot overlap and steer the atom together.',
   'many-worlds': 'The record split the world into two copies, and the copies do not interfere.',
   'spontaneous-collapse': ({ done }) => done ? 'Entanglement removed the interference; collapse happened later, at the detector.' : 'Entanglement removes the interference without any collapse; a microscopic marker is far too small to collapse.',
 };

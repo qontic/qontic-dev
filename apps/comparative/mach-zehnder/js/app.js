@@ -2,10 +2,10 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.14';
-import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.13';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY } from './content.js?v=0.14';
-import { waveBranches, computeField, paintField } from './waves.js?v=0.3';
+import { APP_RELEASE } from './release.js?v=0.15';
+import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.15';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY } from './content.js?v=0.15';
+import { waveBranches, computeField, paintField } from './waves.js?v=0.15';
 
 // Study arm (IUSE design). ?arm=orthodox gives the comparison arm: the same app,
 // setups, tasks and timing, but only the orthodox account with decoherence.
@@ -443,7 +443,7 @@ function drawWave(c, s, result) {
   ctx.drawImage(img, view.ox, view.oy, 1000 * view.k, 600 * view.k);
   if (fields.length > 1 && view.k > .3 && !state.compare) {
     const items = state.setup.object === 'marker'
-      ? [[branchColor('a'), 'part with the atom in the upper arm (marker flipped)'], [branchColor('b'), 'part with the atom in the lower arm (marker ready)']]
+      ? [[branchColor('a'), 'part with the atom in the upper arm (marker marked)'], [branchColor('b'), 'part with the atom in the lower arm (marker untouched)']]
       : [[branchColor('b'), 'part with the bomb intact']];
     items.forEach(([col, text], i) => { blob({ x: 590, y: 548 + i * 22 }, 9, col, .95); label(text, { x: 606, y: 548 + i * 22 }, c.muted, 'left', 12); });
   }
@@ -481,7 +481,7 @@ function drawConfigPanel(c, s, result) {
   ctx.fillStyle = c.panel; ctx.strokeStyle = c.beam; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.roundRect(p.x, p.y, w * view.k, h * view.k, 8 * view.k); ctx.fill(); ctx.stroke();
   const obj = state.setup.object;
-  const rows = obj === 'marker' ? ['Marker ready', 'Marker flipped'] : obj === 'bomb' ? ['Bomb intact', 'Bomb exploded'] : ['No record'];
+  const rows = obj === 'marker' ? ['Marker untouched', 'Marker marked'] : obj === 'bomb' ? ['Bomb intact', 'Bomb exploded'] : ['No record'];
   label(V === 'orthodox' ? 'Joint state: path × ' + (obj === 'none' ? 'arms' : obj) : 'Configuration space', { x: x0 + 12, y: y0 + 16 }, c.text, 'left', 12);
   const colX = { U: x0 + 110, L: x0 + 170, meet: x0 + 232, in: x0 + 140 };
   const rowY = rows.map((_, i) => y0 + 70 + i * 62);
@@ -497,7 +497,7 @@ function drawConfigPanel(c, s, result) {
   const spots = [];
   list.forEach(b => {
     if (b.exploded) { if (rows.length > 1) spots.push({ x: colX.U, y: rowY[1], color: c.bomb, alpha: .9, absorbed: true }); return; }
-    const row = obj === 'marker' && b.label === 'Marker flipped' ? 1 : 0;
+    const row = obj === 'marker' && b.label === 'Marker marked' ? 1 : 0;
     let color = c.wave;
     if (list.length > 1 && V !== 'orthodox' && V !== 'spontaneous-collapse') color = b.key === 'a' ? c.a : c.b;
     else if (list.length > 1) color = b.key === 'a' ? c.a : c.wave;
@@ -619,7 +619,7 @@ function mwStages() {
   const obj = state.setup.object;
   const s0 = [{ id: 'w', branch: null, w: 1 }];
   let s1 = null;
-  if (obj === 'marker') s1 = [{ id: 'a', parent: 'w', branch: 'a', w: .5, record: 'marker flipped' }, { id: 'b', parent: 'w', branch: 'b', w: .5, record: 'marker ready' }];
+  if (obj === 'marker') s1 = [{ id: 'a', parent: 'w', branch: 'a', w: .5, record: 'marker marked' }, { id: 'b', parent: 'w', branch: 'b', w: .5, record: 'marker untouched' }];
   if (obj === 'bomb') s1 = [{ id: 'x', parent: 'w', branch: 'x', exploded: true, w: .5, record: 'bomb exploded' }, { id: 'b', parent: 'w', branch: 'b', w: .5, record: 'bomb intact' }];
   const base = s1 || s0;
   const s2 = [];
