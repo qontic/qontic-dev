@@ -62,4 +62,12 @@ test('With both particles pushed the electron is never lost (0.2 to 0.95 c, shor
   }
 });
 
+test('The contraction does not depend on the length of the push (0.8 c; 40, 100, 200 orbits)', () => {
+  for (const rampOrbits of [40, 100, 200]) {
+    const a = new BellAtom({ Vf: 0.8, rampOrbits });
+    while (a.t < a.prog.Tacc + 3 * a.T0) a.step(300);
+    close(a.last.length / a.last.width, 0.6, 0.003, `ramp ${rampOrbits}`);
+  }
+});
+
 console.log(`${passed} tests passed`);

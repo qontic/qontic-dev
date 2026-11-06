@@ -1,4 +1,4 @@
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.1.3';
+import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.1.4';
 
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d);
@@ -216,7 +216,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     ctx.beginPath(); ctx.moveTo(xa, by + 5); ctx.lineTo(xa, by); ctx.lineTo(xa + natural * S, by); ctx.lineTo(xa + natural * S, by + 5); ctx.stroke(); ctx.setLineDash([]);
     text(ctx, `natural length ${fmt(natural)} L`, xa + (natural * S) / 2, by - 4, { color: COLORS.muted, size: 11, align: 'center' });
     // chain: atoms at natural spacing if relaxed; bonds stretched across the gap
-    const r = Math.min((S / N) * 0.28, h * 0.14);
+    const r = Math.min((S / 7) * 0.24, h * 0.14);
     const cell = (natural * S) / N;
     let positions;
     // equal springs: N atoms of width 2r/gamma and N + 1 springs fill the gap
@@ -239,6 +239,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     });
     if (broken) text(ctx, 'snapped', xc, y + r + 22, { color: COLORS.red, size: 13, align: 'center', weight: 700 });
     text(ctx, isStrong ? 'strong thread: it pulls the light ships together' : 'massive ships: the engines hold the gap at L', 12, 20, { color: COLORS.muted, size: 11.5 });
+    text(ctx, 'springs: white relaxed · gold near snapping · grey snapped', 12, 37, { color: COLORS.muted, size: 11 });
     motionArrow(ctx, 12, h - 14);
     $('#threadVOut').value = `${fmt(V)} c`;
     $('#threadEpsOut').value = isStrong ? 'not used' : `${sE.value}%`;
@@ -293,7 +294,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
   // index of the sample whose time is closest to t (arrays sorted by time)
   const at = (arr, t) => { let lo = 0, hi = arr.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (arr[m].t < t) lo = m; else hi = m; } return hi; };
   function panel(ctx, x0, w, h, title, arr, t, rulerLen, clockLabels, reserve = 0) {
-    const top = 18 * clockLabels.length + 30, avail = h - top - reserve - 46;
+    const top = 18 * 2 + 30, avail = h - top - reserve - 46; // same scale in both panels
     const R = Math.min(w * 0.36, avail / 2), cx = x0 + w / 2, cy = top + avail / 2;
     ctx.strokeStyle = 'rgba(207,227,245,0.18)'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
     const i1 = at(arr, t), span = Math.round(arr.length / 3.2);
