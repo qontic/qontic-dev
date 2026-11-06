@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg">
 <link rel="stylesheet" href="../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.2">
-<link rel="stylesheet" href="css/notebook.css?v=0.2.2">
+<link rel="stylesheet" href="css/notebook.css?v=0.2.3">
 </head>
 <body>
 <main class="shell">
@@ -116,7 +116,7 @@
       <li data-challenge="c-predict"><span class="tick" aria-hidden="true"></span><div><b>Predict, then run.</b> Set the final speed to 0.6 c (γ = 1.25). Before you run it: what fraction of its rest length will the orbit have along the motion? Then run it with all three ingredients on and check.<p class="done-msg" hidden>Measured <span data-val>0.800 of the rest length</span>. Expected 1/γ = 0.800: the orbit is 80% of its rest length along the motion and keeps its full width.</p></div></li>
       <li data-challenge="c-galileo"><span class="tick" aria-hidden="true"></span><div><b>Before relativity.</b> Switch off all three ingredients and run at any speed. What happens to the atom?<p class="done-msg" hidden>Nothing: with a rest-frame Coulomb field, no magnetic force and Newton's momentum, the atom is carried along unchanged (length <span data-val>1.000</span> of the rest length). In pre-relativistic physics, moving matter does not contract.</p></div></li>
       <li data-challenge="c-magnetic"><span class="tick" aria-hidden="true"></span><div><b>Leave one out.</b> Switch off only the magnetic force and run at 0.8 c. Is the result Bell's ellipse?<p class="done-msg" hidden>No. Without the magnetic force the pull across the motion is too strong, the orbit is no longer a steady ellipse, and the electron is soon lost. All three ingredients are needed together.</p></div></li>
-      <li data-challenge="c-fake"><span class="tick" aria-hidden="true"></span><div><b>Right ratio, wrong atom.</b> Find a combination of ingredients that gives length ÷ width = 1/γ at 0.8 c but is <i>not</i> Bell's result. Look at the width.<p class="done-msg" hidden>Flattened field with Newton's momentum and no magnetic force: length ÷ width is 0.600, but the orbit has grown across the motion to <span data-val>1.67</span> times its rest width instead of shrinking along it. Bell's result is about both: width unchanged, length shortened.</p></div></li>
+      <li data-challenge="c-fake"><span class="tick" aria-hidden="true"></span><div><b>Right ratio, wrong atom.</b> Find a combination of ingredients that gives length ÷ width = 1/γ at 0.8 c but is <i>not</i> Bell's result. Look at the width.<p class="done-msg" hidden>Flattened field with Newton's momentum and no magnetic force: length ÷ width is 0.600, but the orbit has grown across the motion to <span data-val>1.67</span> times its rest width instead of shrinking along it. Bell's result is about both: width unchanged, length shortened. Switching off only the flattened field gives the opposite mistake: the orbit shrinks by 1/γ in every direction, keeps the rest period, and stays a circle.</p></div></li>
     </ol>
   </div>
   <details class="derivation qn-full"><summary>Why the orbit is flattened: the equations</summary><div class="body">
@@ -277,7 +277,7 @@
   <details class="derivation instructors qn-full"><summary>For instructors: a 50-minute recitation and answers</summary><div class="body">
     <p><b>Before class (10 min, homework):</b> sections 1 and 2; students record their quiz 1 answer.</p>
     <p><b>In class:</b> (1) 5 min: poll quiz 1, show the spread of answers, run the <a href="../../apps/relativity/bell-spaceships/index.html">spaceship app</a>. (2) 15 min: section 3 in pairs, the four challenges; each pair reports what was wrong with the orbit in challenges 3 and 4. (3) 10 min: section 4, both challenges, and the paragraph “Is the stretch real?”. (4) 10 min: section 5 at the board: one tick of her clock is γ ticks of A's, and the reverse in her variables. (5) 10 min: section 7 individually; discuss the rod question.</p>
-    <p><b>Answers.</b> Section 3: 0.800 at 0.6 c; all ingredients off: no change; magnetic force off: the electron is lost; flattened field with Newton's momentum and no magnetic force: ratio 1/γ but width γ times too large. Section 4: 0.553 c (20%), 0.745 c (50%). Section 5: 1.67. Section 6: the ships move apart. Section 7: later or not at all; contracts without strain; the thread breaks in every frame; 25%.</p>
+    <p><b>Answers.</b> Section 3: 0.800 at 0.6 c; all ingredients off: no change; magnetic force off: the electron is lost; flattened field with Newton's momentum and no magnetic force: ratio 1/γ but width γ times too large. (Flattened field off, the other two on: a circle shrunk by 1/γ.) Section 4: 0.553 c (20%), 0.745 c (50%). Section 5: 1.67. Section 6: the ships move apart. Section 7: later or not at all; contracts without strain; the thread breaks in every frame; 25%.</p>
     <p><b>Common difficulties.</b> Students who think contraction is only appearance: use the rod and the Born-rigid engine setting, where the same contraction produces no stress. Students who try to explain the break in the ships' frame by contraction: the thread is at rest in that frame.</p>
   </div></details>
 </section>
@@ -299,6 +299,6 @@
 </section>
 
 </main>
-<script type="module" src="js/notebook.js?v=0.2.2"></script>
+<script type="module" src="js/notebook.js?v=0.2.3"></script>
 </body>
 </html>

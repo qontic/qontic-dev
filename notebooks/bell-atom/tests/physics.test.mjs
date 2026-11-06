@@ -84,6 +84,9 @@ test('Ingredients: all three needed (0.8 c)', () => {
   // flattened field + Newton, no magnetic force: right ratio, wrong width
   const fake = run({ magnetic: false, relInertia: false });
   close(fake.last.length / fake.last.width, 1 / g, 0.005, 'fake: ratio'); close(fake.last.width / 2, g, 0.02, 'fake: width');
+  // rest-frame field with magnetic force and Lorentz momentum: a circle shrunk by 1/gamma
+  const round = run({ flatField: false });
+  close(round.last.length / 2, 1 / g, 0.01, 'round: length'); close(round.last.width / 2, 1 / g, 0.01, 'round: width');
 });
 
 console.log(`${passed} tests passed`);

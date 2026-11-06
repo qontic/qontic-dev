@@ -1,11 +1,11 @@
 import { mountQonticNotebook } from '../../../shared/qontic-notebook.js?v=1.2';
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.2.2';
+import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.2.3';
 
 mountQonticNotebook({
   title: "Bell's atom: why moving things contract",
   eyebrow: 'Q-Ontic · Relativity',
   purpose: "John Bell's “longer road” to special relativity: in one frame, a moving atom contracts and its clock slows because of the forces that hold it together.",
-  version: "Bell's atom notebook · Version 0.2.2 · 2026-11-06",
+  version: "Bell's atom notebook · Version 0.2.3 · 2026-11-06",
 });
 
 const $ = (s) => document.querySelector(s);
@@ -128,13 +128,14 @@ showProgress();
   const ui = { V: $('#atomV'), ramp: $('#atomRamp'), speed: $('#atomSpeed'), push: $('#atomPush'), play: $('#atomPlay'),
     flat: $('#ingFlat'), mag: $('#ingMag'), rel: $('#ingRel') };
   const allIn = () => ui.flat.checked && ui.mag.checked && ui.rel.checked;
-  let atom, trail, playing = false, visible = false, finished = false;
+  let atom, trail, playing = false, visible = false, finished = false, zoom = 1;
   function restart() {
     atom = new BellAtom({ Vf: +ui.V.value, rampOrbits: +ui.ramp.value, pushElectron: ui.push.checked,
       flatField: ui.flat.checked, magnetic: ui.mag.checked, relInertia: ui.rel.checked });
     atom.cfg = { Vf: +ui.V.value, push: ui.push.checked, flat: ui.flat.checked, mag: ui.mag.checked, rel: ui.rel.checked };
     trail = [];
     finished = false;
+    zoom = 1;
     $('#atomVOut').value = `${fmt(+ui.V.value)} c`;
     $('#atomRampOut').value = `${ui.ramp.value} orbits`;
     draw();
@@ -150,7 +151,14 @@ showProgress();
     const { ctx, w, h } = c;
     const { x, z, V } = atom.rel, g = gammaOf(V);
     const narrow = w < 560;
-    const cx = w / 2, cy = h / 2 - (narrow ? 2 : 8), R = Math.min(w * 0.3, h * 0.33) * (allIn() ? 1 : 0.62);
+    // Same scale as the rest orbit unless the orbit grows beyond the view;
+    // then zoom out smoothly, and say so on the canvas.
+    const R0 = Math.min(w * 0.3, h * 0.33), room = Math.min(w / 2 - 16, h / 2 - 60);
+    let extent = Math.max(Math.abs(x), Math.abs(z));
+    for (let i = 0; i < trail.length; i += 4) extent = Math.max(extent, Math.abs(trail[i][0]), Math.abs(trail[i][1]));
+    const target = Math.min(1, room / (R0 * Math.max(extent, 1e-6)));
+    zoom = zoom > target ? target : zoom + (target - zoom) * 0.05;
+    const cx = w / 2, cy = h / 2 - (narrow ? 2 : 8), R = R0 * zoom;
     // reference: rest orbit and the ellipse expected at the current speed
     ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2;
     ctx.strokeStyle = 'rgba(207,227,245,0.25)'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
@@ -186,6 +194,7 @@ showProgress();
     motionArrow(ctx, 12, h - (narrow ? 44 : 16), narrow ? 'motion' : 'direction of motion');
     const off = [!atom.cfg.flat && 'flattened field', !atom.cfg.mag && 'magnetic force', !atom.cfg.rel && 'Lorentz momentum'].filter(Boolean);
     if (off.length) text(ctx, `switched off: ${off.join(', ')}`, 12, narrow ? 54 : 38, { color: COLORS.gold, size: 11.5 });
+    if (zoom < 0.98) text(ctx, `view zoomed out ×${fmt(zoom, 2)} to fit the orbit`, 12, (narrow ? 54 : 38) + (off.length ? 16 : 0), { color: COLORS.muted, size: 11.5 });
     const msgEl = $('#atomMsg');
     if (atom.lost) {
       const why = !atom.cfg.push ? 'with only the nucleus pushed' : `without the ${off.join(' and the ')}`;
