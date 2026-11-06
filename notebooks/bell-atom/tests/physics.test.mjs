@@ -1,6 +1,6 @@
 // Run with: node notebooks/bell-atom/tests/physics.test.mjs
 import assert from 'node:assert/strict';
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf, makeProgram } from '../js/physics.js';
+import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf, makeProgram, orbitAtSpeed } from '../js/physics.js';
 
 const close = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} vs ${b}`);
 let passed = 0;
@@ -87,6 +87,14 @@ test('Ingredients: all three needed (0.8 c)', () => {
   // rest-frame field with magnetic force and Lorentz momentum: a circle shrunk by 1/gamma
   const round = run({ flatField: false });
   close(round.last.length / 2, 1 / g, 0.01, 'round: length'); close(round.last.width / 2, 1 / g, 0.01, 'round: width');
+});
+
+test('orbitAtSpeed (the slider): Bell values from 0 to 0.95 c', () => {
+  for (const Vf of [0, 0.3, 0.6, 0.8, 0.95]) {
+    const o = orbitAtSpeed({ Vf }), g = gammaOf(Vf);
+    close(o.length, 1 / g, 0.005, `length at ${Vf}`); close(o.width, 1, 0.006, `width at ${Vf}`); close(o.period, g, 0.012 * g, `period at ${Vf}`);
+  }
+  assert.ok(orbitAtSpeed({ Vf: 0.8, magnetic: false }).lost, 'magnetic off: lost');
 });
 
 console.log(`${passed} tests passed`);

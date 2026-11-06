@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg">
 <link rel="stylesheet" href="../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.2">
-<link rel="stylesheet" href="css/notebook.css?v=0.2.3">
+<link rel="stylesheet" href="css/notebook.css?v=0.3.0">
 </head>
 <body>
 <main class="shell">
@@ -70,8 +70,8 @@
 
 <!-- 3 -->
 <section class="section" id="s3" data-nav-label="3 Bell's atom">
-  <div class="section-head"><h2>3. Bell's atom</h2><p class="purpose">An electron orbiting a nucleus that is pushed gently to high speed.</p></div>
-  <div class="prose qn-brief"><p>Bell's atom is one electron going round a heavy nucleus that is pushed gently up to speed v. Worked out in one frame with Maxwell's equations and relativistic mechanics, the orbit keeps its width, becomes shorter by 1/γ along the motion, and goes round γ times more slowly. Three ingredients are needed together: the flattened field, the magnetic force on the moving electron, and Lorentz's momentum p = γmv. Switch them off below to see why.</p></div>
+  <div class="section-head"><h2>3. Bell's atom</h2><p class="purpose">Choose the atom's speed and see what its orbit becomes.</p></div>
+  <div class="prose qn-brief"><p>Bell's atom is one electron going round a heavy nucleus. Push it gently up to speed v and work out the motion in one frame, with Maxwell's equations and relativistic mechanics: the orbit keeps its width, becomes shorter by 1/γ along the motion, and goes round γ times more slowly. Three ingredients are needed together: the flattened field, the magnetic force on the moving electron, and Lorentz's momentum p = γmv.</p></div>
   <div class="prose qn-full">
     <p>Bell's simplest piece of matter is a classical atom: one electron going round a much heavier nucleus. Start it at rest with a circular orbit, then push the nucleus gently until it moves at speed v. (The simulation pushes the electron too, in proportion to its mass, so that the push itself does not distort the orbit; the box below the simulation explains why.) Follow the electron with the field of section 2, the Lorentz force, and Lorentz's relation between momentum and velocity, p = mv/√(1 − v²/c²). Bell's result: the orbit becomes an ellipse shorter by 1/γ along the motion, and it goes round more slowly, by the factor γ.<sup><a href="#ref-1">1</a></sup></p>
     <p>Why should a flattened field give a flattened orbit? Think of an electron going slowly round the nucleus (slowly compared with light, measured relative to the nucleus) while the whole atom travels at speed v, so the electron itself moves at about v. Two things change, in different ways along the motion and across it.</p>
@@ -79,54 +79,50 @@
       <li><b>Along the motion</b>, the pull of the nucleus is weaker, by γ², than at rest (section 2). The electron is also harder to speed up or slow down in this direction: its inertia is γ³ times its rest mass.</li>
       <li><b>Across the motion</b>, the electric pull is stronger, by γ, but the magnetic force on the moving electron cancels most of it, leaving 1/γ of the rest value. The inertia in this direction is γ times the rest mass.</li>
     </ul>
-    <p>Both directions then obey the same equation of motion as an atom at rest with a pull γ² times weaker, provided distances along the motion are counted γ times larger. Picture the orbit drawn on a sheet that is then squeezed along the motion by the factor 1/γ: a circle on the sheet becomes an ellipse. A gentle push keeps the circle's size on the sheet equal to the rest radius, so the orbit keeps its width across the motion and is shortened by 1/γ along it. With a weaker pull it also goes round γ times more slowly. The boxes below the simulation give the equations and say why the γ³ and γ appear. You can also switch each of the three ingredients off in the simulation and see what goes wrong.</p>
+    <p>Put together, these are exactly the equations of an atom at rest, provided distances along the motion are counted γ times larger and time is read on a clock running γ times slower. So the moving atom does what the atom at rest does, in those units: its orbit is the rest circle squeezed by 1/γ along the motion, with the same width, and it goes round once every γ rest periods. The box below the simulation gives the equations. You can switch each ingredient off in the simulation and see what goes wrong.</p>
     <p>This is no accident. Maxwell's equations and Lorentz's momentum law already have the symmetry that section 5 describes; Bell's calculation shows that symmetry at work in one frame. Nothing in it refers to a moving observer, to clocks being synchronized, or to the relativity of simultaneity.</p>
   </div>
-  <p class="notice qn-brief"><b>What to notice:</b> the orbit keeps its width and shrinks along the motion, and goes round more slowly. Compare the readouts with the expected values.</p>
-  <p class="notice qn-full"><b>What to notice:</b> the orbit, drawn around the nucleus, flattens as the speed rises. Its width across the motion stays at the rest value; its length along the motion shrinks by 1/γ, and the period grows by γ. The values are read from the last complete revolution, and the expected values use the nucleus speed during that revolution, which during the push lags slightly behind the speed shown. The yellow bar shows the nucleus speed, from 0 to c. Then switch off Bell's ingredients one at a time, with the challenges below.</p>
+  <p class="notice"><b>What to notice:</b> move the speed slider. The blue orbit keeps its width and shrinks along the motion, and the blue electron falls behind the grey one, which shows the same atom at rest. The dashed green ellipse is Bell's prediction.</p>
   <div class="section-body">
-    <div class="canvas-card"><canvas id="atomCanvas" aria-label="Electron orbit as the nucleus speeds up"></canvas></div>
+    <div class="canvas-card"><canvas id="atomCanvas" aria-label="The orbit of the moving atom compared with the atom at rest"></canvas></div>
     <div class="controls">
-      <div class="buttons"><button class="button primary" id="atomPlay" type="button">Play</button><button class="button" id="atomRestart" type="button">Restart</button></div>
-      <div class="row"><label for="atomV">Final speed of the nucleus <output id="atomVOut">0.80 c</output></label><input id="atomV" type="range" min="0.2" max="0.95" step="0.05" value="0.8"></div>
-      <div class="row"><label for="atomRamp">Push lasts <output id="atomRampOut">100 orbits</output></label><input id="atomRamp" type="range" min="40" max="200" step="10" value="100"></div>
-      <div class="row"><label for="atomSpeed">Animation speed <output id="atomSpeedOut">1×</output></label><input id="atomSpeed" type="range" min="0.5" max="6" step="0.5" value="1"></div>
+      <div class="row"><label for="atomV">Speed of the atom <output id="atomVOut">0.80 c</output></label><input id="atomV" type="range" min="0" max="0.95" step="0.05" value="0.8"></div>
+      <p class="mini" id="atomGamma" style="margin-top:-6px">γ = 1.67</p>
       <fieldset class="ingredients"><legend>Bell's three ingredients</legend>
-        <label class="check"><input id="ingFlat" type="checkbox" checked><span>Flattened field of the moving nucleus (section 2)</span></label>
+        <label class="check"><input id="ingFlat" type="checkbox" checked><span>Flattened field of the moving nucleus</span></label>
         <label class="check"><input id="ingMag" type="checkbox" checked><span>Magnetic force on the moving electron</span></label>
         <label class="check"><input id="ingRel" type="checkbox" checked><span>Lorentz's momentum p = γmv (off: Newton's p = mv)</span></label>
       </fieldset>
-      <label class="check"><input id="atomPush" type="checkbox" checked><span>Push the electron too, in proportion to its mass</span></label>
       <div class="readout">
-        <span>Nucleus speed</span><output id="atomVnow">0.00 c</output>
-        <span>Length along motion ÷ rest</span><output id="atomLen" class="hl">—</output>
-        <span class="sub">expected 1/γ</span><output id="atomLenExp" class="sub">1.000</output>
-        <span>Width across motion ÷ rest</span><output id="atomWid" class="hl">—</output>
-        <span class="sub">expected</span><output id="atomWidExp" class="sub">1.000</output>
-        <span>Period ÷ rest period</span><output id="atomPeriod" class="hl">—</output>
-        <span class="sub">expected γ</span><output id="atomPeriodExp" class="sub">1.00</output>
+        <span></span><span class="sub" style="text-align:right">measured · Bell</span>
+        <span>Length along motion</span><span><output id="atomLen" class="hl">—</output> · <output id="atomLenExp" class="sub">1.000</output></span>
+        <span>Width across motion</span><span><output id="atomWid" class="hl">—</output> · <output id="atomWidExp" class="sub">1.000</output></span>
+        <span>Time for one turn</span><span><output id="atomPeriod" class="hl">—</output> · <output id="atomPeriodExp" class="sub">1.00</output></span>
       </div>
+      <p class="mini">In units of the atom at rest. Each orbit is computed by pushing the atom gently from rest to the chosen speed (60 orbits) and measuring one turn.</p>
       <p class="mini warn" id="atomMsg" hidden></p>
-      <p class="mini">Electron speed in the orbit, measured in the atom's own frame: 0.1 c; the classical radiation of the orbiting electron is ignored, as in Bell's model.</p>
+      <div class="buttons" style="margin-top:10px"><button class="button" id="atomPlay" type="button">Pause</button></div>
     </div>
   </div>
   <div class="challenges">
     <h3>Challenges</h3>
     <ol>
-      <li data-challenge="c-predict"><span class="tick" aria-hidden="true"></span><div><b>Predict, then run.</b> Set the final speed to 0.6 c (γ = 1.25). Before you run it: what fraction of its rest length will the orbit have along the motion? Then run it with all three ingredients on and check.<p class="done-msg" hidden>Measured <span data-val>0.800 of the rest length</span>. Expected 1/γ = 0.800: the orbit is 80% of its rest length along the motion and keeps its full width.</p></div></li>
-      <li data-challenge="c-galileo"><span class="tick" aria-hidden="true"></span><div><b>Before relativity.</b> Switch off all three ingredients and run at any speed. What happens to the atom?<p class="done-msg" hidden>Nothing: with a rest-frame Coulomb field, no magnetic force and Newton's momentum, the atom is carried along unchanged (length <span data-val>1.000</span> of the rest length). In pre-relativistic physics, moving matter does not contract.</p></div></li>
-      <li data-challenge="c-magnetic"><span class="tick" aria-hidden="true"></span><div><b>Leave one out.</b> Switch off only the magnetic force and run at 0.8 c. Is the result Bell's ellipse?<p class="done-msg" hidden>No. Without the magnetic force the pull across the motion is too strong, the orbit is no longer a steady ellipse, and the electron is soon lost. All three ingredients are needed together.</p></div></li>
+      <li data-challenge="c-predict"><span class="tick" aria-hidden="true"></span><div><b>Predict, then check.</b> Before you move the slider: at 0.6 c (γ = 1.25), what fraction of its rest length will the orbit have along the motion? Then set 0.6 c with all three ingredients on.<p class="done-msg" hidden>Measured <span data-val>0.800 of the rest length</span>. Expected 1/γ = 0.800: the orbit is 80% of its rest length along the motion and keeps its full width.</p></div></li>
+      <li data-challenge="c-galileo"><span class="tick" aria-hidden="true"></span><div><b>Before relativity.</b> Switch off all three ingredients, at any speed. What happens to the atom?<p class="done-msg" hidden>Nothing: with a rest-frame Coulomb field, no magnetic force and Newton's momentum, the atom is carried along unchanged (length <span data-val>1.000</span> of the rest length). In pre-relativistic physics, moving matter does not contract.</p></div></li>
+      <li data-challenge="c-magnetic"><span class="tick" aria-hidden="true"></span><div><b>Leave one out.</b> Switch off only the magnetic force, at 0.8 c. Is the result Bell's ellipse?<p class="done-msg" hidden>No. Without the magnetic force the pull across the motion is too strong: during the push the orbit becomes more and more eccentric and the electron falls into the nucleus. All three ingredients are needed together.</p></div></li>
       <li data-challenge="c-fake"><span class="tick" aria-hidden="true"></span><div><b>Right ratio, wrong atom.</b> Find a combination of ingredients that gives length ÷ width = 1/γ at 0.8 c but is <i>not</i> Bell's result. Look at the width.<p class="done-msg" hidden>Flattened field with Newton's momentum and no magnetic force: length ÷ width is 0.600, but the orbit has grown across the motion to <span data-val>1.67</span> times its rest width instead of shrinking along it. Bell's result is about both: width unchanged, length shortened. Switching off only the flattened field gives the opposite mistake: the orbit shrinks by 1/γ in every direction, keeps the rest period, and stays a circle.</p></div></li>
     </ol>
   </div>
   <details class="derivation qn-full"><summary>Why the orbit is flattened: the equations</summary><div class="body">
     <p>Let the orbit lie in the x–z plane, with the atom moving along z at speed v, and let the electron move slowly round the nucleus (0.1 c here). With the nucleus at the origin, s² = x² + γ²z² and K = Ze² (Gaussian units), the field of section 2 pulls the electron with the electric force −Kγz/s³ along the motion and −Kγx/s³ across it. The electron moves at about v, so it also feels the magnetic force of B = (v/c) × E, which pushes against the electric force across the motion and reduces it by the factor 1 − v²/c² = 1/γ², to −Kx/(γs³). Its inertia is γ³m along the motion and γm across it: with momentum p = γmu, a small change du of the velocity u along u changes p by γ³m du, while a change across u changes it by γm du. To leading order,</p>
     <p class="formula">γ³m z̈ = −Kγz/s³,&nbsp;&nbsp; γm ẍ = −Kx/(γs³).</p>
-    <p>With the stretched coordinate ζ = γz this is ζ̈ = −(K/γ²m) ζ/s³ and ẍ = −(K/γ²m) x/s³, where s² = x² + ζ²: the Kepler problem with the force reduced by γ². A circular orbit is therefore a solution, with angular frequency reduced by γ at fixed radius; a gentle push keeps the radius at its rest value, because the angular momentum in these coordinates does not change during a slow push. In x and z it is an ellipse flattened by 1/γ that goes round γ times more slowly. The simulation solves the full equations, without these approximations, and finds the same result.</p>
+    <p>Use the stretched coordinate ζ = γz and the atom's own time τ = t/γ. Since d²ζ/dτ² = γ³ z̈ and d²x/dτ² = γ² ẍ, the two equations become</p>
+    <p class="formula">m d²ζ/dτ² = −Kζ/s³,&nbsp;&nbsp; m d²x/dτ² = −Kx/s³,&nbsp;&nbsp; s² = x² + ζ²:</p>
+    <p>exactly the equations of the atom at rest. So the rest orbit, a circle of the rest radius traversed once per rest period of τ, is a solution. In x, z and t it is an ellipse whose length along the motion is 1/γ of its width, traversed once every γ rest periods. That a gentle push brings the atom onto this solution, with the rest radius, is what the simulation checks: it solves the full equations, without these approximations.</p>
   </div></details>
   <details class="derivation qn-full"><summary>How the push is applied, and why it matters</summary><div class="body">
-    <p>Bell applied the force to the nucleus only and let the electron follow.<sup><a href="#ref-1">1</a></sup> In this purely classical model that choice does not work: a steady force on the nucleus alone slowly changes the eccentricity of the orbit, and a slower push does not help, because the change depends on the speed reached, not on how fast it is reached. Untick the box to see it. With only the nucleus pushed, the electron passes through the region of the nucleus when the nucleus has reached about 0.08 c, whatever the length of the push (after about twenty orbits at the default settings; the push starts and ends gently, so the speed is still low then). There the point-particle model, and the fixed-step integration, break down, and the run stops. So Bell's own version of the push cannot be followed to high speed in this model.</p>
-    <p>The notebook therefore makes a modelling choice: it pushes the electron too, with a force proportional to its mass and set by the nucleus's acceleration, so that at low speed the atom is simply carried along. This extra force is the same for any speed of the electron round the orbit, so it does not itself flatten the orbit; the flattening comes from the electromagnetic and relativistic dynamics. The result does not depend on how long the push lasts: at 0.8 c, pushes of 40, 100 and 200 orbits give length/width ratios of 0.599, 0.601 and 0.600. Bell himself stressed that the contraction is expected only for gentle acceleration of a system held together by its internal forces.<sup><a href="#ref-1">1</a></sup></p>
+    <p>Bell applied the force to the nucleus only and let the electron follow.<sup><a href="#ref-1">1</a></sup> In this purely classical model that choice does not work: a steady force on the nucleus alone slowly changes the eccentricity of the orbit, and a slower push does not help, because the change depends on the speed reached, not on how fast it is reached. With only the nucleus pushed, the electron passes through the region of the nucleus when the nucleus has reached about 0.08 c, whatever the length of the push (we tried 40, 100 and 200 orbits). There the point-particle model breaks down. So Bell's own version of the push cannot be followed to high speed in this model.</p>
+    <p>The notebook therefore makes a modelling choice: it pushes the electron too, with a force proportional to its mass and set by the nucleus's acceleration, so that at low speed the atom is simply carried along. The extra force acts only during the push; the orbit is measured afterwards, while the atom coasts, and is then governed by the electromagnetic and relativistic dynamics alone. It does not depend on how long the push lasted: at 0.8 c, pushes of 40, 100 and 200 orbits give length/width ratios of 0.599, 0.601 and 0.600. Bell himself stressed that the contraction is expected only for gentle acceleration of a system held together by its internal forces.<sup><a href="#ref-1">1</a></sup></p>
     <p>The equations solved, with the nucleus at z<sub>N</sub>(t) moving at V(t): dp/dt = −e(E + v × B/c) + m d(γ<sub>V</sub>V)/dt ẑ, v = p/√(m² + p²/c²), with E and B the uniform-motion field of section 2 at the current speed V(t). The additional field caused by the nucleus's acceleration, small for a gentle push, is neglected. Fourth-order Runge–Kutta, 300 steps per orbit.</p>
   </div></details>
 </section>
@@ -299,6 +295,6 @@
 </section>
 
 </main>
-<script type="module" src="js/notebook.js?v=0.2.3"></script>
+<script type="module" src="js/notebook.js?v=0.3.0"></script>
 </body>
 </html>

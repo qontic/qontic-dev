@@ -172,3 +172,42 @@ export function toPrimed({ t, x, z }, V) {
   const g = gammaOf(V);
   return { t: g * (t - V * z), x, z: g * (z - V * t) };
 }
+
+// The orbit of an atom brought gently to speed Vf (the push lasts rampOrbits
+// rest periods), with any of Bell's ingredients switched off. Returns one
+// complete revolution after the push, relative to the nucleus, with its
+// length (along the motion), width and period in units of the rest diameter
+// and rest period. If the electron is lost during the push, returns
+// {lost: {orbit, V}} and the last part of its path.
+export function orbitAtSpeed({ Vf = 0.8, flatField = true, magnetic = true, relInertia = true, rampOrbits = 60, stepsPerOrbit = 300 } = {}) {
+  const atom = new BellAtom({ Vf, rampOrbits: Vf > 0 ? rampOrbits : 1, flatField, magnetic, relInertia, stepsPerOrbit });
+  const tail = [];
+  const keep = 3 * stepsPerOrbit;
+  const settle = atom.prog.Tacc + 2 * atom.T0 * gammaOf(Vf);
+  while (atom.t < settle && !atom.lost) {
+    atom.step(1);
+    tail.push({ x: atom.s[0], z: atom.s[1] - atom.prog.z(atom.t) });
+    if (tail.length > keep) tail.shift();
+  }
+  if (atom.lost) return { lost: { orbit: atom.lost.t / atom.T0, V: atom.lost.V }, path: tail, T0: atom.T0 };
+  // record from one upward crossing of x = 0 to the next
+  let prevX = atom.s[0], started = false, t0 = 0;
+  const path = [];
+  for (let i = 0; i < 40 * stepsPerOrbit && !atom.lost; i++) {
+    atom.step(1);
+    const x = atom.s[0], z = atom.s[1] - atom.prog.z(atom.t);
+    const up = prevX < 0 && x >= 0;
+    prevX = x;
+    if (up && started) {
+      const xs = path.map((p) => p.x), zs = path.map((p) => p.z);
+      return {
+        path, T0: atom.T0, period: (atom.t - t0) / atom.T0,
+        length: (Math.max(...zs) - Math.min(...zs)) / 2,
+        width: (Math.max(...xs) - Math.min(...xs)) / 2,
+      };
+    }
+    if (up) { started = true; t0 = atom.t; }
+    if (started) path.push({ t: atom.t - t0, x, z });
+  }
+  return { lost: { orbit: atom.t / atom.T0, V: Vf }, path, T0: atom.T0 };
+}

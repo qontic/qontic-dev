@@ -1,11 +1,11 @@
 import { mountQonticNotebook } from '../../../shared/qontic-notebook.js?v=1.2';
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.2.3';
+import { orbitAtSpeed, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.3.0';
 
 mountQonticNotebook({
   title: "Bell's atom: why moving things contract",
   eyebrow: 'Q-Ontic · Relativity',
   purpose: "John Bell's “longer road” to special relativity: in one frame, a moving atom contracts and its clock slows because of the forces that hold it together.",
-  version: "Bell's atom notebook · Version 0.2.3 · 2026-11-06",
+  version: "Bell's atom notebook · Version 0.3.0 · 2026-11-06",
 });
 
 const $ = (s) => document.querySelector(s);
@@ -123,129 +123,119 @@ showProgress();
 })();
 
 // ------------------------------------------------------------- 3. Bell's atom
+// The reader chooses the speed; the orbit at that speed is computed by
+// pushing the atom gently from rest (orbitAtSpeed) and then animated, next to
+// the same atom at rest (grey). Results are cached per speed and ingredients.
 (() => {
   const canvas = $('#atomCanvas');
-  const ui = { V: $('#atomV'), ramp: $('#atomRamp'), speed: $('#atomSpeed'), push: $('#atomPush'), play: $('#atomPlay'),
-    flat: $('#ingFlat'), mag: $('#ingMag'), rel: $('#ingRel') };
-  const allIn = () => ui.flat.checked && ui.mag.checked && ui.rel.checked;
-  let atom, trail, playing = false, visible = false, finished = false, zoom = 1;
-  function restart() {
-    atom = new BellAtom({ Vf: +ui.V.value, rampOrbits: +ui.ramp.value, pushElectron: ui.push.checked,
-      flatField: ui.flat.checked, magnetic: ui.mag.checked, relInertia: ui.rel.checked });
-    atom.cfg = { Vf: +ui.V.value, push: ui.push.checked, flat: ui.flat.checked, mag: ui.mag.checked, rel: ui.rel.checked };
-    trail = [];
-    finished = false;
-    zoom = 1;
-    $('#atomVOut').value = `${fmt(+ui.V.value)} c`;
-    $('#atomRampOut').value = `${ui.ramp.value} orbits`;
-    draw();
-  }
-  function setPlaying(p) { playing = p; ui.play.textContent = p ? 'Pause' : (finished ? 'Replay' : 'Play'); }
-  ui.play.addEventListener('click', () => { if (finished) restart(); setPlaying(!playing); });
-  $('#atomRestart').addEventListener('click', () => { restart(); setPlaying(true); });
-  [ui.V, ui.ramp, ui.push, ui.flat, ui.mag, ui.rel].forEach((el) => el.addEventListener('input', () => { restart(); }));
-  ui.speed.addEventListener('input', () => { $('#atomSpeedOut').value = `${ui.speed.value}×`; });
+  const ui = { V: $('#atomV'), play: $('#atomPlay'), flat: $('#ingFlat'), mag: $('#ingMag'), rel: $('#ingRel') };
+  const cache = new Map();
+  let data = null, cfg = null, playing = true, visible = false, clock = 0, zoom = 1, pending = 0;
 
-  function draw() {
-    const c = prepare(canvas); if (!c) return;
-    const { ctx, w, h } = c;
-    const { x, z, V } = atom.rel, g = gammaOf(V);
-    const narrow = w < 560;
-    // Same scale as the rest orbit unless the orbit grows beyond the view;
-    // then zoom out smoothly, and say so on the canvas.
-    const R0 = Math.min(w * 0.3, h * 0.33), room = Math.min(w / 2 - 16, h / 2 - 60);
-    let extent = Math.max(Math.abs(x), Math.abs(z));
-    for (let i = 0; i < trail.length; i += 4) extent = Math.max(extent, Math.abs(trail[i][0]), Math.abs(trail[i][1]));
-    const target = Math.min(1, room / (R0 * Math.max(extent, 1e-6)));
-    zoom = zoom > target ? target : zoom + (target - zoom) * 0.05;
-    const cx = w / 2, cy = h / 2 - (narrow ? 2 : 8), R = R0 * zoom;
-    // reference: rest orbit and the ellipse expected at the current speed
-    ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2;
-    ctx.strokeStyle = 'rgba(207,227,245,0.25)'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = 'rgba(84,224,160,0.6)'; ctx.beginPath(); ctx.ellipse(cx, cy, R / g, R, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([]);
-    // trail, kept clear of the caption and the speed bar
-    const top = narrow ? 44 : 28;
-    ctx.save(); ctx.beginPath(); ctx.rect(0, top, w, h - top - 56); ctx.clip();
-    ctx.lineWidth = 2;
-    for (let i = 1; i < trail.length; i++) {
-      ctx.strokeStyle = `rgba(79,195,255,${(i / trail.length) * 0.95})`;
-      ctx.beginPath(); ctx.moveTo(cx + trail[i - 1][1] * R, cy - trail[i - 1][0] * R); ctx.lineTo(cx + trail[i][1] * R, cy - trail[i][0] * R); ctx.stroke();
+  function config() { return { Vf: +ui.V.value, flat: ui.flat.checked, mag: ui.mag.checked, rel: ui.rel.checked }; }
+  function compute() {
+    cfg = config();
+    const key = `${cfg.Vf}|${+cfg.flat}${+cfg.mag}${+cfg.rel}`;
+    if (!cache.has(key)) cache.set(key, orbitAtSpeed({ Vf: cfg.Vf, flatField: cfg.flat, magnetic: cfg.mag, relInertia: cfg.rel }));
+    data = cache.get(key);
+    clock = 0;
+    readouts(); checkChallenges();
+  }
+  function schedule() {
+    const g = gammaOf(+ui.V.value);
+    $('#atomVOut').value = `${fmt(+ui.V.value)} c`;
+    $('#atomGamma').textContent = `γ = ${fmt(g)}`;
+    cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(() => setTimeout(compute, 0));
+  }
+  [ui.V, ui.flat, ui.mag, ui.rel].forEach((el) => el.addEventListener('input', schedule));
+  ui.play.addEventListener('click', () => { playing = !playing; ui.play.textContent = playing ? 'Pause' : 'Play'; });
+
+  function offList(c) { return [!c.flat && 'flattened field', !c.mag && 'magnetic force', !c.rel && 'Lorentz momentum'].filter(Boolean); }
+  function readouts() {
+    const g = gammaOf(cfg.Vf), ok = (a, b) => Math.abs(a - b) < 0.02 * b;
+    $('#atomLenExp').value = fmt(1 / g, 3); $('#atomWidExp').value = '1.000'; $('#atomPeriodExp').value = fmt(g, 2);
+    const msg = $('#atomMsg');
+    if (data.lost) {
+      ['atomLen', 'atomWid', 'atomPeriod'].forEach((id) => { $('#' + id).value = '—'; $('#' + id).classList.remove('hl', 'bad'); });
+      msg.textContent = `The atom falls apart during the push: without the ${offList(cfg).join(' and the ')}, the orbit grows more and more eccentric until the electron falls into the nucleus, at ${fmt(data.lost.V)} c.`;
+      msg.hidden = false; return;
     }
-    ctx.fillStyle = COLORS.orange; ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = COLORS.cyan; ctx.beginPath(); ctx.arc(cx + z * R, cy - x * R, 5, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    if (narrow) {
-      text(ctx, 'orbit drawn around the nucleus', 12, 20, { color: COLORS.muted, size: 11.5 });
-      text(ctx, 'dashed grey: at rest · dashed green: expected', 12, 36, { color: COLORS.muted, size: 11.5 });
-    } else {
-      text(ctx, 'orbit drawn around the nucleus · dashed grey: orbit at rest · dashed green: expected at this speed', 12, 20, { color: COLORS.muted, size: 11.5 });
-    }
-    // speed bar, scaled from 0 to c
-    const bw = Math.min(260, w * 0.45), bx = w - bw - 14, by = h - 26;
-    ctx.fillStyle = COLORS.grid; ctx.fillRect(bx, by, bw, 7);
-    ctx.fillStyle = COLORS.gold; ctx.fillRect(bx, by, bw * V, 7);
-    text(ctx, '0', bx, by + 18, { color: COLORS.muted, size: 10.5, align: 'left' });
-    text(ctx, 'c', bx + bw, by + 18, { color: COLORS.muted, size: 10.5, align: 'right' });
-    text(ctx, `nucleus speed ${fmt(V)} c · γ = ${fmt(g)}`, bx + bw, by - 6, { color: COLORS.ink, size: 12, align: 'right' });
-    const done = atom.t > atom.prog.Tacc;
-    const status = atom.lost ? 'stopped: electron lost' : done ? 'push finished: coasting' : V < 0.005 ? 'push starting…' : 'being pushed…';
-    text(ctx, status, bx + bw, by - 24, { color: atom.lost ? COLORS.red : done ? COLORS.green : COLORS.gold, size: 12, align: 'right' });
-    motionArrow(ctx, 12, h - (narrow ? 44 : 16), narrow ? 'motion' : 'direction of motion');
-    const off = [!atom.cfg.flat && 'flattened field', !atom.cfg.mag && 'magnetic force', !atom.cfg.rel && 'Lorentz momentum'].filter(Boolean);
-    if (off.length) text(ctx, `switched off: ${off.join(', ')}`, 12, narrow ? 54 : 38, { color: COLORS.gold, size: 11.5 });
-    if (zoom < 0.98) text(ctx, `view zoomed out ×${fmt(zoom, 2)} to fit the orbit`, 12, (narrow ? 54 : 38) + (off.length ? 16 : 0), { color: COLORS.muted, size: 11.5 });
-    const msgEl = $('#atomMsg');
-    if (atom.lost) {
-      const why = !atom.cfg.push ? 'with only the nucleus pushed' : `without the ${off.join(' and the ')}`;
-      msgEl.textContent = `Stopped after ${fmt(atom.lost.t / atom.T0, 0)} orbits: ${why}, the orbit became so eccentric that the electron passed through the region of the nucleus, where this model breaks down.` + (!atom.cfg.push ? ' See “How the push is applied” below.' : '');
-      msgEl.hidden = false;
-    } else msgEl.hidden = true;
-    // readouts: measured over the last complete revolution (in units of the
-    // rest diameter), compared with Bell's values at the speed the nucleus had
-    // during that revolution
-    $('#atomVnow').value = `${fmt(V)} c`;
-    const L = atom.lost ? null : atom.last, gl = gammaOf(L ? L.V : V);
-    $('#atomLen').value = L ? fmt(L.length / 2, 3) : '—';
-    $('#atomLenExp').value = fmt(1 / gl, 3);
-    $('#atomWid').value = L ? fmt(L.width / 2, 3) : '—';
-    $('#atomWidExp').value = '1.000';
-    $('#atomPeriod').value = L ? fmt(L.period / atom.T0, 2) : '—';
-    $('#atomPeriodExp').value = fmt(gl, 2);
-    const good = (a, b) => L && Math.abs(a - b) < 0.02 * b;
-    ['atomLen', 'atomWid', 'atomPeriod'].forEach((id, i) => {
-      const ok = L && good([L.length / 2, L.width / 2, L.period / atom.T0][i], [1 / gl, 1, gl][i]);
-      $('#' + id).classList.toggle('hl', !!ok); $('#' + id).classList.toggle('bad', !!L && !ok);
+    msg.hidden = true;
+    [['atomLen', data.length, 1 / g, 3], ['atomWid', data.width, 1, 3], ['atomPeriod', data.period, g, 2]].forEach(([id, v, e, d]) => {
+      const el = $('#' + id); el.value = fmt(v, d); el.classList.toggle('hl', ok(v, e)); el.classList.toggle('bad', !ok(v, e));
     });
   }
-  // challenges, checked when a run ends
   function checkChallenges() {
-    const c = atom.cfg, L = atom.last;
-    const all = c.flat && c.mag && c.rel && c.push;
-    if (all && Math.abs(c.Vf - 0.6) < 1e-6 && L && !atom.lost) solve('c-predict', { v: `${fmt(L.length / 2, 3)} of the rest length` });
-    if (!c.flat && !c.mag && !c.rel && c.push && L && !atom.lost && Math.abs(L.length / 2 - 1) < 0.02) solve('c-galileo', { v: fmt(L.length / 2, 3) });
-    if (c.flat && !c.mag && c.rel && c.push && c.Vf >= 0.6) solve('c-magnetic');
-    if (c.flat && !c.mag && !c.rel && c.push && Math.abs(c.Vf - 0.8) < 1e-6 && L && !atom.lost) solve('c-fake', { v: fmt(L.width / 2, 2) });
+    const c = cfg, all = c.flat && c.mag && c.rel;
+    if (all && Math.abs(c.Vf - 0.6) < 1e-6 && !data.lost) solve('c-predict', { v: `${fmt(data.length, 3)} of the rest length` });
+    if (!c.flat && !c.mag && !c.rel && c.Vf > 0 && !data.lost) solve('c-galileo', { v: fmt(data.length, 3) });
+    if (c.flat && !c.mag && c.rel && c.Vf >= 0.6) solve('c-magnetic');
+    if (c.flat && !c.mag && !c.rel && Math.abs(c.Vf - 0.8) < 1e-6 && !data.lost) solve('c-fake', { v: fmt(data.width, 2) });
+  }
+
+  function draw() {
+    const c = prepare(canvas); if (!c || !data) return;
+    const { ctx, w, h } = c, narrow = w < 560, g = gammaOf(cfg.Vf);
+    const path = data.path;
+    // scale: rest orbit fills the view unless the orbit is larger
+    let extent = 1;
+    for (let i = 0; i < path.length; i += 3) extent = Math.max(extent, Math.abs(path[i].x), Math.abs(path[i].z));
+    const R0 = Math.min(w * 0.3, h * 0.34), room = Math.min(w / 2 - 16, h / 2 - 48);
+    zoom = Math.min(1, room / (R0 * extent));
+    const R = R0 * zoom, cx = w / 2, cy = h / 2 + (narrow ? 6 : 4);
+    const P = (x, z) => [cx + z * R, cy - x * R];
+    // rest orbit and Bell's ellipse
+    ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2;
+    ctx.strokeStyle = 'rgba(207,227,245,0.3)'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+    if (cfg.Vf > 0) { ctx.strokeStyle = 'rgba(84,224,160,0.65)'; ctx.beginPath(); ctx.ellipse(cx, cy, R / g, R, 0, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.setLineDash([]);
+    // the moving atom's orbit (or, if lost, its last turns)
+    ctx.lineWidth = 2;
+    if (data.lost) {
+      for (let i = 1; i < path.length; i++) {
+        ctx.strokeStyle = `rgba(255,107,107,${0.1 + 0.85 * i / path.length})`;
+        ctx.beginPath(); ctx.moveTo(...P(path[i - 1].x, path[i - 1].z)); ctx.lineTo(...P(path[i].x, path[i].z)); ctx.stroke();
+      }
+    } else {
+      ctx.strokeStyle = 'rgba(79,195,255,0.9)'; ctx.beginPath();
+      path.forEach((p, i) => (i ? ctx.lineTo(...P(p.x, p.z)) : ctx.moveTo(...P(p.x, p.z)))); ctx.closePath(); ctx.stroke();
+    }
+    ctx.fillStyle = COLORS.orange; ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2); ctx.fill();
+    // electrons: the atom at rest (grey) and the moving atom (blue), same clock
+    if (!data.lost) {
+      const T0 = data.T0, Tm = data.period * T0, tm = clock % Tm;
+      let i = Math.min(path.length - 1, Math.max(0, Math.round((tm / Tm) * path.length)));
+      while (i < path.length - 1 && path[i].t < tm) i++;
+      const e = path[i];
+      // rest electron: starts where the moving one starts, turns the same way
+      const th0 = Math.atan2(path[0].x, path[0].z * g), dir = Math.sign(path[0].x * path[2].z - path[0].z * path[2].x) || 1;
+      const th = th0 - dir * (2 * Math.PI * clock) / T0;
+      ctx.fillStyle = '#9fb3c4'; ctx.beginPath(); ctx.arc(...P(Math.sin(th), Math.cos(th)), 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = COLORS.cyan; ctx.beginPath(); ctx.arc(...P(e.x, e.z), 6, 0, Math.PI * 2); ctx.fill();
+    }
+    // labels
+    if (narrow) {
+      text(ctx, 'grey: atom at rest · blue: moving atom', 12, 20, { color: COLORS.muted, size: 11.5 });
+      text(ctx, "dashed green: Bell's prediction", 12, 36, { color: COLORS.muted, size: 11.5 });
+    } else text(ctx, "grey: the atom at rest · blue: the atom moving at v · dashed green: Bell's prediction", 12, 20, { color: COLORS.muted, size: 11.5 });
+    const off = offList(cfg); let y = narrow ? 52 : 38;
+    if (off.length) { text(ctx, `switched off: ${off.join(', ')}`, 12, y, { color: COLORS.gold, size: 11.5 }); y += 16; }
+    if (zoom < 0.98) text(ctx, `view zoomed out ×${fmt(zoom, 2)} to fit the orbit`, 12, y, { color: COLORS.muted, size: 11.5 });
+    text(ctx, `v = ${fmt(cfg.Vf)} c · γ = ${fmt(g)}`, w - 12, h - 12, { color: COLORS.ink, size: 12.5, align: 'right' });
+    motionArrow(ctx, 12, h - 14, narrow ? 'motion' : 'direction of motion');
   }
 
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (playing && visible) {
-      const steps = Math.max(1, Math.round(2400 * dt * +ui.speed.value)); // 2400 steps/s = 8 orbits/s at speed 1
-      for (let i = 0; i < steps; i++) {
-        atom.step(1);
-        trail.push([atom.s[0], atom.s[1] - atom.prog.z(atom.t)]);
-      }
-      const keep = Math.round(1.15 * 300 * gammaOf(atom.rel.V));
-      if (trail.length > keep) trail.splice(0, trail.length - keep);
-      if (!finished && (atom.lost || atom.t > atom.prog.Tacc + 6 * atom.T0 * gammaOf(atom.prog.Vf))) { finished = true; setPlaying(false); checkChallenges(); }
-    }
+    if (playing && visible && data) clock += dt * data.T0 * 0.5; // one rest period every 2 s
     if (visible) draw();
     requestAnimationFrame(frame);
   }
-  restart();
-  whenVisible(canvas, (v) => { visible = v; if (v && !playing && atom.t === 0) setPlaying(true); });
+  whenVisible(canvas, (v) => { visible = v; if (v && !data) compute(); });
+  addEventListener('resize', () => visible && draw());
+  schedule();
   requestAnimationFrame(frame);
 })();
 
