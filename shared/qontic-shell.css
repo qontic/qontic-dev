@@ -189,8 +189,10 @@
   text-transform: uppercase;
 }
 
-.qontic-app-title:hover .qontic-title-purpose,
-.qontic-app-title:focus-within .qontic-title-purpose {
+/* Show only while the title itself is hovered or the title block has keyboard focus,
+   not while a section tab inside the header row is focused or hovered. */
+.qontic-app-title:has(h1:hover) .qontic-title-purpose,
+.qontic-app-title:focus-visible .qontic-title-purpose {
   opacity: 1;
   transform: none;
 }
