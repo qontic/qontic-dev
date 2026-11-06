@@ -1,11 +1,11 @@
-import { mountQonticNotebook } from '../../../shared/qontic-notebook.js?v=1.1';
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.2.1';
+import { mountQonticNotebook } from '../../../shared/qontic-notebook.js?v=1.2';
+import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.2.2';
 
 mountQonticNotebook({
   title: "Bell's atom: why moving things contract",
   eyebrow: 'Q-Ontic · Relativity',
   purpose: "John Bell's “longer road” to special relativity: in one frame, a moving atom contracts and its clock slows because of the forces that hold it together.",
-  version: "Bell's atom notebook · Version 0.2.1 · 2026-11-06",
+  version: "Bell's atom notebook · Version 0.2.2 · 2026-11-06",
 });
 
 const $ = (s) => document.querySelector(s);

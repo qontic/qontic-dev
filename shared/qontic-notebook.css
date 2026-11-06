@@ -22,8 +22,11 @@ body.qontic-notebook {
   --qn-on-accent: #04202a;
   --qn-notice-ink: #bfeef4;
   --qn-gold: #d7a51e;
-  --qn-gold-soft: #2a220c;
+  --qn-gold-soft: #0a1d2e;
   --qn-gold-ink: #f0ca61;
+  --qn-task-bg: #111a38;
+  --qn-task-line: #4658a8;
+  --qn-task-ink: #b4c0ff;
   --qn-good: #3fd39a;
   --qn-good-soft: #0c2b22;
   --qn-bad: #f59e0b;
@@ -57,8 +60,11 @@ body.qontic-notebook.qontic-light {
   --qn-on-accent: #ffffff;
   --qn-notice-ink: #0b4f5c;
   --qn-gold: #b7860b;
-  --qn-gold-soft: #fff8e1;
+  --qn-gold-soft: #fbf7ec;
   --qn-gold-ink: #8a5a00;
+  --qn-task-bg: #eef1ff;
+  --qn-task-line: #9aa6e6;
+  --qn-task-ink: #3141a0;
   --qn-good: #047857;
   --qn-good-soft: #ecfdf5;
   --qn-bad: #b45309;
@@ -143,12 +149,12 @@ body.qontic-notebook main.shell { max-width: 1280px; margin: 0 auto; padding: 0 
 .qontic-notebook .quiz button.right { border-color: var(--qn-good); background: var(--qn-good-soft); }
 .qontic-notebook .quiz button.wrong { border-color: var(--qn-wrong); background: var(--qn-wrong-soft); }
 .qontic-notebook .quiz .fb { margin: 8px 0 0; font-size: 14px; }
-.qontic-notebook .challenges { max-width: 900px; margin: 10px 18px 16px; padding: 10px 14px 6px; border: 1px solid var(--qn-gold); border-radius: 10px; background: var(--qn-gold-soft); }
-.qontic-notebook .challenges h3 { margin: 0 0 6px; color: var(--qn-gold-ink); font-size: 15px; }
+.qontic-notebook .challenges { max-width: 900px; margin: 10px 18px 16px; padding: 10px 14px 6px; border: 1px solid var(--qn-task-line); border-left: 3px solid var(--qn-task-line); border-radius: 0 10px 10px 0; background: var(--qn-task-bg); }
+.qontic-notebook .challenges h3 { margin: 0 0 6px; color: var(--qn-task-ink); font-size: 15px; }
 .qontic-notebook .challenges ol { margin: 0; padding: 0; list-style: none; }
 .qontic-notebook .challenges li { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; font-size: 14px; }
 .qontic-notebook .challenges li b { color: var(--qn-head); }
-.qontic-notebook .challenges .tick { position: relative; flex: 0 0 18px; height: 18px; margin-top: 2px; border: 2px solid var(--qn-gold); border-radius: 50%; }
+.qontic-notebook .challenges .tick { position: relative; flex: 0 0 18px; height: 18px; margin-top: 2px; border: 2px solid var(--qn-task-ink); border-radius: 50%; }
 .qontic-notebook .challenges li.done .tick { border-color: var(--qn-good); background: var(--qn-good); }
 .qontic-notebook .challenges li.done .tick::after { content: ""; position: absolute; left: 5px; top: 1px; width: 4px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .qontic-notebook .challenges .done-msg { margin: 4px 0 0; color: var(--qn-good); }
@@ -197,3 +203,11 @@ body.qontic-notebook main.shell { max-width: 1280px; margin: 0 auto; padding: 0 
 @media (max-width: 560px) {
   .qontic-notebook .applet-shell { margin-inline: 10px; }
 }
+
+/* Reading depth: Brief shows .qn-brief and hides .qn-full; Full the reverse. */
+body.qontic-notebook.qn-depth-brief .qn-full,
+body.qontic-notebook.qn-depth-full .qn-brief { display: none !important; }
+.qontic-notebook .qn-depth { flex: none; display: inline-flex; padding: 2px; border: 1px solid var(--qn-line); border-radius: 8px; background: var(--qn-card); }
+.qontic-notebook .qn-depth button { padding: 4px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--qn-muted); font: 12.5px var(--qn-font); cursor: pointer; }
+.qontic-notebook .qn-depth button[aria-pressed="true"] { background: var(--qn-accent-strong); color: #fff; }
+.qontic-notebook .qn-more { display: inline; margin-left: 4px; padding: 0; border: 0; background: none; color: var(--qn-accent); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

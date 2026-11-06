@@ -7,7 +7,7 @@
 <meta name="description" content="Canonical structure for Q-Ontic notebooks: shared header and footer, section bar, themes and reading components.">
 <link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg">
 <link rel="stylesheet" href="../../shared/qontic-shell.css?v=3.7">
-<link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.1">
+<link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.2">
 </head>
 <body>
 <main class="shell">
@@ -21,8 +21,9 @@
 
 <section class="section" id="s1" data-nav-label="1 First idea">
   <div class="section-head"><h2>1. Section title</h2><p class="purpose">One-line purpose of the section.</p></div>
-  <div class="prose">
-    <p>Plain-language explanation first. Formulas, if any, after the idea they express.</p>
+  <div class="prose qn-brief"><p>Brief: two or three sentences with the result, for readers who want the idea and the demonstration.</p></div>
+  <div class="prose qn-full">
+    <p>Full: the complete explanation, plain language first. Formulas, if any, after the idea they express.</p>
     <p class="formula">E = mc²</p>
   </div>
   <p class="notice"><b>What to notice:</b> the one thing to look at in the demonstration below.</p>
@@ -45,7 +46,7 @@
     <h3>Challenges</h3>
     <ol><li><span class="tick" aria-hidden="true"></span><div><b>Short name.</b> A task with a checkable outcome; the notebook ticks it when the state is reached.<p class="done-msg" hidden>What the student should conclude.</p></div></li></ol>
   </div>
-  <details class="derivation"><summary>Details and math</summary><div class="body"><p>Derivations, approximations and caveats.</p></div></details>
+  <details class="derivation qn-full"><summary>Details and math</summary><div class="body"><p>Derivations, approximations and caveats.</p></div></details>
   <div class="quiz" data-quiz>
     <p class="q">A question that needs the idea, not the wording of the text.</p>
     <div class="options">
@@ -71,7 +72,7 @@
 
 </main>
 <script type="module">
-import { mountQonticNotebook } from '../../shared/qontic-notebook.js?v=1.1';
+import { mountQonticNotebook } from '../../shared/qontic-notebook.js?v=1.2';
 mountQonticNotebook({ title: 'Notebook template', eyebrow: 'Q-Ontic template library', version: 'Notebook template 1.0', purpose: 'Canonical structure for Q-Ontic notebooks.' });
 const c = document.getElementById('demo'), ctx = c.getContext('2d'); let t = 0, run = true;
 document.getElementById('play').onclick = (e) => { run = !run; e.target.textContent = run ? 'Pause' : 'Play'; };

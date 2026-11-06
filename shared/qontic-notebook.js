@@ -19,6 +19,25 @@
 import { mountQonticShell } from './qontic-shell.js?v=3.7';
 
 const THEME_KEY = 'qontic-notebook-theme';
+const DEPTH_KEY = 'qontic-notebook-depth';
+
+// Reading depth. Mark text with .qn-brief (shown only in Brief) or .qn-full
+// (shown only in Full). A whole section marked .qn-full disappears from the
+// section bar in Brief. Each .qn-brief paragraph gets a link to the full text.
+function applyDepth(depth) {
+  const full = depth === 'full';
+  document.body.classList.toggle('qn-depth-full', full);
+  document.body.classList.toggle('qn-depth-brief', !full);
+  document.querySelectorAll('.qn-depth button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.depth === depth)));
+  document.querySelectorAll('.qn-sections a').forEach((a) => {
+    const s = document.getElementById(a.hash.slice(1));
+    a.hidden = !full && !!s?.classList.contains('qn-full');
+  });
+}
+function setDepth(depth) {
+  try { localStorage.setItem(DEPTH_KEY, depth); } catch (_) { /* storage unavailable */ }
+  applyDepth(depth);
+}
 
 function applyTheme(theme) {
   const light = theme === 'light';
@@ -59,7 +78,28 @@ function buildBar(shell, header) {
     try { localStorage.setItem(THEME_KEY, next); } catch (_) { /* storage unavailable */ }
     applyTheme(next);
   });
-  bar.append(list, theme);
+  const hasDepth = !!document.querySelector('.qn-brief, .qn-full');
+  if (hasDepth) {
+    const depth = document.createElement('div');
+    depth.className = 'qn-depth';
+    depth.setAttribute('role', 'group');
+    depth.setAttribute('aria-label', 'Reading depth');
+    depth.innerHTML = '<button type="button" data-depth="brief" title="Short summaries, demonstrations and questions">Brief</button><button type="button" data-depth="full" title="The complete explanation and the math">Full</button>';
+    depth.addEventListener('click', (e) => { const b = e.target.closest('button[data-depth]'); if (b) setDepth(b.dataset.depth); });
+    bar.append(list, depth, theme);
+    document.querySelectorAll('.prose.qn-brief').forEach((el) => {
+      const target = el.matches('p') ? el : el.querySelector('p:last-of-type');
+      if (!target || target.querySelector('.qn-more')) return;
+      const more = document.createElement('button');
+      more.type = 'button'; more.className = 'qn-more'; more.textContent = 'Full explanation';
+      more.addEventListener('click', () => {
+        const section = el.closest('section');
+        setDepth('full');
+        section?.scrollIntoView({ block: 'start' });
+      });
+      target.append(' ', more);
+    });
+  } else bar.append(list, theme);
   const intro = shell.querySelector(':scope > .qn-intro');
   (intro || header).after(bar);
 
@@ -136,6 +176,9 @@ export function mountQonticNotebook(options = {}) {
   const shell = document.querySelector('main.shell');
   const header = shell?.querySelector(':scope > header');
   if (shell && header && settings.sectionBar !== false) buildBar(shell, header);
+  let depth = null;
+  try { depth = localStorage.getItem(DEPTH_KEY); } catch (_) { /* storage unavailable */ }
+  applyDepth(depth || settings.depth || 'brief');
   applyTheme(document.documentElement.classList.contains('qontic-light') ? 'light' : 'dark');
   wireQuizzes(document);
   wireApplets(document);

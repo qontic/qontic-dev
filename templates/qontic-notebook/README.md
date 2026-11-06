@@ -32,6 +32,8 @@ Each section: title and one-line purpose; plain explanation; “What to notice�
 
 Components: `.prose`, `.formula`, `.notice`, `.controls` (`.buttons`/`.button(.primary)`, `.row` with label + output + range, `.check`, `fieldset`), `.readout` (`.hl` agreement, `.bad` disagreement, `.sub` expected values), `.mini(.warn)`, `.challenges` (`li.done` ticks), `.quiz` (`button[data-ok][data-fb]`, `.fb`), `.cards/.card`, `.references`.
 
+Reading depth: mark text `.qn-brief` (shown only in Brief) or `.qn-full` (only in Full). Brief/Full buttons appear in the section bar when any such element exists; Brief is the default and the choice is remembered (`qontic-notebook-depth`). A section marked `.qn-full` drops out of the section bar in Brief. Each `.prose.qn-brief` gets a “Full explanation” link. Brief should keep the section heads, a two-to-three-sentence summary, “What to notice”, the demonstration, challenges and questions; Full adds the explanations and the collapsed math.
+
 Canvases stay dark in both themes. Questions dispatch a bubbling `qontic:quiz` event `{quiz, correct}`.
 
 ## Reference adoption
