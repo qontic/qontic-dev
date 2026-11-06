@@ -1,27 +1,39 @@
-# Q-Ontic notebook template
+# Q-Ontic notebook template (1.0)
 
-This is the canonical companion to `templates/qontic-app`. It is intended for guided, multi-section notebooks in which several related visualizations share one physical state.
+Companion to `templates/qontic-app`. Notebooks get the same branded header (logo, breadcrumbs, purpose tooltip), footer (version, qonticlab@rice.edu), palette and light/dark themes as the apps.
 
-## Shared Q-Ontic language
+## Files
 
-- Play/Pause and speed appear together inside each animated demonstration.
-- Control typography is regular weight and compact.
-- Results float over the canvas and may be collapsed.
-- Secondary controls use Core, Advanced, and Graphics groups when a section needs enough controls to justify tabs.
-- Light/dark appearance is a display preference, never a physics parameter.
+- `../../shared/qontic-notebook.css` — notebook components, scoped to `body.qontic-notebook`. Load after `../../shared/qontic-shell.css`.
+- `../../shared/qontic-notebook.js` — `mountQonticNotebook(options)`: mounts the app shell (`mountQonticShell`, breadcrumbs navigation), builds the sticky section bar from `section.section[id]` (label from `data-nav-label` or the h2), adds the light/dark switch (dark by default as in the apps; remembered in `localStorage` key `qontic-notebook-theme`), and wires every `[data-quiz]`.
+- `index.html` — canonical structure; copy it to start a notebook.
+- `legacy-demo-bar.html`, `notebook-template.css`, `qontic-notebook.js` (in this folder) — the earlier in-demo run bar used by `notebooks/double-slit`. Kept until that notebook migrates.
 
-## Notebook-specific contract
+## Page structure
 
-- The header supplies section navigation and Brief/Full reading depth; it does not carry simulation controls.
-- Global physical parameters have one state. A section may repeat a relevant slider locally, but every copy must remain synchronized.
-- Each section follows: title and purpose; “What to notice”; visualization; compact local controls; collapsed “Details and math.”
-- Representation buttons appear only in demonstrations that compare interpretations. A notebook may omit representations that it does not implement. Never display a representation button that changes only the label.
-- A deterministic notebook may replace “New run” with a task-specific action such as clearing a detector record.
+```html
+<body>
+<main class="shell">
+  <header><div><p class="eyebrow">Q-Ontic · Topic</p><h1>Title</h1></div></header>
+  <div class="qn-intro"><p class="lead">…</p><p class="prereq"><b>You will need:</b> …</p></div>
+  <section class="section" id="s1" data-nav-label="1 Short label">…</section>
+</main>
+<script type="module">
+  import { mountQonticNotebook } from '../../shared/qontic-notebook.js?v=1.0';
+  mountQonticNotebook({ title, eyebrow, purpose, version, breadcrumbs? });
+</script>
+```
 
-## Canonical files
+Options are those of `mountQonticShell` (title, eyebrow, purpose, version, breadcrumbs, homeHref, labHref, showBranding, showFooter) plus `theme` ('dark' | 'light', default before the reader chooses) and `sectionBar` (false to omit).
 
-- `index.html` — structural reference.
-- `notebook-template.css` — shell, command bar, local controls, and floating results.
-- `qontic-notebook.js` — menu, representation, theme, and result-panel behavior.
+## Section contract
 
-The scientific engine remains notebook-specific. The tunneling notebook is the first reference adoption.
+Each section: title and one-line purpose; plain explanation; “What to notice”; demonstration (`.section-body` with `.canvas-card` and `.controls`); optional `.challenges`; collapsed `details.derivation` for math and caveats; optional `.quiz` that needs the idea, not the wording.
+
+Components: `.prose`, `.formula`, `.notice`, `.controls` (`.buttons`/`.button(.primary)`, `.row` with label + output + range, `.check`, `fieldset`), `.readout` (`.hl` agreement, `.bad` disagreement, `.sub` expected values), `.mini(.warn)`, `.challenges` (`li.done` ticks), `.quiz` (`button[data-ok][data-fb]`, `.fb`), `.cards/.card`, `.references`.
+
+Canvases stay dark in both themes. Questions dispatch a bubbling `qontic:quiz` event `{quiz, correct}`.
+
+## Reference adoption
+
+`notebooks/bell-atom` (0.2.1).

@@ -6,24 +6,23 @@
 <title>Bell's Atom: Why Moving Things Contract — Q-Ontic Lab</title>
 <meta name="description" content="Follow John Bell's 'Lorentzian pedagogy': the field of a moving charge, an electron orbit that contracts as its nucleus is pushed, a thread that must snap, and a moving observer who cannot tell she is moving.">
 <link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg">
-<link rel="stylesheet" href="css/notebook.css?v=0.2.0">
+<link rel="stylesheet" href="../../shared/qontic-shell.css?v=3.7">
+<link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.0">
+<link rel="stylesheet" href="css/notebook.css?v=0.2.1">
 </head>
 <body>
-<div class="page">
+<main class="shell">
 
-<header class="header">
-  <p class="crumbs"><a href="https://qonticlab.rice.edu/">Q-Ontic Lab</a> › <a href="../../index.html">Resources</a> › Bell's atom</p>
-  <h1>Bell's atom: why moving things contract</h1>
+<header><div><p class="eyebrow">Q-Ontic · Relativity</p><h1>Bell's atom: why moving things contract</h1></div></header>
+
+<div class="qn-intro">
   <p class="lead">In 1976 John Bell asked how special relativity should be taught so that students could answer his spaceship question. His suggestion was the older road of FitzGerald, Lorentz and Larmor: stay in one frame, and ask what happens to a piece of matter when it is set moving. This notebook walks that road with a simulation of the atom Bell used.</p>
   <p class="prereq"><b>You will need:</b> Coulomb's law, the idea that a moving charge also feels a magnetic force, and the factor γ = 1/√(1 − v²/c²). γ is 1 at rest, 1.15 at half the speed of light, 1.67 at 0.8 c and 7.1 at 0.99 c; lengths in this notebook shrink by 1/γ and clocks slow by γ. Section 1 poses the puzzle, section 4 gives the answer, and sections 2, 3 and 5 explain why. A “frame” is a set of rulers and clocks at rest relative to someone; “A's frame” is that of A, who stays at rest where the ships start. About 40 minutes.</p>
-  <nav class="nav" aria-label="Sections">
-    <a href="#s1">1. The puzzle</a><a href="#s2">2. A moving charge</a><a href="#s3">3. Bell's atom</a><a href="#s4">4. From atoms to a thread</a><a href="#s5">5. The moving observer</a><a href="#s6">6. Lorentz or Einstein?</a><a href="#s7">7. Test yourself</a><a href="#refs">References</a>
-  </nav>
   <p class="progress" id="progress" aria-live="polite"></p>
-</header>
+</div>
 
 <!-- 1 -->
-<section class="section" id="s1">
+<section class="section" id="s1" data-nav-label="1 Puzzle">
   <div class="section-head"><h2>1. The puzzle</h2><p class="purpose">Two ships, one thread, identical engines.</p></div>
   <div class="prose">
     <p>Ships B and C float at rest a distance L apart, joined by a fragile thread that is exactly L long. A, at rest halfway between them, sends a light flash that reaches both at the same moment, and both fire identical engines running the same program. Seen from A, the ships always have the same speed, so the gap between them stays L. Does the thread break?</p>
@@ -41,7 +40,7 @@
 </section>
 
 <!-- 2 -->
-<section class="section" id="s2">
+<section class="section" id="s2" data-nav-label="2 Moving charge">
   <div class="section-head"><h2>2. The field of a moving charge</h2><p class="purpose">Matter is held together by electric forces. Start with a single charge.</p></div>
   <div class="prose">
     <p>At rest, the field of a charge is the same in every direction, and its surfaces of equal potential are spheres. Set the charge moving at speed v and Maxwell's equations give a different field: the surfaces of equal potential become ellipsoids shorter by the factor 1/γ along the motion, where γ = 1/√(1 − v²/c²). The field gets weaker ahead of and behind the charge, and stronger in the directions perpendicular to the motion (above and below in the picture). Heaviside worked this out in 1889.<sup><a href="#ref-2">2</a></sup> In the same year FitzGerald proposed that bodies moving through the ether are shortened along their motion, to explain the null result of Michelson and Morley.<sup><a href="#ref-3">3</a></sup></p>
@@ -67,7 +66,7 @@
 </section>
 
 <!-- 3 -->
-<section class="section" id="s3">
+<section class="section" id="s3" data-nav-label="3 Bell's atom">
   <div class="section-head"><h2>3. Bell's atom</h2><p class="purpose">An electron orbiting a nucleus that is pushed gently to high speed.</p></div>
   <div class="prose">
     <p>Bell's simplest piece of matter is a classical atom: one electron going round a much heavier nucleus. Start it at rest with a circular orbit, then push the nucleus gently until it moves at speed v. (The simulation pushes the electron too, in proportion to its mass, so that the push itself does not distort the orbit; the box below the simulation explains why.) Follow the electron with the field of section 2, the Lorentz force, and Lorentz's relation between momentum and velocity, p = mv/√(1 − v²/c²). Bell's result: the orbit becomes an ellipse shorter by 1/γ along the motion, and it goes round more slowly, by the factor γ.<sup><a href="#ref-1">1</a></sup></p>
@@ -128,7 +127,7 @@
 </section>
 
 <!-- 4 -->
-<section class="section" id="s4">
+<section class="section" id="s4" data-nav-label="4 Thread">
   <div class="section-head"><h2>4. From atoms to a thread</h2><p class="purpose">If each atom is shorter, so is anything made of them.</p></div>
   <div class="prose">
     <p>A thread is a chain of atoms held in place by the same kind of forces. Bell argues that any group of charges confined to a region of length L at rest is, once set gently moving, confined to a region shorter by 1/γ.<sup><a href="#ref-1">1</a></sup> So the thread's natural length at speed v is L/γ. In the spaceship problem the engines hold its ends L apart: it is stretched by γ − 1, and it snaps if that is more than it can take, as Dewan and Beran had shown.<sup><a href="#ref-6">6</a></sup></p>
@@ -160,7 +159,7 @@
 </section>
 
 <!-- 5 -->
-<section class="section" id="s5">
+<section class="section" id="s5" data-nav-label="5 Moving observer">
   <div class="section-head"><h2>5. The moving observer</h2><p class="purpose">Her rulers and clocks are made of atoms too.</p></div>
   <div class="prose">
     <p>Now imagine an observer, call her O, travelling with the atom. Her rulers are made of atoms, so they are shorter by 1/γ. Her clocks are atoms too, so in A's frame they run slow: while her clock advances by one second, A's advances by γ seconds. She sets her clocks in agreement by light signals, assuming light takes as long to go one way as the other, as it would if she were at rest. This is a convention: she cannot check it without clocks that are already synchronized. Poincaré described this procedure in 1900; the time it gives is the “local time” Lorentz had introduced in 1895.<sup><a href="#ref-9">9</a>,<a href="#ref-10">10</a></sup> Bell shows that the coordinates she then uses are exactly</p>
@@ -198,7 +197,7 @@
 </section>
 
 <!-- 6 -->
-<section class="section" id="s6">
+<section class="section" id="s6" data-nav-label="6 Lorentz or Einstein">
   <div class="section-head"><h2>6. Lorentz or Einstein?</h2><p class="purpose">Two ways of explaining the same effects.</p></div>
   <div class="cards">
     <div class="card"><h3>The longer road (FitzGerald, Lorentz, Larmor)</h3>
@@ -228,7 +227,7 @@
 </section>
 
 <!-- 7 -->
-<section class="section" id="s7">
+<section class="section" id="s7" data-nav-label="7 Test yourself">
   <div class="section-head"><h2>7. Test yourself</h2><p class="purpose">New situations, same ideas. Answer before you look back.</p></div>
   <div class="quiz" data-quiz data-challenge="t-engine">
     <p class="q">The ships start as before, but the front engine is set a little weaker than the rear one. Compared with identical engines, the thread breaks:</p>
@@ -274,7 +273,7 @@
   </div></details>
 </section>
 
-<section class="section" id="refs">
+<section class="section" id="refs" data-nav-label="References">
   <div class="section-head"><h2>References</h2></div>
   <ol class="references">
     <li id="ref-1">J. S. Bell, “How to teach special relativity,” <em>Progress in Scientific Culture</em> <strong>1</strong> (2) (1976). Reprinted in J. S. Bell, <em>Speakable and Unspeakable in Quantum Mechanics</em> (Cambridge University Press, 1987; 2nd ed. 2004), pp. 67–80.</li>
@@ -290,8 +289,7 @@
   </ol>
 </section>
 
-<footer class="footer"><span>Bell's atom notebook · Version 0.2.0 · 2026-11-06</span><span>Q-Ontic Lab, Rice University · <a href="mailto:qonticlab@rice.edu">qonticlab@rice.edu</a></span></footer>
-</div>
-<script type="module" src="js/notebook.js?v=0.2.0"></script>
+</main>
+<script type="module" src="js/notebook.js?v=0.2.1"></script>
 </body>
 </html>

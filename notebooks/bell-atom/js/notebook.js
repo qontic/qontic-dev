@@ -1,4 +1,12 @@
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.2.0';
+import { mountQonticNotebook } from '../../../shared/qontic-notebook.js?v=1.0';
+import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.2.1';
+
+mountQonticNotebook({
+  title: "Bell's atom: why moving things contract",
+  eyebrow: 'Q-Ontic · Relativity',
+  purpose: "John Bell's “longer road” to special relativity: in one frame, a moving atom contracts and its clock slows because of the forces that hold it together.",
+  version: "Bell's atom notebook · Version 0.2.1 · 2026-11-06",
+});
 
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d);
@@ -61,14 +69,11 @@ function solve(id, values = {}) {
 document.querySelectorAll('li[data-challenge]').forEach((li) => { if (solved[li.dataset.challenge]) { li.classList.add('done'); const m = li.querySelector('.done-msg'); if (m) m.hidden = false; } });
 
 // ------------------------------------------------------------- quizzes
-document.querySelectorAll('[data-quiz]').forEach((quiz) => {
-  const fb = quiz.querySelector('.fb');
-  quiz.querySelectorAll('button[data-ok]').forEach((b) => b.addEventListener('click', () => {
-    quiz.querySelectorAll('button[data-ok]').forEach((x) => x.classList.remove('right', 'wrong'));
-    b.classList.add(b.dataset.ok === 'true' ? 'right' : 'wrong');
-    fb.textContent = b.dataset.fb; fb.hidden = false;
-    if (b.dataset.ok === 'true' && quiz.dataset.challenge) solve(quiz.dataset.challenge);
-  }));
+// The shared notebook template marks answers and shows feedback; a correct
+// answer to a question that is also a challenge counts toward progress.
+document.addEventListener('qontic:quiz', (e) => {
+  const q = e.detail.quiz;
+  if (e.detail.correct && q.dataset.challenge) solve(q.dataset.challenge);
 });
 showProgress();
 

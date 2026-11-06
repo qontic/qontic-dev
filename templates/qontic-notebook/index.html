@@ -1,4 +1,93 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Q-Ontic Notebook Template</title><link rel="stylesheet" href="notebook-template.css"></head>
-<body><main style="max-width:1180px;margin:auto;padding:18px"><header><p>Q-Ontic template library</p><div class="qn-purpose"><h1>Guided Notebook Template</h1><button class="qn-purpose-button" aria-label="Notebook purpose">?</button><span class="qn-purpose-tip">A reusable structure for sequential explanations linked to synchronized interactive simulations.</span></div></header>
-<section><h2>1. Section title</h2><p>One-sentence purpose and a concise “What to notice.”</p><div class="qn-demo-bar"><div class="qn-run" data-qn-run><button class="qn-run-primary">Pause</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-expanded="false">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button>Restart demonstration</button></div></div><label class="qn-speed">Speed <input type="range" min=".25" max="2" step=".25" value="1"><output>1×</output></label></div><div style="position:relative;min-height:420px;border-radius:12px;background:#071020"><aside class="qn-results"><div class="qn-results-head"><strong>Results</strong><button data-qn-result-collapse>−</button></div><div class="readout" style="padding:9px">Section-specific results float over the visualization.</div></aside></div><details><summary>Details and math</summary><p>Derivations and technical qualifications remain available without dominating the primary path.</p></details></section></main><script type="module">import{mountQonticNotebook}from'./qontic-notebook.js';mountQonticNotebook();</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notebook template — Q-Ontic Lab</title>
+<meta name="description" content="Canonical structure for Q-Ontic notebooks: shared header and footer, section bar, themes and reading components.">
+<link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg">
+<link rel="stylesheet" href="../../shared/qontic-shell.css?v=3.7">
+<link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.0">
+</head>
+<body>
+<main class="shell">
+
+<header><div><p class="eyebrow">Q-Ontic template library</p><h1>Notebook template</h1></div></header>
+
+<div class="qn-intro">
+  <p class="lead">One or two sentences: the question the notebook answers and why it matters.</p>
+  <p class="prereq"><b>You will need:</b> prerequisites in plain words, a reading path, and the expected time.</p>
+</div>
+
+<section class="section" id="s1" data-nav-label="1 First idea">
+  <div class="section-head"><h2>1. Section title</h2><p class="purpose">One-line purpose of the section.</p></div>
+  <div class="prose">
+    <p>Plain-language explanation first. Formulas, if any, after the idea they express.</p>
+    <p class="formula">E = mc²</p>
+  </div>
+  <p class="notice"><b>What to notice:</b> the one thing to look at in the demonstration below.</p>
+  <div class="section-body">
+    <div class="canvas-card"><canvas id="demo" aria-label="Demonstration"></canvas></div>
+    <div class="controls">
+      <div class="buttons"><button class="button primary" id="play" type="button">Pause</button><button class="button" id="reset" type="button">Restart</button></div>
+      <div class="row"><label for="speed">A parameter <output id="speedOut">1.0</output></label><input id="speed" type="range" min="0.2" max="3" step="0.1" value="1"></div>
+      <fieldset><legend>Optional group of switches</legend>
+        <label class="check"><input type="checkbox" checked><span>An effect that can be turned off</span></label>
+      </fieldset>
+      <div class="readout">
+        <span>Measured</span><output id="meas" class="hl">—</output>
+        <span class="sub">expected</span><output class="sub">1.00</output>
+      </div>
+      <p class="mini">Model assumptions in one line.</p>
+    </div>
+  </div>
+  <div class="challenges">
+    <h3>Challenges</h3>
+    <ol><li><span class="tick" aria-hidden="true"></span><div><b>Short name.</b> A task with a checkable outcome; the notebook ticks it when the state is reached.<p class="done-msg" hidden>What the student should conclude.</p></div></li></ol>
+  </div>
+  <details class="derivation"><summary>Details and math</summary><div class="body"><p>Derivations, approximations and caveats.</p></div></details>
+  <div class="quiz" data-quiz>
+    <p class="q">A question that needs the idea, not the wording of the text.</p>
+    <div class="options">
+      <button type="button" data-ok="false" data-fb="Why this tempting answer is wrong.">A plausible wrong answer.</button>
+      <button type="button" data-ok="true" data-fb="Why it is right, in one or two sentences.">The right answer.</button>
+    </div>
+    <p class="fb" hidden></p>
+  </div>
+</section>
+
+<section class="section" id="s2" data-nav-label="2 Two views">
+  <div class="section-head"><h2>2. Comparing accounts</h2><p class="purpose">Cards for parallel accounts.</p></div>
+  <div class="cards">
+    <div class="card"><h3>First account</h3><p><b>Starts from:</b> …</p></div>
+    <div class="card"><h3>Second account</h3><p><b>Starts from:</b> …</p></div>
+  </div>
+</section>
+
+<section class="section" id="refs" data-nav-label="References">
+  <div class="section-head"><h2>References</h2></div>
+  <ol class="references"><li>Every reference checked against the publisher or Crossref before publishing.</li></ol>
+</section>
+
+</main>
+<script type="module">
+import { mountQonticNotebook } from '../../shared/qontic-notebook.js?v=1.0';
+mountQonticNotebook({ title: 'Notebook template', eyebrow: 'Q-Ontic template library', version: 'Notebook template 1.0', purpose: 'Canonical structure for Q-Ontic notebooks.' });
+const c = document.getElementById('demo'), ctx = c.getContext('2d'); let t = 0, run = true;
+document.getElementById('play').onclick = (e) => { run = !run; e.target.textContent = run ? 'Pause' : 'Play'; };
+document.getElementById('reset').onclick = () => { t = 0; };
+const sp = document.getElementById('speed'); sp.oninput = () => { document.getElementById('speedOut').value = (+sp.value).toFixed(1); };
+(function frame() {
+  const r = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== w * r) { c.width = w * r; c.height = h * r; }
+  ctx.setTransform(r, 0, 0, r, 0, 0); ctx.clearRect(0, 0, w, h);
+  if (run) t += 0.02 * sp.value;
+  ctx.strokeStyle = 'rgba(207,227,245,.25)'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(w / 2, h / 2, 120, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#ff9966'; ctx.beginPath(); ctx.arc(w / 2, h / 2, 7, 0, 7); ctx.fill();
+  ctx.fillStyle = '#4fc3ff'; ctx.beginPath(); ctx.arc(w / 2 + 120 * Math.cos(t), h / 2 - 120 * Math.sin(t), 5, 0, 7); ctx.fill();
+  document.getElementById('meas').value = '1.00';
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
