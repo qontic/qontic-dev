@@ -1,5 +1,8 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.15.1 — 2026-11-06
+- State labels shortened to "untouched" / "marked" ("marker marked" read badly); prose reworded ("the upper part leaves the marker marked").
+
 ## 0.15 — 2026-11-06
 - Marker states renamed: "marker untouched" (lower arm) and "marker marked" (upper arm), replacing "ready" and "flipped". "Flipped" suggested a phase flip; the marker removes the interference, it does not shift it.
 
