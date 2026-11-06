@@ -45,6 +45,28 @@ export const EXPLAIN = {
   },
 };
 
+// Textbook orthodox account (?arm=textbook): collapse at measurement, no decoherence.
+// Any device that registers the path (flag, bomb, detector) counts as a measurement.
+export const TEXTBOOK_EXPLAIN = {
+  'in-none': 'The wave splits at the first beam splitter and travels both arms. Nothing measures the path, so the two parts recombine at the second beam splitter: they add at D1 and cancel at D2. When D1 registers the atom, the wave collapses there.',
+  'out-none': 'With the second beam splitter removed nothing recombines. Each part of the wave heads to one detector, and the wave collapses onto whichever detector registers the atom.',
+  'in-marker': 'The flag measures which arm the atom took, even though nobody reads it. A measurement collapses the wave onto one arm, so only one part reaches the second beam splitter, nothing cancels, and D1 and D2 are equally likely.',
+  'out-marker': 'The flag measures the path and the wave collapses onto one arm, but without the second beam splitter nothing would have recombined anyway. Each detector fires half the time.',
+  'in-bomb': 'The bomb measures whether the atom is in the upper arm. Half the time the wave collapses onto the upper arm and the bomb absorbs the atom. Otherwise it collapses onto the lower arm; a single part reaches the second beam splitter, and D1 and D2 are equally likely.',
+  'out-bomb': 'Half the time the bomb absorbs the atom. Otherwise the wave collapses onto the lower arm, which leads straight to D1.',
+};
+export const TEXTBOOK_PHYSICS = 'The wave function evolves smoothly until a measurement occurs. A measurement, any device that registers which arm the atom took (the flag, the bomb, a detector), collapses the wave onto one outcome, with probabilities given by the Born rule. Interference needs both parts of the wave to reach the second beam splitter, so any measurement of the path removes it.';
+
+// What every account agrees on in each setup, beyond the detector counts (?agree=1).
+export const AGREE = {
+  'in-none': 'All accounts agree: nothing in the arms registers the path, so both parts of the wave reach the second beam splitter and recombine.',
+  'out-none': 'All accounts agree: nothing recombines, so neither detector is favoured.',
+  'in-marker': 'All accounts agree: the flag holds a record of the path whether or not anyone reads it, and that record is what removes the interference.',
+  'out-marker': 'All accounts agree: without the second beam splitter there was no interference to lose, so the flag changes nothing in the counts.',
+  'in-bomb': 'All accounts agree: an atom that reaches a detector, with the bomb intact, came through the lower arm. Only such atoms can reach D2.',
+  'out-bomb': 'All accounts agree: an atom that reaches D1 came through the lower arm; every atom that met the bomb was absorbed.',
+};
+
 export const VIEW_LABEL = {
   orthodox: 'Orthodox',
   'pilot-wave': 'Pilot Wave',

@@ -2,24 +2,31 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.17';
-import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.17';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY } from './content.js?v=0.17';
-import { waveBranches, computeField, paintField } from './waves.js?v=0.17';
+import { APP_RELEASE } from './release.js?v=0.18';
+import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.18';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY, TEXTBOOK_EXPLAIN, TEXTBOOK_PHYSICS, AGREE } from './content.js?v=0.18';
+import { waveBranches, computeField, paintField } from './waves.js?v=0.18';
 
 // Study arm (IUSE design). ?arm=orthodox gives the comparison arm: the same app,
 // setups, tasks and timing, but only the orthodox account with decoherence.
 // Any other value, or none, offers all four accounts.
 const PARAMS = new URLSearchParams(location.search);
-const ARM = PARAMS.get('arm') === 'orthodox' ? 'orthodox-only' : 'all-accounts';
+// ?arm=orthodox: orthodox with decoherence only. ?arm=textbook: orthodox with collapse at any
+// measurement and no decoherence. ?arm=pilot-wave: orthodox and pilot wave. Otherwise all four.
+const ARM = { orthodox: 'orthodox-only', textbook: 'textbook', 'pilot-wave': 'orthodox+pilot-wave' }[PARAMS.get('arm')] || 'all-accounts';
+const TEXTBOOK = ARM === 'textbook';
+const TWO_ACCOUNTS = ARM === 'orthodox+pilot-wave';
+// ?agree=1 adds what all accounts agree on beyond the counts; ?explain=1 asks students to explain each result.
+const AGREE_ON = PARAMS.get('agree') === '1';
+const EXPLAIN_ON = PARAMS.get('explain') === '1';
 // ?pid=<id> tags every log entry with a participant id (letters, digits, - and _ only).
 const PID = (PARAMS.get('pid') || '').replace(/[^\w-]/g, '').slice(0, 40) || null;
 // ?start=random (or an account name) sets the account shown first in the all-accounts arm.
-const ACCOUNTS = ['orthodox', 'pilot-wave', 'many-worlds', 'spontaneous-collapse'];
-const START = ARM === 'orthodox-only' ? 'orthodox'
-  : PARAMS.get('start') === 'random' ? ACCOUNTS[Math.floor(Math.random() * 4)]
+const ACCOUNTS = TWO_ACCOUNTS ? ['orthodox', 'pilot-wave'] : ['orthodox', 'pilot-wave', 'many-worlds', 'spontaneous-collapse'];
+const START = ARM === 'orthodox-only' || TEXTBOOK ? 'orthodox'
+  : PARAMS.get('start') === 'random' ? ACCOUNTS[Math.floor(Math.random() * ACCOUNTS.length)]
   : ACCOUNTS.includes(PARAMS.get('start')) ? PARAMS.get('start') : 'orthodox';
-const ONE_ACCOUNT = ARM === 'orthodox-only';
+const ONE_ACCOUNT = ARM === 'orthodox-only' || TEXTBOOK;
 if (ONE_ACCOUNT) {
   document.querySelector('qontic-controls').setAttribute('interpretations', 'cpn');
   document.querySelector('qontic-controls').setAttribute('show-interpretation', 'false');
@@ -29,7 +36,19 @@ if (ONE_ACCOUNT) {
   document.querySelectorAll('[data-all-accounts]').forEach(n => show(n, false));
   document.querySelectorAll('[data-one-account]').forEach(n => show(n, true));
 }
-const agree = text => ONE_ACCOUNT ? text.replace(/^All accounts agree: /, '').replace(/^./, ch => ch.toUpperCase()) : text;
+if (TWO_ACCOUNTS) {
+  document.querySelector('qontic-controls').setAttribute('interpretations', 'cpn,pw');
+  const compare = document.querySelector('[data-setup="compare"]').closest('.qontic-control-section');
+  compare.hidden = true; compare.style.display = 'none';
+  document.querySelectorAll('[data-account]').forEach(n => { const on = ['orthodox', 'pilot-wave'].includes(n.dataset.account); n.hidden = !on; n.style.display = on ? '' : 'none'; });
+}
+if (TEXTBOOK) {
+  const p = document.querySelector('[data-account="orthodox"]');
+  if (p) p.textContent = TEXTBOOK_PHYSICS;
+  const cfg = document.querySelector('[data-mz-toggle="config"]')?.closest('.qontic-display-layer');
+  if (cfg) cfg.style.display = 'none';
+}
+const agree = text => TWO_ACCOUNTS ? text.replace(/^All accounts agree: /, 'Both accounts agree: ') : ONE_ACCOUNT ? text.replace(/^All accounts agree: /, '').replace(/^./, ch => ch.toUpperCase()) : text;
 
 mountQonticShell({
   compactHeader: true, navigation: 'breadcrumbs',
@@ -72,7 +91,7 @@ const state = {
   compare: false,
   calibrated: firstRunDone(),
   view: START, running: false, autoRerun: false, speed: 1,
-  display: { wave: true, config: true, labels: true, predict: true, fixedStart: false },
+  display: { wave: true, config: !TEXTBOOK, labels: true, predict: true, fixedStart: false },
   fixedU: .3,
   atom: null, // { u, start, path, pathLen, result, clicked }
   tallies: {}, predictions: {},
@@ -144,7 +163,7 @@ function buildOptions() {
 }
 buildOptions();
 const glossary = document.getElementById('mz-glossary');
-GLOSSARY.filter(([term]) => !ONE_ACCOUNT || !GLOSSARY_ONLY[term]).forEach(([term, def]) => { const dt = document.createElement('dt'); dt.textContent = term; const dd = document.createElement('dd'); dd.textContent = def; glossary.append(dt, dd); });
+GLOSSARY.filter(([term]) => (!ONE_ACCOUNT && !TWO_ACCOUNTS) || !GLOSSARY_ONLY[term]).filter(([term]) => !TEXTBOOK || !['Decoherence', 'Configuration space', 'Entangled'].includes(term)).forEach(([term, def]) => { const dt = document.createElement('dt'); dt.textContent = term; const dd = document.createElement('dd'); dd.textContent = def; glossary.append(dt, dd); });
 const confBox = document.getElementById('mz-confidence');
 const confNames = ['Guessing', 'Unsure', 'Somewhat sure', 'Sure', 'Certain'];
 for (let i = 1; i <= 5; i++) {
@@ -238,7 +257,11 @@ function syncPanel() {
   fb.hidden = t.total === 0 || (needsVerdict && t.total < 100);
   document.getElementById('mz-common').textContent = agree(COMMON[baseKey()]);
   document.getElementById('mz-explain-label').textContent = ONE_ACCOUNT ? 'What happens:' : `${VIEW_LABEL[state.view]}:`;
-  let text = EXPLAIN[state.view][baseKey()];
+  let text = (TEXTBOOK ? TEXTBOOK_EXPLAIN : EXPLAIN[state.view])[baseKey()];
+  const agreeLine = document.getElementById('mz-agree');
+  if (agreeLine) { agreeLine.hidden = !AGREE_ON || isCalibration(); agreeLine.textContent = agree(AGREE[baseKey()]); }
+  const selfBox = document.getElementById('mz-self');
+  if (selfBox) selfBox.hidden = !EXPLAIN_ON || isCalibration();
   if (state.view === 'spontaneous-collapse' && state.setup.object === 'marker' && state.setup.markerSize === 'macro' && state.setup.bs2)
     text = 'A macroscopic flag moves many particles, so the state collapses at the flag: the atom is then in one arm only, a single part reaches the second beam splitter, and D1 and D2 are equally likely.';
   document.getElementById('mz-explain').textContent = text;
@@ -261,6 +284,21 @@ function evaluate() {
     writeLog(entries);
   }
 }
+
+// ---------- explain step (?explain=1) ----------
+document.getElementById('mz-self-prompt').textContent = ONE_ACCOUNT
+  ? 'Explain this result in your own words, in two ways: what happens to the atom, and why the detectors show these counts.'
+  : TWO_ACCOUNTS ? 'Explain this result in both accounts, orthodox and pilot wave: how does each describe it, and what do they agree on?'
+  : 'Explain this result in two of the accounts: how does each describe it, and what do they agree on?';
+document.getElementById('mz-self-save').addEventListener('click', () => {
+  const input = document.getElementById('mz-self-input'), text = input.value.trim();
+  if (!text) return;
+  logEvent('explain', { text, prediction: state.predictions[key()]?.id || null });
+  document.getElementById('mz-self-status').textContent = 'Saved.';
+});
+document.querySelectorAll('[data-setup="bs2"], [data-setup="object"]').forEach(g => g.addEventListener('click', () => {
+  document.getElementById('mz-self-input').value = ''; document.getElementById('mz-self-status').textContent = '';
+}));
 
 // ---------- log tab ----------
 function renderLog() {
@@ -404,7 +442,7 @@ function drawApparatus(c, s, result) {
 // Which branches are drawn in each account at arc length s.
 function visibleBranches(s, result) {
   let list = branches(state.setup, s);
-  const collapsesAtObject = V === 'orthodox' ? state.setup.object === 'bomb'
+  const collapsesAtObject = V === 'orthodox' ? state.setup.object === 'bomb' || (TEXTBOOK && state.setup.object === 'marker')
     : V === 'spontaneous-collapse' ? state.setup.object === 'bomb' || (state.setup.object === 'marker' && state.setup.markerSize === 'macro') : false;
   if (collapsesAtObject && s >= G.sObj) {
     if (result === 'bomb') return [];
@@ -432,8 +470,8 @@ function fieldsFor(s, result) {
 function flightTag(c, s, result) {
   if (!state.atom || view.k < .3) return;
   if (V === 'orthodox') {
-    const measured = (state.setup.object === 'bomb' && s >= G.sObj) || s >= G.total - 1;
-    const decohered = state.setup.object === 'marker' && s >= G.sObj;
+    const measured = ((state.setup.object === 'bomb' || (TEXTBOOK && state.setup.object === 'marker')) && s >= G.sObj) || s >= G.total - 1;
+    const decohered = !TEXTBOOK && state.setup.object === 'marker' && s >= G.sObj;
     label(measured ? 'a measurement occurred: collapse' : decohered ? 'flag entangled with the path: interference lost (decoherence), no collapse yet' : 'no measurement yet: no collapse',
       { x: 500, y: 18 }, measured ? c.flash : decohered ? c.a : c.muted, 'center', 12);
   } else if (V === 'spontaneous-collapse') {
@@ -453,7 +491,7 @@ function drawWave(c, s, result) {
     collapseMark(c, result === 'd1' ? G.D1 : G.D2, since);
     return;
   }
-  const collapsesAtObject = V === 'orthodox' ? state.setup.object === 'bomb'
+  const collapsesAtObject = V === 'orthodox' ? state.setup.object === 'bomb' || (TEXTBOOK && state.setup.object === 'marker')
     : V === 'spontaneous-collapse' ? state.setup.object === 'bomb' || (state.setup.object === 'marker' && state.setup.markerSize === 'macro') : false;
   const tObj = DURATION * G.sObj / G.total, sinceObj = state.atom.elapsed - tObj;
   if (collapsesAtObject && s >= G.sObj) collapseMark(c, G.OBJ, sinceObj);

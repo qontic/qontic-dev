@@ -1,5 +1,12 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.18 — 2026-11-06
+Study arms and options for the four-arm pilot.
+- `?arm=textbook`: orthodox with collapse at any measurement (the flag counts as one) and no decoherence; no configuration-space panel; textbook explanations and Physics paragraph.
+- `?arm=pilot-wave`: orthodox and pilot wave only; no "all four" view.
+- `?agree=1`: after the verdict, one line on what all accounts agree on beyond the counts (worded without "accounts" in one-account arms).
+- `?explain=1`: after the verdict, students write an explanation (in two accounts, or twice in their own words in one-account arms); saved as an `explain` event.
+
 ## 0.17 — 2026-11-06
 Study logging, from the simulated-student pilot.
 - `?pid=<id>` writes a participant id into every prediction entry and event.
