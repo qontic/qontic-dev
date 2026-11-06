@@ -1,5 +1,15 @@
 # Bell's Spaceships — changelog
 
+## 0.4.0 (2026-11-06)
+After the second simulated-student review (project doc 2026-11-06-bell-spaceships-0.3-student-review).
+- First run shows only Start and the setup; the front-engine setting, final speed, breaking limit and views open after the first run. The verdict offers "Can you make it hold?" (opens and highlights the front engine; "Show me the setting that works" sets k = 1).
+- Verdict in plain words, with the key lines moved from the Physics tab: "Contraction alone breaks nothing… the gap did not shrink with it" and the strain-gauge sentence.
+- Results, caption and live line frozen at the moment of the snap (no more 0.83 L vs 0.44 L); "Values at the moment it snapped".
+- Renamed: "Hold the front ship back" (slider k), "Born-rigid (no stress)" preset. "Thread snaps at" disabled for k ≥ 1.
+- Ships'-frame panel caption ("C fired first in B's frame and pulls ahead: gap … L, rest length 1.00 L"); Physics tab explains why the gap is γL there.
+- Setup says the thread is too weak to pull on the ships. "Ask for a prediction" moved to Display.
+- Layout: natural-length marker drawn above ship labels; captions move to the panel's top right when they would hit the distance marks; "same time for A" label kept inside the plot.
+
 ## 0.3.0 (2026-11-05)
 - Front engine is now a continuous setting k (front proper acceleration a/(1 + k·aL/c²)) with presets "Same as rear (Bell)" (k = 0) and "Exactly right" (k = 1), replacing the two-way toggle. Final stretch (γ − 1)(1 − k): only k = 1 keeps the thread at its natural length; k < 1 still stretches it (and it can snap), k > 1 leaves it slack (drawn sagging).
 - One prediction question (It snaps / It holds), asked only on the first run.

@@ -98,3 +98,11 @@ body.spaceship-app.qontic-light { background: #eef3f6; color: #183747; }
 .qontic-light.spaceship-app #verdict strong { color: #9a6200; }
 .qontic-light.spaceship-app #verdict .feedback { color: #35505f; }
 .qontic-light.spaceship-app .spoiler-note { color: #9a6200; border-color: #c9d9e0; }
+
+.spaceship-app .results-note { grid-column: 1 / -1; font-size: 11px; color: #7f98a7; }
+.spaceship-app .first-run-hint { margin: 0; }
+.spaceship-app .flash { animation: exploreFlash 1.6s ease-out 1; border-radius: 8px; }
+@keyframes exploreFlash { 0% { box-shadow: 0 0 0 3px #55d8e6; } 100% { box-shadow: 0 0 0 0 rgba(85,216,230,0); } }
+.spaceship-app .control-row.disabled { opacity: .45; }
+.spaceship-app #explore { display: grid; gap: 10px; }
+.spaceship-app #explore.hidden { display: none !important; }

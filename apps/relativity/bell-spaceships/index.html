@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/spaceships.css?v=0.3.0">
+<link rel="stylesheet" href="css/spaceships.css?v=0.4.0">
 </head>
 <body class="spaceship-app">
 <main class="shell">
@@ -26,22 +26,24 @@
     </section>
     <div class="control-tab-body qontic-control-body">
       <div class="control-pane" data-control-pane="core">
-        <div class="qontic-control-section">
+        <p class="core-hint first-run-hint" id="firstRunHint">Run it once. The controls for exploring further appear afterwards.</p>
+        <div id="explore" class="explore hidden">
+        <div class="qontic-control-section" id="frontEngine">
           <div class="qontic-control-section-title">Front engine</div>
           <div class="qontic-app-toggle-group k-group" role="group" aria-label="Front engine presets">
             <button class="qontic-app-toggle active" type="button" data-k="0" aria-pressed="true" title="Both ships run the same acceleration program. This is Bell's question.">Same as rear (Bell)</button>
-            <button class="qontic-app-toggle" type="button" data-k="1" aria-pressed="false" title="The one setting that keeps the thread at its natural length (Born-rigid motion).">Exactly right</button>
+            <button class="qontic-app-toggle" type="button" data-k="1" aria-pressed="false" title="The one setting that keeps the thread at its natural length: Born-rigid motion, the motion a strong thread would force on light ships.">Born-rigid (no stress)</button>
           </div>
         </div>
-        <label class="control-row" title="0: same engines. 1: the front ship's proper acceleration is a/(1 + aL/c²), the one setting that keeps the thread at its natural length.">
-          <span>Gentler by k</span><input id="kSlider" type="range" min="0" max="1.5" step="0.05" value="0" aria-label="How much gentler the front engine is"><output id="kOut">0.00</output>
+        <label class="control-row k-row" title="0: same engines. 1: the front ship's proper acceleration is a/(1 + aL/c²), the one setting that keeps the thread at its natural length.">
+          <span>Hold the front ship back</span><input id="kSlider" type="range" min="0" max="1.5" step="0.05" value="0" aria-label="How much the front engine is turned down, k"><output id="kOut">0.00</output>
         </label>
         <p class="core-hint" id="modeHint"></p>
         <label class="control-row" title="Speed at which both ships stop accelerating and coast, as a fraction of c.">
           <span>Final speed</span><input id="beta" type="range" min="0.05" max="0.99" step="0.01" value="0.90" aria-label="Final speed as a fraction of c"><output id="betaOut">0.90 c</output>
         </label>
         <p class="core-hint" id="gammaHint"></p>
-        <label class="control-row" title="Elongation at which the thread snaps, measured relative to its rest length.">
+        <label class="control-row" id="snapRow" title="Elongation at which the thread snaps, measured relative to its rest length.">
           <span>Thread snaps at</span><input id="breakStrain" type="range" min="1" max="150" step="1" value="20" aria-label="Elongation at which the thread breaks, in percent"><output id="breakOut">20%</output>
         </label>
         <p class="core-hint" id="critHint"></p>
@@ -54,8 +56,8 @@
             <button class="qontic-app-toggle" type="button" data-layout="all" aria-pressed="false">All</button>
           </div>
         </div>
+        </div>
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
-        <div class="toggle-row"><span>Ask for a prediction (first run)</span><button class="toggle" type="button" data-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction before each run"></button></div>
       </div>
 
       <div class="control-pane hidden" data-control-pane="advanced">
@@ -67,6 +69,7 @@
       </div>
 
       <div class="control-pane hidden" data-control-pane="display">
+        <div class="toggle-row"><span>Ask for a prediction (first run)</span><button class="toggle" type="button" data-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction on the first run"></button></div>
         <div class="toggle-row"><span>Clocks on the ships</span><button class="toggle" type="button" data-toggle="clocks" aria-pressed="false" aria-label="Show ship clocks"></button></div>
         <div class="toggle-row"><span>Atoms of the thread (schematic)</span><button class="toggle" type="button" data-toggle="atoms" aria-pressed="false" aria-label="Show the atoms of the thread and their contracted fields"></button></div>
         <div class="toggle-row"><span>Relaxed-length marker</span><button class="toggle" type="button" data-toggle="ghost" aria-pressed="true" aria-label="Show the length the thread would have if it were not stretched"></button></div>
@@ -84,6 +87,7 @@
         <span>Stretch</span><output data-result="strain">—</output>
         <span class="ship-only hidden">Gap, ships' frame</span><output class="ship-only hidden" data-result="sepShip">—</output>
         <span>Thread</span><output data-result="status">—</output>
+        <span class="results-note hidden" id="resultsNote">Values at the moment it snapped.</span>
       </div>
     </section>
   </aside>
@@ -134,7 +138,8 @@
   <p>Bell adds a proviso: the contraction is what happens to a bound object accelerated gently, so that its internal forces keep it near equilibrium. A strong thread tied to light ships would instead pull the ships together, and nothing would break. Here the ships are taken to be far too massive for the thread to move them.</p>
 
   <h2>The same result in the ships' frame</h2>
-  <p>Choose <em>+ Ships' frame</em>. The lower panel is the momentary rest frame of the rear ship B. There the ships did not start together: the front ship C started first and pulls ahead. When both coast, they are at rest relative to each other a distance γL apart, and the thread, of rest length L, is stretched by γ − 1. Same number, different story. The clocks (Display) show why: C's clock reads ahead of B's by γvL/c² once both coast.</p>
+  <p>Choose <em>+ Ships' frame</em>. The lower panel is the momentary rest frame of the rear ship B. There the ships did not start together: the front ship C started first and pulls ahead. When both coast, they are at rest relative to each other a distance γL apart, and the thread, of rest length L, is stretched by γ − 1. Same number, different story.</p>
+  <p>Why γL: two objects moving together at speed v that are a distance L apart in A's frame are γL apart in their own frame. This is length contraction read the other way round, since A sees their own separation γL contracted to L. The clocks (Display) show where the extra distance comes from: in B's frame C's clock reads ahead of B's by γvL/c² once both coast, so C fired first.</p>
 
   <h2>In spacetime</h2>
   <p>The spacetime diagram plots the worldlines in A's frame, time upward, light at 45°. The horizontal dashed line joins events that happen at the same time for A; the gap along it stays L. The tilted line joins events at the same time for B; the gap along it grows. The shaded band is the thread's history, and the red star marks the break.</p>
@@ -177,6 +182,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.3.0"></script>
+<script type="module" src="js/app.js?v=0.4.0"></script>
 </body>
 </html>
