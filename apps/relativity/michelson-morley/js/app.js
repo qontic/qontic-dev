@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.1';
-import { makeRun, pulseAt, delay, gammaOf, markerInApparatusFrame } from './optics.js?v=0.2.1';
+import { APP_RELEASE } from './release.js?v=0.2.2';
+import { makeRun, pulseAt, delay, gammaOf, markerInApparatusFrame } from './optics.js?v=0.2.2';
 
 mountQonticShell({
   title: 'Michelson–Morley: Two Accounts',
@@ -76,9 +76,10 @@ function clockChoices() {
 function updateText() {
   const G = g();
   $('#betaOut').value = `${fmt(state.beta)} c`;
-  $('#betaHint').textContent = state.view === 'rest'
-    ? `With the apparatus at rest, this sets how fast the markers of the other frame stream past. γ = ${fmt(G, 3)}.`
-    : `γ = ${fmt(G, 3)}: a moving length shortens to 1/γ = ${fmt(1 / G)} of its rest length. Earth’s orbital speed is about 0.0001 c; it is exaggerated here so the effects can be seen.`;
+  $('#betaHint').textContent = {
+    classical: 'Speed through the ether. Earth’s orbital speed is about 0.0001 c; it is exaggerated here so the effect can be seen.',
+    rest: `With the apparatus at rest, this sets how fast the markers of the other frame stream past. γ = 1/√(1 − v²/c²) = ${fmt(G, 3)}.`,
+  }[state.view] || `γ = 1/√(1 − v²/c²) = ${fmt(G, 3)}. A moving length shortens to 1/γ = ${fmt(1 / G)} of its rest length, and a moving clock runs slow by the same factor. Earth’s orbital speed is about 0.0001 c; it is exaggerated here.`;
   $('#thetaOut').value = `${state.thetaDeg}°`;
 
   const viewLine = {
@@ -88,7 +89,7 @@ function updateText() {
     both: '<b>Both.</b> The same events with the apparatus moving (top) and at rest (bottom), run on the clock carried by the apparatus.',
   }[state.view];
   const accountsLine = isRel()
-    ? '<b>Lorentz and Einstein draw the same pictures.</b> Lorentz: one frame is the true rest frame (his ether), and moving bodies shrink because their internal forces change. Einstein: no frame is special; the shrinking follows from two principles. The captions on each panel say how each reads it.'
+    ? '<b>Lorentz and Einstein draw the same pictures</b> and read them differently; the captions on each panel say how.'
     : '';
   $('#setupList').innerHTML = [
     'A <b>beam splitter</b> divides a light pulse in two. One half runs along <b>arm 1</b> (cyan), the other along <b>arm 2</b> (orange). At rest, both arms have length <b>L</b> and are at right angles.',
@@ -108,12 +109,14 @@ function updateText() {
       ['arm2', 'Arm 2 (orange) is late.'],
     ].map(([k, l]) => `<button type="button" class="qontic-app-toggle" data-predict="${k}">${l}</button>`).join('');
   } else {
-    $('#predictionText').textContent = 'Michelson and Morley saw no fringe shift: the halves arrive together. What does the clock carried by the apparatus read when they get back?';
+    $('#predictionText').textContent = 'Michelson and Morley found no clear fringe shift: the halves arrive together. What does the clock that rides with the apparatus read when they get back?';
     $('#predictButtons').innerHTML = clockChoices()
       .map((c) => `<button type="button" class="qontic-app-toggle" data-predict="${c.key}">${fmt(c.value)} L/c</button>`).join('');
   }
-  $('#rowEther').classList.toggle('hidden', state.view === 'rest');
-  $('#rowEtherOut').classList.toggle('hidden', state.view === 'rest');
+  // the second time row only makes sense where the apparatus moves and its clock is slow
+  $('#rowEther').classList.toggle('hidden', state.view === 'rest' || state.view === 'classical');
+  $('#rowEtherOut').classList.toggle('hidden', state.view === 'rest' || state.view === 'classical');
+  $('#clockName').textContent = state.view === 'classical' ? 'Time (1887: clocks unaffected)' : 'Apparatus clock';
 }
 
 function setPressed(group, attr, value) {
@@ -286,11 +289,17 @@ function drawPanel(rect, run, scale, P) {
     } else y = wrap(text, rect.x + 12, y, capW, { color: P.muted, size: 12 });
   }
   const tShow = Math.max(0, t);
-  const clockText = run.account === 'lorentz'
-    ? `time in this frame ${fmt(tShow)} · apparatus clock ${fmt(tShow * run.clockRate)} L/c`
-    : `apparatus clock ${fmt(tShow * run.clockRate)} L/c`;
-  label(clockText, rect.x + 12, y + 4, { color: P.text, size: 12.5, weight: 600 });
-  const top = y + 12;
+  const clockText = {
+    classical: `time ${fmt(tShow)} L/c (in 1887, clocks were not expected to change)`,
+    lorentz: `time in this frame ${fmt(tShow)} · apparatus clock ${fmt(tShow * run.clockRate)} L/c (slow by 1/γ)`,
+    einstein: `apparatus clock ${fmt(tShow * run.clockRate)} L/c`,
+  }[run.account];
+  y = wrap(clockText, rect.x + 12, y + 4, capW, { color: P.text, size: 12.5, weight: 600 });
+  if (state.show.ether) {
+    const note = run.account === 'classical' ? 'Dots: at rest in the ether.' : run.v > 0 ? 'Dots: markers at rest in this frame.' : `Dots: markers at rest in the other frame, streaming past at ${fmt(run.beta)} c.`;
+    y = wrap(note, rect.x + 12, y, capW, { color: P.muted, size: 11.5 });
+  }
+  const top = y + 2;
 
   const centre = run.v === 0;
   const ox = centre ? rect.x + rect.w / 2 : rect.x + 20 + (-ext.x0) * scale;
@@ -314,8 +323,6 @@ function drawPanel(rect, run, scale, P) {
         for (let gy = -0.25; gy <= 1.6; gy += 0.5) { ctx.beginPath(); ctx.arc(X(xp), Y(gy), 1.8, 0, Math.PI * 2); ctx.fill(); }
       }
     }
-    const note = run.account === 'classical' ? 'dots: at rest in the ether' : run.v > 0 ? 'dots: markers at rest in this frame' : `dots: markers at rest in the other frame, streaming past at ${fmt(run.beta)} c`;
-    label(note, rect.x + 12, rect.y + rect.h - 10, { color: P.muted, size: 11.5 });
   }
 
   const sx = run.v * t;
@@ -381,7 +388,7 @@ function drawCurve(rect, run, P) {
   const top = y + 40, bot = y + h - 22, mid = (top + bot) / 2;
   const py = (d) => mid - ((bot - top) / 2) * d / dMax;
   label('Delay, arm 1 − arm 2 (L/c)', x + 8, y + 15, { color: P.text, size: 11.5, weight: 600 });
-  label(isRel() ? 'dashed: 1887 · solid: measured' : 'expected in 1887; measured: none', x + 8, y + 30, { color: P.muted, size: 11 });
+  label(isRel() ? 'dashed: 1887 · solid: measured' : 'expected in 1887; measured: about zero', x + 8, y + 30, { color: P.muted, size: 11 });
   ctx.strokeStyle = P.frame; ctx.beginPath(); ctx.moveTo(px(0), py(0)); ctx.lineTo(px(90), py(0)); ctx.stroke();
   label(`+${fmt(dMax)}`, px(0) - 4, py(dMax) + 4, { color: P.muted, size: 10.5, align: 'right' });
   label('0', px(0) - 4, py(0) + 4, { color: P.muted, size: 10.5, align: 'right' });
@@ -406,7 +413,7 @@ function render() {
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
   const rects = layoutRects(W, H);
   const ext = extent(runs[0]);
-  const capH = state.view === 'both' ? 90 : 110;
+  const capH = state.view === 'both' ? 112 : 130;
   const scale = Math.min(...rects.map((r) => Math.min((r.w - 40) / (ext.x1 - ext.x0), (r.h - capH - 40) / 1.25)));
   rects.forEach((r, i) => drawPanel(r, runs[i], scale, P));
   updateResults();
@@ -462,10 +469,18 @@ function finish() {
     if (state.prediction) { right = state.prediction === key; chose = `You chose: ${names[state.prediction]}. `; }
     text = key === 'together'
       ? `At ${state.thetaDeg}° the two halves happen to arrive together. Turn the apparatus and they would not: the chart shows the expected delay at each angle.`
-      : `Arm ${key === 'arm1' ? 1 : 2} is ${fmt(Math.abs(d), 3)} L/c late. Turning the apparatus should change the delay (see the chart), so the fringes should move as it turns. Michelson and Morley looked for that and saw no such shift, at any angle.`;
+      : `Arm ${key === 'arm1' ? 1 : 2} is ${fmt(Math.abs(d), 3)} L/c late. Turning the apparatus should change the delay (see the chart), so the fringes should move as it turns. Michelson and Morley looked for that shift. They found far less than expected, consistent with none, at every angle they tried.`;
   } else {
     const choice = clockChoices().find((c) => c.key === state.prediction);
-    if (choice) { right = Math.abs(choice.value - 2) < 1e-9; chose = `You chose: ${fmt(choice.value)} L/c. `; }
+    if (choice) {
+      right = Math.abs(choice.value - 2) < 1e-9;
+      const why = {
+        c2: '',
+        c2g: `${fmt(2 * G)} L/c is the time in the frame where the apparatus moves; the clock riding with it runs slow by 1/γ, so it reads ${fmt(2 * G)} × ${fmt(1 / G)} = 2.00. `,
+        c2g2: `${fmt(2 * G * G)} L/c is the 1887 expectation for arm 1, with no shortening and no slow clock. `,
+      }[choice.key];
+      chose = `You chose: ${fmt(choice.value)} L/c. ${why}`;
+    }
     const angle = state.thetaDeg % 90 ? ' With the apparatus moving the arms look tilted, because only lengths along the motion shorten.' : '';
     if (state.view === 'moving') {
       text = `Together. Time in this frame ${fmt(2 * G)}; apparatus clock ${fmt(T1)} L/c. The arm along the motion is ${fmt(1 / G)} of its rest length, which exactly makes up for its slower round trip.${angle} If this is the true rest frame, Lorentz reads ${fmt(2 * G)} as the true time and the apparatus clock as slow. Einstein reads ${fmt(2 * G)} as the time in one frame among many.`;

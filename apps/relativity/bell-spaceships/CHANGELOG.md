@@ -1,5 +1,13 @@
 # Bell's Spaceships — changelog
 
+## 0.4.1 (2026-11-06)
+After the relativity-section review (project doc 2026-11-06-relativity-section-student-review).
+- Fix: with the front engine held back (0 < k < 1) the verdict no longer says "the gap did not shrink"; it gives the gap and the relaxed length at the snap.
+- Results heading reads "Results at the snap (v)" after a break; note says the ships on screen keep going.
+- Setup: the flash reaches B and C at the same moment "as A sees it"; A's clock reads t = 0 then. Launch panel shows "A's clock t".
+- Physics tab: slider named as on screen ("Hold the front ship back", k).
+- Spacetime: "same time for B" moved to the left end of its line (no overlap with the worldline labels). Caption shrinks instead of clipping on phones.
+
 ## 0.4.0 (2026-11-06)
 After the second simulated-student review (project doc 2026-11-06-bell-spaceships-0.3-student-review).
 - First run shows only Start and the setup; the front-engine setting, final speed, breaking limit and views open after the first run. The verdict offers "Can you make it hold?" (opens and highlights the front engine; "Show me the setting that works" sets k = 1).

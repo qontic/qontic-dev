@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/spaceships.css?v=0.4.0">
+<link rel="stylesheet" href="css/spaceships.css?v=0.4.1">
 </head>
 <body class="spaceship-app">
 <main class="shell">
@@ -87,7 +87,7 @@
         <span>Stretch</span><output data-result="strain">—</output>
         <span class="ship-only hidden">Gap, ships' frame</span><output class="ship-only hidden" data-result="sepShip">—</output>
         <span>Thread</span><output data-result="status">—</output>
-        <span class="results-note hidden" id="resultsNote">Values at the moment it snapped.</span>
+        <span class="results-note hidden" id="resultsNote">Frozen at the moment it snapped; the ships on screen keep going.</span>
       </div>
     </section>
   </aside>
@@ -146,7 +146,7 @@
 
   <h2>Changing the front engine</h2>
   <p>Contraction by itself breaks nothing: the ships contract too, and nobody expects them to break. The thread breaks because the gap between its ends does not shrink with it.</p>
-  <p>The slider <em>Gentler by k</em> sets the front ship's proper acceleration to a/(1 + k·aL/c²). With a gentler front engine C gains speed a little more slowly, and B closes in. Once both coast at speed v, the gap in A's frame is L − kL(1 − 1/γ), and the thread is stretched by</p>
+  <p>The slider <em>Hold the front ship back</em> (k) sets the front ship's proper acceleration to a/(1 + k·aL/c²). With a gentler front engine C gains speed a little more slowly, and B closes in. Once both coast at speed v, the gap in A's frame is L − kL(1 − 1/γ), and the thread is stretched by</p>
   <p class="formula">(γ − 1)(1 − k).</p>
   <p>Only k = 1 leaves the thread exactly at its natural length L/γ: the gap shrinks with it, and in the ships' frame the distance stays L. This is Born-rigid motion (Nikolić, Ref. 4 under Rationale). It is a special tuning, not something that happens by itself: below k = 1 the thread is still stretched and can snap; above it the ships end closer than the thread's natural length and it goes slack.</p>
   <p>What k = 1 does with engines, a strong thread would do on its own if the ships were light: pull them into exactly this motion. That is Bell's proviso.</p>
@@ -182,6 +182,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.4.0"></script>
+<script type="module" src="js/app.js?v=0.4.1"></script>
 </body>
 </html>

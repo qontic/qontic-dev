@@ -2,7 +2,7 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.4.0';
+import { APP_RELEASE } from './release.js?v=0.4.1';
 import { makeModel, finalStrain, shipState, rearFrameView, strainAt, rearTimeFor, findBreak, criticalBeta, runEnd, gammaOf } from './kinematics.js?v=0.3.0';
 
 mountQonticShell({
@@ -95,7 +95,7 @@ function updateHints() {
   $('#setupList').innerHTML = [
     'Spaceships <b>B</b> (rear) and <b>C</b> (front) float at rest a distance <b>L</b> apart. <b>A</b>, halfway between them, stays at rest.',
     `A fragile <b>thread</b>, just long enough, joins B to C. It is far too weak to pull on the ships, and snaps if it is stretched by more than <b>${pct}</b>.`,
-    'A sends a <b>light flash</b>, which reaches B and C at the same moment.',
+    'A sends a <b>light flash</b>, which reaches B and C at the same moment, as A sees it. A\u2019s clock reads <b>t = 0</b> when it arrives.',
     engines,
   ].map((x) => `<li>${x}</li>`).join('');
   $('#predictionText').textContent = `When the ships reach ${v}, will the thread have snapped?`;
@@ -366,7 +366,7 @@ function drawLaunchPanel(r, s, P) {
   lastPanelH = r.h;
   const t = state.t;
   const B = shipState(model, 0, t), C = shipState(model, 1, t);
-  panelFrame(r, 'Launch frame (A at rest)', P, `t = ${fmt(t)} L/c`, 'Launch frame');
+  panelFrame(r, 'Launch frame (A at rest)', P, `A’s clock t = ${fmt(t)} L/c`, 'Launch frame');
   const y = r.y + r.h * 0.5;
   const xc = 0.5 * (B.x + C.x);
   const X = (x) => r.x + r.w / 2 + (x - xc) * s;
@@ -521,7 +521,9 @@ function caption(text, r, xc, y, hPx, P) {
   const limit = r.y + r.h - (state.show.marks ? 40 : 14);
   let cx = Math.min(Math.max(xc, r.x + 12 + w / 2), r.x + r.w - 12 - w / 2);
   if (cy > limit) { cy = r.y + 40; cx = r.x + r.w - 12 - w / 2; }
-  label(text, cx, cy, { color: P.text, size: 12.5, align: 'center' });
+  const size = w > r.w - 24 ? Math.max(9.5, 12.5 * (r.w - 24) / w) : 12.5; // shrink rather than clip on narrow screens
+  if (size < 12.5) cx = r.x + r.w / 2;
+  label(text, cx, cy, { color: P.text, size, align: 'center' });
 }
 
 function drawStationA(x, y, size, squeeze, P) {
@@ -626,11 +628,9 @@ function drawSpacetime(r, P) {
       const tAt = (x) => t + B.v * (x - B.x);
       ctx.strokeStyle = P.B;
       ctx.beginPath(); ctx.moveTo(SX(xmin), SY(tAt(xmin))); ctx.lineTo(SX(xmax), SY(tAt(xmax))); ctx.stroke();
-      const lx = Math.min(xmax - 0.2, shipState(model, 1, rearFrameView(model, t).tC).x + 0.4);
-      ctx.font = '400 10.5px Inter, Arial, sans-serif';
-      const lw = ctx.measureText('same time for B').width;
-      const lxs = Math.min(SX(lx), r.x + r.w - lw - 8);
-      label('same time for B', lxs, SY(tAt(xmin + (lxs - ox) / k)) - 6, { color: P.B, size: 10.5, align: 'left' });
+      // label at the left end, below the line, clear of the worldline labels at the top
+      const ly = Math.min(SY(tAt(xmin)) + 13, r.y + r.h - 8);
+      label('same time for B', SX(xmin) + 4, ly, { color: P.B, size: 10.5, align: 'left' });
     }
     ctx.setLineDash([]);
   }
@@ -703,6 +703,8 @@ function render() {
     setResult('status', 'intact');
   }
   $('#resultsNote').classList.toggle('hidden', !broken);
+  const head = broken ? `Results at the snap (${fmt(breakEvent.v)} c)` : 'Results';
+  const h = document.querySelector('.results-head strong'); if (h.textContent !== head) h.textContent = head;
   updateLiveLine(t, vMean, C.x - B.x, natural, strain, broken);
 }
 function snapState() {
@@ -733,7 +735,10 @@ function finish() {
   if (snapped) {
     const b = snapState();
     outcome = `The thread snapped at ${fmt(b.v)} c. The gap between the ships was ${fmt(b.gap)} L, but a thread moving that fast is only ${fmt(b.nat)} L long when relaxed, so it had been stretched past its ${lim}% limit.`;
-    why = 'Contraction alone breaks nothing: the ships got shorter too. What broke the thread is that the gap did not shrink with it. The tension is real: a strain gauge on the thread would show it, whichever frame you describe it from.';
+    const gapNote = state.k < 0.005
+      ? 'What broke the thread is that the gap did not shrink with it.'
+      : `What broke the thread is that the gap shrank too little: ${fmt(b.gap)} L at the snap, against ${fmt(b.nat)} L for the relaxed thread.`;
+    why = `Contraction alone breaks nothing: the ships got shorter too. ${gapNote} The tension is real: a strain gauge on the thread would show it, whichever frame you describe it from.`;
   } else if (Math.abs(fs) < 0.005) {
     outcome = `The thread held, unstretched: the gap shrank to ${fmt(1 / g)} L together with it.`;
     why = 'Only this setting (k = 1, Born-rigid motion) does that. It is what a strong thread would force on light ships by pulling them together.';

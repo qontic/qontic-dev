@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/mm.css?v=0.2.1">
+<link rel="stylesheet" href="css/mm.css?v=0.2.2">
 </head>
 <body class="mm-app">
 <main class="shell">
@@ -56,10 +56,10 @@
     <section class="results-panel qontic-panel" data-results-panel aria-label="Results">
       <div class="results-head"><strong>Results</strong><button type="button" data-results-collapse aria-label="Collapse results">−</button></div>
       <div class="results-body">
-        <span>Apparatus clock</span><output data-result="clock">—</output>
-        <span id="rowEther">Time, apparatus-moving frame</span><output id="rowEtherOut" data-result="ether">—</output>
-        <span>Arm 1 back at (apparatus clock)</span><output data-result="t1">—</output>
-        <span>Arm 2 back at (apparatus clock)</span><output data-result="t2">—</output>
+        <span id="clockName">Apparatus clock</span><output data-result="clock">—</output>
+        <span id="rowEther">Time in the frame where it moves</span><output id="rowEtherOut" data-result="ether">—</output>
+        <span>Arm 1 back at</span><output data-result="t1">—</output>
+        <span>Arm 2 back at</span><output data-result="t2">—</output>
         <span>Delay, arm 1 − arm 2</span><output data-result="diff">—</output>
         <span>Arm along the motion</span><output data-result="len">—</output>
       </div>
@@ -160,6 +160,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.2.1"></script>
+<script type="module" src="js/app.js?v=0.2.2"></script>
 </body>
 </html>

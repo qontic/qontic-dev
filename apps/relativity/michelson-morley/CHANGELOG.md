@@ -1,5 +1,13 @@
 # Michelson–Morley: Two Accounts — changelog
 
+## 0.2.2 (2026-11-06)
+After the second simulated-student review (project doc 2026-11-06-relativity-section-student-review).
+- Fix: the 1887 view's speed hint no longer says moving lengths shorten.
+- "Saw no shift" → "found far less than expected, consistent with none" (verdict, question, chart).
+- Clocks: the 1887 view shows one time row ("Time (1887: clocks unaffected)"); the second row is "Time in the frame where it moves"; panel clock line says "(slow by 1/γ)"; γ = 1/√(1 − v²/c²) in the speed hint.
+- Clock-question verdict explains each wrong answer (2γ: time in the moving frame, slowed by 1/γ; 2γ²: the 1887 number).
+- Layout: the markers note moved into the caption block (no overlap with the speed arrow, no clipping on phones); shorter setup in the relativistic views.
+
 ## 0.2.1 (2026-11-05)
 - No "ether frame": the relativistic views are "Apparatus moving" and "Apparatus at rest" (and "Both"). "Ether" now appears only in the 1887 expectation and as Lorentz's name for his true rest frame. Old share links (view=ether / apparatus) still work.
 
