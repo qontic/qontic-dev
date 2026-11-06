@@ -1,12 +1,12 @@
 // Michelson–Morley: light pulses in the two arms of a moving interferometer.
 // Units: c = 1, L = 1 (each arm's length at rest). Times in L/c.
 //
-// Accounts:
+// Pictures:
 //   'classical' — 1887 expectation: light moves at c through a resting ether; the
 //                 apparatus moves at v and keeps its rest shape and its clock rate.
-//   'lorentz'   — same ether frame, but a moving body is shorter along the motion by 1/γ
-//                 and its clocks run slow by 1/γ (FitzGerald, Lorentz, Larmor).
-//   'einstein'  — no ether. Described in the apparatus's own frame, where it is at rest.
+//   'lorentz'   — ether frame (or any frame in which the apparatus moves at v): the
+//                 apparatus is shorter along the motion by 1/γ and its clocks run slow.
+//   'einstein'  — the apparatus's own rest frame.
 //
 // Arm 1 points at angle θ to the direction of motion (θ measured in the apparatus's rest
 // frame), arm 2 at θ + 90°. The splitter is at the origin at t = 0 and moves along +x.
@@ -38,7 +38,14 @@ export function roundTrip(R, v) {
   return { t1: (v * rx + root) / k, t2: (-v * rx + root) / k };
 }
 
-export function makeRun({ beta, theta, account }) {
+// The relativistic picture is the same in both accounts: 'lorentz' (alias 'ether') is the
+// ether frame, in which the apparatus moves and is contracted; 'einstein' (alias
+// 'apparatus') is the apparatus's rest frame. The accounts differ in how they read these
+// pictures, not in the pictures.
+const ALIAS = { ether: 'lorentz', apparatus: 'einstein' };
+
+export function makeRun({ beta, theta, account: name }) {
+  const account = ALIAS[name] || name;
   const v = account === 'einstein' ? 0 : beta;
   const gamma = gammaOf(beta);
   const arms = restArms(theta).map((a) => {
@@ -79,3 +86,7 @@ export function delay(beta, theta, account) {
   const r = makeRun({ beta, theta, account });
   return r.arms[0].T - r.arms[1].T;
 }
+
+// A marker at rest in the ether frame at x = X, seen in the apparatus's rest frame at
+// apparatus time t': x' = X/γ − v t'. (Lorentz transformation of the worldline x = X.)
+export const markerInApparatusFrame = (X, beta, tPrime) => X / gammaOf(beta) - beta * tPrime;

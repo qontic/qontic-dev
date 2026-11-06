@@ -1,6 +1,6 @@
 // Run with: node apps/relativity/michelson-morley/tests/optics.test.mjs
 import assert from 'node:assert/strict';
-import { makeRun, pulseAt, classicalTime, delay, gammaOf, roundTrip } from '../js/optics.js';
+import { makeRun, pulseAt, classicalTime, delay, gammaOf, roundTrip, markerInApparatusFrame } from '../js/optics.js';
 
 const close = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} vs ${b}`);
 let passed = 0;
@@ -77,6 +77,22 @@ test('mirror reached at the moving mirror position', () => {
   const { t1 } = roundTrip([1, 0], 0.7);
   close(r.arms[0].t1, t1, 1e-12, 't1');
   close(r.arms[0].t1, 1 / (1 - 0.7), 1e-12, 'L/(c − v)');
+});
+
+test('ether markers in the apparatus frame: Lorentz transformation of x = X', () => {
+  const b = 0.6, g = gammaOf(b);
+  for (const X of [-2, 0.5, 3]) for (const t of [0, 0.7, 2.4]) {
+    // event on the marker's worldline at ether time te: (X, te); apparatus time t' = γ(te − bX)
+    const te = t / g + b * X;
+    close(markerInApparatusFrame(X, b, t), g * (X - b * te), 1e-12, `X=${X}, t'=${t}`);
+  }
+});
+
+test('aliases: ether = lorentz, apparatus = einstein', () => {
+  const a = makeRun({ beta: 0.5, theta: 0.2, account: 'ether' }), b = makeRun({ beta: 0.5, theta: 0.2, account: 'lorentz' });
+  close(a.arms[1].T, b.arms[1].T, 0, 'ether'); close(a.clockRate, b.clockRate, 0, 'clock');
+  const c = makeRun({ beta: 0.5, theta: 0.2, account: 'apparatus' });
+  close(c.v, 0, 0, 'apparatus at rest'); close(c.arms[0].T, 2, 1e-12, 'T');
 });
 
 console.log(`${passed} tests passed`);
