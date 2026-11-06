@@ -64,3 +64,12 @@
 .mz-terms dt { font-weight: 600; }
 .mz-terms dd { margin: 0 0 6px; color: var(--qontic-muted, #829aa8); line-height: 1.45; }
 .qontic-light .mz-terms { color: #142b3a; }
+
+/* Light theme for the Physics and Prediction log tabs (same palette as the other comparative apps). */
+.qontic-light .mz-app .details-panel { color: #142b3a; }
+.qontic-light .mz-app .details-panel h2 { color: #075c69; }
+.qontic-light .mz-app .details-panel p:not(.qontic-details-purpose), .qontic-light .mz-app .details-panel li { color: #2e4a5a; }
+.qontic-light .mz-app .details-panel strong:not(.qontic-details-purpose *) { color: #142b3a; }
+.qontic-light .mz-app .mz-table td { color: #142b3a; }
+.qontic-light .mz-app .mz-table th { color: #3d596a; }
+.qontic-light .mz-app .details-panel .core-hint { color: #3d596a; }

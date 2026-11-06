@@ -1,5 +1,15 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.14 — 2026-11-05
+Fixes from a ten-student review (eight on the full app, two on `?arm=orthodox`).
+- First run (beam splitter in, nothing in the arms) counts as soon as atoms are sent, so changing the setup while the first atom flies no longer locks the app. Until it is done, other setups show no prediction form, only a plain instruction. The word "calibration" is gone.
+- The explanation and the "All accounts agree" line appear only with the verdict (100 atoms); one atom no longer gives the answer away.
+- Prediction log: an entry is written when the prediction is locked and completed at the verdict, so Reset can no longer erase a first guess. New fields: session, attempt, lockedAt, resultAt, account and display (one account or all four) at lock and at result. Result column reads "Matched" / "Did not match" / "No result".
+- "Send 200 atoms" sends exactly 200 (it counted 201).
+- With the second beam splitter removed, detector labels read "upper/lower beam heads here" (the wave), not "from upper/lower arm", which contradicted pilot wave. Bright/dark port labels only with nothing in the arms; with a marker or bomb the splitter label reads "tuned: D2 dark with nothing in the arms".
+- Light theme: Physics and Prediction log tabs readable.
+- Many worlds: a split cross-fades instead of sliding copies across each other. Collapse labels near the detectors no longer run off the edge.
+
 ## 0.13 — 2026-11-05
 Back to a fixed phase: the interferometer is always tuned so that, with nothing in the arms, every atom reaches D1 and D2 stays dark. 0.9, 0.11 and 0.12 (phase as a control) are withdrawn; 0.10 (decoherence, `?arm=orthodox`) is kept.
 - The phase controls are gone, including the Advanced slider.

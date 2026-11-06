@@ -2,9 +2,9 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.13';
+import { APP_RELEASE } from './release.js?v=0.14';
 import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.13';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY } from './content.js?v=0.13';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY } from './content.js?v=0.14';
 import { waveBranches, computeField, paintField } from './waves.js?v=0.3';
 
 // Study arm (IUSE design). ?arm=orthodox gives the comparison arm: the same app,
@@ -44,6 +44,8 @@ tabs.addEventListener('click', event => {
 
 // ---------- storage (falls back to memory when blocked) ----------
 const LOG_KEY = 'qontic-mz-log-v1';
+// One id per page load, so entries from one sitting can be grouped.
+const SESSION = Math.random().toString(36).slice(2, 10);
 let memoryLog = [];
 const readLog = () => { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch { return memoryLog; } };
 const writeLog = entries => { memoryLog = entries; try { localStorage.setItem(LOG_KEY, JSON.stringify(entries)); } catch { /* memory only */ } };
@@ -135,7 +137,16 @@ const reasonInput = document.getElementById('mz-reason-input');
 document.getElementById('mz-predict').addEventListener('submit', event => {
   event.preventDefault();
   if (!draft.option || !draft.confidence) return;
-  state.predictions[key()] = { option: draft.option, confidence: draft.confidence, reason: reasonInput.value.trim(), view: state.view, at: new Date().toISOString(), logged: false };
+  const entries = readLog();
+  const setupLog = { secondBeamSplitter: state.setup.bs2, upperArm: state.setup.object };
+  const attempt = 1 + entries.filter(e => e.session === SESSION && e.setup?.secondBeamSplitter === setupLog.secondBeamSplitter && e.setup?.upperArm === setupLog.upperArm).length;
+  const id = `${SESSION}-${entries.length + 1}`;
+  // Logged at lock time, so a lock later erased by Reset still appears.
+  entries.push({ id, session: SESSION, attempt, app: 'mach-zehnder', release: APP_RELEASE.version, arm: ARM, setup: setupLog,
+    lockedAt: new Date().toISOString(), interpretationAtLock: state.view, displayAtLock: state.compare ? 'all-four' : 'one-account',
+    prediction: draft.option, confidence: draft.confidence, reason: reasonInput.value.trim(), status: 'pending' });
+  writeLog(entries);
+  state.predictions[key()] = { id, option: draft.option, confidence: draft.confidence, reason: reasonInput.value.trim(), view: state.view, at: new Date().toISOString(), logged: false };
   syncPanel();
 });
 
@@ -146,12 +157,19 @@ const canRun = () => !needsCalibration() && (!state.display.predict || detuned()
 const hint = document.getElementById('mz-hint');
 const flashHint = () => { hint.classList.remove('mz-flash'); void hint.offsetWidth; hint.classList.add('mz-flash'); };
 
-document.getElementById('mz-one').addEventListener('click', () => { if (!canRun()) return flashHint(); launch(); state.paused = false; state.running = true; ui.setRunning(true); });
+// The first run (beam splitter in, nothing in the arms) counts as soon as atoms are
+// sent, so changing the setup while the first atom flies does not lock the app again.
+const markFirstRun = () => { if (isCalibration() && !state.calibrated) { state.calibrated = true; syncPanel(); } };
+document.getElementById('mz-one').addEventListener('click', () => { if (!canRun()) return flashHint(); markFirstRun(); launch(); state.paused = false; state.running = true; ui.setRunning(true); });
 document.getElementById('mz-many').addEventListener('click', () => {
   if (!canRun()) return flashHint();
+  markFirstRun();
+  // Exactly 200 atoms, all tallied at once; the animated atom is the last of them
+  // (already counted), so the counter and the log both read 200.
   const t = tally();
-  for (let i = 0; i < 200; i++) { const r = outcome(state.setup, Math.random()).result; t[r]++; t.total++; }
-  launch(); state.paused = false; state.running = true; ui.setRunning(true);
+  let u = 0;
+  for (let i = 0; i < 200; i++) { u = Math.random(); const r = outcome(state.setup, u).result; t[r]++; t.total++; }
+  launch(u, true); state.paused = false; state.running = true; ui.setRunning(true);
   syncPanel();
 });
 
@@ -161,7 +179,7 @@ function syncPanel() {
   const p = state.predictions[key()];
   if (key() !== lastKey) { lastKey = key(); if (!p) { draft = { option: null, confidence: null }; reasonInput.value = ''; } }
   const locked = canRun();
-  document.getElementById('mz-predict').hidden = !state.display.predict || detuned() || isCalibration();
+  document.getElementById('mz-predict').hidden = !state.display.predict || detuned() || isCalibration() || needsCalibration();
   if (p) draft = { option: p.option, confidence: p.confidence };
   optionsBox.querySelectorAll('input').forEach(input => { input.checked = input.value === draft.option; input.disabled = Boolean(p); input.closest('.mz-option').classList.toggle('is-selected', input.checked); });
   confBox.querySelectorAll('.mz-conf').forEach(b => { const on = +b.dataset.value === draft.confidence; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); b.disabled = Boolean(p); });
@@ -173,8 +191,9 @@ function syncPanel() {
   document.getElementById('mz-one').disabled = !locked;
   document.getElementById('mz-many').disabled = !locked;
   const t = tally();
-  hint.textContent = isCalibration() ? (state.calibrated ? 'Calibration done: every atom reaches D1. Now choose another setup and predict.' : 'Calibration run: send a few atoms to see how the interferometer is tuned. No prediction needed.')
-    : needsCalibration() ? 'Run the calibration first: second beam splitter in place, nothing in the arm.'
+  hint.textContent = !state.display.predict ? 'Prediction mode is off (Advanced tab): send atoms freely.'
+    : isCalibration() ? (state.calibrated ? 'Every atom reaches D1: with nothing in the arms, D2 stays dark. Now choose another setup and predict.' : 'First, send a few atoms through the plain interferometer and see where they go. No prediction needed.')
+    : needsCalibration() ? 'First, send a few atoms with the second beam splitter in place and nothing in the arms. Then come back to this setup.'
     : !locked ? 'Choose an answer and a confidence, then lock your prediction to run this setup.'
     : t.total < 100 ? `Send at least 100 atoms to compare with your prediction (${t.total} so far).` : ONE_ACCOUNT ? 'Change the setup to explore further.' : 'Change the setup or the interpretation to explore further.';
   ['d1', 'd2', 'bomb', 'total'].forEach(name => ui.setResult(name, String(t[name])));
@@ -182,11 +201,14 @@ function syncPanel() {
   const deg = Math.round(state.setup.delta * 180 / Math.PI);
   document.getElementById('mz-tuning').textContent = !state.setup.bs2
     ? 'Removed: nothing recombines. The upper beam heads to D2 and the lower beam to D1.'
-    : !showTuning() ? 'In place. Start with the calibration run: nothing in the arms, send a few atoms and see where they go.'
+    : !showTuning() ? 'In place.'
     : 'In place, tuned so that with nothing in the arms every atom reaches D1 and D2 stays dark.';
   evaluate();
   const fb = document.getElementById('mz-feedback');
-  fb.hidden = t.total === 0;
+  // In prediction mode the explanation waits for the verdict (100 atoms), so one atom
+  // does not give the answer away. The first run and free exploration show it at once.
+  const needsVerdict = state.display.predict && !isCalibration() && !detuned();
+  fb.hidden = t.total === 0 || (needsVerdict && t.total < 100);
   document.getElementById('mz-common').textContent = agree(COMMON[baseKey()]);
   document.getElementById('mz-explain-label').textContent = ONE_ACCOUNT ? 'What happens:' : `${VIEW_LABEL[state.view]}:`;
   let text = EXPLAIN[state.view][baseKey()];
@@ -207,7 +229,8 @@ function evaluate() {
   if (!p.logged) {
     p.logged = true;
     const entries = readLog();
-    entries.push({ time: new Date().toISOString(), app: 'mach-zehnder', release: APP_RELEASE.version, arm: ARM, setup: { secondBeamSplitter: state.setup.bs2, upperArm: state.setup.object }, interpretationShown: p.view, prediction: p.option, confidence: p.confidence, reason: p.reason, correctAnswer: correct, correct: ok, counts: { ...t } });
+    const e = entries.find(x => x.id === p.id);
+    if (e) Object.assign(e, { status: 'result', resultAt: new Date().toISOString(), interpretationAtResult: state.view, displayAtResult: state.compare ? 'all-four' : 'one-account', correctAnswer: correct, correct: ok, counts: { ...t } });
     writeLog(entries);
   }
 }
@@ -217,12 +240,13 @@ function renderLog() {
   const body = document.querySelector('#mz-log-table tbody');
   const entries = readLog();
   body.innerHTML = '';
-  if (!entries.length) { body.innerHTML = '<tr><td colspan="5">No predictions yet. Lock a prediction and send at least 100 atoms.</td></tr>'; return; }
+  if (!entries.length) { body.innerHTML = '<tr><td colspan="5">No predictions yet. Lock a prediction, then send at least 100 atoms.</td></tr>'; return; }
   entries.slice().reverse().forEach(e => {
     const tr = document.createElement('tr');
     const setup = `${e.setup.secondBeamSplitter ? 'BS2 in' : 'BS2 out'}, ${e.setup.upperArm}`;
     const pred = OPTIONS.find(([o]) => o === e.prediction)?.[1] || e.prediction;
-    [new Date(e.time).toLocaleString(), setup, pred, String(e.confidence), e.correct ? 'Right' : 'Wrong'].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.append(td); });
+    const result = e.status === 'pending' ? 'No result (fewer than 100 atoms)' : e.correct ? 'Matched' : 'Did not match';
+    [new Date(e.lockedAt || e.time).toLocaleString(), setup, pred, String(e.confidence), result].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.append(td); });
     body.append(tr);
   });
 }
@@ -247,17 +271,18 @@ const DURATION = 3400;
 // Stop freezes the atom where it is; Start continues it, or sends a new atom if the last one has finished.
 function pause() { state.paused = true; state.running = false; ui.setRunning(false); }
 function resume() {
+  markFirstRun();
   state.paused = false; state.running = true; ui.setRunning(true);
   if (!state.atom || state.atom.elapsed > DURATION + holdTime()) launch();
 }
 const holdTime = () => (state.compare || state.view === 'many-worlds') ? 3800 : 700;
-function launch() {
-  const u = state.display.fixedStart ? state.fixedU : Math.random();
+function launch(uGiven = null, preCounted = false) {
+  const u = uGiven ?? (state.display.fixedStart ? state.fixedU : Math.random());
   const o = outcome(state.setup, u);
   const pw = pilotWavePath(state.setup, u);
   let pathLen = 0;
   for (let i = 1; i < pw.pts.length; i++) pathLen += Math.hypot(pw.pts[i].x - pw.pts[i - 1].x, pw.pts[i].y - pw.pts[i - 1].y);
-  state.atom = { u, o, path: pw.pts, pathLen, start: performance.now(), elapsed: 0, last: performance.now(), counted: false };
+  state.atom = { u, o, path: pw.pts, pathLen, start: performance.now(), elapsed: 0, last: performance.now(), counted: preCounted };
 }
 function finishAtom() {
   const a = state.atom;
@@ -320,14 +345,14 @@ function drawApparatus(c, s, result) {
     ctx.beginPath(); ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     if (state.display.labels) label(name, { x: d.x + 34, y: d.y }, c.text, 'left', 16);
     const minor = state.display.labels && view.k > .45;
-    if (minor && state.setup.bs2 && showTuning() && Math.abs(state.setup.delta) < 1e-3)
+    if (minor && state.setup.bs2 && state.setup.object === 'none' && showTuning() && Math.abs(state.setup.delta) < 1e-3)
       label(name === 'D1' ? 'bright port' : 'dark port', { x: d.x, y: d.y + 32 }, c.muted, 'center', 12);
     if (minor && !state.setup.bs2)
-      label(name === 'D1' ? 'from lower arm' : 'from upper arm', { x: d.x, y: d.y + 32 }, c.muted, 'center', 12);
+      label(name === 'D1' ? 'lower beam heads here' : 'upper beam heads here', { x: d.x, y: d.y + 32 }, c.muted, 'center', 12);
   });
   if (state.display.labels && view.k > .45 && state.setup.bs2 && showTuning()) {
     const deg = Math.round(state.setup.delta * 180 / Math.PI);
-    label(deg === 0 ? 'tuned: D2 dark' : `detuned by ${deg}°`, { x: G.BS2.x, y: G.BS2.y + 64 }, deg === 0 ? c.wave : c.flash, 'center', 12);
+    label(deg !== 0 ? `detuned by ${deg}°` : state.setup.object === 'none' ? 'tuned: D2 dark' : 'tuned: D2 dark with nothing in the arms', { x: G.BS2.x, y: G.BS2.y + 64 }, deg === 0 ? c.wave : c.flash, 'center', 12);
   }
   if (state.setup.object === 'marker') {
     const p = T(G.OBJ);
@@ -511,7 +536,7 @@ function mwText(s) {
   return null;
 }
 function captionText(s, result) {
-  if (!state.atom) return !showTuning() ? 'Start with the calibration run: second beam splitter in place, nothing in the arms. Send a few atoms and see where they go.' : state.setup.bs2 ? 'The interferometer is tuned so that D2 stays dark. Choose a setup, make a prediction, then send atoms.' : 'With the second beam splitter removed, the upper beam heads to D2 and the lower beam to D1. Make a prediction, then send atoms.';
+  if (!state.atom) return !showTuning() ? 'First, send a few atoms with the second beam splitter in place and nothing in the arms, and see where they go.' : state.setup.bs2 ? 'The interferometer is tuned so that D2 stays dark. Choose a setup, make a prediction, then send atoms.' : 'With the second beam splitter removed, the upper beam heads to D2 and the lower beam to D1. Make a prediction, then send atoms.';
   if (result === 'bomb' && s >= G.sObj) return 'The bomb absorbed the atom and exploded.';
   if (V === 'many-worlds') { const t = mwText(s); if (t) return t; }
   if (s >= G.total - 1) return result === 'd1' ? 'D1 clicked.' : 'D2 clicked.' + (state.setup.object === 'bomb' && state.setup.bs2 ? ' The bomb is live, and it absorbed nothing.' : '');
@@ -545,7 +570,9 @@ function collapseMark(c, point, since) {
   ctx.strokeStyle = c.flash; ctx.globalAlpha = 1 - t; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(q.x, q.y, (14 + 60 * t) * view.k, 0, Math.PI * 2); ctx.stroke();
   ctx.globalAlpha = 1;
-  if (view.k > .3) label(V === 'orthodox' ? 'measurement \u2192 collapse (postulate)' : 'collapse (physical process)', { x: point.x + 30, y: point.y + 30 + 10 * t }, c.flash, 'left', 12);
+  // Near the right edge (the detectors) the label goes to the left of the mark, so it is not cut off.
+  const right = point.x > 700;
+  if (view.k > .3) label(V === 'orthodox' ? 'measurement \u2192 collapse (postulate)' : 'collapse (physical process)', { x: point.x + (right ? -30 : 30), y: point.y + 30 + 10 * t }, c.flash, right ? 'right' : 'left', 12);
 }
 
 // ---------- spontaneous collapse: how much is in superposition ----------
@@ -637,10 +664,24 @@ function drawMW(c, s, result, R, compact = false) {
   const maxW = Math.max(...info.list.map(wd => wd.w));
   const f = state.atom ? fieldsFor(s, result) : null;
   const savedLabels = state.display.labels;
+  // A split fades in two halves: the parent copies fade out where they are, then the new
+  // copies fade in at their final places (sliding tiles crossed each other and were unreadable).
+  if (before && info.progress < 1) info.prev.forEach(pw => {
+    const rect = before[pw.id];
+    if (!rect) return;
+    view = { k: rect.w / 1000, ox: rect.x, oy: rect.y };
+    ctx.save(); ctx.globalAlpha = Math.max(0, 1 - 2 * info.progress);
+    ctx.beginPath(); ctx.rect(rect.x - 2, rect.y - 2, rect.w + 4, rect.h + 4); ctx.clip();
+    if (info.prev.length > 1) { ctx.strokeStyle = c.beam; ctx.lineWidth = 1; ctx.strokeRect(rect.x, rect.y, rect.w, rect.h); }
+    WORLD = { outcome: pw.outcome || null, exploded: Boolean(pw.exploded) };
+    drawApparatus(c, s, result);
+    WORLD = null;
+    ctx.restore();
+  });
   info.list.forEach(wd => {
     let rect = now[wd.id];
-    if (before && info.progress < 1) rect = lerpRect(before[wd.parent] || rect, rect, info.progress);
     let alpha = info.list.length > 1 ? .35 + .65 * wd.w / maxW : 1;
+    if (before && info.progress < 1) alpha *= Math.max(0, 2 * info.progress - 1);
     if (info.zoom > 0) { if (wd.id === info.actual) { rect = lerpRect(rect, full, info.zoom); alpha = alpha + (1 - alpha) * info.zoom; } else alpha *= 1 - info.zoom; }
     if (alpha < .02) return;
     view = { k: rect.w / 1000, ox: rect.x, oy: rect.y };
