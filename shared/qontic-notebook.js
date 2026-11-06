@@ -93,6 +93,33 @@ function wireQuizzes(root) {
   });
 }
 
+// Embedded applets: <div class="applet-shell is-inactive"> with an
+// <iframe data-src> and a .applet-play button. The iframe loads only when the
+// reader presses play, and is asked to pause (qontic:set-paused) when it
+// scrolls out of view.
+function wireApplets(root) {
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) return;
+      const f = e.target.querySelector('iframe[src]');
+      f?.contentWindow?.postMessage({ type: 'qontic:set-paused', paused: true }, window.location.origin);
+    });
+  }) : null;
+  root.querySelectorAll('.applet-shell.is-inactive').forEach((shell) => {
+    if (shell.dataset.qnWired) return;
+    shell.dataset.qnWired = '1';
+    const frame = shell.querySelector('iframe[data-src]');
+    const play = shell.querySelector('.applet-play');
+    if (!frame || !play) return;
+    play.addEventListener('click', () => {
+      if (!frame.hasAttribute('src')) frame.setAttribute('src', frame.dataset.src);
+      shell.classList.remove('is-inactive');
+      play.remove();
+      io?.observe(shell);
+    });
+  });
+}
+
 export function mountQonticNotebook(options = {}) {
   const settings = {
     navigation: 'breadcrumbs',
@@ -111,5 +138,6 @@ export function mountQonticNotebook(options = {}) {
   if (shell && header && settings.sectionBar !== false) buildBar(shell, header);
   applyTheme(document.documentElement.classList.contains('qontic-light') ? 'light' : 'dark');
   wireQuizzes(document);
+  wireApplets(document);
   return { wireQuizzes: () => wireQuizzes(document), setTheme: (t) => { applyTheme(t); } };
 }

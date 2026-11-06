@@ -1,4 +1,4 @@
-import { mountQonticNotebook } from '../../../shared/qontic-notebook.js?v=1.0';
+import { mountQonticNotebook } from '../../../shared/qontic-notebook.js?v=1.1';
 import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.2.1';
 
 mountQonticNotebook({

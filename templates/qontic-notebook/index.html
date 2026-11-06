@@ -7,7 +7,7 @@
 <meta name="description" content="Canonical structure for Q-Ontic notebooks: shared header and footer, section bar, themes and reading components.">
 <link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg">
 <link rel="stylesheet" href="../../shared/qontic-shell.css?v=3.7">
-<link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.0">
+<link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.1">
 </head>
 <body>
 <main class="shell">
@@ -71,7 +71,7 @@
 
 </main>
 <script type="module">
-import { mountQonticNotebook } from '../../shared/qontic-notebook.js?v=1.0';
+import { mountQonticNotebook } from '../../shared/qontic-notebook.js?v=1.1';
 mountQonticNotebook({ title: 'Notebook template', eyebrow: 'Q-Ontic template library', version: 'Notebook template 1.0', purpose: 'Canonical structure for Q-Ontic notebooks.' });
 const c = document.getElementById('demo'), ctx = c.getContext('2d'); let t = 0, run = true;
 document.getElementById('play').onclick = (e) => { run = !run; e.target.textContent = run ? 'Pause' : 'Play'; };

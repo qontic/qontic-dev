@@ -1,0 +1,62 @@
+/* Dirac momentum notebook: styles beyond the shared notebook template. */
+.qontic-notebook .header-image { position: relative; min-height: 200px; margin: 12px 0 0; overflow: hidden; border: 1px solid #12263a; border-radius: 12px; }
+.qontic-notebook .momentum-visual {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      align-items: center;
+      padding: 2rem;
+      background:
+        linear-gradient(90deg, rgba(8, 31, 48, 0.96), rgba(5, 12, 24, 0.98)),
+        repeating-linear-gradient(0deg, transparent 0 35px, rgba(125, 174, 255, 0.08) 36px);
+    }
+.qontic-notebook .momentum-visual::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: 12%;
+      left: 12%;
+      height: 1px;
+      background: rgba(217, 230, 248, 0.22);
+    }
+.qontic-notebook .branch {
+      position: relative;
+      height: 96px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 28% 50%, rgba(89, 210, 233, 0.95), rgba(89, 210, 233, 0.12) 48%, transparent 70%);
+      filter: drop-shadow(0 0 16px rgba(89, 210, 233, 0.45));
+    }
+.qontic-notebook .branch::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 42%;
+      height: 3px;
+      background: rgba(217, 230, 248, 0.78);
+    }
+.qontic-notebook .branch.forward::after {
+      right: 5%;
+      transform: translateY(-50%);
+    }
+.qontic-notebook .branch.backward {
+      transform: scaleX(-1);
+      background:
+        radial-gradient(circle at 28% 50%, rgba(255, 198, 91, 0.95), rgba(255, 198, 91, 0.12) 48%, transparent 70%);
+      filter: drop-shadow(0 0 16px rgba(255, 198, 91, 0.42));
+    }
+.qontic-notebook .visual-label {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      padding: 0.35rem 0.55rem;
+      border: 1px solid rgba(217, 230, 248, 0.38);
+      border-radius: 4px;
+      background: rgba(7, 16, 31, 0.72);
+      color: #d9e6f8;
+      font: 700 0.88rem/1 "Segoe UI", system-ui, sans-serif;
+    }
+.qontic-notebook .momentum-visual { padding: 1.1rem; }
+.qontic-notebook .visual-label { color: #d9e6f8; font-size: 12.5px; }
