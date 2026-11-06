@@ -70,4 +70,20 @@ test('The contraction does not depend on the length of the push (0.8 c; 40, 100,
   }
 });
 
+test('Ingredients: all three needed (0.8 c)', () => {
+  const run = (o) => { const a = new BellAtom({ Vf: 0.8, rampOrbits: 100, ...o }); while (a.t < a.prog.Tacc + 4 * a.T0 && !a.lost) a.step(300); return a; };
+  const g = gammaOf(0.8);
+  // none: Galilean, the atom is carried along unchanged
+  const none = run({ flatField: false, magnetic: false, relInertia: false });
+  close(none.last.length / 2, 1, 0.01, 'none: length'); close(none.last.width / 2, 1, 0.01, 'none: width');
+  // all three: Bell's result
+  const all = run({});
+  close(all.last.length / 2, 1 / g, 0.005, 'all: length'); close(all.last.width / 2, 1, 0.005, 'all: width');
+  // magnetic force missing: the electron is lost
+  assert.ok(run({ magnetic: false }).lost, 'no magnetic force: lost');
+  // flattened field + Newton, no magnetic force: right ratio, wrong width
+  const fake = run({ magnetic: false, relInertia: false });
+  close(fake.last.length / fake.last.width, 1 / g, 0.005, 'fake: ratio'); close(fake.last.width / 2, g, 0.02, 'fake: width');
+});
+
 console.log(`${passed} tests passed`);

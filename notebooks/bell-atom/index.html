@@ -6,7 +6,7 @@
 <title>Bell's Atom: Why Moving Things Contract — Q-Ontic Lab</title>
 <meta name="description" content="Follow John Bell's 'Lorentzian pedagogy': the field of a moving charge, an electron orbit that contracts as its nucleus is pushed, a thread that must snap, and a moving observer who cannot tell she is moving.">
 <link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg">
-<link rel="stylesheet" href="css/notebook.css?v=0.1.4">
+<link rel="stylesheet" href="css/notebook.css?v=0.2.0">
 </head>
 <body>
 <div class="page">
@@ -17,8 +17,9 @@
   <p class="lead">In 1976 John Bell asked how special relativity should be taught so that students could answer his spaceship question. His suggestion was the older road of FitzGerald, Lorentz and Larmor: stay in one frame, and ask what happens to a piece of matter when it is set moving. This notebook walks that road with a simulation of the atom Bell used.</p>
   <p class="prereq"><b>You will need:</b> Coulomb's law, the idea that a moving charge also feels a magnetic force, and the factor γ = 1/√(1 − v²/c²). γ is 1 at rest, 1.15 at half the speed of light, 1.67 at 0.8 c and 7.1 at 0.99 c; lengths in this notebook shrink by 1/γ and clocks slow by γ. Section 1 poses the puzzle, section 4 gives the answer, and sections 2, 3 and 5 explain why. A “frame” is a set of rulers and clocks at rest relative to someone; “A's frame” is that of A, who stays at rest where the ships start. About 40 minutes.</p>
   <nav class="nav" aria-label="Sections">
-    <a href="#s1">1. The puzzle</a><a href="#s2">2. A moving charge</a><a href="#s3">3. Bell's atom</a><a href="#s4">4. From atoms to a thread</a><a href="#s5">5. The moving observer</a><a href="#s6">6. Lorentz or Einstein?</a><a href="#refs">References</a>
+    <a href="#s1">1. The puzzle</a><a href="#s2">2. A moving charge</a><a href="#s3">3. Bell's atom</a><a href="#s4">4. From atoms to a thread</a><a href="#s5">5. The moving observer</a><a href="#s6">6. Lorentz or Einstein?</a><a href="#s7">7. Test yourself</a><a href="#refs">References</a>
   </nav>
+  <p class="progress" id="progress" aria-live="polite"></p>
 </header>
 
 <!-- 1 -->
@@ -75,10 +76,10 @@
       <li><b>Along the motion</b>, the pull of the nucleus is weaker, by γ², than at rest (section 2). The electron is also harder to speed up or slow down in this direction: its inertia is γ³ times its rest mass.</li>
       <li><b>Across the motion</b>, the electric pull is stronger, by γ, but the magnetic force on the moving electron cancels most of it, leaving 1/γ of the rest value. The inertia in this direction is γ times the rest mass.</li>
     </ul>
-    <p>Both directions then obey the same equation of motion as an atom at rest with a pull γ² times weaker, provided distances along the motion are counted γ times larger. Picture the orbit drawn on a sheet that is then squeezed along the motion by the factor 1/γ: a circle on the sheet becomes an ellipse. A gentle push keeps the circle's size on the sheet equal to the rest radius, so the orbit keeps its width across the motion and is shortened by 1/γ along it. With a weaker pull it also goes round γ times more slowly. The boxes below the simulation give the equations and say why the γ³ and γ appear.</p>
+    <p>Both directions then obey the same equation of motion as an atom at rest with a pull γ² times weaker, provided distances along the motion are counted γ times larger. Picture the orbit drawn on a sheet that is then squeezed along the motion by the factor 1/γ: a circle on the sheet becomes an ellipse. A gentle push keeps the circle's size on the sheet equal to the rest radius, so the orbit keeps its width across the motion and is shortened by 1/γ along it. With a weaker pull it also goes round γ times more slowly. The boxes below the simulation give the equations and say why the γ³ and γ appear. You can also switch each of the three ingredients off in the simulation and see what goes wrong.</p>
     <p>This is no accident. Maxwell's equations and Lorentz's momentum law already have the symmetry that section 5 describes; Bell's calculation shows that symmetry at work in one frame. Nothing in it refers to a moving observer, to clocks being synchronized, or to the relativity of simultaneity.</p>
   </div>
-  <p class="notice"><b>What to notice:</b> the orbit, drawn around the nucleus, flattens as the speed rises. Compare the measured ratio with 1/γ, and the measured period with γ. Both are read from the last complete revolution, and the expected values use the nucleus speed during that revolution, which during the push lags slightly behind the speed shown. The yellow bar shows the nucleus speed, from 0 to c.</p>
+  <p class="notice"><b>What to notice:</b> the orbit, drawn around the nucleus, flattens as the speed rises. Its width across the motion stays at the rest value; its length along the motion shrinks by 1/γ, and the period grows by γ. The values are read from the last complete revolution, and the expected values use the nucleus speed during that revolution, which during the push lags slightly behind the speed shown. The yellow bar shows the nucleus speed, from 0 to c. Then switch off Bell's ingredients one at a time, with the challenges below.</p>
   <div class="section-body">
     <div class="canvas-card"><canvas id="atomCanvas" aria-label="Electron orbit as the nucleus speeds up"></canvas></div>
     <div class="controls">
@@ -86,17 +87,33 @@
       <div class="row"><label for="atomV">Final speed of the nucleus <output id="atomVOut">0.80 c</output></label><input id="atomV" type="range" min="0.2" max="0.95" step="0.05" value="0.8"></div>
       <div class="row"><label for="atomRamp">Push lasts <output id="atomRampOut">100 orbits</output></label><input id="atomRamp" type="range" min="40" max="200" step="10" value="100"></div>
       <div class="row"><label for="atomSpeed">Animation speed <output id="atomSpeedOut">1×</output></label><input id="atomSpeed" type="range" min="0.5" max="6" step="0.5" value="1"></div>
+      <fieldset class="ingredients"><legend>Bell's three ingredients</legend>
+        <label class="check"><input id="ingFlat" type="checkbox" checked><span>Flattened field of the moving nucleus (section 2)</span></label>
+        <label class="check"><input id="ingMag" type="checkbox" checked><span>Magnetic force on the moving electron</span></label>
+        <label class="check"><input id="ingRel" type="checkbox" checked><span>Lorentz's momentum p = γmv (off: Newton's p = mv)</span></label>
+      </fieldset>
       <label class="check"><input id="atomPush" type="checkbox" checked><span>Push the electron too, in proportion to its mass</span></label>
       <div class="readout">
         <span>Nucleus speed</span><output id="atomVnow">0.00 c</output>
-        <span>Length / width of orbit</span><output id="atomRatio" class="hl">—</output>
-        <span>Expected 1/γ (last revolution)</span><output id="atomRatioExp">1.00</output>
-        <span>Period / rest period</span><output id="atomPeriod" class="hl">—</output>
-        <span>Expected γ (last revolution)</span><output id="atomPeriodExp">1.00</output>
+        <span>Length along motion ÷ rest</span><output id="atomLen" class="hl">—</output>
+        <span class="sub">expected 1/γ</span><output id="atomLenExp" class="sub">1.000</output>
+        <span>Width across motion ÷ rest</span><output id="atomWid" class="hl">—</output>
+        <span class="sub">expected</span><output id="atomWidExp" class="sub">1.000</output>
+        <span>Period ÷ rest period</span><output id="atomPeriod" class="hl">—</output>
+        <span class="sub">expected γ</span><output id="atomPeriodExp" class="sub">1.00</output>
       </div>
       <p class="mini warn" id="atomMsg" hidden></p>
       <p class="mini">Electron speed in the orbit, measured in the atom's own frame: 0.1 c; the classical radiation of the orbiting electron is ignored, as in Bell's model.</p>
     </div>
+  </div>
+  <div class="challenges">
+    <h3>Challenges</h3>
+    <ol>
+      <li data-challenge="c-predict"><span class="tick" aria-hidden="true"></span><div><b>Predict, then run.</b> Set the final speed to 0.6 c (γ = 1.25). Before you run it: what fraction of its rest length will the orbit have along the motion? Then run it with all three ingredients on and check.<p class="done-msg" hidden>Measured <span data-val>0.800 of the rest length</span>. Expected 1/γ = 0.800: the orbit is 80% of its rest length along the motion and keeps its full width.</p></div></li>
+      <li data-challenge="c-galileo"><span class="tick" aria-hidden="true"></span><div><b>Before relativity.</b> Switch off all three ingredients and run at any speed. What happens to the atom?<p class="done-msg" hidden>Nothing: with a rest-frame Coulomb field, no magnetic force and Newton's momentum, the atom is carried along unchanged (length <span data-val>1.000</span> of the rest length). In pre-relativistic physics, moving matter does not contract.</p></div></li>
+      <li data-challenge="c-magnetic"><span class="tick" aria-hidden="true"></span><div><b>Leave one out.</b> Switch off only the magnetic force and run at 0.8 c. Is the result Bell's ellipse?<p class="done-msg" hidden>No. Without the magnetic force the pull across the motion is too strong, the orbit is no longer a steady ellipse, and the electron is soon lost. All three ingredients are needed together.</p></div></li>
+      <li data-challenge="c-fake"><span class="tick" aria-hidden="true"></span><div><b>Right ratio, wrong atom.</b> Find a combination of ingredients that gives length ÷ width = 1/γ at 0.8 c but is <i>not</i> Bell's result. Look at the width.<p class="done-msg" hidden>Flattened field with Newton's momentum and no magnetic force: length ÷ width is 0.600, but the orbit has grown across the motion to <span data-val>1.67</span> times its rest width instead of shrinking along it. Bell's result is about both: width unchanged, length shortened.</p></div></li>
+    </ol>
   </div>
   <details class="derivation"><summary>Why the orbit is flattened: the equations</summary><div class="body">
     <p>Let the orbit lie in the x–z plane, with the atom moving along z at speed v, and let the electron move slowly round the nucleus (0.1 c here). With the nucleus at the origin, s² = x² + γ²z² and K = Ze² (Gaussian units), the field of section 2 pulls the electron with the electric force −Kγz/s³ along the motion and −Kγx/s³ across it. The electron moves at about v, so it also feels the magnetic force of B = (v/c) × E, which pushes against the electric force across the motion and reduces it by the factor 1 − v²/c² = 1/γ², to −Kx/(γs³). Its inertia is γ³m along the motion and γm across it: with momentum p = γmu, a small change du of the velocity u along u changes p by γ³m du, while a change across u changes it by γm du. To leading order,</p>
@@ -133,6 +150,13 @@
       <p class="mini">This picture is drawn from section 3's result; it is not a separate simulation. <a href="../../apps/relativity/bell-spaceships/index.html">Run the full spaceship simulation</a></p>
     </div>
   </div>
+  <div class="challenges">
+    <h3>Challenges</h3>
+    <ol>
+      <li data-challenge="c-snap20"><span class="tick" aria-hidden="true"></span><div><b>Just snapped.</b> With the thread snapping at a stretch of 20%, find the lowest speed at which it breaks.<p class="done-msg" hidden>It breaks once γ − 1 reaches 0.20, i.e. γ = 1.2 and v = 0.553 c. Below that the stretch is under 20%.</p></div></li>
+      <li data-challenge="c-snap50"><span class="tick" aria-hidden="true"></span><div><b>Predict first.</b> Make the thread stronger: it now snaps at 50%. Work out the speed at which it breaks, then find it with the slider.<p class="done-msg" hidden>γ = 1.5 gives v = √(1 − 1/2.25) c = 0.745 c. A thread that takes 2.5 times the stretch breaks at only 0.75 c instead of 0.55 c, because γ grows quickly as v approaches c.</p></div></li>
+    </ol>
+  </div>
 </section>
 
 <!-- 5 -->
@@ -162,6 +186,15 @@
     <p>During coasting the nucleus moves as z = c₀ + vt. Its primed position, z′ = γ(c₀ + vt − vt) = γc₀, is constant: in her variables the nucleus is at rest. Each electron event (t, x, z) is transformed with the formulas above; the orbit is drawn about the nucleus. The remaining departures from a perfect circle and from the rest period, below 1% and largest at 0.95 c, come from the finite length of the push in the simulation.</p>
     <p>The inverse transformation has the same form with v replaced by −v, which is why the effect is mutual.<sup><a href="#ref-1">1</a></sup></p>
   </div></details>
+  <div class="quiz" data-quiz data-challenge="q-clock">
+    <p class="q">The atom moves at 0.8 c (γ = 1.67). In A's frame, while her clock advances by one rest period, how much does A's clock advance?</p>
+    <div class="options">
+      <button type="button" data-ok="false" data-fb="That would mean her clock is not slowed. In A's frame her clock is made of atoms like the one in section 3, which go round γ times more slowly.">One rest period.</button>
+      <button type="button" data-ok="true" data-fb="Yes. In A's frame her clock runs slow by γ, so A's clock advances by γ = 1.67 rest periods. Using her own variables, she says the same of A's clock: the effect is mutual.">1.67 rest periods.</button>
+      <button type="button" data-ok="false" data-fb="That is 1/γ: it would make A's clock the slow one. In A's frame it is hers that runs slow; in her variables, A's does.">0.60 rest periods.</button>
+    </div>
+    <p class="fb" hidden></p>
+  </div>
 </section>
 
 <!-- 6 -->
@@ -183,15 +216,62 @@
     <p>The dynamical account has limits that Bell himself noted. Classical electromagnetism cannot explain why atoms are stable, and real matter is held together by forces it does not include; the argument has to assume that all of them share the same symmetry. Brown and Pooley stress that Bell's argument, applied to real matter, rests on the assumption that the complete dynamics holding matter together is Lorentz covariant, and that a full account of stable rods and clocks needs a quantum theory of matter.<sup><a href="#ref-4">4</a>,<a href="#ref-5">5</a></sup> Why the laws have this symmetry is a further question. Einstein himself later wrote that, strictly, rods and clocks ought to be described as solutions of the basic equations rather than as self-sufficient entities; he had treated them as independent because those equations were not yet known well enough.<sup><a href="#ref-7">7</a></sup> Which road gives the explanation remains a live question among philosophers of physics.</p>
     <p>For Q-Ontic, this is a case where two accounts agree on every prediction and tell different stories about what happens. Quantum mechanics has a similar situation: pilot-wave theory and many worlds tell different stories but agree on every prediction. Spontaneous-collapse models do not, and experiments are testing them.</p>
   </div>
-  <div class="quiz" data-quiz>
-    <p class="q">Which statement fits Bell's view?</p>
+  <div class="quiz" data-quiz data-challenge="q-roads">
+    <p class="q">Both roads agree that the thread breaks. How does the shorter road (Einstein's) explain it, working in the ships' own frame?</p>
     <div class="options">
-      <button type="button" data-ok="false" data-fb="No. In the longer road the laws are written in one frame, but observers in uniform motion find the same laws, so no experiment singles that frame out. Bell held that the facts do not decide whether such a frame exists.">The longer road shows there is a true state of rest: the frame in which Maxwell's equations hold.</button>
-      <button type="button" data-ok="true" data-fb="Yes. Both make the same predictions; Bell recommended the longer road because it builds the instincts that questions like the spaceship one test.">Both roads make the same predictions; the longer one builds physical intuition about moving matter.</button>
-      <button type="button" data-ok="false" data-fb="No. Both make the same predictions; that is why Bell called the choice a matter of philosophy, and of teaching.">The two roads predict different results for fast-moving objects, which experiments can test.</button>
+      <button type="button" data-ok="false" data-fb="In the ships' frame the thread is at rest, so its length is not contracted there. Contraction of the thread is the explanation in A's frame.">The thread contracts because it is moving.</button>
+      <button type="button" data-ok="true" data-fb="Yes. In A's frame the engines fire together; in the ships' frame the front engine fires first, so the ships drift apart while the thread keeps its length. Same broken thread, different explanation.">The ships move apart, because in their frame the front engine fired first.</button>
+      <button type="button" data-ok="false" data-fb="That is the longer road's mechanism, and it works in A's frame. Einstein's road needs no model of the thread's forces at all.">The field of each atom flattens, so the atoms pull closer together.</button>
     </div>
     <p class="fb" hidden></p>
   </div>
+</section>
+
+<!-- 7 -->
+<section class="section" id="s7">
+  <div class="section-head"><h2>7. Test yourself</h2><p class="purpose">New situations, same ideas. Answer before you look back.</p></div>
+  <div class="quiz" data-quiz data-challenge="t-engine">
+    <p class="q">The ships start as before, but the front engine is set a little weaker than the rear one. Compared with identical engines, the thread breaks:</p>
+    <div class="options">
+      <button type="button" data-ok="false" data-fb="A weaker front engine lets the gap close a little in A's frame, so the thread is stretched less, not more.">sooner.</button>
+      <button type="button" data-ok="true" data-fb="Yes. In A's frame the gap now shrinks a little while the thread still wants to be L/γ, so the stretch is smaller. If the front engine is held back by just the right amount the gap shrinks exactly by 1/γ and the thread is never stretched (Born-rigid motion; try it in the spaceship app).">later, or not at all if the front engine is gentle enough.</button>
+      <button type="button" data-ok="false" data-fb="The engines decide how the gap changes, and the gap is what the thread is stretched against. Changing one engine changes the outcome.">at the same moment: only the speed matters.</button>
+    </div>
+    <p class="fb" hidden></p>
+  </div>
+  <div class="quiz" data-quiz data-challenge="t-rod">
+    <p class="q">A long steel rod is pushed gently from one end until it moves at 0.8 c, with nothing holding its other end. What happens to it?</p>
+    <div class="options">
+      <button type="button" data-ok="true" data-fb="Yes. Like a single atom, a rod left to its own internal forces settles at 1/γ of its rest length, here 0.6 of it, with no strain. Stress appears only when something holds its ends at a fixed distance, as the ships do with the thread.">It contracts to 0.6 of its rest length without strain.</button>
+      <button type="button" data-ok="false" data-fb="Nothing holds its ends apart, so nothing stretches it. Compare Bell's proviso: a strong thread between light ships contracts without breaking.">It is stretched and may break.</button>
+      <button type="button" data-ok="false" data-fb="In A's frame it does contract: its atoms are shorter along the motion (section 3). It is the absence of strain, not of contraction, that makes it safe.">It keeps its rest length.</button>
+    </div>
+    <p class="fb" hidden></p>
+  </div>
+  <div class="quiz" data-quiz data-challenge="t-real">
+    <p class="q">Someone says: “The thread only looks stretched to A. Nothing really happens to it.” Which fact settles the question?</p>
+    <div class="options">
+      <button type="button" data-ok="false" data-fb="A sees the thread at its natural length L/γ held at L, but a single observer's description cannot by itself show that the stretch is not just perspective.">A measures the thread to be shorter than the gap.</button>
+      <button type="button" data-ok="true" data-fb="Yes. Breaking is an event that every observer agrees on, and a strain gauge riding on the thread would read the same in any frame. The stretch is a physical state of the thread, explained differently in different frames.">The thread breaks, and a broken thread is broken in every frame.</button>
+      <button type="button" data-ok="false" data-fb="The orbit's period is slower in A's frame, but that is not what the question is about: the strain of the thread is.">The atoms' orbits go round more slowly.</button>
+    </div>
+    <p class="fb" hidden></p>
+  </div>
+  <div class="quiz" data-quiz data-challenge="t-number">
+    <p class="q">A thread 1 m long at rest moves with the ships at 0.6 c, its ends held at 1 m in A's frame. How much is it stretched?</p>
+    <div class="options">
+      <button type="button" data-ok="false" data-fb="That is the contraction 1 − 1/γ = 0.2. The stretch is the held length divided by the natural length, minus one.">20%.</button>
+      <button type="button" data-ok="true" data-fb="Yes. γ = 1.25, so its natural length in A's frame is 0.8 m; held at 1 m, it is stretched by 1/0.8 − 1 = γ − 1 = 25%.">25%.</button>
+      <button type="button" data-ok="false" data-fb="That is the stretch at 0.8 c (γ = 1.67).">67%.</button>
+    </div>
+    <p class="fb" hidden></p>
+  </div>
+  <details class="derivation instructors"><summary>For instructors: a 50-minute recitation and answers</summary><div class="body">
+    <p><b>Before class (10 min, homework):</b> sections 1 and 2; students record their quiz 1 answer.</p>
+    <p><b>In class:</b> (1) 5 min: poll quiz 1, show the spread of answers, run the <a href="../../apps/relativity/bell-spaceships/index.html">spaceship app</a>. (2) 15 min: section 3 in pairs, the four challenges; each pair reports what was wrong with the orbit in challenges 3 and 4. (3) 10 min: section 4, both challenges, and the paragraph “Is the stretch real?”. (4) 10 min: section 5 at the board: one tick of her clock is γ ticks of A's, and the reverse in her variables. (5) 10 min: section 7 individually; discuss the rod question.</p>
+    <p><b>Answers.</b> Section 3: 0.800 at 0.6 c; all ingredients off: no change; magnetic force off: the electron is lost; flattened field with Newton's momentum and no magnetic force: ratio 1/γ but width γ times too large. Section 4: 0.553 c (20%), 0.745 c (50%). Section 5: 1.67. Section 6: the ships move apart. Section 7: later or not at all; contracts without strain; the thread breaks in every frame; 25%.</p>
+    <p><b>Common difficulties.</b> Students who think contraction is only appearance: use the rod and the Born-rigid engine setting, where the same contraction produces no stress. Students who try to explain the break in the ships' frame by contraction: the thread is at rest in that frame.</p>
+  </div></details>
 </section>
 
 <section class="section" id="refs">
@@ -210,8 +290,8 @@
   </ol>
 </section>
 
-<footer class="footer"><span>Bell's atom notebook · Version 0.1.4 · 2026-11-06</span><span>Q-Ontic Lab, Rice University · <a href="mailto:qonticlab@rice.edu">qonticlab@rice.edu</a></span></footer>
+<footer class="footer"><span>Bell's atom notebook · Version 0.2.0 · 2026-11-06</span><span>Q-Ontic Lab, Rice University · <a href="mailto:qonticlab@rice.edu">qonticlab@rice.edu</a></span></footer>
 </div>
-<script type="module" src="js/notebook.js?v=0.1.4"></script>
+<script type="module" src="js/notebook.js?v=0.2.0"></script>
 </body>
 </html>

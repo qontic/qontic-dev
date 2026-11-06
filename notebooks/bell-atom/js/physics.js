@@ -37,20 +37,37 @@ export function makeProgram(Vf, Tacc) {
     const v = V(t);
     return (Vf * (6 * s - 6 * s * s)) / Tacc / Math.pow(1 - v * v, 1.5);
   };
-  return { V, z, dU, Vf, Tacc };
+  // dV/dt: the push per unit mass for an electron with Newtonian inertia
+  const dV = (t) => {
+    const s = t / Tacc;
+    if (s <= 0 || s >= 1) return 0;
+    return (Vf * (6 * s - 6 * s * s)) / Tacc;
+  };
+  return { V, z, dU, dV, Vf, Tacc };
 }
 
 // Bell's atom: an electron in the field of a nucleus that is gently pushed to
 // speed Vf. With pushElectron = true the electron also receives the push
 // m d(gamma V)/dt, as both particles would in a uniform field acting on mass;
 // see the notebook text for why.
+// The three ingredients of Bell's calculation can be switched off one at a
+// time, to show that all three are needed:
+//   flatField: the field of the moving nucleus is Heaviside's flattened field
+//              (off: the nucleus carries its rest-frame Coulomb field along);
+//   magnetic:  the moving electron feels the magnetic force v x B;
+//   relInertia: Lorentz's relation p = gamma m v (off: Newton's p = m v, and
+//              the push on the electron is m dV/dt).
+// With all three off the physics is Galilean and the atom is simply carried
+// along, unchanged.
 export class BellAtom {
-  constructor({ v0 = 0.1, Vf = 0.8, rampOrbits = 100, pushElectron = true, stepsPerOrbit = 300 } = {}) {
+  constructor({ v0 = 0.1, Vf = 0.8, rampOrbits = 100, pushElectron = true, stepsPerOrbit = 300,
+    flatField = true, magnetic = true, relInertia = true } = {}) {
     this.K = v0 * v0;
-    // Exactly circular orbit of radius 1 for a relativistic electron:
-    // K / r^2 = gamma m v^2 / r, i.e. v^2 / sqrt(1 - v^2) = K.
+    this.flat = flatField; this.mag = magnetic; this.relI = relInertia;
+    // Exactly circular orbit of radius 1: K / r^2 = gamma m v^2 / r, i.e.
+    // v^2 / sqrt(1 - v^2) = K (relativistic), or v^2 = K (Newtonian).
     const K2 = this.K * this.K;
-    this.v0 = Math.sqrt((Math.sqrt(K2 * K2 + 4 * K2) - K2) / 2);
+    this.v0 = relInertia ? Math.sqrt((Math.sqrt(K2 * K2 + 4 * K2) - K2) / 2) : v0;
     this.T0 = (2 * Math.PI) / this.v0;
     this.prog = makeProgram(Vf, rampOrbits * this.T0);
     this.push = pushElectron;
@@ -59,7 +76,7 @@ export class BellAtom {
   }
 
   reset() {
-    const p0 = this.v0 / Math.sqrt(1 - this.v0 * this.v0);
+    const p0 = this.relI ? this.v0 / Math.sqrt(1 - this.v0 * this.v0) : this.v0;
     this.t = 0;
     this.s = [1, 0, 0, p0]; // x, z (lab), px, pz
     this.orbit = null; // extents of the revolution in progress
@@ -70,12 +87,13 @@ export class BellAtom {
 
   deriv([x, z, px, pz], t) {
     const V = this.prog.V(t);
-    const f = movingChargeField(x, z - this.prog.z(t), V, this.K);
-    const gp = Math.sqrt(1 + px * px + pz * pz);
+    const f = movingChargeField(x, z - this.prog.z(t), this.flat ? V : 0, this.K);
+    const By = this.mag ? V * f.Ex : 0;
+    const gp = this.relI ? Math.sqrt(1 + px * px + pz * pz) : 1;
     const vx = px / gp, vz = pz / gp;
     // electron charge -1: F = -(E + v x B), with B = (0, By, 0)
-    const Fx = -(f.Ex - vz * f.By);
-    const Fz = -(f.Ez + vx * f.By) + (this.push ? this.prog.dU(t) : 0);
+    const Fx = -(f.Ex - vz * By);
+    const Fz = -(f.Ez + vx * By) + (this.push ? (this.relI ? this.prog.dU(t) : this.prog.dV(t)) : 0);
     return [vx, vz, Fx, Fz];
   }
 

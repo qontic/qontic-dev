@@ -1,4 +1,4 @@
-import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.1.4';
+import { BellAtom, steadyOrbit, toPrimed, movingChargeField, gammaOf } from './physics.js?v=0.2.0';
 
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d);
@@ -33,6 +33,33 @@ function whenVisible(el, onChange) {
   new IntersectionObserver((entries) => entries.forEach((e) => onChange(e.isIntersecting)), { threshold: 0.05 }).observe(el);
 }
 
+// ------------------------------------------------------------- challenges and progress
+// Challenges (and quizzes answered correctly) are ticked off and remembered in
+// this browser only; the page works the same if storage is unavailable.
+const STORE = 'qontic-bell-atom-progress';
+let solved = {};
+try { solved = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch (e) { solved = {}; }
+const allTasks = () => [...document.querySelectorAll('li[data-challenge]'), ...document.querySelectorAll('[data-quiz][data-challenge]')];
+function showProgress() {
+  const tasks = allTasks(), n = tasks.filter((t) => solved[t.dataset.challenge]).length;
+  const el = $('#progress');
+  if (el) el.textContent = `Challenges and questions completed: ${n} of ${tasks.length}` + (n ? '' : ' · they are in sections 3 to 7');
+}
+function solve(id, values = {}) {
+  const li = document.querySelector(`li[data-challenge="${id}"]`);
+  if (li) {
+    const msg = li.querySelector('.done-msg');
+    if (msg) {
+      Object.entries(values).forEach(([, v]) => { const span = msg.querySelector('[data-val]'); if (span) span.textContent = v; });
+      msg.hidden = false;
+    }
+    li.classList.add('done');
+  }
+  if (!solved[id]) { solved[id] = 1; try { localStorage.setItem(STORE, JSON.stringify(solved)); } catch (e) { /* ignore */ } }
+  showProgress();
+}
+document.querySelectorAll('li[data-challenge]').forEach((li) => { if (solved[li.dataset.challenge]) { li.classList.add('done'); const m = li.querySelector('.done-msg'); if (m) m.hidden = false; } });
+
 // ------------------------------------------------------------- quizzes
 document.querySelectorAll('[data-quiz]').forEach((quiz) => {
   const fb = quiz.querySelector('.fb');
@@ -40,8 +67,10 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     quiz.querySelectorAll('button[data-ok]').forEach((x) => x.classList.remove('right', 'wrong'));
     b.classList.add(b.dataset.ok === 'true' ? 'right' : 'wrong');
     fb.textContent = b.dataset.fb; fb.hidden = false;
+    if (b.dataset.ok === 'true' && quiz.dataset.challenge) solve(quiz.dataset.challenge);
   }));
 });
+showProgress();
 
 // ------------------------------------------------------------- 2. field of a moving charge
 (() => {
@@ -91,10 +120,14 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
 // ------------------------------------------------------------- 3. Bell's atom
 (() => {
   const canvas = $('#atomCanvas');
-  const ui = { V: $('#atomV'), ramp: $('#atomRamp'), speed: $('#atomSpeed'), push: $('#atomPush'), play: $('#atomPlay') };
+  const ui = { V: $('#atomV'), ramp: $('#atomRamp'), speed: $('#atomSpeed'), push: $('#atomPush'), play: $('#atomPlay'),
+    flat: $('#ingFlat'), mag: $('#ingMag'), rel: $('#ingRel') };
+  const allIn = () => ui.flat.checked && ui.mag.checked && ui.rel.checked;
   let atom, trail, playing = false, visible = false, finished = false;
   function restart() {
-    atom = new BellAtom({ Vf: +ui.V.value, rampOrbits: +ui.ramp.value, pushElectron: ui.push.checked });
+    atom = new BellAtom({ Vf: +ui.V.value, rampOrbits: +ui.ramp.value, pushElectron: ui.push.checked,
+      flatField: ui.flat.checked, magnetic: ui.mag.checked, relInertia: ui.rel.checked });
+    atom.cfg = { Vf: +ui.V.value, push: ui.push.checked, flat: ui.flat.checked, mag: ui.mag.checked, rel: ui.rel.checked };
     trail = [];
     finished = false;
     $('#atomVOut').value = `${fmt(+ui.V.value)} c`;
@@ -104,7 +137,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
   function setPlaying(p) { playing = p; ui.play.textContent = p ? 'Pause' : (finished ? 'Replay' : 'Play'); }
   ui.play.addEventListener('click', () => { if (finished) restart(); setPlaying(!playing); });
   $('#atomRestart').addEventListener('click', () => { restart(); setPlaying(true); });
-  [ui.V, ui.ramp, ui.push].forEach((el) => el.addEventListener('input', () => { restart(); }));
+  [ui.V, ui.ramp, ui.push, ui.flat, ui.mag, ui.rel].forEach((el) => el.addEventListener('input', () => { restart(); }));
   ui.speed.addEventListener('input', () => { $('#atomSpeedOut').value = `${ui.speed.value}×`; });
 
   function draw() {
@@ -112,7 +145,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     const { ctx, w, h } = c;
     const { x, z, V } = atom.rel, g = gammaOf(V);
     const narrow = w < 560;
-    const cx = w / 2, cy = h / 2 - (narrow ? 2 : 8), R = Math.min(w * 0.3, h * 0.33);
+    const cx = w / 2, cy = h / 2 - (narrow ? 2 : 8), R = Math.min(w * 0.3, h * 0.33) * (allIn() ? 1 : 0.62);
     // reference: rest orbit and the ellipse expected at the current speed
     ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2;
     ctx.strokeStyle = 'rgba(207,227,245,0.25)'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
@@ -146,19 +179,39 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     const status = atom.lost ? 'stopped: electron lost' : done ? 'push finished: coasting' : V < 0.005 ? 'push starting…' : 'being pushed…';
     text(ctx, status, bx + bw, by - 24, { color: atom.lost ? COLORS.red : done ? COLORS.green : COLORS.gold, size: 12, align: 'right' });
     motionArrow(ctx, 12, h - (narrow ? 44 : 16), narrow ? 'motion' : 'direction of motion');
+    const off = [!atom.cfg.flat && 'flattened field', !atom.cfg.mag && 'magnetic force', !atom.cfg.rel && 'Lorentz momentum'].filter(Boolean);
+    if (off.length) text(ctx, `switched off: ${off.join(', ')}`, 12, narrow ? 54 : 38, { color: COLORS.gold, size: 11.5 });
     const msgEl = $('#atomMsg');
     if (atom.lost) {
-      msgEl.textContent = `Stopped after ${fmt(atom.lost.t / atom.T0, 0)} orbits: with only the nucleus pushed, the orbit became so eccentric that the electron passed through the region of the nucleus, where this model breaks down. See “How the push is applied” below.`;
+      const why = !atom.cfg.push ? 'with only the nucleus pushed' : `without the ${off.join(' and the ')}`;
+      msgEl.textContent = `Stopped after ${fmt(atom.lost.t / atom.T0, 0)} orbits: ${why}, the orbit became so eccentric that the electron passed through the region of the nucleus, where this model breaks down.` + (!atom.cfg.push ? ' See “How the push is applied” below.' : '');
       msgEl.hidden = false;
     } else msgEl.hidden = true;
-    // readouts: measured over the last complete revolution, compared with the
-    // values expected at the speed the nucleus had during that revolution
+    // readouts: measured over the last complete revolution (in units of the
+    // rest diameter), compared with Bell's values at the speed the nucleus had
+    // during that revolution
     $('#atomVnow').value = `${fmt(V)} c`;
-    const L = atom.lost ? null : atom.last;
-    $('#atomRatio').value = L ? fmt(L.length / L.width, 3) : '—';
-    $('#atomRatioExp').value = fmt(1 / gammaOf(L ? L.V : V), 3);
+    const L = atom.lost ? null : atom.last, gl = gammaOf(L ? L.V : V);
+    $('#atomLen').value = L ? fmt(L.length / 2, 3) : '—';
+    $('#atomLenExp').value = fmt(1 / gl, 3);
+    $('#atomWid').value = L ? fmt(L.width / 2, 3) : '—';
+    $('#atomWidExp').value = '1.000';
     $('#atomPeriod').value = L ? fmt(L.period / atom.T0, 2) : '—';
-    $('#atomPeriodExp').value = fmt(gammaOf(L ? L.V : V), 2);
+    $('#atomPeriodExp').value = fmt(gl, 2);
+    const good = (a, b) => L && Math.abs(a - b) < 0.02 * b;
+    ['atomLen', 'atomWid', 'atomPeriod'].forEach((id, i) => {
+      const ok = L && good([L.length / 2, L.width / 2, L.period / atom.T0][i], [1 / gl, 1, gl][i]);
+      $('#' + id).classList.toggle('hl', !!ok); $('#' + id).classList.toggle('bad', !!L && !ok);
+    });
+  }
+  // challenges, checked when a run ends
+  function checkChallenges() {
+    const c = atom.cfg, L = atom.last;
+    const all = c.flat && c.mag && c.rel && c.push;
+    if (all && Math.abs(c.Vf - 0.6) < 1e-6 && L && !atom.lost) solve('c-predict', { v: `${fmt(L.length / 2, 3)} of the rest length` });
+    if (!c.flat && !c.mag && !c.rel && c.push && L && !atom.lost && Math.abs(L.length / 2 - 1) < 0.02) solve('c-galileo', { v: fmt(L.length / 2, 3) });
+    if (c.flat && !c.mag && c.rel && c.push && c.Vf >= 0.6) solve('c-magnetic');
+    if (c.flat && !c.mag && !c.rel && c.push && Math.abs(c.Vf - 0.8) < 1e-6 && L && !atom.lost) solve('c-fake', { v: fmt(L.width / 2, 2) });
   }
 
   let last = performance.now();
@@ -172,7 +225,7 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
       }
       const keep = Math.round(1.15 * 300 * gammaOf(atom.rel.V));
       if (trail.length > keep) trail.splice(0, trail.length - keep);
-      if (!finished && (atom.lost || atom.t > atom.prog.Tacc + 6 * atom.T0 * gammaOf(atom.prog.Vf))) { finished = true; setPlaying(false); }
+      if (!finished && (atom.lost || atom.t > atom.prog.Tacc + 6 * atom.T0 * gammaOf(atom.prog.Vf))) { finished = true; setPlaying(false); checkChallenges(); }
     }
     if (visible) draw();
     requestAnimationFrame(frame);
@@ -246,9 +299,11 @@ document.querySelectorAll('[data-quiz]').forEach((quiz) => {
     $('#threadGap').value = `${fmt(gap)} L`;
     $('#threadNat').value = `${fmt(natural)} L`;
     const out = $('#threadStretch');
-    out.value = broken ? `${Math.round(stretch * 100)}%: snapped` : `${Math.round(Math.max(0, stretch) * 100)}%`;
+    out.value = broken ? `${(stretch * 100).toFixed(1)}%: snapped` : `${(Math.max(0, stretch) * 100).toFixed(1)}%`;
     out.style.color = broken ? '#b91c1c' : '';
     sE.disabled = isStrong;
+    if (broken && Math.abs(eps - 0.2) < 1e-6 && V <= 0.56 + 1e-9) solve('c-snap20');
+    if (broken && Math.abs(eps - 0.5) < 1e-6 && V <= 0.75 + 1e-9) solve('c-snap50');
     sE.closest('.row').style.opacity = isStrong ? 0.45 : '';
   }
   [sV, sE, strong].forEach((el) => el.addEventListener('input', draw));

@@ -90,3 +90,18 @@ details.derivation .body { padding: 6px 14px 10px; font-size: 14px; color: #3341
   .section-body { padding: 10px; }
   h1 { font-size: 21px; }
 }
+.header p.progress { margin: 10px 0 0; font-size: 13px; color: #334155; }
+.ingredients { border: 1px solid var(--line); border-radius: 10px; padding: 4px 10px 2px; margin: 4px 0 10px; background: #fff; }
+.ingredients legend { font-size: 12.5px; font-weight: 650; color: #111827; padding: 0 4px; }
+.ingredients .check { margin: 4px 0 6px; font-size: 13.5px; }
+.readout .sub { color: var(--muted); font-weight: 400; padding-left: 10px; }
+.readout output.sub { padding-left: 0; }
+.readout .bad { color: #b45309; }
+.challenges { margin: 10px 18px 16px; padding: 10px 14px 6px; border: 1px solid #fde68a; background: #fffbeb; border-radius: 10px; max-width: 900px; }
+.challenges h3 { margin: 0 0 6px; font-size: 15px; color: #92400e; }
+.challenges ol { list-style: none; margin: 0; padding: 0; }
+.challenges li { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; font-size: 14px; color: #334155; }
+.challenges .tick { flex: 0 0 18px; height: 18px; margin-top: 2px; border: 2px solid #d97706; border-radius: 50%; }
+.challenges li.done .tick { background: #059669; border-color: #059669; position: relative; }
+.challenges li.done .tick::after { content: ''; position: absolute; left: 5px; top: 1px; width: 4px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.challenges .done-msg { margin: 4px 0 0; color: #065f46; }
