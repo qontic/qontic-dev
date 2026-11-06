@@ -2,10 +2,10 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.15.1';
-import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.15.1';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY } from './content.js?v=0.15.1';
-import { waveBranches, computeField, paintField } from './waves.js?v=0.15.1';
+import { APP_RELEASE } from './release.js?v=0.16';
+import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.16';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY } from './content.js?v=0.16';
+import { waveBranches, computeField, paintField } from './waves.js?v=0.16';
 
 // Study arm (IUSE design). ?arm=orthodox gives the comparison arm: the same app,
 // setups, tasks and timing, but only the orthodox account with decoherence.
@@ -26,8 +26,8 @@ const agree = text => ONE_ACCOUNT ? text.replace(/^All accounts agree: /, '').re
 mountQonticShell({
   compactHeader: true, navigation: 'breadcrumbs',
   title: 'Atom Mach–Zehnder Interferometer', eyebrow: 'Q-Ontic comparative simulation',
-  purpose: ONE_ACCOUNT ? 'Predict what the detectors show when the second beam splitter is removed, a which-way marker is added, or a bomb sits in one arm, then see how quantum mechanics accounts for it.'
-    : 'Predict what the detectors show when the second beam splitter is removed, a which-way marker is added, or a bomb sits in one arm, then compare four accounts of what happens.',
+  purpose: ONE_ACCOUNT ? 'Predict what the detectors show when the second beam splitter is removed, a which-way flag is added, or a bomb sits in one arm, then see how quantum mechanics accounts for it.'
+    : 'Predict what the detectors show when the second beam splitter is removed, a which-way flag is added, or a bomb sits in one arm, then compare four accounts of what happens.',
   badge: 'Prediction mode', version: `App ${APP_RELEASE.version} · ${APP_RELEASE.date}`,
   homeHref: '../../../index.html', labHref: 'https://qonticlab.rice.edu/',
 });
@@ -213,7 +213,7 @@ function syncPanel() {
   document.getElementById('mz-explain-label').textContent = ONE_ACCOUNT ? 'What happens:' : `${VIEW_LABEL[state.view]}:`;
   let text = EXPLAIN[state.view][baseKey()];
   if (state.view === 'spontaneous-collapse' && state.setup.object === 'marker' && state.setup.markerSize === 'macro' && state.setup.bs2)
-    text = 'A macroscopic marker moves many particles, so the state collapses at the marker: the atom is then in one arm only, a single part reaches the second beam splitter, and D1 and D2 are equally likely.';
+    text = 'A macroscopic flag moves many particles, so the state collapses at the flag: the atom is then in one arm only, a single part reaches the second beam splitter, and D1 and D2 are equally likely.';
   document.getElementById('mz-explain').textContent = text;
 }
 
@@ -358,7 +358,7 @@ function drawApparatus(c, s, result) {
     const p = T(G.OBJ);
     ctx.strokeStyle = c.a; ctx.lineWidth = 2 * view.k;
     ctx.strokeRect(p.x - 14 * view.k, p.y - 14 * view.k, 28 * view.k, 28 * view.k);
-    if (state.display.labels && view.k > .45) label('Marker', { x: G.OBJ.x - 22, y: G.OBJ.y - 4 }, c.a, 'right');
+    if (state.display.labels && view.k > .45) label('Flag', { x: G.OBJ.x - 22, y: G.OBJ.y - 4 }, c.a, 'right');
   }
   if (state.setup.object === 'bomb') {
     const exploded = WORLD ? WORLD.exploded : state.atom && result === 'bomb' && s >= G.sObj;
@@ -406,7 +406,7 @@ function flightTag(c, s, result) {
   if (V === 'orthodox') {
     const measured = (state.setup.object === 'bomb' && s >= G.sObj) || s >= G.total - 1;
     const decohered = state.setup.object === 'marker' && s >= G.sObj;
-    label(measured ? 'a measurement occurred: collapse' : decohered ? 'marker entangled with the path: interference lost (decoherence), no collapse yet' : 'no measurement yet: no collapse',
+    label(measured ? 'a measurement occurred: collapse' : decohered ? 'flag entangled with the path: interference lost (decoherence), no collapse yet' : 'no measurement yet: no collapse',
       { x: 500, y: 18 }, measured ? c.flash : decohered ? c.a : c.muted, 'center', 12);
   } else if (V === 'spontaneous-collapse') {
     const st = scState(s, result);
@@ -443,7 +443,7 @@ function drawWave(c, s, result) {
   ctx.drawImage(img, view.ox, view.oy, 1000 * view.k, 600 * view.k);
   if (fields.length > 1 && view.k > .3 && !state.compare) {
     const items = state.setup.object === 'marker'
-      ? [[branchColor('a'), 'part with the atom in the upper arm (marked)'], [branchColor('b'), 'part with the atom in the lower arm (untouched)']]
+      ? [[branchColor('a'), 'part with the atom in the upper arm (flag raised)'], [branchColor('b'), 'part with the atom in the lower arm (flag down)']]
       : [[branchColor('b'), 'part with the bomb intact']];
     items.forEach(([col, text], i) => { blob({ x: 590, y: 548 + i * 22 }, 9, col, .95); label(text, { x: 606, y: 548 + i * 22 }, c.muted, 'left', 12); });
   }
@@ -481,7 +481,7 @@ function drawConfigPanel(c, s, result) {
   ctx.fillStyle = c.panel; ctx.strokeStyle = c.beam; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.roundRect(p.x, p.y, w * view.k, h * view.k, 8 * view.k); ctx.fill(); ctx.stroke();
   const obj = state.setup.object;
-  const rows = obj === 'marker' ? ['Untouched', 'Marked'] : obj === 'bomb' ? ['Bomb intact', 'Bomb exploded'] : ['No record'];
+  const rows = obj === 'marker' ? ['Flag down', 'Flag raised'] : obj === 'bomb' ? ['Bomb intact', 'Bomb exploded'] : ['No record'];
   label(V === 'orthodox' ? 'Joint state: path × ' + (obj === 'none' ? 'arms' : obj) : 'Configuration space', { x: x0 + 12, y: y0 + 16 }, c.text, 'left', 12);
   const colX = { U: x0 + 110, L: x0 + 170, meet: x0 + 232, in: x0 + 140 };
   const rowY = rows.map((_, i) => y0 + 70 + i * 62);
@@ -497,7 +497,7 @@ function drawConfigPanel(c, s, result) {
   const spots = [];
   list.forEach(b => {
     if (b.exploded) { if (rows.length > 1) spots.push({ x: colX.U, y: rowY[1], color: c.bomb, alpha: .9, absorbed: true }); return; }
-    const row = obj === 'marker' && b.label === 'Marked' ? 1 : 0;
+    const row = obj === 'marker' && b.label === 'Flag raised' ? 1 : 0;
     let color = c.wave;
     if (list.length > 1 && V !== 'orthodox' && V !== 'spontaneous-collapse') color = b.key === 'a' ? c.a : c.b;
     else if (list.length > 1) color = b.key === 'a' ? c.a : c.wave;
@@ -512,7 +512,7 @@ function drawConfigPanel(c, s, result) {
   if (atBS2 && s < G.total) {
     const meetRows = spots.filter(sp => !sp.absorbed && sp.x === colX.meet).map(sp => sp.y);
     const overlap = meetRows.length > 1 && meetRows.every(y => y === meetRows[0]);
-    const apart = V === 'orthodox' ? 'different marker states: no interference' : 'parts cannot overlap';
+    const apart = V === 'orthodox' ? 'different flag states: no interference' : 'parts cannot overlap';
     label(overlap ? 'parts overlap: they interfere' : meetRows.length > 1 ? apart : 'one part only', { x: x0 + w / 2, y: y0 + h - 12 }, overlap ? c.wave : c.a, 'center', 11);
   }
   if (V === 'pilot-wave') {
@@ -532,7 +532,7 @@ function mwText(s) {
     if (n === 1) return 'Only one detector outcome has any weight, so the world does not split.';
     return `The world has split into ${n} copies, weighted by the Born rule${exploded ? ' (one of them with the bomb exploded)' : ''}. You are in one of them.`;
   }
-  if (n > 1) return `The ${state.setup.object === 'bomb' ? 'bomb' : 'marker'} made a record: the world has split into 2 copies that no longer interfere.`;
+  if (n > 1) return `The ${state.setup.object === 'bomb' ? 'bomb' : 'flag'} made a record: the world has split into 2 copies that no longer interfere.`;
   return null;
 }
 function captionText(s, result) {
@@ -582,8 +582,8 @@ function scState(s, result) {
   const arrived = s >= G.total - 1 && result !== 'bomb';
   if (arrived) return { what: 'detector (~10²³ nucleons displaced)', n: 1e23, collapsed: true };
   if (obj === 'bomb' && s >= G.sObj) return { what: 'bomb (~10²³ nucleons)', n: 1e23, collapsed: true };
-  if (obj === 'marker' && state.setup.markerSize === 'macro' && s >= G.sObj) return { what: 'macroscopic marker (~10²⁰ nucleons)', n: 1e20, collapsed: true };
-  if (obj === 'marker' && s >= G.sObj) return { what: 'atom + microscopic marker (~100 nucleons)', n: 100, collapsed: false };
+  if (obj === 'marker' && state.setup.markerSize === 'macro' && s >= G.sObj) return { what: 'macroscopic flag (~10²⁰ nucleons)', n: 1e20, collapsed: true };
+  if (obj === 'marker' && s >= G.sObj) return { what: 'atom + microscopic flag (~100 nucleons)', n: 100, collapsed: false };
   return { what: 'one rubidium-87 atom (87 nucleons)', n: 87, collapsed: false };
 }
 const formatTime = t => t > 3.15e13 ? `${(t / 3.15e13).toFixed(1)} million years` : t > 3.15e7 ? `${(t / 3.15e7).toFixed(0)} years` : t >= 1 ? `${t.toFixed(1)} s` : t >= 1e-3 ? `${(t * 1e3).toFixed(1)} ms` : t >= 1e-6 ? `${(t * 1e6).toFixed(1)} µs` : `${(t * 1e9).toFixed(0)} ns`;
@@ -619,7 +619,7 @@ function mwStages() {
   const obj = state.setup.object;
   const s0 = [{ id: 'w', branch: null, w: 1 }];
   let s1 = null;
-  if (obj === 'marker') s1 = [{ id: 'a', parent: 'w', branch: 'a', w: .5, record: 'marked' }, { id: 'b', parent: 'w', branch: 'b', w: .5, record: 'untouched' }];
+  if (obj === 'marker') s1 = [{ id: 'a', parent: 'w', branch: 'a', w: .5, record: 'flag raised' }, { id: 'b', parent: 'w', branch: 'b', w: .5, record: 'flag down' }];
   if (obj === 'bomb') s1 = [{ id: 'x', parent: 'w', branch: 'x', exploded: true, w: .5, record: 'bomb exploded' }, { id: 'b', parent: 'w', branch: 'b', w: .5, record: 'bomb intact' }];
   const base = s1 || s0;
   const s2 = [];

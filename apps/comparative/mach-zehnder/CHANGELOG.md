@@ -1,5 +1,8 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.16 — 2026-11-06
+- The which-way marker is now a which-way flag, with states "flag raised" (upper arm) and "flag down" (lower arm), replacing "untouched/marked" ("marker marked" read badly). Internal key stays `marker`, so logs and URLs are unchanged.
+
 ## 0.15.1 — 2026-11-06
 - State labels shortened to "untouched" / "marked" ("marker marked" read badly); prose reworded ("the upper part leaves the marker marked").
 

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/template-v2.css?v=3.0">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=resources-20260916">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/mach-zehnder.css?v=0.15.1">
+<link rel="stylesheet" href="css/mach-zehnder.css?v=0.16">
 </head>
 <body>
 <main class="shell mz-app">
@@ -44,7 +44,7 @@
     <p class="qontic-control-section-title">In the upper arm</p>
     <div class="qontic-app-toggle-group mz-three" data-setup="object">
       <button class="qontic-app-toggle active" type="button" aria-pressed="true" data-value="none">Nothing</button>
-      <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="marker">Which-way marker</button>
+      <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="marker">Which-way flag</button>
       <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="bomb">Bomb</button>
     </div>
   </div>
@@ -77,12 +77,12 @@
 
 <div class="control-pane hidden" data-control-pane="advanced">
   <div class="qontic-control-section">
-    <p class="qontic-control-section-title">Marker size</p>
+    <p class="qontic-control-section-title">Flag size</p>
     <div class="qontic-app-toggle-group" data-setup="markerSize">
       <button class="qontic-app-toggle active" type="button" aria-pressed="true" data-value="micro">Microscopic</button>
       <button class="qontic-app-toggle" type="button" aria-pressed="false" data-value="macro">Macroscopic</button>
     </div>
-    <p class="core-hint">Matters only for spontaneous collapse: a macroscopic marker collapses the state at the marker. The statistics do not change.</p>
+    <p class="core-hint">Matters only for spontaneous collapse: a macroscopic flag collapses the state at the flag. The statistics do not change.</p>
   </div>
   <div class="toggle-row"><span>Ask for a prediction before each setup</span><button class="toggle" data-mz-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction"></button></div>
   <div class="toggle-row"><span>Starting position (pilot wave)</span><button class="toggle" data-mz-toggle="fixedStart" aria-pressed="false" aria-label="Use a fixed starting position"></button></div>
@@ -114,24 +114,24 @@
 
 <section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="math">
 <h2>What the app shows</h2>
-<p>Atoms enter a Mach–Zehnder interferometer. The first beam splitter divides each atom's wave between an upper and a lower arm; mirrors bring the arms together at a second beam splitter, which is tuned so that every atom leaves toward D1 and D2 stays dark. You can remove the second beam splitter, place a which-way marker in the upper arm, or place a bomb there that is destroyed if it absorbs an atom.</p>
+<p>Atoms enter a Mach–Zehnder interferometer. The first beam splitter divides each atom's wave between an upper and a lower arm; mirrors bring the arms together at a second beam splitter, which is tuned so that every atom leaves toward D1 and D2 stays dark. You can remove the second beam splitter, place a which-way flag in the upper arm, or place a bomb there that is destroyed if it absorbs an atom.</p>
 <h2>The wave</h2>
-<p>The wave is drawn as Gaussian packets with a carrier wave. Parts of the wave in the same branch are added as complex amplitudes, so where they overlap they form real interference fringes: before the second beam splitter, and where the beams cross when it is removed. Parts in different branches, for example after the which-way marker, are added as densities and show no fringes. The packets do not spread, and mirrors and beam splitters act instantly on the part of a packet that has reached them. The interferometer is tuned (zero phase difference between the arms) so that the two parts cancel at D2.</p>
+<p>The wave is drawn as Gaussian packets with a carrier wave. Parts of the wave in the same branch are added as complex amplitudes, so where they overlap they form real interference fringes: before the second beam splitter, and where the beams cross when it is removed. Parts in different branches, for example after the which-way flag, are added as densities and show no fringes. The packets do not spread, and mirrors and beam splitters act instantly on the part of a packet that has reached them. The interferometer is tuned (zero phase difference between the arms) so that the two parts cancel at D2.</p>
 <h2>Statistics</h2>
 <table class="mz-table">
 <thead><tr><th scope="col">Setup</th><th scope="col">D1</th><th scope="col">D2</th><th scope="col">Bomb</th></tr></thead>
 <tbody>
 <tr><td>Beam splitter in, nothing in the arm</td><td>1</td><td>0</td><td>–</td></tr>
 <tr><td>Beam splitter removed, nothing in the arm</td><td>1/2</td><td>1/2</td><td>–</td></tr>
-<tr><td>Which-way marker, beam splitter in or out</td><td>1/2</td><td>1/2</td><td>–</td></tr>
+<tr><td>Which-way flag, beam splitter in or out</td><td>1/2</td><td>1/2</td><td>–</td></tr>
 <tr><td>Bomb, beam splitter in</td><td>1/4</td><td>1/4</td><td>1/2</td></tr>
 <tr><td>Bomb, beam splitter removed</td><td>1/2</td><td>0</td><td>1/2</td></tr>
 </tbody></table>
 <h2 data-all-accounts>Four accounts</h2><h2 data-one-account hidden>How quantum mechanics accounts for it</h2>
-<p data-account="orthodox"><strong data-all-accounts>Orthodox.</strong> The wave function collapses when a measurement occurs; here, when a detector or the bomb registers the atom. Before that, decoherence does the work. When the marker, the bomb or a detector interacts with the atom, each part of the wave becomes tied to a different state of that object (the marker marked or untouched, the bomb exploded or intact). Parts tied to different states cannot interfere, so the interference is lost whether or not anyone reads the record. The joint-state panel shows this: the two parts interfere only if they sit in the same row when they meet. Decoherence explains why the interference disappears; it does not say which outcome occurs. That is still given by collapse, with the Born rule.</p>
+<p data-account="orthodox"><strong data-all-accounts>Orthodox.</strong> The wave function collapses when a measurement occurs; here, when a detector or the bomb registers the atom. Before that, decoherence does the work. When the flag, the bomb or a detector interacts with the atom, each part of the wave becomes tied to a different state of that object (the flag raised or down, the bomb exploded or intact). Parts tied to different states cannot interfere, so the interference is lost whether or not anyone reads the record. The joint-state panel shows this: the two parts interfere only if they sit in the same row when they meet. Decoherence explains why the interference disappears; it does not say which outcome occurs. That is still given by collapse, with the Born rule.</p>
 <p data-account="pilot-wave"><strong>Pilot wave.</strong> The atom always has a position and is guided by the wave, which never collapses. With the second beam splitter removed, the trajectories through the crossing are computed from the guiding equation for two freely moving Gaussian packets (ħ = m = 1); they cannot cross the symmetry line. This relies on the two packets being identical and arriving symmetrically; with unequal packets the turning point moves. The beam splitter itself is modelled as instantaneous: which output the atom takes depends on where it sits in its packet.</p>
 <p data-account="many-worlds"><strong>Many worlds.</strong> The wave function never collapses. A record, while it persists, splits it into branches that no longer interfere. The app shows each split as copies of the whole apparatus, labelled with their Born weights, and then follows the copy that matches the detector you see. With the interferometer tuned and nothing in the arms, only one outcome has weight and the world does not split.</p>
-<p data-account="spontaneous-collapse"><strong>Spontaneous collapse.</strong> A modified theory (GRW and related models): collapse is a physical process, extremely rare for one atom and effectively immediate once many particles are displaced, as in a detector or a bomb. The collapse clock uses the original GRW rate, 10<sup>−16</sup> s<sup>−1</sup> per nucleon: one rubidium-87 atom alone would wait about 3.6 million years (3.2 million with a microscopic marker of about a dozen extra nucleons), while a detector or bomb with about 10<sup>23</sup> nucleons displaced collapses within about 100 ns. A microscopic marker adds only a few nucleons, so collapse still waits for the detector. It predicts small deviations from standard quantum mechanics; experiments have narrowed its parameters and excluded some versions.</p>
+<p data-account="spontaneous-collapse"><strong>Spontaneous collapse.</strong> A modified theory (GRW and related models): collapse is a physical process, extremely rare for one atom and effectively immediate once many particles are displaced, as in a detector or a bomb. The collapse clock uses the original GRW rate, 10<sup>−16</sup> s<sup>−1</sup> per nucleon: one rubidium-87 atom alone would wait about 3.6 million years (3.2 million with a microscopic flag of about a dozen extra nucleons), while a detector or bomb with about 10<sup>23</sup> nucleons displaced collapses within about 100 ns. A microscopic flag adds only a few nucleons, so collapse still waits for the detector. It predicts small deviations from standard quantum mechanics; experiments have narrowed its parameters and excluded some versions.</p>
 <h2>Experiments and limits</h2>
 <p>The bomb tester was proposed by Elitzur and Vaidman (1993) and realized with photons by Kwiat et al. (1995). Wheeler's delayed-choice experiment has been done with photons (Jacques et al. 2007) and single atoms (Manning et al. 2015). Student difficulties with the beam-splitter and which-way questions are documented for photon interferometers (Marshman &amp; Singh 2016).<span data-all-accounts> The app uses atoms because pilot wave has no accepted theory of photon trajectories.</span></p>
 </section>
@@ -148,6 +148,6 @@
 <div class="mz-log-wrap"><table class="mz-table" id="mz-log-table"><thead><tr><th scope="col">Time</th><th scope="col">Setup</th><th scope="col">Prediction</th><th scope="col">Conf.</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.15.1"></script>
+<script type="module" src="js/app.js?v=0.16"></script>
 </body>
 </html>

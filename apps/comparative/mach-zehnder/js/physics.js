@@ -89,10 +89,10 @@ export function branches(setup, s) {
     else comps = portsFor(arms);
     out.push({ key, label, weight, arms, comps });
   };
-  if (!record) build(setup.object === 'none' ? 'No record' : setup.object === 'marker' ? 'Untouched' : 'Bomb intact', 1, ['U', 'L'], 'a');
+  if (!record) build(setup.object === 'none' ? 'No record' : setup.object === 'marker' ? 'Flag down' : 'Bomb intact', 1, ['U', 'L'], 'a');
   else if (setup.object === 'marker') {
-    build('Marked', .5, ['U'], 'a');
-    build('Untouched', .5, ['L'], 'b');
+    build('Flag raised', .5, ['U'], 'a');
+    build('Flag down', .5, ['L'], 'b');
   } else {
     out.push({ key: 'x', label: 'Bomb exploded', weight: .5, arms: [], comps: [], exploded: true });
     build('Bomb intact', .5, ['L'], 'b');
