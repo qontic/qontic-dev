@@ -1,5 +1,12 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.17 — 2026-11-06
+Study logging, from the simulated-student pilot.
+- `?pid=<id>` writes a participant id into every prediction entry and event.
+- New event log (`qontic-mz-events-v1`): page load (with starting account), account switches, display mode (one account / all four), setup changes, atoms sent. Copy and Download now export `{participant, predictions, events}`.
+- `?start=random` (or an account name) sets the account shown first in the all-accounts arm, so the orthodox account is not always first.
+- The first run (splitter in, nothing in the arms) is remembered across reloads; Clear log resets it.
+
 ## 0.16 — 2026-11-06
 - The which-way marker is now a which-way flag, with states "flag raised" (upper arm) and "flag down" (lower arm), replacing "untouched/marked" ("marker marked" read badly). Internal key stays `marker`, so logs and URLs are unchanged.
 

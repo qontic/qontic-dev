@@ -2,15 +2,23 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.16';
-import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.16';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY } from './content.js?v=0.16';
-import { waveBranches, computeField, paintField } from './waves.js?v=0.16';
+import { APP_RELEASE } from './release.js?v=0.17';
+import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.17';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY } from './content.js?v=0.17';
+import { waveBranches, computeField, paintField } from './waves.js?v=0.17';
 
 // Study arm (IUSE design). ?arm=orthodox gives the comparison arm: the same app,
 // setups, tasks and timing, but only the orthodox account with decoherence.
 // Any other value, or none, offers all four accounts.
-const ARM = new URLSearchParams(location.search).get('arm') === 'orthodox' ? 'orthodox-only' : 'all-accounts';
+const PARAMS = new URLSearchParams(location.search);
+const ARM = PARAMS.get('arm') === 'orthodox' ? 'orthodox-only' : 'all-accounts';
+// ?pid=<id> tags every log entry with a participant id (letters, digits, - and _ only).
+const PID = (PARAMS.get('pid') || '').replace(/[^\w-]/g, '').slice(0, 40) || null;
+// ?start=random (or an account name) sets the account shown first in the all-accounts arm.
+const ACCOUNTS = ['orthodox', 'pilot-wave', 'many-worlds', 'spontaneous-collapse'];
+const START = ARM === 'orthodox-only' ? 'orthodox'
+  : PARAMS.get('start') === 'random' ? ACCOUNTS[Math.floor(Math.random() * 4)]
+  : ACCOUNTS.includes(PARAMS.get('start')) ? PARAMS.get('start') : 'orthodox';
 const ONE_ACCOUNT = ARM === 'orthodox-only';
 if (ONE_ACCOUNT) {
   document.querySelector('qontic-controls').setAttribute('interpretations', 'cpn');
@@ -49,13 +57,21 @@ const SESSION = Math.random().toString(36).slice(2, 10);
 let memoryLog = [];
 const readLog = () => { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch { return memoryLog; } };
 const writeLog = entries => { memoryLog = entries; try { localStorage.setItem(LOG_KEY, JSON.stringify(entries)); } catch { /* memory only */ } };
+// Interaction events (account and display changes, setups, atoms sent), for study analysis.
+const EVENT_KEY = 'qontic-mz-events-v1';
+let memoryEvents = [];
+const readEvents = () => { try { return JSON.parse(localStorage.getItem(EVENT_KEY) || '[]'); } catch { return memoryEvents; } };
+const writeEvents = entries => { memoryEvents = entries; try { localStorage.setItem(EVENT_KEY, JSON.stringify(entries)); } catch { /* memory only */ } };
+const FIRST_RUN_KEY = 'qontic-mz-first-run-v1';
+const firstRunDone = () => { try { return localStorage.getItem(FIRST_RUN_KEY) === '1'; } catch { return false; } };
+const saveFirstRun = () => { try { localStorage.setItem(FIRST_RUN_KEY, '1'); } catch { /* memory only */ } };
 
 // ---------- state ----------
 const state = {
   setup: { bs2: true, object: 'none', markerSize: 'micro', delta: 0 },
   compare: false,
-  calibrated: false,
-  view: 'orthodox', running: false, autoRerun: false, speed: 1,
+  calibrated: firstRunDone(),
+  view: START, running: false, autoRerun: false, speed: 1,
   display: { wave: true, config: true, labels: true, predict: true, fixedStart: false },
   fixedU: .3,
   atom: null, // { u, start, path, pathLen, result, clicked }
@@ -65,6 +81,12 @@ const baseKey = () => `${state.setup.bs2 ? 'in' : 'out'}-${state.setup.object}`;
 const detuned = () => state.setup.bs2 && state.setup.object === 'none' && Math.abs(state.setup.delta) > 1e-3;
 const key = () => baseKey() + (detuned() ? `-phase${Math.round(state.setup.delta * 180 / Math.PI)}` : '');
 const tally = () => (state.tallies[key()] ||= { d1: 0, d2: 0, bomb: 0, total: 0 });
+function logEvent(type, extra = {}) {
+  const events = readEvents();
+  events.push({ t: new Date().toISOString(), participant: PID, session: SESSION, app: 'mach-zehnder', release: APP_RELEASE.version, arm: ARM, type,
+    account: state.view, display: state.compare ? 'all-four' : 'one-account', setup: { secondBeamSplitter: state.setup.bs2, upperArm: state.setup.object }, ...extra });
+  writeEvents(events);
+}
 
 // ---------- controls ----------
 const ui = mountQonticControls({
@@ -72,17 +94,21 @@ const ui = mountQonticControls({
   onStop: () => { pause(); },
   onReset: () => { state.running = false; ui.setRunning(false); state.atom = null; state.tallies[key()] = { d1: 0, d2: 0, bomb: 0, total: 0 }; delete state.predictions[key()]; syncPanel(); },
   onAutorun: ({ autoRerun }) => { state.autoRerun = autoRerun; },
-  onInterpretation: ({ interpretation }) => { state.view = interpretation; syncPanel(); },
+  onInterpretation: ({ interpretation }) => { state.view = interpretation; logEvent('account'); syncPanel(); },
   onControlchange: ({ name, value }) => { if (name === 'speed') state.speed = value; },
 });
+
+if (START !== 'orthodox') ui.setInterpretation(START);
+logEvent('load', { start: START });
 
 document.querySelectorAll('[data-setup]').forEach(group => group.addEventListener('click', event => {
   const button = event.target.closest('button[data-value]');
   if (!button) return;
   group.querySelectorAll('button').forEach(b => { const on = b === button; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
   const name = group.dataset.setup, value = button.dataset.value;
-  if (name === 'compare') { state.compare = value === 'all'; document.querySelector('[data-results-panel]').hidden = state.compare; return; }
+  if (name === 'compare') { state.compare = value === 'all'; document.querySelector('[data-results-panel]').hidden = state.compare; logEvent('display'); return; }
   state.setup[name] = name === 'bs2' ? value === 'in' : value;
+  logEvent('setup');
   if (name !== 'markerSize') { state.atom = null; state.running = false; ui.setRunning(false); }
   syncPanel();
 }));
@@ -142,7 +168,7 @@ document.getElementById('mz-predict').addEventListener('submit', event => {
   const attempt = 1 + entries.filter(e => e.session === SESSION && e.setup?.secondBeamSplitter === setupLog.secondBeamSplitter && e.setup?.upperArm === setupLog.upperArm).length;
   const id = `${SESSION}-${entries.length + 1}`;
   // Logged at lock time, so a lock later erased by Reset still appears.
-  entries.push({ id, session: SESSION, attempt, app: 'mach-zehnder', release: APP_RELEASE.version, arm: ARM, setup: setupLog,
+  entries.push({ id, participant: PID, session: SESSION, attempt, app: 'mach-zehnder', release: APP_RELEASE.version, arm: ARM, setup: setupLog,
     lockedAt: new Date().toISOString(), interpretationAtLock: state.view, displayAtLock: state.compare ? 'all-four' : 'one-account',
     prediction: draft.option, confidence: draft.confidence, reason: reasonInput.value.trim(), status: 'pending' });
   writeLog(entries);
@@ -159,11 +185,12 @@ const flashHint = () => { hint.classList.remove('mz-flash'); void hint.offsetWid
 
 // The first run (beam splitter in, nothing in the arms) counts as soon as atoms are
 // sent, so changing the setup while the first atom flies does not lock the app again.
-const markFirstRun = () => { if (isCalibration() && !state.calibrated) { state.calibrated = true; syncPanel(); } };
-document.getElementById('mz-one').addEventListener('click', () => { if (!canRun()) return flashHint(); markFirstRun(); launch(); state.paused = false; state.running = true; ui.setRunning(true); });
+const markFirstRun = () => { if (isCalibration() && !state.calibrated) { state.calibrated = true; saveFirstRun(); syncPanel(); } };
+document.getElementById('mz-one').addEventListener('click', () => { if (!canRun()) return flashHint(); markFirstRun(); logEvent('send', { atoms: 1 }); launch(); state.paused = false; state.running = true; ui.setRunning(true); });
 document.getElementById('mz-many').addEventListener('click', () => {
   if (!canRun()) return flashHint();
   markFirstRun();
+  logEvent('send', { atoms: 200 });
   // Exactly 200 atoms, all tallied at once; the animated atom is the last of them
   // (already counted), so the counter and the log both read 200.
   const t = tally();
@@ -251,19 +278,20 @@ function renderLog() {
   });
 }
 const logStatus = document.getElementById('mz-log-status');
+const exportData = () => ({ participant: PID, predictions: readLog(), events: readEvents() });
 document.getElementById('mz-log-copy').addEventListener('click', async () => {
-  const text = JSON.stringify(readLog(), null, 2);
+  const text = JSON.stringify(exportData(), null, 2);
   try { await navigator.clipboard.writeText(text); logStatus.textContent = 'Copied.'; } catch { logStatus.textContent = 'Copying is blocked here; use Download.'; }
 });
 document.getElementById('mz-log-download').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(readLog(), null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(exportData(), null, 2)], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'qontic-mach-zehnder-log.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
 const clearButton = document.getElementById('mz-log-clear');
 clearButton.addEventListener('click', () => {
   if (clearButton.dataset.confirm !== 'yes') { clearButton.dataset.confirm = 'yes'; clearButton.textContent = 'Click again to clear'; return; }
-  writeLog([]); clearButton.dataset.confirm = ''; clearButton.textContent = 'Clear log'; logStatus.textContent = 'Log cleared.'; renderLog();
+  writeLog([]); writeEvents([]); try { localStorage.removeItem(FIRST_RUN_KEY); } catch { /* memory only */ } clearButton.dataset.confirm = ''; clearButton.textContent = 'Clear log'; logStatus.textContent = 'Log cleared.'; renderLog();
 });
 
 // ---------- atoms ----------
@@ -288,7 +316,7 @@ function finishAtom() {
   const a = state.atom;
   if (a.counted) return;
   a.counted = true;
-  if (isCalibration()) state.calibrated = true;
+  if (isCalibration()) { state.calibrated = true; saveFirstRun(); }
   const t = tally(); t[a.o.result]++; t.total++;
   syncPanel();
 }
