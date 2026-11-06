@@ -1,5 +1,8 @@
 # Michelson–Morley: Two Accounts — changelog
 
+## 0.2.1 (2026-11-05)
+- No "ether frame": the relativistic views are "Apparatus moving" and "Apparatus at rest" (and "Both"). "Ether" now appears only in the 1887 expectation and as Lorentz's name for his true rest frame. Old share links (view=ether / apparatus) still work.
+
 ## 0.2.0 (2026-11-05)
 After a review by ten simulated students (project doc 2026-11-05-michelson-morley-student-review).
 - Views are now frames, not accounts: 1887 expectation, Ether frame, Apparatus frame, Both frames. Lorentz and Einstein draw the same two pictures; each panel carries a Lorentz caption and an Einstein caption saying how each reads it. Opens on 1887; its verdict leads to Both frames.

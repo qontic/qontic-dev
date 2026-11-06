@@ -4,7 +4,7 @@
 // Pictures:
 //   'classical' — 1887 expectation: light moves at c through a resting ether; the
 //                 apparatus moves at v and keeps its rest shape and its clock rate.
-//   'lorentz'   — ether frame (or any frame in which the apparatus moves at v): the
+//   'lorentz'   — a frame in which the apparatus moves at v: the
 //                 apparatus is shorter along the motion by 1/γ and its clocks run slow.
 //   'einstein'  — the apparatus's own rest frame.
 //
@@ -38,11 +38,11 @@ export function roundTrip(R, v) {
   return { t1: (v * rx + root) / k, t2: (-v * rx + root) / k };
 }
 
-// The relativistic picture is the same in both accounts: 'lorentz' (alias 'ether') is the
-// ether frame, in which the apparatus moves and is contracted; 'einstein' (alias
-// 'apparatus') is the apparatus's rest frame. The accounts differ in how they read these
-// pictures, not in the pictures.
-const ALIAS = { ether: 'lorentz', apparatus: 'einstein' };
+// The relativistic picture is the same in both accounts: 'lorentz' (alias 'moving') is a
+// frame in which the apparatus moves and is contracted; 'einstein' (alias 'rest') is the
+// apparatus's rest frame. The accounts differ in how they read these pictures, not in the
+// pictures. ('ether' and 'apparatus' are the 0.2.0 names.)
+const ALIAS = { moving: 'lorentz', rest: 'einstein', ether: 'lorentz', apparatus: 'einstein' };
 
 export function makeRun({ beta, theta, account: name }) {
   const account = ALIAS[name] || name;

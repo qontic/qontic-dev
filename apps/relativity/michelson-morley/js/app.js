@@ -2,14 +2,14 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.0';
-import { makeRun, pulseAt, delay, gammaOf, markerInApparatusFrame } from './optics.js?v=0.2.0';
+import { APP_RELEASE } from './release.js?v=0.2.1';
+import { makeRun, pulseAt, delay, gammaOf, markerInApparatusFrame } from './optics.js?v=0.2.1';
 
 mountQonticShell({
   title: 'Michelson–Morley: Two Accounts',
   eyebrow: 'Q-Ontic · Relativity',
   navigation: 'breadcrumbs',
-  purpose: 'The same interferometer, drawn in the ether frame and in its own frame, and read two ways: by Lorentz, for whom the ether is real and moving bodies shrink, and by Einstein, for whom there is no ether.',
+  purpose: 'The same interferometer, drawn with the apparatus moving and at rest, and read two ways: by Lorentz, for whom there is a true rest frame and moving bodies shrink, and by Einstein, for whom no frame is special.',
   badge: 'Relativity',
   version: `Michelson–Morley · Version ${APP_RELEASE.version} · ${APP_RELEASE.date}`,
   homeHref: '../../../index.html',
@@ -20,7 +20,8 @@ mountQonticShell({
 const S0 = -0.35; // a little before the pulse reaches the splitter
 const HOLD = 0.4; // pause after the last half returns
 const DEG = Math.PI / 180;
-const VIEWS = ['classical', 'ether', 'apparatus', 'both'];
+const VIEWS = ['classical', 'moving', 'rest', 'both'];
+const OLD_VIEWS = { ether: 'moving', apparatus: 'rest' }; // 0.2.0 share links
 
 const $ = (sel) => document.querySelector(sel);
 const canvas = $('#stage');
@@ -42,9 +43,9 @@ function rebuild() {
   const make = (picture) => makeRun({ beta: state.beta, theta, account: picture });
   runs = {
     classical: () => [make('classical')],
-    ether: () => [make('ether')],
-    apparatus: () => [make('apparatus')],
-    both: () => [make('ether'), make('apparatus')],
+    moving: () => [make('moving')],
+    rest: () => [make('rest')],
+    both: () => [make('moving'), make('rest')],
   }[state.view]();
   sEnd = Math.max(...runs.flatMap((r) => r.arms.map((a) => a.T * r.clockRate)));
   updateText();
@@ -75,24 +76,24 @@ function clockChoices() {
 function updateText() {
   const G = g();
   $('#betaOut').value = `${fmt(state.beta)} c`;
-  $('#betaHint').textContent = state.view === 'apparatus'
-    ? `In the apparatus frame this sets how fast the ether markers stream past. γ = ${fmt(G, 3)}.`
+  $('#betaHint').textContent = state.view === 'rest'
+    ? `With the apparatus at rest, this sets how fast the markers of the other frame stream past. γ = ${fmt(G, 3)}.`
     : `γ = ${fmt(G, 3)}: a moving length shortens to 1/γ = ${fmt(1 / G)} of its rest length. Earth’s orbital speed is about 0.0001 c; it is exaggerated here so the effects can be seen.`;
   $('#thetaOut').value = `${state.thetaDeg}°`;
 
   const viewLine = {
     classical: '<b>1887 expectation.</b> Light moves at c through a resting <b>ether</b>, a medium thought to carry light. The apparatus moves through it at the speed you set and <b>keeps its shape</b>.',
-    ether: '<b>Ether frame.</b> The relativistic picture drawn in the frame where the ether would be at rest. The moving apparatus is <b>shorter along its motion</b>, and its clock runs slow.',
-    apparatus: '<b>Apparatus frame.</b> The same events drawn in the apparatus’s own frame, where it is at rest and the ether markers stream past.',
-    both: '<b>Both frames.</b> The same events in the ether frame (top) and the apparatus frame (bottom), run on the clock carried by the apparatus.',
+    moving: '<b>Apparatus moving.</b> The relativistic picture in a frame where the apparatus moves. It is <b>shorter along its motion</b>, and its clock runs slow.',
+    rest: '<b>Apparatus at rest.</b> The same events in the apparatus’s own frame. Markers at rest in the other frame stream past.',
+    both: '<b>Both.</b> The same events with the apparatus moving (top) and at rest (bottom), run on the clock carried by the apparatus.',
   }[state.view];
   const accountsLine = isRel()
-    ? '<b>Lorentz and Einstein draw the same pictures.</b> Lorentz: the ether is real, and moving bodies shrink because their internal forces change. Einstein: there is no ether; the shrinking follows from two principles. The captions on each panel say how each reads it.'
+    ? '<b>Lorentz and Einstein draw the same pictures.</b> Lorentz: one frame is the true rest frame (his ether), and moving bodies shrink because their internal forces change. Einstein: no frame is special; the shrinking follows from two principles. The captions on each panel say how each reads it.'
     : '';
   $('#setupList').innerHTML = [
     'A <b>beam splitter</b> divides a light pulse in two. One half runs along <b>arm 1</b> (cyan), the other along <b>arm 2</b> (orange). At rest, both arms have length <b>L</b> and are at right angles.',
     'Each half bounces off a mirror and returns to the splitter. If the halves <b>arrive together</b>, the interference fringes stay put. If one is late, the fringes shift.',
-    `The apparatus moves at <b>${fmt(state.beta)} c</b> relative to the ether${state.thetaDeg ? `, turned ${state.thetaDeg}° from its direction of motion` : ', arm 1 along the motion'}. Times are in <b>L/c</b>, the time light takes to cross one arm at rest.`,
+    `The apparatus moves at <b>${fmt(state.beta)} c</b>${state.thetaDeg ? `, turned ${state.thetaDeg}° from its direction of motion` : ', arm 1 along the motion'}. Times are in <b>L/c</b>, the time light takes to cross one arm at rest.`,
     viewLine,
     accountsLine,
   ].filter(Boolean).map((x) => `<li>${x}</li>`).join('');
@@ -111,8 +112,8 @@ function updateText() {
     $('#predictButtons').innerHTML = clockChoices()
       .map((c) => `<button type="button" class="qontic-app-toggle" data-predict="${c.key}">${fmt(c.value)} L/c</button>`).join('');
   }
-  $('#rowEther').classList.toggle('hidden', state.view === 'apparatus');
-  $('#rowEtherOut').classList.toggle('hidden', state.view === 'apparatus');
+  $('#rowEther').classList.toggle('hidden', state.view === 'rest');
+  $('#rowEtherOut').classList.toggle('hidden', state.view === 'rest');
 }
 
 function setPressed(group, attr, value) {
@@ -195,7 +196,7 @@ function readUrl() {
   const q = new URLSearchParams(location.search);
   const b = parseFloat(q.get('beta')); if (Number.isFinite(b)) state.beta = Math.min(0.8, Math.max(0.05, Math.round(b * 20) / 20));
   const th = parseFloat(q.get('theta')); if (Number.isFinite(th)) state.thetaDeg = Math.min(90, Math.max(0, Math.round(th / 5) * 5));
-  const v = q.get('view'); if (VIEWS.includes(v)) state.view = v;
+  const v = OLD_VIEWS[q.get('view')] || q.get('view'); if (VIEWS.includes(v)) state.view = v;
 }
 function shareUrl() {
   const u = new URL(location.href);
@@ -245,11 +246,11 @@ function glow(x, y, color) {
 function captions(run) {
   if (run.account === 'classical') return [['', 'The expectation that failed: light at c through a resting ether, and an apparatus that keeps its shape.']];
   if (run.account === 'lorentz') return [
-    ['Lorentz', 'the ether is at rest here; the moving arm is shortened by its internal forces, and this is the true time.'],
+    ['Lorentz', 'if this is the true rest frame (his ether), the moving arm is really shortened by its internal forces, and this is the true time.'],
     ['Einstein', 'one frame among many; the shortening and the slow clock follow from the two principles.'],
   ];
   return [
-    ['Lorentz', 'what the apparatus’s shortened rulers and slow clock report; the ether wind is real but cannot be detected.'],
+    ['Lorentz', 'what the apparatus’s shortened rulers and slow clock report; its motion through the true rest frame cannot be detected.'],
     ['Einstein', 'the apparatus is at rest; light goes at c out and back along each arm.'],
   ];
 }
@@ -270,7 +271,7 @@ function drawPanel(rect, run, scale, P) {
   const s = Math.min(state.s, sEnd); // hold the final picture after the last return
   const t = frameTime(run, s);
   const ext = extent(runs[0]);
-  const title = { classical: '1887 expectation · ether frame', lorentz: 'Ether frame · the apparatus moves', einstein: 'Apparatus frame · the apparatus is at rest' }[run.account];
+  const title = { classical: '1887 expectation · apparatus moving through the ether', lorentz: `Apparatus moving at ${fmt(run.beta)} c`, einstein: 'Apparatus at rest' }[run.account];
   panelFrame(rect, title, P);
 
   // captions and clocks, top-left
@@ -286,7 +287,7 @@ function drawPanel(rect, run, scale, P) {
   }
   const tShow = Math.max(0, t);
   const clockText = run.account === 'lorentz'
-    ? `ether-frame time ${fmt(tShow)} · apparatus clock ${fmt(tShow * run.clockRate)} L/c`
+    ? `time in this frame ${fmt(tShow)} · apparatus clock ${fmt(tShow * run.clockRate)} L/c`
     : `apparatus clock ${fmt(tShow * run.clockRate)} L/c`;
   label(clockText, rect.x + 12, y + 4, { color: P.text, size: 12.5, weight: 600 });
   const top = y + 12;
@@ -299,7 +300,7 @@ function drawPanel(rect, run, scale, P) {
   ctx.save();
   ctx.beginPath(); ctx.rect(rect.x + 1, top, rect.w - 2, rect.y + rect.h - top - 1); ctx.clip();
 
-  // ether markers: at rest in the ether frame; streaming past (and closer together) in the apparatus frame
+  // markers at rest in the frame where the apparatus moves; in the apparatus frame they stream past, closer together
   if (state.show.ether) {
     ctx.fillStyle = P.grid;
     const xa = (rect.x - ox) / scale - 1, xb = (rect.x + rect.w - ox) / scale + 1;
@@ -313,7 +314,7 @@ function drawPanel(rect, run, scale, P) {
         for (let gy = -0.25; gy <= 1.6; gy += 0.5) { ctx.beginPath(); ctx.arc(X(xp), Y(gy), 1.8, 0, Math.PI * 2); ctx.fill(); }
       }
     }
-    const note = run.v > 0 || run.account === 'classical' ? 'dots: at rest in the ether frame' : `dots: at rest in the ether frame, streaming past at ${fmt(run.beta)} c`;
+    const note = run.account === 'classical' ? 'dots: at rest in the ether' : run.v > 0 ? 'dots: markers at rest in this frame' : `dots: markers at rest in the other frame, streaming past at ${fmt(run.beta)} c`;
     label(note, rect.x + 12, rect.y + rect.h - 10, { color: P.muted, size: 11.5 });
   }
 
@@ -341,7 +342,8 @@ function drawPanel(rect, run, scale, P) {
     ctx.strokeStyle = i ? P.a2 : P.a1; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(X(ex - m * a.M[0]), Y(ey - m * a.M[1])); ctx.lineTo(X(ex + m * a.M[0]), Y(ey + m * a.M[1])); ctx.stroke();
     // label beyond the mirror, along the arm
-    const n = Math.hypot(a.R[0], a.R[1]), off = 22; // pixels beyond the mirror, along the arm
+    const n = Math.hypot(a.R[0], a.R[1]);
+    const off = 22 + (run.account === 'lorentz' && state.show.ghost ? (1 - n) * scale : 0); // beyond the mirror (and the rest-length outline)
     label(`arm ${i + 1}`, X(ex) + off * a.R[0] / n, Y(ey) - off * a.R[1] / n + 4, { color: i ? P.a2 : P.a1, size: 12, align: 'center', weight: 600 });
   });
   ctx.save(); ctx.translate(X(sx), Y(0)); ctx.rotate(-(run.theta + Math.PI / 4)); ctx.fillStyle = P.light; ctx.globalAlpha = 0.85;
@@ -429,8 +431,8 @@ function updateResults() {
   const G = g();
   setResult('len', {
     classical: 'unchanged',
-    ether: `${fmt(1 / G)} of its rest length`,
-    apparatus: 'rest length (at rest)',
+    moving: `${fmt(1 / G)} of its rest length`,
+    rest: 'rest length (at rest)',
     both: `${fmt(1 / G)} of rest / rest length`,
   }[state.view]);
   if (state.step === 'run') {
@@ -445,7 +447,7 @@ function updateResults() {
 
 // ---------------------------------------------------------------- verdict
 const TRADE = '<div class="trade">'
-  + '<div><h3>Lorentz</h3><p><b>Keeps:</b> an ether, with one true rest frame and one true time.</p><p><b>Adds:</b> moving bodies shorten and moving clocks slow, because the forces inside them change.</p><p><b>Owes:</b> a reason why no experiment can find the ether’s rest frame. Defenders reply that this follows if all the forces that hold matter together share the same symmetry.</p></div>'
+  + '<div><h3>Lorentz</h3><p><b>Keeps:</b> one true rest frame (his ether) and one true time.</p><p><b>Adds:</b> moving bodies shorten and moving clocks slow, because the forces inside them change.</p><p><b>Owes:</b> a reason why no experiment can find the true rest frame. Defenders reply that this follows if all the forces that hold matter together share the same symmetry.</p></div>'
   + '<div><h3>Einstein</h3><p><b>Keeps:</b> the old principle that uniform motion cannot be detected, now extended to light.</p><p><b>Adds:</b> light moves at c for every observer; lengths, durations and simultaneity depend on the frame.</p><p><b>Owes:</b> a physical account of why rods and clocks obey the principles. Defenders reply that the principles are the explanation.</p></div>'
   + '</div>';
 
@@ -464,21 +466,21 @@ function finish() {
   } else {
     const choice = clockChoices().find((c) => c.key === state.prediction);
     if (choice) { right = Math.abs(choice.value - 2) < 1e-9; chose = `You chose: ${fmt(choice.value)} L/c. `; }
-    const angle = state.thetaDeg % 90 ? ' In the ether frame the arms look tilted, because only lengths along the motion shorten.' : '';
-    if (state.view === 'ether') {
-      text = `Together. Ether-frame time ${fmt(2 * G)}; apparatus clock ${fmt(T1)} L/c. The arm along the motion is ${fmt(1 / G)} of its rest length, which exactly makes up for its slower round trip.${angle} Lorentz reads ${fmt(2 * G)} as the true time and the apparatus clock as slow. Einstein reads it as the time in one frame among many.`;
-    } else if (state.view === 'apparatus') {
-      text = `Together at ${fmt(T1)} L/c on the apparatus clock. Einstein: the apparatus is at rest, both arms are L, and light goes at c out and back. Lorentz: the same numbers, read off shortened rulers and a slow clock that are moving through an ether they cannot detect.`;
+    const angle = state.thetaDeg % 90 ? ' With the apparatus moving the arms look tilted, because only lengths along the motion shorten.' : '';
+    if (state.view === 'moving') {
+      text = `Together. Time in this frame ${fmt(2 * G)}; apparatus clock ${fmt(T1)} L/c. The arm along the motion is ${fmt(1 / G)} of its rest length, which exactly makes up for its slower round trip.${angle} If this is the true rest frame, Lorentz reads ${fmt(2 * G)} as the true time and the apparatus clock as slow. Einstein reads ${fmt(2 * G)} as the time in one frame among many.`;
+    } else if (state.view === 'rest') {
+      text = `Together at ${fmt(T1)} L/c on the apparatus clock. Einstein: the apparatus is at rest, both arms are L, and light goes at c out and back. Lorentz: the same numbers, read off shortened rulers and a slow clock whose motion through the true rest frame cannot be detected.`;
     } else {
-      text = `Same events, two frames: in both panels the halves are back together at ${fmt(T1)} L/c on the apparatus clock. Lorentz and Einstein draw the same two pictures. They disagree on what is behind them: whether the top frame is the ether’s true rest frame or just one frame among many.${angle}` + TRADE;
+      text = `Same events, two frames: in both panels the halves are back together at ${fmt(T1)} L/c on the apparatus clock. Lorentz and Einstein draw the same two pictures. They disagree on what is behind them: whether the top frame is the true rest frame or just one frame among many.${angle}` + TRADE;
     }
   }
   const lead = right === null ? '' : `<strong>${right ? 'Right.' : 'Not quite.'}</strong> ${chose}`;
   $('#verdict').innerHTML = lead + text;
   const next = {
-    classical: [['both', 'Now the relativistic picture, in two frames'], ['again', 'Run again']],
-    ether: [['apparatus', 'Same events, apparatus frame'], ['both', 'Both frames'], ['again', 'Run again']],
-    apparatus: [['ether', 'Same events, ether frame'], ['both', 'Both frames'], ['again', 'Run again']],
+    classical: [['both', 'Now the relativistic picture: moving and at rest'], ['again', 'Run again']],
+    moving: [['rest', 'Same events, apparatus at rest'], ['both', 'Both'], ['again', 'Run again']],
+    rest: [['moving', 'Same events, apparatus moving'], ['both', 'Both'], ['again', 'Run again']],
     both: [['classical', 'Back to 1887'], ['again', 'Run again']],
   }[state.view];
   $('#nextSteps').innerHTML = next.map(([k, l]) => `<button type="button" class="qontic-app-toggle" data-next="${k}">${l}</button>`).join('');
