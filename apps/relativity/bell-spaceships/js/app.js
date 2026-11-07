@@ -70,7 +70,7 @@ function resetRun() {
 }
 
 // ---------------------------------------------------------------- controls
-const stretchPercent = (x) => (Math.abs(x) * 100).toFixed(Math.abs(x) < 0.01 ? 2 : 0);
+const stretchPercent = (x) => Math.abs(x) < 1e-12 ? '0' : (Math.abs(x) * 100).toFixed(Math.abs(x) < 0.01 ? 2 : 0);
 const fmt = (x, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d);
 
 function updateHints() {
@@ -103,7 +103,7 @@ function updateHints() {
   const engines = engines0;
   $('#setupList').innerHTML = [
     'Spaceships <b>B</b> (rear) and <b>C</b> (front) float at rest a distance <b>L</b> apart. <b>A</b>, halfway between them, stays at rest.',
-    `A fragile <b>thread</b>, just long enough, joins B to C. It is far too weak to pull on the ships, and snaps if it is stretched by more than <b>${pct}</b>.`,
+    `A fragile <b>thread</b>, just long enough, joins B to C. It is far too weak to pull on the ships, and snaps when any part reaches <b>${pct}</b> stretch.`,
     'A sends a <b>light flash</b>, which reaches B and C at the same moment in A\u2019s frame. A\u2019s clock reads <b>t = 0</b> when it arrives.',
     engines,
   ].map((x) => `<li>${x}</li>`).join('');

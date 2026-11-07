@@ -62,10 +62,10 @@
       </div>
 
       <div class="control-pane hidden" data-control-pane="advanced">
-        <label class="control-row" title="Proper acceleration of the rear ship, in units of c²/L. With a gentler front engine the front ship's is a/(1 + aL/c²).">
+        <label class="control-row" title="Proper acceleration of the rear ship, in units of c²/L. The front ship's is a/(1 + k·aL/c²).">
           <span>Rear acceleration</span><input id="accel" type="range" min="0.05" max="1" step="0.05" value="0.2" aria-label="Proper acceleration of the rear ship in units of c squared over L"><output id="accelOut">0.20</output>
         </label>
-        <p class="core-hint">Proper acceleration in units of c²/L, where L is the initial distance between the ships. Bell's argument assumes gentle acceleration (aL ≪ c²), so that the thread is always close to equilibrium. The final state does not depend on it.</p>
+        <p class="core-hint">Proper acceleration in units of c²/L, where L is the initial distance between the ships. Bell's argument assumes gentle acceleration. This model prescribes the motion of the thread; its final stretch does not depend on the acceleration.</p>
         <p class="core-hint" id="frontAccelHint"></p>
       </div>
 
