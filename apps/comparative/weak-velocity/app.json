@@ -16,7 +16,7 @@
     "many-worlds"
   ],
   "level": "intermediate",
-  "description": "A weak position measurement followed by a strong one behind the double slit, repeated many times. Post-selected averages give a velocity field; connecting it gives the average trajectories measured by Kocsis et al. Exact Gaussian model, same wave as the analytical double-slit app.",
+  "description": "A weak position measurement followed by a strong one behind the double slit, repeated many times. Post-selected averages give a velocity field; connecting it gives flow lines related to the photon trajectories reconstructed by Kocsis et al. Exact Gaussian model, same wave as the analytical double-slit app.",
   "tags": [
     "Multiview",
     "Double slit",

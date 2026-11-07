@@ -140,7 +140,7 @@ body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
 .wv-app .float-panel.minimized { flex: none; }
 .wv-app .float-panel.minimized .fp-canvas { display: none; }
 .wv-app .fp-head { display: flex; align-items: center; gap: 4px; padding: 4px 6px 4px 10px; user-select: none; background: #102839; border-bottom: 1px solid #244052; }
-.wv-app .fp-title { flex: 1; font-size: 12px; font-weight: 600; color: #d9edf7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wv-app .fp-title { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; line-height: 1.3; color: #d9edf7; white-space: normal; overflow-wrap: anywhere; }
 .wv-app .fp-head button { flex: none; width: 22px; height: 20px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #9edce5; font-size: 15px; line-height: 1; cursor: pointer; }
 .wv-app .fp-head button:hover, .wv-app .fp-head button:focus-visible { background: #1d4256; }
 .wv-app .fp-canvas { flex: 1; display: block; width: 100%; min-height: 0; cursor: pointer; }

@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.5.5';
-import * as M from './weak-model.js?v=0.5.5';
+import { APP_RELEASE } from './release.js?v=0.5.6';
+import * as M from './weak-model.js?v=0.5.6';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -262,7 +262,7 @@ function liveBody() {
     const lastX = nm(exp.x2 - p.wall).toFixed(0);
     const plots = ` The plots and Results show the last pair (strong plane ${lastX} nm behind the slits); click a plot to choose a strip.`;
     if (state.sw < 40) return `All ${N_PLANES} plane pairs mapped with a strong pointer (${state.sw} nm), each with fresh particles. The coupling disturbs the wave, so the arrows follow the green curve, not j/|ψ|². These lines do not describe the undisturbed experiment in any of the three views: compare with the weak pointer.${map.endOffset != null ? ` Their ends miss the equal-probability positions of |ψ|² by ${map.endOffset.toFixed(0)} nm (rms).` : ''}${plots} ${RATIONALE_LINK}`;
-    const off = map.endOffset != null ? ` The line ends differ from those positions by ${map.endOffset.toFixed(0)} nm (rms). With infinitely many runs this would be about 4 nm, from the 12 planes and the strip width; the rest is statistical and shrinks with more runs per plane pair.` : '';
+    const off = map.endOffset != null ? ` The line ends differ from those positions by ${map.endOffset.toFixed(0)} nm (rms). This offset combines sampling noise, finite-pointer bias, strip averaging and interpolation between the twelve planes. More runs reduce the sampling noise; the other errors depend on the settings. Only lines that reach the screen enter this comparison.` : '';
     return `All ${N_PLANES} plane pairs mapped, each with fresh particles. The amber lines join the measured arrows. If the arrows are right, their ends on the screen (amber ticks, right) sit at equal-probability positions of |ψ|² (grey ticks), as for any flow of |ψ|².${off} Agreement checks the measurement, not an interpretation.${plots} ${RATIONALE_LINK}`;
   }
   return '';
@@ -432,7 +432,7 @@ split.addEventListener('keydown', (e) => {
 });
 $('#resetPanels').addEventListener('click', () => { setColWidth(defaultColWidth()); savePanels(); });
 new ResizeObserver(() => { if (colWidth !== null) setColWidth(colWidth); }).observe(host);
-const plotBox = (W, H) => ({ x: 54, y: 8, w: Math.max(40, W - 66), h: Math.max(40, H - 46) });
+const plotBox = (W, H) => ({ x: 58, y: 8, w: Math.max(40, W - 72), h: Math.max(40, H - 54) });
 
 // ---------------------------------------------------------------- geometry controls (Advanced)
 const GEO_INPUTS = {
@@ -968,10 +968,10 @@ function axes(P, box, title, yLabel, ymin, ymax, fmtY) {
   ctx.strokeStyle = P.grid; ctx.lineWidth = 1; ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w, box.h);
   const X = (y) => box.x + (y + Y_HALF) / (2 * Y_HALF) * box.w;
   const V = (v) => box.y + box.h - (v - ymin) / (ymax - ymin) * box.h;
-  { const st = niceStep(Y_HALF / 2); for (let i = -Math.floor(Y_HALF / st); i * st <= Y_HALF + 1e-9; i++) text(`${nm(i * st).toFixed(0)}`, X(i * st), box.y + box.h + 13, { color: P.muted, size: 10, align: 'center' }); }
-  text('detected position of the particle, y_f (nm)', box.x + box.w / 2, box.y + box.h + 27, { color: P.muted, size: 10.5, align: 'center' });
-  for (const v of [ymin, (ymin + ymax) / 2, ymax]) text(fmtY(v), box.x - 5, V(v) + 3, { color: P.muted, size: 10, align: 'right' });
-  ctx.save(); ctx.translate(box.x - 42, box.y + box.h / 2); ctx.rotate(-Math.PI / 2); text(yLabel, 0, 0, { color: P.muted, size: 10.5, align: 'center' }); ctx.restore();
+  { const st = niceStep(Y_HALF / 2); for (let i = -Math.floor(Y_HALF / st); i * st <= Y_HALF + 1e-9; i++) text(`${nm(i * st).toFixed(0)}`, X(i * st), box.y + box.h + 15, { color: P.muted, size: 11, align: 'center' }); }
+  text('detected position y_f (nm)', box.x + box.w / 2, box.y + box.h + 32, { color: P.muted, size: 12, align: 'center' });
+  for (const v of [ymin, (ymin + ymax) / 2, ymax]) text(fmtY(v), box.x - 5, V(v) + 4, { color: P.muted, size: 11, align: 'right' });
+  ctx.save(); ctx.translate(box.x - 42, box.y + box.h / 2); ctx.rotate(-Math.PI / 2); text(yLabel, 0, 0, { color: P.muted, size: 12, align: 'center' }); ctx.restore();
   // selected strip
   if (state.selected !== null && state.stage !== 'one') {
     const a = -Y_HALF + state.selected * 2 * Y_HALF / N_BINS;
@@ -982,16 +982,21 @@ function axes(P, box, title, yLabel, ymin, ymax, fmtY) {
 
 // Legend at the top right; items separated by ' · ' wrap onto more lines when narrow.
 function legend(P, box, s) {
-  ctx.font = '400 10px Inter, Arial, sans-serif';
-  const items = s.split(' · '), lines = [];
-  for (const it of items) {
-    const cur = lines.length ? `${lines.at(-1)} · ${it}` : it;
-    if (lines.length && ctx.measureText(cur).width + 12 <= box.w - 8) lines[lines.length - 1] = cur; else lines.push(it);
+  ctx.font = '400 11px Inter, Arial, sans-serif';
+  const lines = [];
+  for (const item of s.split(' · ')) {
+    let line = '';
+    for (const word of item.split(' ')) {
+      const next = line ? `${line} ${word}` : word;
+      if (line && ctx.measureText(next).width > box.w - 26) { lines.push(line); line = word; }
+      else line = next;
+    }
+    if (line) lines.push(line);
   }
   const w = Math.min(box.w - 8, Math.max(...lines.map((l) => ctx.measureText(l).width)) + 10);
-  ctx.fillStyle = P.light ? 'rgba(241,246,248,0.85)' : 'rgba(11,28,41,0.85)';
-  ctx.fillRect(box.x + box.w - w - 4, box.y + 3, w, 4 + 12 * lines.length);
-  lines.forEach((l, i) => text(l, box.x + box.w - 9, box.y + 13 + 12 * i, { color: P.muted, size: 10, align: 'right' }));
+  ctx.fillStyle = P.light ? 'rgba(241,246,248,0.92)' : 'rgba(11,28,41,0.92)';
+  ctx.fillRect(box.x + box.w - w - 4, box.y + 3, w, 6 + 14 * lines.length);
+  lines.forEach((l, i) => text(l, box.x + box.w - 9, box.y + 16 + 14 * i, { color: P.text, size: 11, align: 'right' }));
 }
 
 function drawScatter(P, box) {

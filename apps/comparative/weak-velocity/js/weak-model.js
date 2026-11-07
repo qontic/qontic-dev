@@ -178,24 +178,31 @@ export function sampleRun(table, random = Math.random) {
 // ------------------------------------------------------------ post-selection
 export function makeBins(yMin, yMax, n) {
   return {yMin, yMax, n, w: (yMax - yMin) / n,
-    count: new Float64Array(n), sumYf: new Float64Array(n), sumY: new Float64Array(n), sumY2: new Float64Array(n)};
+    count: new Float64Array(n), sumYf: new Float64Array(n), sumY: new Float64Array(n), sumY2: new Float64Array(n),
+    meanDelta: new Float64Array(n), m2Delta: new Float64Array(n)};
 }
 export function addToBins(bins, run) {
   const i = Math.floor((run.yf - bins.yMin) / bins.w);
   if (i < 0 || i >= bins.n) return -1;
   bins.count[i]++; bins.sumYf[i] += run.yf; bins.sumY[i] += run.Y; bins.sumY2[i] += run.Y * run.Y;
+  // Welford's update for the paired difference retains the covariance of the
+  // two readings and avoids subtracting nearly equal second moments.
+  const d = run.yf - run.Y, delta = d - bins.meanDelta[i];
+  bins.meanDelta[i] += delta / bins.count[i];
+  bins.m2Delta[i] += delta * (d - bins.meanDelta[i]);
   return i;
 }
 // Estimated velocity in each bin: (mean yf - mean Y)/dtau, with statistical
-// error from the spread of Y. Bins with fewer than minCount runs give null.
+// error from the sample variance of the paired differences yf - Y.
+// Bins with fewer than minCount runs give null.
 export function binVelocities(bins, dtau, minCount = 30) {
   const out = [];
   for (let i = 0; i < bins.n; i++) {
     const n = bins.count[i];
-    if (n < minCount) {out.push(null); continue;}
-    const mY = bins.sumY[i] / n, mYf = bins.sumYf[i] / n;
-    const varY = Math.max(0, bins.sumY2[i] / n - mY * mY);
-    out.push({y: mYf, v: (mYf - mY) / dtau, err: Math.sqrt(varY / n) / dtau, n});
+    if (n < Math.max(2, minCount)) {out.push(null); continue;}
+    const mYf = bins.sumYf[i] / n;
+    out.push({y: mYf, v: bins.meanDelta[i] / dtau,
+      err: Math.sqrt(Math.max(0, bins.m2Delta[i]) / (n * (n - 1))) / dtau, n});
   }
   return out;
 }

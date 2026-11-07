@@ -81,6 +81,28 @@ test('a weak pointer gives the current velocity; a strong one does not', () => {
   assert.ok(strong > 1, `strong ${strong}`);
 });
 
+test('velocity errors include covariance between the paired readings', () => {
+  const bins = M.makeBins(-10, 10, 1);
+  // Both coordinates vary, but their difference is always 0.5: there is no
+  // sampling uncertainty in the measured displacement.
+  for (const yf of [-3, -1, 2, 4]) M.addToBins(bins, {yf, Y: yf - 0.5});
+  const [b] = M.binVelocities(bins, 0.25, 2);
+  assert.equal(b.v, 2);
+  assert.equal(b.err, 0);
+});
+
+test('velocity errors use the sample variance of the differences', () => {
+  const bins = M.makeBins(-10, 10, 1);
+  // Differences 1, 2, 3, 4 have sample variance 5/3 and mean 2.5.
+  [1, 2, 3, 4].forEach((d, i) => M.addToBins(bins, {yf: i, Y: i - d}));
+  const [b] = M.binVelocities(bins, 0.5, 2);
+  assert.equal(b.v, 5);
+  assert.ok(Math.abs(b.err - Math.sqrt(5 / 12) / 0.5) < 1e-12);
+  const singleton = M.makeBins(-1, 1, 1);
+  M.addToBins(singleton, {yf: 0, Y: 0.2});
+  assert.equal(M.binVelocities(singleton, 0.5, 1)[0], null);
+});
+
 test('sampled runs reproduce the exact conditional mean within errors', () => {
   const t1 = M.propagate(t0, 5 / p.k), dtau = 0.5 / p.k;
   const tab = M.jointTable({terms1: t1, dtau, sw: 1, yfMin: -3, yfMax: 3});

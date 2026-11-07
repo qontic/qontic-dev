@@ -1,5 +1,12 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.5.6 — 2026-11-07
+- Velocity and shift error bars use the sample variance of paired differences y_f − Y, including their covariance, accumulated with Welford's algorithm.
+- Field-map captions distinguish sampling noise, finite-pointer bias, strip averaging and interpolation; remove the fixed 4 nm error floor.
+- Correct the Kocsis comparison: the coupling is weak; commutation with free propagation permits a fixed crystal, not an undisturbing strong measurement. Counts alone do not compare precision across the two apparatuses.
+- Clarify that one million runs are collected per pair and shared among strips; each run uses two planes, but no particle is followed through the full map.
+- Larger plot labels and legends; plot titles and legend entries wrap instead of truncating.
+
 ## 0.5.5 — 2026-11-07
 - Physics: the app simulates Wiseman's proposed scheme, not an experiment; why Kocsis et al. needed far fewer particles (about 31,000 photons per exposure, 41 planes): direct momentum readout, and a coupling that can be strong because momentum is conserved in free flight (±28 µm shift against ~1 mm fringes).
 
