@@ -1,5 +1,10 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.5.4 — 2026-11-07
+- Noisy arrows are drawn faint instead of hidden, and stage 2 draws an arrow for any strip with 200 runs (was 2 000); with a short gap or few runs most arrows used to disappear.
+- Stage 3: after a setting change clears the map, the caption says to press Start.
+- Physics: the error of each arrow grows as 1/gap (a 20 nm gap needs about six times the runs of 50 nm), and line noise is largest where the velocity changes steeply.
+
 ## 0.5.3 — 2026-11-07
 - Stage 3: a plane pair's arrows appear only when all its runs are in, not while they are being collected.
 

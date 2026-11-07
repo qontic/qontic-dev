@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.5.3';
-import * as M from './weak-model.js?v=0.5.3';
+import { APP_RELEASE } from './release.js?v=0.5.4';
+import * as M from './weak-model.js?v=0.5.4';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -256,6 +256,7 @@ function liveBody() {
     const done = exp.runs >= state.perPlane ? ' Error bars are one standard deviation: about one strip in three should miss the prediction by more than its bar.' : '';
     return `${head} Beside the planes: pointer readings (amber) and detections (cyan), one point per run. ${SELECT_HINT} For the runs detected in the strip ${strip} (mean ${nm(b.y).toFixed(1)} nm), the mean pointer reading is <b>${mY.toFixed(1)} nm</b>. Detection minus pointer mean, ${shift >= 0 ? '+' : '−'}${Math.abs(shift).toFixed(1)} ± ${err.toFixed(1)} nm, divided by the ${state.gap} nm gap is the velocity estimate. It is a difference of two averages over the same selected runs, not the path of any particle.${done}`;
   }
+  if (map && !map.done && !state.running && map.index === 0 && exp.runs === 0) return 'Press <b>Start</b> to map the field: twelve pairs of planes, each a separate experiment. (Changing a setting clears the map.)';
   if (map && !map.done) return `Plane pair ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
   if (map && map.done) {
     const lastX = nm(exp.x2 - p.wall).toFixed(0);
@@ -801,14 +802,14 @@ function drawApparatus(P, box) {
   // Stage 2 shows the arrows building up; stage 3 draws a plane pair's arrows
   // only once all its runs are in (finished pairs are in map.planes).
   if (exp && state.stage === 'many') {
-    const est = M.binVelocities(exp.bins, exp.dtau, state.stage === 'many' ? 2000 : 200).map((b) => (b ? { y: b.y, s: b.v / p.k, err: b.err / p.k } : null));
+    const est = M.binVelocities(exp.bins, exp.dtau, 200).map((b) => (b ? { y: b.y, s: b.v / p.k, err: b.err / p.k } : null));
     arrowsFrom.push({ x: exp.x2, est, live: true });
   }
   const L = Math.max(14, Math.min(26, box.w / 32));
   if (state.show.arrows) for (const a of arrowsFrom) for (const [ei, e] of a.est.entries()) {
     if (!e || (map?.done && ei % state.arrowEvery !== Math.floor(state.arrowEvery / 2))) continue;
-    const rel = Math.min(1, 0.04 / Math.max(1e-6, e.err));
-    if (rel < 0.15) continue;
+    // Opacity shows the precision: noisy arrows are drawn faint, never hidden.
+    const rel = Math.max(0.15, Math.min(1, 0.04 / Math.max(1e-6, e.err)));
     const ang = Math.atan2(-(Yp(e.y + e.s) - Yp(e.y)), X(a.x + 1) - X(a.x));
     const sx = X(a.x), sy = Yp(e.y), ex = sx + L * Math.cos(ang), ey = sy - L * Math.sin(ang);
     ctx.globalAlpha = 0.35 + 0.65 * rel;
@@ -1091,7 +1092,7 @@ function updateResults() {
   const set = (k, v) => { const o = document.querySelector(`[data-result="${k}"]`); if (o) o.value = v; };
   if (!exp) return;
   set('runs', exp.runs.toLocaleString('en-US'));
-  set('planes', !map ? '—' : map.done ? `${N_PLANES} of ${N_PLANES}` : `${map.planes.length} of ${N_PLANES} (pair ${map.index + 1} running)`);
+  set('planes', !map ? '—' : map.done ? `${N_PLANES} of ${N_PLANES}` : `${map.planes.length} of ${N_PLANES}${state.running ? ` (pair ${map.index + 1} running)` : ''}`);
   set('pair', `${nm(exp.x1 - p.wall).toFixed(0)} → ${nm(exp.x2 - p.wall).toFixed(0)} nm`);
   // Stage 1 has no post-selection: show only the rows that mean something.
   document.querySelectorAll('[data-stage-rows]').forEach((el) => { el.hidden = !el.dataset.stageRows.split(' ').includes(state.stage); });

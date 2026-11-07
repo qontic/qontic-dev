@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.5.3">
+<link rel="stylesheet" href="css/wv.css?v=0.5.4">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -178,7 +178,7 @@
   <p>As σ<sub>p</sub> grows, E(Y | y<sub>f</sub>) tends to the real part of the weak value of the earlier position,<sup><a href="#ref-2">2</a></sup> and v<sub>y</sub> tends to</p>
   <p class="formula">v<sub>y</sub> = Im(∂<sub>y</sub>ψ / ψ) ħ/m = j / |ψ|²,</p>
   <p>the probability current divided by the density at the strong plane. The weak value itself is complex; the pointer's mean position returns only its real part, and the imaginary part, which is not zero here, plays no role. The particle moves freely between the two planes, so y(τ) = y(τ + Δτ) − p Δτ/m holds as an operator identity, and in the limit of a very wide pointer the result is exact for any gap, not only for Δx → 0.</p>
-  <p>With a finite pointer the gap matters. A longer gap gives a larger signal, but also a larger bias, because the pointer's disturbance has longer to act. At σ<sub>p</sub> = 50 nm and a 100 nm gap the bias reaches about a tenth of the largest velocity; at 200 nm it stays near 1%. The green curve in the velocity plot is the prediction for the chosen pointer and gap, with infinitely many runs; the dashed curve is the weak limit j/|ψ|². Below about 50 nm they separate visibly.</p>
+  <p>With a finite pointer the gap matters. A longer gap gives a larger signal, but also a larger bias, because the pointer's disturbance has longer to act. A shorter gap reduces the bias but not the noise: the displacement shrinks with the gap while the pointer's spread does not, so the error of each arrow grows as 1/Δx, and a gap of 20 nm needs about six times the runs of a 50 nm gap for the same precision. The lines through the arrows inherit this noise, most where the velocity changes steeply and few runs land, as near the dark fringes. At σ<sub>p</sub> = 50 nm and a 100 nm gap the bias reaches about a tenth of the largest velocity; at 200 nm it stays near 1%. The green curve in the velocity plot is the prediction for the chosen pointer and gap, with infinitely many runs; the dashed curve is the weak limit j/|ψ|². Below about 50 nm they separate visibly.</p>
   <p>The Results panel compares strip averages: both predictions are averaged over the same strip, weighted by the density. Next to a node of the pattern the strip average can differ from the value of j/|ψ|² at the strip centre by several percent, because the velocity changes quickly there. In a dark fringe |ψ|² is small (in the default geometry about a fifth of the peak at the strong plane; it vanishes only where the two slits' waves have equal size and opposite phase) and j/|ψ|² changes steeply there; few runs land there, the error bars are large, and the plots show a sharp peak. The finite σ<sub>p</sub> is not the only reason the curves differ near nodes.</p>
 
   <h2>Why the field does not depend on time</h2>
@@ -258,6 +258,6 @@
   <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.5.3"></script>
+<script type="module" src="js/app.js?v=0.5.4"></script>
 </body>
 </html>
