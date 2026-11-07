@@ -155,11 +155,25 @@ const FP_COLLAPSE_SPEED = 4;
 const FP_COLLAPSE_DURATION_MS = 950 / FP_COLLAPSE_SPEED;
 const FP_COLLAPSE_HOLD_MS = 450 / FP_COLLAPSE_SPEED;
 
-// |ψ|²: a single-hue ramp from black through deep blue and cyan to near-white.
-// Lightness rises monotonically, so brighter always means denser; it stays
-// readable for red-green colour-blind viewers and matches the site's cyan
-// accent. [relative density, [red, green, blue]], all values 0..1.
+// |ψ|²: a temperature scale, low density blue and high density red, through
+// violet. Built in OKLCH with lightness rising steadily from black, so brighter
+// always means denser and the 2D view and the 1D profile show the same extent.
+// [relative density, [red, green, blue]], all values 0..1.
 const FP_DENSITY_STOPS = [
+  [0.00, [0.000, 0.000, 0.000]],
+  [0.10, [0.010, 0.036, 0.162]],
+  [0.20, [0.054, 0.135, 0.389]],
+  [0.30, [0.091, 0.217, 0.567]],
+  [0.40, [0.179, 0.284, 0.731]],
+  [0.50, [0.385, 0.260, 0.770]],
+  [0.60, [0.574, 0.225, 0.734]],
+  [0.70, [0.791, 0.168, 0.506]],
+  [0.80, [0.899, 0.223, 0.218]],
+  [0.90, [0.955, 0.316, 0.188]],
+  [1.00, [1.000, 0.403, 0.158]],
+];
+// Black through deep blue and cyan to near-white (single hue), kept as 'Ice'.
+const FP_ICE_STOPS = [
   [0.00, [0.000, 0.000, 0.000]],
   [0.12, [0.031, 0.055, 0.157]],
   [0.35, [0.078, 0.200, 0.455]],
@@ -211,6 +225,7 @@ function fpStopsPalette(stops) {
 }
 const FP_DENSITY_PALETTE = fpStopsPalette(FP_DENSITY_STOPS);
 const FP_CLASSIC_PALETTE = fpStopsPalette(FP_CLASSIC_STOPS);
+const FP_ICE_PALETTE = fpStopsPalette(FP_ICE_STOPS);
 
 // Phase: a colour wheel of constant perceived lightness (OKLCH, L = 0.72,
 // C = 0.15), so every phase looks equally bright and brightness can carry the
@@ -246,6 +261,7 @@ function fpDensityRGB(relativeDensity) {
   const t = Math.max(0, Math.min(1, relativeDensity));
   if (fp.wavePalette === 'Q-Ontic') return FP_DENSITY_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
   if (fp.wavePalette === 'Classic') return FP_CLASSIC_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
+  if (fp.wavePalette === 'Ice') return FP_ICE_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
   const palette = FP_WAVE_PALETTE_RGB[fp.wavePalette] || FP_WAVE_PALETTE_RGB.Inferno;
   const scaled = t * (palette.length - 1);
   const index = Math.floor(scaled);
@@ -259,7 +275,7 @@ function fpDensityColor(relativeDensity) {
   return `rgba(${rgb.map(v => Math.round(255 * v)).join(',')},${fp.waveOpacity})`;
 }
 
-window.fpWavePaletteNames = ['Q-Ontic', 'Classic', ...Object.keys(FP_WAVE_PALETTES)];
+window.fpWavePaletteNames = ['Q-Ontic', 'Ice', 'Classic', ...Object.keys(FP_WAVE_PALETTES)];
 window.fpSetWavePalette = name => {
   if (!window.fpWavePaletteNames.includes(name)) return;
   fp.wavePalette = name;
@@ -934,8 +950,9 @@ function fpRenderWave() {
         const fade = Math.max(0, Math.min(1, (Math.sqrt(rho) - FP_WAVE_AMPLITUDE_CUTOFF) / FP_WAVE_AMPLITUDE_CUTOFF));
         const visibility = fade * fade * (3 - 2 * fade);
         if (mode === 'phase') {
-          // Hue = phase, brightness = amplitude.
-          const I = fpWaveIntensity(rho);
+          // Hue = phase; brightness = relative density, as in the |ψ|² view, so the
+          // packet shows the same extent in every view.
+          const I = Math.min(1, rho / maxP2D);
           const phaseIndex = Math.max(0, Math.min(FP_PALETTE_STEPS,
             Math.round((v / Math.PI + 1) * 0.5 * FP_PALETTE_STEPS)));
           const phase = FP_PHASE_PALETTE[phaseIndex];
@@ -947,9 +964,10 @@ function fpRenderWave() {
           r = rgb[0] * 255 * visibility; g = rgb[1] * 255 * visibility; b = rgb[2] * 255 * visibility;
         }
       } else if (mode === 'real' || mode === 'imag') {
-        // Negative values blue, positive orange; brightness follows |value|.
+        // Negative values blue, positive orange; brightness proportional to |value|.
+        // (Re ψ and Im ψ follow |ψ|, which is √2 wider than |ψ|² for a Gaussian.)
         const u = Math.max(-1, Math.min(1, v / Math.max(1e-12, vmax)));
-        const m = Math.sqrt(Math.abs(u));
+        const m = Math.abs(u);
         const c = u >= 0 ? [1.00, 0.62, 0.20] : [0.25, 0.60, 1.00];
         r = Math.round(c[0] * m * 255); g = Math.round(c[1] * m * 255); b = Math.round(c[2] * m * 255);
       }

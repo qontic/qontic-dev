@@ -103,7 +103,8 @@ function mountFreeParticleTemplate() {
   paletteSwatch.className = 'fp-palette-swatch';
   paletteButton.append(paletteSwatch);
   const paletteGradients = {
-    'Q-Ontic':['#000000','#080e28','#143374','#1c74b2','#4abcd6','#a6e8f1','#e8fbff'],
+    'Q-Ontic':['#000000','#0e2263','#2e48bb','#9239bb','#e53938','#ff6728'],
+    Ice:['#000000','#080e28','#143374','#1c74b2','#4abcd6','#a6e8f1','#e8fbff'],
     Classic:['#000000','#0a111a','#143c3d','#066827','#6d350d','#91111b','#970c1b','#8c0b3d','#810a50'],
     Gray:['#717171','#8d8d8d','#aaaaaa','#c6c6c6','#e2e2e2'],
     Green:['#5aa664','#a6dba0','#d9f0d3'], Blue:['#4292c6','#6baed6','#c6dbef'],
