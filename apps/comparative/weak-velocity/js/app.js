@@ -3,9 +3,9 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.3.3';
-import * as M from './weak-model.js?v=0.3.3';
-import { maximumCoreSafeSeparation } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
+import { APP_RELEASE } from './release.js?v=0.3.4';
+import * as M from './weak-model.js?v=0.3.4';
+import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -565,6 +565,64 @@ function dragMove(px, py) {
   drag.label = `${DRAG_LABEL[k]}: ${v} nm`;
 }
 
+// ---------------------------------------------------------------- stage 1: one run's packet
+// The packet has the double-slit app's default length (σ = 50 nm). In this
+// paraxial model its envelope only translates, so the transverse wave at each
+// plane is the same whenever the packet passes. Beyond the weak plane the wave
+// drawn is that of this run: ψ times the pointer factor for the reading Y.
+const RUN_SECONDS = 2.4;
+const PACKET_SIGMA = 0.5;   // 50 nm
+let packetLayer = null;
+function makeRunAnim(run) {
+  const D = p.screen - p.wall, xa = p.wall - 0.05 * D - 0.1 - 3 * PACKET_SIGMA, xb = exp.x2 + 3 * PACKET_SIGMA;
+  const frac = (x) => 0.78 * (x - xa) / (xb - xa);
+  const a = { t: 0, run, xa, xb, tW: frac(exp.x1), tS: frac(exp.x2), img: null };
+  // Column images: incident beam before the wall, ψ up to the weak plane, the
+  // pointer-conditioned wave after it. Each column scaled to its own maximum.
+  const P = palette(), nx = 320, ny = 200, x0 = p.wall - 0.05 * D - 0.1, x1 = p.screen;
+  const img = new ImageData(nx, ny), sw = state.sw / 100;
+  const coupled = M.coupleToPointer(exp.terms1, run.Y, sw);
+  for (let i = 0; i < nx; i++) {
+    const x = x0 + (i + 0.5) / nx * (x1 - x0), col = new Float64Array(ny);
+    let mx = 0;
+    const t = x >= exp.x1 ? M.propagate(coupled, (x - exp.x1) / p.k) : x >= p.wall ? M.propagate(T0, (x - p.wall) / p.k) : null;
+    for (let j = 0; j < ny; j++) {
+      const y = Y_HALF - (j + 0.5) / ny * 2 * Y_HALF;
+      col[j] = t ? M.density(t, y) : sourceTransverse(y, x, p).rho;
+      mx = Math.max(mx, col[j]);
+    }
+    for (let j = 0; j < ny; j++) {
+      const v = mx > 0 ? Math.pow(col[j] / mx, 0.6) : 0, k = (j * nx + i) * 4;
+      img.data[k] = P.wave[0]; img.data[k + 1] = P.wave[1]; img.data[k + 2] = P.wave[2]; img.data[k + 3] = Math.round(255 * v * 0.85);
+    }
+  }
+  const off = document.createElement('canvas'); off.width = nx; off.height = ny;
+  off.getContext('2d').putImageData(img, 0, 0);
+  a.img = off; a.x0 = x0; a.x1 = x1;
+  return a;
+}
+function drawPacket(P, X, Yp) {
+  const a = anim; if (!a?.img) return;
+  const xc = a.xa + Math.min(1, a.t / 0.78) * (a.xb - a.xa);
+  // After detection the packet fades out.
+  const fade = a.t <= a.tS ? 1 : Math.max(0, 1 - (a.t - a.tS) / 0.08);
+  if (fade <= 0) return;
+  const W = Math.ceil(X(a.x1) - X(a.x0)), H = Math.ceil(Yp(-Y_HALF) - Yp(Y_HALF));
+  if (W < 2 || H < 2) return;
+  if (!packetLayer) packetLayer = document.createElement('canvas');
+  const ratio = devicePixelRatio || 1;
+  if (packetLayer.width !== Math.round(W * ratio) || packetLayer.height !== Math.round(H * ratio)) { packetLayer.width = Math.round(W * ratio); packetLayer.height = Math.round(H * ratio); }
+  const c = packetLayer.getContext('2d');
+  c.setTransform(ratio, 0, 0, ratio, 0, 0); c.clearRect(0, 0, W, H);
+  c.globalCompositeOperation = 'source-over'; c.imageSmoothingEnabled = true; c.drawImage(a.img, 0, 0, W, H);
+  // Gaussian longitudinal envelope as an alpha mask.
+  const px = (x) => X(x) - X(a.x0), g = c.createLinearGradient(px(xc - 3 * PACKET_SIGMA), 0, px(xc + 3 * PACKET_SIGMA), 0);
+  for (let i = 0; i <= 12; i++) { const u = -3 + i / 2; g.addColorStop(i / 12, `rgba(0,0,0,${Math.exp(-u * u / 2).toFixed(3)})`); }
+  c.globalCompositeOperation = 'destination-in'; c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = fade; ctx.drawImage(packetLayer, X(a.x0), Yp(Y_HALF), W, H); ctx.globalAlpha = 1;
+}
+
 function drawApparatus(P, box) {
   const D = p.screen - p.wall;
   // While the screen is dragged, keep the drawing's scale from the start of the
@@ -579,7 +637,11 @@ function drawApparatus(P, box) {
   // wave
   if (state.show.wave && waveImage) {
     ctx.imageSmoothingEnabled = true;
+    // Stage 1 shows one run's packet moving; the steady beam stays faint behind it.
+    if (state.stage === 'one') ctx.globalAlpha = 0.22;
     ctx.drawImage(waveImage, X(p.wall), Yp(Y_HALF), X(p.screen) - X(p.wall), Yp(-Y_HALF) - Yp(Y_HALF));
+    ctx.globalAlpha = 1;
+    if (state.stage === 'one' && anim) drawPacket(P, X, Yp);
   }
   // wall with two slits (±1.5 sigma openings)
   ctx.strokeStyle = P.wall; ctx.lineWidth = 4;
@@ -713,12 +775,12 @@ function drawPointerGauge(P, box, X, Yp) {
   for (let i = -Math.floor(Y_HALF / tk); i * tk <= Y_HALF + 1e-9; i++) { const yy = Yp(i * tk), l = i % 2 === 0 ? 7 : 4; ctx.beginPath(); ctx.moveTo(xw - l, yy); ctx.lineTo(xw, yy); ctx.stroke(); }
   text('pointer scale', xw - 6, bot + 13, { color: P.weak, size: 10.5, align: 'right' });
   if (!anim) return;
-  const t = anim.t;
+  const t = anim.t, tW = anim.tW, tS = anim.tS;
   const ease = (u) => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
-  if (t > 0.1 && t < 0.5) { ctx.strokeStyle = P.weak; ctx.globalAlpha = 0.35; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(xw, top); ctx.lineTo(xw, bot); ctx.stroke(); ctx.globalAlpha = 1; }
+  if (t > tW - 0.04 && t < tW + 0.16) { ctx.strokeStyle = P.weak; ctx.globalAlpha = 0.35; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(xw, top); ctx.lineTo(xw, bot); ctx.stroke(); ctx.globalAlpha = 1; }
   // Marker slides from the pointer's zero to the reading.
-  const Yr = anim.run.Y * ease((t - 0.15) / 0.3), yc = Yp(Yr), cl = (v) => Math.max(top, Math.min(bot, v));
-  const settled = t > 0.45;
+  const Yr = anim.run.Y * ease((t - tW) / 0.12), yc = Yp(Yr), cl = (v) => Math.max(top, Math.min(bot, v));
+  const settled = t > tW + 0.12;
   if (settled) { ctx.globalAlpha = 0.25; ctx.fillStyle = P.weak; ctx.fillRect(xw - 4, cl(Yp(Yr + sw)), 8, cl(Yp(Yr - sw)) - cl(Yp(Yr + sw))); ctx.globalAlpha = 1; }
   ctx.strokeStyle = P.weak; ctx.fillStyle = P.weak; ctx.lineWidth = 2;
   if (yc >= top && yc <= bot) {
@@ -730,8 +792,8 @@ function drawPointerGauge(P, box, X, Yp) {
     ctx.beginPath(); ctx.moveTo(xw, ya); ctx.lineTo(xw - 5, ya + 8 * d); ctx.lineTo(xw + 5, ya + 8 * d); ctx.closePath(); ctx.fill();
     if (settled) text(`pointer reads ${nm(anim.run.Y).toFixed(0)} ± ${state.sw} nm (off scale)`, xw - 10, ya + 12 * d + 4, { color: P.weak, size: 11, align: 'right' });
   }
-  if (t > 0.55) {
-    const r = t < 0.75 ? 4 + 20 * (t - 0.55) : 6;
+  if (t > tS) {
+    const r = t < tS + 0.1 ? 4 + 20 * (t - tS) : 6;
     ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(X(exp.x2), Yp(anim.run.yf), r, 0, Math.PI * 2); ctx.fill();
     text(`detected at ${nm(anim.run.yf).toFixed(0)} nm`, X(exp.x2) + 10, Yp(anim.run.yf) + 4, { color: P.strong, size: 11 });
   }
@@ -771,7 +833,7 @@ function drawScatter(P, box) {
     ctx.fillStyle = P.dots;
     const big = state.stage === 'one';
     for (let i = 0; i < exp.scatterN; i++) { const a = exp.scatter[2 * i], b = exp.scatter[2 * i + 1]; ctx.fillRect(X(a) - (big ? 2 : 1), V(b) - (big ? 2 : 1), big ? 4 : 2, big ? 4 : 2); }
-    if (anim && anim.t > 0.75) { ctx.fillStyle = P.weak; ctx.beginPath(); ctx.arc(X(anim.run.yf), V(anim.run.Y), 5, 0, Math.PI * 2); ctx.fill(); }
+    if (anim && anim.t > anim.tS + 0.1) { ctx.fillStyle = P.weak; ctx.beginPath(); ctx.arc(X(anim.run.yf), V(anim.run.Y), 5, 0, Math.PI * 2); ctx.fill(); }
   }
   // strip means (pointer averages)
   if (exp && state.stage !== 'one') {
@@ -875,8 +937,8 @@ function frame(now) {
   if (pending && !drag) rebuild();
   if (state.running && exp) {
     if (state.stage === 'one') {
-      if (!anim) anim = { t: 0, run: M.sampleRun(exp.table) };
-      anim.t += dt * state.speed / 1.6;
+      if (!anim) anim = makeRunAnim(M.sampleRun(exp.table));
+      anim.t += dt * state.speed / RUN_SECONDS;
       if (anim.t >= 1) { addRun(exp, anim.run); anim = null; }
     } else if (state.stage === 'many') {
       // While the points beside the planes fill in, runs start slowly and

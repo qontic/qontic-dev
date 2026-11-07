@@ -1,5 +1,9 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.3.4 — 2026-11-07
+- Stage 1: each run's packet (σ = 50 nm, as in the double-slit app) moves from the source through the slits; the pointer moves as it crosses the weak plane and the detection flashes as it reaches the strong plane. Beyond the weak plane the drawn wave is that run's wave, ψ times the pointer factor for its reading. The steady beam stays faint behind. Runs last 2.4 s at speed 1.
+- Physics tab: why the velocity field does not depend on time, and when that fails.
+
 ## 0.3.3 — 2026-11-07
 - Toolbar buttons from the analytical double-slit app: distance scale (hidden by default; drag to move), coordinate grid, and coordinates and distance measurement (click two points; Escape clears). Lengths in nm, x from the slits, y upward. The fixed 100 nm bar is gone.
 - Shared template: mountCoordinateTools takes an optional yUp (default false, so other apps are unchanged).
