@@ -172,3 +172,16 @@ body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
 .qontic-light.wv-app .geo-num input { background: #fff; color: #0b6f7d; border-color: #aec2cb; }
 .wv-app #geoReset { width: 100%; }
 .qontic-media-toolbar button[aria-label="Edit geometry"][aria-pressed="true"] { background: #286078; outline: 2px solid #7ee9fb; }
+
+/* Field-map switches on the drawing (stage 3, once mapped). */
+.wv-app .map-toggles { position: absolute; z-index: 6; left: 50%; top: 10px; transform: translateX(-50%); display: flex; gap: 6px; padding: 5px; border-radius: 8px; background: rgba(9,24,36,0.88); border: 1px solid #31556c; }
+.wv-app .map-toggles[hidden] { display: none; }
+.wv-app .map-toggle { white-space: nowrap; padding: 4px 10px; border: 1px solid #31556c; border-radius: 6px; background: transparent; color: #8fb2c2; font-size: 12px; cursor: pointer; }
+.wv-app .map-toggle::before { content: "○ "; }
+.wv-app .map-toggle[aria-pressed="true"] { background: #173e4c; border-color: #55d8e6; color: #e8f8fc; }
+.wv-app .map-toggle[aria-pressed="true"]::before { content: "● "; }
+.wv-app .map-toggle[data-maptoggle="arrows"][aria-pressed="true"]::before, .wv-app .map-toggle[data-maptoggle="lines"][aria-pressed="true"]::before { color: #f6b54a; }
+.wv-app .map-toggle[data-maptoggle="bohm"][aria-pressed="true"]::before { color: #e07bff; }
+.qontic-light.wv-app .map-toggles { background: rgba(255,255,255,0.92); border-color: #aec2cb; }
+.qontic-light.wv-app .map-toggle { color: #35505f; border-color: #aec2cb; }
+.qontic-light.wv-app .map-toggle[aria-pressed="true"] { background: #dcebf1; color: #183747; border-color: #0b6f7d; }

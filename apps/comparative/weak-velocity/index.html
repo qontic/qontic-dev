@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.4.0">
+<link rel="stylesheet" href="css/wv.css?v=0.4.1">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -37,8 +37,8 @@
         <div class="qontic-control-section">
           <div class="qontic-control-section-title">Show</div>
           <div class="qontic-app-toggle-group" role="group" aria-label="What to display">
-            <button class="qontic-app-toggle" type="button" data-wavemode="density" aria-pressed="false" title="Density |ψ|², each column scaled to its own maximum.">Density |ψ|²</button>
-            <button class="qontic-app-toggle active" type="button" data-wavemode="crests" aria-pressed="true" title="Travelling crests: brightness |ψ| times (1 + cos(kx − ωt + arg φ))/2.">Crests</button>
+            <button class="qontic-app-toggle active" type="button" data-wavemode="density" aria-pressed="true" title="Density |ψ|², each column scaled to its own maximum.">Density |ψ|²</button>
+            <button class="qontic-app-toggle" type="button" data-wavemode="crests" aria-pressed="false" title="Travelling crests: brightness |ψ| times (1 + cos(kx − ωt + arg φ))/2.">Crests</button>
             <button class="qontic-app-toggle" type="button" data-wavemode="phase" aria-pressed="false" title="Phase kx − ωt + arg φ as colour, brightness from |ψ|.">Phase</button>
           </div>
         </div>
@@ -52,13 +52,8 @@
         <label class="control-row" title="Distance from the weak plane to the plane where the particle's position is detected.">
           <span>Gap to strong plane</span><input id="gap" type="range" min="10" max="100" step="5" value="50" aria-label="Gap between the weak and strong planes in nanometres"><output id="gapOut">50 nm</output>
         </label>
-        <label class="control-row select-row" id="runsRow" title="Runs collected at the pair of planes (stage 2), or at each pair of planes (stage 3). Each arrow needs about a million runs with a weak pointer.">
-          <span>Runs per pair of planes</span>
-          <select id="perPlane" aria-label="Runs per pair of planes">
-            <option value="100000">100 000</option>
-            <option value="1000000" selected>1 000 000</option>
-            <option value="5000000">5 000 000</option>
-          </select>
+        <label class="control-row" id="runsRow" title="Runs collected at the pair of planes (stage 2), or at each pair of planes (stage 3). Each arrow needs about a million runs with a weak pointer.">
+          <span>Runs per pair of planes</span><input id="perPlane" type="range" min="0" max="9" step="1" value="6" aria-label="Runs per pair of planes"><output id="perPlaneOut">1 000 000</output>
         </label>
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
       </div>
@@ -76,12 +71,18 @@
           <p class="core-hint" id="geoNote"></p>
           <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="geoReset">Default geometry</button>
         </div>
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Field map (stage 3)</div>
+          <label class="control-row" title="How many of the 40 strips of each plane show an arrow."><span>Arrows per plane</span><input id="arrowDensity" type="range" min="1" max="5" step="1" value="1" aria-label="Arrows per plane"><output id="arrowDensityOut">40</output></label>
+          <label class="control-row" title="Number of lines through the measured arrows, and of pilot-wave trajectories from the same starting points."><span>Lines</span><input id="lineCount" type="range" min="4" max="60" step="2" value="20" aria-label="Number of lines"><output id="lineCountOut">20</output></label>
+        </div>
       </div>
       <div class="control-pane hidden" data-control-pane="display">
         <div class="toggle-row"><span>Wave</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave"></button></div>
         <div class="toggle-row"><span>Measured arrows</span><button class="toggle" type="button" data-toggle="arrows" aria-pressed="true" aria-label="Show the measured velocity arrows"></button></div>
         <div class="toggle-row"><span>Current velocity j/|ψ|²</span><button class="toggle" type="button" data-toggle="current" aria-pressed="true" aria-label="Show the current velocity curve"></button></div>
         <div class="toggle-row"><span>Exact expectation for this pointer</span><button class="toggle" type="button" data-toggle="expected" aria-pressed="true" aria-label="Show the exact expected result for this pointer"></button></div>
+        <div class="toggle-row"><span>Lines through the arrows</span><button class="toggle" type="button" data-toggle="lines" aria-pressed="true" aria-label="Show the lines through the measured arrows"></button></div>
         <div class="toggle-row"><span>Pilot-wave trajectories</span><button class="toggle" type="button" data-toggle="bohm" aria-pressed="false" aria-label="Overlay pilot-wave trajectories"></button></div>
         <div class="toggle-row"><span>Accumulated runs on the planes</span><button class="toggle" type="button" data-toggle="planeRuns" aria-pressed="true" aria-label="Show pointer readings and detections as points beside the two planes"></button></div>
         <div class="toggle-row"><span>Data plot</span><button class="toggle" type="button" data-panel-toggle="scatter" aria-pressed="true" aria-label="Show the floating data plot"></button></div>
@@ -109,6 +110,11 @@
     <div class="canvas-host">
       <div class="canvas-main">
         <canvas id="stage" aria-label="Weak velocity measurement behind a double slit"></canvas>
+        <div class="map-toggles" hidden aria-label="Field map display">
+          <button type="button" class="map-toggle" data-maptoggle="arrows" aria-pressed="true">Measured arrows</button>
+          <button type="button" class="map-toggle" data-maptoggle="lines" aria-pressed="true">Lines through the arrows</button>
+          <button type="button" class="map-toggle" data-maptoggle="bohm" aria-pressed="false">Pilot-wave trajectories</button>
+        </div>
         <div class="fp-dock" aria-label="Closed plots">
           <button type="button" data-fp-open="scatter" hidden title="Show the data plot beside the drawing">Data plot</button>
           <button type="button" data-fp-open="vel" hidden title="Show the velocity plot beside the drawing">Velocity plot</button>
@@ -220,6 +226,6 @@
   <p>The double-slit app draws pilot-wave trajectories from the theory. This app starts from data that could be taken in a laboratory and shows that they give the same lines. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.4.0"></script>
+<script type="module" src="js/app.js?v=0.4.1"></script>
 </body>
 </html>

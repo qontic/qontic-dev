@@ -1,5 +1,11 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.4.1 — 2026-11-07
+- Density is the default Show mode.
+- Stage 3, once mapped: switches on the drawing for measured arrows, lines through the arrows and pilot-wave trajectories (also in Display). The on-canvas key lists only what is shown.
+- Advanced › Field map: arrows per plane (40, 20, 13, 10 or 8) and number of lines (4–60; the pilot-wave trajectories start from the same points).
+- Runs per pair of planes is a slider: 10 000 to 10 000 000 in 1-2-5 steps.
+
 ## 0.4.0 — 2026-11-07
 - Show control (Core): density |ψ|², travelling crests (default) or phase as colour, as in the analytical double-slit app; crests and phase move whenever the simulation runs. Too short a wavelength to resolve falls back to the density, with a note.
 - The drawing beyond the weak plane now shows the measured wave: in stage 1, the current run's wave ψ(y) φ(Y − y) for its reading; in stage 2, the density averaged over all readings (a mixture: no crests or phase there). Stage 3 shows ψ. In stage 2 the |ψ|² curve beside the screen is the averaged density too.

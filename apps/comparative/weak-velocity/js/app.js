@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.4.0';
-import * as M from './weak-model.js?v=0.4.0';
+import { APP_RELEASE } from './release.js?v=0.4.1';
+import * as M from './weak-model.js?v=0.4.1';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -47,8 +47,8 @@ const controlsEl = $('qontic-controls');
 const state = {
   stage: 'one', sw: 200, x1: 500, gap: 50, perPlane: 1e6,
   running: false, speed: 1,
-  waveMode: 'crests',
-  show: { wave: true, arrows: true, current: true, expected: true, bohm: false, scatter: true, planeRuns: true },
+  waveMode: 'density', arrowEvery: 1, nLines: 20,
+  show: { wave: true, arrows: true, lines: true, current: true, expected: true, bohm: false, scatter: true, planeRuns: true },
   selected: null,
 };
 let exp = null;              // current pair of planes
@@ -155,7 +155,7 @@ function buildLines() {
   // Starting points at equal-probability positions in the first strong plane.
   const counts = map.planes[0].counts, total = counts.reduce((a, b) => a + b, 0), w = 2 * Y_HALF / N_BINS;
   const starts = [];
-  const nLines = 20; // even, so no start falls on the median between the two slit packets
+  const nLines = state.nLines; // even, so no start falls on the median between the two slit packets
   for (let q = 0; q < nLines; q++) {
     let target = (q + 0.5) / nLines * total, acc = 0;
     for (let i = 0; i < N_BINS; i++) {
@@ -226,8 +226,6 @@ function showNext() {
   if (state.stage === 'map' && map?.done) {
     if (state.sw >= 40) add('Repeat with a strong pointer (10 nm)', () => { setSw(10); setStage('map', true); });
     else add('Repeat with a weak pointer (200 nm)', () => { setSw(200); setStage('map', true); });
-    add(state.show.arrows ? 'Hide the arrows' : 'Show the arrows', () => { toggle('arrows'); showNext(); });
-    add(state.show.bohm ? 'Hide pilot-wave trajectories' : 'Compare with pilot-wave trajectories', () => { toggle('bohm'); showNext(); });
   }
 }
 
@@ -246,6 +244,7 @@ function setStage(stage, go = false) {
 function setSw(v) { state.sw = v; $('#sw').value = v; }
 function toggle(key) {
   state.show[key] = !state.show[key];
+  document.querySelector(`[data-maptoggle="${key}"]`)?.setAttribute('aria-pressed', String(state.show[key]));
   document.querySelector(`[data-toggle="${key}"]`)?.setAttribute('aria-pressed', String(state.show[key]));
 }
 
@@ -258,7 +257,14 @@ document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('cl
 $('#sw').addEventListener('input', (e) => { state.sw = +e.target.value; pending = true; updateText(); });
 $('#x1').addEventListener('input', (e) => { state.x1 = +e.target.value; if (state.stage !== 'map') pending = true; updateText(); });
 $('#gap').addEventListener('input', (e) => { state.gap = +e.target.value; pending = true; updateText(); });
-$('#perPlane').addEventListener('change', (e) => { state.perPlane = +e.target.value; if (state.stage === 'map' || (exp && exp.runs > state.perPlane)) pending = true; });
+const RUNS = [1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6, 5e6, 1e7];
+$('#perPlane').addEventListener('input', (e) => {
+  state.perPlane = RUNS[+e.target.value]; $('#perPlaneOut').value = state.perPlane.toLocaleString('en-US').replace(/,/g, ' ');
+});
+$('#perPlane').addEventListener('change', () => { if (state.stage === 'map' || (exp && exp.runs > state.perPlane)) pending = true; });
+$('#arrowDensity').addEventListener('input', (e) => { state.arrowEvery = +e.target.value; $('#arrowDensityOut').value = Math.ceil(N_BINS / state.arrowEvery); });
+$('#lineCount').addEventListener('input', (e) => { state.nLines = +e.target.value; $('#lineCountOut').value = state.nLines; if (map?.done) buildLines(); });
+document.querySelectorAll('[data-maptoggle]').forEach((b) => b.addEventListener('click', () => toggle(b.dataset.maptoggle)));
 $('#showSetup').addEventListener('click', () => { stop(); showStep('setup'); });
 $('#setupGo').addEventListener('click', () => setStage('one', true));
 
@@ -697,8 +703,8 @@ function drawApparatus(P, box) {
     arrowsFrom.push({ x: exp.x2, est, live: true });
   }
   const L = Math.max(14, Math.min(26, box.w / 32));
-  if (state.show.arrows) for (const a of arrowsFrom) for (const e of a.est) {
-    if (!e) continue;
+  if (state.show.arrows) for (const a of arrowsFrom) for (const [ei, e] of a.est.entries()) {
+    if (!e || (map?.done && ei % state.arrowEvery !== Math.floor(state.arrowEvery / 2))) continue;
     const rel = Math.min(1, 0.04 / Math.max(1e-6, e.err));
     if (rel < 0.15) continue;
     const ang = Math.atan2(-(Yp(e.y + e.s) - Yp(e.y)), X(a.x + 1) - X(a.x));
@@ -715,24 +721,28 @@ function drawApparatus(P, box) {
   // lines from the measured field, and pilot-wave trajectories
   const path = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Yp(y)) : ctx.moveTo(X(x), Yp(y)))); ctx.stroke(); };
   if (map?.done) {
-    ctx.strokeStyle = P.line; ctx.lineWidth = 1.8; map.lines.forEach(path);
+    ctx.strokeStyle = P.line; ctx.lineWidth = 1.8; if (state.show.lines) map.lines.forEach(path);
     if (state.show.bohm) {
       // Pilot-wave trajectories from the same starting points, drawn on top.
       ctx.strokeStyle = P.bohm; ctx.lineWidth = 1.7; ctx.setLineDash([6, 4]); map.bohm.forEach(path); ctx.setLineDash([]);
     }
     // key
-    const kx = X(p.wall) + 14, ky = Yp(-Y_HALF) - 10;
-    ctx.fillStyle = P.light ? 'rgba(241,246,248,0.88)' : 'rgba(11,28,41,0.88)'; ctx.fillRect(kx - 6, ky - (state.show.bohm ? 30 : 15), 300, state.show.bohm ? 36 : 21);
-    ctx.lineWidth = 1.8; ctx.strokeStyle = P.line; ctx.beginPath(); ctx.moveTo(kx, ky - 4); ctx.lineTo(kx + 22, ky - 4); ctx.stroke();
-    text('lines through the measured arrows', kx + 30, ky, { color: P.text, size: 11 });
-    if (state.show.bohm) {
-      ctx.lineWidth = 1.7; ctx.strokeStyle = P.bohm; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(kx, ky - 19); ctx.lineTo(kx + 22, ky - 19); ctx.stroke(); ctx.setLineDash([]);
-      text('pilot-wave trajectories, same starts', kx + 30, ky - 15, { color: P.text, size: 11 });
+    const keys = [];
+    if (state.show.lines) keys.push([P.line, [], 1.8, 'lines through the measured arrows']);
+    if (state.show.bohm) keys.push([P.bohm, [6, 4], 1.7, 'pilot-wave trajectories, same starts']);
+    if (keys.length) {
+      const kx = X(p.wall) + 14, ky = Yp(-Y_HALF) - 10;
+      ctx.fillStyle = P.light ? 'rgba(241,246,248,0.88)' : 'rgba(11,28,41,0.88)'; ctx.fillRect(kx - 6, ky - 15 * keys.length, 300, 6 + 15 * keys.length);
+      keys.forEach(([col, dash, lw, label], i) => {
+        const yy = ky - 15 * (keys.length - 1 - i);
+        ctx.lineWidth = lw; ctx.strokeStyle = col; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(kx, yy - 4); ctx.lineTo(kx + 22, yy - 4); ctx.stroke(); ctx.setLineDash([]);
+        text(label, kx + 30, yy, { color: P.text, size: 11 });
+      });
     }
     // screen check: measured end points vs equal-probability positions
     const sx = X(p.screen);
     ctx.lineWidth = 2;
-    map.lines.forEach((ln) => { const [xe, ye] = ln.at(-1); if (Math.abs(xe - p.screen) < 0.05) { ctx.strokeStyle = P.line; ctx.beginPath(); ctx.moveTo(sx + 3, Yp(ye)); ctx.lineTo(sx + 14, Yp(ye)); ctx.stroke(); } });
+    if (state.show.lines) map.lines.forEach((ln) => { const [xe, ye] = ln.at(-1); if (Math.abs(xe - p.screen) < 0.05) { ctx.strokeStyle = P.line; ctx.beginPath(); ctx.moveTo(sx + 3, Yp(ye)); ctx.lineTo(sx + 14, Yp(ye)); ctx.stroke(); } });
     ctx.strokeStyle = P.muted;
     map.screenQuantiles.forEach((y) => { ctx.beginPath(); ctx.moveTo(sx + 16, Yp(y)); ctx.lineTo(sx + 26, Yp(y)); ctx.stroke(); });
   }
@@ -950,6 +960,8 @@ function sizeCanvas(cv, c) {
 }
 function render() {
   const P = palette();
+  const mt = $('.map-toggles'), mapped = !!map?.done;
+  if (mt.hidden === mapped) mt.hidden = !mapped;
   const m = sizeCanvas(canvas, mainCtx);
   if (!m) return;
   ctx = mainCtx;
