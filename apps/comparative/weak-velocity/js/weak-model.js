@@ -131,8 +131,11 @@ export function jointTable({terms1, dtau, sw, yfMin, yfMax, nYf = 360}) {
   const yMin = yfMin - 5 * sw, yMax = yfMax + 5 * sw;
   const dY0 = Math.min(span / 360, sw / 6);
   const nY = Math.max(60, Math.min(4000, Math.ceil((yMax - yMin) / dY0) + 1));
-  const dY = (yMax - yMin) / (nY - 1), dYf = span / (nYf - 1);
-  const yf = Float64Array.from({length: nYf}, (_, i) => yfMin + i * dYf);
+  // Cell-centred grid in yf: cell i covers [yfMin + i dYf, yfMin + (i+1) dYf),
+  // so with nYf a multiple of the number of strips each cell lies inside one
+  // strip, and a sampled run (jittered within its cell) stays in that strip.
+  const dY = (yMax - yMin) / (nY - 1), dYf = span / nYf;
+  const yf = Float64Array.from({length: nYf}, (_, i) => yfMin + (i + 0.5) * dYf);
   const Y = Float64Array.from({length: nY}, (_, j) => yMin + j * dY);
   const P = new Float64Array(nYf * nY);
   for (let j = 0; j < nY; j++) {

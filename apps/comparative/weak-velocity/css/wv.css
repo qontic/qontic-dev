@@ -219,3 +219,9 @@ body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
   .wv-app .fp-head { padding: 2px 6px 2px 8px; }
   .wv-app .fp-title { font-size: 11px; }
 }
+.wv-app .url-note { color: #f0ca61; }
+.qontic-light.wv-app .url-note { color: #9a6200; }
+/* 0.5.1: stage-3 switches wrap on narrow drawings; shorter drawing on short screens so the caption shows. */
+.wv-app .map-toggles { flex-wrap: wrap; justify-content: center; max-width: calc(100% - 24px); }
+@media (max-width: 1100px) { .wv-app .map-toggle { font-size: 11px; padding: 3px 7px; } }
+@media (max-height: 700px) and (min-width: 1001px) { .wv-app .canvas-host { height: max(320px, calc(100dvh - 300px)); } }

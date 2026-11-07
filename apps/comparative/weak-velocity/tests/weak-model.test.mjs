@@ -93,6 +93,21 @@ test('sampled runs reproduce the exact conditional mean within errors', () => {
   assert.ok(n >= 8 && chi / n < 3, `chi2/n ${chi / n} over ${n}`);
 });
 
+test('sharp pointer: sampled strips match the exact strip means (no strip-edge bias)', () => {
+  // A 10 nm pointer gives tiny error bars, so any mismatch between how runs are
+  // sampled and how the exact strip means are computed shows up here.
+  const t1 = M.propagate(t0, 5 / p.k), dtau = 0.5 / p.k;
+  const tab = M.jointTable({terms1: t1, dtau, sw: 0.1, yfMin: -4, yfMax: 4, nYf: 360});
+  let seed = 99; const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const bins = M.makeBins(-4, 4, 40);
+  // 4M runs: a node-centred grid (cells straddling strip edges) gives chi2/n ~ 1.8 here.
+  for (let i = 0; i < 4000000; i++) M.addToBins(bins, M.sampleRun(tab, rnd));
+  const got = M.binVelocities(bins, dtau, 200), ex = M.expectedBinVelocities(tab, bins);
+  let chi = 0, n = 0;
+  got.forEach((g, i) => {if (!g || !ex[i]) return; chi += ((g.v - ex[i].v) / g.err) ** 2; n++;});
+  assert.ok(n >= 30 && chi / n < 1.4, `chi2/n ${chi / n} over ${n}`);
+});
+
 test('field integration reproduces a pilot-wave trajectory from the exact field', () => {
   const xs = Array.from({length: 21}, (_, i) => p.wall + i * (p.screen - p.wall) / 20);
   const planes = xs.map(x => {const t = M.propagate(t0, (x - p.wall) / p.k); return {x, vAt: y => M.currentVelocity(t, y)};});

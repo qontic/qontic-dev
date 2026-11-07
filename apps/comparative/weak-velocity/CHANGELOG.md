@@ -1,5 +1,21 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.5.1 — 2026-11-07
+Fixes from the second review round (context/2026-11-07-weak-velocity-review-2.md).
+- Model: the y_f table uses cell-centred cells that nest inside the strips. Before, a sampled run could cross a strip edge while the exact strip means assigned its cell to one strip; with a 10 nm pointer this gave a small systematic offset (χ²/n 1.2 at 1M runs, 2.2 at 4M). New test (10 tests).
+- The y_f − Y view (was Y − y_f) now has the sign of the caption and the velocity plot.
+- ?bohm=1 also sets the switch on the drawing.
+- Setup card: the mean pointer reading is the quantity; for a wide pointer it tends to the real part of the weak value; whether it tells where the particles were is left to the Rationale.
+- Stage-1 caption: "wider than the whole pattern" only from 300 nm; "comparable" from 100 nm; no "where the particle was".
+- Default strip 300–320 nm, where the signal is clear (about +12.8 ± 2.6 nm at 1M runs), instead of 100–120 nm (−1.3 ± 0.9 nm).
+- Stage-3 caption: the rms offset of the line ends comes with its scale (about 4 nm with infinitely many runs); also given for a strong pointer.
+- Caption, Results and plot counts update together; "the only run shown".
+- Links: adjusted values (including pointer spread, gap, runs and an unknown stage) are listed with old → new values in the caption until the first run; the slit limits no longer use an unclamped screen length.
+- Physics: dark fringes are not zeros in the default geometry (about a fifth of the peak); Kocsis et al. differ in two ways, not three, and did note that their trajectories reproduce Bohm's while stressing that the reconstruction does not depend on an interpretation.
+- For instructors: question at +300 nm (not +150 nm, where the slope is −0.009, inside the error); expected answers and links.
+- Rationale: the orthodox card ends on "j/|ψ|² is a property of the prepared state"; the Kocsis quote moved to "What is measured"; Bliokh et al. (classical optics) and Vaidman (pre- and post-selection) moved from the orthodox and many-worlds cards to "What the lines do not settle"; many-worlds card speaks of the weights branches will have once a detector records.
+- Layout: stage-3 switches wrap on narrow drawings; short labels in the key when narrow; shorter drawing on short screens so the caption shows; distance scale defaults to the bottom right.
+
 ## 0.5.0 — 2026-11-07
 Changes from a five-reviewer evaluation (context/2026-11-07-weak-velocity-review.md in the Project).
 - Captions: the stage-1 text depends on the pointer spread (it no longer says the spread is wider than the pattern at 10–40 nm); "Press Start", "1 run". Stage 2 no longer says the particle "moved": it reports the mean pointer reading, detection minus pointer mean, and that this is a difference of two averages, not a path. One-sigma note when a collection ends; "Repeat these runs" button.

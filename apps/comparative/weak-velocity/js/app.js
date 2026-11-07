@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.5.0';
-import * as M from './weak-model.js?v=0.5.0';
+import { APP_RELEASE } from './release.js?v=0.5.1';
+import * as M from './weak-model.js?v=0.5.1';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -62,7 +62,7 @@ let waveTheme = null;
 let lastLive = 0, lastLiveHtml = '';
 // Values the link asked for, to report any that had to be adjusted.
 const urlAsked = {};
-let urlNote = '';
+let urlNote = '', urlBadStage = null;
 
 readUrl();
 applyGeometry();
@@ -110,6 +110,7 @@ function makeExperiment(x1nm) {
 // Stage 1 keeps every run as a point; later stages keep one run in `stride`.
 const pointStride = () => (state.stage === 'one' ? 1 : Math.max(1, Math.floor(state.perPlane / PLANE_POINTS)));
 function addRun(e, run) {
+  hadRun = true;
   M.addToBins(e.bins, run);
   // Points beside the planes: one run in every `stride`, so they fill in over the
   // whole collection and finish with it (6 000 points at the end).
@@ -132,7 +133,8 @@ function rebuild() {
     map = null;
     exp = makeExperiment(state.x1);
   }
-  if (state.selected === null) state.selected = binOf(Math.min(1.0, Y_HALF / 4));
+  // Default strip: one where the signal is well above the noise (300–320 nm by default).
+  if (state.selected === null) state.selected = binOf(Math.min(3.05, Y_HALF * 0.76));
   updateText();
 }
 const binOf = (y) => Math.max(0, Math.min(N_BINS - 1, Math.floor((y + Y_HALF) / (2 * Y_HALF / N_BINS))));
@@ -226,14 +228,22 @@ const SELECT_HINT = 'To post-select a strip, point at (or tap) the strong plane 
 const RATIONALE_LINK = '<button type="button" class="link-button" data-goto="rationale">Same lines, three readings: see Rationale</button>';
 function liveText() {
   if (!exp) return '';
+  // A note about an adjusted link stays until the first run.
+  const note = urlNote && !hadRun ? `<span class="url-note">${urlNote}</span> ` : '';
+  return note + liveBody();
+}
+let hadRun = false;
+function liveBody() {
   const N = exp.runs.toLocaleString('en-US');
   if (state.stage === 'one') {
-    if (exp.runs === 0) return (urlNote ? `${urlNote} ` : '') + 'Press <b>Start</b>. Watch the pointer move, then the screen click. One run gives two numbers.';
-    const spread = state.sw >= 100
-      ? 'The spread is wider than the whole pattern, so one run says almost nothing about where the particle was, and the wave is barely disturbed.'
+    if (exp.runs === 0) return 'Press <b>Start</b>. Watch the pointer move, then the screen click. One run gives two numbers.';
+    const spread = state.sw >= 300
+      ? 'The spread is wider than the whole pattern, so one reading says almost nothing on its own, and the wave is barely disturbed.'
+      : state.sw >= 100
+        ? 'The spread is comparable to the whole pattern, so one reading says little on its own, and the wave is barely disturbed.'
       : state.sw >= 40
-        ? 'The spread is a fair part of the pattern: one run says roughly where the particle was, and the wave is slightly disturbed.'
-        : 'The spread is small, so one run is nearly a position measurement; in exchange the coupling disturbs the wave (see beyond the weak plane).';
+        ? 'The spread is a fair part of the pattern: the reading is sharper, and the wave is slightly disturbed.'
+        : 'The spread is small, so the coupling is nearly a position measurement; in exchange it disturbs the wave (see beyond the weak plane).';
     return `${plural(exp.runs, 'run', 'runs')}. The amber marker on the weak plane's scale is the pointer reading, with its spread of ±${state.sw} nm. It is a reading of the pointer, not a sighting of the particle. ${spread}`;
   }
   if (state.stage === 'many') {
@@ -250,8 +260,8 @@ function liveText() {
   if (map && map.done) {
     const lastX = nm(exp.x2 - p.wall).toFixed(0);
     const plots = ` The plots and Results show the last pair (strong plane ${lastX} nm behind the slits); click a plot to choose a strip.`;
-    if (state.sw < 40) return `All ${N_PLANES} plane pairs mapped with a strong pointer (${state.sw} nm), each with fresh particles. The coupling disturbs the wave, so the arrows follow the green curve, not j/|ψ|². These lines do not describe the undisturbed experiment in any of the three views: compare with the weak pointer.${plots} ${RATIONALE_LINK}`;
-    const off = map.endOffset != null ? ` The line ends differ from those positions by ${map.endOffset.toFixed(0)} nm on average (rms).` : '';
+    if (state.sw < 40) return `All ${N_PLANES} plane pairs mapped with a strong pointer (${state.sw} nm), each with fresh particles. The coupling disturbs the wave, so the arrows follow the green curve, not j/|ψ|². These lines do not describe the undisturbed experiment in any of the three views: compare with the weak pointer.${map.endOffset != null ? ` Their ends miss the equal-probability positions of |ψ|² by ${map.endOffset.toFixed(0)} nm (rms).` : ''}${plots} ${RATIONALE_LINK}`;
+    const off = map.endOffset != null ? ` The line ends differ from those positions by ${map.endOffset.toFixed(0)} nm (rms). With infinitely many runs this would be about 4 nm, from the 12 planes and the strip width; the rest is statistical and shrinks with more runs per plane pair.` : '';
     return `All ${N_PLANES} plane pairs mapped, each with fresh particles. The amber lines join the measured arrows. If the arrows are right, their ends on the screen (amber ticks, right) sit at equal-probability positions of |ψ|² (grey ticks), as for any flow of |ψ|².${off} Agreement checks the measurement, not an interpretation.${plots} ${RATIONALE_LINK}`;
   }
   return '';
@@ -438,6 +448,8 @@ const GEO_INPUTS = {
 // stay on the screen and hold the transmitted probability.
 function geometryLimits() {
   const lim = Object.fromEntries(Object.entries(GEO_INPUTS).map(([k, v]) => [k, { ...v }]));
+  // The slit limits depend on the screen length, so clamp it first.
+  geo.screen = Math.min(lim.screen.max, Math.max(lim.screen.min, geo.screen));
   lim.slitWidth.max = Math.max(30, Math.floor(geo.screen / (4 * SLIT_EXTENT) / 5) * 5);
   geo.slitWidth = Math.min(geo.slitWidth, lim.slitWidth.max);
   const base = { sy: geo.slitWidth / 100, k: 2 * Math.PI * 100 / geo.wavelength, wall: geo.wall / 100, sourceSigma: geo.sourceWidth / 100 };
@@ -492,13 +504,14 @@ function readUrl() {
   const gap = num('gap', 10, 100, 5); if (gap !== null) state.gap = gap;
   if (['one', 'many', 'map'].includes(q.get('stage'))) state.stage = q.get('stage');
   for (const k of Object.keys(GEO_DEFAULT)) { const v = parseFloat(q.get(k)); if (Number.isFinite(v)) { geo[k] = v; urlAsked[k] = v; } }
-  if (x1 !== null) urlAsked.x1 = x1;
-  if (gap !== null) urlAsked.gap = gap;
+  for (const k of ['sw', 'x1', 'gap']) { const v = parseFloat(q.get(k)); if (Number.isFinite(v)) urlAsked[k] = v; }
+  const rq = parseFloat(q.get('runs')); if (Number.isFinite(rq)) urlAsked.runs = rq;
+  if (q.get('stage') && !['one', 'many', 'map'].includes(q.get('stage'))) urlBadStage = q.get('stage');
   const runs = parseFloat(q.get('runs')); if (Number.isFinite(runs)) state.perPlane = RUNS.reduce((a, b) => (Math.abs(Math.log(b / runs)) < Math.abs(Math.log(a / runs)) ? b : a));
   if (['density', 'crests', 'phase'].includes(q.get('show'))) state.waveMode = q.get('show');
   if (q.get('bohm') === '1') state.show.bohm = true;
   $('#sw').value = state.sw; $('#x1').value = state.x1; $('#gap').value = state.gap;
-  document.querySelector('[data-toggle="bohm"]').setAttribute('aria-pressed', String(state.show.bohm));
+  document.querySelectorAll('[data-toggle="bohm"], [data-maptoggle="bohm"]').forEach((b) => b.setAttribute('aria-pressed', String(state.show.bohm)));
 }
 function shareUrl() {
   const u = new URL(location.href);
@@ -823,6 +836,8 @@ function drawApparatus(P, box) {
     if (keys.length) {
       const kx = X(p.wall) + 14, ky = Yp(-Y_HALF) - 10;
       ctx.font = '400 11px Inter, Arial, sans-serif';
+      // Short labels when the drawing is narrow (projector, phone).
+      if (40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width)) > box.w - 40) keys.forEach((k) => { k[3] = k[0] === P.line ? 'measured lines' : 'j/|ψ|² flow lines (= pilot-wave)'; });
       const kw = 40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width));
       ctx.fillStyle = P.light ? 'rgba(241,246,248,0.88)' : 'rgba(11,28,41,0.88)'; ctx.fillRect(kx - 6, ky - 15 * keys.length, kw, 6 + 15 * keys.length);
       keys.forEach(([col, dash, lw, label], i) => {
@@ -997,7 +1012,7 @@ function drawScatter(P, box) {
   ctx.restore();
   legend(P, box, 'dashed: Y = y_f (no shift) · amber: mean Y in each strip');
   if (exp && exp.runs) {
-    const s = exp.runs <= SCATTER_N ? `all ${exp.runs.toLocaleString('en-US')} runs shown` : `last ${(SCATTER_N / 1000).toFixed(0)}k of ${fmtCount(exp.runs)} shown · means use all`;
+    const s = exp.runs <= SCATTER_N ? `${exp.runs === 1 ? 'the only run' : `all ${exp.runs.toLocaleString('en-US')} runs`} shown` : `last ${(SCATTER_N / 1000).toFixed(0)}k of ${fmtCount(exp.runs)} shown · means use all`;
     ctx.font = '400 10px Inter, Arial, sans-serif';
     const w = ctx.measureText(s).width + 10;
     ctx.fillStyle = P.light ? 'rgba(241,246,248,0.85)' : 'rgba(11,28,41,0.85)'; ctx.fillRect(box.x + 4, box.y + box.h - 18, w, 15);
@@ -1006,12 +1021,13 @@ function drawScatter(P, box) {
 }
 
 const fmtCount = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(n % 1e6 ? 2 : 0)}M` : n >= 1e4 ? `${(n / 1e3).toFixed(0)}k` : n.toLocaleString('en-US'));
-// The same data as the strip means, magnified: mean pointer reading minus the
-// detected position, in nm. The velocity estimate is minus this over the gap.
+// The same data as the strip means, magnified: detected position minus the
+// mean pointer reading, in nm. Divided by the gap it is the velocity estimate,
+// so this plot has the same shape and sign as the velocity plot.
 function drawShift(P, box) {
-  const toNm = (slope) => -nm(slope * p.k * (exp ? exp.dtau : 0));
+  const toNm = (slope) => nm(slope * p.k * (exp ? exp.dtau : 0));
   const range = exp ? Math.max(0.5, Math.abs(toNm(exp.vmax))) : 5;
-  const { X, V } = axes(P, box, '', 'mean Y − y_f (nm)', -range, range, (v) => v.toFixed(1));
+  const { X, V } = axes(P, box, '', 'y_f − mean Y (nm)', -range, range, (v) => v.toFixed(1));
   if (!exp) return;
   ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
   ctx.strokeStyle = P.grid; ctx.beginPath(); ctx.moveTo(box.x, V(0)); ctx.lineTo(box.x + box.w, V(0)); ctx.stroke();
@@ -1026,7 +1042,7 @@ function drawShift(P, box) {
     ctx.strokeStyle = P.arrow; ctx.fillStyle = P.arrow; ctx.lineWidth = 1.3;
     M.binVelocities(exp.bins, exp.dtau, 50).forEach((b) => {
       if (!b) return;
-      const d = -nm(b.v * exp.dtau), e = nm(b.err * exp.dtau);
+      const d = nm(b.v * exp.dtau), e = nm(b.err * exp.dtau);
       if (e > 2 * range) return;
       ctx.beginPath(); ctx.moveTo(X(b.y), V(d - e)); ctx.lineTo(X(b.y), V(d + e)); ctx.stroke();
       ctx.beginPath(); ctx.arc(X(b.y), V(d), 3, 0, Math.PI * 2); ctx.fill();
@@ -1092,7 +1108,7 @@ function updateResults() {
 // Plot titles name the pair of planes in stage 3.
 function updateTitles() {
   const suffix = map ? ` · pair ${Math.min(map.index + 1, N_PLANES)} of ${N_PLANES}` : '';
-  const t1 = (state.shiftView ? 'Shift: mean Y − y_f' : 'Runs: pointer Y vs y_f') + suffix;
+  const t1 = (state.shiftView ? 'Shift: y_f − mean Y' : 'Runs: pointer Y vs y_f') + suffix;
   const t2 = 'Velocity: slope v_y/v_x' + suffix;
   const a = panels.scatter.el.querySelector('.fp-title'), b = panels.vel.el.querySelector('.fp-title');
   if (a.textContent !== t1) a.textContent = t1;
@@ -1109,6 +1125,13 @@ function render() {
   const P = palette();
   const mt = $('.map-toggles'), mapped = !!map?.done;
   if (mt.hidden === mapped) mt.hidden = !mapped;
+  // Short switch labels when the drawing is narrow, so they stay on one row.
+  const narrow = canvas.clientWidth < 640;
+  if (mt.dataset.narrow !== String(narrow)) {
+    mt.dataset.narrow = String(narrow);
+    const L = narrow ? { arrows: 'Arrows', lines: 'Lines', bohm: 'j/|ψ|² flow lines' } : { arrows: 'Measured arrows', lines: 'Lines through the arrows', bohm: 'j/|ψ|² flow lines (= pilot-wave)' };
+    mt.querySelectorAll('[data-maptoggle]').forEach((b) => { b.textContent = L[b.dataset.maptoggle]; });
+  }
   const m = sizeCanvas(canvas, mainCtx);
   if (!m) return;
   ctx = mainCtx;
@@ -1154,7 +1177,7 @@ function frame(now) {
   }
   try { render(); } catch (err) { console.error(err); }
   // Caption, Results and plot titles update together, so their counts agree.
-  if (now - lastLive > 250 || pending) { lastLive = now; const lt = liveText(); if (lt !== lastLiveHtml) { lastLiveHtml = lt; $('#liveLine').innerHTML = lt; } updateResults(); updateTitles(); }
+  if (now - lastLive > 0 || pending) { lastLive = now; const lt = liveText(); if (lt !== lastLiveHtml) { lastLiveHtml = lt; $('#liveLine').innerHTML = lt; } updateResults(); updateTitles(); }
   requestAnimationFrame(frame);
 }
 
@@ -1173,8 +1196,8 @@ function drawBounds() {
 }
 const distanceScale = mountDistanceScale({
   host: drawHost, storageKey: 'qontic-weak-velocity-scale-position', format: fmtLen,
-  // Default at the top right, clear of the slits and the beam (it can be dragged).
-  defaultPosition: ({ hostWidth, width }) => ({ x: hostWidth - width - 10, y: 30 }),
+  // Default at the bottom right, clear of the slits, the beam and the stage-3 switches (it can be dragged).
+  defaultPosition: ({ hostWidth, hostHeight, width, height }) => ({ x: hostWidth - width - 10, y: hostHeight - height - 30 }),
   getUnitsPerPixel: () => { const b = drawBounds(); return b ? { x: b.ux, y: b.uy } : { x: 0, y: 0 }; },
 });
 let scaleShown = false;
@@ -1244,9 +1267,12 @@ syncGeometryInputs();
     Object.assign(geo, GEO_DEFAULT); syncGeometryInputs();
     urlNote = 'The link asked for a geometry with no room for two slits; the default geometry is used.';
   } else {
-    const changed = Object.keys(urlAsked).filter((k) => (k in geo ? geo[k] : state[k]) !== urlAsked[k]);
-    if (changed.length) urlNote = `The link's ${changed.map((k) => DRAG_LABEL[k] || GEO_LABEL[k] || k).join(', ').toLowerCase()} ${changed.length > 1 ? 'were' : 'was'} outside the allowed range and ${changed.length > 1 ? 'have' : 'has'} been adjusted.`;
+    const cur = (k) => (k in geo ? geo[k] : k === 'runs' ? state.perPlane : state[k]);
+    const changed = Object.keys(urlAsked).filter((k) => cur(k) !== urlAsked[k]);
+    const name = (k) => (DRAG_LABEL[k] || GEO_LABEL[k] || { sw: 'Pointer spread', runs: 'Runs per pair of planes' }[k] || k).toLowerCase();
+    if (changed.length) urlNote = `The link's ${changed.map((k) => `${name(k)} (${urlAsked[k]} → ${cur(k)})`).join(', ')} ${changed.length > 1 ? 'were' : 'was'} adjusted to the allowed range.`;
   }
+  if (urlBadStage) urlNote = `${urlNote} The link's stage "${urlBadStage}" is unknown; stage 1 is shown.`.trim();
   if (urlNote) $('#geoNote').textContent = `${urlNote} ${$('#geoNote').textContent}`;
 }
 applyGeometry();
