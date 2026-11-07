@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.4.2';
-import * as M from './weak-model.js?v=0.4.2';
+import { APP_RELEASE } from './release.js?v=0.4.3';
+import * as M from './weak-model.js?v=0.4.3';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -266,7 +266,8 @@ $('#perPlane').addEventListener('input', (e) => {
   state.perPlane = RUNS[+e.target.value]; $('#perPlaneOut').value = state.perPlane.toLocaleString('en-US').replace(/,/g, ' ');
 });
 $('#perPlane').addEventListener('change', () => { if (state.stage === 'map' || (exp && exp.runs > state.perPlane)) pending = true; });
-$('#arrowDensity').addEventListener('input', (e) => { state.arrowEvery = +e.target.value; $('#arrowDensityOut').value = Math.ceil(N_BINS / state.arrowEvery); });
+// Slider left = fewest arrows (every 5th strip), right = all 40, like the Lines slider.
+$('#arrowDensity').addEventListener('input', (e) => { state.arrowEvery = 6 - +e.target.value; $('#arrowDensityOut').value = Math.ceil(N_BINS / state.arrowEvery); });
 $('#lineCount').addEventListener('input', (e) => { state.nLines = +e.target.value; $('#lineCountOut').value = state.nLines; if (map?.done) buildLines(); });
 document.querySelectorAll('[data-maptoggle]').forEach((b) => b.addEventListener('click', () => toggle(b.dataset.maptoggle)));
 $('#showSetup').addEventListener('click', () => { stop(); showStep('setup'); });
