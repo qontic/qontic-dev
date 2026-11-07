@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.3.1 — 2026-11-06
+- Drag the geometry on the drawing, as in the analytical double-slit app: the screen sideways (slits-to-screen distance) or its end squares (screen length); a slit's circle up or down (separation) or its edge square (slit width); the weak or strong plane sideways (stages 1 and 2). A label shows the value while dragging, and the drawing keeps its scale until release so the screen follows the pointer. The same limits apply (a wider slit can lower the largest allowed separation), and the experiment starts again on release.
+
 ## 0.3.0 — 2026-11-06
 - Advanced tab: geometry and beam (wavelength, slit width, slit separation, source-to-slits distance, slits-to-screen distance, screen length, source width), with the analytical double-slit app's ranges and limits (λ ≤ 50 nm; opening and separation limits from the screen length via maximumCoreSafeSeparation). Slits-to-screen starts at 200 nm here so the 12 plane pairs fit. Default geometry button; geometry in share links.
 - Strips, axes, scale bar, pointer scale and stage-3 planes scale with the geometry.

@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.3.0';
-import * as M from './weak-model.js?v=0.3.0';
+import { APP_RELEASE } from './release.js?v=0.3.1';
+import * as M from './weak-model.js?v=0.3.1';
 import { maximumCoreSafeSeparation } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -473,11 +473,108 @@ function text(s, x, y, { color, size = 12, align = 'left', base = 'alphabetic', 
   ctx.fillStyle = color; ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`; ctx.textAlign = align; ctx.textBaseline = base; ctx.fillText(s, x, y);
 }
 
+// ---------------------------------------------------------------- drag the geometry on the drawing
+// Handles, as in the analytical double-slit app: drag the screen sideways
+// (slits-to-screen distance) or its ends (screen length); drag a slit up or
+// down (separation) or its edge (slit width); drag the weak or strong plane.
+let appMap = null, drag = null, hover = null;
+const GRIP = 9;
+function handles() {
+  if (!appMap) return [];
+  const { X, Yp } = appMap, out = [], xw = X(p.wall), xs = X(p.screen);
+  p.centers.forEach((c, i) => {
+    out.push({ kind: 'slitWidth', x: xw, y: Yp(c + SLIT_EXTENT * p.sy) * 1, i, edge: 1 });
+    out.push({ kind: 'slitWidth', x: xw, y: Yp(c - SLIT_EXTENT * p.sy), i, edge: -1 });
+    out.push({ kind: 'separation', x: xw, y: Yp(c), i });
+  });
+  out.push({ kind: 'screen', x: xs, y: Yp(Y_HALF), edge: 1 }, { kind: 'screen', x: xs, y: Yp(-Y_HALF), edge: -1 });
+  out.push({ kind: 'distance', x: xs, y: Yp(0), line: true });
+  if (state.stage !== 'map' && (exp || (drag && (drag.kind === 'x1' || drag.kind === 'gap')))) {
+    const a1 = p.wall + state.x1 / 100, a2 = a1 + state.gap / 100;
+    out.push({ kind: 'gap', x: X(a2), y: Yp(0), line: true });
+    out.push({ kind: 'x1', x: X(a1), y: Yp(0), line: true });
+  }
+  return out;
+}
+function hitHandle(px, py) {
+  if (!appMap) return null;
+  const top = appMap.Yp(Y_HALF), bot = appMap.Yp(-Y_HALF);
+  for (const h of handles()) {
+    if (!h.line && Math.hypot(px - h.x, py - h.y) <= GRIP) return h;
+  }
+  for (const h of handles()) if (h.line && Math.abs(px - h.x) <= 6 && py >= top && py <= bot) return h;
+  return null;
+}
+const CURSOR = { slitWidth: 'ns-resize', separation: 'ns-resize', screen: 'ns-resize', distance: 'ew-resize', gap: 'ew-resize', x1: 'ew-resize' };
+const DRAG_LABEL = { slitWidth: 'Slit width σ', separation: 'Slit separation', screen: 'Screen length', distance: 'Slits to screen', gap: 'Gap to strong plane', x1: 'Weak plane' };
+function drawGrips(P) {
+  const hs = handles();
+  for (const h of hs) {
+    const on = (drag && drag.kind === h.kind) || (hover && hover.kind === h.kind);
+    ctx.globalAlpha = on ? 1 : 0.6;
+    ctx.fillStyle = P.light ? '#ffffff' : '#0b1c29'; ctx.strokeStyle = h.kind === 'gap' ? P.strong : h.kind === 'x1' ? P.weak : (P.light ? '#36505f' : '#c9e7f2'); ctx.lineWidth = on ? 2 : 1.3;
+    if (h.line) { ctx.beginPath(); ctx.roundRect(h.x - 5, h.y - 12, 10, 24, 4); ctx.fill(); ctx.stroke(); }
+    else if (h.kind === 'separation') { ctx.beginPath(); ctx.arc(h.x, h.y, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.rect(h.x - 4, h.y - 4, 8, 8); ctx.fill(); ctx.stroke(); }
+  }
+  ctx.globalAlpha = 1;
+  if (drag && drag.label) {
+    const t = drag.label; ctx.font = '600 12px Inter, Arial, sans-serif';
+    const w = ctx.measureText(t).width + 14, bx = Math.min(appMap.box.x + appMap.box.w - w - 4, drag.px + 12), by = Math.max(appMap.box.y + 4, drag.py - 30);
+    ctx.fillStyle = P.light ? 'rgba(255,255,255,0.95)' : 'rgba(7,19,29,0.95)'; ctx.fillRect(bx, by, w, 22);
+    text(t, bx + 7, by + 15, { color: P.text, size: 12, weight: 600 });
+  }
+}
+function pointerPos(e) { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+canvas.addEventListener('pointermove', (e) => {
+  const [px, py] = pointerPos(e);
+  if (drag) { dragMove(px, py); return; }
+  hover = hitHandle(px, py);
+  canvas.style.cursor = hover ? CURSOR[hover.kind] : '';
+});
+canvas.addEventListener('pointerleave', () => { if (!drag) { hover = null; canvas.style.cursor = ''; } });
+canvas.addEventListener('pointerdown', (e) => {
+  const [px, py] = pointerPos(e), h = hitHandle(px, py);
+  if (!h) return;
+  e.preventDefault();
+  canvas.setPointerCapture(e.pointerId);
+  stop();
+  // The mapping at the start of the drag converts pointer positions to lengths.
+  const m = appMap, invX = (qx) => m.x0 + (qx - m.box.x) / m.box.w * (m.x1 - m.x0);
+  const invY = (qy) => m.Yh - (qy - m.box.y - 26) / (m.box.h - 44) * 2 * m.Yh;
+  drag = { kind: h.kind, invX, invY, px, py, label: '', m0: { x0: m.x0, x1: m.x1, Yh: m.Yh } };
+  exp = null; map = null; anim = null; pending = true;
+  dragMove(px, py);
+});
+function endDrag() { if (!drag) return; drag = null; hover = null; canvas.style.cursor = ''; pending = true; state.selected = null; updateText(); }
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+function dragMove(px, py) {
+  drag.px = px; drag.py = py;
+  const k = drag.kind, xm = drag.invX(px), ym = drag.invY(py);
+  if (k === 'distance') geo.distance = nm(xm - p.wall);
+  else if (k === 'screen') geo.screen = 2 * nm(Math.abs(ym));
+  else if (k === 'separation') geo.separation = 2 * nm(Math.abs(ym));
+  else if (k === 'slitWidth') { const c = p.centers.reduce((a, b) => (Math.abs(b - ym) < Math.abs(a - ym) ? b : a)); geo.slitWidth = nm(Math.abs(ym - c)) / SLIT_EXTENT; }
+  else if (k === 'gap') { state.gap = Math.round(Math.max(10, Math.min(+$('#gap').max, nm(xm - p.wall) - state.x1)) / 5) * 5; $('#gap').value = state.gap; }
+  else if (k === 'x1') { state.x1 = Math.round(Math.max(0, Math.min(+$('#x1').max, nm(xm - p.wall))) / 10) * 10; $('#x1').value = state.x1; }
+  if (k in GEO_INPUTS) { syncGeometryInputs(); applyGeometry(); }
+  updateText();
+  const v = k in GEO_INPUTS ? geo[k] : state[k];
+  drag.label = `${DRAG_LABEL[k]}: ${v} nm`;
+}
+
 function drawApparatus(P, box) {
-  const D = p.screen - p.wall, x0 = p.wall - 0.05 * D - 0.1, x1 = p.screen + 0.1 * D + 0.2;
+  const D = p.screen - p.wall;
+  // While the screen is dragged, keep the drawing's scale from the start of the
+  // drag so the screen follows the pointer; it rescales on release.
+  const frozen = drag && (drag.kind === 'distance' || drag.kind === 'screen') ? drag.m0 : null;
+  const x0 = frozen ? frozen.x0 : p.wall - 0.05 * D - 0.1, x1 = frozen ? frozen.x1 : p.screen + 0.1 * D + 0.2;
+  const YH = frozen ? frozen.Yh : Y_HALF;
   const X = (x) => box.x + (x - x0) / (x1 - x0) * box.w;
-  const Yp = (y) => box.y + 26 + (Y_HALF - y) / (2 * Y_HALF) * (box.h - 44);
+  const Yp = (y) => box.y + 26 + (YH - y) / (2 * YH) * (box.h - 44);
   ctx.fillStyle = P.panel; ctx.fillRect(box.x, box.y, box.w, box.h);
+  ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
   // wave
   if (state.show.wave && waveImage) {
     ctx.imageSmoothingEnabled = true;
@@ -597,6 +694,15 @@ function drawApparatus(P, box) {
   }
   // stage 1: pointer gauge and detection flash
   if (state.stage === 'one' && exp) drawPointerGauge(P, box, X, Yp);
+  // While a plane is dragged, show where the pair will be.
+  if (drag && (drag.kind === 'x1' || drag.kind === 'gap')) {
+    const a1 = p.wall + state.x1 / 100, a2 = a1 + state.gap / 100;
+    ctx.lineWidth = 1.5; ctx.strokeStyle = P.weak; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(a1), Yp(Y_HALF)); ctx.lineTo(X(a1), Yp(-Y_HALF)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = P.strong; ctx.beginPath(); ctx.moveTo(X(a2), Yp(Y_HALF)); ctx.lineTo(X(a2), Yp(-Y_HALF)); ctx.stroke();
+  }
+  ctx.restore();
+  appMap = { X, Yp, box, x0, x1, Yh: YH };
+  drawGrips(P);
   return { X, Yp };
 }
 
@@ -767,7 +873,7 @@ function render() {
 let lastT = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
-  if (pending) rebuild();
+  if (pending && !drag) rebuild();
   if (state.running && exp) {
     if (state.stage === 'one') {
       if (!anim) anim = { t: 0, run: M.sampleRun(exp.table) };
