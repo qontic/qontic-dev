@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.1.1">
+<link rel="stylesheet" href="css/wv.css?v=0.1.2">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -44,12 +44,12 @@
         <label class="control-row" title="Distance from the weak plane to the plane where the particle's position is detected.">
           <span>Gap to strong plane</span><input id="gap" type="range" min="10" max="100" step="5" value="50" aria-label="Gap between the weak and strong planes in nanometres"><output id="gapOut">50 nm</output>
         </label>
-        <label class="control-row select-row" title="Runs collected at each pair of planes in stage 3.">
-          <span>Runs per plane</span>
-          <select id="perPlane" aria-label="Runs per plane in stage 3">
-            <option value="200000">200 000</option>
+        <label class="control-row select-row" id="runsRow" title="Runs collected at the pair of planes (stage 2), or at each pair of planes (stage 3). Each arrow needs about a million runs with a weak pointer.">
+          <span>Runs per pair of planes</span>
+          <select id="perPlane" aria-label="Runs per pair of planes">
+            <option value="100000">100 000</option>
             <option value="1000000" selected>1 000 000</option>
-            <option value="4000000">4 000 000</option>
+            <option value="5000000">5 000 000</option>
           </select>
         </label>
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
@@ -170,6 +170,6 @@
   <p>The double-slit app draws pilot-wave trajectories from the theory. This app starts from data that could be taken in a laboratory and shows that they give the same lines. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.1.1"></script>
+<script type="module" src="js/app.js?v=0.1.2"></script>
 </body>
 </html>

@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.1.1';
-import * as M from './weak-model.js?v=0.1.1';
+import { APP_RELEASE } from './release.js?v=0.1.2';
+import * as M from './weak-model.js?v=0.1.2';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -21,8 +21,8 @@ const T0 = M.wallTerms(p);
 const Y_HALF = 4;            // ±400 nm shown and binned
 const N_BINS = 40;           // 20 nm strips
 const N_PLANES = 12;
-const MAX_MANY = 5e6;
 const SCATTER_N = 4000;
+const RECENT_ON_PLANES = 1500;
 const nm = (u) => u * 100;
 
 const $ = (s) => document.querySelector(s);
@@ -169,6 +169,7 @@ function updateText() {
       ? 'Intermediate: readings are sharper and the wave is slightly disturbed.'
       : 'Strong: each reading is precise, but the coupling disturbs the wave. Compare the green and dashed curves.';
   $('#x1Row').style.display = state.stage === 'map' ? 'none' : '';
+  $('#runsRow').style.display = state.stage === 'one' ? 'none' : '';
   document.querySelectorAll('[data-stage]').forEach((b) => {
     const on = b.dataset.stage === state.stage;
     b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
@@ -187,7 +188,7 @@ function liveText() {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const strip = `${nm(-Y_HALF + state.selected * 0.2).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * 0.2).toFixed(0)} nm`;
     const tail = b ? ` On the planes: the amber dot is the mean pointer reading for the selected strip, the cyan dot the mean detected position. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
-    return `${N} runs.${tail}`;
+    return `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${tail}`;
   }
   if (map && !map.done) return `Plane ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
   if (map && map.done) return state.sw < 40
@@ -232,14 +233,14 @@ document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('cl
 $('#sw').addEventListener('input', (e) => { state.sw = +e.target.value; pending = true; updateText(); });
 $('#x1').addEventListener('input', (e) => { state.x1 = +e.target.value; if (state.stage !== 'map') pending = true; updateText(); });
 $('#gap').addEventListener('input', (e) => { state.gap = +e.target.value; pending = true; updateText(); });
-$('#perPlane').addEventListener('change', (e) => { state.perPlane = +e.target.value; if (state.stage === 'map') pending = true; });
+$('#perPlane').addEventListener('change', (e) => { state.perPlane = +e.target.value; if (state.stage === 'map' || (exp && exp.runs > state.perPlane)) pending = true; });
 $('#showSetup').addEventListener('click', () => { stop(); showStep('setup'); });
 $('#setupGo').addEventListener('click', () => setStage('one', true));
 
 function stop() { state.running = false; controlsEl.setAttribute('running', 'false'); }
 function start() {
   if (map?.done) pending = true;
-  if (state.stage === 'many' && exp && exp.runs >= MAX_MANY) pending = true;
+  if (state.stage === 'many' && exp && exp.runs >= state.perPlane) pending = true;
   state.running = true; controlsEl.setAttribute('running', 'true'); showStep('live');
 }
 controlsEl.addEventListener('qontic:start', () => start());
@@ -426,6 +427,23 @@ function drawApparatus(P, box) {
     text('weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
     text('strong', X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
   }
+  // Recent runs: pointer readings along the weak plane, detections along the
+  // strong plane (the same runs as in the data plot, slightly spread sideways).
+  if (exp && !(map?.done) && exp.scatterN) {
+    const xw = X(exp.x1), xs = X(exp.x2), top = Yp(Y_HALF), bot = Yp(-Y_HALF);
+    const n = Math.min(exp.scatterN, RECENT_ON_PLANES);
+    for (let k = 0; k < n; k++) {
+      const i = (exp.scatterHead - 1 - k + SCATTER_N) % SCATTER_N, a = exp.scatter[2 * i], b = exp.scatter[2 * i + 1];
+      const u = ((i * 2654435761) % 1000) / 1000;
+      const yw = Yp(b), ys = Yp(a), half = Math.max(3, (xs - xw) / 2 - 3);
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = P.weak;
+      if (yw >= top && yw <= bot) ctx.fillRect(xw - 3 - u * 10, yw - 1, 2, 2);
+      ctx.fillStyle = P.strong;
+      ctx.fillRect(xs - 3 - u * half, ys - 1, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+  }
   // Selected strip: mean pointer reading on the weak plane, joined to the mean
   // detected position on the strong plane. The slope of this step is the arrow.
   if (exp && state.stage !== 'one' && !(map?.done) && state.selected !== null) {
@@ -525,6 +543,13 @@ function drawScatter(P, box) {
   }
   ctx.restore();
   legend(P, box, 'dashed: Y = y_f · amber: mean Y in each strip');
+  if (exp && exp.runs) {
+    const s = exp.runs <= SCATTER_N ? `all ${exp.runs.toLocaleString('en-US')} runs shown` : `last ${SCATTER_N.toLocaleString('en-US')} of ${exp.runs.toLocaleString('en-US')} runs shown; strip means use all`;
+    ctx.font = '400 10px Inter, Arial, sans-serif';
+    const w = ctx.measureText(s).width + 10;
+    ctx.fillStyle = P.light ? 'rgba(241,246,248,0.85)' : 'rgba(11,28,41,0.85)'; ctx.fillRect(box.x + 4, box.y + box.h - 18, w, 15);
+    text(s, box.x + 9, box.y + box.h - 7, { color: P.muted, size: 10 });
+  }
 }
 
 function drawVelocity(P, box) {
@@ -604,8 +629,8 @@ function frame(now) {
       if (anim.t >= 1) { addRun(exp, anim.run); anim = null; }
     } else if (state.stage === 'many') {
       const n = Math.round(15000 * state.speed);
-      for (let i = 0; i < n && exp.runs < MAX_MANY; i++) addRun(exp, M.sampleRun(exp.table));
-      if (exp.runs >= MAX_MANY) stop();
+      for (let i = 0; i < n && exp.runs < state.perPlane; i++) addRun(exp, M.sampleRun(exp.table));
+      if (exp.runs >= state.perPlane) { stop(); showNext(); }
     } else if (map && !map.done) {
       const n = Math.min(state.perPlane - exp.runs, Math.round(60000 * state.speed));
       for (let i = 0; i < n; i++) addRun(exp, M.sampleRun(exp.table));
