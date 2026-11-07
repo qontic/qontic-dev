@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.5.5 — 2026-11-07
+- Physics: the app simulates Wiseman's proposed scheme, not an experiment; why Kocsis et al. needed far fewer particles (about 31,000 photons per exposure, 41 planes): direct momentum readout, and a coupling that can be strong because momentum is conserved in free flight (±28 µm shift against ~1 mm fringes).
+
 ## 0.5.4 — 2026-11-07
 - Noisy arrows are drawn faint instead of hidden, and stage 2 draws an arrow for any strip with 200 runs (was 2 000); with a short gap or few runs most arrows used to disappear.
 - Stage 3: after a setting change clears the map, the caption says to press Start.

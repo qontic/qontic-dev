@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.5.4">
+<link rel="stylesheet" href="css/wv.css?v=0.5.5">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -190,7 +190,7 @@
   <h2>Stage 3: the velocity field and its flow lines</h2>
   <p>Stage 3 repeats the experiment at twelve pairs of planes from the slits to the screen, each with fresh runs. The arrows give a measured velocity field. Starting points are placed at equal-probability positions in the first strong plane, and each line follows the measured arrows, interpolated linearly between planes and between strips. No run is measured at more than one pair of planes; joining the arrows is a step taken in the analysis. If the arrows are right, the lines end at equal-probability positions on the screen. That holds for the flow lines of any velocity field that carries |ψ|² (the continuity equation), so it checks the arrows, not an interpretation. The ticks on the right show where the measured lines end (amber) and the equal-probability positions (grey); the caption gives their mean difference.</p>
   <p>The optional dashed lines are the flow lines of j/|ψ|² computed directly from ψ, from the same starts. They are the same curves as the pilot-wave trajectories of the double-slit app. Agreement between the two sets checks the measurement and its statistics.</p>
-  <p>A related measurement was done by Kocsis et al. with single photons.<sup><a href="#ref-3">3</a></sup> It differs from this one in two ways. They weakly measured the photon's transverse momentum, through its polarization in a birefringent crystal, rather than its position over a gap (the scheme here is Wiseman's<sup><a href="#ref-1">1</a></sup>). And photons are not massive Schrödinger particles; the paraxial wave equation for light has the same form, which is why the comparison works. They called the lines “average trajectories” of the photons, noted that trajectories measured this way reproduce those of Bohm's theory, and stressed that the reconstruction does not depend on a choice of interpretation. For light, Bliokh et al. read the same kind of weak momentum measurement as a measurement of the Poynting vector of classical optics.<sup><a href="#ref-8">8</a></sup></p>
+  <p>A related measurement was done by Kocsis et al. with single photons.<sup><a href="#ref-3">3</a></sup> It differs from this one in two ways. They weakly measured the photon's transverse momentum, through its polarization in a birefringent crystal, rather than its position over a gap (the scheme here is Wiseman's<sup><a href="#ref-1">1</a></sup>). And photons are not massive Schrödinger particles; the paraxial wave equation for light has the same form, which is why the comparison works. They called the lines “average trajectories” of the photons, noted that trajectories measured this way reproduce those of Bohm's theory, and stressed that the reconstruction does not depend on a choice of interpretation. This app simulates the scheme Wiseman proposed for a massive particle,<sup><a href="#ref-1">1</a></sup> with an idealized apparatus; it does not reproduce an experiment. Kocsis et al. detected about 31,000 photons per exposure at each of 41 planes, far fewer than the million runs per pair here. They read the momentum directly instead of inferring it from a shift of a few nanometres over a short gap. And since momentum does not change in free flight, their coupling could be strong compared with the signal without disturbing what is measured later: the calcite shifts the two polarization components by about ±28 µm, against fringes about a millimetre apart. Their trajectories are still noisy; they attribute the bunching of trajectories in the bright fringes to measurement noise. For light, Bliokh et al. read the same kind of weak momentum measurement as a measurement of the Poynting vector of classical optics.<sup><a href="#ref-8">8</a></sup></p>
 
   <h2>What the model assumes</h2>
   <ul>
@@ -258,6 +258,6 @@
   <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.5.4"></script>
+<script type="module" src="js/app.js?v=0.5.5"></script>
 </body>
 </html>
