@@ -84,6 +84,14 @@ test('Rear-frame strain also bounded by gamma_f - 1, equal once coasting', () =>
   close(strainRearFrame(m, end), strainAt(m, end), 1e-9, 'coasting');
 });
 
+test('Rigid: thread unstretched at every moment, even for strong acceleration', () => {
+  for (const [a, beta] of [[0.2, 0.9], [1, 0.9], [1, 0.99]]) {
+    const m = makeModel({ beta, accel: a, k: 1 });
+    const end = runEnd(m);
+    for (let i = 1; i <= 300; i++) assert.ok(Math.abs(strainAt(m, (end * i) / 300)) < 0.003, `a=${a} beta=${beta}`);
+  }
+});
+
 test('Rigid: launch-frame strain stays within 2.5% of zero at a = 0.2', () => {
   const m = makeModel({ beta: 0.95, accel: 0.2, mode: 'rigid' });
   const end = runEnd(m);
