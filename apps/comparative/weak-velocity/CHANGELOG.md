@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.2.4 — 2026-11-06
+- Stage 2 starts slowly and accelerates while the points beside the planes fill in (about 2 s at speed 1), so the hits appear in sequence instead of all at once.
+
 ## 0.2.3 — 2026-11-06
 - Runs beside the planes are drawn as points again (one per run, first 6 000 runs kept), instead of the 4 nm bars of 0.1.4. A note gives the count when more runs were taken.
 

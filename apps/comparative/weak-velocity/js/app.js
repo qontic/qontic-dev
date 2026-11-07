@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.3';
-import * as M from './weak-model.js?v=0.2.3';
+import { APP_RELEASE } from './release.js?v=0.2.4';
+import * as M from './weak-model.js?v=0.2.4';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -683,7 +683,10 @@ function frame(now) {
       anim.t += dt * state.speed / 1.6;
       if (anim.t >= 1) { addRun(exp, anim.run); anim = null; }
     } else if (state.stage === 'many') {
-      const n = Math.round(15000 * state.speed);
+      // While the points beside the planes fill in, runs start slowly and
+      // accelerate (about 2 s at speed 1), so the hits appear in sequence.
+      let n = Math.round(15000 * state.speed);
+      if (exp.ptsN < PLANE_POINTS) { exp.ramp = (exp.ramp || 1) * (1 + 0.04 * state.speed); n = Math.max(1, Math.min(n, Math.floor(exp.ramp * state.speed))); }
       for (let i = 0; i < n && exp.runs < state.perPlane; i++) addRun(exp, M.sampleRun(exp.table));
       if (exp.runs >= state.perPlane) { stop(); showNext(); }
     } else if (map && !map.done) {
