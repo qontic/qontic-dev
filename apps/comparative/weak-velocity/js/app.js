@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.4.1';
-import * as M from './weak-model.js?v=0.4.1';
+import { APP_RELEASE } from './release.js?v=0.4.2';
+import * as M from './weak-model.js?v=0.4.2';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -34,6 +34,7 @@ const N_BINS = 40;           // strips across the screen (20 nm for an 800 nm sc
 const N_PLANES = 12;
 const SCATTER_N = 4000;
 const PLANE_POINTS = 6000; // runs kept as points beside the planes
+const MANY_SECONDS = 6;     // stage 2 collection time at speed 1
 const nm = (u) => u * 100;
 // 1, 2 or 5 times a power of ten, close to x.
 function niceStep(x) { const e = 10 ** Math.floor(Math.log10(x)), f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
@@ -102,7 +103,10 @@ function makeExperiment(x1nm) {
 
 function addRun(e, run) {
   M.addToBins(e.bins, run);
-  if (e.ptsN < PLANE_POINTS) { e.ptsY[e.ptsN] = run.Y; e.ptsYf[e.ptsN] = run.yf; e.ptsU[e.ptsN] = Math.random(); e.ptsN++; }
+  // Points beside the planes: one run in every `stride`, so they fill in over the
+  // whole collection and finish with it (6 000 points at the end).
+  const stride = Math.max(1, Math.floor(state.perPlane / PLANE_POINTS));
+  if (e.runs % stride === 0 && e.ptsN < PLANE_POINTS) { e.ptsY[e.ptsN] = run.Y; e.ptsYf[e.ptsN] = run.yf; e.ptsU[e.ptsN] = Math.random(); e.ptsN++; }
   e.runs++;
   e.scatter[e.scatterHead * 2] = run.yf; e.scatter[e.scatterHead * 2 + 1] = run.Y;
   e.scatterHead = (e.scatterHead + 1) % SCATTER_N; e.scatterN = Math.min(SCATTER_N, e.scatterN + 1);
@@ -782,7 +786,8 @@ function drawApparatus(P, box) {
     ctx.fillStyle = P.strong;
     for (let i = 0; i < n; i++) ctx.fillRect(xs - 3 - exp.ptsU[i] * (gapW - 2) - sz / 2, Yp(exp.ptsYf[i]) - sz / 2, sz, sz);
     ctx.globalAlpha = 1;
-    if (exp.runs > n) text(`points: first ${n.toLocaleString('en-US')} of ${exp.runs.toLocaleString('en-US')} runs`, xw - 6, bot + 13, { color: P.muted, size: 10, align: 'right' });
+    const stride = Math.max(1, Math.floor(state.perPlane / PLANE_POINTS));
+    if (stride > 1) text(`points: one run in ${stride.toLocaleString('en-US')}`, xw - 6, bot + 13, { color: P.muted, size: 10, align: 'right' });
   }
   // Selected strip: mean pointer reading on the weak plane, joined to the mean
   // detected position on the strong plane. The slope of this step is the arrow.
@@ -992,10 +997,12 @@ function frame(now) {
       anim.t += dt * state.speed / RUN_SECONDS;
       if (anim.t >= 1) { addRun(exp, anim.run); anim = null; }
     } else if (state.stage === 'many') {
-      // While the points beside the planes fill in, runs start slowly and
-      // accelerate (about 2 s at speed 1), so the hits appear in sequence.
-      let n = Math.round(15000 * state.speed);
-      if (exp.ptsN < PLANE_POINTS) { exp.ramp = (exp.ramp || 1) * (1 + 0.04 * state.speed); n = Math.max(1, Math.min(n, Math.floor(exp.ramp * state.speed))); }
+      // One schedule for the drawing and the plots: the collection takes about
+      // MANY_SECONDS at speed 1, starting slowly (cubic) so the first points
+      // appear one by one; both end together when the last run is in.
+      exp.clock = Math.min(1, (exp.clock || 0) + dt * state.speed / MANY_SECONDS);
+      const want = Math.ceil(state.perPlane * exp.clock ** 3);
+      const n = Math.min(150000, Math.max(0, want - exp.runs));
       for (let i = 0; i < n && exp.runs < state.perPlane; i++) addRun(exp, M.sampleRun(exp.table));
       if (exp.runs >= state.perPlane) { stop(); showNext(); }
     } else if (map && !map.done) {

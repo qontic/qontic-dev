@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.4.2 — 2026-11-07
+- Stage 2: the drawing and the plots follow one schedule. The collection takes about 6 s at speed 1 (longer if the computer cannot keep up), starting slowly so the first points appear one by one, and both end with the last run. The points beside the planes are one run in every N (N = runs per pair ÷ 6 000), so they fill in over the whole collection instead of stopping after the first 6 000 runs.
+
 ## 0.4.1 — 2026-11-07
 - Density is the default Show mode.
 - Stage 3, once mapped: switches on the drawing for measured arrows, lines through the arrows and pilot-wave trajectories (also in Display). The on-canvas key lists only what is shown.
