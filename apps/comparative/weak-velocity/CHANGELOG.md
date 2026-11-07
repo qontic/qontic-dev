@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.5.2 — 2026-11-07
+- Overlay label: "j/|ψ|² flow lines (trajectories in pilot-wave)" instead of "(= pilot-wave)", on the drawing, in the key and in the Display tab.
+
 ## 0.5.1 — 2026-11-07
 Fixes from the second review round (context/2026-11-07-weak-velocity-review-2.md).
 - Model: the y_f table uses cell-centred cells that nest inside the strips. Before, a sampled run could cross a strip edge while the exact strip means assigned its cell to one strip; with a 10 nm pointer this gave a small systematic offset (χ²/n 1.2 at 1M runs, 2.2 at 4M). New test (10 tests).

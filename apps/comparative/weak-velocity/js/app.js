@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.5.1';
-import * as M from './weak-model.js?v=0.5.1';
+import { APP_RELEASE } from './release.js?v=0.5.2';
+import * as M from './weak-model.js?v=0.5.2';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -825,19 +825,19 @@ function drawApparatus(P, box) {
     ctx.save(); ctx.beginPath(); ctx.rect(X(p.wall), Yp(Y_HALF), X(p.screen) - X(p.wall), Yp(-Y_HALF) - Yp(Y_HALF)); ctx.clip();
     ctx.strokeStyle = P.line; ctx.lineWidth = 1.8; if (state.show.lines) map.lines.forEach(path);
     if (state.show.bohm) {
-      // Flow lines of j/|psi|^2 computed from psi (pilot-wave trajectories), same starts, drawn on top.
+      // Flow lines of j/|psi|^2 computed from psi (trajectories in pilot-wave), same starts, drawn on top.
       ctx.strokeStyle = P.bohm; ctx.lineWidth = 1.7; ctx.setLineDash([6, 4]); map.bohm.forEach(path); ctx.setLineDash([]);
     }
     ctx.restore();
     // key
     const keys = [];
     if (state.show.lines) keys.push([P.line, [], 1.8, 'lines through the measured arrows']);
-    if (state.show.bohm) keys.push([P.bohm, [6, 4], 1.7, 'flow lines of j/|ψ|² from ψ (= pilot-wave trajectories), same starts']);
+    if (state.show.bohm) keys.push([P.bohm, [6, 4], 1.7, 'flow lines of j/|ψ|² from ψ (trajectories in pilot-wave), same starts']);
     if (keys.length) {
       const kx = X(p.wall) + 14, ky = Yp(-Y_HALF) - 10;
       ctx.font = '400 11px Inter, Arial, sans-serif';
       // Short labels when the drawing is narrow (projector, phone).
-      if (40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width)) > box.w - 40) keys.forEach((k) => { k[3] = k[0] === P.line ? 'measured lines' : 'j/|ψ|² flow lines (= pilot-wave)'; });
+      if (40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width)) > box.w - 40) keys.forEach((k) => { k[3] = k[0] === P.line ? 'measured lines' : 'j/|ψ|² flow lines (trajectories in pilot-wave)'; });
       const kw = 40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width));
       ctx.fillStyle = P.light ? 'rgba(241,246,248,0.88)' : 'rgba(11,28,41,0.88)'; ctx.fillRect(kx - 6, ky - 15 * keys.length, kw, 6 + 15 * keys.length);
       keys.forEach(([col, dash, lw, label], i) => {
@@ -1129,7 +1129,7 @@ function render() {
   const narrow = canvas.clientWidth < 640;
   if (mt.dataset.narrow !== String(narrow)) {
     mt.dataset.narrow = String(narrow);
-    const L = narrow ? { arrows: 'Arrows', lines: 'Lines', bohm: 'j/|ψ|² flow lines' } : { arrows: 'Measured arrows', lines: 'Lines through the arrows', bohm: 'j/|ψ|² flow lines (= pilot-wave)' };
+    const L = narrow ? { arrows: 'Arrows', lines: 'Lines', bohm: 'j/|ψ|² flow lines' } : { arrows: 'Measured arrows', lines: 'Lines through the arrows', bohm: 'j/|ψ|² flow lines (trajectories in pilot-wave)' };
     mt.querySelectorAll('[data-maptoggle]').forEach((b) => { b.textContent = L[b.dataset.maptoggle]; });
   }
   const m = sizeCanvas(canvas, mainCtx);

@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.5.1">
+<link rel="stylesheet" href="css/wv.css?v=0.5.2">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -83,7 +83,7 @@
         <div class="toggle-row"><span>j/|ψ|²: prediction for an ideal weak pointer</span><button class="toggle" type="button" data-toggle="current" aria-pressed="true" aria-label="Show the current velocity curve"></button></div>
         <div class="toggle-row"><span>Prediction for this pointer</span><button class="toggle" type="button" data-toggle="expected" aria-pressed="true" aria-label="Show the prediction for this pointer (infinitely many runs)"></button></div>
         <div class="toggle-row"><span>Lines through the arrows</span><button class="toggle" type="button" data-toggle="lines" aria-pressed="true" aria-label="Show the lines through the measured arrows"></button></div>
-        <div class="toggle-row"><span>Flow lines of j/|ψ|² from ψ (= pilot-wave trajectories)</span><button class="toggle" type="button" data-toggle="bohm" aria-pressed="false" aria-label="Overlay the flow lines of j/|ψ|² computed from ψ, which are also the pilot-wave trajectories"></button></div>
+        <div class="toggle-row"><span>Flow lines of j/|ψ|² from ψ (trajectories in pilot-wave)</span><button class="toggle" type="button" data-toggle="bohm" aria-pressed="false" aria-label="Overlay the flow lines of j/|ψ|² computed from ψ, which are the trajectories in pilot-wave theory"></button></div>
         <div class="toggle-row"><span>Accumulated runs on the planes</span><button class="toggle" type="button" data-toggle="planeRuns" aria-pressed="true" aria-label="Show pointer readings and detections as points beside the two planes"></button></div>
         <div class="toggle-row"><span>Data plot</span><button class="toggle" type="button" data-panel-toggle="scatter" aria-pressed="true" aria-label="Show the floating data plot"></button></div>
         <div class="toggle-row"><span>Velocity plot</span><button class="toggle" type="button" data-panel-toggle="vel" aria-pressed="true" aria-label="Show the floating velocity plot"></button></div>
@@ -114,7 +114,7 @@
         <div class="map-toggles" hidden aria-label="Field map display">
           <button type="button" class="map-toggle" data-maptoggle="arrows" aria-pressed="true">Measured arrows</button>
           <button type="button" class="map-toggle" data-maptoggle="lines" aria-pressed="true">Lines through the arrows</button>
-          <button type="button" class="map-toggle" data-maptoggle="bohm" aria-pressed="false" title="Flow lines of j/|ψ|² computed from ψ, from the same starts. These are also the pilot-wave trajectories.">j/|ψ|² flow lines (= pilot-wave)</button>
+          <button type="button" class="map-toggle" data-maptoggle="bohm" aria-pressed="false" title="Flow lines of j/|ψ|² computed from ψ, from the same starts. In pilot-wave theory these are the particles' trajectories.">j/|ψ|² flow lines (trajectories in pilot-wave)</button>
         </div>
         <div class="fp-dock" aria-label="Closed plots">
           <button type="button" data-fp-open="scatter" hidden title="Show the data plot beside the drawing">Data plot</button>
@@ -258,6 +258,6 @@
   <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.5.1"></script>
+<script type="module" src="js/app.js?v=0.5.2"></script>
 </body>
 </html>
