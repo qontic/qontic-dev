@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.1.2';
-import * as M from './weak-model.js?v=0.1.2';
+import { APP_RELEASE } from './release.js?v=0.1.3';
+import * as M from './weak-model.js?v=0.1.3';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -33,7 +33,7 @@ const controlsEl = $('qontic-controls');
 const state = {
   stage: 'one', sw: 200, x1: 500, gap: 50, perPlane: 1e6,
   running: false, speed: 1,
-  show: { wave: true, current: true, expected: true, bohm: false, scatter: true },
+  show: { wave: true, current: true, expected: true, bohm: false, scatter: true, planeRuns: true },
   selected: null,
 };
 let exp = null;              // current pair of planes
@@ -429,7 +429,7 @@ function drawApparatus(P, box) {
   }
   // Recent runs: pointer readings along the weak plane, detections along the
   // strong plane (the same runs as in the data plot, slightly spread sideways).
-  if (exp && !(map?.done) && exp.scatterN) {
+  if (state.show.planeRuns && exp && !(map?.done) && exp.scatterN) {
     const xw = X(exp.x1), xs = X(exp.x2), top = Yp(Y_HALF), bot = Yp(-Y_HALF);
     const n = Math.min(exp.scatterN, RECENT_ON_PLANES);
     for (let k = 0; k < n; k++) {

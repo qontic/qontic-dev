@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.1.3 — 2026-11-06
+- Display toggle "Runs on the planes" (on by default) for the pointer readings and detections drawn beside the two planes.
+
 ## 0.1.2 — 2026-11-06
 - Stage 2 runs a set number of runs (100 000, 1 000 000 or 5 000 000; same control as stage 3) instead of running to 5 million.
 - The last 1 500 runs are drawn on the planes: pointer readings beside the weak plane, detections beside the strong plane.
