@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.2.2 — 2026-11-06
+- Default split: drawing 2/3, plots 1/3. Both plots open by default; earlier remembered widths and open/minimized states are discarded once.
+
 ## 0.2.1 — 2026-11-06
 - The two plots now sit in a column to the right of the drawing, outside it, instead of floating over it. A splitter between drawing and column sets the column width (drag, or arrow keys; Display › Reset plot width). Each plot can be minimized or closed; with both closed, the column disappears and the drawing takes its space. Width and open/minimized state are remembered per browser.
 

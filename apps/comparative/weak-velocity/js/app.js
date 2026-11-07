@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.1';
-import * as M from './weak-model.js?v=0.2.1';
+import { APP_RELEASE } from './release.js?v=0.2.2';
+import * as M from './weak-model.js?v=0.2.2';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -278,12 +278,13 @@ document.querySelector('.tabs').addEventListener('click', (event) => {
 // The two plots sit in a column to the right of the drawing. Each can be
 // minimized or closed; with both closed the drawing takes the full width.
 const host = $('.canvas-host'), sideCol = $('.side-col'), split = $('.col-split');
-const PANEL_KEY = 'qontic-weak-velocity-plots';
+const PANEL_KEY = 'qontic-weak-velocity-plots-2';
 const panels = {};
 document.querySelectorAll('.float-panel').forEach((el) => { panels[el.dataset.fp] = { el, cv: el.querySelector('.fp-canvas'), open: true, min: false }; });
 let colWidth = null;
 const stacked = () => getComputedStyle(host).flexDirection === 'column';
-function defaultColWidth() { return Math.round(Math.max(320, Math.min(560, host.clientWidth * 0.32))); }
+// Default split: drawing 2/3, plots 1/3 of the space beside the sidebar.
+function defaultColWidth() { return Math.round((host.clientWidth - 8) / 3); }
 function setColWidth(w) {
   const max = Math.max(260, host.clientWidth * 0.6);
   colWidth = Math.round(Math.max(260, Math.min(max, w)));
