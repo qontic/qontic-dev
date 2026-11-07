@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.0';
-import * as M from './weak-model.js?v=0.2.0';
+import { APP_RELEASE } from './release.js?v=0.2.1';
+import * as M from './weak-model.js?v=0.2.1';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -274,91 +274,74 @@ document.querySelector('.tabs').addEventListener('click', (event) => {
   });
 })();
 
-// ---------------------------------------------------------------- floating plot panels
-const host = $('.canvas-host');
-const PANEL_KEY = 'qontic-weak-velocity-panels';
+// ---------------------------------------------------------------- plot column
+// The two plots sit in a column to the right of the drawing. Each can be
+// minimized or closed; with both closed the drawing takes the full width.
+const host = $('.canvas-host'), sideCol = $('.side-col'), split = $('.col-split');
+const PANEL_KEY = 'qontic-weak-velocity-plots';
 const panels = {};
-document.querySelectorAll('.float-panel').forEach((el) => {
-  panels[el.dataset.fp] = { el, cv: el.querySelector('.fp-canvas'), open: true, min: false };
-});
-const isStatic = () => getComputedStyle(panels.scatter.el).position === 'static';
-function defaultPanelGeometry() {
-  const W = host.clientWidth, H = host.clientHeight;
-  const w = Math.max(300, Math.min(480, Math.round(W * 0.32))), h = Math.max(220, Math.min(340, Math.round((H - 30) / 2)));
-  return { scatter: { x: W - w - 10, y: 10, w, h }, vel: { x: W - w - 10, y: Math.min(H - h - 10, 20 + h), w, h } };
+document.querySelectorAll('.float-panel').forEach((el) => { panels[el.dataset.fp] = { el, cv: el.querySelector('.fp-canvas'), open: true, min: false }; });
+let colWidth = null;
+const stacked = () => getComputedStyle(host).flexDirection === 'column';
+function defaultColWidth() { return Math.round(Math.max(320, Math.min(560, host.clientWidth * 0.32))); }
+function setColWidth(w) {
+  const max = Math.max(260, host.clientWidth * 0.6);
+  colWidth = Math.round(Math.max(260, Math.min(max, w)));
+  host.style.setProperty('--wv-col', `${colWidth}px`);
 }
 function savePanels() {
   try {
-    const out = {};
-    for (const [k, pnl] of Object.entries(panels)) out[k] = { x: pnl.el.offsetLeft, y: pnl.el.offsetTop, w: pnl.el.offsetWidth, h: pnl.min ? pnl.h : pnl.el.offsetHeight, open: pnl.open, min: pnl.min };
+    const out = { width: colWidth };
+    for (const [k, pn] of Object.entries(panels)) out[k] = { open: pn.open, min: pn.min };
     localStorage.setItem(PANEL_KEY, JSON.stringify(out));
   } catch (e) { /* storage unavailable */ }
 }
-function placePanels(useSaved = true) {
-  const def = defaultPanelGeometry();
+function loadPanels(useSaved = true) {
   let saved = null;
   if (useSaved) { try { saved = JSON.parse(localStorage.getItem(PANEL_KEY) || 'null'); } catch (e) { saved = null; } }
-  for (const [k, pnl] of Object.entries(panels)) {
-    const g = { ...def[k], ...(saved?.[k] || {}) };
-    pnl.open = saved?.[k]?.open ?? true; pnl.min = saved?.[k]?.min ?? false; pnl.h = g.h;
-    pnl.el.style.left = `${g.x}px`; pnl.el.style.top = `${g.y}px`; pnl.el.style.width = `${g.w}px`; pnl.el.style.height = `${g.h}px`;
-    applyPanelState(k);
-  }
-  clampPanels();
+  setColWidth(saved?.width ?? defaultColWidth());
+  for (const k of Object.keys(panels)) { panels[k].open = saved?.[k]?.open ?? panels[k].open; panels[k].min = saved?.[k]?.min ?? false; applyPanelState(k); }
 }
 function applyPanelState(k) {
-  const pnl = panels[k];
-  pnl.el.hidden = !pnl.open;
-  pnl.el.classList.toggle('minimized', pnl.min);
-  pnl.el.querySelector('[data-fp-act="min"]').textContent = pnl.min ? '+' : '–';
-  pnl.el.querySelector('[data-fp-act="min"]').title = pnl.min ? 'Restore' : 'Minimize';
-  document.querySelector(`[data-fp-open="${k}"]`).hidden = pnl.open;
-  document.querySelector(`[data-panel-toggle="${k}"]`).setAttribute('aria-pressed', String(pnl.open));
-}
-function clampPanels() {
-  if (isStatic()) return;
-  const W = host.clientWidth, H = host.clientHeight;
-  for (const pnl of Object.values(panels)) {
-    const el = pnl.el;
-    if (el.offsetWidth > W - 4) el.style.width = `${W - 4}px`;
-    if (!pnl.min && el.offsetHeight > H - 4) el.style.height = `${H - 4}px`;
-    el.style.left = `${Math.max(0, Math.min(W - el.offsetWidth, el.offsetLeft))}px`;
-    el.style.top = `${Math.max(0, Math.min(H - el.offsetHeight, el.offsetTop))}px`;
-  }
+  const pn = panels[k];
+  pn.el.hidden = !pn.open;
+  pn.el.classList.toggle('minimized', pn.min);
+  const mb = pn.el.querySelector('[data-fp-act="min"]');
+  mb.textContent = pn.min ? '+' : '–'; mb.title = pn.min ? 'Restore' : 'Minimize';
+  document.querySelector(`[data-fp-open="${k}"]`).hidden = pn.open;
+  document.querySelector(`[data-panel-toggle="${k}"]`).setAttribute('aria-pressed', String(pn.open));
+  const any = Object.values(panels).some((p2) => p2.open);
+  sideCol.hidden = !any; split.hidden = !any;
 }
 function setPanelOpen(k, open) { panels[k].open = open; applyPanelState(k); savePanels(); }
-for (const [k, pnl] of Object.entries(panels)) {
-  const el = pnl.el, head = el.querySelector('.fp-head');
-  el.querySelector('[data-fp-act="close"]').addEventListener('click', () => setPanelOpen(k, false));
-  el.querySelector('[data-fp-act="min"]').addEventListener('click', () => {
-    if (!pnl.min) pnl.h = el.offsetHeight;
-    pnl.min = !pnl.min;
-    if (!pnl.min) el.style.height = `${pnl.h}px`;
-    applyPanelState(k); clampPanels(); savePanels();
-  });
-  head.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button') || isStatic()) return;
-    const sx = e.clientX, sy = e.clientY, ox = el.offsetLeft, oy = el.offsetTop;
-    head.setPointerCapture(e.pointerId);
-    const move = (ev) => { el.style.left = `${ox + ev.clientX - sx}px`; el.style.top = `${oy + ev.clientY - sy}px`; clampPanels(); };
-    const up = () => { head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up); savePanels(); };
-    head.addEventListener('pointermove', move); head.addEventListener('pointerup', up);
-  });
-  // Keyboard: focus the title bar's buttons; arrow keys on the panel move it.
-  el.tabIndex = -1;
-  new ResizeObserver(() => { if (!pnl.min && !isStatic()) savePanels(); }).observe(el);
+for (const [k, pn] of Object.entries(panels)) {
+  pn.el.querySelector('[data-fp-act="close"]').addEventListener('click', () => setPanelOpen(k, false));
+  pn.el.querySelector('[data-fp-act="min"]').addEventListener('click', () => { pn.min = !pn.min; applyPanelState(k); savePanels(); });
   // Click a strip in the plot to post-select on it.
-  pnl.cv.addEventListener('click', (e) => {
-    const r = pnl.cv.getBoundingClientRect(), box = plotBox(r.width, r.height), x = e.clientX - r.left;
+  pn.cv.addEventListener('click', (e) => {
+    const r = pn.cv.getBoundingClientRect(), box = plotBox(r.width, r.height), x = e.clientX - r.left;
     if (x < box.x || x > box.x + box.w) return;
     state.selected = binOf(-Y_HALF + (x - box.x) / box.w * 2 * Y_HALF);
     if (state.stage === 'one') setStage('many');
   });
   document.querySelector(`[data-fp-open="${k}"]`).addEventListener('click', () => setPanelOpen(k, true));
-  document.querySelector(`[data-panel-toggle="${k}"]`).addEventListener('click', () => setPanelOpen(k, !pnl.open));
+  document.querySelector(`[data-panel-toggle="${k}"]`).addEventListener('click', () => setPanelOpen(k, !pn.open));
 }
-$('#resetPanels').addEventListener('click', () => { try { localStorage.removeItem(PANEL_KEY); } catch (e) { /* ignore */ } placePanels(false); });
-new ResizeObserver(() => clampPanels()).observe(host);
+split.addEventListener('pointerdown', (e) => {
+  if (stacked()) return;
+  e.preventDefault();
+  const sx = e.clientX, w0 = colWidth;
+  split.setPointerCapture(e.pointerId); split.classList.add('dragging');
+  const move = (ev) => setColWidth(w0 - (ev.clientX - sx));
+  const up = () => { split.removeEventListener('pointermove', move); split.removeEventListener('pointerup', up); split.classList.remove('dragging'); savePanels(); };
+  split.addEventListener('pointermove', move); split.addEventListener('pointerup', up);
+});
+split.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') setColWidth(colWidth + 20); else if (e.key === 'ArrowRight') setColWidth(colWidth - 20); else if (e.key === 'Home') setColWidth(defaultColWidth()); else return;
+  e.preventDefault(); savePanels();
+});
+$('#resetPanels').addEventListener('click', () => { setColWidth(defaultColWidth()); savePanels(); });
+new ResizeObserver(() => { if (colWidth !== null) setColWidth(colWidth); }).observe(host);
 const plotBox = (W, H) => ({ x: 54, y: 8, w: Math.max(40, W - 66), h: Math.max(40, H - 46) });
 
 // ---------------------------------------------------------------- URL state
@@ -683,14 +666,7 @@ function render() {
   ctx = mainCtx;
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, m.W, m.H);
   if (waveTheme !== P.light) buildWaveImage(P);
-  // Panels parked against the right edge reserve that strip; moved panels float over the drawing.
-  let reserve = 0;
-  if (!isStatic()) for (const pn of Object.values(panels)) {
-    if (!pn.open || pn.min) continue;
-    if (pn.el.offsetLeft + pn.el.offsetWidth >= host.clientWidth - 24) reserve = Math.max(reserve, host.clientWidth - pn.el.offsetLeft + 6);
-  }
-  if (m.W - reserve < 0.45 * m.W) reserve = 0;
-  drawApparatus(P, { x: 10, y: 8, w: m.W - 20 - reserve, h: m.H - 14 });
+  drawApparatus(P, { x: 10, y: 8, w: m.W - 20, h: m.H - 14 });
   for (const [k, pnl] of Object.entries(panels)) {
     if (!pnl.open || pnl.min) continue;
     ctx = pnl.ctx || (pnl.ctx = pnl.cv.getContext('2d'));
@@ -743,7 +719,7 @@ mountQonticShortcuts({
   screenshot: () => document.querySelector('.qontic-media-toolbar button[aria-label="Screenshot"]')?.click(),
 });
 
-placePanels();
+loadPanels();
 updateText();
 showStep(new URLSearchParams(location.search).has('stage') ? 'live' : 'setup');
 requestAnimationFrame(frame);

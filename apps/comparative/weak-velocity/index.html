@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.2.0">
+<link rel="stylesheet" href="css/wv.css?v=0.2.1">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -61,9 +61,9 @@
         <div class="toggle-row"><span>Exact expectation for this pointer</span><button class="toggle" type="button" data-toggle="expected" aria-pressed="true" aria-label="Show the exact expected result for this pointer"></button></div>
         <div class="toggle-row"><span>Pilot-wave trajectories</span><button class="toggle" type="button" data-toggle="bohm" aria-pressed="false" aria-label="Overlay pilot-wave trajectories"></button></div>
         <div class="toggle-row"><span>Accumulated runs on the planes</span><button class="toggle" type="button" data-toggle="planeRuns" aria-pressed="true" aria-label="Show all pointer readings and detections so far beside the two planes"></button></div>
-        <div class="toggle-row"><span>Data plot (floating)</span><button class="toggle" type="button" data-panel-toggle="scatter" aria-pressed="true" aria-label="Show the floating data plot"></button></div>
-        <div class="toggle-row"><span>Velocity plot (floating)</span><button class="toggle" type="button" data-panel-toggle="vel" aria-pressed="true" aria-label="Show the floating velocity plot"></button></div>
-        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="resetPanels">Reset plot positions</button>
+        <div class="toggle-row"><span>Data plot</span><button class="toggle" type="button" data-panel-toggle="scatter" aria-pressed="true" aria-label="Show the floating data plot"></button></div>
+        <div class="toggle-row"><span>Velocity plot</span><button class="toggle" type="button" data-panel-toggle="vel" aria-pressed="true" aria-label="Show the floating velocity plot"></button></div>
+        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="resetPanels">Reset plot width</button>
         <div class="toggle-row"><span>Runs in the data plot</span><button class="toggle" type="button" data-toggle="scatter" aria-pressed="true" aria-label="Show individual runs in the data plot"></button></div>
       </div>
     </div>
@@ -84,18 +84,23 @@
 
   <div class="visualization qontic-stage qontic-panel">
     <div class="canvas-host">
-      <canvas id="stage" aria-label="Weak velocity measurement behind a double slit"></canvas>
-      <div class="float-panel" data-fp="scatter" role="dialog" aria-label="Data plot">
-        <div class="fp-head"><span class="fp-title">Each run: pointer reading vs detected position</span><button type="button" data-fp-act="min" aria-label="Minimize the data plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the data plot" title="Close (reopen from the button on the canvas or the Display tab)">×</button></div>
-        <canvas class="fp-canvas" aria-label="Pointer reading against detected position for each run"></canvas>
+      <div class="canvas-main">
+        <canvas id="stage" aria-label="Weak velocity measurement behind a double slit"></canvas>
+        <div class="fp-dock" aria-label="Closed plots">
+          <button type="button" data-fp-open="scatter" hidden title="Show the data plot beside the drawing">Data plot</button>
+          <button type="button" data-fp-open="vel" hidden title="Show the velocity plot beside the drawing">Velocity plot</button>
+        </div>
       </div>
-      <div class="float-panel" data-fp="vel" role="dialog" aria-label="Velocity plot">
-        <div class="fp-head"><span class="fp-title">Velocity from post-selected averages</span><button type="button" data-fp-act="min" aria-label="Minimize the velocity plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the velocity plot" title="Close (reopen from the button on the canvas or the Display tab)">×</button></div>
-        <canvas class="fp-canvas" aria-label="Measured velocity against detected position"></canvas>
-      </div>
-      <div class="fp-dock" aria-label="Closed plots">
-        <button type="button" data-fp-open="scatter" hidden>Data plot</button>
-        <button type="button" data-fp-open="vel" hidden>Velocity plot</button>
+      <div class="col-split" role="separator" aria-orientation="vertical" aria-label="Drag to change the width of the plots" tabindex="0" title="Drag to change the width of the plots (arrow keys also work)"></div>
+      <div class="side-col">
+        <div class="float-panel" data-fp="scatter" aria-label="Data plot">
+          <div class="fp-head"><span class="fp-title">Each run: pointer reading vs detected position</span><button type="button" data-fp-act="min" aria-label="Minimize the data plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the data plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
+          <canvas class="fp-canvas" aria-label="Pointer reading against detected position for each run"></canvas>
+        </div>
+        <div class="float-panel" data-fp="vel" aria-label="Velocity plot">
+          <div class="fp-head"><span class="fp-title">Velocity from post-selected averages</span><button type="button" data-fp-act="min" aria-label="Minimize the velocity plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the velocity plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
+          <canvas class="fp-canvas" aria-label="Measured velocity against detected position"></canvas>
+        </div>
       </div>
     </div>
     <div class="story" id="story" aria-live="polite">
@@ -186,6 +191,6 @@
   <p>The double-slit app draws pilot-wave trajectories from the theory. This app starts from data that could be taken in a laboratory and shows that they give the same lines. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.2.0"></script>
+<script type="module" src="js/app.js?v=0.2.1"></script>
 </body>
 </html>
