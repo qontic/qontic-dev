@@ -1,6 +1,6 @@
 // Run with: node apps/relativity/bell-spaceships/tests/kinematics.test.mjs
 import assert from 'node:assert/strict';
-import { finalStrain, makeModel, shipState, rearFrameView, strainAt, strainRearFrame, findBreak, criticalBeta, runEnd, gammaOf, rearTimeFor } from '../js/kinematics.js';
+import { finalStrain, makeModel, shipState, rearFrameView, strainAt, strainRearFrame, findBreak, criticalBeta, runEnd, gammaOf, rearTimeFor, localStrainAt, peakStrainAt, maxFrontSetting } from '../js/kinematics.js';
 
 const close = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} vs ${b}`);
 let passed = 0;
@@ -114,6 +114,58 @@ test('Final stretch is (gamma - 1)(1 - k) for any front-engine setting', () => {
 test('Only k = 1 keeps the thread unstretched; k slightly off stretches or slackens it', () => {
   const at = (k) => finalStrain(makeModel({ beta: 0.9, accel: 0.2, k }));
   assert.ok(at(0.9) > 0.1 && at(1.1) < -0.1 && Math.abs(at(1)) < 1e-12);
+});
+
+test('Local stretch agrees with independent neighbouring-worldline distances', () => {
+  for (const k of [0, 0.5, 1, 1.4]) {
+    const m = makeModel({ beta: 0.9, accel: 1, k });
+    for (const t of [0.3, 1, 2, runEnd(m)]) {
+      const h = 1e-5, x0 = 0.4;
+      const sample = (x) => {
+        const a = m.accel / (1 + m.k * m.accel * x);
+        const t1 = m.gammaF * m.beta / a;
+        const tc = Math.min(t, t1);
+        return x + (Math.sqrt(1 + (a * tc) ** 2) - 1) / a + m.beta * Math.max(0, t - t1);
+      };
+      const a = m.accel / (1 + m.k * m.accel * x0);
+      const v = Math.min(m.beta, a * t / Math.sqrt(1 + (a * t) ** 2));
+      const measured = gammaOf(v) * (sample(x0 + h) - sample(x0 - h)) / (2 * h) - 1;
+      close(localStrainAt(m, x0, t), measured, 1e-7, `k=${k}, t=${t}`);
+    }
+  }
+});
+
+test('An intermediate setting breaks at the rear local limit, before the mean limit', () => {
+  for (const accel of [0.2, 1]) {
+    const m = makeModel({ beta: 0.9, accel, k: 0.5 });
+    const t = findBreak(m, 0.2);
+    close(t, Math.sqrt(1.4 ** 2 - 1) / accel, 1e-12, 'local failure time');
+    close(peakStrainAt(m, t), 0.2, 1e-12, 'rear at limit');
+    assert.ok(strainAt(m, t) < 0.2, 'mean is still below limit');
+    for (const el of m.elements) assert.ok(localStrainAt(m, el.x0, t - 1e-5) < 0.2);
+  }
+});
+
+test('Every allowed worldline remains ordered, even at maximum speed and k', () => {
+  for (const beta of [0.05, 0.8, 0.95, 0.99]) {
+    const m = makeModel({ beta, accel: 1, k: 1.5 });
+    assert.equal(m.k, maxFrontSetting(beta), 'model clamps shared-link settings too');
+    for (let i = 0; i <= 100; i++) {
+      const t = runEnd(m) * i / 100;
+      assert.ok(shipState(m, 1, t).x > shipState(m, 0, t).x, 'ships stay ordered');
+      for (const el of m.elements) assert.ok(localStrainAt(m, el.x0, t) >= -0.950000001);
+    }
+  }
+});
+
+test('Surviving and unstretched are different outcomes, including low speeds', () => {
+  const held = makeModel({ beta: 0.9, accel: 1, k: 0.9 });
+  assert.equal(findBreak(held, 0.2), null);
+  assert.ok(finalStrain(held) > 0.12 && finalStrain(held) < 0.13);
+  const slow = makeModel({ beta: 0.05, k: 0 });
+  assert.ok(finalStrain(slow) > 0 && finalStrain(slow) < 0.005);
+  const rigid = makeModel({ beta: 0.99, k: 1 });
+  assert.equal(peakStrainAt(rigid, runEnd(rigid) / 2), 0);
 });
 
 console.log(`${passed} tests passed`);
