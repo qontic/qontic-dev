@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.3.5';
-import * as M from './weak-model.js?v=0.3.5';
+import { APP_RELEASE } from './release.js?v=0.4.0';
+import * as M from './weak-model.js?v=0.4.0';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -47,6 +47,7 @@ const controlsEl = $('qontic-controls');
 const state = {
   stage: 'one', sw: 200, x1: 500, gap: 50, perPlane: 1e6,
   running: false, speed: 1,
+  waveMode: 'crests',
   show: { wave: true, arrows: true, current: true, expected: true, bohm: false, scatter: true, planeRuns: true },
   selected: null,
 };
@@ -54,7 +55,7 @@ let exp = null;              // current pair of planes
 let map = null;              // stage 3 state
 let anim = null;             // stage 1 run animation
 let pending = true;          // rebuild needed
-let waveImage = null, waveTheme = null;
+let waveTheme = null;
 let lastLive = 0;
 
 readUrl();
@@ -111,7 +112,7 @@ function planeX1(i) { const d = geo.distance; return 0.02 * d + i * (d - state.g
 
 function rebuild() {
   pending = false;
-  anim = null;
+  anim = null; lastRun = null;
   if (state.stage === 'map') {
     map = { index: 0, planes: [], done: false, lines: null, bohm: null };
     exp = makeExperiment(planeX1(0));
@@ -249,6 +250,10 @@ function toggle(key) {
 }
 
 document.querySelectorAll('[data-stage]').forEach((b) => b.addEventListener('click', () => setStage(b.dataset.stage)));
+document.querySelectorAll('[data-wavemode]').forEach((b) => b.addEventListener('click', () => {
+  state.waveMode = b.dataset.wavemode;
+  document.querySelectorAll('[data-wavemode]').forEach((o) => { const on = o === b; o.classList.toggle('active', on); o.setAttribute('aria-pressed', String(on)); });
+}));
 document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', () => { toggle(b.dataset.toggle); if (state.stage === 'map') showNext(); }));
 $('#sw').addEventListener('input', (e) => { state.sw = +e.target.value; pending = true; updateText(); });
 $('#x1').addEventListener('input', (e) => { state.x1 = +e.target.value; if (state.stage !== 'map') pending = true; updateText(); });
@@ -267,7 +272,7 @@ controlsEl.addEventListener('qontic:start', () => start());
 controlsEl.addEventListener('qontic:stop', () => stop());
 controlsEl.addEventListener('qontic:reset', () => { stop(); pending = true; });
 controlsEl.addEventListener('qontic:speed', (e) => { state.speed = e.detail.speed; });
-controlsEl.addEventListener('qontic:theme', () => { waveTheme = null; });
+controlsEl.addEventListener('qontic:theme', () => { waveTheme = null; if (waveGrid) waveGrid.dirty = true; });
 controlsEl.addEventListener('qontic:tab', (e) => {
   controlsEl.setAttribute('active-tab', e.detail.tab);
   document.querySelectorAll('[data-control-pane]').forEach((pn) => pn.classList.toggle('hidden', pn.dataset.controlPane !== e.detail.tab));
@@ -453,22 +458,6 @@ function palette() {
   };
 }
 
-// |psi|^2 behind the wall, each column scaled to its own maximum.
-function buildWaveImage(P) {
-  const nx = 300, ny = 200, img = new ImageData(nx, ny);
-  for (let i = 0; i < nx; i++) {
-    const x = p.wall + (i + 0.5) / nx * (p.screen - p.wall), t = M.propagate(T0, (x - p.wall) / p.k), col = [];
-    let mx = 0;
-    for (let j = 0; j < ny; j++) { const y = Y_HALF - (j + 0.5) / ny * 2 * Y_HALF, r = M.density(t, y); col.push(r); mx = Math.max(mx, r); }
-    for (let j = 0; j < ny; j++) {
-      const a = Math.pow(col[j] / mx, 0.6), k = (j * nx + i) * 4;
-      img.data[k] = P.wave[0]; img.data[k + 1] = P.wave[1]; img.data[k + 2] = P.wave[2]; img.data[k + 3] = Math.round(255 * a * (P.light ? 0.55 : 0.6));
-    }
-  }
-  const off = document.createElement('canvas'); off.width = nx; off.height = ny;
-  off.getContext('2d').putImageData(img, 0, 0);
-  waveImage = off; waveTheme = P.light;
-}
 
 function text(s, x, y, { color, size = 12, align = 'left', base = 'alphabetic', weight = 400 } = {}) {
   ctx.fillStyle = color; ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`; ctx.textAlign = align; ctx.textBaseline = base; ctx.fillText(s, x, y);
@@ -565,55 +554,109 @@ function dragMove(px, py) {
   drag.label = `${DRAG_LABEL[k]}: ${v} nm`;
 }
 
-// ---------------------------------------------------------------- stage 1: a continuous, moving wave
-// Stage 1 draws the steady beam as a travelling wave: brightness from |ψ|
-// (each column scaled to its own maximum) times the crests cos(kx − ωt + arg φ).
-// The beam is continuous; runs are events at random times. Since the velocity
-// field does not depend on time, no run has to be timed.
+// ---------------------------------------------------------------- the wave
+// Show: density |ψ|², crests (brightness |ψ| times (1 + cos(kx − ωt + arg φ))/2,
+// travelling) or phase (colour from the same angle, travelling), as in the
+// analytical double-slit app. Each column is scaled to its own maximum.
+// Before the weak plane the wave is ψ. Beyond it the wave depends on the
+// pointer, which is entangled with the particle:
+//  · stage 1: the wave of the current run, ψ times φ(Y − y) for its reading Y;
+//  · stage 2: the density averaged over all readings (no single wave, so no
+//    crests or phase are drawn there);
+//  · stage 3: ψ (each plane pair is a separate experiment).
+// The beam is continuous; runs are events at random times. The velocity field
+// does not depend on time, so no run has to be timed.
 const RUN_SECONDS = 1.8;
 const RUN_TW = 0.15, RUN_TS = 0.55;   // pointer moves, then detection, within a run
-let phaseGrid = null, phaseLayer = null, phaseClock = 0;
-const phaseKey = (xa, xb) => [xa, xb, p.k, p.sy, p.centers, p.wall, p.sourceSigma, Y_HALF].join('|');
-function makeRunAnim(run) { return { t: 0, run, tW: RUN_TW, tS: RUN_TS }; }
-function buildPhaseGrid(xa, xb) {
-  const range = xb - xa, lam = 2 * Math.PI / p.k;
-  const nx = Math.min(1400, Math.max(360, Math.ceil(6 * range / lam))), ny = 220;
-  const key = phaseKey(xa, xb);
-  if (6 * range / lam > 1400) return { ok: false, key };
-  const A = new Float32Array(nx * ny), TH = new Float32Array(nx * ny);
+let waveGrid = null, waveLayer = null, phaseClock = 0, lastRun = null;
+const HUE = (() => { const t = new Uint8Array(256 * 3); for (let i = 0; i < 256; i++) { const h = i / 256 * 6, c = 1, x = 1 - Math.abs(h % 2 - 1); const [r, g, b] = h < 1 ? [c, x, 0] : h < 2 ? [x, c, 0] : h < 3 ? [0, c, x] : h < 4 ? [0, x, c] : h < 5 ? [x, 0, c] : [c, 0, x]; t[3 * i] = 70 + 185 * r; t[3 * i + 1] = 70 + 185 * g; t[3 * i + 2] = 70 + 185 * b; } return t; })();
+function makeRunAnim(run) { lastRun = run; if (waveGrid) waveGrid.overKey = null; return { t: 0, run, tW: RUN_TW, tS: RUN_TS }; }
+const waveKey = (xa, xb, nx) => [xa, xb, nx, p.k, p.sy, p.centers, p.wall, p.sourceSigma, Y_HALF].join('|');
+// Base grid: ψ at every column (density and phase angle kx + arg φ).
+function baseGrid(xa, xb, nx) {
+  const ny = 200, R = new Float32Array(nx * ny), TH = new Float32Array(nx * ny);
   for (let i = 0; i < nx; i++) {
-    const x = xa + (i + 0.5) / nx * range;
-    const t = x >= p.wall ? M.propagate(T0, (x - p.wall) / p.k) : null;
-    let mx = 0;
+    const x = xa + (i + 0.5) / nx * (xb - xa), t = x >= p.wall ? M.propagate(T0, (x - p.wall) / p.k) : null;
     for (let j = 0; j < ny; j++) {
-      const y = Y_HALF - (j + 0.5) / ny * 2 * Y_HALF;
-      const g = t ? M.evaluate(t, y) : sourceTransverse(y, x, p);
-      const r = g.re * g.re + g.im * g.im;
-      A[j * nx + i] = r; TH[j * nx + i] = p.k * x + Math.atan2(g.im, g.re);
-      mx = Math.max(mx, r);
+      const y = Y_HALF - (j + 0.5) / ny * 2 * Y_HALF, g = t ? M.evaluate(t, y) : sourceTransverse(y, x, p);
+      R[j * nx + i] = g.re * g.re + g.im * g.im; TH[j * nx + i] = p.k * x + Math.atan2(g.im, g.re);
     }
-    for (let j = 0; j < ny; j++) A[j * nx + i] = mx > 0 ? Math.pow(A[j * nx + i] / mx, 0.6) : 0;
   }
-  return { ok: true, nx, ny, A, TH, key };
+  return { key: waveKey(xa, xb, nx), xa, xb, nx, ny, R, TH, overKey: null, dirty: true };
 }
-function drawMovingWave(P, X, Yp, xa, xb) {
-  // Crests need at least 6 screen pixels per wavelength; otherwise show the density.
-  if (X(xa + 2 * Math.PI / p.k) - X(xa) < 6) return false;
-  if (!phaseGrid || phaseGrid.key !== phaseKey(xa, xb)) phaseGrid = buildPhaseGrid(xa, xb);
-  if (!phaseGrid.ok) return false;
-  const g = phaseGrid;
-  if (!phaseLayer || phaseLayer.width !== g.nx || phaseLayer.height !== g.ny) { phaseLayer = document.createElement('canvas'); phaseLayer.width = g.nx; phaseLayer.height = g.ny; g.img = null; }
-  const c = phaseLayer.getContext('2d');
-  if (!g.img) g.img = c.createImageData(g.nx, g.ny);
-  const d = g.img.data, [r, gr, bl] = P.wave, ph = phaseClock;
-  for (let k = 0, n = g.nx * g.ny; k < n; k++) {
-    const b = g.A[k] * (0.5 + 0.5 * Math.cos(g.TH[k] - ph));
-    d[4 * k] = r; d[4 * k + 1] = gr; d[4 * k + 2] = bl; d[4 * k + 3] = 230 * b;
+// Columns beyond the weak plane, for the current stage.
+function overlay(g) {
+  if (!exp || map || drag) return null;
+  const i1 = Math.max(0, Math.ceil((exp.x1 - g.xa) / (g.xb - g.xa) * g.nx - 0.5));
+  if (i1 >= g.nx) return null;
+  const xs = (i) => g.xa + (i + 0.5) / g.nx * (g.xb - g.xa), sw = state.sw / 100;
+  const n = g.nx - i1, R = new Float32Array(n * g.ny), TH = new Float32Array(n * g.ny);
+  const ys = Array.from({ length: g.ny }, (_, j) => Y_HALF - (j + 0.5) / g.ny * 2 * Y_HALF);
+  if (state.stage === 'one') {
+    if (!lastRun) return null;
+    const coupled = M.coupleToPointer(exp.terms1, lastRun.Y, sw);
+    for (let i = i1; i < g.nx; i++) {
+      const t = M.propagate(coupled, (xs(i) - exp.x1) / p.k);
+      for (let j = 0; j < g.ny; j++) { const e = M.evaluate(t, ys[j]); R[j * n + i - i1] = e.re * e.re + e.im * e.im; TH[j * n + i - i1] = p.k * xs(i) + Math.atan2(e.im, e.re); }
+    }
+    return { i1, n, R, TH, mixed: false };
   }
-  c.putImageData(g.img, 0, 0);
+  // Stage 2: density averaged over pointer readings (exact; see weak-model.js).
+  const sq = 1 / (2 * sw), tauMax = (g.xb - exp.x1) / p.k, nodes = Math.max(21, Math.min(161, Math.round(21 + 40 * sq * tauMax / 0.5)));
+  const step = Math.max(1, Math.round(n / 120));   // averaged density is smooth along x
+  let prev = null, prevI = -1;
+  for (let i = i1; i < g.nx; i++) {
+    if ((i - i1) % step && i !== g.nx - 1) continue;
+    const col = M.ensembleDensity(exp.terms1, sw, (xs(i) - exp.x1) / p.k, ys, nodes);
+    for (let j = 0; j < g.ny; j++) R[j * n + i - i1] = col[j];
+    if (prev) for (let k = prevI + 1; k < i; k++) { const f = (k - prevI) / (i - prevI); for (let j = 0; j < g.ny; j++) R[j * n + k - i1] = prev[j] + f * (col[j] - prev[j]); }
+    prev = col; prevI = i;
+  }
+  return { i1, n, R, TH, mixed: true };
+}
+function drawWave(P, X, Yp, xa, xb) {
+  const mode = state.waveMode, lam = 2 * Math.PI / p.k;
+  // Crests and phase need at least 6 screen pixels per wavelength.
+  const pxPerLam = X(xa + lam) - X(xa), canCrest = pxPerLam >= 6;
+  const want = mode === 'density' || !canCrest ? 'density' : mode;
+  const nx = want === 'density' ? 360 : Math.min(1600, Math.max(360, Math.ceil(6 * (xb - xa) / lam)));
+  if (!waveGrid || waveGrid.key !== waveKey(xa, xb, nx)) waveGrid = baseGrid(xa, xb, nx);
+  const g = waveGrid;
+  const oKey = [state.stage, exp?.x1, state.sw, lastRun?.Y, !!map, !!drag, exp ? 1 : 0].join('|');
+  if (g.overKey !== oKey) { g.over = overlay(g); g.overKey = oKey; g.dirty = true; }
+  // Column normalisation of the composite (only when it changes).
+  if (g.dirty || !g.A) {
+    g.A = new Float32Array(g.nx * g.ny); g.T = new Float32Array(g.nx * g.ny); g.mixedFrom = g.over?.mixed ? g.over.i1 : Infinity;
+    for (let i = 0; i < g.nx; i++) {
+      const o = g.over && i >= g.over.i1 ? g.over : null;
+      let mx = 0;
+      for (let j = 0; j < g.ny; j++) { const r = o ? o.R[j * o.n + i - o.i1] : g.R[j * g.nx + i]; mx = Math.max(mx, r); }
+      for (let j = 0; j < g.ny; j++) {
+        const k = j * g.nx + i, r = o ? o.R[j * o.n + i - o.i1] : g.R[k];
+        g.A[k] = mx > 0 ? Math.pow(r / mx, 0.6) : 0; g.T[k] = o ? o.TH[j * o.n + i - o.i1] : g.TH[k];
+      }
+    }
+    g.dirty = false; g.rendered = null;
+  }
+  const renderKey = [want, want === 'density' ? 0 : phaseClock, P.light].join('|');
+  if (!waveLayer) waveLayer = document.createElement('canvas');
+  if (waveLayer.width !== g.nx || waveLayer.height !== g.ny) { waveLayer.width = g.nx; waveLayer.height = g.ny; g.img = null; g.rendered = null; }
+  const c = waveLayer.getContext('2d');
+  if (g.rendered !== renderKey) {
+    if (!g.img) g.img = c.createImageData(g.nx, g.ny);
+    const d = g.img.data, [wr, wg, wb] = P.wave, ph = phaseClock, a0 = P.light ? 200 : 230;
+    for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) {
+      const k = j * g.nx + i, A = g.A[k], mixed = i >= g.mixedFrom;
+      if (want === 'density' || mixed) { d[4 * k] = wr; d[4 * k + 1] = wg; d[4 * k + 2] = wb; d[4 * k + 3] = a0 * A; continue; }
+      if (want === 'crests') { d[4 * k] = wr; d[4 * k + 1] = wg; d[4 * k + 2] = wb; d[4 * k + 3] = a0 * A * (0.5 + 0.5 * Math.cos(g.T[k] - ph)); continue; }
+      let u = ((g.T[k] - ph) / (2 * Math.PI)) % 1; if (u < 0) u += 1;
+      const h = 3 * Math.floor(u * 256); d[4 * k] = HUE[h]; d[4 * k + 1] = HUE[h + 1]; d[4 * k + 2] = HUE[h + 2]; d[4 * k + 3] = a0 * A;
+    }
+    c.putImageData(g.img, 0, 0); g.rendered = renderKey;
+  }
   ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(phaseLayer, X(xa), Yp(Y_HALF), X(xb) - X(xa), Yp(-Y_HALF) - Yp(Y_HALF));
-  return true;
+  ctx.drawImage(waveLayer, X(xa), Yp(Y_HALF), X(xb) - X(xa), Yp(-Y_HALF) - Yp(Y_HALF));
+  return { want, canCrest, mixedFrom: g.mixedFrom < Infinity ? g.xa + g.mixedFrom / g.nx * (g.xb - g.xa) : null };
 }
 
 function drawApparatus(P, box) {
@@ -628,11 +671,10 @@ function drawApparatus(P, box) {
   ctx.fillStyle = P.panel; ctx.fillRect(box.x, box.y, box.w, box.h);
   ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
   // wave
-  if (state.show.wave && waveImage) {
-    ctx.imageSmoothingEnabled = true;
-    // Stage 1: the steady beam drawn as a moving wave (crests travel; nothing is pulsed).
-    const moving = state.stage === 'one' && !drag && drawMovingWave(P, X, Yp, x0, p.screen);
-    if (!moving) ctx.drawImage(waveImage, X(p.wall), Yp(Y_HALF), X(p.screen) - X(p.wall), Yp(-Y_HALF) - Yp(Y_HALF));
+  if (state.show.wave) {
+    const w = drawWave(P, X, Yp, x0, p.screen);
+    if (w.mixedFrom !== null && w.want !== 'density') text('beyond the weak plane: density averaged over pointer readings', X(w.mixedFrom) + 26, Yp(Y_HALF) + 14, { color: P.muted, size: 10 });
+    if (state.waveMode !== 'density' && !w.canCrest) text('wavelength too short to draw crests here: density shown', X(p.wall) + 8, box.y + box.h - 18, { color: P.muted, size: 10 });
   }
   // wall with two slits (±1.5 sigma openings)
   ctx.strokeStyle = P.wall; ctx.lineWidth = 4;
@@ -696,8 +738,14 @@ function drawApparatus(P, box) {
   }
   // screen |psi|^2 profile
   {
-    const tS = M.propagate(T0, (p.screen - p.wall) / p.k); let mx = 0; const pr = [];
-    for (let i = 0; i <= 200; i++) { const y = -Y_HALF + i * 2 * Y_HALF / 200, r = M.density(tS, y); pr.push([y, r]); mx = Math.max(mx, r); }
+    // In stage 2 the screen sees the density averaged over pointer readings; otherwise ψ.
+    const ys = Array.from({ length: 201 }, (_, i) => -Y_HALF + i * 2 * Y_HALF / 200);
+    let rs;
+    if (state.stage === 'many' && exp && !drag) {
+      if (!exp.screenEns) { const sq = 1 / (2 * state.sw / 100), tau = (p.screen - exp.x1) / p.k; exp.screenEns = M.ensembleDensity(exp.terms1, state.sw / 100, tau, ys, Math.max(21, Math.min(161, Math.round(21 + 80 * sq * tau)))); }
+      rs = exp.screenEns;
+    } else { const tS = M.propagate(T0, (p.screen - p.wall) / p.k); rs = ys.map((y) => M.density(tS, y)); }
+    let mx = 0; const pr = ys.map((y, i) => { mx = Math.max(mx, rs[i]); return [y, rs[i]]; });
     const w = X(x1) - X(p.screen) - 30;
     ctx.strokeStyle = P.muted; ctx.lineWidth = 1.2; ctx.beginPath();
     pr.forEach(([y, r], i) => { const xx = X(p.screen) + 28 + w * r / mx; i ? ctx.lineTo(xx, Yp(y)) : ctx.moveTo(xx, Yp(y)); }); ctx.stroke();
@@ -906,7 +954,6 @@ function render() {
   if (!m) return;
   ctx = mainCtx;
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, m.W, m.H);
-  if (waveTheme !== P.light) buildWaveImage(P);
   drawApparatus(P, { x: 10, y: 8, w: m.W - 20, h: m.H - 14 });
   for (const [k, pnl] of Object.entries(panels)) {
     if (!pnl.open || pnl.min) continue;
@@ -926,7 +973,7 @@ let lastT = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   if (pending && !drag) rebuild();
-  if (state.stage === 'one' && (state.running || !exp?.runs)) phaseClock = (phaseClock + dt * state.speed * 2 * Math.PI / 0.8) % (2 * Math.PI);
+  if (state.waveMode !== 'density' && (state.running || (state.stage === 'one' && !exp?.runs))) phaseClock = (phaseClock + dt * state.speed * 2 * Math.PI / 0.8) % (2 * Math.PI);
   if (state.running && exp) {
     if (state.stage === 'one') {
       if (!anim) anim = makeRunAnim(M.sampleRun(exp.table));

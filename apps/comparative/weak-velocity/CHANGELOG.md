@@ -1,5 +1,11 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.4.0 — 2026-11-07
+- Show control (Core): density |ψ|², travelling crests (default) or phase as colour, as in the analytical double-slit app; crests and phase move whenever the simulation runs. Too short a wavelength to resolve falls back to the density, with a note.
+- The drawing beyond the weak plane now shows the measured wave: in stage 1, the current run's wave ψ(y) φ(Y − y) for its reading; in stage 2, the density averaged over all readings (a mixture: no crests or phase there). Stage 3 shows ψ. In stage 2 the |ψ|² curve beside the screen is the averaged density too.
+- weak-model.js: ensembleDensity (pointer-averaged density, exact via an average of momentum kicks). Test: equal to |ψ|² at the weak plane and to the table marginal downstream (9 tests).
+- Physics tab: what the measurement does to the wave.
+
 ## 0.3.5 — 2026-11-07
 - Stage 1: continuous beam instead of one packet per run. The wave is drawn with travelling crests, cos(kx − ωt + arg φ), brightness from |ψ| (each column scaled); runs are events at random times. Falls back to the density when the wavelength is too short to resolve. Physics text updated.
 

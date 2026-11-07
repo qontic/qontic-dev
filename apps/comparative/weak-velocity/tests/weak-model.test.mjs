@@ -101,4 +101,20 @@ test('field integration reproduces a pilot-wave trajectory from the exact field'
   assert.ok(Math.abs(a - b) < 0.05, `${a} vs ${b}`);
 });
 
+test('density averaged over pointer readings: unchanged at the weak plane, equals the table marginal downstream', () => {
+  const t1 = M.propagate(t0, 5 / p.k);
+  const ys = Array.from({length: 161}, (_, i) => -4 + i * 0.05);
+  const at0 = M.ensembleDensity(t1, 0.3, 0, ys, 61);
+  ys.forEach((y, i) => assert.ok(Math.abs(at0[i] - M.density(t1, y)) < 1e-9 * Math.max(1, M.density(t1, y))));
+  for (const sw of [1, 0.2]) {
+    const dtau = 2 / p.k;
+    const tab = M.jointTable({terms1: t1, dtau, sw, yfMin: -4, yfMax: 4, nYf: 161});
+    const ens = M.ensembleDensity(t1, sw, dtau, Array.from(tab.yf), 81);
+    const norm = ens.reduce((a, b) => a + b, 0) * tab.dYf;
+    let err = 0; for (let i = 0; i < tab.nYf; i++) err = Math.max(err, Math.abs(ens[i] / norm - tab.marginal[i]));
+    const mx = Math.max(...tab.marginal);
+    assert.ok(err < 0.01 * mx, `sw ${sw}: ${err / mx}`);
+  }
+});
+
 console.log(`${passed} tests passed`);

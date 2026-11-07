@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.3.5">
+<link rel="stylesheet" href="css/wv.css?v=0.4.0">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -32,6 +32,14 @@
             <button class="qontic-app-toggle active" type="button" data-stage="one" aria-pressed="true" title="Runs one at a time, slowly: the pointer moves, then the screen clicks.">1 · One run</button>
             <button class="qontic-app-toggle" type="button" data-stage="many" aria-pressed="false" title="Many runs at the same pair of planes. Post-select on the strong result and average the pointer.">2 · Many runs</button>
             <button class="qontic-app-toggle" type="button" data-stage="map" aria-pressed="false" title="Repeat the experiment with the planes moved step by step from the slits to the screen, then connect the arrows.">3 · Map the field</button>
+          </div>
+        </div>
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Show</div>
+          <div class="qontic-app-toggle-group" role="group" aria-label="What to display">
+            <button class="qontic-app-toggle" type="button" data-wavemode="density" aria-pressed="false" title="Density |ψ|², each column scaled to its own maximum.">Density |ψ|²</button>
+            <button class="qontic-app-toggle active" type="button" data-wavemode="crests" aria-pressed="true" title="Travelling crests: brightness |ψ| times (1 + cos(kx − ωt + arg φ))/2.">Crests</button>
+            <button class="qontic-app-toggle" type="button" data-wavemode="phase" aria-pressed="false" title="Phase kx − ωt + arg φ as colour, brightness from |ψ|.">Phase</button>
           </div>
         </div>
         <label class="control-row" title="Spread of the pointer's ready state. Large spread: a weak measurement, little disturbance, very noisy. Small spread: a strong measurement that disturbs the wave.">
@@ -70,7 +78,7 @@
         </div>
       </div>
       <div class="control-pane hidden" data-control-pane="display">
-        <div class="toggle-row"><span>Wave |ψ|²</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave density"></button></div>
+        <div class="toggle-row"><span>Wave</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave"></button></div>
         <div class="toggle-row"><span>Measured arrows</span><button class="toggle" type="button" data-toggle="arrows" aria-pressed="true" aria-label="Show the measured velocity arrows"></button></div>
         <div class="toggle-row"><span>Current velocity j/|ψ|²</span><button class="toggle" type="button" data-toggle="current" aria-pressed="true" aria-label="Show the current velocity curve"></button></div>
         <div class="toggle-row"><span>Exact expectation for this pointer</span><button class="toggle" type="button" data-toggle="expected" aria-pressed="true" aria-label="Show the exact expected result for this pointer"></button></div>
@@ -159,7 +167,10 @@
   <p>the probability current divided by the density at the strong plane. Here the particle moves freely between the two planes, so y(τ) = y(τ + Δτ) − p Δτ/m holds as an operator identity, and the limit is exact for any gap, not only for Δx → 0. A finite gap only sets the size of the signal. The bias that remains comes from a finite σ<sub>p</sub>: the green curve in the velocity plot is the exact result for the chosen pointer, and the dashed curve is the weak limit. Below about 50 nm they separate visibly.</p>
 
   <h2>Why the field does not depend on time</h2>
-  <p>In this model the wave factorizes as Ψ = F(x − v<sub>x</sub>t) φ(y; x) e<sup>i(kx − ωt)</sup>: a Gaussian longitudinal envelope F (σ = 50 nm, as in the double-slit app) that only translates, times a transverse wave φ that depends on the plane x. F cancels in Im(∂<sub>y</sub>ψ/ψ), so the velocity at a point is the same whenever a packet passes it, and runs need not be timed from their release. The same holds for a steady, nearly monochromatic beam, such as the single-photon source of Kocsis et al. It fails for packets short enough that their spread of wavelengths matters: they stretch as they travel, the velocity at a point then depends on time, and post-selection would also have to condition on the arrival time. Stage 1 therefore draws a continuous beam, with its crests cos(kx − ωt + arg φ) travelling; runs are events at random times. The beam drawn is the undisturbed one; with a strong pointer each run's wave beyond the weak plane is changed, which shows in the velocity plot as the green curve leaving the dashed one. Crests are not drawn when the wavelength is too short to resolve on the screen (below about 10 nm at the default size); the density is shown instead.</p>
+  <p>In this model the wave factorizes as Ψ = F(x − v<sub>x</sub>t) φ(y; x) e<sup>i(kx − ωt)</sup>: a Gaussian longitudinal envelope F (σ = 50 nm, as in the double-slit app) that only translates, times a transverse wave φ that depends on the plane x. F cancels in Im(∂<sub>y</sub>ψ/ψ), so the velocity at a point is the same whenever a packet passes it, and runs need not be timed from their release. The same holds for a steady, nearly monochromatic beam, such as the single-photon source of Kocsis et al. It fails for packets short enough that their spread of wavelengths matters: they stretch as they travel, the velocity at a point then depends on time, and post-selection would also have to condition on the arrival time. The simulation therefore draws a continuous beam; runs are events at random times. The Show control draws the density, travelling crests, or the phase as colour.</p>
+
+  <h2>What the measurement does to the wave</h2>
+  <p>The coupling entangles the particle with the pointer: after it, the state is ψ(y) φ(Y − y), not a product. For a given reading Y, the particle's wave is ψ(y) φ(Y − y), which is ψ cut down to a window of width σ<sub>p</sub> around Y; this conditional wave is what then reaches the strong plane, and it is what the joint probability P(Y, y<sub>f</sub>) is built from. In stage 1 the drawing shows, beyond the weak plane, the wave of the current run. With a 200 nm pointer the window is wider than the pattern and the wave looks almost unchanged; with 10 nm it is a narrow beam around the reading. Averaged over all readings, the density at the weak plane is unchanged, but downstream the interference between parts of the wave farther apart than about σ<sub>p</sub> is lost: the density matrix is multiplied by exp[−(y − y′)²/(8σ<sub>p</sub>²)]. Stage 2 draws that averaged density beyond the weak plane. It is a mixture, with no single wave, so no crests or phase are drawn there. A test checks it against the table of P(Y, y<sub>f</sub>).</p>
 
   <h2>Stage 3: the field and the trajectories</h2>
   <p>Stage 3 repeats the experiment at twelve pairs of planes from the slits to the screen, each with fresh runs. The arrows give a measured velocity field. Starting points are placed at equal-probability positions in the first strong plane, and each line follows the measured arrows, interpolated linearly between planes and between strips. If the arrows are right, the lines end at equal-probability positions on the screen; the ticks on the right show where they end, beside the |ψ|² curve. This is the reconstruction done by Kocsis et al. with single photons,<sup><a href="#ref-3">3</a></sup> who weakly measured the photon's transverse momentum rather than its position, and post-selected on a strong position measurement in a series of planes.</p>
@@ -209,6 +220,6 @@
   <p>The double-slit app draws pilot-wave trajectories from the theory. This app starts from data that could be taken in a laboratory and shows that they give the same lines. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.3.5"></script>
+<script type="module" src="js/app.js?v=0.4.0"></script>
 </body>
 </html>

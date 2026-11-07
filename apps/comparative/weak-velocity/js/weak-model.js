@@ -262,3 +262,26 @@ export function bohmTrajectory(terms0, k, wallX, y0, x1, steps = 400, x0 = wallX
   }
   return path;
 }
+
+// Density of the system averaged over all pointer readings, a time tau after
+// the coupling (what the strong plane records, before post-selection):
+//   rho(y) = ∫ dY |χ_Y(y, tau)|²,   χ_Y = U(tau) [ψ φ(Y - y)].
+// Integrating out a Gaussian pointer multiplies the density matrix by
+// exp(-(y-y')²/(8 sw²)), which equals an average of momentum kicks e^{iqy}
+// with q Gaussian of standard deviation 1/(2 sw). The q-average is done on a
+// uniform grid of n nodes over ±4 standard deviations.
+export function ensembleDensity(terms1, sw, tau, ys, n = 41) {
+  const sq = 1 / (2 * sw), out = new Float64Array(ys.length);
+  let wsum = 0;
+  const nodes = [];
+  for (let m = 0; m < n; m++) {
+    const q = n === 1 ? 0 : -4 * sq + 8 * sq * m / (n - 1), w = Math.exp(-q * q / (2 * sq * sq));
+    nodes.push([q, w]); wsum += w;
+  }
+  for (const [q, w] of nodes) {
+    const kicked = terms1.map((t) => ({ alpha: t.alpha, beta: add(t.beta, C(0, q)), gamma: t.gamma }));
+    const prop = propagate(kicked, tau);
+    for (let i = 0; i < ys.length; i++) out[i] += w / wsum * evaluate(prop, ys[i]).rho;
+  }
+  return out;
+}
