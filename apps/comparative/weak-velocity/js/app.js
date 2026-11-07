@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.3.4';
-import * as M from './weak-model.js?v=0.3.4';
+import { APP_RELEASE } from './release.js?v=0.3.5';
+import * as M from './weak-model.js?v=0.3.5';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -565,62 +565,55 @@ function dragMove(px, py) {
   drag.label = `${DRAG_LABEL[k]}: ${v} nm`;
 }
 
-// ---------------------------------------------------------------- stage 1: one run's packet
-// The packet has the double-slit app's default length (σ = 50 nm). In this
-// paraxial model its envelope only translates, so the transverse wave at each
-// plane is the same whenever the packet passes. Beyond the weak plane the wave
-// drawn is that of this run: ψ times the pointer factor for the reading Y.
-const RUN_SECONDS = 2.4;
-const PACKET_SIGMA = 0.5;   // 50 nm
-let packetLayer = null;
-function makeRunAnim(run) {
-  const D = p.screen - p.wall, xa = p.wall - 0.05 * D - 0.1 - 3 * PACKET_SIGMA, xb = exp.x2 + 3 * PACKET_SIGMA;
-  const frac = (x) => 0.78 * (x - xa) / (xb - xa);
-  const a = { t: 0, run, xa, xb, tW: frac(exp.x1), tS: frac(exp.x2), img: null };
-  // Column images: incident beam before the wall, ψ up to the weak plane, the
-  // pointer-conditioned wave after it. Each column scaled to its own maximum.
-  const P = palette(), nx = 320, ny = 200, x0 = p.wall - 0.05 * D - 0.1, x1 = p.screen;
-  const img = new ImageData(nx, ny), sw = state.sw / 100;
-  const coupled = M.coupleToPointer(exp.terms1, run.Y, sw);
+// ---------------------------------------------------------------- stage 1: a continuous, moving wave
+// Stage 1 draws the steady beam as a travelling wave: brightness from |ψ|
+// (each column scaled to its own maximum) times the crests cos(kx − ωt + arg φ).
+// The beam is continuous; runs are events at random times. Since the velocity
+// field does not depend on time, no run has to be timed.
+const RUN_SECONDS = 1.8;
+const RUN_TW = 0.15, RUN_TS = 0.55;   // pointer moves, then detection, within a run
+let phaseGrid = null, phaseLayer = null, phaseClock = 0;
+const phaseKey = (xa, xb) => [xa, xb, p.k, p.sy, p.centers, p.wall, p.sourceSigma, Y_HALF].join('|');
+function makeRunAnim(run) { return { t: 0, run, tW: RUN_TW, tS: RUN_TS }; }
+function buildPhaseGrid(xa, xb) {
+  const range = xb - xa, lam = 2 * Math.PI / p.k;
+  const nx = Math.min(1400, Math.max(360, Math.ceil(6 * range / lam))), ny = 220;
+  const key = phaseKey(xa, xb);
+  if (6 * range / lam > 1400) return { ok: false, key };
+  const A = new Float32Array(nx * ny), TH = new Float32Array(nx * ny);
   for (let i = 0; i < nx; i++) {
-    const x = x0 + (i + 0.5) / nx * (x1 - x0), col = new Float64Array(ny);
+    const x = xa + (i + 0.5) / nx * range;
+    const t = x >= p.wall ? M.propagate(T0, (x - p.wall) / p.k) : null;
     let mx = 0;
-    const t = x >= exp.x1 ? M.propagate(coupled, (x - exp.x1) / p.k) : x >= p.wall ? M.propagate(T0, (x - p.wall) / p.k) : null;
     for (let j = 0; j < ny; j++) {
       const y = Y_HALF - (j + 0.5) / ny * 2 * Y_HALF;
-      col[j] = t ? M.density(t, y) : sourceTransverse(y, x, p).rho;
-      mx = Math.max(mx, col[j]);
+      const g = t ? M.evaluate(t, y) : sourceTransverse(y, x, p);
+      const r = g.re * g.re + g.im * g.im;
+      A[j * nx + i] = r; TH[j * nx + i] = p.k * x + Math.atan2(g.im, g.re);
+      mx = Math.max(mx, r);
     }
-    for (let j = 0; j < ny; j++) {
-      const v = mx > 0 ? Math.pow(col[j] / mx, 0.6) : 0, k = (j * nx + i) * 4;
-      img.data[k] = P.wave[0]; img.data[k + 1] = P.wave[1]; img.data[k + 2] = P.wave[2]; img.data[k + 3] = Math.round(255 * v * 0.85);
-    }
+    for (let j = 0; j < ny; j++) A[j * nx + i] = mx > 0 ? Math.pow(A[j * nx + i] / mx, 0.6) : 0;
   }
-  const off = document.createElement('canvas'); off.width = nx; off.height = ny;
-  off.getContext('2d').putImageData(img, 0, 0);
-  a.img = off; a.x0 = x0; a.x1 = x1;
-  return a;
+  return { ok: true, nx, ny, A, TH, key };
 }
-function drawPacket(P, X, Yp) {
-  const a = anim; if (!a?.img) return;
-  const xc = a.xa + Math.min(1, a.t / 0.78) * (a.xb - a.xa);
-  // After detection the packet fades out.
-  const fade = a.t <= a.tS ? 1 : Math.max(0, 1 - (a.t - a.tS) / 0.08);
-  if (fade <= 0) return;
-  const W = Math.ceil(X(a.x1) - X(a.x0)), H = Math.ceil(Yp(-Y_HALF) - Yp(Y_HALF));
-  if (W < 2 || H < 2) return;
-  if (!packetLayer) packetLayer = document.createElement('canvas');
-  const ratio = devicePixelRatio || 1;
-  if (packetLayer.width !== Math.round(W * ratio) || packetLayer.height !== Math.round(H * ratio)) { packetLayer.width = Math.round(W * ratio); packetLayer.height = Math.round(H * ratio); }
-  const c = packetLayer.getContext('2d');
-  c.setTransform(ratio, 0, 0, ratio, 0, 0); c.clearRect(0, 0, W, H);
-  c.globalCompositeOperation = 'source-over'; c.imageSmoothingEnabled = true; c.drawImage(a.img, 0, 0, W, H);
-  // Gaussian longitudinal envelope as an alpha mask.
-  const px = (x) => X(x) - X(a.x0), g = c.createLinearGradient(px(xc - 3 * PACKET_SIGMA), 0, px(xc + 3 * PACKET_SIGMA), 0);
-  for (let i = 0; i <= 12; i++) { const u = -3 + i / 2; g.addColorStop(i / 12, `rgba(0,0,0,${Math.exp(-u * u / 2).toFixed(3)})`); }
-  c.globalCompositeOperation = 'destination-in'; c.fillStyle = g; c.fillRect(0, 0, W, H);
-  c.globalCompositeOperation = 'source-over';
-  ctx.globalAlpha = fade; ctx.drawImage(packetLayer, X(a.x0), Yp(Y_HALF), W, H); ctx.globalAlpha = 1;
+function drawMovingWave(P, X, Yp, xa, xb) {
+  // Crests need at least 6 screen pixels per wavelength; otherwise show the density.
+  if (X(xa + 2 * Math.PI / p.k) - X(xa) < 6) return false;
+  if (!phaseGrid || phaseGrid.key !== phaseKey(xa, xb)) phaseGrid = buildPhaseGrid(xa, xb);
+  if (!phaseGrid.ok) return false;
+  const g = phaseGrid;
+  if (!phaseLayer || phaseLayer.width !== g.nx || phaseLayer.height !== g.ny) { phaseLayer = document.createElement('canvas'); phaseLayer.width = g.nx; phaseLayer.height = g.ny; g.img = null; }
+  const c = phaseLayer.getContext('2d');
+  if (!g.img) g.img = c.createImageData(g.nx, g.ny);
+  const d = g.img.data, [r, gr, bl] = P.wave, ph = phaseClock;
+  for (let k = 0, n = g.nx * g.ny; k < n; k++) {
+    const b = g.A[k] * (0.5 + 0.5 * Math.cos(g.TH[k] - ph));
+    d[4 * k] = r; d[4 * k + 1] = gr; d[4 * k + 2] = bl; d[4 * k + 3] = 230 * b;
+  }
+  c.putImageData(g.img, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(phaseLayer, X(xa), Yp(Y_HALF), X(xb) - X(xa), Yp(-Y_HALF) - Yp(Y_HALF));
+  return true;
 }
 
 function drawApparatus(P, box) {
@@ -637,11 +630,9 @@ function drawApparatus(P, box) {
   // wave
   if (state.show.wave && waveImage) {
     ctx.imageSmoothingEnabled = true;
-    // Stage 1 shows one run's packet moving; the steady beam stays faint behind it.
-    if (state.stage === 'one') ctx.globalAlpha = 0.22;
-    ctx.drawImage(waveImage, X(p.wall), Yp(Y_HALF), X(p.screen) - X(p.wall), Yp(-Y_HALF) - Yp(Y_HALF));
-    ctx.globalAlpha = 1;
-    if (state.stage === 'one' && anim) drawPacket(P, X, Yp);
+    // Stage 1: the steady beam drawn as a moving wave (crests travel; nothing is pulsed).
+    const moving = state.stage === 'one' && !drag && drawMovingWave(P, X, Yp, x0, p.screen);
+    if (!moving) ctx.drawImage(waveImage, X(p.wall), Yp(Y_HALF), X(p.screen) - X(p.wall), Yp(-Y_HALF) - Yp(Y_HALF));
   }
   // wall with two slits (±1.5 sigma openings)
   ctx.strokeStyle = P.wall; ctx.lineWidth = 4;
@@ -935,6 +926,7 @@ let lastT = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   if (pending && !drag) rebuild();
+  if (state.stage === 'one' && (state.running || !exp?.runs)) phaseClock = (phaseClock + dt * state.speed * 2 * Math.PI / 0.8) % (2 * Math.PI);
   if (state.running && exp) {
     if (state.stage === 'one') {
       if (!anim) anim = makeRunAnim(M.sampleRun(exp.table));

@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.3.5 — 2026-11-07
+- Stage 1: continuous beam instead of one packet per run. The wave is drawn with travelling crests, cos(kx − ωt + arg φ), brightness from |ψ| (each column scaled); runs are events at random times. Falls back to the density when the wavelength is too short to resolve. Physics text updated.
+
 ## 0.3.4 — 2026-11-07
 - Stage 1: each run's packet (σ = 50 nm, as in the double-slit app) moves from the source through the slits; the pointer moves as it crosses the weak plane and the detection flashes as it reaches the strong plane. Beyond the weak plane the drawn wave is that run's wave, ψ times the pointer factor for its reading. The steady beam stays faint behind. Runs last 2.4 s at speed 1.
 - Physics tab: why the velocity field does not depend on time, and when that fails.

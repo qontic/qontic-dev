@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.3.4">
+<link rel="stylesheet" href="css/wv.css?v=0.3.5">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -159,7 +159,7 @@
   <p>the probability current divided by the density at the strong plane. Here the particle moves freely between the two planes, so y(τ) = y(τ + Δτ) − p Δτ/m holds as an operator identity, and the limit is exact for any gap, not only for Δx → 0. A finite gap only sets the size of the signal. The bias that remains comes from a finite σ<sub>p</sub>: the green curve in the velocity plot is the exact result for the chosen pointer, and the dashed curve is the weak limit. Below about 50 nm they separate visibly.</p>
 
   <h2>Why the field does not depend on time</h2>
-  <p>In this model the wave factorizes as Ψ = F(x − v<sub>x</sub>t) φ(y; x) e<sup>i(kx − ωt)</sup>: a Gaussian longitudinal envelope F (σ = 50 nm, as in the double-slit app) that only translates, times a transverse wave φ that depends on the plane x. F cancels in Im(∂<sub>y</sub>ψ/ψ), so the velocity at a point is the same whenever a packet passes it, and runs need not be timed from their release. The same holds for a steady, nearly monochromatic beam, such as the single-photon source of Kocsis et al. It fails for packets short enough that their spread of wavelengths matters: they stretch as they travel, the velocity at a point then depends on time, and post-selection would also have to condition on the arrival time. Stage 1 draws one run's packet moving; beyond the weak plane it draws the wave of that run, ψ times the pointer factor for the reading obtained, which with a strong pointer differs visibly from the undisturbed wave.</p>
+  <p>In this model the wave factorizes as Ψ = F(x − v<sub>x</sub>t) φ(y; x) e<sup>i(kx − ωt)</sup>: a Gaussian longitudinal envelope F (σ = 50 nm, as in the double-slit app) that only translates, times a transverse wave φ that depends on the plane x. F cancels in Im(∂<sub>y</sub>ψ/ψ), so the velocity at a point is the same whenever a packet passes it, and runs need not be timed from their release. The same holds for a steady, nearly monochromatic beam, such as the single-photon source of Kocsis et al. It fails for packets short enough that their spread of wavelengths matters: they stretch as they travel, the velocity at a point then depends on time, and post-selection would also have to condition on the arrival time. Stage 1 therefore draws a continuous beam, with its crests cos(kx − ωt + arg φ) travelling; runs are events at random times. The beam drawn is the undisturbed one; with a strong pointer each run's wave beyond the weak plane is changed, which shows in the velocity plot as the green curve leaving the dashed one. Crests are not drawn when the wavelength is too short to resolve on the screen (below about 10 nm at the default size); the density is shown instead.</p>
 
   <h2>Stage 3: the field and the trajectories</h2>
   <p>Stage 3 repeats the experiment at twelve pairs of planes from the slits to the screen, each with fresh runs. The arrows give a measured velocity field. Starting points are placed at equal-probability positions in the first strong plane, and each line follows the measured arrows, interpolated linearly between planes and between strips. If the arrows are right, the lines end at equal-probability positions on the screen; the ticks on the right show where they end, beside the |ψ|² curve. This is the reconstruction done by Kocsis et al. with single photons,<sup><a href="#ref-3">3</a></sup> who weakly measured the photon's transverse momentum rather than its position, and post-selected on a strong position measurement in a series of planes.</p>
@@ -209,6 +209,6 @@
   <p>The double-slit app draws pilot-wave trajectories from the theory. This app starts from data that could be taken in a laboratory and shows that they give the same lines. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.3.4"></script>
+<script type="module" src="js/app.js?v=0.3.5"></script>
 </body>
 </html>
