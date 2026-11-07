@@ -144,7 +144,7 @@ function mountFreeParticleTemplate() {
       option.setAttribute('aria-pressed', String(selected));
     });
     window.fpSetWavePalette?.(name);
-    try { localStorage.setItem('qontic-free-particle-palette', name); } catch (_) {}
+    try { localStorage.setItem('qontic-free-particle-palette-v2', name); } catch (_) {}
   };
   for (const name of window.fpWavePaletteNames || ['Q-Ontic']) {
     const option = document.createElement('button');
@@ -209,7 +209,7 @@ function mountFreeParticleTemplate() {
   displayLayers.append(paletteRow, opacityRow, detectorColor.row, hitColor.row);
   displayPane.append(displayLayers);
   try {
-    const savedPalette = localStorage.getItem('qontic-free-particle-palette');
+    const savedPalette = localStorage.getItem('qontic-free-particle-palette-v2');
     if (savedPalette && paletteGradients[savedPalette]) selectedPalette = savedPalette;
     const savedOpacityRaw = localStorage.getItem('qontic-free-particle-wave-opacity');
     if (savedOpacityRaw !== null) {
@@ -338,7 +338,7 @@ function mountFreeParticleTemplate() {
   controlPanel.after(results);
 
   mountQonticShell({title:'Free Particle', purpose:'Explore wave-packet spreading and detector outcomes in three quantum interpretations.',
-    version:'Free Particle · Version 1.10 · 2026-09-25', homeHref:'../../../index.html'});
+    version:'Free Particle · Version 1.11 · 2026-11-06', homeHref:'../../../index.html'});
   document.body.classList.add('fp-template');
   sync(); syncPage();
   // Existing resize handler refreshes all canvases after the layout changes.
