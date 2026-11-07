@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.1.0';
-import * as M from './weak-model.js?v=0.1.0';
+import { APP_RELEASE } from './release.js?v=0.1.1';
+import * as M from './weak-model.js?v=0.1.1';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -181,12 +181,12 @@ function liveText() {
   if (state.stage === 'one') {
     return exp.runs === 0
       ? 'Press <b>Run</b>. Watch the pointer move, then the screen click. One run gives two numbers.'
-      : `${N} runs. Each pointer reading lands far from the detected position: the pointer spread (${state.sw} nm) is wider than the whole pattern. One run says almost nothing.`;
+      : `${N} runs. The amber marker on the weak plane's scale is the pointer reading, with its spread of ±${state.sw} nm. It is a reading of the pointer, not a sighting of the particle: the spread is wider than the whole pattern, so one run says almost nothing about where the particle was.`;
   }
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const strip = `${nm(-Y_HALF + state.selected * 0.2).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * 0.2).toFixed(0)} nm`;
-    const tail = b ? ` In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
+    const tail = b ? ` On the planes: the amber dot is the mean pointer reading for the selected strip, the cyan dot the mean detected position. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
     return `${N} runs.${tail}`;
   }
   if (map && !map.done) return `Plane ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
@@ -426,27 +426,53 @@ function drawApparatus(P, box) {
     text('weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
     text('strong', X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
   }
+  // Selected strip: mean pointer reading on the weak plane, joined to the mean
+  // detected position on the strong plane. The slope of this step is the arrow.
+  if (exp && state.stage !== 'one' && !(map?.done) && state.selected !== null) {
+    const i = state.selected, n = exp.bins.count[i];
+    if (n >= 200) {
+      const mY = exp.bins.sumY[i] / n, mYf = exp.bins.sumYf[i] / n;
+      const err = Math.sqrt(Math.max(0, exp.bins.sumY2[i] / n - mY * mY) / n);
+      const xw = X(exp.x1), xs = X(exp.x2);
+      ctx.strokeStyle = P.weak; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(xw, Yp(mY + err)); ctx.lineTo(xw, Yp(mY - err)); ctx.stroke();
+      ctx.fillStyle = P.weak; ctx.beginPath(); ctx.arc(xw, Yp(mY), 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(xs, Yp(mYf), 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = P.text; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(xw, Yp(mY)); ctx.lineTo(xs, Yp(mYf)); ctx.stroke();
+      text(`mean pointer reading ${nm(mY).toFixed(1)} nm`, xw - 9, Yp(mY) - 8, { color: P.weak, size: 11, align: 'right' });
+      text(`mean detected ${nm(mYf).toFixed(1)} nm`, xw - 9, Yp(mYf) + 16, { color: P.strong, size: 11, align: "right" });
+    }
+  }
   // stage 1: pointer gauge and detection flash
   if (state.stage === 'one' && exp) drawPointerGauge(P, box, X, Yp);
   return { X, Yp };
 }
 
 function drawPointerGauge(P, box, X, Yp) {
-  const gx = X(p.wall) + 16, gw = Math.min(260, box.w * 0.42), gy = box.y + box.h - 30;
-  const range = Y_HALF + 3 * state.sw / 100;
-  const G = (Y) => gx + (Y + range) / (2 * range) * gw;
-  ctx.fillStyle = P.light ? 'rgba(255,255,255,0.85)' : 'rgba(7,19,29,0.85)'; ctx.fillRect(gx - 8, gy - 30, gw + 16, 36);
-  text('Pointer (a separate device) reads Y', gx, gy - 17, { color: P.weak, size: 11 });
-  ctx.strokeStyle = P.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + gw, gy); ctx.stroke();
-  for (let v = -Math.floor(range); v <= range; v += range > 8 ? 4 : 2) { ctx.beginPath(); ctx.moveTo(G(v), gy - 3); ctx.lineTo(G(v), gy + 3); ctx.stroke(); }
-  text(`${nm(-range).toFixed(0)} nm`, gx, gy + 13, { color: P.muted, size: 9.5 });
-  text(`${nm(range).toFixed(0)} nm`, gx + gw, gy + 13, { color: P.muted, size: 9.5, align: 'right' });
+  // The pointer's scale is drawn along the weak plane, in the same units as y.
+  // The marker shows the pointer reading Y; it is not a sighting of the particle.
+  const xw = X(exp.x1), top = Yp(Y_HALF), bot = Yp(-Y_HALF), sw = state.sw / 100;
+  ctx.strokeStyle = P.weak; ctx.lineWidth = 1;
+  for (let v = -Y_HALF; v <= Y_HALF; v += 1) { const yy = Yp(v), l = v % 2 === 0 ? 7 : 4; ctx.beginPath(); ctx.moveTo(xw - l, yy); ctx.lineTo(xw, yy); ctx.stroke(); }
+  text('pointer scale', xw - 6, bot + 13, { color: P.weak, size: 10.5, align: 'right' });
   if (!anim) return;
   const t = anim.t;
   const ease = (u) => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
-  const needle = G(anim.run.Y * ease((t - 0.15) / 0.3));
-  ctx.strokeStyle = P.weak; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(needle, gy - 9); ctx.lineTo(needle, gy + 4); ctx.stroke();
-  if (t > 0.1 && t < 0.5) { ctx.strokeStyle = P.weak; ctx.globalAlpha = 0.5; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(X(exp.x1), Yp(Y_HALF)); ctx.lineTo(X(exp.x1), Yp(-Y_HALF)); ctx.stroke(); ctx.globalAlpha = 1; }
+  if (t > 0.1 && t < 0.5) { ctx.strokeStyle = P.weak; ctx.globalAlpha = 0.35; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(xw, top); ctx.lineTo(xw, bot); ctx.stroke(); ctx.globalAlpha = 1; }
+  // Marker slides from the pointer's zero to the reading.
+  const Yr = anim.run.Y * ease((t - 0.15) / 0.3), yc = Yp(Yr), cl = (v) => Math.max(top, Math.min(bot, v));
+  const settled = t > 0.45;
+  if (settled) { ctx.globalAlpha = 0.25; ctx.fillStyle = P.weak; ctx.fillRect(xw - 4, cl(Yp(Yr + sw)), 8, cl(Yp(Yr - sw)) - cl(Yp(Yr + sw))); ctx.globalAlpha = 1; }
+  ctx.strokeStyle = P.weak; ctx.fillStyle = P.weak; ctx.lineWidth = 2;
+  if (yc >= top && yc <= bot) {
+    ctx.beginPath(); ctx.moveTo(xw - 13, yc); ctx.lineTo(xw - 3, yc); ctx.stroke();
+    ctx.beginPath(); ctx.arc(xw, yc, 5.5, 0, Math.PI * 2); ctx.stroke();
+    if (settled) text(`pointer reads ${nm(anim.run.Y).toFixed(0)} ± ${state.sw} nm`, xw - 16, yc + 4, { color: P.weak, size: 11, align: 'right' });
+  } else {
+    const up = yc < top, ya = up ? top + 2 : bot - 2, d = up ? 1 : -1;
+    ctx.beginPath(); ctx.moveTo(xw, ya); ctx.lineTo(xw - 5, ya + 8 * d); ctx.lineTo(xw + 5, ya + 8 * d); ctx.closePath(); ctx.fill();
+    if (settled) text(`pointer reads ${nm(anim.run.Y).toFixed(0)} ± ${state.sw} nm (off scale)`, xw - 10, ya + 12 * d + 4, { color: P.weak, size: 11, align: 'right' });
+  }
   if (t > 0.55) {
     const r = t < 0.75 ? 4 + 20 * (t - 0.55) : 6;
     ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(X(exp.x2), Yp(anim.run.yf), r, 0, Math.PI * 2); ctx.fill();
