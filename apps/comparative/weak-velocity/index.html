@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.2.2">
+<link rel="stylesheet" href="css/wv.css?v=0.2.3">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -60,7 +60,7 @@
         <div class="toggle-row"><span>Current velocity j/|ψ|²</span><button class="toggle" type="button" data-toggle="current" aria-pressed="true" aria-label="Show the current velocity curve"></button></div>
         <div class="toggle-row"><span>Exact expectation for this pointer</span><button class="toggle" type="button" data-toggle="expected" aria-pressed="true" aria-label="Show the exact expected result for this pointer"></button></div>
         <div class="toggle-row"><span>Pilot-wave trajectories</span><button class="toggle" type="button" data-toggle="bohm" aria-pressed="false" aria-label="Overlay pilot-wave trajectories"></button></div>
-        <div class="toggle-row"><span>Accumulated runs on the planes</span><button class="toggle" type="button" data-toggle="planeRuns" aria-pressed="true" aria-label="Show all pointer readings and detections so far beside the two planes"></button></div>
+        <div class="toggle-row"><span>Accumulated runs on the planes</span><button class="toggle" type="button" data-toggle="planeRuns" aria-pressed="true" aria-label="Show pointer readings and detections as points beside the two planes"></button></div>
         <div class="toggle-row"><span>Data plot</span><button class="toggle" type="button" data-panel-toggle="scatter" aria-pressed="true" aria-label="Show the floating data plot"></button></div>
         <div class="toggle-row"><span>Velocity plot</span><button class="toggle" type="button" data-panel-toggle="vel" aria-pressed="true" aria-label="Show the floating velocity plot"></button></div>
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="resetPanels">Reset plot width</button>
@@ -191,6 +191,6 @@
   <p>The double-slit app draws pilot-wave trajectories from the theory. This app starts from data that could be taken in a laboratory and shows that they give the same lines. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.2.2"></script>
+<script type="module" src="js/app.js?v=0.2.3"></script>
 </body>
 </html>

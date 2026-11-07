@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.2.3 — 2026-11-06
+- Runs beside the planes are drawn as points again (one per run, first 6 000 runs kept), instead of the 4 nm bars of 0.1.4. A note gives the count when more runs were taken.
+
 ## 0.2.2 — 2026-11-06
 - Default split: drawing 2/3, plots 1/3. Both plots open by default; earlier remembered widths and open/minimized states are discarded once.
 

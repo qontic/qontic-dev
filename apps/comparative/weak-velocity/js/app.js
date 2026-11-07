@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.2';
-import * as M from './weak-model.js?v=0.2.2';
+import { APP_RELEASE } from './release.js?v=0.2.3';
+import * as M from './weak-model.js?v=0.2.3';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -22,7 +22,7 @@ const Y_HALF = 4;            // ±400 nm shown and binned
 const N_BINS = 40;           // 20 nm strips
 const N_PLANES = 12;
 const SCATTER_N = 4000;
-const PLANE_CELLS = 200; // 4 nm cells over ±400 nm
+const PLANE_POINTS = 6000; // runs kept as points beside the planes
 const nm = (u) => u * 100;
 
 const $ = (s) => document.querySelector(s);
@@ -81,16 +81,13 @@ function makeExperiment(x1nm) {
     x1, x2: x1 + state.gap / 100, dtau, terms1, terms2, table, bins, expected, expCurve, curCurve, rho, rMax,
     vmax: vmax * 1.25, binCur, runs: 0,
     scatter: new Float32Array(SCATTER_N * 2), scatterN: 0, scatterHead: 0,
-    wHist: new Float64Array(PLANE_CELLS), sHist: new Float64Array(PLANE_CELLS),
+    ptsY: new Float32Array(PLANE_POINTS), ptsYf: new Float32Array(PLANE_POINTS), ptsU: new Float32Array(PLANE_POINTS), ptsN: 0,
   };
 }
 
-const cellOf = (y) => Math.floor((Y_HALF - y) / (2 * Y_HALF) * PLANE_CELLS);
 function addRun(e, run) {
   M.addToBins(e.bins, run);
-  const jw = cellOf(run.Y), js = cellOf(run.yf);
-  if (jw >= 0 && jw < PLANE_CELLS) e.wHist[jw]++;
-  if (js >= 0 && js < PLANE_CELLS) e.sHist[js]++;
+  if (e.ptsN < PLANE_POINTS) { e.ptsY[e.ptsN] = run.Y; e.ptsYf[e.ptsN] = run.yf; e.ptsU[e.ptsN] = Math.random(); e.ptsN++; }
   e.runs++;
   e.scatter[e.scatterHead * 2] = run.yf; e.scatter[e.scatterHead * 2 + 1] = run.Y;
   e.scatterHead = (e.scatterHead + 1) % SCATTER_N; e.scatterN = Math.min(SCATTER_N, e.scatterN + 1);
@@ -193,7 +190,7 @@ function liveText() {
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const strip = `${nm(-Y_HALF + state.selected * 0.2).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * 0.2).toFixed(0)} nm`;
-    const tail = b ? ` Beside the planes: all pointer readings (amber, left of the weak plane) and all detections (cyan, between the planes) so far. The amber dot is the mean pointer reading for the selected strip, the cyan dot the mean detected position. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
+    const tail = b ? ` Beside the planes: pointer readings (amber, left of the weak plane) and detections (cyan, between the planes), one point per run. The amber dot is the mean pointer reading for the selected strip, the cyan dot the mean detected position. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
     return `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${tail}`;
   }
   if (map && !map.done) return `Plane ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
@@ -476,25 +473,20 @@ function drawApparatus(P, box) {
     text('weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
     text('strong', X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
   }
-  // Accumulated runs: every pointer reading beside the weak plane and every
-  // detection beside the strong plane, counted in 4 nm cells. Few runs look
-  // like separate marks; many runs build up the two distributions.
-  if (state.show.planeRuns && exp && !(map?.done) && exp.runs) {
-    const xw = X(exp.x1), xs = X(exp.x2), cell = (Yp(-Y_HALF) - Yp(Y_HALF)) / PLANE_CELLS;
-    const strip = (hist, x0, w, color) => {
-      let mx = 0; for (const v of hist) mx = Math.max(mx, v);
-      if (!mx) return;
-      ctx.fillStyle = color;
-      for (let j = 0; j < PLANE_CELLS; j++) {
-        if (!hist[j]) continue;
-        ctx.globalAlpha = Math.min(1, 0.12 + 0.88 * hist[j] / mx);
-        ctx.fillRect(x0, Yp(Y_HALF) + j * cell, w, Math.max(1.2, cell));
-      }
-      ctx.globalAlpha = 1;
-    };
-    strip(exp.wHist, xw - 14, 11, P.weak);
+  // Accumulated runs as points: pointer readings beside the weak plane,
+  // detections between the planes. The first PLANE_POINTS runs are kept as
+  // points (enough to show both distributions without saturating).
+  if (state.show.planeRuns && exp && !(map?.done) && exp.ptsN) {
+    const xw = X(exp.x1), xs = X(exp.x2), top = Yp(Y_HALF), bot = Yp(-Y_HALF);
     const gapW = Math.max(6, xs - xw - 6);
-    strip(exp.sHist, xs - 3 - gapW + 3, gapW - 3, P.strong);
+    const n = exp.ptsN, sz = n > 2000 ? 1.5 : 2.2;
+    ctx.globalAlpha = n > 2000 ? 0.45 : 0.75;
+    ctx.fillStyle = P.weak;
+    for (let i = 0; i < n; i++) { const yy = Yp(exp.ptsY[i]); if (yy >= top && yy <= bot) ctx.fillRect(xw - 3 - exp.ptsU[i] * 12 - sz / 2, yy - sz / 2, sz, sz); }
+    ctx.fillStyle = P.strong;
+    for (let i = 0; i < n; i++) ctx.fillRect(xs - 3 - exp.ptsU[i] * (gapW - 2) - sz / 2, Yp(exp.ptsYf[i]) - sz / 2, sz, sz);
+    ctx.globalAlpha = 1;
+    if (exp.runs > n) text(`points: first ${n.toLocaleString('en-US')} of ${exp.runs.toLocaleString('en-US')} runs`, xw - 6, bot + 13, { color: P.muted, size: 10, align: 'right' });
   }
   // Selected strip: mean pointer reading on the weak plane, joined to the mean
   // detected position on the strong plane. The slope of this step is the arrow.
