@@ -227,6 +227,21 @@ const FP_DENSITY_PALETTE = fpStopsPalette(FP_DENSITY_STOPS);
 const FP_CLASSIC_PALETTE = fpStopsPalette(FP_CLASSIC_STOPS);
 const FP_ICE_PALETTE = fpStopsPalette(FP_ICE_STOPS);
 
+// Thermal: the familiar heat-map order, blue (low) -> cyan -> green -> yellow ->
+// red (high), from the Turbo colormap's polynomial fit (Mikhailov, Google AI,
+// 2019). The lowest densities fade in from black so empty space stays dark.
+function fpTurbo(t) {
+  const r = 0.13572138 + t * (4.61539260 + t * (-42.66032258 + t * (132.13108234 + t * (-152.94239396 + t * 59.28637943))));
+  const g = 0.09140261 + t * (2.19418839 + t * (4.84296658 + t * (-14.18503333 + t * (4.27729857 + t * 2.82956604))));
+  const b = 0.10667330 + t * (12.64194608 + t * (-60.58204836 + t * (110.36276771 + t * (-89.90310912 + t * 27.34824973))));
+  return [r, g, b].map(v => Math.max(0, Math.min(1, v)));
+}
+const FP_THERMAL_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
+  const d = i / FP_PALETTE_STEPS, fadeEnd = 0.08, t0 = 0.06, t1 = 0.86;
+  if (d < fadeEnd) return fpTurbo(t0).map(v => v * d / fadeEnd);
+  return fpTurbo(t0 + (d - fadeEnd) / (1 - fadeEnd) * (t1 - t0));
+});
+
 // Phase: a colour wheel of constant perceived lightness (OKLCH, L = 0.72,
 // C = 0.15), so every phase looks equally bright and brightness can carry the
 // amplitude. Phase 0 is cyan; going round the wheel passes blue, magenta,
@@ -262,6 +277,7 @@ function fpDensityRGB(relativeDensity) {
   if (fp.wavePalette === 'Q-Ontic') return FP_DENSITY_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
   if (fp.wavePalette === 'Classic') return FP_CLASSIC_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
   if (fp.wavePalette === 'Ice') return FP_ICE_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
+  if (fp.wavePalette === 'Thermal') return FP_THERMAL_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
   const palette = FP_WAVE_PALETTE_RGB[fp.wavePalette] || FP_WAVE_PALETTE_RGB.Inferno;
   const scaled = t * (palette.length - 1);
   const index = Math.floor(scaled);
@@ -275,7 +291,7 @@ function fpDensityColor(relativeDensity) {
   return `rgba(${rgb.map(v => Math.round(255 * v)).join(',')},${fp.waveOpacity})`;
 }
 
-window.fpWavePaletteNames = ['Q-Ontic', 'Ice', 'Classic', ...Object.keys(FP_WAVE_PALETTES)];
+window.fpWavePaletteNames = ['Q-Ontic', 'Thermal', 'Ice', 'Classic', ...Object.keys(FP_WAVE_PALETTES)];
 window.fpSetWavePalette = name => {
   if (!window.fpWavePaletteNames.includes(name)) return;
   fp.wavePalette = name;

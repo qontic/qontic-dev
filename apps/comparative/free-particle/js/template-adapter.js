@@ -104,6 +104,7 @@ function mountFreeParticleTemplate() {
   paletteButton.append(paletteSwatch);
   const paletteGradients = {
     'Q-Ontic':['#000000','#0e2263','#2e48bb','#9239bb','#e53938','#ff6728'],
+    Thermal:['#000000','#4b4ac8','#2f9ef5','#35eba2','#96fa50','#ebd22e','#ff801d','#d2350e'],
     Ice:['#000000','#080e28','#143374','#1c74b2','#4abcd6','#a6e8f1','#e8fbff'],
     Classic:['#000000','#0a111a','#143c3d','#066827','#6d350d','#91111b','#970c1b','#8c0b3d','#810a50'],
     Gray:['#717171','#8d8d8d','#aaaaaa','#c6c6c6','#e2e2e2'],
@@ -338,7 +339,7 @@ function mountFreeParticleTemplate() {
   controlPanel.after(results);
 
   mountQonticShell({title:'Free Particle', purpose:'Explore wave-packet spreading and detector outcomes in three quantum interpretations.',
-    version:'Free Particle · Version 1.11 · 2026-11-06', homeHref:'../../../index.html'});
+    version:'Free Particle · Version 1.12 · 2026-11-06', homeHref:'../../../index.html'});
   document.body.classList.add('fp-template');
   sync(); syncPage();
   // Existing resize handler refreshes all canvases after the layout changes.
