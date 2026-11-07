@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.1.3';
-import * as M from './weak-model.js?v=0.1.3';
+import { APP_RELEASE } from './release.js?v=0.1.4';
+import * as M from './weak-model.js?v=0.1.4';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -22,7 +22,7 @@ const Y_HALF = 4;            // ±400 nm shown and binned
 const N_BINS = 40;           // 20 nm strips
 const N_PLANES = 12;
 const SCATTER_N = 4000;
-const RECENT_ON_PLANES = 1500;
+const PLANE_CELLS = 200; // 4 nm cells over ±400 nm
 const nm = (u) => u * 100;
 
 const $ = (s) => document.querySelector(s);
@@ -80,11 +80,16 @@ function makeExperiment(x1nm) {
     x1, x2: x1 + state.gap / 100, dtau, terms1, terms2, table, bins, expected, expCurve, curCurve, rho, rMax,
     vmax: vmax * 1.25, binCur, runs: 0,
     scatter: new Float32Array(SCATTER_N * 2), scatterN: 0, scatterHead: 0,
+    wHist: new Float64Array(PLANE_CELLS), sHist: new Float64Array(PLANE_CELLS),
   };
 }
 
+const cellOf = (y) => Math.floor((Y_HALF - y) / (2 * Y_HALF) * PLANE_CELLS);
 function addRun(e, run) {
   M.addToBins(e.bins, run);
+  const jw = cellOf(run.Y), js = cellOf(run.yf);
+  if (jw >= 0 && jw < PLANE_CELLS) e.wHist[jw]++;
+  if (js >= 0 && js < PLANE_CELLS) e.sHist[js]++;
   e.runs++;
   e.scatter[e.scatterHead * 2] = run.yf; e.scatter[e.scatterHead * 2 + 1] = run.Y;
   e.scatterHead = (e.scatterHead + 1) % SCATTER_N; e.scatterN = Math.min(SCATTER_N, e.scatterN + 1);
@@ -187,7 +192,7 @@ function liveText() {
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const strip = `${nm(-Y_HALF + state.selected * 0.2).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * 0.2).toFixed(0)} nm`;
-    const tail = b ? ` On the planes: the amber dot is the mean pointer reading for the selected strip, the cyan dot the mean detected position. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
+    const tail = b ? ` Beside the planes: all pointer readings (amber, left of the weak plane) and all detections (cyan, between the planes) so far. The amber dot is the mean pointer reading for the selected strip, the cyan dot the mean detected position. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
     return `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${tail}`;
   }
   if (map && !map.done) return `Plane ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
@@ -427,22 +432,25 @@ function drawApparatus(P, box) {
     text('weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
     text('strong', X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
   }
-  // Recent runs: pointer readings along the weak plane, detections along the
-  // strong plane (the same runs as in the data plot, slightly spread sideways).
-  if (state.show.planeRuns && exp && !(map?.done) && exp.scatterN) {
-    const xw = X(exp.x1), xs = X(exp.x2), top = Yp(Y_HALF), bot = Yp(-Y_HALF);
-    const n = Math.min(exp.scatterN, RECENT_ON_PLANES);
-    for (let k = 0; k < n; k++) {
-      const i = (exp.scatterHead - 1 - k + SCATTER_N) % SCATTER_N, a = exp.scatter[2 * i], b = exp.scatter[2 * i + 1];
-      const u = ((i * 2654435761) % 1000) / 1000;
-      const yw = Yp(b), ys = Yp(a), half = Math.max(3, (xs - xw) / 2 - 3);
-      ctx.globalAlpha = 0.45;
-      ctx.fillStyle = P.weak;
-      if (yw >= top && yw <= bot) ctx.fillRect(xw - 3 - u * 10, yw - 1, 2, 2);
-      ctx.fillStyle = P.strong;
-      ctx.fillRect(xs - 3 - u * half, ys - 1, 2, 2);
-    }
-    ctx.globalAlpha = 1;
+  // Accumulated runs: every pointer reading beside the weak plane and every
+  // detection beside the strong plane, counted in 4 nm cells. Few runs look
+  // like separate marks; many runs build up the two distributions.
+  if (state.show.planeRuns && exp && !(map?.done) && exp.runs) {
+    const xw = X(exp.x1), xs = X(exp.x2), cell = (Yp(-Y_HALF) - Yp(Y_HALF)) / PLANE_CELLS;
+    const strip = (hist, x0, w, color) => {
+      let mx = 0; for (const v of hist) mx = Math.max(mx, v);
+      if (!mx) return;
+      ctx.fillStyle = color;
+      for (let j = 0; j < PLANE_CELLS; j++) {
+        if (!hist[j]) continue;
+        ctx.globalAlpha = Math.min(1, 0.12 + 0.88 * hist[j] / mx);
+        ctx.fillRect(x0, Yp(Y_HALF) + j * cell, w, Math.max(1.2, cell));
+      }
+      ctx.globalAlpha = 1;
+    };
+    strip(exp.wHist, xw - 14, 11, P.weak);
+    const gapW = Math.max(6, xs - xw - 6);
+    strip(exp.sHist, xs - 3 - gapW + 3, gapW - 3, P.strong);
   }
   // Selected strip: mean pointer reading on the weak plane, joined to the mean
   // detected position on the strong plane. The slope of this step is the arrow.

@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.1.4 — 2026-11-06
+- All runs accumulate beside the planes (4 nm cells): pointer readings left of the weak plane, detections between the planes. Replaces the last-1 500 dots. Toggle: Display › Accumulated runs on the planes (on by default).
+
 ## 0.1.3 — 2026-11-06
 - Display toggle "Runs on the planes" (on by default) for the pointer readings and detections drawn beside the two planes.
 
