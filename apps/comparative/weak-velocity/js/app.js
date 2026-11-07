@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.4';
-import * as M from './weak-model.js?v=0.2.4';
+import { APP_RELEASE } from './release.js?v=0.2.5';
+import * as M from './weak-model.js?v=0.2.5';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -34,7 +34,7 @@ const controlsEl = $('qontic-controls');
 const state = {
   stage: 'one', sw: 200, x1: 500, gap: 50, perPlane: 1e6,
   running: false, speed: 1,
-  show: { wave: true, current: true, expected: true, bohm: false, scatter: true, planeRuns: true },
+  show: { wave: true, arrows: true, current: true, expected: true, bohm: false, scatter: true, planeRuns: true },
   selected: null,
 };
 let exp = null;              // current pair of planes
@@ -140,7 +140,7 @@ function buildLines() {
   // Starting points at equal-probability positions in the first strong plane.
   const counts = map.planes[0].counts, total = counts.reduce((a, b) => a + b, 0), w = 2 * Y_HALF / N_BINS;
   const starts = [];
-  const nLines = 21;
+  const nLines = 20; // even, so no start falls on the median between the two slit packets
   for (let q = 0; q < nLines; q++) {
     let target = (q + 0.5) / nLines * total, acc = 0;
     for (let i = 0; i < N_BINS; i++) {
@@ -149,6 +149,8 @@ function buildLines() {
     }
   }
   const x0 = planes[0].x, xEnd = planes.at(-1).x;
+  // Keep only starts where the first plane has a measured velocity.
+  for (let i = starts.length - 1; i >= 0; i--) if (planes[0].vAt(starts[i]) === null) starts.splice(i, 1);
   map.lines = starts.map((y0) => M.integrateField(planes, 1, y0, x0, xEnd, 300));
   map.bohm = starts.map((y0) => M.bohmTrajectory(T0, p.k, p.wall, y0, xEnd, 300, x0));
   // Equal-probability positions of |psi|^2 on the screen, for the check.
@@ -209,6 +211,7 @@ function showNext() {
   if (state.stage === 'map' && map?.done) {
     if (state.sw >= 40) add('Repeat with a strong pointer (10 nm)', () => { setSw(10); setStage('map', true); });
     else add('Repeat with a weak pointer (200 nm)', () => { setSw(200); setStage('map', true); });
+    add(state.show.arrows ? 'Hide the arrows' : 'Show the arrows', () => { toggle('arrows'); showNext(); });
     add(state.show.bohm ? 'Hide pilot-wave trajectories' : 'Compare with pilot-wave trajectories', () => { toggle('bohm'); showNext(); });
   }
 }
@@ -366,11 +369,11 @@ function palette() {
   return light ? {
     light, bg: '#fbfdfe', panel: '#f1f6f8', grid: '#d6e2e8', text: '#183747', muted: '#5f7684',
     wave: [12, 90, 140], wall: '#36505f', weak: '#a36400', strong: '#087788', arrow: '#b35c00', line: '#b35c00',
-    bohm: '#46606f', exp: '#16803c', cur: '#183747', dots: 'rgba(24,55,71,0.22)', strip: 'rgba(8,119,136,0.13)',
+    bohm: '#8a2bbd', exp: '#16803c', cur: '#183747', dots: 'rgba(24,55,71,0.22)', strip: 'rgba(8,119,136,0.13)',
   } : {
     light, bg: '#07131d', panel: '#0b1c29', grid: '#1d3546', text: '#d9edf7', muted: '#8299aa',
     wave: [95, 210, 235], wall: '#9fb3c1', weak: '#f0b341', strong: '#5fe0f0', arrow: '#f6b54a', line: '#f6b54a',
-    bohm: '#c9d8e2', exp: '#6ee58f', cur: '#d9edf7', dots: 'rgba(200,225,240,0.20)', strip: 'rgba(95,224,240,0.13)',
+    bohm: '#e07bff', exp: '#6ee58f', cur: '#d9edf7', dots: 'rgba(200,225,240,0.20)', strip: 'rgba(95,224,240,0.13)',
   };
 }
 
@@ -429,7 +432,7 @@ function drawApparatus(P, box) {
     arrowsFrom.push({ x: exp.x2, est, live: true });
   }
   const L = Math.max(14, Math.min(26, box.w / 32));
-  for (const a of arrowsFrom) for (const e of a.est) {
+  if (state.show.arrows) for (const a of arrowsFrom) for (const e of a.est) {
     if (!e) continue;
     const rel = Math.min(1, 0.04 / Math.max(1e-6, e.err));
     if (rel < 0.15) continue;
@@ -446,9 +449,21 @@ function drawApparatus(P, box) {
 
   // lines from the measured field, and pilot-wave trajectories
   const path = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Yp(y)) : ctx.moveTo(X(x), Yp(y)))); ctx.stroke(); };
-  if (map?.done && state.show.bohm) { ctx.strokeStyle = P.bohm; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); map.bohm.forEach(path); ctx.setLineDash([]); }
   if (map?.done) {
     ctx.strokeStyle = P.line; ctx.lineWidth = 1.8; map.lines.forEach(path);
+    if (state.show.bohm) {
+      // Pilot-wave trajectories from the same starting points, drawn on top.
+      ctx.strokeStyle = P.bohm; ctx.lineWidth = 1.7; ctx.setLineDash([6, 4]); map.bohm.forEach(path); ctx.setLineDash([]);
+    }
+    // key
+    const kx = X(p.wall) + 14, ky = Yp(-Y_HALF) - 10;
+    ctx.fillStyle = P.light ? 'rgba(241,246,248,0.88)' : 'rgba(11,28,41,0.88)'; ctx.fillRect(kx - 6, ky - (state.show.bohm ? 30 : 15), 300, state.show.bohm ? 36 : 21);
+    ctx.lineWidth = 1.8; ctx.strokeStyle = P.line; ctx.beginPath(); ctx.moveTo(kx, ky - 4); ctx.lineTo(kx + 22, ky - 4); ctx.stroke();
+    text('lines through the measured arrows', kx + 30, ky, { color: P.text, size: 11 });
+    if (state.show.bohm) {
+      ctx.lineWidth = 1.7; ctx.strokeStyle = P.bohm; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(kx, ky - 19); ctx.lineTo(kx + 22, ky - 19); ctx.stroke(); ctx.setLineDash([]);
+      text('pilot-wave trajectories, same starts', kx + 30, ky - 15, { color: P.text, size: 11 });
+    }
     // screen check: measured end points vs equal-probability positions
     const sx = X(p.screen);
     ctx.lineWidth = 2;

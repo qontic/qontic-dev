@@ -1,5 +1,10 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.2.5 — 2026-11-06
+- Display › Measured arrows switches the arrows off, and stage 3 offers "Hide the arrows" once the lines are drawn.
+- Pilot-wave trajectories drawn in violet, dashed and on top of the measured lines; a key on the drawing names both.
+- Stage 3 lines: 20 starting points (was 21; the middle one fell between the slit packets, where no velocity is measured), and starts without a measured velocity are dropped, so every pilot-wave trajectory has a measured partner.
+
 ## 0.2.4 — 2026-11-06
 - Stage 2 starts slowly and accelerates while the points beside the planes fill in (about 2 s at speed 1), so the hits appear in sequence instead of all at once.
 
