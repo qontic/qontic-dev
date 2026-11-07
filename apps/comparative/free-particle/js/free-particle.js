@@ -389,7 +389,6 @@ function fpPsi2D(x_nm, y_nm, t_fs) {
 
   // Relative normalization is sufficient for visualization and guidance ratios.
   const amp   = Math.sqrt((sigX0 * sigY0) / (sigX * sigY));
-  // ψ ∝ exp(−δ²/(4σ0²(1 + iτ))) = exp(−δ²/(4σ²)) · exp(iτδ²/(4σ²)), with σ = σ0√(1 + τ²).
   const gauss = Math.exp(-((dx * dx) / (4 * sigX * sigX) + (dy * dy) / (4 * sigY * sigY)));
 
   const carrier = fp.kx_nm * x_nm + fp.ky_nm * y_nm - fp.omega_fs * t_fs;
