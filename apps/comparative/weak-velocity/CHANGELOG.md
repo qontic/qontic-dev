@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.4.4 — 2026-11-07
+- The mean pointer reading for a strip is no longer drawn for a fixed strip. Pointing at the strong plane (stages 2 and 3) selects the strip under the pointer, highlights it, and draws its mean pointer reading on the weak plane joined to its mean detected position; the plots and Results follow. Nothing is drawn when the pointer is elsewhere.
+
 ## 0.4.3 — 2026-11-07
 - Arrows per plane slider runs the same way as Lines: fewest on the left (8), all 40 on the right.
 

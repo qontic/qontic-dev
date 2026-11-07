@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.4.3';
-import * as M from './weak-model.js?v=0.4.3';
+import { APP_RELEASE } from './release.js?v=0.4.4';
+import * as M from './weak-model.js?v=0.4.4';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -211,7 +211,7 @@ function liveText() {
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const bw = 2 * Y_HALF / N_BINS, strip = `${nm(-Y_HALF + state.selected * bw).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * bw).toFixed(0)} nm`;
-    const tail = b ? ` Beside the planes: pointer readings (amber, left of the weak plane) and detections (cyan, between the planes), one point per run. The amber dot is the mean pointer reading for the selected strip, the cyan dot the mean detected position. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
+    const tail = b ? ` Beside the planes: pointer readings (amber, left of the weak plane) and detections (cyan, between the planes), one point per run. Point at the strong (cyan) plane to post-select a strip: the drawing then shows the mean pointer reading for the runs detected there. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
     return `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${tail}`;
   }
   if (map && !map.done) return `Plane ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
@@ -527,13 +527,25 @@ function drawGrips(P) {
   }
 }
 function pointerPos(e) { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+// Post-select by pointing: over the strong plane (stages 2 and 3, while a pair
+// of planes is being measured) the strip under the pointer is selected, and the
+// drawing shows its mean pointer reading on the weak plane.
+let hoverStrip = null;
+function stripAt(px, py) {
+  if (!appMap || !exp || editing || state.stage === 'one' || map?.done) return null;
+  const m = appMap, xw = m.X(exp.x1), xs = m.X(exp.x2), top = m.Yp(Y_HALF), bot = m.Yp(-Y_HALF);
+  if (px < xw - 30 || px > xs + 40 || py < top || py > bot) return null;
+  return binOf(m.Yh - (py - m.box.y - 26) / (m.box.h - 44) * 2 * m.Yh);
+}
 canvas.addEventListener('pointermove', (e) => {
   const [px, py] = pointerPos(e);
   if (drag) { dragMove(px, py); return; }
   hover = hitHandle(px, py);
-  canvas.style.cursor = hover ? CURSOR[hover.kind] : '';
+  hoverStrip = hover ? null : stripAt(px, py);
+  if (hoverStrip !== null) state.selected = hoverStrip;
+  canvas.style.cursor = hover ? CURSOR[hover.kind] : hoverStrip !== null ? 'crosshair' : '';
 });
-canvas.addEventListener('pointerleave', () => { if (!drag) { hover = null; canvas.style.cursor = ''; } });
+canvas.addEventListener('pointerleave', (e) => { if (!drag) { hover = null; canvas.style.cursor = ''; } if (e.pointerType === 'mouse') hoverStrip = null; });
 canvas.addEventListener('pointerdown', (e) => {
   const [px, py] = pointerPos(e), h = hitHandle(px, py);
   if (!h) return;
@@ -792,8 +804,11 @@ function drawApparatus(P, box) {
   }
   // Selected strip: mean pointer reading on the weak plane, joined to the mean
   // detected position on the strong plane. The slope of this step is the arrow.
-  if (exp && state.stage !== 'one' && !(map?.done) && state.selected !== null) {
-    const i = state.selected, n = exp.bins.count[i];
+  if (exp && state.stage !== 'one' && !(map?.done) && hoverStrip !== null) {
+    const i = hoverStrip, n = exp.bins.count[i];
+    // the strip on the strong plane
+    const bw = 2 * Y_HALF / N_BINS, a = -Y_HALF + i * bw;
+    ctx.fillStyle = P.strip; ctx.fillRect(X(exp.x1) - 4, Yp(a + bw), X(exp.x2) - X(exp.x1) + 30, Yp(a) - Yp(a + bw));
     if (n >= 200) {
       const mY = exp.bins.sumY[i] / n, mYf = exp.bins.sumYf[i] / n;
       const err = Math.sqrt(Math.max(0, exp.bins.sumY2[i] / n - mY * mY) / n);
@@ -805,7 +820,7 @@ function drawApparatus(P, box) {
       ctx.strokeStyle = P.text; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(xw, Yp(mY)); ctx.lineTo(xs, Yp(mYf)); ctx.stroke();
       text(`mean pointer reading ${nm(mY).toFixed(1)} nm`, xw - 9, Yp(mY) - 8, { color: P.weak, size: 11, align: 'right' });
       text(`mean detected ${nm(mYf).toFixed(1)} nm`, xw - 9, Yp(mYf) + 16, { color: P.strong, size: 11, align: "right" });
-    }
+    } else text('too few runs in this strip yet', X(exp.x2) + 34, Yp(a + bw / 2) + 4, { color: P.muted, size: 11 });
   }
   // stage 1: pointer gauge and detection flash
   if (state.stage === 'one' && exp) drawPointerGauge(P, box, X, Yp);
