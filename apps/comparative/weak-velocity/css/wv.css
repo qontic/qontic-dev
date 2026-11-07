@@ -165,3 +165,9 @@ body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
 
 /* Use the full window width (the shared layout caps the canvas at a 4:3 width). */
 .wv-app .qontic-workspace { max-width: none; margin-left: 0; margin-right: 0; }
+
+.wv-app .geo-row { grid-template-columns: 104px 1fr 86px; }
+.wv-app .geo-num { display: flex; align-items: center; gap: 3px; justify-content: flex-end; color: #8299aa; font-size: 12px; }
+.wv-app .geo-num input { width: 58px; box-sizing: border-box; background: #07131e; color: #66dce8; border: 1px solid #31556c; border-radius: 4px; padding: 2px 4px; font: inherit; text-align: right; }
+.qontic-light.wv-app .geo-num input { background: #fff; color: #0b6f7d; border-color: #aec2cb; }
+.wv-app #geoReset { width: 100%; }

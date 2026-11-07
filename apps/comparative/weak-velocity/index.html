@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.2.5">
+<link rel="stylesheet" href="css/wv.css?v=0.3.0">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -22,7 +22,7 @@
 <section class="lab qontic-workspace" data-panel="sim">
   <aside class="controls qontic-sidebar qontic-panel qontic-control-panel">
     <section class="always-controls" aria-label="Simulation controls">
-      <qontic-controls show-interpretation="false" running="false" auto-run="false" show-autorun="false" show-reset="true" speed="1" speed-min="0.25" speed-max="4" speed-step="0.25" active-tab="core" show-advanced="false"></qontic-controls>
+      <qontic-controls show-interpretation="false" running="false" auto-run="false" show-autorun="false" show-reset="true" speed="1" speed-min="0.25" speed-max="4" speed-step="0.25" active-tab="core" show-advanced="true"></qontic-controls>
     </section>
     <div class="control-tab-body qontic-control-body">
       <div class="control-pane" data-control-pane="core">
@@ -55,6 +55,20 @@
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
       </div>
 
+      <div class="control-pane hidden" data-control-pane="advanced">
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Geometry and beam</div>
+          <label class="control-row geo-row" title="de Broglie wavelength of the particles. Limited to 50 nm, as in the double-slit app, to stay in the paraxial regime."><span>Wavelength λ</span><input id="geo-wavelength" type="range" aria-label="Wavelength λ"><span class="geo-num"><input id="geo-wavelength-n" type="number" aria-label="Wavelength λ in nm"> nm</span></label>
+          <label class="control-row geo-row" title="Gaussian transmission width of each slit. The drawn opening is ±1.5σ."><span>Slit width σ</span><input id="geo-slitWidth" type="range" aria-label="Slit width σ"><span class="geo-num"><input id="geo-slitWidth-n" type="number" aria-label="Slit width σ in nm"> nm</span></label>
+          <label class="control-row geo-row" title="Distance between the slit centres."><span>Slit separation</span><input id="geo-separation" type="range" aria-label="Slit separation"><span class="geo-num"><input id="geo-separation-n" type="number" aria-label="Slit separation in nm"> nm</span></label>
+          <label class="control-row geo-row" title="Distance from the waist of the incident beam to the slit wall."><span>Source to slits</span><input id="geo-wall" type="range" aria-label="Source to slits"><span class="geo-num"><input id="geo-wall-n" type="number" aria-label="Source to slits in nm"> nm</span></label>
+          <label class="control-row geo-row" title="Distance from the slit wall to the screen."><span>Slits to screen</span><input id="geo-distance" type="range" aria-label="Slits to screen"><span class="geo-num"><input id="geo-distance-n" type="number" aria-label="Slits to screen in nm"> nm</span></label>
+          <label class="control-row geo-row" title="Transverse size of the screen; also the range shown and divided into strips."><span>Screen length</span><input id="geo-screen" type="range" aria-label="Screen length"><span class="geo-num"><input id="geo-screen-n" type="number" aria-label="Screen length in nm"> nm</span></label>
+          <label class="control-row geo-row" title="Transverse width of the incident beam at its waist."><span>Source width σ</span><input id="geo-sourceWidth" type="range" aria-label="Source width σ"><span class="geo-num"><input id="geo-sourceWidth-n" type="number" aria-label="Source width σ in nm"> nm</span></label>
+          <p class="core-hint" id="geoNote"></p>
+          <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="geoReset">Default geometry</button>
+        </div>
+      </div>
       <div class="control-pane hidden" data-control-pane="display">
         <div class="toggle-row"><span>Wave |ψ|²</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave density"></button></div>
         <div class="toggle-row"><span>Measured arrows</span><button class="toggle" type="button" data-toggle="arrows" aria-pressed="true" aria-label="Show the measured velocity arrows"></button></div>
@@ -125,7 +139,7 @@
 
 <section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="physics">
   <h2>The wave</h2>
-  <p>The wave is that of the <a href="../double-slit-analytical/index.html">analytical double-slit app</a>, with its default settings: wavelength 50 nm, Gaussian slits of width σ = 30 nm, 300 nm apart, screen 1000 nm behind the slits. Behind the slits the transverse wave is a sum of two complex Gaussians and evolves exactly in the paraxial approximation: the distance x from the slits plays the role of time, τ = x/v<sub>x</sub>, and the forward velocity v<sub>x</sub> = ħk/m is the same everywhere. The simulation uses the same coefficients as that app; a test checks that the two waves agree.</p>
+  <p>The wave is that of the <a href="../double-slit-analytical/index.html">analytical double-slit app</a>, with the same default settings (wavelength 50 nm, Gaussian slits of width σ = 30 nm, 300 nm apart, screen 1000 nm behind the slits). The Advanced tab changes the geometry and the beam within the same ranges and limits as that app. Behind the slits the transverse wave is a sum of two complex Gaussians and evolves exactly in the paraxial approximation: the distance x from the slits plays the role of time, τ = x/v<sub>x</sub>, and the forward velocity v<sub>x</sub> = ħk/m is the same everywhere. The simulation uses the same coefficients as that app; a test checks that the two waves agree.</p>
 
   <h2>The weak measurement</h2>
   <p>At the weak plane the particle is coupled to a pointer, a separate system with coordinate Y. Before the coupling the pointer's wave is a Gaussian of spread σ<sub>p</sub> centred on zero. The coupling shifts it by the particle's transverse position y:</p>
@@ -192,6 +206,6 @@
   <p>The double-slit app draws pilot-wave trajectories from the theory. This app starts from data that could be taken in a laboratory and shows that they give the same lines. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.2.5"></script>
+<script type="module" src="js/app.js?v=0.3.0"></script>
 </body>
 </html>

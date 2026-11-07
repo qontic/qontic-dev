@@ -2,8 +2,9 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.5';
-import * as M from './weak-model.js?v=0.2.5';
+import { APP_RELEASE } from './release.js?v=0.3.0';
+import * as M from './weak-model.js?v=0.3.0';
+import { maximumCoreSafeSeparation } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
   title: 'Weak Velocity in the Double Slit',
@@ -16,14 +17,25 @@ mountQonticShell({
 });
 
 // ---------------------------------------------------------------- model (units of 100 nm)
-const p = M.modelParams();
-const T0 = M.wallTerms(p);
-const Y_HALF = 4;            // ±400 nm shown and binned
-const N_BINS = 40;           // 20 nm strips
+// Geometry in nm, with the analytical double-slit app's ranges and limits.
+// screen = length of the screen (and of the transverse range shown and binned).
+const GEO_DEFAULT = Object.freeze({ wavelength: 50, slitWidth: 30, separation: 300, wall: 225, distance: 1000, screen: 800, sourceWidth: 200 });
+const geo = { ...GEO_DEFAULT };
+const SLIT_EXTENT = 1.5;     // drawn opening ±1.5σ, as in the double-slit app
+let p, T0, Y_HALF;
+function applyGeometry() {
+  p = M.modelParams(geo);
+  T0 = M.wallTerms(p);
+  Y_HALF = geo.screen / 200;
+  waveTheme = null;
+}
+const N_BINS = 40;           // strips across the screen (20 nm for an 800 nm screen)
 const N_PLANES = 12;
 const SCATTER_N = 4000;
 const PLANE_POINTS = 6000; // runs kept as points beside the planes
 const nm = (u) => u * 100;
+// 1, 2 or 5 times a power of ten, close to x.
+function niceStep(x) { const e = 10 ** Math.floor(Math.log10(x)), f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#stage');
@@ -45,6 +57,7 @@ let waveImage = null, waveTheme = null;
 let lastLive = 0;
 
 readUrl();
+applyGeometry();
 
 // ---------------------------------------------------------------- experiment at one pair of planes
 function makeExperiment(x1nm) {
@@ -93,7 +106,7 @@ function addRun(e, run) {
   e.scatterHead = (e.scatterHead + 1) % SCATTER_N; e.scatterN = Math.min(SCATTER_N, e.scatterN + 1);
 }
 
-function planeX1(i) { return 20 + i * (1000 - state.gap - 20) / (N_PLANES - 1); }
+function planeX1(i) { const d = geo.distance; return 0.02 * d + i * (d - state.gap - 0.02 * d) / (N_PLANES - 1); }
 
 function rebuild() {
   pending = false;
@@ -105,7 +118,7 @@ function rebuild() {
     map = null;
     exp = makeExperiment(state.x1);
   }
-  if (state.selected === null) state.selected = binOf(1.0);
+  if (state.selected === null) state.selected = binOf(Math.min(1.0, Y_HALF / 4));
   updateText();
 }
 const binOf = (y) => Math.max(0, Math.min(N_BINS - 1, Math.floor((y + Y_HALF) / (2 * Y_HALF / N_BINS))));
@@ -191,7 +204,7 @@ function liveText() {
   }
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
-    const strip = `${nm(-Y_HALF + state.selected * 0.2).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * 0.2).toFixed(0)} nm`;
+    const bw = 2 * Y_HALF / N_BINS, strip = `${nm(-Y_HALF + state.selected * bw).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * bw).toFixed(0)} nm`;
     const tail = b ? ` Beside the planes: pointer readings (amber, left of the weak plane) and detections (cyan, between the planes), one point per run. The amber dot is the mean pointer reading for the selected strip, the cyan dot the mean detected position. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
     return `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${tail}`;
   }
@@ -345,21 +358,83 @@ $('#resetPanels').addEventListener('click', () => { setColWidth(defaultColWidth(
 new ResizeObserver(() => { if (colWidth !== null) setColWidth(colWidth); }).observe(host);
 const plotBox = (W, H) => ({ x: 54, y: 8, w: Math.max(40, W - 66), h: Math.max(40, H - 46) });
 
+// ---------------------------------------------------------------- geometry controls (Advanced)
+const GEO_INPUTS = {
+  wavelength: { min: 1, max: 50, step: 1 },
+  slitWidth: { min: 30, max: 200, step: 5 },
+  separation: { min: 0, max: 2000, step: 5 },
+  wall: { min: 50, max: 1000, step: 5 },
+  distance: { min: 200, max: 3000, step: 10 },
+  screen: { min: 120, max: 5000, step: 10 },
+  sourceWidth: { min: 50, max: 400, step: 5 },
+};
+// Same limits as the double-slit app: each drawn opening (±1.5σ) no larger than
+// a quarter of the screen, and the separation small enough that both openings
+// stay on the screen and hold the transmitted probability.
+function geometryLimits() {
+  const lim = Object.fromEntries(Object.entries(GEO_INPUTS).map(([k, v]) => [k, { ...v }]));
+  lim.slitWidth.max = Math.max(30, Math.floor(geo.screen / (4 * SLIT_EXTENT) / 5) * 5);
+  geo.slitWidth = Math.min(geo.slitWidth, lim.slitWidth.max);
+  const base = { sy: geo.slitWidth / 100, k: 2 * Math.PI * 100 / geo.wavelength, wall: geo.wall / 100, sourceSigma: geo.sourceWidth / 100 };
+  const room = Math.min(2000, Math.max(0, Math.floor(geo.screen - 2 * SLIT_EXTENT * geo.slitWidth)));
+  lim.separation.max = Math.max(0, Math.floor(100 * maximumCoreSafeSeparation(base, SLIT_EXTENT, room / 100) + 1e-9));
+  return lim;
+}
+function clampGeometry() {
+  const lim = geometryLimits();
+  for (const [k, l] of Object.entries(lim)) geo[k] = Math.min(l.max, Math.max(l.min, Math.round(geo[k] / l.step) * l.step));
+  geometryLimits();
+  // Measurement planes must fit behind the slits.
+  state.gap = Math.min(state.gap, Math.floor(geo.distance / 4 / 5) * 5);
+  const x1Max = geo.distance - state.gap;
+  $('#x1').max = x1Max; $('#gap').max = Math.min(100, Math.floor(geo.distance / 4 / 5) * 5);
+  if (state.x1 > x1Max) state.x1 = Math.floor(x1Max / 10) * 10;
+  $('#x1').value = state.x1; $('#gap').value = state.gap;
+  return lim;
+}
+function syncGeometryInputs() {
+  const lim = clampGeometry();
+  for (const k of Object.keys(GEO_INPUTS)) {
+    const r = document.getElementById(`geo-${k}`), n = document.getElementById(`geo-${k}-n`);
+    if (!r) continue;
+    r.min = n.min = lim[k].min; r.max = n.max = lim[k].max; r.step = n.step = lim[k].step;
+    r.value = n.value = geo[k];
+  }
+  $('#geoNote').textContent = `Slit width up to ${lim.slitWidth.max} nm and separation up to ${lim.separation.max} nm for this screen, as in the double-slit app. Changing the geometry starts the experiment again.`;
+}
+function setGeometry(k, v) {
+  geo[k] = v;
+  syncGeometryInputs();
+  applyGeometry();
+  state.selected = null;
+  pending = true;
+  updateText();
+}
+for (const k of Object.keys(GEO_INPUTS)) {
+  const r = document.getElementById(`geo-${k}`), n = document.getElementById(`geo-${k}-n`);
+  if (!r) continue;
+  r.addEventListener('input', () => setGeometry(k, +r.value));
+  n.addEventListener('change', () => { if (Number.isFinite(+n.value)) setGeometry(k, +n.value); });
+}
+$('#geoReset').addEventListener('click', () => { Object.assign(geo, GEO_DEFAULT); syncGeometryInputs(); applyGeometry(); state.selected = null; pending = true; updateText(); });
+
 // ---------------------------------------------------------------- URL state
 function readUrl() {
   const q = new URLSearchParams(location.search);
   const num = (k, lo, hi, step) => { const v = parseFloat(q.get(k)); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v / step) * step)) : null; };
   const sw = num('sw', 5, 400, 5); if (sw !== null) state.sw = sw;
-  const x1 = num('x1', 0, 900, 10); if (x1 !== null) state.x1 = x1;
+  const x1 = num('x1', 0, 3000, 10); if (x1 !== null) state.x1 = x1;
   const gap = num('gap', 10, 100, 5); if (gap !== null) state.gap = gap;
   if (['one', 'many', 'map'].includes(q.get('stage'))) state.stage = q.get('stage');
+  for (const k of Object.keys(GEO_DEFAULT)) { const v = parseFloat(q.get(k)); if (Number.isFinite(v)) geo[k] = v; }
   if (q.get('bohm') === '1') state.show.bohm = true;
   $('#sw').value = state.sw; $('#x1').value = state.x1; $('#gap').value = state.gap;
   document.querySelector('[data-toggle="bohm"]').setAttribute('aria-pressed', String(state.show.bohm));
 }
 function shareUrl() {
   const u = new URL(location.href);
-  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, ...(state.show.bohm ? { bohm: 1 } : {}) }).toString();
+  const g = {}; for (const k of Object.keys(GEO_DEFAULT)) if (geo[k] !== GEO_DEFAULT[k]) g[k] = geo[k];
+  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, ...g, ...(state.show.bohm ? { bohm: 1 } : {}) }).toString();
   return u.toString();
 }
 
@@ -399,7 +474,7 @@ function text(s, x, y, { color, size = 12, align = 'left', base = 'alphabetic', 
 }
 
 function drawApparatus(P, box) {
-  const x0 = p.wall - 0.5, x1 = p.screen + 1.0;
+  const D = p.screen - p.wall, x0 = p.wall - 0.05 * D - 0.1, x1 = p.screen + 0.1 * D + 0.2;
   const X = (x) => box.x + (x - x0) / (x1 - x0) * box.w;
   const Yp = (y) => box.y + 26 + (Y_HALF - y) / (2 * Y_HALF) * (box.h - 44);
   ctx.fillStyle = P.panel; ctx.fillRect(box.x, box.y, box.w, box.h);
@@ -420,9 +495,9 @@ function drawApparatus(P, box) {
   text('slits', X(p.wall), box.y + box.h - 4, { color: P.muted, size: 11, align: 'center' });
   text('screen', X(p.screen), box.y + box.h - 4, { color: P.muted, size: 11, align: 'center' });
   // scale bar 100 nm
-  const sb = X(p.wall + 1) - X(p.wall), sbx = X(p.wall) + sb / 2 + 10;
+  const sbu = niceStep(D / 10), sb = X(p.wall + sbu) - X(p.wall), sbx = X(p.wall) + sb / 2 + 10;
   ctx.strokeStyle = P.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sbx - sb / 2, box.y + 12); ctx.lineTo(sbx + sb / 2, box.y + 12); ctx.stroke();
-  text('100 nm', sbx, box.y + 24, { color: P.muted, size: 10, align: 'center' });
+  text(`${nm(sbu).toFixed(0)} nm`, sbx, box.y + 24, { color: P.muted, size: 10, align: 'center' });
 
   // measured arrows
   const arrowsFrom = [];
@@ -530,7 +605,8 @@ function drawPointerGauge(P, box, X, Yp) {
   // The marker shows the pointer reading Y; it is not a sighting of the particle.
   const xw = X(exp.x1), top = Yp(Y_HALF), bot = Yp(-Y_HALF), sw = state.sw / 100;
   ctx.strokeStyle = P.weak; ctx.lineWidth = 1;
-  for (let v = -Y_HALF; v <= Y_HALF; v += 1) { const yy = Yp(v), l = v % 2 === 0 ? 7 : 4; ctx.beginPath(); ctx.moveTo(xw - l, yy); ctx.lineTo(xw, yy); ctx.stroke(); }
+  const tk = niceStep(Y_HALF / 4);
+  for (let i = -Math.floor(Y_HALF / tk); i * tk <= Y_HALF + 1e-9; i++) { const yy = Yp(i * tk), l = i % 2 === 0 ? 7 : 4; ctx.beginPath(); ctx.moveTo(xw - l, yy); ctx.lineTo(xw, yy); ctx.stroke(); }
   text('pointer scale', xw - 6, bot + 13, { color: P.weak, size: 10.5, align: 'right' });
   if (!anim) return;
   const t = anim.t;
@@ -562,7 +638,7 @@ function axes(P, box, title, yLabel, ymin, ymax, fmtY) {
   ctx.strokeStyle = P.grid; ctx.lineWidth = 1; ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w, box.h);
   const X = (y) => box.x + (y + Y_HALF) / (2 * Y_HALF) * box.w;
   const V = (v) => box.y + box.h - (v - ymin) / (ymax - ymin) * box.h;
-  for (const y of [-4, -2, 0, 2, 4]) text(`${nm(y)}`, X(y), box.y + box.h + 13, { color: P.muted, size: 10, align: 'center' });
+  { const st = niceStep(Y_HALF / 2); for (let i = -Math.floor(Y_HALF / st); i * st <= Y_HALF + 1e-9; i++) text(`${nm(i * st).toFixed(0)}`, X(i * st), box.y + box.h + 13, { color: P.muted, size: 10, align: 'center' }); }
   text('detected position of the particle, y_f (nm)', box.x + box.w / 2, box.y + box.h + 27, { color: P.muted, size: 10.5, align: 'center' });
   for (const v of [ymin, (ymin + ymax) / 2, ymax]) text(fmtY(v), box.x - 5, V(v) + 3, { color: P.muted, size: 10, align: 'right' });
   ctx.save(); ctx.translate(box.x - 42, box.y + box.h / 2); ctx.rotate(-Math.PI / 2); text(yLabel, 0, 0, { color: P.muted, size: 10.5, align: 'center' }); ctx.restore();
@@ -650,7 +726,7 @@ function updateResults() {
   set('planes', map ? `${map.planes.length} of ${N_PLANES}` : '—');
   const i = state.selected;
   const a = -Y_HALF + i * 2 * Y_HALF / N_BINS;
-  set('strip', `${nm(a).toFixed(0)} to ${nm(a + 0.2).toFixed(0)} nm`);
+  set('strip', `${nm(a).toFixed(0)} to ${nm(a + 2 * Y_HALF / N_BINS).toFixed(0)} nm`);
   const n = exp.bins.count[i];
   set('inStrip', n.toLocaleString('en-US'));
   const b = M.binVelocities(exp.bins, exp.dtau, 30)[i];
@@ -731,6 +807,8 @@ mountQonticShortcuts({
 });
 
 loadPanels();
+syncGeometryInputs();
+applyGeometry();
 updateText();
 showStep(new URLSearchParams(location.search).has('stage') ? 'live' : 'setup');
 requestAnimationFrame(frame);

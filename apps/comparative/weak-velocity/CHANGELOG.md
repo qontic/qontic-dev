@@ -1,5 +1,10 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.3.0 — 2026-11-06
+- Advanced tab: geometry and beam (wavelength, slit width, slit separation, source-to-slits distance, slits-to-screen distance, screen length, source width), with the analytical double-slit app's ranges and limits (λ ≤ 50 nm; opening and separation limits from the screen length via maximumCoreSafeSeparation). Slits-to-screen starts at 200 nm here so the 12 plane pairs fit. Default geometry button; geometry in share links.
+- Strips, axes, scale bar, pointer scale and stage-3 planes scale with the geometry.
+- Test: the wave equals the double-slit app's wave for two other geometries (8 tests).
+
 ## 0.2.5 — 2026-11-06
 - Display › Measured arrows switches the arrows off, and stage 3 offers "Hide the arrows" once the lines are drawn.
 - Pilot-wave trajectories drawn in violet, dashed and on top of the measured lines; a key on the drawing names both.

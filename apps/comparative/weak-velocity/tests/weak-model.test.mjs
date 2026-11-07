@@ -26,6 +26,20 @@ test('wave behind the wall equals the double-slit app wave', () => {
   }
 });
 
+test('other geometries: wave still equals the double-slit app wave', () => {
+  for (const g of [{wavelength: 20, slitWidth: 60, separation: 500, wall: 400, distance: 2500, sourceWidth: 120},
+                   {wavelength: 50, slitWidth: 40, separation: 150, wall: 100, distance: 300, sourceWidth: 350}]) {
+    const q = M.modelParams(g), t = M.wallTerms(q);
+    for (const x of [q.wall + 0.5, q.screen]) {
+      const tt = M.propagate(t, (x - q.wall) / q.k);
+      for (let y = -6; y <= 6; y += 0.53) {
+        const a = M.evaluate(tt, y), b = sourceTransverse(y, x, q);
+        assert.ok(Math.hypot(a.re - b.re, a.im - b.im) <= 1e-9 * Math.sqrt(b.rho) + 1e-14);
+      }
+    }
+  }
+});
+
 test('propagation composes: tau1 then tau2 equals tau1 + tau2', () => {
   const a = M.propagate(M.propagate(t0, 0.2), 0.3), b = M.propagate(t0, 0.5);
   for (let y = -3; y <= 3; y += 0.41) {
