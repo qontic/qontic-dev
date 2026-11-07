@@ -1,0 +1,28 @@
+{
+  "id": "weak-velocity-double-slit",
+  "title": "Weak Velocity in the Double Slit",
+  "type": "app",
+  "category": "comparative",
+  "module": "double-slit",
+  "topics": [
+    "weak-measurement",
+    "weak-values",
+    "interference",
+    "measurement"
+  ],
+  "interpretations": [
+    "orthodox",
+    "pilot-wave",
+    "many-worlds"
+  ],
+  "level": "intermediate",
+  "description": "A weak position measurement followed by a strong one behind the double slit, repeated many times. Post-selected averages give a velocity field; connecting it gives the average trajectories measured by Kocsis et al. Exact Gaussian model, same wave as the analytical double-slit app.",
+  "tags": [
+    "Multiview",
+    "Double slit",
+    "Weak values",
+    "Exact analytic model"
+  ],
+  "entry": "index.html",
+  "status": "draft"
+}

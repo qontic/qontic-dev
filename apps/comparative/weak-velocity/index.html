@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Weak Velocity in the Double Slit — Q-Ontic Lab</title>
+<meta name="description" content="A weak position measurement followed by a strong one, repeated many times behind a double slit. Post-selecting on the strong result gives a velocity at each point; connecting the velocities gives average trajectories.">
+<link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
+<link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
+<link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
+<link rel="stylesheet" href="css/wv.css?v=0.1.0">
+</head>
+<body class="wv-app">
+<main class="shell">
+<header><div><p class="eyebrow">Q-Ontic · Double Slit</p><h1>Weak Velocity in the Double Slit</h1></div></header>
+<nav class="tabs" aria-label="App sections">
+  <button class="active" type="button" data-view="sim">Simulation</button>
+  <button type="button" data-view="physics">Physics</button>
+  <button type="button" data-view="rationale">Rationale</button>
+</nav>
+
+<section class="lab qontic-workspace" data-panel="sim">
+  <aside class="controls qontic-sidebar qontic-panel qontic-control-panel">
+    <section class="always-controls" aria-label="Simulation controls">
+      <qontic-controls show-interpretation="false" running="false" auto-run="false" show-autorun="false" show-reset="true" speed="1" speed-min="0.25" speed-max="4" speed-step="0.25" active-tab="core" show-advanced="false"></qontic-controls>
+    </section>
+    <div class="control-tab-body qontic-control-body">
+      <div class="control-pane" data-control-pane="core">
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Stage</div>
+          <div class="qontic-app-toggle-group" role="group" aria-label="Stage">
+            <button class="qontic-app-toggle active" type="button" data-stage="one" aria-pressed="true" title="Runs one at a time, slowly: the pointer moves, then the screen clicks.">1 · One run</button>
+            <button class="qontic-app-toggle" type="button" data-stage="many" aria-pressed="false" title="Many runs at the same pair of planes. Post-select on the strong result and average the pointer.">2 · Many runs</button>
+            <button class="qontic-app-toggle" type="button" data-stage="map" aria-pressed="false" title="Repeat the experiment with the planes moved step by step from the slits to the screen, then connect the arrows.">3 · Map the field</button>
+          </div>
+        </div>
+        <label class="control-row" title="Spread of the pointer's ready state. Large spread: a weak measurement, little disturbance, very noisy. Small spread: a strong measurement that disturbs the wave.">
+          <span>Pointer spread</span><input id="sw" type="range" min="5" max="400" step="5" value="200" aria-label="Pointer spread in nanometres"><output id="swOut">200 nm</output>
+        </label>
+        <p class="core-hint" id="swHint"></p>
+        <label class="control-row" id="x1Row" title="Distance from the slits to the plane where the pointer is coupled (stages 1 and 2).">
+          <span>Weak plane</span><input id="x1" type="range" min="0" max="900" step="10" value="500" aria-label="Distance of the weak plane from the slits in nanometres"><output id="x1Out">500 nm</output>
+        </label>
+        <label class="control-row" title="Distance from the weak plane to the plane where the particle's position is detected.">
+          <span>Gap to strong plane</span><input id="gap" type="range" min="10" max="100" step="5" value="50" aria-label="Gap between the weak and strong planes in nanometres"><output id="gapOut">50 nm</output>
+        </label>
+        <label class="control-row select-row" title="Runs collected at each pair of planes in stage 3.">
+          <span>Runs per plane</span>
+          <select id="perPlane" aria-label="Runs per plane in stage 3">
+            <option value="200000">200 000</option>
+            <option value="1000000" selected>1 000 000</option>
+            <option value="4000000">4 000 000</option>
+          </select>
+        </label>
+        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
+      </div>
+
+      <div class="control-pane hidden" data-control-pane="display">
+        <div class="toggle-row"><span>Wave |ψ|²</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave density"></button></div>
+        <div class="toggle-row"><span>Current velocity j/|ψ|²</span><button class="toggle" type="button" data-toggle="current" aria-pressed="true" aria-label="Show the current velocity curve"></button></div>
+        <div class="toggle-row"><span>Exact expectation for this pointer</span><button class="toggle" type="button" data-toggle="expected" aria-pressed="true" aria-label="Show the exact expected result for this pointer"></button></div>
+        <div class="toggle-row"><span>Pilot-wave trajectories</span><button class="toggle" type="button" data-toggle="bohm" aria-pressed="false" aria-label="Overlay pilot-wave trajectories"></button></div>
+        <div class="toggle-row"><span>Individual runs</span><button class="toggle" type="button" data-toggle="scatter" aria-pressed="true" aria-label="Show individual runs in the data plot"></button></div>
+      </div>
+    </div>
+    <section class="results-panel qontic-panel" data-results-panel aria-label="Results">
+      <div class="results-head"><strong>Results</strong><button type="button" data-results-collapse aria-label="Collapse results">−</button></div>
+      <div class="results-body">
+        <span>Runs at these planes</span><output data-result="runs">—</output>
+        <span>Selected strip, detected at</span><output data-result="strip">—</output>
+        <span>Runs in the strip</span><output data-result="inStrip">—</output>
+        <span>Mean pointer reading</span><output data-result="meanY">—</output>
+        <span>Measured direction v<sub>y</sub>/v<sub>x</sub></span><output data-result="vMeas">—</output>
+        <span>Exact, this pointer</span><output data-result="vExp">—</output>
+        <span>Weak limit, j/|ψ|²</span><output data-result="vCur">—</output>
+        <span>Planes mapped</span><output data-result="planes">—</output>
+      </div>
+    </section>
+  </aside>
+
+  <div class="visualization qontic-stage qontic-panel">
+    <div class="canvas-host">
+      <canvas id="stage" aria-label="Weak velocity measurement behind a double slit"></canvas>
+    </div>
+    <div class="story" id="story" aria-live="polite">
+      <div id="setupStep" class="story-step">
+        <p class="story-title">The setup</p>
+        <ol class="setup-list">
+          <li>Particles go through the double slit one at a time, as in the <a href="../double-slit-analytical/index.html">double-slit app</a>.</li>
+          <li>At the <b class="k-weak">weak plane</b> each particle is coupled to a separate pointer. The pointer moves by the particle's transverse position, but its own starting position is spread out, so one reading says almost nothing.</li>
+          <li>A short gap later, at the <b class="k-strong">strong plane</b>, a detector records where the particle is.</li>
+          <li>Each run gives two numbers: the pointer reading and the detected position. Nothing else is recorded.</li>
+        </ol>
+        <div class="story-buttons"><button type="button" class="qontic-app-toggle" id="setupGo">Start: one run at a time</button></div>
+      </div>
+      <div id="liveStep" class="story-step hidden">
+        <p class="story-live" id="liveLine"></p>
+        <div class="story-buttons" id="nextSteps"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="physics">
+  <h2>The wave</h2>
+  <p>The wave is that of the <a href="../double-slit-analytical/index.html">analytical double-slit app</a>, with its default settings: wavelength 50 nm, Gaussian slits of width σ = 30 nm, 300 nm apart, screen 1000 nm behind the slits. Behind the slits the transverse wave is a sum of two complex Gaussians and evolves exactly in the paraxial approximation: the distance x from the slits plays the role of time, τ = x/v<sub>x</sub>, and the forward velocity v<sub>x</sub> = ħk/m is the same everywhere. The simulation uses the same coefficients as that app; a test checks that the two waves agree.</p>
+
+  <h2>The weak measurement</h2>
+  <p>At the weak plane the particle is coupled to a pointer, a separate system with coordinate Y. Before the coupling the pointer's wave is a Gaussian of spread σ<sub>p</sub> centred on zero. The coupling shifts it by the particle's transverse position y:</p>
+  <p class="formula">ψ(y) φ(Y) &nbsp;→&nbsp; ψ(y) φ(Y − y).</p>
+  <p>Y is the pointer's coordinate, not the particle's. A single reading of Y has an uncertainty σ<sub>p</sub>. With the default σ<sub>p</sub> = 200 nm this is comparable to the whole interference pattern, so one reading tells almost nothing. In exchange the particle's wave is barely disturbed. A small σ<sub>p</sub> gives a precise reading and a strong disturbance: try 10 nm.</p>
+
+  <h2>The strong measurement and post-selection</h2>
+  <p>After a gap Δx the particle's transverse position is measured precisely, giving y<sub>f</sub>. The joint probability of the two readings is computed exactly:</p>
+  <p class="formula">P(Y, y<sub>f</sub>) = |χ<sub>Y</sub>(y<sub>f</sub>, τ + Δτ)|², &nbsp; χ<sub>Y</sub>(y, τ) = ψ(y, τ) φ(Y − y),</p>
+  <p>where χ<sub>Y</sub> evolves freely for Δτ = Δx/v<sub>x</sub>. Each run samples one pair (Y, y<sub>f</sub>) from this distribution. Post-selection keeps the runs whose y<sub>f</sub> falls in a narrow strip (20 nm) and averages their pointer readings. Following Wiseman,<sup><a href="#ref-1">1</a></sup> the velocity at y<sub>f</sub> is defined as</p>
+  <p class="formula">v<sub>y</sub>(y<sub>f</sub>) = [ y<sub>f</sub> − E(Y | y<sub>f</sub>) ] / Δτ.</p>
+  <p>The simulation shows it as the direction v<sub>y</sub>/v<sub>x</sub>, the slope of the arrow. Its statistical error is the spread of Y in the strip divided by √N and by Δτ. Since σ<sub>p</sub> is large and the displacement is a few nanometres, each arrow needs about a million runs.</p>
+
+  <h2>What it converges to</h2>
+  <p>As σ<sub>p</sub> grows, E(Y | y<sub>f</sub>) tends to the real part of the weak value of the earlier position,<sup><a href="#ref-2">2</a></sup> and v<sub>y</sub> tends to</p>
+  <p class="formula">v<sub>y</sub> = Im(∂<sub>y</sub>ψ / ψ) ħ/m = j / |ψ|²,</p>
+  <p>the probability current divided by the density at the strong plane. Here the particle moves freely between the two planes, so y(τ) = y(τ + Δτ) − p Δτ/m holds as an operator identity, and the limit is exact for any gap, not only for Δx → 0. A finite gap only sets the size of the signal. The bias that remains comes from a finite σ<sub>p</sub>: the green curve in the velocity plot is the exact result for the chosen pointer, and the dashed curve is the weak limit. Below about 50 nm they separate visibly.</p>
+
+  <h2>Stage 3: the field and the trajectories</h2>
+  <p>Stage 3 repeats the experiment at twelve pairs of planes from the slits to the screen, each with fresh runs. The arrows give a measured velocity field. Starting points are placed at equal-probability positions in the first strong plane, and each line follows the measured arrows, interpolated linearly between planes and between strips. If the arrows are right, the lines end at equal-probability positions on the screen; the ticks on the right show where they end, beside the |ψ|² curve. This is the reconstruction done by Kocsis et al. with single photons,<sup><a href="#ref-3">3</a></sup> who weakly measured the photon's transverse momentum rather than its position, and post-selected on a strong position measurement in a series of planes.</p>
+
+  <h2>What the model assumes</h2>
+  <ul>
+    <li>Units with ħ = m = 1 inside the code; positions are shown in nm.</li>
+    <li>The coupling is impulsive and the pointer does not evolve between coupling and reading. Only the particle's transverse coordinate is coupled.</li>
+    <li>The joint distribution is tabulated on a grid of 360 values of y<sub>f</sub> between −400 and 400 nm and enough values of Y to resolve σ<sub>p</sub>. Runs are drawn from that table. A test checks the sampled strip averages against the exact ones.</li>
+    <li>Particles that hit the wall are not counted; the experiment starts behind the slits.</li>
+  </ul>
+
+  <h2>References</h2>
+  <ol class="references">
+    <li id="ref-1">H. M. Wiseman, “Grounding Bohmian mechanics in weak values and bayesianism,” <em>New Journal of Physics</em> <strong>9</strong>, 165 (2007), doi:10.1088/1367-2630/9/6/165.</li>
+    <li id="ref-2">Y. Aharonov, D. Z. Albert and L. Vaidman, “How the result of a measurement of a component of the spin of a spin-½ particle can turn out to be 100,” <em>Physical Review Letters</em> <strong>60</strong>, 1351–1354 (1988), doi:10.1103/PhysRevLett.60.1351.</li>
+    <li id="ref-3">S. Kocsis, B. Braverman, S. Ravets, M. J. Stevens, R. P. Mirin, L. K. Shalm and A. M. Steinberg, “Observing the average trajectories of single photons in a two-slit interferometer,” <em>Science</em> <strong>332</strong>, 1170–1173 (2011), doi:10.1126/science.1202218.</li>
+    <li id="ref-4">D. Dürr, S. Goldstein and N. Zanghì, “On the weak measurement of velocity in Bohmian mechanics,” <em>Journal of Statistical Physics</em> <strong>134</strong>, 1023–1032 (2009), doi:10.1007/s10955-008-9674-0.</li>
+    <li id="ref-5">C. Philippidis, C. Dewdney and B. J. Hiley, “Quantum interference and the quantum potential,” <em>Il Nuovo Cimento B</em> <strong>52</strong>, 15–28 (1979), doi:10.1007/BF02743566.</li>
+  </ol>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="rationale">
+  <h2>What is measured</h2>
+  <p>The data are pairs of numbers: a pointer reading and a detected position. The velocity is an average over a post-selected set of runs, so it is not a property read off any single particle. The same data, and the same lines, follow from the Schrödinger equation alone. The views differ on what the lines are.</p>
+
+  <h2>Three readings of the same lines</h2>
+  <div class="views">
+    <div>
+      <h3>Orthodox</h3>
+      <p>The arrows are weak values: averages over runs selected by a later result. Quantum mechanics predicts them, and they can be measured, but they do not say how any particle moved. Kocsis et al. call the lines “average trajectories” of the photons.<sup><a href="#ref-3">3</a></sup></p>
+    </div>
+    <div>
+      <h3>Pilot-wave</h3>
+      <p>Each particle has a position and moves with velocity j/|ψ|². In the weak limit the procedure returns exactly that velocity, and the lines are the particles' trajectories, the same as in the double-slit app.<sup><a href="#ref-1">1</a>,<a href="#ref-5">5</a></sup> Turn on <em>Pilot-wave trajectories</em> to compare.</p>
+    </div>
+    <div>
+      <h3>Many-worlds</h3>
+      <p>There is no particle beyond the wave. j/|ψ|² is the velocity of the flow of |ψ|², and the lines are its flow lines. The post-selected averages are a property of the branches in which the detector reports y<sub>f</sub>.</p>
+    </div>
+  </div>
+
+  <h2>A limit of the procedure</h2>
+  <p>The protocol returns j/|ψ|² whatever velocity law one assumes. Pilot-wave variants that add to the velocity a term which does not change |ψ|² predict the same data, so the experiment cannot single out the standard guidance law. Dürr, Goldstein and Zanghì argue that within standard pilot-wave theory it is still a genuine measurement of the particle's velocity, and that it would not measure the velocity of such a variant.<sup><a href="#ref-4">4</a></sup></p>
+
+  <h2>Why it belongs here</h2>
+  <p>The double-slit app draws pilot-wave trajectories from the theory. This app starts from data that could be taken in a laboratory and shows that they give the same lines. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
+</section>
+</main>
+<script type="module" src="js/app.js?v=0.1.0"></script>
+</body>
+</html>

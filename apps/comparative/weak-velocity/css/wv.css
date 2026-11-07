@@ -1,0 +1,127 @@
+/* Weak velocity: app-scoped styles. Shared layout comes from qontic-app.css. */
+body.wv-app *, body.wv-app *::before, body.wv-app *::after { box-sizing: border-box; }
+body.wv-app {
+  margin: 0;
+  background: radial-gradient(circle at 70% -10%, #17354b 0, #07111c 42%, #040a11);
+  color: #d9edf7;
+  font: 14px Inter, Arial, sans-serif;
+}
+body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
+:root.qontic-light { --qontic-panel-background: #ffffff; --qontic-panel-border: #b9cdd6; --qontic-text: #183747; --qontic-muted: #5f7684; }
+.wv-app .shell { max-width: 1540px; margin: auto; padding: 0 18px 20px; }
+.wv-app .hidden { display: none !important; }
+
+.wv-app .control-tab-body { margin-top: -1px; }
+.wv-app .control-pane { display: grid; gap: 10px; }
+.wv-app .control-row { display: grid; grid-template-columns: 112px 1fr 58px; align-items: center; gap: 7px; color: #afc4d3; font-size: 13px; }
+.wv-app .control-row input[type=range] { width: 100%; }
+.wv-app .control-row output { text-align: right; color: #66dce8; font-variant-numeric: tabular-nums; }
+.wv-app .core-hint { margin: -4px 0 0; color: #8299aa; font-size: 12px; line-height: 1.45; }
+.wv-app .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #244052; color: #afc4d3; font-size: 13px; }
+.wv-app .toggle { position: relative; flex: none; width: 38px; height: 21px; border: 1px solid #31556c; border-radius: 99px; background: #07131e; cursor: pointer; }
+.wv-app .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 13px; height: 13px; border-radius: 50%; background: #7891a4; transition: .15s; }
+.wv-app .toggle[aria-pressed=true] { border-color: #55d8e6; background: #173e4c; }
+.wv-app .toggle[aria-pressed=true]::after { left: 20px; background: #72e4ed; }
+.wv-app .qontic-app-toggle-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.wv-app .qontic-app-toggle-group .qontic-app-toggle { flex: 1 1 auto; }
+
+.qontic-light.wv-app .control-row,
+.qontic-light.wv-app .toggle-row { color: #35505f; border-color: #d3e0e6; }
+.qontic-light.wv-app .control-row output { color: #0b6f7d; }
+.qontic-light.wv-app .core-hint { color: #5f7684; }
+.qontic-light.wv-app .toggle { background: #eef4f6; border-color: #aec2cb; }
+
+.wv-app .visualization { position: relative; overflow: hidden; background: linear-gradient(145deg, #06131e, #0a2131); }
+.qontic-light.wv-app .visualization { background: #fbfdfe; }
+.wv-app .canvas-host { position: relative; width: 100%; height: clamp(340px, calc(100dvh - 330px), 700px); }
+.wv-app .canvas-host.tall { height: clamp(460px, calc(100dvh - 260px), 860px); }
+.wv-app #stage { display: block; width: 100%; height: 100%; }
+
+.wv-app .results-panel { margin-top: 12px; overflow: hidden; }
+.wv-app .results-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 9px; background: #102839; }
+.wv-app .results-head strong { font-size: 12px; }
+.wv-app .results-head button { border: 0; background: transparent; color: #9edce5; cursor: pointer; font-size: 15px; }
+.wv-app .results-body[hidden] { display: none; }
+.wv-app .results-body { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; padding: 9px 10px; color: #a9becd; font-size: 12px; }
+.wv-app .results-body output { color: #f0ca61; text-align: right; font-variant-numeric: tabular-nums; }
+.qontic-light.wv-app .results-panel { color: #183747; }
+.qontic-light.wv-app .results-head { background: #dcebf1; }
+.qontic-light.wv-app .results-body { color: #35505f; }
+.qontic-light.wv-app .results-body output { color: #9a6200; }
+
+
+.wv-app .details-panel { max-width: 860px; margin: 0 auto; padding: 18px 26px 24px; line-height: 1.6; font-size: 15px; }
+.wv-app .details-panel h2 { margin: 22px 0 6px; font-size: 17px; color: #7cecff; }
+.wv-app .details-panel h2:first-child { margin-top: 4px; }
+.qontic-light.wv-app .details-panel h2 { color: #075c69; }
+.wv-app .details-panel a { color: #70e2ed; }
+.qontic-light.wv-app .details-panel a { color: #0b6f7d; }
+.wv-app .formula { text-align: center; font-size: 16px; }
+.wv-app .references { font-size: 13.5px; }
+.wv-app .references li { margin: 4px 0; }
+
+@media (max-width: 760px) {
+  .wv-app .shell { padding: 0 10px 14px; }
+  .wv-app .canvas-host { height: 420px; }
+  .wv-app .canvas-host.tall { height: 760px; }
+  .wv-app .results-body { font-size: 11px; gap: 3px 8px; }
+  .wv-app .details-panel { padding: 14px 14px 20px; font-size: 14px; }
+}
+
+.wv-app .setup-list { margin: 0 0 10px; padding-left: 20px; }
+.wv-app .setup-list li { margin: 0 0 6px; }
+.wv-app .setup-list b { color: #7cecff; font-weight: 600; }
+.qontic-light.wv-app .setup-list b { color: #075c69; }
+.wv-app .setup-back { margin: 8px 0 0 !important; text-align: right; }
+.wv-app .link-button { border: 0; padding: 0; background: none; color: #70e2ed; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.qontic-light.wv-app .link-button { color: #0b6f7d; }
+.wv-app #showSetup { width: 100%; }
+
+/* Story strip below the canvas: setup, question, live readout, verdict. Never covers the simulation. */
+.wv-app .story { padding: 12px 14px 14px; border-top: 1px solid #23465a; font-size: 14px; line-height: 1.5; min-height: 92px; }
+.wv-app .story-title { margin: 0 0 8px; font-weight: 600; color: #7cecff; }
+.wv-app .story .setup-list { margin: 0 0 10px; padding-left: 20px; columns: 2 300px; column-gap: 28px; }
+.wv-app .story .setup-list li { break-inside: avoid; }
+.wv-app .story-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.wv-app .story-buttons button { flex: 0 1 auto; }
+.wv-app .reason-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+.wv-app .reason-buttons button { text-align: left; white-space: normal; line-height: 1.35; padding: 8px 10px; }
+.wv-app .story-links { margin: 8px 0 0; font-size: 12px; color: #7f98a7; }
+.wv-app .story-live { margin: 0; font-variant-numeric: tabular-nums; color: #d6e9f2; font-size: 15px; }
+.wv-app #verdict { margin-bottom: 10px; }
+.wv-app #verdict strong { color: #f0ca61; }
+.wv-app #verdict .feedback { display: block; margin-top: 6px; color: #afc4d3; }
+.wv-app .spoiler-note { padding: 8px 12px; border: 1px solid #42657a; border-radius: 7px; color: #f0ca61; font-size: 14px; }
+.qontic-light.wv-app .story { border-top-color: #c9d9e0; }
+.qontic-light.wv-app .story-title { color: #075c69; }
+.qontic-light.wv-app .story-live { color: #183747; }
+.qontic-light.wv-app #verdict strong { color: #9a6200; }
+.qontic-light.wv-app #verdict .feedback { color: #35505f; }
+.qontic-light.wv-app .spoiler-note { color: #9a6200; border-color: #c9d9e0; }
+
+/* Weak velocity additions */
+.wv-app .views { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; margin: 10px 0; }
+.wv-app .views > div { border: 1px solid #2b4e63; border-radius: 8px; padding: 8px 11px; font-size: 13px; line-height: 1.45; }
+.wv-app .views h3 { margin: 0 0 4px; font-size: 13.5px; color: #7cecff; }
+.wv-app .views p { margin: 3px 0; }
+.wv-app .views b { color: #f0ca61; font-weight: 600; }
+.qontic-light.wv-app .views > div { border-color: #c9d9e0; }
+.qontic-light.wv-app .views h3 { color: #075c69; }
+.qontic-light.wv-app .views b { color: #9a6200; }
+.wv-app .details-panel table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.wv-app .details-panel td, .wv-app .details-panel th { border: 1px solid #2b4e63; padding: 6px 9px; vertical-align: top; text-align: left; }
+.qontic-light.wv-app .details-panel td, .qontic-light.wv-app .details-panel th { border-color: #c9d9e0; }
+.wv-app .views b { color: inherit; }
+.wv-app .select-row select { grid-column: 2 / 4; background: #07131e; color: inherit; border: 1px solid #31556c; border-radius: 4px; padding: 3px; }
+.qontic-light.wv-app .select-row select { background: #fff; border-color: #aec2cb; }
+.wv-app .setup-list b.k-weak { color: #f0b341; }
+.wv-app .setup-list b.k-strong { color: #5fe0f0; }
+.qontic-light.wv-app .setup-list b.k-weak { color: #a36400; }
+.qontic-light.wv-app .setup-list b.k-strong { color: #087788; }
+.wv-app .story-live b { color: #f0ca61; font-weight: 600; }
+.qontic-light.wv-app .story-live b { color: #9a6200; }
+.wv-app .canvas-host { height: clamp(380px, calc(100dvh - 300px), 720px); }
+.wv-app #stage { cursor: default; }
+@media (max-width: 760px) { .wv-app .canvas-host { height: 640px; } }
+.wv-app .story a { color: #70e2ed; }
+.qontic-light.wv-app .story a { color: #0b6f7d; }
