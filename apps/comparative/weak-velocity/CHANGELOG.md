@@ -1,5 +1,18 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.5.0 — 2026-11-07
+Changes from a five-reviewer evaluation (context/2026-11-07-weak-velocity-review.md in the Project).
+- Captions: the stage-1 text depends on the pointer spread (it no longer says the spread is wider than the pattern at 10–40 nm); "Press Start", "1 run". Stage 2 no longer says the particle "moved": it reports the mean pointer reading, detection minus pointer mean, and that this is a difference of two averages, not a path. One-sigma note when a collection ends; "Repeat these runs" button.
+- Post-selection: one instruction (point at or tap the strong plane, or click a plot); a tap selects on phones; clicking a plot in stage 1 no longer switches stage.
+- Stage 3: the overlay is "flow lines of j/|ψ|² from ψ (= pilot-wave trajectories)"; lines are clipped to the region between slits and screen; screen equal-probability positions use the whole wave (they used ±500 nm while starts used all the probability); the caption gives the rms offset of the line ends and says agreement checks the measurement, with a link to Rationale; plots and Results name the plane pair.
+- Data plot: a Y − y_f button magnifies the signal (mean pointer reading minus detection per strip, with both predictions).
+- Labels: "Prediction for this pointer", "Ideal weak pointer, j/|ψ|²", "Measured slope v_y/v_x", with tooltips; stage 1 shows only the run count in Results. Velocity plot range includes the prediction for a strong pointer. Hover labels on a backing; the averaged-density note moved below the pattern; no "points: one run in N" label in stage 1 (stage 1 keeps every run as a point). Legends wrap; shorter plot titles; runs shown as 10k–10M.
+- Phones: Start, Reset and Controls in a bar fixed at the bottom of the window.
+- Links: runs and show are included; values outside the Advanced-tab limits are adjusted and the app says so (a geometry with no room for two slits falls back to the default).
+- Show (density, crests, phase) moved to the Display tab. Distance scale defaults to the top right.
+- Physics: finite pointer and gap (bias grows with the gap), real part of the weak value, strip averaging and divergence near nodes, strip width follows the screen, flow-line wording for stage 3, Kocsis et al. as a related measurement with its differences, Bliokh et al. on the Poynting reading, a For instructors section (main point, common mistake, sequence, questions, link parameters).
+- Rationale: fuller orthodox reading; pilot-wave reading qualified for a weak pointer and finite gap; many-worlds reading in terms of branch weight, with Vaidman; new "What the lines do not settle" (Englert et al., Mahler et al.); "Why it belongs here" no longer says the data give the pilot-wave lines. Four references added (6–9), checked against Crossref.
+
 ## 0.4.4 — 2026-11-07
 - The mean pointer reading for a strip is no longer drawn for a fixed strip. Pointing at the strong plane (stages 2 and 3) selects the strip under the pointer, highlights it, and draws its mean pointer reading on the weak plane joined to its mean detected position; the plots and Results follow. Nothing is drawn when the pointer is elsewhere.
 

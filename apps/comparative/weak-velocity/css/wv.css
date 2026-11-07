@@ -185,3 +185,37 @@ body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
 .qontic-light.wv-app .map-toggles { background: rgba(255,255,255,0.92); border-color: #aec2cb; }
 .qontic-light.wv-app .map-toggle { color: #35505f; border-color: #aec2cb; }
 .qontic-light.wv-app .map-toggle[aria-pressed="true"] { background: #dcebf1; color: #183747; border-color: #0b6f7d; }
+
+/* 0.5: review fixes */
+.wv-app .setup-plain { margin: 0 0 10px; color: #afc4d3; font-size: 13.5px; max-width: 980px; }
+.qontic-light.wv-app .setup-plain { color: #35505f; }
+.wv-app .results-body [hidden] { display: none; }
+.wv-app .fp-head button.fp-mode { width: auto; padding: 0 6px; font-size: 11px; border: 1px solid #31556c; }
+.wv-app .fp-head button.fp-mode[aria-pressed="true"] { background: #173e4c; border-color: #55d8e6; color: #e8f8fc; }
+.qontic-light.wv-app .fp-head button.fp-mode { border-color: #aec2cb; }
+.qontic-light.wv-app .fp-head button.fp-mode[aria-pressed="true"] { background: #ffffff; border-color: #0b6f7d; color: #183747; }
+.wv-app .story-buttons .wv-next { border-color: #55d8e6; background: #173e4c; color: #e8f8fc; font-weight: 600; }
+.qontic-light.wv-app .story-buttons .wv-next { border-color: #0b6f7d; background: #dcebf1; color: #183747; }
+.wv-app .story-live .link-button { font-size: 13px; }
+.wv-app .story-live { font-size: 14.5px; }
+.wv-app .output-nowrap, .wv-app .control-row output { white-space: nowrap; }
+.wv-app code { font-size: 0.92em; }
+/* Phones: run controls fixed at the bottom of the window. */
+.wv-app .mobile-run { display: none; }
+@media (max-width: 1000px) {
+  .wv-app .mobile-run { display: flex; position: fixed; z-index: 40; left: 50%; bottom: 12px; transform: translateX(-50%); gap: 6px; padding: 6px; border-radius: 10px; background: rgba(9,24,36,0.94); border: 1px solid #31556c; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+  .wv-app .mobile-run button { min-height: 40px; padding: 6px 14px; border: 1px solid #31556c; border-radius: 7px; background: #0b1c29; color: #d9edf7; font: 600 14px Inter, Arial, sans-serif; cursor: pointer; white-space: nowrap; }
+  .wv-app .mobile-run #mobileRun { border-color: #55d8e6; background: #173e4c; }
+  .qontic-light.wv-app .mobile-run { background: rgba(255,255,255,0.95); border-color: #aec2cb; }
+  .qontic-light.wv-app .mobile-run button { background: #f1f6f8; color: #183747; border-color: #aec2cb; }
+  .wv-app .shell { padding-bottom: 76px; }
+}
+@media (max-width: 760px) {
+  .wv-app .canvas-main { height: 360px; }
+  .wv-app .float-panel { height: 240px; }
+}
+/* Short screens (projectors): smaller plot heads. */
+@media (max-height: 640px) {
+  .wv-app .fp-head { padding: 2px 6px 2px 8px; }
+  .wv-app .fp-title { font-size: 11px; }
+}

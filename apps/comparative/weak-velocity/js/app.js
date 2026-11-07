@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.4.4';
-import * as M from './weak-model.js?v=0.4.4';
+import { APP_RELEASE } from './release.js?v=0.5.0';
+import * as M from './weak-model.js?v=0.5.0';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -30,6 +30,8 @@ function applyGeometry() {
   Y_HALF = geo.screen / 200;
   waveTheme = null;
 }
+const RUNS = [1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6, 5e6, 1e7];   // runs per pair of planes (slider)
+const fmtRuns = (n) => (n >= 1e6 ? `${n / 1e6}M` : `${n / 1e3}k`);
 const N_BINS = 40;           // strips across the screen (20 nm for an 800 nm screen)
 const N_PLANES = 12;
 const SCATTER_N = 4000;
@@ -50,14 +52,17 @@ const state = {
   running: false, speed: 1,
   waveMode: 'density', arrowEvery: 1, nLines: 20,
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, bohm: false, scatter: true, planeRuns: true },
-  selected: null,
+  selected: null, shiftView: false,
 };
 let exp = null;              // current pair of planes
 let map = null;              // stage 3 state
 let anim = null;             // stage 1 run animation
 let pending = true;          // rebuild needed
 let waveTheme = null;
-let lastLive = 0;
+let lastLive = 0, lastLiveHtml = '';
+// Values the link asked for, to report any that had to be adjusted.
+const urlAsked = {};
+let urlNote = '';
 
 readUrl();
 applyGeometry();
@@ -83,7 +88,8 @@ function makeExperiment(x1nm) {
   const rMax = Math.max(...rho.map((a) => a[1]));
   // Plot range from the current velocity where the wave is not negligible.
   let vmax = 0.05;
-  for (let i = 0; i < rho.length; i++) if (rho[i][1] > 0.05 * rMax) vmax = Math.max(vmax, Math.abs(curCurve[i][1]));
+  // Plot range from both curves (the exact curve for a strong pointer can exceed j/|psi|^2).
+  for (let i = 0; i < rho.length; i++) if (rho[i][1] > 0.05 * rMax) vmax = Math.max(vmax, Math.abs(curCurve[i][1]), Math.abs(expCurve[i][1] ?? 0));
   const binCur = []; // density-weighted current slope per strip
   for (let b = 0; b < N_BINS; b++) {
     let s = 0, sv = 0;
@@ -101,11 +107,13 @@ function makeExperiment(x1nm) {
   };
 }
 
+// Stage 1 keeps every run as a point; later stages keep one run in `stride`.
+const pointStride = () => (state.stage === 'one' ? 1 : Math.max(1, Math.floor(state.perPlane / PLANE_POINTS)));
 function addRun(e, run) {
   M.addToBins(e.bins, run);
   // Points beside the planes: one run in every `stride`, so they fill in over the
   // whole collection and finish with it (6 000 points at the end).
-  const stride = Math.max(1, Math.floor(state.perPlane / PLANE_POINTS));
+  const stride = pointStride();
   if (e.runs % stride === 0 && e.ptsN < PLANE_POINTS) { e.ptsY[e.ptsN] = run.Y; e.ptsYf[e.ptsN] = run.yf; e.ptsU[e.ptsN] = Math.random(); e.ptsN++; }
   e.runs++;
   e.scatter[e.scatterHead * 2] = run.yf; e.scatter[e.scatterHead * 2 + 1] = run.Y;
@@ -158,25 +166,35 @@ function buildLines() {
   const planes = map.planes.map((pl) => ({ x: pl.x2, vAt: fieldFor(pl) }));
   // Starting points at equal-probability positions in the first strong plane.
   const counts = map.planes[0].counts, total = counts.reduce((a, b) => a + b, 0), w = 2 * Y_HALF / N_BINS;
-  const starts = [];
+  const starts = [], keptQ = [];
   const nLines = state.nLines; // even, so no start falls on the median between the two slit packets
   for (let q = 0; q < nLines; q++) {
     let target = (q + 0.5) / nLines * total, acc = 0;
     for (let i = 0; i < N_BINS; i++) {
-      if (acc + counts[i] >= target) { starts.push(-Y_HALF + (i + (target - acc) / Math.max(1, counts[i])) * w); break; }
+      if (acc + counts[i] >= target) { starts.push(-Y_HALF + (i + (target - acc) / Math.max(1, counts[i])) * w); keptQ.push(q); break; }
       acc += counts[i];
     }
   }
   const x0 = planes[0].x, xEnd = planes.at(-1).x;
   // Keep only starts where the first plane has a measured velocity.
-  for (let i = starts.length - 1; i >= 0; i--) if (planes[0].vAt(starts[i]) === null) starts.splice(i, 1);
+  for (let i = starts.length - 1; i >= 0; i--) if (planes[0].vAt(starts[i]) === null) { starts.splice(i, 1); keptQ.splice(i, 1); }
   map.lines = starts.map((y0) => M.integrateField(planes, 1, y0, x0, xEnd, 300));
   map.bohm = starts.map((y0) => M.bohmTrajectory(T0, p.k, p.wall, y0, xEnd, 300, x0));
-  // Equal-probability positions of |psi|^2 on the screen, for the check.
+  // Equal-probability positions of |psi|^2 on the screen, for the check. The
+  // starts are quantiles of (nearly) all the probability at the first strong
+  // plane, so the screen quantiles are taken over the whole wave, not only the
+  // part on the screen (integrated far enough that the tails do not matter).
   const tS = M.propagate(T0, (p.screen - p.wall) / p.k), ys = [], cum = [];
+  const R = Math.max(4 * Y_HALF, Y_HALF + 10), NQ = 4000;
   let s = 0;
-  for (let i = 0; i <= 800; i++) { const y = -Y_HALF - 1 + i * (2 * Y_HALF + 2) / 800; s += M.density(tS, y); ys.push(y); cum.push(s); }
-  map.screenQuantiles = Array.from({ length: nLines }, (_, q) => { const t = (q + 0.5) / nLines * s; const i = cum.findIndex((c) => c >= t); return ys[Math.max(0, i)]; });
+  for (let i = 0; i <= NQ; i++) { const y = -R + i * 2 * R / NQ; s += M.density(tS, y); ys.push(y); cum.push(s); }
+  const all = Array.from({ length: nLines }, (_, q) => { const t = (q + 0.5) / nLines * s; const i = cum.findIndex((c) => c >= t); return ys[Math.max(0, i)]; });
+  // Keep the quantiles that belong to the lines that were kept.
+  map.screenQuantiles = all.filter((_, q) => keptQ.includes(q));
+  // Mean offset (rms, nm) of the line ends from the equal-probability positions.
+  let se = 0, ne = 0;
+  map.lines.forEach((ln, i) => { const [xe, ye] = ln.at(-1); if (Math.abs(xe - xEnd) < 0.05 && map.screenQuantiles[i] != null && Math.abs(xEnd - p.screen) < 0.6) { se += nm(ye - map.screenQuantiles[i]) ** 2; ne++; } });
+  map.endOffset = ne ? Math.sqrt(se / ne) : null;
 }
 
 // ---------------------------------------------------------------- text
@@ -192,6 +210,9 @@ function updateText() {
     : state.sw >= 40
       ? 'Intermediate: readings are sharper and the wave is slightly disturbed.'
       : 'Strong: each reading is precise, but the coupling disturbs the wave. Compare the green and dashed curves.';
+  // Numbers in the Physics tab that follow the geometry.
+  document.querySelectorAll('[data-strip-width]').forEach((el) => { el.textContent = `${Number((geo.screen / N_BINS).toPrecision(3))} nm`; });
+  document.querySelectorAll('[data-screen-half]').forEach((el) => { el.textContent = `${geo.screen / 2}`; });
   $('#x1Row').style.display = state.stage === 'map' ? 'none' : '';
   $('#runsRow').style.display = state.stage === 'one' ? 'none' : '';
   document.querySelectorAll('[data-stage]').forEach((b) => {
@@ -200,32 +221,48 @@ function updateText() {
   });
 }
 
+const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
+const SELECT_HINT = 'To post-select a strip, point at (or tap) the strong plane on the drawing, or click either plot.';
+const RATIONALE_LINK = '<button type="button" class="link-button" data-goto="rationale">Same lines, three readings: see Rationale</button>';
 function liveText() {
   if (!exp) return '';
   const N = exp.runs.toLocaleString('en-US');
   if (state.stage === 'one') {
-    return exp.runs === 0
-      ? 'Press <b>Run</b>. Watch the pointer move, then the screen click. One run gives two numbers.'
-      : `${N} runs. The amber marker on the weak plane's scale is the pointer reading, with its spread of ±${state.sw} nm. It is a reading of the pointer, not a sighting of the particle: the spread is wider than the whole pattern, so one run says almost nothing about where the particle was.`;
+    if (exp.runs === 0) return (urlNote ? `${urlNote} ` : '') + 'Press <b>Start</b>. Watch the pointer move, then the screen click. One run gives two numbers.';
+    const spread = state.sw >= 100
+      ? 'The spread is wider than the whole pattern, so one run says almost nothing about where the particle was, and the wave is barely disturbed.'
+      : state.sw >= 40
+        ? 'The spread is a fair part of the pattern: one run says roughly where the particle was, and the wave is slightly disturbed.'
+        : 'The spread is small, so one run is nearly a position measurement; in exchange the coupling disturbs the wave (see beyond the weak plane).';
+    return `${plural(exp.runs, 'run', 'runs')}. The amber marker on the weak plane's scale is the pointer reading, with its spread of ±${state.sw} nm. It is a reading of the pointer, not a sighting of the particle. ${spread}`;
   }
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const bw = 2 * Y_HALF / N_BINS, strip = `${nm(-Y_HALF + state.selected * bw).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * bw).toFixed(0)} nm`;
-    const tail = b ? ` Beside the planes: pointer readings (amber, left of the weak plane) and detections (cyan, between the planes), one point per run. Point at the strong (cyan) plane to post-select a strip: the drawing then shows the mean pointer reading for the runs detected there. In the strip ${strip}, the pointer averages <b>${(nm(b.y - b.v * exp.dtau)).toFixed(1)} nm</b> while the particle is detected at ${nm(b.y).toFixed(1)} nm: it moved by ${(nm(b.v * exp.dtau)).toFixed(1)} ± ${(nm(b.err * exp.dtau)).toFixed(1)} nm across the ${state.gap} nm gap.` : ' Click a strip in either plot to post-select on it.';
-    return `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${tail}`;
+    const head = `${N} of ${state.perPlane.toLocaleString('en-US')} runs.`;
+    if (!b) return `${head} ${exp.runs ? 'Too few runs in the selected strip yet.' : 'Press <b>Start</b>.'} ${SELECT_HINT}`;
+    // Neutral wording: two averages over the same post-selected runs, not a path.
+    const shift = nm(b.v * exp.dtau), err = nm(b.err * exp.dtau), mY = nm(b.y - b.v * exp.dtau);
+    const done = exp.runs >= state.perPlane ? ' Error bars are one standard deviation: about one strip in three should miss the prediction by more than its bar.' : '';
+    return `${head} Beside the planes: pointer readings (amber) and detections (cyan), one point per run. ${SELECT_HINT} For the runs detected in the strip ${strip} (mean ${nm(b.y).toFixed(1)} nm), the mean pointer reading is <b>${mY.toFixed(1)} nm</b>. Detection minus pointer mean, ${shift >= 0 ? '+' : '−'}${Math.abs(shift).toFixed(1)} ± ${err.toFixed(1)} nm, divided by the ${state.gap} nm gap is the velocity estimate. It is a difference of two averages over the same selected runs, not the path of any particle.${done}`;
   }
-  if (map && !map.done) return `Plane ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
-  if (map && map.done) return state.sw < 40
-    ? `All ${N_PLANES} planes mapped with a strong pointer (${state.sw} nm). The coupling disturbs the wave, so the arrows follow the green curve, not j/|ψ|². The lines are not those of the undisturbed experiment: compare with the weak pointer.`
-    : `All ${N_PLANES} planes mapped. The amber lines follow the measured arrows. Their ends on the screen (ticks on the right) should sit at equal-probability positions of |ψ|² (grey ticks).`;
+  if (map && !map.done) return `Plane pair ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
+  if (map && map.done) {
+    const lastX = nm(exp.x2 - p.wall).toFixed(0);
+    const plots = ` The plots and Results show the last pair (strong plane ${lastX} nm behind the slits); click a plot to choose a strip.`;
+    if (state.sw < 40) return `All ${N_PLANES} plane pairs mapped with a strong pointer (${state.sw} nm), each with fresh particles. The coupling disturbs the wave, so the arrows follow the green curve, not j/|ψ|². These lines do not describe the undisturbed experiment in any of the three views: compare with the weak pointer.${plots} ${RATIONALE_LINK}`;
+    const off = map.endOffset != null ? ` The line ends differ from those positions by ${map.endOffset.toFixed(0)} nm on average (rms).` : '';
+    return `All ${N_PLANES} plane pairs mapped, each with fresh particles. The amber lines join the measured arrows. If the arrows are right, their ends on the screen (amber ticks, right) sit at equal-probability positions of |ψ|² (grey ticks), as for any flow of |ψ|².${off} Agreement checks the measurement, not an interpretation.${plots} ${RATIONALE_LINK}`;
+  }
   return '';
 }
 
 function showNext() {
   const box = $('#nextSteps');
   box.innerHTML = '';
-  const add = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'qontic-app-toggle'; b.textContent = label; b.addEventListener('click', fn); box.append(b); };
+  const add = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = label.startsWith('Next') ? 'qontic-app-toggle wv-next' : 'qontic-app-toggle'; b.textContent = label; b.addEventListener('click', fn); box.append(b); };
   if (state.stage === 'one') add('Next: many runs', () => setStage('many', true));
+  if (state.stage === 'many' && exp && exp.runs >= state.perPlane) add('Repeat these runs (new sample)', () => { pending = true; start(); });
   if (state.stage === 'many') add('Next: map the field', () => setStage('map', true));
   if (state.stage === 'map' && map?.done) {
     if (state.sw >= 40) add('Repeat with a strong pointer (10 nm)', () => { setSw(10); setStage('map', true); });
@@ -261,9 +298,8 @@ document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('cl
 $('#sw').addEventListener('input', (e) => { state.sw = +e.target.value; pending = true; updateText(); });
 $('#x1').addEventListener('input', (e) => { state.x1 = +e.target.value; if (state.stage !== 'map') pending = true; updateText(); });
 $('#gap').addEventListener('input', (e) => { state.gap = +e.target.value; pending = true; updateText(); });
-const RUNS = [1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6, 5e6, 1e7];
 $('#perPlane').addEventListener('input', (e) => {
-  state.perPlane = RUNS[+e.target.value]; $('#perPlaneOut').value = state.perPlane.toLocaleString('en-US').replace(/,/g, ' ');
+  state.perPlane = RUNS[+e.target.value]; $('#perPlaneOut').value = fmtRuns(state.perPlane);
 });
 $('#perPlane').addEventListener('change', () => { if (state.stage === 'map' || (exp && exp.runs > state.perPlane)) pending = true; });
 // Slider left = fewest arrows (every 5th strip), right = all 40, like the Lines slider.
@@ -273,12 +309,18 @@ document.querySelectorAll('[data-maptoggle]').forEach((b) => b.addEventListener(
 $('#showSetup').addEventListener('click', () => { stop(); showStep('setup'); });
 $('#setupGo').addEventListener('click', () => setStage('one', true));
 
-function stop() { state.running = false; controlsEl.setAttribute('running', 'false'); }
+// Phones: a small bar fixed at the bottom of the window, so Start is always in reach.
+const mobileRun = $('#mobileRun');
+function syncMobileRun() { mobileRun.textContent = state.running ? '❚❚ Stop' : '▶ Start'; mobileRun.setAttribute('aria-pressed', String(state.running)); }
+function stop() { state.running = false; controlsEl.setAttribute('running', 'false'); syncMobileRun(); }
 function start() {
   if (map?.done) pending = true;
   if (state.stage === 'many' && exp && exp.runs >= state.perPlane) pending = true;
-  state.running = true; controlsEl.setAttribute('running', 'true'); showStep('live');
+  state.running = true; controlsEl.setAttribute('running', 'true'); showStep('live'); syncMobileRun();
 }
+mobileRun.addEventListener('click', () => (state.running ? stop() : start()));
+$('#mobileReset').addEventListener('click', () => { stop(); pending = true; });
+$('#mobileControls').addEventListener('click', () => $('.qontic-sidebar').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 controlsEl.addEventListener('qontic:start', () => start());
 controlsEl.addEventListener('qontic:stop', () => stop());
 controlsEl.addEventListener('qontic:reset', () => { stop(); pending = true; });
@@ -287,6 +329,11 @@ controlsEl.addEventListener('qontic:theme', () => { waveTheme = null; if (waveGr
 controlsEl.addEventListener('qontic:tab', (e) => {
   controlsEl.setAttribute('active-tab', e.detail.tab);
   document.querySelectorAll('[data-control-pane]').forEach((pn) => pn.classList.toggle('hidden', pn.dataset.controlPane !== e.detail.tab));
+});
+// Links in the caption that open another tab ("see Rationale").
+document.addEventListener('click', (event) => {
+  const g = event.target.closest('[data-goto]');
+  if (g) { document.querySelector(`.tabs [data-view="${g.dataset.goto}"]`)?.click(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 });
 document.querySelector('.tabs').addEventListener('click', (event) => {
   const button = event.target.closest('[data-view]');
@@ -348,12 +395,13 @@ function setPanelOpen(k, open) { panels[k].open = open; applyPanelState(k); save
 for (const [k, pn] of Object.entries(panels)) {
   pn.el.querySelector('[data-fp-act="close"]').addEventListener('click', () => setPanelOpen(k, false));
   pn.el.querySelector('[data-fp-act="min"]').addEventListener('click', () => { pn.min = !pn.min; applyPanelState(k); savePanels(); });
+  pn.el.querySelector('[data-fp-act="shift"]')?.addEventListener('click', (e) => { state.shiftView = !state.shiftView; e.currentTarget.setAttribute('aria-pressed', String(state.shiftView)); updateTitles(); });
   // Click a strip in the plot to post-select on it.
   pn.cv.addEventListener('click', (e) => {
     const r = pn.cv.getBoundingClientRect(), box = plotBox(r.width, r.height), x = e.clientX - r.left;
     if (x < box.x || x > box.x + box.w) return;
+    // Selects the strip (used from stage 2 on); never changes the stage.
     state.selected = binOf(-Y_HALF + (x - box.x) / box.w * 2 * Y_HALF);
-    if (state.stage === 'one') setStage('many');
   });
   document.querySelector(`[data-fp-open="${k}"]`).addEventListener('click', () => setPanelOpen(k, true));
   document.querySelector(`[data-panel-toggle="${k}"]`).addEventListener('click', () => setPanelOpen(k, !pn.open));
@@ -443,7 +491,11 @@ function readUrl() {
   const x1 = num('x1', 0, 3000, 10); if (x1 !== null) state.x1 = x1;
   const gap = num('gap', 10, 100, 5); if (gap !== null) state.gap = gap;
   if (['one', 'many', 'map'].includes(q.get('stage'))) state.stage = q.get('stage');
-  for (const k of Object.keys(GEO_DEFAULT)) { const v = parseFloat(q.get(k)); if (Number.isFinite(v)) geo[k] = v; }
+  for (const k of Object.keys(GEO_DEFAULT)) { const v = parseFloat(q.get(k)); if (Number.isFinite(v)) { geo[k] = v; urlAsked[k] = v; } }
+  if (x1 !== null) urlAsked.x1 = x1;
+  if (gap !== null) urlAsked.gap = gap;
+  const runs = parseFloat(q.get('runs')); if (Number.isFinite(runs)) state.perPlane = RUNS.reduce((a, b) => (Math.abs(Math.log(b / runs)) < Math.abs(Math.log(a / runs)) ? b : a));
+  if (['density', 'crests', 'phase'].includes(q.get('show'))) state.waveMode = q.get('show');
   if (q.get('bohm') === '1') state.show.bohm = true;
   $('#sw').value = state.sw; $('#x1').value = state.x1; $('#gap').value = state.gap;
   document.querySelector('[data-toggle="bohm"]').setAttribute('aria-pressed', String(state.show.bohm));
@@ -451,7 +503,7 @@ function readUrl() {
 function shareUrl() {
   const u = new URL(location.href);
   const g = {}; for (const k of Object.keys(GEO_DEFAULT)) if (geo[k] !== GEO_DEFAULT[k]) g[k] = geo[k];
-  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, ...g, ...(state.show.bohm ? { bohm: 1 } : {}) }).toString();
+  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}) }).toString();
   return u.toString();
 }
 
@@ -472,6 +524,15 @@ function palette() {
 
 function text(s, x, y, { color, size = 12, align = 'left', base = 'alphabetic', weight = 400 } = {}) {
   ctx.fillStyle = color; ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`; ctx.textAlign = align; ctx.textBaseline = base; ctx.fillText(s, x, y);
+}
+// Text on a translucent backing, so it stays readable over the wave.
+function backedText(P, s, x, y, opts = {}) {
+  const size = opts.size || 12;
+  ctx.font = `${opts.weight || 400} ${size}px Inter, Arial, sans-serif`;
+  const w = ctx.measureText(s).width, x0 = opts.align === 'right' ? x - w : opts.align === 'center' ? x - w / 2 : x;
+  ctx.fillStyle = P.light ? 'rgba(251,253,254,0.85)' : 'rgba(7,19,29,0.78)';
+  ctx.fillRect(x0 - 3, y - size, w + 6, size + 5);
+  text(s, x, y, opts);
 }
 
 // ---------------------------------------------------------------- drag the geometry on the drawing
@@ -507,6 +568,7 @@ function hitHandle(px, py) {
   return null;
 }
 const CURSOR = { slitWidth: 'ns-resize', separation: 'ns-resize', screen: 'ns-resize', distance: 'ew-resize', gap: 'ew-resize', x1: 'ew-resize' };
+const GEO_LABEL = { wavelength: 'Wavelength', sourceWidth: 'Source width', wall: 'Source to slits' };
 const DRAG_LABEL = { slitWidth: 'Slit width σ', separation: 'Slit separation', screen: 'Screen length', distance: 'Slits to screen', gap: 'Gap to strong plane', x1: 'Weak plane' };
 function drawGrips(P) {
   const hs = handles();
@@ -548,7 +610,11 @@ canvas.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointerleave', (e) => { if (!drag) { hover = null; canvas.style.cursor = ''; } if (e.pointerType === 'mouse') hoverStrip = null; });
 canvas.addEventListener('pointerdown', (e) => {
   const [px, py] = pointerPos(e), h = hitHandle(px, py);
-  if (!h) return;
+  if (!h) {
+    // Touch and pen have no hover: a tap on the strong plane selects the strip.
+    if (e.pointerType !== 'mouse') { const s = stripAt(px, py); if (s !== null) { hoverStrip = s; state.selected = s; } }
+    return;
+  }
   e.preventDefault();
   canvas.setPointerCapture(e.pointerId);
   stop();
@@ -696,7 +762,11 @@ function drawApparatus(P, box) {
   // wave
   if (state.show.wave) {
     const w = drawWave(P, X, Yp, x0, p.screen);
-    if (w.mixedFrom !== null && w.want !== 'density') text('beyond the weak plane: density averaged over pointer readings', X(w.mixedFrom) + 26, Yp(Y_HALF) + 14, { color: P.muted, size: 10 });
+    if (w.mixedFrom !== null && w.want !== 'density') {
+      // Below the pattern, between the weak plane and the screen; wrapped if needed.
+      const lines = ['beyond the weak plane: density averaged over pointer readings', '(a single run keeps its fringes: see stage 1)'];
+      lines.forEach((ln, i) => backedText(P, ln, X(exp ? exp.x2 : w.mixedFrom) + 10, Yp(-Y_HALF) - 22 + 12 * i, { color: P.muted, size: 10 }));
+    }
     if (state.waveMode !== 'density' && !w.canCrest) text('wavelength too short to draw crests here: density shown', X(p.wall) + 8, box.y + box.h - 18, { color: P.muted, size: 10 });
   }
   // wall with two slits (±1.5 sigma openings)
@@ -738,18 +808,23 @@ function drawApparatus(P, box) {
   // lines from the measured field, and pilot-wave trajectories
   const path = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Yp(y)) : ctx.moveTo(X(x), Yp(y)))); ctx.stroke(); };
   if (map?.done) {
+    // Lines stay inside the region between the slits and the screen.
+    ctx.save(); ctx.beginPath(); ctx.rect(X(p.wall), Yp(Y_HALF), X(p.screen) - X(p.wall), Yp(-Y_HALF) - Yp(Y_HALF)); ctx.clip();
     ctx.strokeStyle = P.line; ctx.lineWidth = 1.8; if (state.show.lines) map.lines.forEach(path);
     if (state.show.bohm) {
-      // Pilot-wave trajectories from the same starting points, drawn on top.
+      // Flow lines of j/|psi|^2 computed from psi (pilot-wave trajectories), same starts, drawn on top.
       ctx.strokeStyle = P.bohm; ctx.lineWidth = 1.7; ctx.setLineDash([6, 4]); map.bohm.forEach(path); ctx.setLineDash([]);
     }
+    ctx.restore();
     // key
     const keys = [];
     if (state.show.lines) keys.push([P.line, [], 1.8, 'lines through the measured arrows']);
-    if (state.show.bohm) keys.push([P.bohm, [6, 4], 1.7, 'pilot-wave trajectories, same starts']);
+    if (state.show.bohm) keys.push([P.bohm, [6, 4], 1.7, 'flow lines of j/|ψ|² from ψ (= pilot-wave trajectories), same starts']);
     if (keys.length) {
       const kx = X(p.wall) + 14, ky = Yp(-Y_HALF) - 10;
-      ctx.fillStyle = P.light ? 'rgba(241,246,248,0.88)' : 'rgba(11,28,41,0.88)'; ctx.fillRect(kx - 6, ky - 15 * keys.length, 300, 6 + 15 * keys.length);
+      ctx.font = '400 11px Inter, Arial, sans-serif';
+      const kw = 40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width));
+      ctx.fillStyle = P.light ? 'rgba(241,246,248,0.88)' : 'rgba(11,28,41,0.88)'; ctx.fillRect(kx - 6, ky - 15 * keys.length, kw, 6 + 15 * keys.length);
       keys.forEach(([col, dash, lw, label], i) => {
         const yy = ky - 15 * (keys.length - 1 - i);
         ctx.lineWidth = lw; ctx.strokeStyle = col; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(kx, yy - 4); ctx.lineTo(kx + 22, yy - 4); ctx.stroke(); ctx.setLineDash([]);
@@ -760,8 +835,8 @@ function drawApparatus(P, box) {
     const sx = X(p.screen);
     ctx.lineWidth = 2;
     if (state.show.lines) map.lines.forEach((ln) => { const [xe, ye] = ln.at(-1); if (Math.abs(xe - p.screen) < 0.05) { ctx.strokeStyle = P.line; ctx.beginPath(); ctx.moveTo(sx + 3, Yp(ye)); ctx.lineTo(sx + 14, Yp(ye)); ctx.stroke(); } });
-    ctx.strokeStyle = P.muted;
-    map.screenQuantiles.forEach((y) => { ctx.beginPath(); ctx.moveTo(sx + 16, Yp(y)); ctx.lineTo(sx + 26, Yp(y)); ctx.stroke(); });
+    ctx.strokeStyle = P.light ? '#5f7684' : '#b8cbd6';
+    map.screenQuantiles.forEach((y) => { if (Math.abs(y) <= Y_HALF) { ctx.beginPath(); ctx.moveTo(sx + 16, Yp(y)); ctx.lineTo(sx + 30, Yp(y)); ctx.stroke(); } });
   }
   // screen |psi|^2 profile
   {
@@ -799,7 +874,7 @@ function drawApparatus(P, box) {
     ctx.fillStyle = P.strong;
     for (let i = 0; i < n; i++) ctx.fillRect(xs - 3 - exp.ptsU[i] * (gapW - 2) - sz / 2, Yp(exp.ptsYf[i]) - sz / 2, sz, sz);
     ctx.globalAlpha = 1;
-    const stride = Math.max(1, Math.floor(state.perPlane / PLANE_POINTS));
+    const stride = pointStride();
     if (stride > 1) text(`points: one run in ${stride.toLocaleString('en-US')}`, xw - 6, bot + 13, { color: P.muted, size: 10, align: 'right' });
   }
   // Selected strip: mean pointer reading on the weak plane, joined to the mean
@@ -818,8 +893,9 @@ function drawApparatus(P, box) {
       ctx.fillStyle = P.weak; ctx.beginPath(); ctx.arc(xw, Yp(mY), 4.5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(xs, Yp(mYf), 4.5, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = P.text; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(xw, Yp(mY)); ctx.lineTo(xs, Yp(mYf)); ctx.stroke();
-      text(`mean pointer reading ${nm(mY).toFixed(1)} nm`, xw - 9, Yp(mY) - 8, { color: P.weak, size: 11, align: 'right' });
-      text(`mean detected ${nm(mYf).toFixed(1)} nm`, xw - 9, Yp(mYf) + 16, { color: P.strong, size: 11, align: "right" });
+      const up = mY >= mYf;   // keep the two labels apart
+      backedText(P, `mean pointer reading ${nm(mY).toFixed(1)} nm`, xw - 12, Yp(mY) + (up ? -10 : 18), { color: P.weak, size: 11, align: 'right', weight: 600 });
+      backedText(P, `mean detected ${nm(mYf).toFixed(1)} nm`, xw - 12, Yp(mYf) + (up ? 18 : -10), { color: P.strong, size: 11, align: 'right', weight: 600 });
     } else text('too few runs in this strip yet', X(exp.x2) + 34, Yp(a + bw / 2) + 4, { color: P.muted, size: 11 });
   }
   // stage 1: pointer gauge and detection flash
@@ -886,15 +962,22 @@ function axes(P, box, title, yLabel, ymin, ymax, fmtY) {
   return { X, V };
 }
 
+// Legend at the top right; items separated by ' · ' wrap onto more lines when narrow.
 function legend(P, box, s) {
   ctx.font = '400 10px Inter, Arial, sans-serif';
-  const w = Math.min(box.w - 8, ctx.measureText(s).width + 10);
+  const items = s.split(' · '), lines = [];
+  for (const it of items) {
+    const cur = lines.length ? `${lines.at(-1)} · ${it}` : it;
+    if (lines.length && ctx.measureText(cur).width + 12 <= box.w - 8) lines[lines.length - 1] = cur; else lines.push(it);
+  }
+  const w = Math.min(box.w - 8, Math.max(...lines.map((l) => ctx.measureText(l).width)) + 10);
   ctx.fillStyle = P.light ? 'rgba(241,246,248,0.85)' : 'rgba(11,28,41,0.85)';
-  ctx.fillRect(box.x + box.w - w - 4, box.y + 3, w, 15);
-  text(s, box.x + box.w - 9, box.y + 14, { color: P.muted, size: 10, align: 'right' });
+  ctx.fillRect(box.x + box.w - w - 4, box.y + 3, w, 4 + 12 * lines.length);
+  lines.forEach((l, i) => text(l, box.x + box.w - 9, box.y + 13 + 12 * i, { color: P.muted, size: 10, align: 'right' }));
 }
 
 function drawScatter(P, box) {
+  if (state.shiftView) { drawShift(P, box); return; }
   const range = Y_HALF + 3 * state.sw / 100;
   const { X, V } = axes(P, box, 'Each run: pointer reading vs detected position', 'pointer reading Y (nm)', -range, range, (v) => nm(v).toFixed(0));
   ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
@@ -912,9 +995,9 @@ function drawScatter(P, box) {
     est.forEach((b) => { if (b) { ctx.beginPath(); ctx.arc(X(b.y), V(b.y - b.v * exp.dtau), 2.5, 0, Math.PI * 2); ctx.fill(); } });
   }
   ctx.restore();
-  legend(P, box, 'dashed: Y = y_f · amber: mean Y in each strip');
+  legend(P, box, 'dashed: Y = y_f (no shift) · amber: mean Y in each strip');
   if (exp && exp.runs) {
-    const s = exp.runs <= SCATTER_N ? `all ${exp.runs.toLocaleString('en-US')} runs shown` : `last ${SCATTER_N.toLocaleString('en-US')} of ${exp.runs.toLocaleString('en-US')} runs shown; strip means use all`;
+    const s = exp.runs <= SCATTER_N ? `all ${exp.runs.toLocaleString('en-US')} runs shown` : `last ${(SCATTER_N / 1000).toFixed(0)}k of ${fmtCount(exp.runs)} shown · means use all`;
     ctx.font = '400 10px Inter, Arial, sans-serif';
     const w = ctx.measureText(s).width + 10;
     ctx.fillStyle = P.light ? 'rgba(241,246,248,0.85)' : 'rgba(11,28,41,0.85)'; ctx.fillRect(box.x + 4, box.y + box.h - 18, w, 15);
@@ -922,9 +1005,40 @@ function drawScatter(P, box) {
   }
 }
 
+const fmtCount = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(n % 1e6 ? 2 : 0)}M` : n >= 1e4 ? `${(n / 1e3).toFixed(0)}k` : n.toLocaleString('en-US'));
+// The same data as the strip means, magnified: mean pointer reading minus the
+// detected position, in nm. The velocity estimate is minus this over the gap.
+function drawShift(P, box) {
+  const toNm = (slope) => -nm(slope * p.k * (exp ? exp.dtau : 0));
+  const range = exp ? Math.max(0.5, Math.abs(toNm(exp.vmax))) : 5;
+  const { X, V } = axes(P, box, '', 'mean Y − y_f (nm)', -range, range, (v) => v.toFixed(1));
+  if (!exp) return;
+  ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
+  ctx.strokeStyle = P.grid; ctx.beginPath(); ctx.moveTo(box.x, V(0)); ctx.lineTo(box.x + box.w, V(0)); ctx.stroke();
+  const curve = (pts, color, dash, width) => {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath(); let on = false;
+    for (const [y, v] of pts) { if (v === null) { on = false; continue; } const d = toNm(v); if (Math.abs(d) > 3 * range) { on = false; continue; } on ? ctx.lineTo(X(y), V(d)) : ctx.moveTo(X(y), V(d)); on = true; }
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  if (state.show.expected) curve(exp.expCurve, P.exp, [], 2);
+  if (state.show.current) curve(exp.curCurve, P.cur, [5, 4], 1.2);
+  if (state.stage !== 'one') {
+    ctx.strokeStyle = P.arrow; ctx.fillStyle = P.arrow; ctx.lineWidth = 1.3;
+    M.binVelocities(exp.bins, exp.dtau, 50).forEach((b) => {
+      if (!b) return;
+      const d = -nm(b.v * exp.dtau), e = nm(b.err * exp.dtau);
+      if (e > 2 * range) return;
+      ctx.beginPath(); ctx.moveTo(X(b.y), V(d - e)); ctx.lineTo(X(b.y), V(d + e)); ctx.stroke();
+      ctx.beginPath(); ctx.arc(X(b.y), V(d), 3, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+  ctx.restore();
+  legend(P, box, `amber: measured · green: prediction, this pointer · dashed: ideal weak pointer · scale ±${range.toFixed(1)} nm`);
+}
+
 function drawVelocity(P, box) {
   const vm = exp ? exp.vmax : 0.3;
-  const { X, V } = axes(P, box, 'Velocity from post-selected averages', 'direction v_y / v_x', -vm, vm, (v) => v.toFixed(2));
+  const { X, V } = axes(P, box, 'Velocity from post-selected averages', 'slope v_y / v_x', -vm, vm, (v) => v.toFixed(2));
   if (!exp) return;
   ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
   // density at the strong plane, faint
@@ -952,14 +1066,17 @@ function drawVelocity(P, box) {
     });
   }
   ctx.restore();
-  legend(P, box, 'amber: measured · green: exact, this pointer · dashed: j/|ψ|²');
+  legend(P, box, 'amber: measured · green: prediction, this pointer · dashed: j/|ψ|² (ideal weak pointer)');
 }
 
 function updateResults() {
   const set = (k, v) => { const o = document.querySelector(`[data-result="${k}"]`); if (o) o.value = v; };
   if (!exp) return;
   set('runs', exp.runs.toLocaleString('en-US'));
-  set('planes', map ? `${map.planes.length} of ${N_PLANES}` : '—');
+  set('planes', !map ? '—' : map.done ? `${N_PLANES} of ${N_PLANES}` : `${map.planes.length} of ${N_PLANES} (pair ${map.index + 1} running)`);
+  set('pair', `${nm(exp.x1 - p.wall).toFixed(0)} → ${nm(exp.x2 - p.wall).toFixed(0)} nm`);
+  // Stage 1 has no post-selection: show only the rows that mean something.
+  document.querySelectorAll('[data-stage-rows]').forEach((el) => { el.hidden = !el.dataset.stageRows.split(' ').includes(state.stage); });
   const i = state.selected;
   const a = -Y_HALF + i * 2 * Y_HALF / N_BINS;
   set('strip', `${nm(a).toFixed(0)} to ${nm(a + 2 * Y_HALF / N_BINS).toFixed(0)} nm`);
@@ -972,6 +1089,15 @@ function updateResults() {
   set('vCur', fmtS(exp.binCur[i]));
 }
 
+// Plot titles name the pair of planes in stage 3.
+function updateTitles() {
+  const suffix = map ? ` · pair ${Math.min(map.index + 1, N_PLANES)} of ${N_PLANES}` : '';
+  const t1 = (state.shiftView ? 'Shift: mean Y − y_f' : 'Runs: pointer Y vs y_f') + suffix;
+  const t2 = 'Velocity: slope v_y/v_x' + suffix;
+  const a = panels.scatter.el.querySelector('.fp-title'), b = panels.vel.el.querySelector('.fp-title');
+  if (a.textContent !== t1) a.textContent = t1;
+  if (b.textContent !== t2) b.textContent = t2;
+}
 function sizeCanvas(cv, c) {
   const ratio = devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
   if (W < 40 || H < 40) return null;
@@ -998,7 +1124,6 @@ function render() {
   }
   ctx = mainCtx;
   syncOverlays();
-  updateResults();
 }
 
 // ---------------------------------------------------------------- main loop
@@ -1028,7 +1153,8 @@ function frame(now) {
     }
   }
   try { render(); } catch (err) { console.error(err); }
-  if (now - lastLive > 250) { lastLive = now; $('#liveLine').innerHTML = liveText(); }
+  // Caption, Results and plot titles update together, so their counts agree.
+  if (now - lastLive > 250 || pending) { lastLive = now; const lt = liveText(); if (lt !== lastLiveHtml) { lastLiveHtml = lt; $('#liveLine').innerHTML = lt; } updateResults(); updateTitles(); }
   requestAnimationFrame(frame);
 }
 
@@ -1047,6 +1173,8 @@ function drawBounds() {
 }
 const distanceScale = mountDistanceScale({
   host: drawHost, storageKey: 'qontic-weak-velocity-scale-position', format: fmtLen,
+  // Default at the top right, clear of the slits and the beam (it can be dragged).
+  defaultPosition: ({ hostWidth, width }) => ({ x: hostWidth - width - 10, y: 30 }),
   getUnitsPerPixel: () => { const b = drawBounds(); return b ? { x: b.ux, y: b.uy } : { x: 0, y: 0 }; },
 });
 let scaleShown = false;
@@ -1109,7 +1237,21 @@ mountQonticShortcuts({
 
 loadPanels();
 syncGeometryInputs();
+// A shared link is checked against the same limits as the Advanced controls.
+{
+  const askedSep = urlAsked.separation ?? (Object.keys(urlAsked).length ? GEO_DEFAULT.separation : 0);
+  if (geo.separation === 0 && askedSep > 0) {
+    Object.assign(geo, GEO_DEFAULT); syncGeometryInputs();
+    urlNote = 'The link asked for a geometry with no room for two slits; the default geometry is used.';
+  } else {
+    const changed = Object.keys(urlAsked).filter((k) => (k in geo ? geo[k] : state[k]) !== urlAsked[k]);
+    if (changed.length) urlNote = `The link's ${changed.map((k) => DRAG_LABEL[k] || GEO_LABEL[k] || k).join(', ').toLowerCase()} ${changed.length > 1 ? 'were' : 'was'} outside the allowed range and ${changed.length > 1 ? 'have' : 'has'} been adjusted.`;
+  }
+  if (urlNote) $('#geoNote').textContent = `${urlNote} ${$('#geoNote').textContent}`;
+}
 applyGeometry();
+document.querySelectorAll('[data-wavemode]').forEach((o) => { const on = o.dataset.wavemode === state.waveMode; o.classList.toggle('active', on); o.setAttribute('aria-pressed', String(on)); });
+$('#perPlane').value = RUNS.indexOf(state.perPlane); $('#perPlaneOut').value = fmtRuns(state.perPlane);
 updateText();
 showStep(new URLSearchParams(location.search).has('stage') ? 'live' : 'setup');
 requestAnimationFrame(frame);

@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Weak Velocity in the Double Slit — Q-Ontic Lab</title>
-<meta name="description" content="A weak position measurement followed by a strong one, repeated many times behind a double slit. Post-selecting on the strong result gives a velocity at each point; connecting the velocities gives average trajectories.">
+<meta name="description" content="A weak position measurement followed by a strong one, repeated many times behind a double slit. Post-selecting on the strong result gives a velocity at each point; connecting the velocities gives lines.">
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.4.4">
+<link rel="stylesheet" href="css/wv.css?v=0.5.0">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -34,14 +34,6 @@
             <button class="qontic-app-toggle" type="button" data-stage="map" aria-pressed="false" title="Repeat the experiment with the planes moved step by step from the slits to the screen, then connect the arrows.">3 · Map the field</button>
           </div>
         </div>
-        <div class="qontic-control-section">
-          <div class="qontic-control-section-title">Show</div>
-          <div class="qontic-app-toggle-group" role="group" aria-label="What to display">
-            <button class="qontic-app-toggle active" type="button" data-wavemode="density" aria-pressed="true" title="Density |ψ|², each column scaled to its own maximum.">Density |ψ|²</button>
-            <button class="qontic-app-toggle" type="button" data-wavemode="crests" aria-pressed="false" title="Travelling crests: brightness |ψ| times (1 + cos(kx − ωt + arg φ))/2.">Crests</button>
-            <button class="qontic-app-toggle" type="button" data-wavemode="phase" aria-pressed="false" title="Phase kx − ωt + arg φ as colour, brightness from |ψ|.">Phase</button>
-          </div>
-        </div>
         <label class="control-row" title="Spread of the pointer's ready state. Large spread: a weak measurement, little disturbance, very noisy. Small spread: a strong measurement that disturbs the wave.">
           <span>Pointer spread</span><input id="sw" type="range" min="5" max="400" step="5" value="200" aria-label="Pointer spread in nanometres"><output id="swOut">200 nm</output>
         </label>
@@ -53,7 +45,7 @@
           <span>Gap to strong plane</span><input id="gap" type="range" min="10" max="100" step="5" value="50" aria-label="Gap between the weak and strong planes in nanometres"><output id="gapOut">50 nm</output>
         </label>
         <label class="control-row" id="runsRow" title="Runs collected at the pair of planes (stage 2), or at each pair of planes (stage 3). Each arrow needs about a million runs with a weak pointer.">
-          <span>Runs per pair of planes</span><input id="perPlane" type="range" min="0" max="9" step="1" value="6" aria-label="Runs per pair of planes"><output id="perPlaneOut">1 000 000</output>
+          <span>Runs per pair of planes</span><input id="perPlane" type="range" min="0" max="9" step="1" value="6" aria-label="Runs per pair of planes"><output id="perPlaneOut">1M</output>
         </label>
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
       </div>
@@ -74,16 +66,24 @@
         <div class="qontic-control-section">
           <div class="qontic-control-section-title">Field map (stage 3)</div>
           <label class="control-row" title="How many of the 40 strips of each plane show an arrow."><span>Arrows per plane</span><input id="arrowDensity" type="range" min="1" max="5" step="1" value="5" aria-label="Arrows per plane"><output id="arrowDensityOut">40</output></label>
-          <label class="control-row" title="Number of lines through the measured arrows, and of pilot-wave trajectories from the same starting points."><span>Lines</span><input id="lineCount" type="range" min="4" max="60" step="2" value="20" aria-label="Number of lines"><output id="lineCountOut">20</output></label>
+          <label class="control-row" title="Number of lines through the measured arrows, and of flow lines of j/|ψ|² computed from ψ from the same starting points."><span>Lines</span><input id="lineCount" type="range" min="4" max="60" step="2" value="20" aria-label="Number of lines"><output id="lineCountOut">20</output></label>
         </div>
       </div>
       <div class="control-pane hidden" data-control-pane="display">
-        <div class="toggle-row"><span>Wave</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave"></button></div>
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Wave shown as</div>
+          <div class="qontic-app-toggle-group" role="group" aria-label="What to display">
+            <button class="qontic-app-toggle active" type="button" data-wavemode="density" aria-pressed="true" title="Density |ψ|², each column scaled to its own maximum.">Density |ψ|²</button>
+            <button class="qontic-app-toggle" type="button" data-wavemode="crests" aria-pressed="false" title="Travelling crests: brightness |ψ| times (1 + cos(kx − ωt + arg φ))/2.">Crests</button>
+            <button class="qontic-app-toggle" type="button" data-wavemode="phase" aria-pressed="false" title="Phase kx − ωt + arg φ as colour, brightness from |ψ|.">Phase</button>
+          </div>
+        </div>
+        <div class="toggle-row"><span>Wave (density, crests or phase)</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave"></button></div>
         <div class="toggle-row"><span>Measured arrows</span><button class="toggle" type="button" data-toggle="arrows" aria-pressed="true" aria-label="Show the measured velocity arrows"></button></div>
-        <div class="toggle-row"><span>Current velocity j/|ψ|²</span><button class="toggle" type="button" data-toggle="current" aria-pressed="true" aria-label="Show the current velocity curve"></button></div>
-        <div class="toggle-row"><span>Exact expectation for this pointer</span><button class="toggle" type="button" data-toggle="expected" aria-pressed="true" aria-label="Show the exact expected result for this pointer"></button></div>
+        <div class="toggle-row"><span>j/|ψ|²: prediction for an ideal weak pointer</span><button class="toggle" type="button" data-toggle="current" aria-pressed="true" aria-label="Show the current velocity curve"></button></div>
+        <div class="toggle-row"><span>Prediction for this pointer</span><button class="toggle" type="button" data-toggle="expected" aria-pressed="true" aria-label="Show the prediction for this pointer (infinitely many runs)"></button></div>
         <div class="toggle-row"><span>Lines through the arrows</span><button class="toggle" type="button" data-toggle="lines" aria-pressed="true" aria-label="Show the lines through the measured arrows"></button></div>
-        <div class="toggle-row"><span>Pilot-wave trajectories</span><button class="toggle" type="button" data-toggle="bohm" aria-pressed="false" aria-label="Overlay pilot-wave trajectories"></button></div>
+        <div class="toggle-row"><span>Flow lines of j/|ψ|² from ψ (= pilot-wave trajectories)</span><button class="toggle" type="button" data-toggle="bohm" aria-pressed="false" aria-label="Overlay the flow lines of j/|ψ|² computed from ψ, which are also the pilot-wave trajectories"></button></div>
         <div class="toggle-row"><span>Accumulated runs on the planes</span><button class="toggle" type="button" data-toggle="planeRuns" aria-pressed="true" aria-label="Show pointer readings and detections as points beside the two planes"></button></div>
         <div class="toggle-row"><span>Data plot</span><button class="toggle" type="button" data-panel-toggle="scatter" aria-pressed="true" aria-label="Show the floating data plot"></button></div>
         <div class="toggle-row"><span>Velocity plot</span><button class="toggle" type="button" data-panel-toggle="vel" aria-pressed="true" aria-label="Show the floating velocity plot"></button></div>
@@ -95,13 +95,14 @@
       <div class="results-head"><strong>Results</strong><button type="button" data-results-collapse aria-label="Collapse results">−</button></div>
       <div class="results-body">
         <span>Runs at these planes</span><output data-result="runs">—</output>
-        <span>Selected strip, detected at</span><output data-result="strip">—</output>
-        <span>Runs in the strip</span><output data-result="inStrip">—</output>
-        <span>Mean pointer reading</span><output data-result="meanY">—</output>
-        <span>Measured direction v<sub>y</sub>/v<sub>x</sub></span><output data-result="vMeas">—</output>
-        <span>Exact, this pointer</span><output data-result="vExp">—</output>
-        <span>Weak limit, j/|ψ|²</span><output data-result="vCur">—</output>
-        <span>Planes mapped</span><output data-result="planes">—</output>
+        <span data-stage-rows="map" title="Weak plane → strong plane, distances behind the slits.">Plane pair</span><output data-stage-rows="map" data-result="pair">—</output>
+        <span data-stage-rows="many map">Selected strip, detected at</span><output data-stage-rows="many map" data-result="strip">—</output>
+        <span data-stage-rows="many map">Runs in the strip</span><output data-stage-rows="many map" data-result="inStrip">—</output>
+        <span data-stage-rows="many map">Mean pointer reading</span><output data-stage-rows="many map" data-result="meanY">—</output>
+        <span data-stage-rows="many map" title="Slope of the arrow, v_y/v_x (dimensionless; v_x is the same everywhere). One standard deviation.">Measured slope v<sub>y</sub>/v<sub>x</sub></span><output data-stage-rows="many map" data-result="vMeas">—</output>
+        <span data-stage-rows="many map" title="What this pointer gives with infinitely many runs, including its disturbance of the wave.">Prediction for this pointer</span><output data-stage-rows="many map" data-result="vExp">—</output>
+        <span data-stage-rows="many map" title="j/|ψ|² at the strong plane, averaged over the strip: the limit of a very wide pointer. It coincides with the line above for a weak pointer.">Ideal weak pointer, j/|ψ|²</span><output data-stage-rows="many map" data-result="vCur">—</output>
+        <span data-stage-rows="map">Plane pairs mapped</span><output data-stage-rows="map" data-result="planes">—</output>
       </div>
     </section>
   </aside>
@@ -113,7 +114,7 @@
         <div class="map-toggles" hidden aria-label="Field map display">
           <button type="button" class="map-toggle" data-maptoggle="arrows" aria-pressed="true">Measured arrows</button>
           <button type="button" class="map-toggle" data-maptoggle="lines" aria-pressed="true">Lines through the arrows</button>
-          <button type="button" class="map-toggle" data-maptoggle="bohm" aria-pressed="false">Pilot-wave trajectories</button>
+          <button type="button" class="map-toggle" data-maptoggle="bohm" aria-pressed="false" title="Flow lines of j/|ψ|² computed from ψ, from the same starts. These are also the pilot-wave trajectories.">j/|ψ|² flow lines (= pilot-wave)</button>
         </div>
         <div class="fp-dock" aria-label="Closed plots">
           <button type="button" data-fp-open="scatter" hidden title="Show the data plot beside the drawing">Data plot</button>
@@ -123,11 +124,11 @@
       <div class="col-split" role="separator" aria-orientation="vertical" aria-label="Drag to change the width of the plots" tabindex="0" title="Drag to change the width of the plots (arrow keys also work)"></div>
       <div class="side-col">
         <div class="float-panel" data-fp="scatter" aria-label="Data plot">
-          <div class="fp-head"><span class="fp-title">Each run: pointer reading vs detected position</span><button type="button" data-fp-act="min" aria-label="Minimize the data plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the data plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
+          <div class="fp-head"><span class="fp-title">Runs: pointer Y vs y_f</span><button type="button" class="fp-mode" data-fp-act="shift" aria-pressed="false" title="Magnify the signal: mean pointer reading minus detected position, in each strip">Y − y<sub>f</sub></button><button type="button" data-fp-act="min" aria-label="Minimize the data plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the data plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
           <canvas class="fp-canvas" aria-label="Pointer reading against detected position for each run"></canvas>
         </div>
         <div class="float-panel" data-fp="vel" aria-label="Velocity plot">
-          <div class="fp-head"><span class="fp-title">Velocity from post-selected averages</span><button type="button" data-fp-act="min" aria-label="Minimize the velocity plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the velocity plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
+          <div class="fp-head"><span class="fp-title">Velocity: slope v_y/v_x</span><button type="button" data-fp-act="min" aria-label="Minimize the velocity plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the velocity plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
           <canvas class="fp-canvas" aria-label="Measured velocity against detected position"></canvas>
         </div>
       </div>
@@ -141,7 +142,13 @@
           <li>A short gap later, at the <b class="k-strong">strong plane</b>, a detector records where the particle is.</li>
           <li>Each run gives two numbers: the pointer reading and the detected position. Nothing else is recorded.</li>
         </ol>
+        <p class="setup-plain"><b>The idea.</b> Keep only the runs in which the particle was detected in one narrow strip: this is <i>post-selection</i>. Average their pointer readings. The pointer's own noise averages to zero, so this average estimates where those particles were, on average, at the weak plane. Detected position minus that average, divided by the time between the planes, is a velocity. An average of this kind, conditioned on a later result, is called a <i>weak value</i>.</p>
         <div class="story-buttons"><button type="button" class="qontic-app-toggle" id="setupGo">Start: one run at a time</button></div>
+      </div>
+      <div class="mobile-run" aria-label="Run controls">
+        <button type="button" id="mobileRun" aria-pressed="false">▶ Start</button>
+        <button type="button" id="mobileReset">↺ Reset</button>
+        <button type="button" id="mobileControls">Controls ↓</button>
       </div>
       <div id="liveStep" class="story-step hidden">
         <p class="story-live" id="liveLine"></p>
@@ -163,14 +170,16 @@
   <h2>The strong measurement and post-selection</h2>
   <p>After a gap Δx the particle's transverse position is measured precisely, giving y<sub>f</sub>. The joint probability of the two readings is computed exactly:</p>
   <p class="formula">P(Y, y<sub>f</sub>) = |χ<sub>Y</sub>(y<sub>f</sub>, τ + Δτ)|², &nbsp; χ<sub>Y</sub>(y, τ) = ψ(y, τ) φ(Y − y),</p>
-  <p>where χ<sub>Y</sub> evolves freely for Δτ = Δx/v<sub>x</sub>. Each run samples one pair (Y, y<sub>f</sub>) from this distribution. Post-selection keeps the runs whose y<sub>f</sub> falls in a narrow strip (20 nm) and averages their pointer readings. Following Wiseman,<sup><a href="#ref-1">1</a></sup> the velocity at y<sub>f</sub> is defined as</p>
+  <p>where χ<sub>Y</sub> evolves freely for Δτ = Δx/v<sub>x</sub>. Each run samples one pair (Y, y<sub>f</sub>) from this distribution. Post-selection keeps the runs whose y<sub>f</sub> falls in a narrow strip (<span data-strip-width>20 nm</span>, one fortieth of the screen) and averages their pointer readings. Following Wiseman,<sup><a href="#ref-1">1</a></sup> the velocity at y<sub>f</sub> is defined as</p>
   <p class="formula">v<sub>y</sub>(y<sub>f</sub>) = [ y<sub>f</sub> − E(Y | y<sub>f</sub>) ] / Δτ.</p>
   <p>The simulation shows it as the direction v<sub>y</sub>/v<sub>x</sub>, the slope of the arrow. Its statistical error is the spread of Y in the strip divided by √N and by Δτ. Since σ<sub>p</sub> is large and the displacement is a few nanometres, each arrow needs about a million runs.</p>
 
   <h2>What it converges to</h2>
   <p>As σ<sub>p</sub> grows, E(Y | y<sub>f</sub>) tends to the real part of the weak value of the earlier position,<sup><a href="#ref-2">2</a></sup> and v<sub>y</sub> tends to</p>
   <p class="formula">v<sub>y</sub> = Im(∂<sub>y</sub>ψ / ψ) ħ/m = j / |ψ|²,</p>
-  <p>the probability current divided by the density at the strong plane. Here the particle moves freely between the two planes, so y(τ) = y(τ + Δτ) − p Δτ/m holds as an operator identity, and the limit is exact for any gap, not only for Δx → 0. A finite gap only sets the size of the signal. The bias that remains comes from a finite σ<sub>p</sub>: the green curve in the velocity plot is the exact result for the chosen pointer, and the dashed curve is the weak limit. Below about 50 nm they separate visibly.</p>
+  <p>the probability current divided by the density at the strong plane. The weak value itself is complex; the pointer's mean position returns only its real part, and the imaginary part, which is not zero here, plays no role. The particle moves freely between the two planes, so y(τ) = y(τ + Δτ) − p Δτ/m holds as an operator identity, and in the limit of a very wide pointer the result is exact for any gap, not only for Δx → 0.</p>
+  <p>With a finite pointer the gap matters. A longer gap gives a larger signal, but also a larger bias, because the pointer's disturbance has longer to act. At σ<sub>p</sub> = 50 nm and a 100 nm gap the bias reaches about a tenth of the largest velocity; at 200 nm it stays near 1%. The green curve in the velocity plot is the prediction for the chosen pointer and gap, with infinitely many runs; the dashed curve is the weak limit j/|ψ|². Below about 50 nm they separate visibly.</p>
+  <p>The Results panel compares strip averages: both predictions are averaged over the same strip, weighted by the density. Next to a node of the pattern the strip average can differ from the value of j/|ψ|² at the strip centre by several percent, because the velocity changes quickly there. At a node itself |ψ|² vanishes and j/|ψ|² grows without bound; few runs land there, the error bars are large, and the plots show a spike. The finite σ<sub>p</sub> is not the only reason the curves differ near nodes.</p>
 
   <h2>Why the field does not depend on time</h2>
   <p>In this model the wave factorizes as Ψ = F(x − v<sub>x</sub>t) φ(y; x) e<sup>i(kx − ωt)</sup>: a Gaussian longitudinal envelope F (σ = 50 nm, as in the double-slit app) that only translates, times a transverse wave φ that depends on the plane x. F cancels in Im(∂<sub>y</sub>ψ/ψ), so the velocity at a point is the same whenever a packet passes it, and runs need not be timed from their release. The same holds for a steady, nearly monochromatic beam, such as the single-photon source of Kocsis et al. It fails for packets short enough that their spread of wavelengths matters: they stretch as they travel, the velocity at a point then depends on time, and post-selection would also have to condition on the arrival time. The simulation therefore draws a continuous beam; runs are events at random times. The Show control draws the density, travelling crests, or the phase as colour.</p>
@@ -178,16 +187,25 @@
   <h2>What the measurement does to the wave</h2>
   <p>The coupling entangles the particle with the pointer: after it, the state is ψ(y) φ(Y − y), not a product. For a given reading Y, the particle's wave is ψ(y) φ(Y − y), which is ψ cut down to a window of width σ<sub>p</sub> around Y; this conditional wave is what then reaches the strong plane, and it is what the joint probability P(Y, y<sub>f</sub>) is built from. In stage 1 the drawing shows, beyond the weak plane, the wave of the current run. With a 200 nm pointer the window is wider than the pattern and the wave looks almost unchanged; with 10 nm it is a narrow beam around the reading. Averaged over all readings, the density at the weak plane is unchanged, but downstream the interference between parts of the wave farther apart than about σ<sub>p</sub> is lost: the density matrix is multiplied by exp[−(y − y′)²/(8σ<sub>p</sub>²)]. Stage 2 draws that averaged density beyond the weak plane. It is a mixture, with no single wave, so no crests or phase are drawn there. A test checks it against the table of P(Y, y<sub>f</sub>).</p>
 
-  <h2>Stage 3: the field and the trajectories</h2>
-  <p>Stage 3 repeats the experiment at twelve pairs of planes from the slits to the screen, each with fresh runs. The arrows give a measured velocity field. Starting points are placed at equal-probability positions in the first strong plane, and each line follows the measured arrows, interpolated linearly between planes and between strips. If the arrows are right, the lines end at equal-probability positions on the screen; the ticks on the right show where they end, beside the |ψ|² curve. This is the reconstruction done by Kocsis et al. with single photons,<sup><a href="#ref-3">3</a></sup> who weakly measured the photon's transverse momentum rather than its position, and post-selected on a strong position measurement in a series of planes.</p>
+  <h2>Stage 3: the velocity field and its flow lines</h2>
+  <p>Stage 3 repeats the experiment at twelve pairs of planes from the slits to the screen, each with fresh runs. The arrows give a measured velocity field. Starting points are placed at equal-probability positions in the first strong plane, and each line follows the measured arrows, interpolated linearly between planes and between strips. No run is measured at more than one pair of planes; joining the arrows is a step taken in the analysis. If the arrows are right, the lines end at equal-probability positions on the screen. That holds for the flow lines of any velocity field that carries |ψ|² (the continuity equation), so it checks the arrows, not an interpretation. The ticks on the right show where the measured lines end (amber) and the equal-probability positions (grey); the caption gives their mean difference.</p>
+  <p>The optional dashed lines are the flow lines of j/|ψ|² computed directly from ψ, from the same starts. They are the same curves as the pilot-wave trajectories of the double-slit app. Agreement between the two sets checks the measurement and its statistics.</p>
+  <p>A related measurement was done by Kocsis et al. with single photons.<sup><a href="#ref-3">3</a></sup> It differs from this one in three ways. They weakly measured the photon's transverse momentum, through its polarization, rather than its position over a gap (the scheme here is Wiseman's<sup><a href="#ref-1">1</a></sup>). Photons are not massive Schrödinger particles; the paraxial wave equation for light has the same form, which is why the comparison works. And they used a steady source with finite resolution and error bars. They called the lines “average trajectories” of the photons, without claiming a test of pilot-wave theory. For light, Bliokh et al. read the same kind of weak momentum measurement as a measurement of the Poynting vector of classical optics.<sup><a href="#ref-8">8</a></sup></p>
 
   <h2>What the model assumes</h2>
   <ul>
     <li>Units with ħ = m = 1 inside the code; positions are shown in nm.</li>
     <li>The coupling is impulsive and the pointer does not evolve between coupling and reading. Only the particle's transverse coordinate is coupled.</li>
-    <li>The joint distribution is tabulated on a grid of 360 values of y<sub>f</sub> between −400 and 400 nm and enough values of Y to resolve σ<sub>p</sub>. Runs are drawn from that table. A test checks the sampled strip averages against the exact ones.</li>
+    <li>The joint distribution is tabulated on a grid of 360 values of y<sub>f</sub> across the screen (±<span data-screen-half>400</span> nm) and enough values of Y to resolve σ<sub>p</sub>. Runs are drawn from that table. A test checks the sampled strip averages against the exact ones.</li>
     <li>Particles that hit the wall are not counted; the experiment starts behind the slits.</li>
   </ul>
+
+  <h2>For instructors</h2>
+  <p><b>The main point.</b> Each run gives a pointer reading Y and a detected position y<sub>f</sub>. Averaging Y over the runs detected in one strip, and comparing with y<sub>f</sub>, gives a velocity. With a weak pointer and enough runs it is j/|ψ|², and the lines through the arrows are its flow lines. A sharp pointer gives different arrows, because it disturbs the wave.</p>
+  <p><b>The common mistake.</b> Reading Y as the particle's position with a large error bar. Y is the pointer's coordinate. Only the average of Y over a post-selected set means anything, and the signal is a few nanometres against a 200 nm spread (the Y − y<sub>f</sub> button on the data plot magnifies it).</p>
+  <p><b>A sequence (about 25 minutes).</b> Stage 1, five minutes: a few runs at 200 nm, then at 10 nm. Stage 2, ten minutes: ask students to predict the sign of v<sub>y</sub> at y = +150 nm before running; then compare with the plot. Stage 3, eight minutes plus about 40 s per map at 10 million runs per plane pair: map with 200 nm, then repeat with 10 nm.</p>
+  <p><b>Questions.</b> (1) Why does one reading tell almost nothing, and why is that useful? (2) Find the pointer spread at which the measured arrows depart from j/|ψ|². (3) How many runs per strip are needed for an error of 0.01 in the slope? (4) The line ends sit at equal-probability positions. Which of the three views predicts this? (All of them.)</p>
+  <p><b>Links.</b> The share button copies the state: <code>stage</code> (one, many, map), <code>sw</code> (pointer spread, nm), <code>x1</code> (weak plane), <code>gap</code>, <code>runs</code> (runs per pair of planes), <code>show</code> (density, crests, phase), the geometry (<code>wavelength</code>, <code>slitWidth</code>, <code>separation</code>, <code>wall</code>, <code>distance</code>, <code>screen</code>, <code>sourceWidth</code>, in nm) and <code>bohm=1</code> for the flow-line overlay. Values outside the allowed ranges are adjusted, and the app says so.</p>
 
   <h2>References</h2>
   <ol class="references">
@@ -196,6 +214,10 @@
     <li id="ref-3">S. Kocsis, B. Braverman, S. Ravets, M. J. Stevens, R. P. Mirin, L. K. Shalm and A. M. Steinberg, “Observing the average trajectories of single photons in a two-slit interferometer,” <em>Science</em> <strong>332</strong>, 1170–1173 (2011), doi:10.1126/science.1202218.</li>
     <li id="ref-4">D. Dürr, S. Goldstein and N. Zanghì, “On the weak measurement of velocity in Bohmian mechanics,” <em>Journal of Statistical Physics</em> <strong>134</strong>, 1023–1032 (2009), doi:10.1007/s10955-008-9674-0.</li>
     <li id="ref-5">C. Philippidis, C. Dewdney and B. J. Hiley, “Quantum interference and the quantum potential,” <em>Il Nuovo Cimento B</em> <strong>52</strong>, 15–28 (1979), doi:10.1007/BF02743566.</li>
+    <li id="ref-6">B.-G. Englert, M. O. Scully, G. Süssmann and H. Walther, “Surrealistic Bohm trajectories,” <em>Zeitschrift für Naturforschung A</em> <strong>47</strong>, 1175–1186 (1992), doi:10.1515/zna-1992-1201.</li>
+    <li id="ref-7">D. H. Mahler, L. Rozema, K. Fisher, L. Vermeyden, K. J. Resch, H. M. Wiseman and A. Steinberg, “Experimental nonlocal and surreal Bohmian trajectories,” <em>Science Advances</em> <strong>2</strong>, e1501466 (2016), doi:10.1126/sciadv.1501466.</li>
+    <li id="ref-8">K. Y. Bliokh, A. Y. Bekshaev, A. G. Kofman and F. Nori, “Photon trajectories, anomalous velocities and weak measurements: a classical interpretation,” <em>New Journal of Physics</em> <strong>15</strong>, 073022 (2013), doi:10.1088/1367-2630/15/7/073022.</li>
+    <li id="ref-9">L. Vaidman, “Past of a quantum particle,” <em>Physical Review A</em> <strong>87</strong>, 052104 (2013), doi:10.1103/PhysRevA.87.052104.</li>
   </ol>
 </section>
 
@@ -207,25 +229,28 @@
   <div class="views">
     <div>
       <h3>Orthodox</h3>
-      <p>The arrows are weak values: averages over runs selected by a later result. Quantum mechanics predicts them, and they can be measured, but they do not say how any particle moved. Kocsis et al. call the lines “average trajectories” of the photons.<sup><a href="#ref-3">3</a></sup></p>
+      <p>All the data are in the joint distribution P(Y, y<sub>f</sub>): the scatter plot. An arrow is a regression of Y on y<sub>f</sub>, and the weak value is a statistic of that distribution. Quantum mechanics predicts it and it can be measured, but it is not a property of any single particle; in other set-ups weak values can even lie outside the range of possible results.<sup><a href="#ref-2">2</a></sup> No run is ever measured at two planes, so a line follows no object: joining the arrows is the analyst's step, and the line summarizes an ensemble. For light the same field is the energy flow of classical optics.<sup><a href="#ref-8">8</a></sup> Kocsis et al. call the lines “average trajectories” of the photons.<sup><a href="#ref-3">3</a></sup></p>
     </div>
     <div>
       <h3>Pilot-wave</h3>
-      <p>Each particle has a position and moves with velocity j/|ψ|². In the weak limit the procedure returns exactly that velocity, and the lines are the particles' trajectories, the same as in the double-slit app.<sup><a href="#ref-1">1</a>,<a href="#ref-5">5</a></sup> Turn on <em>Pilot-wave trajectories</em> to compare.</p>
+      <p>Each particle has a position and moves with velocity j/|ψ|². For a weak pointer the procedure returns that velocity at the strong plane, and the lines coincide with the guidance trajectories of the double-slit app.<sup><a href="#ref-1">1</a>,<a href="#ref-5">5</a></sup> The pointer coupling also acts on the particle, so with a finite pointer and gap the agreement is only approximate, and with a sharp pointer it fails (try 10 nm). Within the theory the agreement is a consistency result, not a test of it. Turn on the flow-line overlay to compare.</p>
     </div>
     <div>
       <h3>Many-worlds</h3>
-      <p>There is no particle beyond the wave. j/|ψ|² is the velocity of the flow of |ψ|², and the lines are its flow lines. The post-selected averages are a property of the branches in which the detector reports y<sub>f</sub>.</p>
+      <p>There is no particle beyond the wave, and the lines are not paths of anything. |ψ|² is the weight of branches; the arrows summarize how that weight is redistributed from plane to plane, and their flow lines are a derived description. Each post-selected average is a conditional expectation relative to the branch in which the detector reports y<sub>f</sub>. Vaidman uses weak traces in a related way, to say where a pre- and post-selected particle has been, without joining them into trajectories.<sup><a href="#ref-9">9</a></sup></p>
     </div>
   </div>
 
   <h2>A limit of the procedure</h2>
   <p>The protocol returns j/|ψ|² whatever velocity law one assumes. Pilot-wave variants that add to the velocity a term which does not change |ψ|² predict the same data, so the experiment cannot single out the standard guidance law. Dürr, Goldstein and Zanghì argue that within standard pilot-wave theory it is still a genuine measurement of the particle's velocity, and that it would not measure the velocity of such a variant.<sup><a href="#ref-4">4</a></sup></p>
 
+  <h2>What the lines do not settle</h2>
+  <p>Agreement between the measured lines and the flow lines of j/|ψ|² is predicted by all three views, so it does not decide between them. Nor does it say that the lines are where particles go in every arrangement: with which-way markers, Bohmian trajectories can disagree with what the marker records, the “surrealistic trajectories” of Englert et al.<sup><a href="#ref-6">6</a></sup> Mahler et al. reconstructed such trajectories with weak measurements and traced the disagreement to the nonlocality of the guidance law.<sup><a href="#ref-7">7</a></sup></p>
+
   <h2>Why it belongs here</h2>
-  <p>The double-slit app draws pilot-wave trajectories from the theory. This app starts from data that could be taken in a laboratory and shows that they give the same lines. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
+  <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and about a million runs per arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.4.4"></script>
+<script type="module" src="js/app.js?v=0.5.0"></script>
 </body>
 </html>
