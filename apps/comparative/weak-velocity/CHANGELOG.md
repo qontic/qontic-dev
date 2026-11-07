@@ -1,5 +1,11 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.2.0 — 2026-11-06
+- Full window width: the app lifts the shared 4:3 width cap; the canvas fills the height of the window.
+- The data plot and the velocity plot are floating panels over the canvas: drag by the title bar, resize from the corner, minimize (–) or close (×). Closed plots reopen from buttons on the canvas or Display › Data plot / Velocity plot. Positions are remembered per browser; Display › Reset plot positions. Panels parked at the right edge reserve that strip, so the drawing is not covered; moved panels float over it.
+- Phone: the two plots stack below the canvas.
+- Screenshots and video include the open plots.
+
 ## 0.1.4 — 2026-11-06
 - All runs accumulate beside the planes (4 nm cells): pointer readings left of the weak plane, detections between the planes. Replaces the last-1 500 dots. Toggle: Display › Accumulated runs on the planes (on by default).
 

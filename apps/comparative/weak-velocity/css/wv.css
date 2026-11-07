@@ -8,7 +8,7 @@ body.wv-app {
 }
 body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
 :root.qontic-light { --qontic-panel-background: #ffffff; --qontic-panel-border: #b9cdd6; --qontic-text: #183747; --qontic-muted: #5f7684; }
-.wv-app .shell { max-width: 1540px; margin: auto; padding: 0 18px 20px; }
+.wv-app .shell { max-width: none; margin: 0; padding: 0 14px 18px; }
 .wv-app .hidden { display: none !important; }
 
 .wv-app .control-tab-body { margin-top: -1px; }
@@ -120,8 +120,39 @@ body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
 .qontic-light.wv-app .setup-list b.k-strong { color: #087788; }
 .wv-app .story-live b { color: #f0ca61; font-weight: 600; }
 .qontic-light.wv-app .story-live b { color: #9a6200; }
-.wv-app .canvas-host { height: clamp(380px, calc(100dvh - 300px), 720px); }
+.wv-app .canvas-host { height: max(460px, calc(100dvh - 190px)); }
 .wv-app #stage { cursor: default; }
-@media (max-width: 760px) { .wv-app .canvas-host { height: 640px; } }
+
 .wv-app .story a { color: #70e2ed; }
 .qontic-light.wv-app .story a { color: #0b6f7d; }
+
+/* Floating plot panels over the canvas: drag by the title bar, resize from the corner. */
+.wv-app .float-panel { position: absolute; z-index: 5; display: flex; flex-direction: column; min-width: 260px; min-height: 180px; resize: both; overflow: hidden;
+  background: rgba(9,24,36,0.94); border: 1px solid #31556c; border-radius: 8px; box-shadow: 0 6px 22px rgba(0,0,0,.45); }
+.wv-app .float-panel[hidden] { display: none; }
+.wv-app .float-panel.minimized { resize: none; min-height: 0; height: auto !important; }
+.wv-app .float-panel.minimized .fp-canvas { display: none; }
+.wv-app .fp-head { display: flex; align-items: center; gap: 4px; padding: 4px 6px 4px 10px; cursor: move; user-select: none; touch-action: none; background: #102839; border-bottom: 1px solid #244052; }
+.wv-app .fp-title { flex: 1; font-size: 12px; font-weight: 600; color: #d9edf7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wv-app .fp-head button { flex: none; width: 22px; height: 20px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #9edce5; font-size: 15px; line-height: 1; cursor: pointer; }
+.wv-app .fp-head button:hover, .wv-app .fp-head button:focus-visible { background: #1d4256; }
+.wv-app .fp-canvas { flex: 1; display: block; width: 100%; min-height: 0; cursor: pointer; }
+.wv-app .fp-dock { position: absolute; z-index: 6; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+.wv-app .fp-dock button { padding: 4px 9px; border: 1px solid #31556c; border-radius: 6px; background: rgba(9,24,36,0.9); color: #9edce5; font-size: 12px; cursor: pointer; }
+.wv-app .fp-dock button[hidden] { display: none; }
+.wv-app #resetPanels { width: 100%; margin: 4px 0; }
+.qontic-light.wv-app .float-panel { background: rgba(255,255,255,0.95); border-color: #aec2cb; box-shadow: 0 6px 18px rgba(24,55,71,.18); }
+.qontic-light.wv-app .fp-head { background: #dcebf1; border-color: #c9d9e0; }
+.qontic-light.wv-app .fp-title { color: #183747; }
+.qontic-light.wv-app .fp-head button, .qontic-light.wv-app .fp-dock button { color: #0b6f7d; }
+.qontic-light.wv-app .fp-dock button { background: rgba(255,255,255,0.92); border-color: #aec2cb; }
+@media (max-width: 760px) {
+  .wv-app .canvas-host { height: auto; }
+  .wv-app #stage { height: 440px; }
+  .wv-app .float-panel { position: static; resize: none; width: auto !important; height: 280px !important; margin-top: 8px; box-shadow: none; }
+  .wv-app .float-panel.minimized { height: auto !important; }
+  .wv-app .fp-head { cursor: default; }
+  .wv-app .fp-dock { position: static; justify-content: flex-end; margin-top: 6px; }
+}
+/* Use the full window width (the shared layout caps the canvas at a 4:3 width). */
+.wv-app .qontic-workspace { max-width: none; margin-left: 0; margin-right: 0; }
