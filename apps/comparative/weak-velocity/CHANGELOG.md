@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.5.3 — 2026-11-07
+- Stage 3: a plane pair's arrows appear only when all its runs are in, not while they are being collected.
+
 ## 0.5.2 — 2026-11-07
 - Overlay label: "j/|ψ|² flow lines (trajectories in pilot-wave)" instead of "(= pilot-wave)", on the drawing, in the key and in the Display tab.
 

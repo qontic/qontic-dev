@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.5.2';
-import * as M from './weak-model.js?v=0.5.2';
+import { APP_RELEASE } from './release.js?v=0.5.3';
+import * as M from './weak-model.js?v=0.5.3';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -798,7 +798,9 @@ function drawApparatus(P, box) {
   // measured arrows
   const arrowsFrom = [];
   if (map) map.planes.forEach((pl) => arrowsFrom.push({ x: pl.x2, est: pl.est }));
-  if (exp && (state.stage === 'many' || (map && !map.done))) {
+  // Stage 2 shows the arrows building up; stage 3 draws a plane pair's arrows
+  // only once all its runs are in (finished pairs are in map.planes).
+  if (exp && state.stage === 'many') {
     const est = M.binVelocities(exp.bins, exp.dtau, state.stage === 'many' ? 2000 : 200).map((b) => (b ? { y: b.y, s: b.v / p.k, err: b.err / p.k } : null));
     arrowsFrom.push({ x: exp.x2, est, live: true });
   }
