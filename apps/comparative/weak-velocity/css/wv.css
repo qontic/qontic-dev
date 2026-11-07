@@ -171,3 +171,4 @@ body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
 .wv-app .geo-num input { width: 58px; box-sizing: border-box; background: #07131e; color: #66dce8; border: 1px solid #31556c; border-radius: 4px; padding: 2px 4px; font: inherit; text-align: right; }
 .qontic-light.wv-app .geo-num input { background: #fff; color: #0b6f7d; border-color: #aec2cb; }
 .wv-app #geoReset { width: 100%; }
+.qontic-media-toolbar button[aria-label="Edit geometry"][aria-pressed="true"] { background: #286078; outline: 2px solid #7ee9fb; }

@@ -2,8 +2,8 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.3.1';
-import * as M from './weak-model.js?v=0.3.1';
+import { APP_RELEASE } from './release.js?v=0.3.2';
+import * as M from './weak-model.js?v=0.3.2';
 import { maximumCoreSafeSeparation } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -477,10 +477,10 @@ function text(s, x, y, { color, size = 12, align = 'left', base = 'alphabetic', 
 // Handles, as in the analytical double-slit app: drag the screen sideways
 // (slits-to-screen distance) or its ends (screen length); drag a slit up or
 // down (separation) or its edge (slit width); drag the weak or strong plane.
-let appMap = null, drag = null, hover = null;
+let appMap = null, drag = null, hover = null, editing = false;
 const GRIP = 9;
 function handles() {
-  if (!appMap) return [];
+  if (!appMap || !editing) return [];
   const { X, Yp } = appMap, out = [], xw = X(p.wall), xs = X(p.screen);
   p.centers.forEach((c, i) => {
     out.push({ kind: 'slitWidth', x: xw, y: Yp(c + SLIT_EXTENT * p.sy) * 1, i, edge: 1 });
@@ -906,6 +906,28 @@ mountQonticMedia({
   beginRecording: () => { const was = state.running; if (!was) start(); return was; },
   endRecording: (was) => { if (!was) stop(); },
 });
+// Edit geometry: a toolbar button, as in the analytical double-slit app. The
+// handles appear only while it is pressed; right-click on the drawing also
+// toggles it, and Escape leaves it.
+const editButton = (() => {
+  const toolbar = document.querySelector('.qontic-media-toolbar');
+  if (!toolbar) return null;
+  const b = document.createElement('button'); b.type = 'button'; b.className = toolbar.querySelector('button').className;
+  b.setAttribute('aria-label', 'Edit geometry'); b.setAttribute('aria-pressed', 'false');
+  b.title = 'Edit geometry · right-click the drawing. Drag the screen, the slits or the planes; Escape exits.';
+  b.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 5l4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg>';
+  toolbar.insertBefore(b, toolbar.querySelector('[role=status]'));
+  return b;
+})();
+function setEditing(on) {
+  editing = on;
+  editButton?.setAttribute('aria-pressed', String(on));
+  if (!on) { hover = null; canvas.style.cursor = ''; if (drag) endDrag(); }
+}
+editButton?.addEventListener('click', () => setEditing(!editing));
+canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); setEditing(!editing); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && editing) { e.preventDefault(); setEditing(false); } }, true);
+
 mountQonticShortcuts({
   togglePlayback: () => (state.running ? stop() : start()),
   reset: () => { stop(); pending = true; },

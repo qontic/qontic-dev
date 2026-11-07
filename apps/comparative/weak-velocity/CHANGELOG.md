@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.3.2 — 2026-11-07
+- Geometry handles appear only in edit mode, as in the analytical double-slit app: the pencil button in the toolbar (or right-click on the drawing) turns it on; Escape or the button again turns it off. The splitter between drawing and plots is unchanged.
+
 ## 0.3.1 — 2026-11-06
 - Drag the geometry on the drawing, as in the analytical double-slit app: the screen sideways (slits-to-screen distance) or its end squares (screen length); a slit's circle up or down (separation) or its edge square (slit width); the weak or strong plane sideways (stages 1 and 2). A label shows the value while dragging, and the drawing keeps its scale until release so the screen follows the pointer. The same limits apply (a wider slit can lower the largest allowed separation), and the experiment starts again on release.
 
