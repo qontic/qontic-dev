@@ -1,9 +1,10 @@
 import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
+import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.3.2';
-import * as M from './weak-model.js?v=0.3.2';
+import { APP_RELEASE } from './release.js?v=0.3.3';
+import * as M from './weak-model.js?v=0.3.3';
 import { maximumCoreSafeSeparation } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -592,9 +593,6 @@ function drawApparatus(P, box) {
   text('slits', X(p.wall), box.y + box.h - 4, { color: P.muted, size: 11, align: 'center' });
   text('screen', X(p.screen), box.y + box.h - 4, { color: P.muted, size: 11, align: 'center' });
   // scale bar 100 nm
-  const sbu = niceStep(D / 10), sb = X(p.wall + sbu) - X(p.wall), sbx = X(p.wall) + sb / 2 + 10;
-  ctx.strokeStyle = P.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sbx - sb / 2, box.y + 12); ctx.lineTo(sbx + sb / 2, box.y + 12); ctx.stroke();
-  text(`${nm(sbu).toFixed(0)} nm`, sbx, box.y + 24, { color: P.muted, size: 10, align: 'center' });
 
   // measured arrows
   const arrowsFrom = [];
@@ -866,6 +864,7 @@ function render() {
     (k === 'scatter' ? drawScatter : drawVelocity)(P, plotBox(s.W, s.H));
   }
   ctx = mainCtx;
+  syncOverlays();
   updateResults();
 }
 
@@ -897,10 +896,48 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-mountQonticMedia({
+// Distance scale (hidden by default), coordinate grid and distance measurement,
+// from the shared template, as in the analytical double-slit app. Lengths in nm;
+// x is measured from the slits, y upward from the axis.
+const drawHost = $('.canvas-main');
+const fmtLen = (v) => Math.abs(v) >= 1e3 ? `${Number((v / 1e3).toPrecision(4))} µm` : `${Number(v.toPrecision(4))} nm`;
+// Lengths per CSS pixel and the world bounds of the whole drawing canvas.
+function drawBounds() {
+  if (!appMap) return null;
+  const m = appMap, W = drawHost.clientWidth, H = drawHost.clientHeight;
+  const ux = (m.x1 - m.x0) / m.box.w, uy = 2 * m.Yh / (m.box.h - 44);
+  const xAt = (px) => nm(m.x0 + (px - m.box.x) * ux - p.wall), yAt = (py) => nm(m.Yh - (py - m.box.y - 26) * uy);
+  return { xMin: xAt(0), xMax: xAt(W), yMin: yAt(H), yMax: yAt(0), ux: nm(ux), uy: nm(uy) };
+}
+const distanceScale = mountDistanceScale({
+  host: drawHost, storageKey: 'qontic-weak-velocity-scale-position', format: fmtLen,
+  getUnitsPerPixel: () => { const b = drawBounds(); return b ? { x: b.ux, y: b.uy } : { x: 0, y: 0 }; },
+});
+let scaleShown = false;
+try { scaleShown = localStorage.getItem('qontic-weak-velocity-scale-visible') === 'true'; } catch (e) { /* ignore */ }
+distanceScale.setVisible(scaleShown);
+const coordinateTools = mountCoordinateTools({
+  host: drawHost, storageKey: 'qontic-weak-velocity-grid-visible', formatValue: fmtLen, yUp: true,
+  getBounds: () => drawBounds(),
+});
+let overlayKey = '';
+function syncOverlays() {
+  const b = drawBounds();
+  if (!b) return;
+  const key = [b.xMin, b.xMax, b.yMin, b.yMax].map((v) => v.toFixed(3)).join();
+  if (key === overlayKey) return;
+  overlayKey = key; distanceScale.update(); coordinateTools.update();
+}
+const scaleCanvas = () => (distanceScale.getVisible() ? [distanceScale.canvas] : []);
+const media = mountQonticMedia({
   stage: $('.visualization'),
   controls: controlsEl,
-  getCanvases: () => [canvas, ...Object.values(panels).filter((pn) => pn.open && !pn.min).map((pn) => pn.cv)],
+  scaleControl: {
+    getVisible: () => distanceScale.getVisible(),
+    setVisible: (v) => { distanceScale.setVisible(v); try { localStorage.setItem('qontic-weak-velocity-scale-visible', String(v)); } catch (e) { /* ignore */ } },
+  },
+  coordinateControl: coordinateTools,
+  getCanvases: () => [canvas, ...(coordinateTools.canvas.hidden ? [] : [coordinateTools.canvas]), ...scaleCanvas(), ...Object.values(panels).filter((pn) => pn.open && !pn.min).map((pn) => pn.cv)],
   filename: 'weak-velocity',
   getShareUrl: shareUrl,
   beginRecording: () => { const was = state.running; if (!was) start(); return was; },

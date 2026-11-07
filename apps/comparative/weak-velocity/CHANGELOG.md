@@ -1,5 +1,9 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.3.3 — 2026-11-07
+- Toolbar buttons from the analytical double-slit app: distance scale (hidden by default; drag to move), coordinate grid, and coordinates and distance measurement (click two points; Escape clears). Lengths in nm, x from the slits, y upward. The fixed 100 nm bar is gone.
+- Shared template: mountCoordinateTools takes an optional yUp (default false, so other apps are unchanged).
+
 ## 0.3.2 — 2026-11-07
 - Geometry handles appear only in edit mode, as in the analytical double-slit app: the pencil button in the toolbar (or right-click on the drawing) turns it on; Escape or the button again turns it off. The splitter between drawing and plots is unchanged.
 
