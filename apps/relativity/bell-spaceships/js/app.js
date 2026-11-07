@@ -2,7 +2,7 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.4.1';
+import { APP_RELEASE } from './release.js?v=0.4.2';
 import { makeModel, finalStrain, shipState, rearFrameView, strainAt, rearTimeFor, findBreak, criticalBeta, runEnd, gammaOf } from './kinematics.js?v=0.3.0';
 
 mountQonticShell({

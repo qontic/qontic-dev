@@ -1,5 +1,9 @@
 # Bell's Spaceships — changelog
 
+## 0.4.2 (2026-11-07)
+- Published to production (qonticlab.rice.edu), Relativity: Two Accounts section.
+- Links to the Bell's atom notebook removed until the notebook is reviewed and published.
+
 ## 0.4.1 (2026-11-06)
 After the relativity-section review (project doc 2026-11-06-relativity-section-student-review).
 - Fix: with the front engine held back (0 < k < 1) the verdict no longer says "the gap did not shrink"; it gives the gap and the relaxed length at the snap.
