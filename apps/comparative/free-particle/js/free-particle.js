@@ -155,14 +155,21 @@ const FP_COLLAPSE_SPEED = 4;
 const FP_COLLAPSE_DURATION_MS = 950 / FP_COLLAPSE_SPEED;
 const FP_COLLAPSE_HOLD_MS = 450 / FP_COLLAPSE_SPEED;
 
-// Density uses the full relative-density range, without the phase view's
-// high exposure. Deep magenta is reserved for values nearest the peak.
-// Adjust the wave and both profiles here: [relative density, [red, green, blue]],
-// all values 0..1. Keep densities increasing; move a stop to change where its
-// color appears. Tones sampled from the supplied DoubleSlit reference: dark
-// teal, green, a subdued transition into red, then deep magenta. Keep the
-// transition dark to avoid introducing a bright yellow band.
+// |ψ|²: a single-hue ramp from black through deep blue and cyan to near-white.
+// Lightness rises monotonically, so brighter always means denser; it stays
+// readable for red-green colour-blind viewers and matches the site's cyan
+// accent. [relative density, [red, green, blue]], all values 0..1.
 const FP_DENSITY_STOPS = [
+  [0.00, [0.000, 0.000, 0.000]],
+  [0.12, [0.031, 0.055, 0.157]],
+  [0.35, [0.078, 0.200, 0.455]],
+  [0.60, [0.110, 0.455, 0.698]],
+  [0.80, [0.290, 0.737, 0.839]],
+  [0.93, [0.651, 0.910, 0.945]],
+  [1.00, [0.910, 0.984, 1.000]],
+];
+// The previous house palette (teal, green, red, magenta), kept as an option.
+const FP_CLASSIC_STOPS = [
   [0.00, [0.000, 0.000, 0.000]],
   [0.08, [0.040, 0.065, 0.100]],
   [0.32, [0.080, 0.235, 0.240]],
@@ -192,22 +199,43 @@ const FP_WAVE_PALETTE_RGB = Object.fromEntries(Object.entries(FP_WAVE_PALETTES).
     return [value >> 16, (value >> 8) & 255, value & 255].map(channel => channel / 255);
   })
 ]));
-const FP_DENSITY_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
-  const density = i / FP_PALETTE_STEPS;
-  const hi = FP_DENSITY_STOPS.findIndex((stop, index) => index > 0 && density <= stop[0]);
-  const [loValue, loColor] = FP_DENSITY_STOPS[hi - 1];
-  const [hiValue, hiColor] = FP_DENSITY_STOPS[hi];
-  const blend = (density - loValue) / (hiValue - loValue);
-  return loColor.map((channel, c) => channel + (hiColor[c] - channel) * blend);
-});
+function fpStopsPalette(stops) {
+  return Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
+    const density = i / FP_PALETTE_STEPS;
+    const hi = Math.max(1, stops.findIndex((stop, index) => index > 0 && density <= stop[0]));
+    const [loValue, loColor] = stops[hi - 1];
+    const [hiValue, hiColor] = stops[hi];
+    const blend = (density - loValue) / (hiValue - loValue);
+    return loColor.map((channel, c) => channel + (hiColor[c] - channel) * blend);
+  });
+}
+const FP_DENSITY_PALETTE = fpStopsPalette(FP_DENSITY_STOPS);
+const FP_CLASSIC_PALETTE = fpStopsPalette(FP_CLASSIC_STOPS);
+
+// Phase: a colour wheel of constant perceived lightness (OKLCH, L = 0.72,
+// C = 0.15), so every phase looks equally bright and brightness can carry the
+// amplitude. Phase 0 is cyan; going round the wheel passes blue, magenta,
+// orange and yellow-green.
+function fpOklchToRgb(L, C, h) {
+  const a = C * Math.cos(h), b = C * Math.sin(h);
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const l = l_ ** 3, m = m_ ** 3, s = s_ ** 3;
+  const lin = [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+  ];
+  return lin.map(v => {
+    const x = Math.max(0, Math.min(1, v));
+    return x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055;
+  });
+}
+const FP_PHASE_HUE0 = 3.4; // radians in OKLCH: phase 0 sits at cyan
 const FP_PHASE_PALETTE = Array.from({ length: FP_PALETTE_STEPS + 1 }, (_, i) => {
   const phase = (i / FP_PALETTE_STEPS * 2 - 1) * Math.PI;
-  const magnitude = Math.abs(phase);
-  const blend = Math.max(0, (magnitude - Math.PI / 2) / (Math.PI / 2));
-  const u = Math.min(1, magnitude / 1.05);
-  const visibility = u * u * u * (u * (u * 6 - 15) + 10);
-  const branch = phase >= 0 ? [0.08, 0.25, 1] : [1, 0.08, 0.02];
-  return branch.map((v, c) => (v + ([0.72, 0.04, 0.88][c] - v) * blend) * visibility);
+  return fpOklchToRgb(0.72, 0.15, FP_PHASE_HUE0 + phase);
 });
 
 function fpWaveIntensity(rho) {
@@ -217,6 +245,7 @@ function fpWaveIntensity(rho) {
 function fpDensityRGB(relativeDensity) {
   const t = Math.max(0, Math.min(1, relativeDensity));
   if (fp.wavePalette === 'Q-Ontic') return FP_DENSITY_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
+  if (fp.wavePalette === 'Classic') return FP_CLASSIC_PALETTE[Math.round(t * FP_PALETTE_STEPS)];
   const palette = FP_WAVE_PALETTE_RGB[fp.wavePalette] || FP_WAVE_PALETTE_RGB.Inferno;
   const scaled = t * (palette.length - 1);
   const index = Math.floor(scaled);
@@ -230,7 +259,7 @@ function fpDensityColor(relativeDensity) {
   return `rgba(${rgb.map(v => Math.round(255 * v)).join(',')},${fp.waveOpacity})`;
 }
 
-window.fpWavePaletteNames = ['Q-Ontic', ...Object.keys(FP_WAVE_PALETTES)];
+window.fpWavePaletteNames = ['Q-Ontic', 'Classic', ...Object.keys(FP_WAVE_PALETTES)];
 window.fpSetWavePalette = name => {
   if (!window.fpWavePaletteNames.includes(name)) return;
   fp.wavePalette = name;
@@ -905,25 +934,24 @@ function fpRenderWave() {
         const fade = Math.max(0, Math.min(1, (Math.sqrt(rho) - FP_WAVE_AMPLITUDE_CUTOFF) / FP_WAVE_AMPLITUDE_CUTOFF));
         const visibility = fade * fade * (3 - 2 * fade);
         if (mode === 'phase') {
+          // Hue = phase, brightness = amplitude.
           const I = fpWaveIntensity(rho);
-          const colorIndex = Math.round(I * FP_PALETTE_STEPS);
           const phaseIndex = Math.max(0, Math.min(FP_PALETTE_STEPS,
             Math.round((v / Math.PI + 1) * 0.5 * FP_PALETTE_STEPS)));
           const phase = FP_PHASE_PALETTE[phaseIndex];
-          const density = fpDensityRGB(colorIndex / FP_PALETTE_STEPS);
-          r = ((1 - FP_PHASE_AMOUNT) * density[0] + FP_PHASE_AMOUNT * phase[0] * I) * 255 * visibility;
-          g = ((1 - FP_PHASE_AMOUNT) * density[1] + FP_PHASE_AMOUNT * phase[1] * I) * 255 * visibility;
-          b = ((1 - FP_PHASE_AMOUNT) * density[2] + FP_PHASE_AMOUNT * phase[2] * I) * 255 * visibility;
+          r = phase[0] * I * 255 * visibility;
+          g = phase[1] * I * 255 * visibility;
+          b = phase[2] * I * 255 * visibility;
         } else {
           const rgb = fpDensityRGB(rho / maxP2D);
           r = rgb[0] * 255 * visibility; g = rgb[1] * 255 * visibility; b = rgb[2] * 255 * visibility;
         }
       } else if (mode === 'real' || mode === 'imag') {
-        const t = (v - vmin) / Math.max(1e-12, vmax - vmin);
-        const dv = t - 0.5;
-        r = Math.round(Math.max(0, dv * 2) * 220 + 20);
-        b = Math.round(Math.max(0, -dv * 2) * 220 + 20);
-        g = Math.round(35 * (1 - 4 * dv * dv));
+        // Negative values blue, positive orange; brightness follows |value|.
+        const u = Math.max(-1, Math.min(1, v / Math.max(1e-12, vmax)));
+        const m = Math.sqrt(Math.abs(u));
+        const c = u >= 0 ? [1.00, 0.62, 0.20] : [0.25, 0.60, 1.00];
+        r = Math.round(c[0] * m * 255); g = Math.round(c[1] * m * 255); b = Math.round(c[2] * m * 255);
       }
       // In light mode, let empty space reveal the light canvas. Keep the
       // existing RGB palette; alpha follows the packet, including signed views.
