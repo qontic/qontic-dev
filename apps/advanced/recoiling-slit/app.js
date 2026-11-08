@@ -1,8 +1,8 @@
 import '../../../shared/qontic-controls.js?v=3.2';
 import {mountQonticShell} from '../../../shared/qontic-shell.js?v=3.7';
 import {mountQonticMedia} from '../../../shared/qontic-media.js?v=3.8';
-import {visibility,portProbability,recoilDensities,sampleEvent} from './physics.mjs?v=0.1.0';
-import {APP_RELEASE} from './release.js?v=0.1.0';
+import {visibility,portProbability,recoilDensities,sampleEvent} from './physics.mjs?v=0.1.1';
+import {APP_RELEASE} from './release.js?v=0.1.1';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 mountQonticShell({title:'Einstein’s Recoiling Slit',eyebrow:'Q-Ontic · Advanced',navigation:'breadcrumbs',badge:'Research example · Prototype',purpose:'How a recoil record changes interference',version:`Recoiling slit · Version ${APP_RELEASE.version} · ${APP_RELEASE.date}`,homeHref:'../../../index.html'});
 const controls=$('qontic-controls'),canvas=$('#stage'),ctx=canvas.getContext('2d');
