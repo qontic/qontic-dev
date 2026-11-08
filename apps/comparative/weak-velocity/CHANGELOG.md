@@ -1,5 +1,13 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.5.7 — 2026-11-07
+- Conditional pointer grids follow the Gaussian envelopes at each detected position, including valid readings outside the detector window. Output resolution and strip count adapt to pointer spread and screen size.
+- Field maps use fine detected-position histograms for starts and compare against exact flow lines from those same coordinates. Captions count completed lines; open endpoints mark missing data.
+- Changing the gap clamps and synchronizes the measurement planes. Noisy plot estimates remain visible with overflow indicators.
+- Prediction switches also hide numerical predictions in Results, and shared links retain hidden-prediction settings. Instructor answers are collapsed by default, with a short student-tryout guide.
+- Add a keyboard-accessible strip selector; correct slider value announcements, collapse/restore names and reference navigation. Canvas exports retain stage/pointer/gap context.
+- Clarify pointer preparation spread, slope units, sampling, physical scope of sharp pointers, and the ideal weak limit. Correct the central-strip sample-count estimate.
+
 ## 0.5.6 — 2026-11-07
 - Velocity and shift error bars use the sample variance of paired differences y_f − Y, including their covariance, accumulated with Welford's algorithm.
 - Field-map captions distinguish sampling noise, finite-pointer bias, strip averaging and interpolation; remove the fixed 4 nm error floor.

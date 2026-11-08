@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.5.6';
-import * as M from './weak-model.js?v=0.5.6';
+import { APP_RELEASE } from './release.js?v=0.5.7';
+import * as M from './weak-model.js?v=0.5.7';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -28,11 +28,13 @@ function applyGeometry() {
   p = M.modelParams(geo);
   T0 = M.wallTerms(p);
   Y_HALF = geo.screen / 200;
+  N_BINS = M.measurementLayout(geo.screen, state.sw).nBins;
+  state.arrowEvery = Math.ceil(N_BINS / 40) * (6 - +document.getElementById('arrowDensity').value);
   waveTheme = null;
 }
 const RUNS = [1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6, 5e6, 1e7];   // runs per pair of planes (slider)
 const fmtRuns = (n) => (n >= 1e6 ? `${n / 1e6}M` : `${n / 1e3}k`);
-const N_BINS = 40;           // strips across the screen (20 nm for an 800 nm screen)
+let N_BINS = 40;             // geometry-adapted strips, at most 20 nm wide
 const N_PLANES = 12;
 const SCATTER_N = 4000;
 const PLANE_POINTS = 6000; // runs kept as points beside the planes
@@ -72,7 +74,7 @@ function makeExperiment(x1nm) {
   const x1 = p.wall + x1nm / 100, dtau = state.gap / 100 / p.k;
   const terms1 = M.propagate(T0, (x1 - p.wall) / p.k);
   const terms2 = M.propagate(terms1, dtau);
-  const table = M.jointTable({ terms1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf: 360 });
+  const table = M.jointTable({ terms1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf: M.measurementLayout(geo.screen, state.sw).nYf });
   const bins = M.makeBins(-Y_HALF, Y_HALF, N_BINS);
   const expected = M.expectedBinVelocities(table, bins);
   // Fine curves (slopes v_y / v_x) for the velocity plot.
@@ -101,7 +103,7 @@ function makeExperiment(x1nm) {
   }
   return {
     x1, x2: x1 + state.gap / 100, dtau, terms1, terms2, table, bins, expected, expCurve, curCurve, rho, rMax,
-    vmax: vmax * 1.25, binCur, runs: 0,
+    vmax: vmax * 1.25, binCur, runs: 0, detectedCounts: new Float64Array(table.nYf),
     scatter: new Float32Array(SCATTER_N * 2), scatterN: 0, scatterHead: 0,
     ptsY: new Float32Array(PLANE_POINTS), ptsYf: new Float32Array(PLANE_POINTS), ptsU: new Float32Array(PLANE_POINTS), ptsN: 0,
   };
@@ -112,6 +114,8 @@ const pointStride = () => (state.stage === 'one' ? 1 : Math.max(1, Math.floor(st
 function addRun(e, run) {
   hadRun = true;
   M.addToBins(e.bins, run);
+  const cell = Math.min(e.table.nYf - 1, Math.max(0, Math.floor((run.yf + Y_HALF) / e.table.dYf)));
+  e.detectedCounts[cell]++;
   // Points beside the planes: one run in every `stride`, so they fill in over the
   // whole collection and finish with it (6 000 points at the end).
   const stride = pointStride();
@@ -142,7 +146,8 @@ const binOf = (y) => Math.max(0, Math.min(N_BINS - 1, Math.floor((y + Y_HALF) / 
 // ---------------------------------------------------------------- stage 3: finish a plane, build lines
 function finishPlane() {
   const est = M.binVelocities(exp.bins, exp.dtau, 200).map((b) => (b ? { y: b.y, s: b.v / p.k, err: b.err / p.k, n: b.n } : null));
-  map.planes.push({ x2: exp.x2, est, counts: Array.from(exp.bins.count) });
+  if (map.index === 0) map.startCounts = exp.detectedCounts;
+  map.planes.push({ x2: exp.x2, est });
   map.index++;
   if (map.index < N_PLANES) { exp = makeExperiment(planeX1(map.index)); return; }
   map.done = true;
@@ -151,52 +156,15 @@ function finishPlane() {
   showNext();
 }
 
-function fieldFor(plane) {
-  const pts = plane.est.map((e, i) => (e ? { i, y: e.y, s: e.s } : null));
-  return (y) => {
-    let a = null, b = null;
-    for (const q of pts) { if (!q) continue; if (q.y <= y) a = q; else { b = q; break; } }
-    if (!a || !b || b.i !== a.i + 1) {
-      // allow a gap of one missing strip
-      if (!a || !b || b.i - a.i > 2) return null;
-    }
-    return a.s + (b.s - a.s) * (y - a.y) / (b.y - a.y);
-  };
-}
-
 function buildLines() {
-  const planes = map.planes.map((pl) => ({ x: pl.x2, vAt: fieldFor(pl) }));
-  // Starting points at equal-probability positions in the first strong plane.
-  const counts = map.planes[0].counts, total = counts.reduce((a, b) => a + b, 0), w = 2 * Y_HALF / N_BINS;
-  const starts = [], keptQ = [];
-  const nLines = state.nLines; // even, so no start falls on the median between the two slit packets
-  for (let q = 0; q < nLines; q++) {
-    let target = (q + 0.5) / nLines * total, acc = 0;
-    for (let i = 0; i < N_BINS; i++) {
-      if (acc + counts[i] >= target) { starts.push(-Y_HALF + (i + (target - acc) / Math.max(1, counts[i])) * w); keptQ.push(q); break; }
-      acc += counts[i];
-    }
-  }
-  const x0 = planes[0].x, xEnd = planes.at(-1).x;
-  // Keep only starts where the first plane has a measured velocity.
-  for (let i = starts.length - 1; i >= 0; i--) if (planes[0].vAt(starts[i]) === null) { starts.splice(i, 1); keptQ.splice(i, 1); }
-  map.lines = starts.map((y0) => M.integrateField(planes, 1, y0, x0, xEnd, 300));
-  map.bohm = starts.map((y0) => M.bohmTrajectory(T0, p.k, p.wall, y0, xEnd, 300, x0));
-  // Equal-probability positions of |psi|^2 on the screen, for the check. The
-  // starts are quantiles of (nearly) all the probability at the first strong
-  // plane, so the screen quantiles are taken over the whole wave, not only the
-  // part on the screen (integrated far enough that the tails do not matter).
-  const tS = M.propagate(T0, (p.screen - p.wall) / p.k), ys = [], cum = [];
-  const R = Math.max(4 * Y_HALF, Y_HALF + 10), NQ = 4000;
-  let s = 0;
-  for (let i = 0; i <= NQ; i++) { const y = -R + i * 2 * R / NQ; s += M.density(tS, y); ys.push(y); cum.push(s); }
-  const all = Array.from({ length: nLines }, (_, q) => { const t = (q + 0.5) / nLines * s; const i = cum.findIndex((c) => c >= t); return ys[Math.max(0, i)]; });
-  // Keep the quantiles that belong to the lines that were kept.
-  map.screenQuantiles = all.filter((_, q) => keptQ.includes(q));
-  // Mean offset (rms, nm) of the line ends from the equal-probability positions.
-  let se = 0, ne = 0;
-  map.lines.forEach((ln, i) => { const [xe, ye] = ln.at(-1); if (Math.abs(xe - xEnd) < 0.05 && map.screenQuantiles[i] != null && Math.abs(xEnd - p.screen) < 0.6) { se += nm(ye - map.screenQuantiles[i]) ** 2; ne++; } });
-  map.endOffset = ne ? Math.sqrt(se / ne) : null;
+  const result = M.reconstructFieldMap({
+    planes: map.planes, counts: map.startCounts, yMin: -Y_HALF, yMax: Y_HALF, nLines: state.nLines,
+    reference: (y0, x0, xEnd) => M.bohmTrajectory(T0, p.k, p.wall, y0, xEnd, 600, x0),
+  });
+  map.lines = result.lines; map.bohm = result.referenceLines;
+  map.referenceEnds = result.referenceEnds;
+  map.completedLines = result.completed; map.intendedLines = result.intended;
+  map.endOffset = result.rms === null ? null : nm(result.rms);
 }
 
 // ---------------------------------------------------------------- text
@@ -207,11 +175,12 @@ function updateText() {
   $('#swOut').value = `${state.sw} nm`;
   $('#x1Out').value = `${state.x1} nm`;
   $('#gapOut').value = `${state.gap} nm`;
-  $('#swHint').textContent = state.sw >= 100
-    ? 'Weak: one reading tells almost nothing about where the particle is, and the wave is barely disturbed.'
-    : state.sw >= 40
-      ? 'Intermediate: readings are sharper and the wave is slightly disturbed.'
-      : 'Strong: each reading is precise, but the coupling disturbs the wave. Compare the green and dashed curves.';
+  const angle = geo.wavelength / (4 * Math.PI * state.sw);
+  $('#swHint').textContent = 'A wider pointer gives noisier readings and less disturbance. Compare the two predictions.'
+    + (angle > 0.2 ? ' This sharp-pointer setting is a qualitative illustration beyond the reliable paraxial range.' : '');
+  $('#perPlane').setAttribute('aria-valuetext', `${state.perPlane.toLocaleString('en-US')} runs per pair of planes`);
+  $('#arrowDensityOut').value = Math.ceil(N_BINS / state.arrowEvery);
+  $('#arrowDensity').setAttribute('aria-valuetext', `${Math.ceil(N_BINS / state.arrowEvery)} arrows per plane`);
   // Numbers in the Physics tab that follow the geometry.
   document.querySelectorAll('[data-strip-width]').forEach((el) => { el.textContent = `${Number((geo.screen / N_BINS).toPrecision(3))} nm`; });
   document.querySelectorAll('[data-screen-half]').forEach((el) => { el.textContent = `${geo.screen / 2}`; });
@@ -224,7 +193,7 @@ function updateText() {
 }
 
 const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
-const SELECT_HINT = 'To post-select a strip, point at (or tap) the strong plane on the drawing, or click either plot.';
+const SELECT_HINT = 'Choose a detected-position strip with the Selected strip control, the strong plane, or either plot.';
 const RATIONALE_LINK = '<button type="button" class="link-button" data-goto="rationale">Same lines, three readings: see Rationale</button>';
 function liveText() {
   if (!exp) return '';
@@ -237,14 +206,7 @@ function liveBody() {
   const N = exp.runs.toLocaleString('en-US');
   if (state.stage === 'one') {
     if (exp.runs === 0) return 'Press <b>Start</b>. Watch the pointer move, then the screen click. One run gives two numbers.';
-    const spread = state.sw >= 300
-      ? 'The spread is wider than the whole pattern, so one reading says almost nothing on its own, and the wave is barely disturbed.'
-      : state.sw >= 100
-        ? 'The spread is comparable to the whole pattern, so one reading says little on its own, and the wave is barely disturbed.'
-      : state.sw >= 40
-        ? 'The spread is a fair part of the pattern: the reading is sharper, and the wave is slightly disturbed.'
-        : 'The spread is small, so the coupling is nearly a position measurement; in exchange it disturbs the wave (see beyond the weak plane).';
-    return `${plural(exp.runs, 'run', 'runs')}. The amber marker on the weak plane's scale is the pointer reading, with its spread of ±${state.sw} nm. It is a reading of the pointer, not a sighting of the particle. ${spread}`;
+    return `${plural(exp.runs, 'run', 'runs')}. The amber marker is the recorded pointer coordinate Y. The pointer's initial preparation spread is σ = ${state.sw} nm. A wider pointer gives less information in one run and disturbs the wave less. One run does not establish a particle's path.`;
   }
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
@@ -254,16 +216,15 @@ function liveBody() {
     // Neutral wording: two averages over the same post-selected runs, not a path.
     const shift = nm(b.v * exp.dtau), err = nm(b.err * exp.dtau), mY = nm(b.y - b.v * exp.dtau);
     const done = exp.runs >= state.perPlane ? ' Error bars are one standard deviation: about one strip in three should miss the prediction by more than its bar.' : '';
-    return `${head} Beside the planes: pointer readings (amber) and detections (cyan), one point per run. ${SELECT_HINT} For the runs detected in the strip ${strip} (mean ${nm(b.y).toFixed(1)} nm), the mean pointer reading is <b>${mY.toFixed(1)} nm</b>. Detection minus pointer mean, ${shift >= 0 ? '+' : '−'}${Math.abs(shift).toFixed(1)} ± ${err.toFixed(1)} nm, divided by the ${state.gap} nm gap is the velocity estimate. It is a difference of two averages over the same selected runs, not the path of any particle.${done}`;
+    return `${head} Beside the planes: a sample of the pointer readings (amber) and detections (cyan). ${SELECT_HINT} For the runs detected in the strip ${strip} (mean ${nm(b.y).toFixed(1)} nm), the mean pointer reading is <b>${mY.toFixed(1)} nm</b>. Detection minus pointer mean, ${shift >= 0 ? '+' : '−'}${Math.abs(shift).toFixed(1)} ± ${err.toFixed(1)} nm, divided by the ${state.gap} nm gap gives the slope v<sub>y</sub>/v<sub>x</sub>. It is a difference of two averages over the same selected runs, not the path of any particle.${done}`;
   }
   if (map && !map.done && !state.running && map.index === 0 && exp.runs === 0) return 'Press <b>Start</b> to map the field: twelve pairs of planes, each a separate experiment. (Changing a setting clears the map.)';
   if (map && !map.done) return `Plane pair ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
   if (map && map.done) {
     const lastX = nm(exp.x2 - p.wall).toFixed(0);
     const plots = ` The plots and Results show the last pair (strong plane ${lastX} nm behind the slits); click a plot to choose a strip.`;
-    if (state.sw < 40) return `All ${N_PLANES} plane pairs mapped with a strong pointer (${state.sw} nm), each with fresh particles. The coupling disturbs the wave, so the arrows follow the green curve, not j/|ψ|². These lines do not describe the undisturbed experiment in any of the three views: compare with the weak pointer.${map.endOffset != null ? ` Their ends miss the equal-probability positions of |ψ|² by ${map.endOffset.toFixed(0)} nm (rms).` : ''}${plots} ${RATIONALE_LINK}`;
-    const off = map.endOffset != null ? ` The line ends differ from those positions by ${map.endOffset.toFixed(0)} nm (rms). This offset combines sampling noise, finite-pointer bias, strip averaging and interpolation between the twelve planes. More runs reduce the sampling noise; the other errors depend on the settings. Only lines that reach the screen enter this comparison.` : '';
-    return `All ${N_PLANES} plane pairs mapped, each with fresh particles. The amber lines join the measured arrows. If the arrows are right, their ends on the screen (amber ticks, right) sit at equal-probability positions of |ψ|² (grey ticks), as for any flow of |ψ|².${off} Agreement checks the measurement, not an interpretation.${plots} ${RATIONALE_LINK}`;
+    const off = map.endOffset === null ? '' : ` Their endpoint difference is ${map.endOffset.toFixed(1)} nm (rms). Sampling noise, pointer disturbance, strip averaging and interpolation can all contribute; more runs reduce only the sampling noise.`;
+    return `All ${N_PLANES} plane pairs mapped with fresh particles. The amber lines join the measured arrows. ${map.completedLines} of ${map.intendedLines} requested lines reached the screen; unfinished lines end with an open circle. Grey ticks show where the flow of j/|ψ|² from each actual starting point reaches the screen.${off} Agreement checks the reconstruction, not an interpretation.${plots} ${RATIONALE_LINK}`;
   }
   return '';
 }
@@ -276,8 +237,8 @@ function showNext() {
   if (state.stage === 'many' && exp && exp.runs >= state.perPlane) add('Repeat these runs (new sample)', () => { pending = true; start(); });
   if (state.stage === 'many') add('Next: map the field', () => setStage('map', true));
   if (state.stage === 'map' && map?.done) {
-    if (state.sw >= 40) add('Repeat with a strong pointer (10 nm)', () => { setSw(10); setStage('map', true); });
-    else add('Repeat with a weak pointer (200 nm)', () => { setSw(200); setStage('map', true); });
+    if (state.sw >= 40) add('Repeat with a 10 nm pointer', () => { setSw(10); setStage('map', true); });
+    else add('Repeat with a 200 nm pointer', () => { setSw(200); setStage('map', true); });
   }
 }
 
@@ -308,15 +269,16 @@ document.querySelectorAll('[data-wavemode]').forEach((b) => b.addEventListener('
 document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', () => { toggle(b.dataset.toggle); if (state.stage === 'map') showNext(); }));
 $('#sw').addEventListener('input', (e) => { state.sw = +e.target.value; pending = true; updateText(); });
 $('#x1').addEventListener('input', (e) => { state.x1 = +e.target.value; if (state.stage !== 'map') pending = true; updateText(); });
-$('#gap').addEventListener('input', (e) => { state.gap = +e.target.value; pending = true; updateText(); });
+$('#gap').addEventListener('input', (e) => { state.gap = +e.target.value; clampGeometry(); pending = true; updateText(); });
 $('#perPlane').addEventListener('input', (e) => {
-  state.perPlane = RUNS[+e.target.value]; $('#perPlaneOut').value = fmtRuns(state.perPlane);
+  state.perPlane = RUNS[+e.target.value]; $('#perPlaneOut').value = fmtRuns(state.perPlane); updateText();
 });
 $('#perPlane').addEventListener('change', () => { if (state.stage === 'map' || (exp && exp.runs > state.perPlane)) pending = true; });
 // Slider left = fewest arrows (every 5th strip), right = all 40, like the Lines slider.
-$('#arrowDensity').addEventListener('input', (e) => { state.arrowEvery = 6 - +e.target.value; $('#arrowDensityOut').value = Math.ceil(N_BINS / state.arrowEvery); });
+$('#arrowDensity').addEventListener('input', (e) => { state.arrowEvery = Math.ceil(N_BINS / 40) * (6 - +e.target.value); updateText(); });
 $('#lineCount').addEventListener('input', (e) => { state.nLines = +e.target.value; $('#lineCountOut').value = state.nLines; if (map?.done) buildLines(); });
 document.querySelectorAll('[data-maptoggle]').forEach((b) => b.addEventListener('click', () => toggle(b.dataset.maptoggle)));
+$('#selectedStrip').addEventListener('input', (e) => { state.selected = +e.target.value; });
 $('#showSetup').addEventListener('click', () => { stop(); showStep('setup'); });
 $('#setupGo').addEventListener('click', () => setStage('one', true));
 
@@ -343,6 +305,12 @@ controlsEl.addEventListener('qontic:tab', (e) => {
 });
 // Links in the caption that open another tab ("see Rationale").
 document.addEventListener('click', (event) => {
+  const reference = event.target.closest('a[href^="#ref-"]');
+  if (reference) {
+    event.preventDefault();
+    document.querySelector('.tabs [data-view="physics"]').click();
+    document.querySelector(reference.getAttribute('href'))?.scrollIntoView({block: 'start'});
+  }
   const g = event.target.closest('[data-goto]');
   if (g) { document.querySelector(`.tabs [data-view="${g.dataset.goto}"]`)?.click(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 });
@@ -359,6 +327,8 @@ document.querySelector('.tabs').addEventListener('click', (event) => {
     const body = panel.querySelector('.results-body');
     body.hidden = !body.hidden;
     e.currentTarget.textContent = body.hidden ? '+' : '−';
+    e.currentTarget.setAttribute('aria-label', body.hidden ? 'Expand results' : 'Collapse results');
+    e.currentTarget.setAttribute('aria-expanded', String(!body.hidden));
   });
 })();
 
@@ -397,6 +367,9 @@ function applyPanelState(k) {
   pn.el.classList.toggle('minimized', pn.min);
   const mb = pn.el.querySelector('[data-fp-act="min"]');
   mb.textContent = pn.min ? '+' : '–'; mb.title = pn.min ? 'Restore' : 'Minimize';
+  mb.setAttribute('aria-label', `${pn.min ? 'Restore' : 'Minimize'} the ${k === 'scatter' ? 'data' : 'velocity'} plot`);
+  mb.setAttribute('aria-expanded', String(!pn.min));
+  mb.setAttribute('aria-controls', pn.cv.id);
   document.querySelector(`[data-fp-open="${k}"]`).hidden = pn.open;
   document.querySelector(`[data-panel-toggle="${k}"]`).setAttribute('aria-pressed', String(pn.open));
   const any = Object.values(panels).some((p2) => p2.open);
@@ -463,10 +436,9 @@ function clampGeometry() {
   for (const [k, l] of Object.entries(lim)) geo[k] = Math.min(l.max, Math.max(l.min, Math.round(geo[k] / l.step) * l.step));
   geometryLimits();
   // Measurement planes must fit behind the slits.
-  state.gap = Math.min(state.gap, Math.floor(geo.distance / 4 / 5) * 5);
-  const x1Max = geo.distance - state.gap;
-  $('#x1').max = x1Max; $('#gap').max = Math.min(100, Math.floor(geo.distance / 4 / 5) * 5);
-  if (state.x1 > x1Max) state.x1 = Math.floor(x1Max / 10) * 10;
+  const planes = M.measurementPlanes(geo.distance, state.x1, state.gap);
+  state.x1 = planes.weak; state.gap = planes.gap;
+  $('#x1').max = planes.weakMax; $('#gap').max = Math.min(100, Math.floor(geo.distance / 20) * 5);
   $('#x1').value = state.x1; $('#gap').value = state.gap;
   return lim;
 }
@@ -510,14 +482,16 @@ function readUrl() {
   if (q.get('stage') && !['one', 'many', 'map'].includes(q.get('stage'))) urlBadStage = q.get('stage');
   const runs = parseFloat(q.get('runs')); if (Number.isFinite(runs)) state.perPlane = RUNS.reduce((a, b) => (Math.abs(Math.log(b / runs)) < Math.abs(Math.log(a / runs)) ? b : a));
   if (['density', 'crests', 'phase'].includes(q.get('show'))) state.waveMode = q.get('show');
+  for (const key of ['expected', 'current']) if (q.get(key) === '0') state.show[key] = false;
   if (q.get('bohm') === '1') state.show.bohm = true;
+  for (const key of ['expected', 'current']) document.querySelector(`[data-toggle="${key}"]`).setAttribute('aria-pressed', String(state.show[key]));
   $('#sw').value = state.sw; $('#x1').value = state.x1; $('#gap').value = state.gap;
   document.querySelectorAll('[data-toggle="bohm"], [data-maptoggle="bohm"]').forEach((b) => b.setAttribute('aria-pressed', String(state.show.bohm)));
 }
 function shareUrl() {
   const u = new URL(location.href);
   const g = {}; for (const k of Object.keys(GEO_DEFAULT)) if (geo[k] !== GEO_DEFAULT[k]) g[k] = geo[k];
-  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}) }).toString();
+  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}) }).toString();
   return u.toString();
 }
 
@@ -826,7 +800,10 @@ function drawApparatus(P, box) {
   if (map?.done) {
     // Lines stay inside the region between the slits and the screen.
     ctx.save(); ctx.beginPath(); ctx.rect(X(p.wall), Yp(Y_HALF), X(p.screen) - X(p.wall), Yp(-Y_HALF) - Yp(Y_HALF)); ctx.clip();
-    ctx.strokeStyle = P.line; ctx.lineWidth = 1.8; if (state.show.lines) map.lines.forEach(path);
+    ctx.strokeStyle = P.line; ctx.lineWidth = 1.8; if (state.show.lines) map.lines.forEach(ln => {
+      path(ln); const [x, y] = ln.at(-1);
+      if (Math.abs(x - p.screen) > 1e-8) {ctx.beginPath(); ctx.arc(X(x), Yp(y), 3.5, 0, 2 * Math.PI); ctx.stroke();}
+    });
     if (state.show.bohm) {
       // Flow lines of j/|psi|^2 computed from psi (trajectories in pilot-wave), same starts, drawn on top.
       ctx.strokeStyle = P.bohm; ctx.lineWidth = 1.7; ctx.setLineDash([6, 4]); map.bohm.forEach(path); ctx.setLineDash([]);
@@ -854,7 +831,7 @@ function drawApparatus(P, box) {
     ctx.lineWidth = 2;
     if (state.show.lines) map.lines.forEach((ln) => { const [xe, ye] = ln.at(-1); if (Math.abs(xe - p.screen) < 0.05) { ctx.strokeStyle = P.line; ctx.beginPath(); ctx.moveTo(sx + 3, Yp(ye)); ctx.lineTo(sx + 14, Yp(ye)); ctx.stroke(); } });
     ctx.strokeStyle = P.light ? '#5f7684' : '#b8cbd6';
-    map.screenQuantiles.forEach((y) => { if (Math.abs(y) <= Y_HALF) { ctx.beginPath(); ctx.moveTo(sx + 16, Yp(y)); ctx.lineTo(sx + 30, Yp(y)); ctx.stroke(); } });
+    map.referenceEnds.forEach((y) => { if (Math.abs(y) <= Y_HALF) { ctx.beginPath(); ctx.moveTo(sx + 16, Yp(y)); ctx.lineTo(sx + 30, Yp(y)); ctx.stroke(); } });
   }
   // screen |psi|^2 profile
   {
@@ -927,6 +904,7 @@ function drawApparatus(P, box) {
   ctx.restore();
   appMap = { X, Yp, box, x0, x1, Yh: YH };
   drawGrips(P);
+  text(`${state.stage === 'one' ? 'One run' : state.stage === 'many' ? 'Many runs' : 'Field map'} · σ ${state.sw} nm · gap ${state.gap} nm${map ? ` · pair ${Math.min(map.index + 1, N_PLANES)}/${N_PLANES}` : ''}`, X(p.wall) + 8, box.y + box.h - 20, {color: P.muted, size: 10});
   return { X, Yp };
 }
 
@@ -950,11 +928,11 @@ function drawPointerGauge(P, box, X, Yp) {
   if (yc >= top && yc <= bot) {
     ctx.beginPath(); ctx.moveTo(xw - 13, yc); ctx.lineTo(xw - 3, yc); ctx.stroke();
     ctx.beginPath(); ctx.arc(xw, yc, 5.5, 0, Math.PI * 2); ctx.stroke();
-    if (settled) text(`pointer reads ${nm(anim.run.Y).toFixed(0)} ± ${state.sw} nm`, xw - 16, yc + 4, { color: P.weak, size: 11, align: 'right' });
+    if (settled) text(`Y = ${nm(anim.run.Y).toFixed(0)} nm; initial σ = ${state.sw} nm`, xw - 16, yc + 4, { color: P.weak, size: 11, align: 'right' });
   } else {
     const up = yc < top, ya = up ? top + 2 : bot - 2, d = up ? 1 : -1;
     ctx.beginPath(); ctx.moveTo(xw, ya); ctx.lineTo(xw - 5, ya + 8 * d); ctx.lineTo(xw + 5, ya + 8 * d); ctx.closePath(); ctx.fill();
-    if (settled) text(`pointer reads ${nm(anim.run.Y).toFixed(0)} ± ${state.sw} nm (off scale)`, xw - 10, ya + 12 * d + 4, { color: P.weak, size: 11, align: 'right' });
+    if (settled) text(`Y = ${nm(anim.run.Y).toFixed(0)} nm (off scale); initial σ = ${state.sw} nm`, xw - 10, ya + 12 * d + 4, { color: P.weak, size: 11, align: 'right' });
   }
   if (t > tS) {
     const r = t < tS + 0.1 ? 4 + 20 * (t - tS) : 6;
@@ -1032,6 +1010,16 @@ const fmtCount = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(n % 1e6 ? 2 : 0)}M` : n
 // The same data as the strip means, magnified: detected position minus the
 // mean pointer reading, in nm. Divided by the gap it is the velocity estimate,
 // so this plot has the same shape and sign as the velocity plot.
+function drawEstimate(X, V, y, value, error, range) {
+  const clamp = v => Math.max(-range, Math.min(range, v));
+  ctx.beginPath(); ctx.moveTo(X(y), V(clamp(value - error))); ctx.lineTo(X(y), V(clamp(value + error))); ctx.stroke();
+  if (Math.abs(value) <= range) {ctx.beginPath(); ctx.arc(X(y), V(value), 3, 0, Math.PI * 2); ctx.fill();}
+  for (const sign of [-1, 1]) if (sign * value + error > range) {
+    const x = X(y), edge = V(sign * range), inward = sign * 5;
+    ctx.beginPath(); ctx.moveTo(x, edge); ctx.lineTo(x - 3, edge + inward); ctx.lineTo(x + 3, edge + inward); ctx.closePath(); ctx.fill();
+  }
+}
+
 function drawShift(P, box) {
   const toNm = (slope) => nm(slope * p.k * (exp ? exp.dtau : 0));
   const range = exp ? Math.max(0.5, Math.abs(toNm(exp.vmax))) : 5;
@@ -1051,9 +1039,7 @@ function drawShift(P, box) {
     M.binVelocities(exp.bins, exp.dtau, 50).forEach((b) => {
       if (!b) return;
       const d = nm(b.v * exp.dtau), e = nm(b.err * exp.dtau);
-      if (e > 2 * range) return;
-      ctx.beginPath(); ctx.moveTo(X(b.y), V(d - e)); ctx.lineTo(X(b.y), V(d + e)); ctx.stroke();
-      ctx.beginPath(); ctx.arc(X(b.y), V(d), 3, 0, Math.PI * 2); ctx.fill();
+      drawEstimate(X, V, b.y, d, e, range);
     });
   }
   ctx.restore();
@@ -1084,9 +1070,7 @@ function drawVelocity(P, box) {
     est.forEach((b) => {
       if (!b) return;
       const s = b.v / p.k, e = b.err / p.k;
-      if (e > 2 * vm) return;
-      ctx.beginPath(); ctx.moveTo(X(b.y), V(s - e)); ctx.lineTo(X(b.y), V(s + e)); ctx.stroke();
-      ctx.beginPath(); ctx.arc(X(b.y), V(s), 3, 0, Math.PI * 2); ctx.fill();
+      drawEstimate(X, V, b.y, s, e, vm);
     });
   }
   ctx.restore();
@@ -1100,10 +1084,15 @@ function updateResults() {
   set('planes', !map ? '—' : map.done ? `${N_PLANES} of ${N_PLANES}` : `${map.planes.length} of ${N_PLANES}${state.running ? ` (pair ${map.index + 1} running)` : ''}`);
   set('pair', `${nm(exp.x1 - p.wall).toFixed(0)} → ${nm(exp.x2 - p.wall).toFixed(0)} nm`);
   // Stage 1 has no post-selection: show only the rows that mean something.
-  document.querySelectorAll('[data-stage-rows]').forEach((el) => { el.hidden = !el.dataset.stageRows.split(' ').includes(state.stage); });
+  document.querySelectorAll('[data-stage-rows]').forEach((el) => {
+    el.hidden = !el.dataset.stageRows.split(' ').includes(state.stage) || (el.dataset.prediction && !state.show[el.dataset.prediction]);
+  });
   const i = state.selected;
   const a = -Y_HALF + i * 2 * Y_HALF / N_BINS;
-  set('strip', `${nm(a).toFixed(0)} to ${nm(a + 2 * Y_HALF / N_BINS).toFixed(0)} nm`);
+  const stripText = `${nm(a).toFixed(1)} to ${nm(a + 2 * Y_HALF / N_BINS).toFixed(1)} nm`;
+  set('strip', stripText);
+  const selector = $('#selectedStrip'); selector.max = N_BINS - 1; selector.value = i;
+  selector.setAttribute('aria-valuetext', stripText); $('#selectedStripOut').value = stripText;
   const n = exp.bins.count[i];
   set('inStrip', n.toLocaleString('en-US'));
   const b = M.binVelocities(exp.bins, exp.dtau, 30)[i];

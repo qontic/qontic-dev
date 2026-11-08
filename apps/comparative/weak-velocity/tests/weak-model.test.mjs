@@ -154,4 +154,70 @@ test('density averaged over pointer readings: unchanged at the weak plane, equal
   }
 });
 
+
+test('conditional pointer Gaussians equal direct coupled propagation', () => {
+  for (const dx of [0.1, 1]) for (const sw of [0.05, 2, 4]) {
+    const t1 = M.propagate(t0, 29 / p.k), dt = dx / p.k;
+    for (const yf of [-3.8, 0.2, 3.8]) for (const Y of [-8, -2, 0, 2, 8]) {
+      const direct = M.density(M.propagate(M.coupleToPointer(t1, Y, sw), dt), yf);
+      const conditional = M.density(M.pointerTerms(t1, dt, sw, yf), Y);
+      assert.ok(Math.abs(direct - conditional) < 1e-9 * Math.max(direct, conditional, 1e-30));
+    }
+  }
+});
+
+test('sharp pointer far downstream includes valid readings outside the detector window', () => {
+  const t1 = M.propagate(t0, 29 / p.k), dt = 1 / p.k, sw = 0.05;
+  const tab = M.jointTable({terms1: t1, dtau: dt, sw, yfMin: -4, yfMax: 4, nYf: 360});
+  const got = M.expectedBinVelocities(tab, M.makeBins(-4, 4, 40))[38].v / p.k;
+  // Independent broad-domain quadrature using the original coupled wave,
+  // not the conditional compiler, sampler or its per-row bounds.
+  let mass = 0, displacement = 0;
+  for (let i = 342; i < 351; i++) {
+    const yf = tab.yf[i];
+    for (let Y = -16; Y <= 16; Y += 0.01) {
+      const r = M.density(M.propagate(M.coupleToPointer(t1, Y, sw), dt), yf);
+      mass += r; displacement += r * (yf - Y);
+    }
+  }
+  const want = displacement / mass / dt / p.k;
+  assert.ok(want < -0.29 && Math.abs(got - want) < 2e-7, `${got} vs ${want}`);
+});
+
+test('wide-screen sharp-pointer output resolution converges', () => {
+  const layout = M.measurementLayout(5000, 5);
+  assert.ok(5000 / layout.nBins <= 20 && layout.nYf % layout.nBins === 0);
+  const t1 = M.propagate(t0, 0.2 / p.k), dt = 0.1 / p.k;
+  const value = nYf => M.expectedBinVelocities(M.jointTable({terms1: t1, dtau: dt, sw: 0.05, yfMin: -25, yfMax: 25, nYf}), M.makeBins(-25, 25, 40))[20].v / p.k;
+  const a = value(layout.nYf), b = value(2 * layout.nYf);
+  assert.ok(Math.abs(a - b) < 2e-5, `${a} vs ${b}`);
+});
+
+test('measurement planes remain inside the screen when the gap changes', () => {
+  assert.deepEqual(M.measurementPlanes(1000, 950, 100), {weak: 900, gap: 100, weakMax: 900});
+  assert.deepEqual(M.measurementPlanes(1000, 900, 10), {weak: 900, gap: 10, weakMax: 990});
+  assert.deepEqual(M.measurementPlanes(200, 900, 100), {weak: 150, gap: 50, weakMax: 150});
+});
+
+test('twelve-plane reconstruction uses fine starts and references the same accepted coordinates', () => {
+  for (const [screen, separation, distance] of [[5000, 300, 1000], [200, 110, 3000]]) {
+    const q = M.modelParams({...M.DEFAULT_GEOMETRY, separation, distance});
+    const wall = M.wallTerms(q), layout = M.measurementLayout(screen, 400), half = screen / 200;
+    const planes = [];
+    let counts;
+    for (let i = 0; i < 12; i++) {
+      const x1 = (0.02 * distance + i * (distance - 50 - 0.02 * distance) / 11) / 100;
+      const tab = M.jointTable({terms1: M.propagate(wall, x1 / q.k), dtau: 0.5 / q.k, sw: 4, yfMin: -half, yfMax: half, nYf: layout.nYf});
+      if (!i) counts = tab.marginal;
+      const est = M.expectedBinVelocities(tab, M.makeBins(-half, half, layout.nBins)).map(e => e ? {y: e.y, s: e.v / q.k} : null);
+      planes.push({x2: q.wall + x1 + 0.5, est});
+    }
+    const reference = (y, x0, x1) => M.bohmTrajectory(wall, q.k, q.wall, y, x1, 600, x0);
+    const result = M.reconstructFieldMap({planes, counts, yMin: -half, yMax: half, nLines: 20, reference});
+    assert.ok(result.completed > 0 && result.completed <= 20);
+    if (screen === 5000) assert.ok(result.rms < 0.08, `wide screen rms ${result.rms}`);
+    result.starts.forEach((y, i) => assert.equal(result.referenceEnds[i], reference(y, planes[0].x2, planes.at(-1).x2).at(-1)[1]));
+  }
+});
+
 console.log(`${passed} tests passed`);

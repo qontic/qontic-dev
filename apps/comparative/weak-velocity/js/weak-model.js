@@ -124,43 +124,75 @@ export function weakValueLimit(terms1, dtau, yf) {
 }
 
 // ------------------------------------------------------------ joint table
-// Joint probability of pointer reading Y and strong result yf on a grid.
-// opts: terms1 (state at the weak plane), dtau, sw, yfMin, yfMax, nYf.
-export function jointTable({terms1, dtau, sw, yfMin, yfMax, nYf = 360}) {
-  const span = yfMax - yfMin;
-  const yMin = yfMin - 5 * sw, yMax = yfMax + 5 * sw;
-  const dY0 = Math.min(span / 360, sw / 6);
-  const nY = Math.max(60, Math.min(4000, Math.ceil((yMax - yMin) / dY0) + 1));
-  // Cell-centred grid in yf: cell i covers [yfMin + i dYf, yfMin + (i+1) dYf),
-  // so with nYf a multiple of the number of strips each cell lies inside one
-  // strip, and a sampled run (jittered within its cell) stays in that strip.
-  const dY = (yMax - yMin) / (nY - 1), dYf = span / nYf;
+// At fixed yf, the coupled amplitude is also a Gaussian sum in the pointer
+// coordinate. Use its own conditional envelopes to bound the pointer grid;
+// the detector window is not a bound on valid earlier pointer readings.
+export function pointerTerms(terms1, dtau, sw, yf) {
+  const q = 1 / (4 * sw * sw);
+  return terms1.map(t => {
+    const D = add(C(1), mul(C(0, 2 * dtau), add(t.alpha, C(q))));
+    const [atZero] = propagate(coupleToPointer([t], 0, sw), dtau);
+    return {
+      alpha: sub(C(q), div(C(0, 2 * dtau * q * q), D)),
+      beta: div(scale(add(C(yf), mul(C(0, dtau), t.beta)), 2 * q), D),
+      gamma: exponent(atZero, yf),
+    };
+  });
+}
+
+// At least 40 strips, no wider than 20 nm. Resolve every strip with at
+// least 12 output cells, with extra resolution for the sharpest pointers.
+export function measurementLayout(screenNm, pointerNm) {
+  const nBins = 40 * Math.max(1, Math.ceil(screenNm / 800));
+  const cellsPerBin = Math.max(12, Math.ceil((screenNm / nBins) / (pointerNm / 8)));
+  return {nBins, nYf: nBins * cellsPerBin};
+}
+
+export function measurementPlanes(distance, weak, gap) {
+  gap = Math.max(10, Math.min(100, Math.floor(distance / 20) * 5, Math.round(gap / 5) * 5));
+  const weakMax = Math.floor((distance - gap) / 10) * 10;
+  return {weak: Math.max(0, Math.min(weakMax, Math.round(weak / 10) * 10)), gap, weakMax};
+}
+
+export function jointTable({terms1, dtau, sw, yfMin, yfMax, nYf = 480,
+  pointerTail = 8, pointerResolution = 12}) {
+  const dYf = (yfMax - yfMin) / nYf;
   const yf = Float64Array.from({length: nYf}, (_, i) => yfMin + (i + 0.5) * dYf);
-  const Y = Float64Array.from({length: nY}, (_, j) => yMin + j * dY);
-  const P = new Float64Array(nYf * nY);
-  for (let j = 0; j < nY; j++) {
-    const coupled = propagate(coupleToPointer(terms1, Y[j], sw), dtau);
-    for (let i = 0; i < nYf; i++) P[i * nY + j] = evaluate(coupled, yf[i]).rho;
-  }
-  // Marginal in yf, conditional row CDFs, exact conditional means.
-  const marginal = new Float64Array(nYf), meanY = new Float64Array(nYf), rowCdf = new Float64Array(nYf * nY);
+  const marginal = new Float64Array(nYf), meanY = new Float64Array(nYf);
+  const rows = [];
   let total = 0;
   for (let i = 0; i < nYf; i++) {
-    let s = 0, sy = 0;
-    for (let j = 0; j < nY; j++) {const v = P[i * nY + j]; s += v; sy += v * Y[j]; rowCdf[i * nY + j] = s;}
-    marginal[i] = s; meanY[i] = s > 0 ? sy / s : NaN; total += s;
-    if (s > 0) for (let j = 0; j < nY; j++) rowCdf[i * nY + j] /= s;
+    const terms = pointerTerms(terms1, dtau, sw, yf[i]);
+    const envelopes = terms.map(t => ({mu: t.beta.re / (2 * t.alpha.re), sigma: 1 / (2 * Math.sqrt(t.alpha.re))}));
+    const lo = Math.min(...envelopes.map(e => e.mu - pointerTail * e.sigma));
+    const hi = Math.max(...envelopes.map(e => e.mu + pointerTail * e.sigma));
+    let step = Math.min(...envelopes.map(e => e.sigma)) / pointerResolution;
+    // Resolve cross-term oscillations as well as the individual envelopes.
+    for (let a = 0; a < terms.length; a++) for (let b = 0; b < a; b++) {
+      const rate = Math.max(...[lo, hi].map(Y => Math.abs(-2 * (terms[a].alpha.im - terms[b].alpha.im) * Y + terms[a].beta.im - terms[b].beta.im)));
+      if (rate > 0) step = Math.min(step, Math.PI / (8 * rate));
+    }
+    const n = Math.max(32, Math.ceil((hi - lo) / step));
+    const dY = (hi - lo) / n, cdf = new Float64Array(n);
+    let mass = 0, first = 0;
+    for (let j = 0; j < n; j++) {
+      const Y = lo + (j + 0.5) * dY, value = density(terms, Y) * dY;
+      mass += value; first += value * Y; cdf[j] = mass;
+    }
+    if (mass > 0) for (let j = 0; j < n; j++) cdf[j] /= mass;
+    marginal[i] = mass; meanY[i] = mass > 0 ? first / mass : NaN;
+    rows.push({lo, dY, cdf}); total += mass;
   }
   const marginalCdf = new Float64Array(nYf);
   let acc = 0;
   for (let i = 0; i < nYf; i++) {acc += marginal[i]; marginalCdf[i] = acc / total;}
-  for (let i = 0; i < nYf; i++) marginal[i] /= total * dYf; // density in yf
-  return {yf, Y, P, nYf, nY, dY, dYf, marginal, marginalCdf, rowCdf, meanY, dtau, sw, total: total * dY * dYf};
+  for (let i = 0; i < nYf; i++) marginal[i] /= total * dYf;
+  return {yf, rows, nYf, dYf, marginal, marginalCdf, meanY, dtau, sw, total: total * dYf};
 }
 
 function search(cdf, u, offset, n) {
   let lo = 0, hi = n - 1;
-  while (lo < hi) {const mid = (lo + hi) >> 1; if (cdf[offset + mid] < u) lo = mid + 1; else hi = mid;}
+  while (lo < hi) {const mid = (lo + hi) >> 1; if (cdf[offset + mid] <= u) lo = mid + 1; else hi = mid;}
   return lo;
 }
 
@@ -168,11 +200,11 @@ function search(cdf, u, offset, n) {
 // result yf. Sampled from the exact joint distribution on the grid, with
 // uniform jitter inside the cell.
 export function sampleRun(table, random = Math.random) {
-  const {nYf, nY, marginalCdf, rowCdf, yf, Y, dYf, dY} = table;
+  const {nYf, marginalCdf, yf, dYf, rows} = table;
   const i = search(marginalCdf, random(), 0, nYf);
-  const j = search(rowCdf, random(), i * nY, nY);
-  const ri = Math.min(nYf - 1, Math.max(0, i)), rj = Math.min(nY - 1, Math.max(0, j));
-  return {yf: yf[ri] + (random() - 0.5) * dYf, Y: Y[rj] + (random() - 0.5) * dY};
+  const row = rows[i], j = search(row.cdf, random(), 0, row.cdf.length);
+  return {yf: yf[i] + (random() - 0.5) * dYf,
+    Y: row.lo + (j + random()) * row.dY};
 }
 
 // ------------------------------------------------------------ post-selection
@@ -255,6 +287,48 @@ export function integrateField(planes, k, y0, x0, x1, steps = 400) {
     path.push([x + dx, y]);
   }
   return path;
+}
+
+export function interpolateEstimates(estimates) {
+  const pts = estimates.map((e, i) => e ? {i, ...e} : null);
+  return y => {
+    let a = null, b = null;
+    for (const q of pts) {if (!q) continue; if (q.y <= y) a = q; else {b = q; break;}}
+    if (!a || !b || b.i - a.i > 2) return null;
+    return a.s + (b.s - a.s) * (y - a.y) / (b.y - a.y);
+  };
+}
+
+// Starts use the fine detected-position histogram, not a uniform assumption
+// inside a 20 nm strip. Compare like with like: the reference flow starts
+// at each actual accepted coordinate, including for a small detector window.
+export function reconstructFieldMap({planes, counts, yMin, yMax, nLines, reference}) {
+  const field = planes.map(pl => ({x: pl.x2, vAt: interpolateEstimates(pl.est)}));
+  const x0 = field[0].x, xEnd = field.at(-1).x;
+  const total = counts.reduce((a, b) => a + b, 0), w = (yMax - yMin) / counts.length;
+  const starts = [];
+  for (let q = 0; q < nLines && total > 0; q++) {
+    const target = (q + 0.5) / nLines * total;
+    let acc = 0;
+    for (let i = 0; i < counts.length; i++) {
+      if (counts[i] > 0 && acc + counts[i] >= target) {
+        const y = yMin + (i + (target - acc) / counts[i]) * w;
+        if (field[0].vAt(y) !== null) starts.push(y);
+        break;
+      }
+      acc += counts[i];
+    }
+  }
+  const lines = starts.map(y => integrateField(field, 1, y, x0, xEnd, 600));
+  const referenceLines = starts.map(y => reference(y, x0, xEnd));
+  const referenceEnds = referenceLines.map(path => path.at(-1)[1]);
+  let sum = 0, completed = 0;
+  lines.forEach((path, i) => {
+    const [x, y] = path.at(-1);
+    if (Math.abs(x - xEnd) < 1e-8) {sum += (y - referenceEnds[i]) ** 2; completed++;}
+  });
+  return {starts, lines, referenceLines, referenceEnds, completed, intended: nLines,
+    rms: completed ? Math.sqrt(sum / completed) : null};
 }
 
 // Pilot-wave trajectory from the exact wave behind the wall (for comparison),
