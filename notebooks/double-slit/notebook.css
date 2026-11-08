@@ -69,3 +69,11 @@
   .qontic-notebook .qn-sections { flex-basis: 100%; }
   .qontic-notebook .section-head h2 { font-size: 18px; }
 }
+
+.qontic-notebook .ds-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 14px 0; padding: 12px; border: 1px solid var(--qn-line); border-radius: 9px; background: var(--qn-field); }
+.qontic-notebook .ds-settings p { flex: 1 1 300px; margin: 0; font-size: 13px; color: var(--qn-muted); }
+.qontic-notebook .ds-settings select { padding: 6px; border: 1px solid var(--qn-line); border-radius: 6px; background: var(--qn-card); color: var(--qn-ink); font: inherit; }
+.qontic-notebook .ds-figure-key { margin: 0; padding: 9px 12px; background: #102839; color: #dbeafe; font-size: 12px; line-height: 1.5; border-top: 1px solid #23425a; }
+.qontic-notebook .ds-threshold { display: flex; align-items: start; gap: 7px; margin: 12px 0; color: var(--qn-ink); font-size: 13px; }
+.qontic-notebook .task-card p { margin: 9px 0; }
+.qontic-notebook .section > .quiz { margin: 14px 0; }
