@@ -69,7 +69,7 @@ function fringePlot(x,y,w,h){panel(x,y,w,h,'Photon interference','Vary the path 
   if(state.n){const p=state.plus/state.n,err=Math.sqrt(p*(1-p)/state.n),yy=bottom-p*ph;line([[current,bottom-Math.min(1,p+err)*ph],[current,bottom-Math.max(0,p-err)*ph]],C.text,2);circle(current,yy,4,C.text);}
   line([[left,top],[left,bottom],[right,bottom]],C.muted);for(const deg of [0,90,180,270,360])text(`${deg}°`,left+deg/360*pw,bottom+16,10,C.muted,'center');text('Path phase φ',x+w/2,y+h-5,11,C.muted,'center');text('P(D₊)',left,top-5,10,C.muted);
 }
-function counts(x,y,w,h){panel(x,y,w,h,'Photon detections',state.n?`${state.n.toLocaleString()} photons · white dot: observed D₊ fraction (±1 standard error)`:'Collect photons to compare data with the prediction');const left=x+65,right=x+w-55,bw=right-left;
+function counts(x,y,w,h){panel(x,y,w,h,'Photon detections',state.n?`${state.n.toLocaleString()} photons · D₊ sample: dot ±1 SE`:'Collect photons to compare data with the prediction');const left=x+65,right=x+w-55,bw=right-left;
   for(let k=0;k<2;k++){const yy=y+65+k*32,p=k===0?portProbability(state.r,state.phase):1-portProbability(state.r,state.phase),n=k===0?state.plus:state.n-state.plus;ctx.fillStyle=C.bar;ctx.fillRect(left,yy,bw,16);if(state.n){ctx.fillStyle=k===0?C.purple:C.muted;ctx.fillRect(left,yy,bw*n/state.n,16);}if(state.theory){const xx=left+bw*p;line([[xx,yy-3],[xx,yy+19]],C.a,2);}text(k===0?'D₊':'D₋',left-35,yy+13,12,C.text);text(n.toLocaleString(),right+8,yy+13,12,C.text);}
   text('Filled bars: observed fraction · green marks: prediction',x+14,y+h-10,11,C.muted);
 }
