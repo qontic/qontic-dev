@@ -1,0 +1,12 @@
+{
+  "id":"einstein-recoiling-slit",
+  "title":"Einstein’s Recoiling Slit",
+  "type":"app",
+  "category":"foundations",
+  "level":"advanced",
+  "description":"Explore how a quantum recoil record reduces interference, even when nobody reads it. An ideal Gaussian model inspired by the 2025 single-atom experiment.",
+  "topics":["complementarity","entanglement","which-way-information"],
+  "tags":["Advanced","Research example","Prototype"],
+  "entry":"index.html",
+  "status":"in-review"
+}

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Einstein’s Recoiling Slit — Q-Ontic Lab</title>
+<meta name="description" content="Can recoil reveal a photon's path while interference remains? Explore an ideal model inspired by a single-atom experiment.">
+<link rel="icon" href="../../../shared/favicon.svg">
+<link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
+<link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
+<link rel="stylesheet" href="style.css?v=0.1.0"></head>
+<body class="recoil-app"><main class="shell">
+<header><div><p class="eyebrow">Q-Ontic · Advanced</p><h1>Einstein’s Recoiling Slit</h1></div></header>
+<nav class="tabs" aria-label="App sections"><button class="active" data-view="sim">Simulation</button><button data-view="physics">Physics</button><button data-view="experiment">The experiment</button></nav>
+<section class="lab qontic-workspace" data-panel="sim">
+<aside class="controls qontic-sidebar qontic-panel qontic-control-panel">
+<qontic-controls show-interpretation="false" show-autorun="false" show-speed="false" show-reset="true" show-advanced="false" running="false"></qontic-controls>
+<div class="qontic-control-body" data-control-pane="core">
+<p class="intro">Two possible photon paths are recombined. The atom receives a different recoil for each path. Can those recoil states be told apart?</p>
+<label class="row" for="recoil">Recoil separation <output id="recoilOut">1.00 σₚ</output></label>
+<input id="recoil" type="range" min="0" max="8" step="0.05" value="1" aria-describedby="ratioHelp">
+<p class="hint" id="ratioHelp">Difference between the two mean recoils, in units of the initial momentum uncertainty σₚ.</p>
+<div class="presets" role="group" aria-label="Recoil presets"><button data-r="0.5">Overlapping</button><button data-r="2.5">Partial</button><button data-r="6">Separated</button></div>
+<label class="row" for="phase">Path phase <output id="phaseOut">0°</output></label>
+<input id="phase" type="range" min="0" max="360" step="1" value="0">
+<label class="check"><input id="scan" type="checkbox"> Scan the phase</label>
+<p class="hint">The curve shows how the detection probability changes as the phase is varied. Scanning pauses photon collection.</p>
+<label class="check"><input id="readout" type="checkbox"> Read the atom’s momentum</label>
+<p class="hint">Adds recoil data. It does not change the photon probabilities.</p>
+<div class="run-extras"><button id="one">One photon</button><button id="thousand">Collect 1,000</button></div>
+<p class="hint">Changing recoil or phase clears the counts so different settings are not mixed.</p>
+<section class="results" aria-label="Results"><h2>Results</h2><dl><dt>Fringe visibility</dt><dd id="visibility">—</dd><dt>Predicted P(D₊)</dt><dd id="probability">—</dd><dt>Photon detections</dt><dd id="total">0</dd><dt>Observed D₊ fraction</dt><dd id="observed">—</dd></dl></section>
+</div>
+<div class="qontic-control-body" data-control-pane="display" hidden><label class="check"><input id="theory" type="checkbox" checked> Show predictions</label><p class="hint">The two colored recoil curves represent the states associated with paths A and B. Gray bars show measured recoil data.</p></div>
+</aside>
+<div class="visualization qontic-stage qontic-panel">
+<div class="activity"><p><strong>Try a prediction.</strong> Increase recoil separation while keeping its uncertainty fixed. What happens to fringe visibility?</p><div class="answers" role="group" aria-label="Prediction"><button data-answer="up">It increases</button><button data-answer="down">It decreases</button><button data-answer="same">It stays the same</button></div><p id="feedback" role="status">Choose an answer, then compare the overlapping and separated presets.</p></div>
+<canvas id="stage" aria-label="Two-path interferometer, atom recoil distributions, photon phase fringes, and detector counts"></canvas>
+<p id="summary" class="accessible-summary" role="status"></p>
+<p class="model-note">Ideal two-path model · The atom and optical paths are schematic; animated pulses do not show photon trajectories.</p>
+</div></section>
+<section class="reading qontic-panel" data-panel="physics" hidden>
+<h2>What controls the fringes?</h2><p>The photon and atom become entangled. Each possible photon path is associated with a different recoil state of the atom. When those states overlap strongly, interference is strong. When they can be distinguished reliably, interference is weak. Reading the recoil is not required for this loss of visibility.</p>
+<h2>The model</h2><p>There are two equally weighted paths A and B. The atom begins in a pure Gaussian momentum state with standard deviation σₚ. The interaction shifts its mean momentum to −Δp/2 or +Δp/2. Both recoil states have the same width and no relative momentum-dependent phase.</p>
+<p class="formula">|Ψ⟩ = (|A⟩|a⟩ + e<sup>iφ</sup> |B⟩|b⟩) / √2</p>
+<p>For recoil separation r = Δp/σₚ, the state overlap sets the fringe visibility:</p>
+<p class="formula">V = |⟨a|b⟩| = exp(−r²/8)<br>P(D₊) = ½(1 + V cos φ), &nbsp; P(D₋) = 1 − P(D₊).</p>
+<p>The output probabilities are those of a balanced recombiner. A phase scan gives an interference fringe at each output. This is an interferometer fringe, rather than a spatial double-slit pattern on a screen.</p>
+<h2>Recoil readings and path information</h2><p>The colored curves are momentum probability densities conditional on path A or B. Their horizontal axis is u = p/σₚ; each curve integrates to one. A single momentum reading generally cannot identify a path with certainty. The measured atom distribution, when both photon outputs are included, is the equal mixture of the two curves. Gray histogram bars estimate that mixture and are normalized by the number of recorded atom readings.</p>
+<p>Photon detections and atom readouts are sampled from their joint quantum probability, rather than drawn independently. If fA(u) and fB(u) denote the two Gaussian densities,</p>
+<p class="formula">P(u, D±) = ¼ [ fA(u) + fB(u) ± 2√(fA(u)fB(u)) cos φ ].</p>
+<p>Turning on the readout starts recording atom data from that point. It is an ideal later measurement of momentum, after the recoil interaction; it adds no new interaction with the photon. No path label is assigned to an individual event.</p>
+<h2>Scope</h2><p>This is a pure-state, one-dimensional recoil model with a balanced, lossless interferometer. It excludes atomic heating, mixed motional states, optical losses, finite collection angle, trap evolution, background counts, and detector imperfections. The recoil slider directly controls Δp/σₚ; it is not a calibrated trap-depth control. Momentum is displayed in units of σₚ, and the apparatus is not drawn to scale.</p>
+<p>The simulation shows shared quantum predictions. It does not distinguish orthodox quantum mechanics, pilot-wave theory, and many worlds. The colored recoil curves represent quantum states, rather than classical particles choosing paths.</p>
+</section>
+<section class="reading qontic-panel" data-panel="experiment" hidden>
+<h2>From a thought experiment to a single atom</h2><p>Einstein proposed using a movable slit to infer a photon’s path from its recoil. Zhang and colleagues realized a related interferometer using a single atom in an optical tweezer as a quantum beam splitter. Changing the trap depth changed the atom’s momentum uncertainty and the visibility of single-photon interference.</p>
+<p><a href="https://doi.org/10.1103/93zb-lws3" target="_blank" rel="noopener">Y.-C. Zhang et al., “Tunable Einstein-Bohr Recoiling-Slit Gedankenexperiment at the Quantum Limit,” Physical Review Letters 135, 230202 (2025).</a></p>
+<h2>What this app lets you investigate</h2><ol><li>Select <strong>Overlapping</strong> and scan the phase. Note the range of P(D₊).</li><li>Select <strong>Separated</strong> and repeat. Explain the change using the recoil curves.</li><li>Stop the scan, set the phase to 0°, and collect photons. Compare the counts with the prediction.</li><li>Turn the atom readout on and repeat. Does displaying the atom data change the photon prediction?</li></ol>
+<p>The paper also separates effects of heating from quantum recoil. That comparison requires a mixed-state extension beyond this first app. The plots here are model predictions and simulated samples, rather than experimental data.</p>
+<h2>A useful question for students</h2><p>“Why do the fringes weaken even when nobody looks at the atom?” A good explanation should refer to entanglement and recoil-state overlap. The experiment does not require a conscious observer.</p>
+</section>
+</main><script type="module" src="app.js?v=0.1.0"></script></body></html>
