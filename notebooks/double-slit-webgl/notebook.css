@@ -1,15 +1,17 @@
-/* Local presentation only. Simulation files and shared template are unchanged. */
+/* Presentation only: all original notebook wording is retained. */
 .qontic-notebook .shell { max-width: 1200px; }
-.qontic-notebook .num-review-note { color: var(--qn-gold-ink); font-size: 13px; }
-.qontic-notebook .num-intro-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
-.qontic-notebook .num-intro-actions span { color: var(--qn-muted); font-size: 13px; }
-.qontic-notebook .num-poster-one { background: #000 url('singleParticle.jpg') center/contain no-repeat; }
-.qontic-notebook .num-poster-many { background: #000 url('manyParticle.jpg') center/contain no-repeat; }
-.qontic-notebook .num-poster-density { background: #000 url('equivariance.jpg') center/contain no-repeat; }
-.qontic-notebook .applet-play { background: linear-gradient(#04101c66,#04101caa); text-shadow: 0 1px 5px #000; }
-.qontic-notebook .num-webgl-status { position: absolute; z-index: 4; bottom: 12px; left: 12px; right: 12px; margin: 0; padding: 12px; background: #102839; color: #e6f2ff; border: 1px solid #7ca5c4; border-radius: 8px; font-size: 14px; }
-.qontic-notebook .applet-play:disabled { cursor: default; }
-.qontic-notebook [hidden] { display: none !important; }
-.qontic-notebook .applet-actions .button { flex: initial; text-decoration: none; }
-.qontic-notebook .num-depth-reset { padding: 4px 8px; border: 1px solid var(--qn-line); border-radius: 6px; background: var(--qn-card); color: var(--qn-ink); cursor: pointer; }
-@media(max-width:620px) { .qontic-notebook .qn-bar { flex-wrap: wrap; } .qontic-notebook .qn-sections { flex-basis:100%; } }
+.qontic-notebook .page-nav { margin: 10px 0; }
+.qontic-notebook .nav-button { display: inline-block; padding: 8px 12px; border: 1px solid var(--qn-line); border-radius: 8px; background: var(--qn-card); color: var(--qn-accent); text-decoration: none; font-size: 13px; }
+.qontic-notebook .qn-intro h2 { margin:0 0 10px; font-size: 18px; color:var(--qn-head); }
+.qontic-notebook .qn-intro p { color:var(--qn-ink); }
+.qontic-notebook .intro-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(200px,.6fr); gap:18px; margin-top:18px; padding:16px; border:1px solid var(--qn-line); border-radius:14px; background:var(--qn-card); }
+.qontic-notebook .intro-image { margin:0; }
+.qontic-notebook .intro-image img { display:block; width:100%; border-radius:10px; }
+.qontic-notebook .note-box h2 { margin:0 0 10px; font-size:18px; color:var(--qn-head); }
+.qontic-notebook .note-list { margin:0; padding-left:20px; line-height:1.9; }
+.qontic-notebook .applet-stage.has-poster { background-position:center; background-size:contain; background-repeat:no-repeat; }
+.qontic-notebook .applet-play { background:linear-gradient(#04101c66,#04101caa); text-shadow:0 1px 5px #000; }
+.qontic-notebook .next-step .primary-button, .qontic-notebook .section > .primary-button { margin:0 18px 18px; }
+.qontic-notebook .num-original-footer { max-width:1200px; margin:20px auto; padding:16px 20px; color:var(--qn-muted); font:13px/1.6 system-ui; border-top:1px solid var(--qn-line); }
+.qontic-notebook .num-original-footer a { color:var(--qn-accent); }
+@media(max-width:620px) { .qontic-notebook .intro-grid { grid-template-columns:1fr; } .qontic-notebook .qn-bar { flex-wrap:wrap; } .qontic-notebook .qn-sections { flex-basis:100%; } }

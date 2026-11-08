@@ -17,14 +17,10 @@ WebGL2 Bohmian mechanics double-slit simulation with two selectable guiding laws
 
 This project is released under the MIT License. Copyright (c) 2026 anssiZander. See `LICENSE` for the full license text.
 
-## Notebook template preview (dev)
+## Notebook template layout (dev)
 
-The index page now uses the canonical shared notebook shell with Brief/Full,
-themes, section navigation and three prediction checks. Proposed teaching text
-is labelled for author review. The prior page is retained byte for byte at
-`index-pre-template.html`; its relative applet and asset URLs remain valid.
-Simulation main.js, full-applet.html, presets, shaders and all preview images
-are unchanged. A host-only WebGL2 check keeps the preview visible and explains
-unsupported browsers rather than opening a blank applet.
-
-This is a layout and teaching-content review, not a numerical convergence test.
+The index page uses the shared notebook header, section navigation and themes.
+All original teaching text, headings, equations, captions and link labels are
+restored unchanged from index-pre-template.html. No new summaries, quizzes or
+reading-depth variants are included. Simulation files and presets are unchanged.
+The pre-template comparison copy is retained. Production is unchanged.
