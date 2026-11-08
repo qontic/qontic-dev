@@ -44,3 +44,9 @@ Phone layouts and video recording were not tested in this review. Source
 probabilities are those of the stated idealized models, not a reconstruction of
 all experimental imperfections. New notebook template files and the optional
 four-account control are included; other shared visual templates are retained.
+
+## Publication update
+
+The double-slit companion notebook is now a development-only draft. Its public
+copy was withdrawn at the project owner's request while its layout is migrated
+to the current shared notebook template. The other two resources are unchanged.

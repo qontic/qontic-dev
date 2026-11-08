@@ -7,7 +7,7 @@ Companion to `templates/qontic-app`. Notebooks get the same branded header (logo
 - `../../shared/qontic-notebook.css` — notebook components, scoped to `body.qontic-notebook`. Load after `../../shared/qontic-shell.css`.
 - `../../shared/qontic-notebook.js` — `mountQonticNotebook(options)`: mounts the app shell (`mountQonticShell`, breadcrumbs navigation), builds the sticky section bar from `section.section[id]` (label from `data-nav-label` or the h2), adds the light/dark switch (dark by default as in the apps; remembered in `localStorage` key `qontic-notebook-theme`), and wires every `[data-quiz]`.
 - `index.html` — canonical structure; copy it to start a notebook.
-- `legacy-demo-bar.html`, `notebook-template.css`, `qontic-notebook.js` (in this folder) — the earlier in-demo run bar used by `notebooks/double-slit`. Kept until that notebook migrates.
+- `legacy-demo-bar.html`, `notebook-template.css`, `qontic-notebook.js` (in this folder) — the earlier in-demo run bar, retained as a legacy reference. The double-slit notebook now uses the shared notebook shell.
 
 ## Page structure
 
@@ -38,4 +38,4 @@ Canvases stay dark in both themes. Questions dispatch a bubbling `qontic:quiz` e
 
 ## Reference adoption
 
-`notebooks/bell-atom` (0.2.1).
+`notebooks/bell-atom` (0.2.1), and `notebooks/double-slit` (development draft; layout migration under review).

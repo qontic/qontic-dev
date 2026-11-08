@@ -1,315 +1,94 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Double Slit Notebook — Q-Ontic Lab</title>
-<meta name="description" content="Companion notebook for the Q-Ontic analytical double-slit app: interference, single detections, which-slit records, and the Orthodox, Pilot Wave and Many Worlds accounts."/>
-<script src="../back-link.js?v=20260915"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"/>
-<link rel="stylesheet" href="../../templates/qontic-notebook/notebook-template.css?v=2"/>
+<meta name="description" content="Companion notebook for the Q-Ontic analytical double-slit app: interference, single detections, which-slit records, and the Orthodox, Pilot Wave and Many Worlds accounts.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
-<style>
-
-:root{
-  --page:#f4f6fb; --paper:#fff; --paper2:#f8fafc; --canvas:#071020;
-  --text:#172033; --muted:#5f6b80; --accent:#2563eb; --accent-soft:#e8f0ff;
-  --line:#d7deeb; --line2:#e7ebf3; --cyan:#4fc3ff; --blue:#2563eb;
-  --gold:#ffd24d; --orange:#ff9966; --green:#54e0a0; --red:#ff6b6b;
-  --font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-}
-*{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:var(--page);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5}
-.page{max-width:1380px;margin:0 auto;padding:18px}
-.header{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:18px 20px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;box-shadow:0 10px 28px rgba(15,23,42,.06)}
-h1{margin:0;color:#111827;font-size:25px;font-weight:760;letter-spacing:-.02em}.header p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:910px}
-.header-actions{display:grid;gap:9px;justify-items:end}.mode-switch{position:fixed;right:18px;bottom:72px;z-index:2147482999;display:inline-flex;align-items:center;padding:2px;border:1px solid rgba(255,255,255,.35);border-radius:999px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25)}.mode-button,.mode-reset{display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:999px;background:transparent;color:#334155;padding:0;cursor:pointer}.mode-button svg,.mode-reset svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.mode-button:hover,.mode-button:focus,.mode-reset:hover,.mode-reset:focus{color:#0055aa;outline:none}.mode-button:focus-visible,.mode-reset:focus-visible{outline:2px solid #8bc4ff;outline-offset:2px}.mode-button[aria-pressed="true"]{background:#0055aa;color:#fff;box-shadow:0 1px 3px rgba(0,63,127,.25)}.mode-reset{margin-left:2px;border-left:1px solid #cbd5e1;border-radius:0 999px 999px 0;color:#64748b}
-.nav{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.nav a{color:#334155;text-decoration:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:13px}.nav a:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
-.section{margin-top:18px;border:1px solid var(--line);background:var(--paper);border-radius:14px;overflow:hidden;box-shadow:0 10px 24px rgba(15,23,42,.055)}
-.section-head{padding:16px 18px;border-bottom:1px solid var(--line2);background:var(--paper)}.section-head h2{margin:0;color:#111827;font-size:18px;font-weight:730}.section-head p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:980px}
-.detail-text{margin-top:8px;max-width:980px;color:#334155;font-size:14px;line-height:1.56}.detail-text p{margin:7px 0}.detail-text strong,.interpretation-list strong{color:#111827}
-.section-body{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:12px;padding:12px;align-items:start}
-.canvas-card{position:relative;border:1px solid #111827;background:var(--canvas);border-radius:12px;overflow:hidden;min-height:500px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);contain:layout paint}.canvas-card.full{min-height:700px}
-canvas{display:block;width:100%;height:500px}.canvas-card.full canvas{height:700px}
-.note-overlay{position:absolute;left:12px;top:12px;max-width:min(690px,calc(100% - 24px));background:rgba(7,16,32,.79);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:8px 10px;color:#c7dfff;font-size:12px;line-height:1.38;pointer-events:none}
-.legend{position:absolute;left:12px;bottom:12px;display:flex;gap:10px;flex-wrap:wrap;background:rgba(7,16,32,.79);border:1px solid rgba(191,228,255,.22);border-radius:9px;padding:7px 9px;font-size:12px;color:#dbeafe;pointer-events:none}.sw{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,.28);vertical-align:-1px;margin-right:4px}
-.controls{border:1px solid var(--line);background:var(--paper2);border-radius:10px;padding:9px}.row{margin:0 0 8px}.row label{display:flex;justify-content:space-between;gap:8px;color:#334155;font-size:11.5px;margin-bottom:3px;font-weight:680}.row label span:last-child{color:#0f172a;font-weight:610}input[type=range]{width:100%;accent-color:var(--accent)}
-.shared-control-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid var(--line2)}.shared-control-grid .row{margin:0}.shared-control-grid .row label{display:block;margin-bottom:2px}.shared-control-grid .row label span{display:block}.shared-control-grid .row label span:last-child{margin-top:0;font-size:10.5px;white-space:nowrap}
-select{width:100%;background:#fff;color:#172033;border:1px solid var(--line);border-radius:8px;padding:6px 7px;font-family:var(--font);font-size:12px}.checks{display:grid;grid-template-columns:1fr 1fr;gap:5px 7px;margin:6px 0 8px;color:#334155;font-size:11.5px;line-height:1.25}.checks label[id$="GuidanceRow"]{grid-column:1/-1}.checks input{accent-color:var(--accent)}
-.readout,.equation,.interp-box,.callout{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;color:#334155;font-size:13px;line-height:1.5;margin-top:10px}.equation{font-family:Georgia,"Times New Roman",serif;font-size:16px;line-height:1.65;color:#172033}.math-display{text-align:center}.eq-note{margin-top:6px;color:var(--muted);font-family:var(--font);font-size:12px;text-align:center}
-.button{width:100%;border:1px solid #1d4ed8;background:#fff;color:#1d4ed8;border-radius:8px;padding:6px 7px;font:680 11.5px var(--font);cursor:pointer;margin-top:5px}.button:hover{background:var(--accent-soft)}.button.secondary{border-color:var(--line);color:#334155}.button.warn{border-color:#c2410c;color:#c2410c}.button.warn:hover{background:#fff7ed}.control-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px}.control-actions .button{margin-top:0}.control-actions .wide{grid-column:1/-1}
-.derivation{margin-top:10px;border:1px solid var(--line);background:#fff;border-radius:10px;overflow:hidden}.derivation summary{cursor:pointer;padding:10px 12px;color:#1e3a8a;font-weight:710;font-size:13px;background:var(--accent-soft)}.derivation summary:hover{background:#dfeaff}.derivation-body{padding:11px 12px;color:#334155;font-size:13px;line-height:1.55}.derivation-body p{margin:6px 0}.derivation-body .math-display{margin:8px 0;padding:7px;background:var(--paper2);border:1px solid var(--line2);border-radius:8px}
-.interpretation-list{display:grid;grid-template-columns:1fr;gap:9px;margin-top:10px}.interp-item{border:1px solid var(--line2);background:var(--paper2);border-radius:10px;padding:12px;color:#334155;font-size:14px;line-height:1.55}.interp-item h3{margin:0 0 6px;color:#111827;font-size:14px}.interp-detail{display:none}.interp-detail.active{display:block}
-.pill{display:inline-block;padding:2px 7px;border-radius:999px;border:1px solid var(--line);font-size:11px;font-weight:700;margin:2px 4px 2px 0}.pill.quantum{color:#1d4ed8;background:#eff6ff;border-color:#bfdbfe}.pill.pilot{color:#6d28d9;background:#f5f3ff;border-color:#ddd6fe}.pill.numeric{color:#047857;background:#ecfdf5;border-color:#a7f3d0}
-.footer{margin:14px 0 0;border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:12px;color:var(--muted);font-size:13px}
-@media(max-width:980px){.header{grid-template-columns:1fr}.header-actions{justify-items:start}.nav{justify-content:flex-start}.section-body{grid-template-columns:1fr}.canvas-card,.canvas-card.full{min-height:470px}canvas,.canvas-card.full canvas{height:470px}}
-@media(max-width:640px){.page{padding:10px}.header{padding:14px}.section-head{padding:14px}.section-body{padding:10px;gap:10px}.canvas-card,.canvas-card.full{min-height:360px}canvas,.canvas-card.full canvas{height:360px}.controls{width:100%}.nav a{font-size:12px;padding:6px 8px}.note-overlay{font-size:11px;max-width:calc(100% - 20px)}.mode-switch{right:10px;bottom:60px}.mode-button{padding:5px 7px}}
-@media(max-width:430px){.canvas-card,.canvas-card.full{min-height:320px}canvas,.canvas-card.full canvas{height:320px}.legend{left:8px;bottom:8px;font-size:11px;gap:7px}.readout,.equation,.interp-box{font-size:12px}.shared-control-grid{grid-template-columns:1fr}}
-
-/* Learner-first mathematics and sense-making additions */
-.learning-strip{margin-top:18px;border:1px solid var(--line);background:linear-gradient(135deg,#f8fbff,#fff);border-radius:14px;padding:16px 18px;box-shadow:0 10px 24px rgba(15,23,42,.045)}
-.learning-strip h2{margin:0;color:#111827;font-size:18px;font-weight:740}.learning-strip>p{margin:6px 0 0;max-width:980px;color:#475569;font-size:14px}
-.concept-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.concept-card{border:1px solid var(--line2);background:#fff;border-radius:10px;padding:11px 12px;color:#334155;font-size:13px;line-height:1.5}.concept-card h3{margin:0 0 5px;color:#111827;font-size:13px}.symbol{display:inline-block;margin:2px 0 7px;padding:4px 7px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:7px;color:#1e3a8a;font:600 16px Georgia,"Times New Roman",serif}.symbol.gold{border-color:#fde68a;background:#fffbeb;color:#92400e}.symbol.orange{border-color:#fed7aa;background:#fff7ed;color:#9a3412}.symbol.green{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
-.math-map{margin-top:10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:10px;padding:10px 12px;color:#334155;font-size:13px;line-height:1.55}.math-map strong{color:#1e3a8a}.math-map .formula{display:block;margin:7px 0;padding:7px 9px;border:1px solid #dbeafe;background:#fff;border-radius:8px;color:#172033;font:600 16px Georgia,"Times New Roman",serif;text-align:center}.math-map .formula.small{font-size:14px}
-.prediction-card{margin-top:10px;border:1px solid #a7f3d0;background:#ecfdf5;border-radius:10px;padding:10px 12px;color:#14532d;font-size:13px;line-height:1.5}.prediction-card summary{cursor:pointer;font-weight:750;color:#166534}.prediction-card p{margin:7px 0 0}.prediction-card .answer{color:#14532d}
-.concept-note{margin-top:10px;border-left:4px solid #2563eb;background:#f8fbff;padding:9px 11px;color:#334155;font-size:13px;line-height:1.52}.concept-note strong{color:#1e3a8a}
-.question-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.question-grid details{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px;color:#334155;font-size:13px;line-height:1.55}.question-grid summary{cursor:pointer;color:#1e3a8a;font-weight:730}.question-grid p{margin:7px 0 0}
-.comparison-table{width:100%;border-collapse:separate;border-spacing:0;margin-top:12px;overflow:hidden;border:1px solid var(--line);border-radius:10px;font-size:13px}.comparison-table th,.comparison-table td{padding:9px 10px;border-bottom:1px solid var(--line2);vertical-align:top;text-align:left}.comparison-table th{background:#f8fafc;color:#1e3a8a;font-size:12px}.comparison-table tr:last-child td{border-bottom:none}.comparison-table td:first-child{font-weight:700;color:#172033;width:28%}
-.inline-terms{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.term{border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 8px;color:#475569;font-size:12px}.term b{color:#172033}
-.learn-button-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}.button.compact{margin-top:0}.path-record-note{margin-top:8px;color:#475569;font-size:12px;line-height:1.42}
-@media(max-width:820px){.concept-grid,.question-grid{grid-template-columns:1fr}.comparison-table{display:block;overflow:auto;white-space:normal}}
-
-/* One notebook, two reading depths. Detailed is the default. */
-body[data-notebook-mode="succinct"] .learning-strip,
-body[data-notebook-mode="succinct"] .detail-text,
-body[data-notebook-mode="succinct"] .math-map,
-body[data-notebook-mode="succinct"] .symbols-row,
-body[data-notebook-mode="succinct"] .quiz-card,
-body[data-notebook-mode="succinct"] .concept-note,
-body[data-notebook-mode="succinct"] .equation-summary,
-body[data-notebook-mode="succinct"] .equation-detail,
-body[data-notebook-mode="succinct"] .control-detail,
-body[data-notebook-mode="succinct"] .derivation,
-body[data-notebook-mode="succinct"] .interpretation-list,
-body[data-notebook-mode="succinct"] .path-record-note{display:none!important}
-body[data-notebook-mode="succinct"] .section-head{padding-bottom:13px}
-.guided-only{display:none}
-body[data-notebook-mode="succinct"] .guided-summary{display:block}
-body[data-notebook-mode="guided"] .guided-only{display:block}
-body[data-notebook-mode="guided"] .learning-strip:not(.guided-only),
-body[data-notebook-mode="guided"] .detail-text,
-body[data-notebook-mode="guided"] .math-map,
-body[data-notebook-mode="guided"] .symbols-row,
-body[data-notebook-mode="guided"] .quiz-card,
-body[data-notebook-mode="guided"] .concept-note,
-body[data-notebook-mode="guided"] .equation-detail,
-body[data-notebook-mode="guided"] .control-detail,
-body[data-notebook-mode="guided"] .equation-summary,
-body[data-notebook-mode="guided"] .derivation,
-body[data-notebook-mode="guided"] .interpretation-list,
-body[data-notebook-mode="guided"] .path-record-note{display:none!important}
-.guided-summary{margin-top:9px;border-left:4px solid #2563eb;background:#f8fbff;padding:9px 11px;color:#334155;font-size:13px;line-height:1.5}
-.guided-summary strong{color:#1e3a8a}.guided-summary .guided-equation{display:block;margin-top:6px;color:#172033}
-.math-map .formula,.equation-summary .equation-line,.guided-equation,.derivation-body .math-display,.equation.math-display{font-family:var(--font);font-weight:400}
-.math-map .formula .katex-display,.equation-summary .equation-line .katex-display,.guided-equation .katex-display,.derivation-body .math-display .katex-display,.equation.math-display>.katex-display{margin:.15em 0}
-.math-map .formula .katex-display,.equation-summary .equation-line .katex-display,.guided-equation .katex-display,.derivation-body .math-display .katex-display,.equation.math-display>.katex-display{max-width:100%;overflow-x:auto;overflow-y:hidden;padding:2px 0}
-.math-map .formula .katex,.equation-summary .equation-line .katex,.guided-equation .katex,.derivation-body .math-display .katex,.equation.math-display>.katex-display .katex{font-size:1.12em}
-.equation.math-display{padding:16px 14px;background:#fff;border:0;border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);border-radius:0}
-.eq-note{margin-top:10px}
-@media(max-width:640px){.math-map .formula .katex,.equation-summary .equation-line .katex,.guided-equation .katex,.derivation-body .math-display .katex,.equation.math-display>.katex-display .katex{font-size:1em}.katex-display{overflow-x:auto;overflow-y:hidden;padding-bottom:2px}}
-.guided-points{margin:8px 0 0;padding-left:18px;color:#334155;font-size:13px}.guided-points li{margin:4px 0}
-.review-toggle{display:inline-flex;align-items:center;gap:7px;margin-top:11px;padding:6px 9px;border:1px solid #f4c96b;border-radius:8px;background:#fffbeb;color:#78350f;font-size:12px;font-weight:700;cursor:pointer}.review-toggle input{margin:0;accent-color:#b45309}.review-proposal{display:none;margin-top:10px;border:1px solid #f4c96b;border-left:4px solid #d97706;border-radius:9px;background:#fffbeb;padding:10px 12px;color:#713f12;font-size:13px;line-height:1.5}.review-proposal h3{margin:0 0 6px;color:#92400e;font-size:13px}.review-proposal p{margin:5px 0!important;color:#713f12!important;font-size:13px!important}.review-proposal .proposal-text{padding:7px 9px;border:1px solid #fde68a;border-radius:7px;background:#fff;color:#334155!important}.review-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.review-badge{display:inline-block;padding:2px 7px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:750}.review-id{color:#92400e;font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace}body[data-review-proposals="true"] .review-proposal{display:block}
-
-
-/* Beginner mathematics refinements */
-.equation.math-display{font-size:17px!important;line-height:1.62!important}
-.equation.math-display math{font-size:1.08rem!important;line-height:1.55!important}
-.part2-normalized-equation,.part2-schrodinger-equation{font-size:17px!important;line-height:1.58!important;white-space:normal!important}
-.part2-normalized-equation>math{font-size:1.08rem!important}.part2-schrodinger-formula{white-space:normal!important}.part2-schrodinger-note{max-width:none!important;font-size:13px!important;line-height:1.48!important}
-.eq-note{font-size:13px!important;line-height:1.48!important}
-.equation-summary{margin-top:10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:10px;padding:10px 12px;color:#334155;font-size:14px;line-height:1.55}.equation-summary strong{color:#1e3a8a}.equation-summary .equation-line{display:block;margin:7px 0;padding:8px 10px;border:1px solid #dbeafe;background:#fff;border-radius:8px;color:#172033;font:600 17px Georgia,"Times New Roman",serif;text-align:center;line-height:1.5}
-.equation-detail{margin-top:9px;border:1px solid var(--line);background:#fff;border-radius:10px;overflow:hidden}.equation-detail summary{cursor:pointer;padding:10px 12px;color:#1e3a8a;background:#f8fafc;font-size:13px;font-weight:730}.equation-detail>div{padding:10px 12px}.equation-detail .equation{margin:0}.equation-detail p{margin:8px 0 0;color:#475569;font-size:13px;line-height:1.52}
-.symbols-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.symbol-key{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 8px;color:#475569;font-size:12px;line-height:1.35}.symbol-key b{color:#172033}.eq-cyan{color:#0369a1}.eq-blue{color:#1d4ed8}.eq-gold{color:#a16207}.eq-orange{color:#c2410c}.eq-green{color:#047857}.eq-purple{color:#6d28d9}
-.quiz-card{margin-top:10px;border:1px solid #a7f3d0;background:#f0fdf4;border-radius:10px;padding:11px 12px;color:#14532d;font-size:13px;line-height:1.5}.quiz-card strong{color:#166534}.quiz-card p{margin:0}.quiz-options{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.quiz-option{border:1px solid #86efac;background:#fff;color:#14532d;border-radius:8px;padding:7px 9px;font:650 12px var(--font);cursor:pointer;text-align:left}.quiz-option:hover,.quiz-option:focus{background:#dcfce7;outline:none}.quiz-feedback{min-height:1.4em;margin-top:8px!important;color:#14532d;font-weight:600}.quiz-card.incorrect{border-color:#fdba74;background:#fff7ed}.quiz-card.incorrect .quiz-feedback{color:#9a3412}.quiz-card.correct{border-color:#86efac;background:#ecfdf5}
-.pattern-compare{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}.pattern-card{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px}.pattern-card h3{margin:0 0 6px;color:#172033;font-size:13px}.pattern-card p{margin:6px 0 0;color:#475569;font-size:12px;line-height:1.42}.mini-pattern{height:46px;border-radius:7px;border:1px solid #e2e8f0;position:relative;overflow:hidden;background:#f8fafc}.mini-pattern.classical:before,.mini-pattern.classical:after{content:"";position:absolute;top:7px;bottom:7px;width:31%;border-radius:50%;background:rgba(96,165,250,.48)}.mini-pattern.classical:before{left:8%}.mini-pattern.classical:after{right:8%}.mini-pattern.quantum{background:repeating-linear-gradient(90deg,#fff7cc 0 5px,#f8fafc 5px 11px);opacity:.98}.mini-pattern.quantum:before{content:"";position:absolute;inset:5px 0;background:linear-gradient(90deg,rgba(255,210,77,.15),rgba(255,210,77,.92),rgba(255,210,77,.15));mix-blend-mode:multiply}.mini-pattern.dots:before{content:"•  • •   •  • • •   • •  •  •  • •   •   • •";position:absolute;left:6px;right:6px;top:8px;color:#b45309;letter-spacing:2px;font-size:20px;line-height:17px;word-spacing:4px}
-@media(max-width:820px){.pattern-compare{grid-template-columns:1fr}.equation-summary .equation-line{font-size:16px}.symbols-row{gap:5px}}
-
-/* Keep every notebook panel in one centered, readable layout. */
-.page{
-  width:calc(100% - 36px);
-  max-width:1220px;
-  margin:18px auto;
-  padding:0;
-}
-.section{
-  width:100%;
-  max-width:100%;
-  min-width:0;
-}
-.section-head,
-.section-body,
-.section-body > *{
-  min-width:0;
-}
-.section-head > p,
-.section-head > .detail-text,
-.section-head > .math-map,
-.section-head > .equation-summary,
-.section-head > .equation-detail,
-.section-head > .symbols-row,
-.section-head > .quiz-card,
-.section-head > .concept-note,
-.section-head > .interpretation-list{
-  max-width:1100px;
-}
-.learning-strip > p{
-  max-width:1100px;
-}
-.section-body{
-  gap:18px;
-  padding:18px;
-}
-@media(max-width:640px){
-  .page{width:calc(100% - 20px);margin:10px auto}
-  .section-body{gap:10px;padding:10px}
-}
-
-/* Equation containment without scrollbars */
-.math-map .formula .katex-display,
-.equation-summary .equation-line .katex-display,
-.guided-equation .katex-display,
-.derivation-body .math-display .katex-display,
-.equation.math-display>.katex-display{
-  overflow:visible;
-  max-width:100%;
-  padding-left:0;
-  padding-right:0;
-}
-.controls .math-map .formula .katex,
-.controls .equation-summary .equation-line .katex,
-.controls .equation.math-display>.katex-display .katex{
-  font-size:.92em;
-}
-@media(max-width:430px){
-  .controls .math-map .formula .katex,
-  .controls .equation-summary .equation-line .katex,
-  .controls .equation.math-display>.katex-display .katex{font-size:.84em}
-}
-body.qn-dark{--page:#06111c;--paper:#0b1926;--paper2:#0e2030;--text:#eaf4ff;--muted:#9bb0be;--line:#27465a;--line2:#1c3548;--accent-soft:#173349}
-body.qn-dark .header,body.qn-dark .section,body.qn-dark .section-head,body.qn-dark .learning-strip,body.qn-dark .controls{color:var(--text)}
-body.qn-dark h1,body.qn-dark h2,body.qn-dark h3,body.qn-dark .row label,body.qn-dark .row label span:last-child{color:var(--text)}
-body.qn-dark .section-head p,body.qn-dark .detail-text,body.qn-dark .readout,body.qn-dark .callout{color:#b8ccdc}
-body.qn-dark .guided-summary,body.qn-dark .concept-card,body.qn-dark .question-grid details,body.qn-dark .math-map .formula,body.qn-dark .equation.math-display,body.qn-dark .equation-detail,body.qn-dark .symbol-key,body.qn-dark .pattern-card,body.qn-dark .term,body.qn-dark .derivation{background:var(--paper2);color:#b8ccdc}
-body.qn-dark .nav a,body.qn-dark select,body.qn-dark .button,body.qn-dark .quiz-option,body.qn-dark .mode-switch{background:var(--paper);color:var(--text)}
-body.qn-dark .nav a:hover,body.qn-dark .button:hover,body.qn-dark .quiz-option:hover,body.qn-dark .quiz-option:focus{background:var(--accent-soft)}
-body.qn-dark .mode-button,body.qn-dark .mode-reset,body.qn-dark .term b,body.qn-dark .symbol-key b,body.qn-dark .pattern-card h3,body.qn-dark .comparison-table td:first-child,body.qn-dark .guided-summary .guided-equation,body.qn-dark .equation-summary .equation-line{color:var(--text)}
-body.qn-dark .comparison-table th,body.qn-dark .equation-detail summary{background:var(--paper2)}
-
-/* ---- Double-slit notebook additions ---- */
-.canvas-card canvas{touch-action:pan-y}
-.canvas-card .sub-canvas[hidden]{display:none!important}
-.header{grid-template-columns:minmax(0,1fr) minmax(0,auto)}.header-actions{max-width:560px}
-.canvas-card .sub-canvas{height:220px!important;border-top:1px solid rgba(191,228,255,.15)}
-.qn-results.ds-left{left:12px;right:auto;bottom:34px;width:min(270px,calc(100% - 24px))}
-.qn-results .readout span{display:block}
-.controls .row label span:last-child{font-variant-numeric:tabular-nums}
-.control-actions.four{grid-template-columns:1fr 1fr}
-.button[aria-pressed="true"]{background:var(--accent);color:#fff}
-.app-callout{margin-top:10px;border:1px dashed var(--accent);border-radius:10px;padding:9px 10px;background:var(--paper);font-size:12.5px;line-height:1.45;color:#334155}
-.app-callout strong{display:block;color:#1e3a8a;margin-bottom:4px}
-.app-callout ol{margin:4px 0 6px;padding-left:18px}
-.app-callout a.button{display:block;text-align:center;text-decoration:none}
-.time-est{font-size:12px;font-weight:500;color:var(--muted);margin-left:6px;white-space:nowrap}
-.ui{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;padding:1px 4px;border-radius:4px;background:var(--accent-soft);white-space:nowrap}
-.plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
-.plan-grid .concept-card h3 span{color:var(--muted);font-weight:500}
-.questions-list{counter-reset:q;list-style:none;padding:0;margin:12px 0 0;display:grid;gap:7px}
-.questions-list li{counter-increment:q;display:grid;grid-template-columns:2.2rem minmax(0,1fr);border:1px solid var(--line2);background:#fff;border-radius:9px;padding:8px 10px;font-size:14px;color:#334155}
-.questions-list li::before{content:"Q" counter(q);font-weight:750;color:#1d4ed8}
-.comparison-table td.blank{height:46px}
-.refs{margin:8px 0 0;padding-left:20px;font-size:13px;color:#334155}.refs li{margin:5px 0}
-.task-card{margin-top:10px;border:1px solid #fde68a;border-left:4px solid #d97706;background:#fffbeb;border-radius:10px;padding:10px 12px;color:#713f12;font-size:13px;line-height:1.5}
-.task-card strong{color:#92400e}
-@media(max-width:820px){.plan-grid{grid-template-columns:1fr}}
-@media(max-width:640px){.qn-results.ds-left{top:10px;bottom:auto;left:10px;width:min(210px,calc(100% - 20px))}.qn-results.ds-left .readout{font-size:10.5px}}
-body.qn-dark .questions-list li,body.qn-dark .app-callout{background:var(--paper2);color:#b8ccdc}
-body.qn-dark .app-callout strong{color:var(--text)}
-body.qn-dark .task-card{background:#2a1f08;border-color:#7a5a12;color:#f3d9a0}body.qn-dark .task-card strong{color:#ffd77a}
-</style>
-</head>
-<body data-notebook-mode="detailed">
-<div class="page">
-<header class="header">
-<div>
-<div class="qn-purpose"><h1>Double-Slit Notebook</h1><button class="qn-purpose-button" aria-label="Notebook purpose" type="button">?</button><span class="qn-purpose-tip">Build the double-slit pattern from single electrons, amplitudes and which-slit records, then compare what the Orthodox, Pilot Wave and Many Worlds accounts say is happening.</span></div>
-<p>Electrons sent one at a time through two slits build up bands on a screen. All accounts agree on that pattern and on how to calculate it. They disagree about what happens between the source and the screen. Every figure here uses the same wave model and default settings as the analytical double-slit app.</p>
-</div>
-<div class="header-actions">
-<button class="qn-theme" data-qn-theme aria-pressed="false" type="button">Dark</button>
-<div class="mode-switch" role="group" aria-label="Notebook detail level"><button class="mode-button" data-notebook-mode-button="succinct" type="button" aria-pressed="false" title="Brief" aria-label="Show brief version"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 8h14M5 12h9M5 16h6"/></svg></button><button class="mode-button" data-notebook-mode-button="detailed" type="button" aria-pressed="true" title="Full" aria-label="Show full version"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 6h14M5 10h14M5 14h14M5 18h10"/></svg></button><button class="mode-reset" data-notebook-mode-reset type="button" title="Reset display preference" aria-label="Reset display preference"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4v6h6M5.5 9a7 7 0 1 1-1 7"/></svg></button></div>
-<nav class="nav">
-<a href="#part1">1. The puzzle</a><a href="#part2">2. One electron, one dot</a><a href="#part3">3. Add, then square</a><a href="#part4">4. Which slit?</a><a href="#part5">5. Three accounts</a><a href="#part6">6. Team questions</a><a href="#part7">7. About the model</a><a href="#app-tour">App tour</a><a href="../../apps/comparative/double-slit-analytical/#sep=300&amp;src=225&amp;det=1000&amp;scr=1200&amp;wl=50&amp;view=copenhagen&amp;slits=11&amp;wp=none" target="_blank" rel="noopener">Open the app</a>
-</nav>
-</div>
-</header>
-
-<section class="learning-strip" id="foundations">
-<h2>Before you begin: reading the pictures</h2>
-<p>Every figure shows the experiment from above, as in the app. The source is on the left, the wall with two slits in the middle, the detector screen on the right. The moving blue shading is the wavefunction ψ: bright where the wave is strong, with stripes that are its crests. Each column of the picture is brightened separately, so the weak parts far from the source stay visible. The curve beside the screen gives the probability of a hit at each height y.</p>
-<div class="concept-grid">
-<div class="concept-card"><h3>1. Two alternatives</h3><span class="symbol">ψ = ψ<sub>U</sub> + ψ<sub>L</sub></span><p>With both slits open, the state is a sum of a part from the upper slit and a part from the lower slit. These are two terms describing one electron, not two electrons.</p></div>
-<div class="concept-card"><h3>2. Add, then square</h3><span class="symbol gold">P(y) ∝ |ψ(y)|²</span><p>The probability of a hit is the squared size of the total ψ at that point. Because the parts are added first, they can reinforce or cancel.</p></div>
-<div class="concept-card"><h3>3. One run, one dot</h3><span class="symbol orange">one electron → one hit</span><p>A single electron makes one spot at one place. The bands appear only after many electrons, each sent alone.</p></div>
+<link rel="stylesheet" href="../../shared/qontic-shell.css?v=3.7"><link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.2"><link rel="stylesheet" href="notebook.css?v=20261108"><link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg"></head>
+<body class="qontic-notebook">
+<main class="shell">
+<header><div><p class="eyebrow">Q-Ontic notebook · Development draft</p><h1>Double-Slit Notebook</h1></div></header><div class="qn-intro"><p class="lead">Electrons sent one at a time through two slits build up bands on a screen. All accounts agree on that pattern and on how to calculate it. They disagree about what happens between the source and the screen. Every figure here uses the same wave model and default settings as the analytical double-slit app.</p>
+<p class="prereq"><b>Reading path:</b> Parts 1–4 introduce the experiment; Part 5 compares three views. Use Brief for the demonstrations or Full for explanations and mathematics.</p><p class="ds-draft">Development draft — layout and teaching content are under review.</p></div><section class="section" id="foundations" data-nav-label="Before you begin">
+<div class="section-head"><h2>Before you begin: reading the pictures</h2>
+</div><div class="prose ds-overview"><p>Every figure shows the experiment from above, as in the app. The source is on the left, the wall with two slits in the middle, the detector screen on the right. The moving blue shading is the wavefunction ψ: bright where the wave is strong, with stripes that are its crests. Each column of the picture is brightened separately, so the weak parts far from the source stay visible. The curve beside the screen gives the probability of a hit at each height y.</p>
+<div class="cards ds-concepts">
+<div class="card"><h3>1. Two alternatives</h3><span class="symbol">ψ = ψ<sub>U</sub> + ψ<sub>L</sub></span><p>With both slits open, the state is a sum of a part from the upper slit and a part from the lower slit. These are two terms describing one electron, not two electrons.</p></div>
+<div class="card"><h3>2. Add, then square</h3><span class="symbol gold">P(y) ∝ |ψ(y)|²</span><p>The probability of a hit is the squared size of the total ψ at that point. Because the parts are added first, they can reinforce or cancel.</p></div>
+<div class="card"><h3>3. One run, one dot</h3><span class="symbol orange">one electron → one hit</span><p>A single electron makes one spot at one place. The bands appear only after many electrons, each sent alone.</p></div>
 </div>
 <div class="inline-terms"><span class="term"><b>Blue:</b> wave shading (density rescaled; stripes show phase)</span><span class="term"><b>Cyan:</b> upper-slit part or upper-slit particles</span><span class="term"><b>Orange:</b> lower-slit part or particles</span><span class="term"><b>Gold:</b> probability and detector hits</span></div>
 <h2 style="margin-top:16px">How this notebook is used in class</h2><p>Parts 1–4 take about 30 minutes with the predictions; Part 5 about 15 minutes.</p>
-<div class="plan-grid">
-<div class="concept-card"><h3>Explain <span>· class 1</span></h3><p>The setup, why it matters, and common ideas about it. Parts 1–3.</p></div>
-<div class="concept-card"><h3>Engage <span>· class 1 → week → class 2</span></h3><p>Work with the figures and the app. Part 4 ends with a task for the week and your discussion-board post. Part 5 is done in teams.</p></div>
-<div class="concept-card"><h3>Wrap up <span>· class 2</span></h3><p>Teams present their answers to the questions in Part 6. Then we look at what changed in how you think about the experiment.</p></div>
+<div class="cards ds-concepts">
+<div class="card"><h3>Explain <span>· class 1</span></h3><p>The setup, why it matters, and common ideas about it. Parts 1–3.</p></div>
+<div class="card"><h3>Engage <span>· class 1 → week → class 2</span></h3><p>Work with the figures and the app. Part 4 ends with a task for the week and your discussion-board post. Part 5 is done in teams.</p></div>
+<div class="card"><h3>Wrap up <span>· class 2</span></h3><p>Teams present their answers to the questions in Part 6. Then we look at what changed in how you think about the experiment.</p></div>
 </div>
-</section>
+</div></section>
 
 
-<section class="learning-strip" id="app-tour">
-<h2>Quick tour of the app</h2>
-<p>The app runs the same model with more controls. For this course you need only these.</p>
-<div class="concept-grid">
-<div class="concept-card"><h3>Controls</h3><p><b>View pill</b> at the top of the panel: Orthodox, Pilot Wave or Many Worlds; tap to cycle. <b>Start / Stop</b>, <b>Reset</b> and <b>Speed</b> below it. <span class="ui">Both Slits</span> cycles to the upper or lower slit only. <span class="ui">No Detector</span> cycles to a which-slit detector at the upper or lower slit. <b>λ</b>, <b>Slit Sep.</b> and <b>Screen dist.</b> (the Z of this notebook) set the experiment.</p></div>
-<div class="concept-card"><h3>The picture</h3><p>The wave is colored by its phase (<span class="ui">Show: Phase (cos θ)</span>): the color bands are the crests, like the stripes here. Choose <span class="ui">|Ψ|²</span> to see only where the wave is strong. On the right of the screen, the green curve is the prediction, and each red dot is a counted hit total, with a bar showing its statistical uncertainty.</p></div>
-<div class="concept-card"><h3>Readouts and extras</h3><p>Below the panel: <b>Hits</b>; in Pilot Wave the number of particles; in Many Worlds the <b>Branch records</b>, which grow as (number of pixels)<sup>hits</sup> and depend on the pixel size. The <span class="ui">Physics</span> and <span class="ui">Views</span> tabs (<span class="ui">Phys</span> on phones) hold the full equations; you do not need them for this course. Screenshots: the camera icon in the header (inside <span class="ui">⋯</span> on phones) or the S key.</p></div>
+<section class="section" id="app-tour" data-nav-label="App tour">
+<div class="section-head"><h2>Quick tour of the app</h2>
+</div><div class="prose ds-overview"><p>The app runs the same model with more controls. For this course you need only these.</p>
+<div class="cards ds-concepts">
+<div class="card"><h3>Controls</h3><p><b>View pill</b> at the top of the panel: Orthodox, Pilot Wave or Many Worlds; tap to cycle. <b>Start / Stop</b>, <b>Reset</b> and <b>Speed</b> below it. <span class="ui">Both Slits</span> cycles to the upper or lower slit only. <span class="ui">No Detector</span> cycles to a which-slit detector at the upper or lower slit. <b>λ</b>, <b>Slit Sep.</b> and <b>Screen dist.</b> (the Z of this notebook) set the experiment.</p></div>
+<div class="card"><h3>The picture</h3><p>The wave is colored by its phase (<span class="ui">Show: Phase (cos θ)</span>): the color bands are the crests, like the stripes here. Choose <span class="ui">|Ψ|²</span> to see only where the wave is strong. On the right of the screen, the green curve is the prediction, and each red dot is a counted hit total, with a bar showing its statistical uncertainty.</p></div>
+<div class="card"><h3>Readouts and extras</h3><p>Below the panel: <b>Hits</b>; in Pilot Wave the number of particles; in Many Worlds the <b>Branch records</b>, which grow as (number of pixels)<sup>hits</sup> and depend on the pixel size. The <span class="ui">Physics</span> and <span class="ui">Views</span> tabs (<span class="ui">Phys</span> on phones) hold the full equations; you do not need them for this course. Screenshots: the camera icon in the header (inside <span class="ui">⋯</span> on phones) or the S key.</p></div>
 </div>
-</section>
+</div></section>
 
 <!-- ============ PART 1 ============ -->
-<section class="section" id="part1">
+<section class="section" id="part1" data-nav-label="1 The puzzle">
 <div class="section-head">
 <h2>1. The puzzle: two slits are not one slit plus one slit <span class="time-est">≈ 8 min</span></h2>
 <p>With one slit open, electrons spread into one broad hump on the screen. Open both and the screen shows bands, including places that each slit alone would reach but that are now nearly empty.</p>
-<div class="guided-summary"><strong>What to notice:</strong> Compare <b>Add the two humps</b> with <b>Both slits</b>. Opening the second slit makes some places on the screen less likely, not more.<span class="guided-equation">\[\Delta y \approx \frac{\lambda Z}{d}\]</span></div>
-<div class="detail-text"><p>Start with <b>Upper slit</b> and <b>Lower slit</b>. Then press <b>Add the two humps</b>: this is what you would expect if each electron went through one slit or the other and the two cases simply added up. Then press <b>Both slits</b>.</p><p>The spacing of the bright bands depends on the wavelength λ and the slit separation d. For a screen at distance Z behind the wall (the app calls it <span class="ui">Screen dist.</span>), it is close to λZ/d. Lowering λ squeezes the bands together, and so does moving the slits apart. Bands appear only where the two humps overlap, and the humps decide how many of them are bright: move the slits far apart and the humps separate, leaving no bands at all. The readout shows λZ/d and warns you when the humps barely overlap.</p></div>
-<div class="quiz-card" data-answer="c" data-correct="Right. The bands are not the sum of the two humps: some places become darker when the second slit opens." data-tryagain="Press Both slits and compare it with Add the two humps. Look near y = ±80 nm.">
-<p><strong>Predict first:</strong> If each electron goes through one slit or the other, what should the screen show with both slits open?</p>
-<div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">The two humps added, one wide plateau.</button><button class="quiz-option" data-choice="b" type="button">One narrow hump in the middle.</button><button class="quiz-option" data-choice="c" type="button">I expect the two humps added, but the experiment shows bands.</button></div>
-<p aria-live="polite" class="quiz-feedback"></p></div>
+<div class="notice"><strong>What to notice:</strong> Compare <b>Add the two humps</b> with <b>Both slits</b>. Opening the second slit makes some places on the screen less likely, not more.<span class="guided-equation">\[\Delta y \approx \frac{\lambda Z}{d}\]</span></div>
+<div class="prose qn-full ds-explanation"><p>Start with <b>Upper slit</b> and <b>Lower slit</b>. Then press <b>Add the two humps</b>: this is what you would expect if each electron went through one slit or the other and the two cases simply added up. Then press <b>Both slits</b>.</p><p>The spacing of the bright bands depends on the wavelength λ and the slit separation d. For a screen at distance Z behind the wall (the app calls it <span class="ui">Screen dist.</span>), it is close to λZ/d. Lowering λ squeezes the bands together, and so does moving the slits apart. Bands appear only where the two humps overlap, and the humps decide how many of them are bright: move the slits far apart and the humps separate, leaving no bands at all. The readout shows λZ/d and warns you when the humps barely overlap.</p></div>
+<div class="quiz" data-quiz="">
+<p class="q"><strong>Predict first:</strong> If each electron goes through one slit or the other, what should the screen show with both slits open?</p>
+<div class="options"><button data-choice="a" type="button" data-ok="false" data-fb="Press Both slits and compare it with Add the two humps. Look near y = ±80 nm.">The two humps added, one wide plateau.</button><button data-choice="b" type="button" data-ok="false" data-fb="Press Both slits and compare it with Add the two humps. Look near y = ±80 nm.">One narrow hump in the middle.</button><button data-choice="c" type="button" data-ok="true" data-fb="Right. The bands are not the sum of the two humps: some places become darker when the second slit opens.">I expect the two humps added, but the experiment shows bands.</button></div>
+<p aria-live="polite" class="fb" hidden=""></p></div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c1" aria-label="The experiment seen from above with the screen pattern beside the screen"></canvas><aside class="qn-results ds-left"><div class="qn-results-head"><strong>Results</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="r1"></div></aside></div>
+<div class="canvas-card"><canvas id="c1" aria-label="The experiment seen from above with the screen pattern beside the screen"></canvas><aside class="qn-results ds-results"><div class="qn-results-head"><strong>Results</strong><button data-qn-result-collapse type="button" aria-label="Collapse results" aria-expanded="true">−</button></div><div class="readout" id="r1"></div></aside></div>
 <div class="controls">
-<div class="qn-demo-bar"><div class="qn-run" data-qn-run><button class="qn-run-primary" data-pause="c1" type="button">Pause</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button data-restart="c1" type="button">↺ Restart wave</button></div></div><label class="qn-speed"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed"/><output>0.50×</output></label></div>
+<div class="qn-demo-bar ds-demo-bar"><div class="buttons"><button class="button primary" data-pause="c1" type="button">Pause</button><button data-restart="c1" type="button" class="button">↺ Restart wave</button></div><label class="ds-speed" for="ds-range-1"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed" id="ds-range-1"><output>0.50×</output></label></div>
 <div class="shared-control-grid" aria-label="Shared physical conditions">
-<div class="row"><label><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50"/></div>
-<div class="row"><label><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="600" step="10" value="300"/></div>
+<div class="row"><label for="ds-range-2"><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50" id="ds-range-2"></div>
+<div class="row"><label for="ds-range-3"><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="600" step="10" value="300" id="ds-range-3"></div>
 </div>
 <div class="control-actions four" role="group" aria-label="Which slits are open">
 <button class="button" id="f1-upper" type="button">Upper slit</button><button class="button" id="f1-lower" type="button">Lower slit</button>
 <button class="button" id="f1-sum" type="button">Add the two humps</button><button class="button" id="f1-both" type="button">Both slits</button>
 </div>
 <div class="app-callout"><strong>In the app</strong><ol><li>Press <span class="ui">Start</span> and watch hits build up.</li><li>Press <span class="ui">Both Slits</span> to cycle to one slit, then the other.</li><li>Change λ and slit separation. Does Δy ≈ λZ/d hold?</li></ol><a class="button" target="_blank" rel="noopener" href="../../apps/comparative/double-slit-analytical/#sep=300&amp;src=225&amp;det=1000&amp;scr=1200&amp;wl=50&amp;view=copenhagen&amp;slits=11&amp;wp=none">Open the app</a></div>
-<details class="equation-detail control-detail"><summary>Details and math: where λ comes from</summary><div><p>De Broglie's relation λ = h/p gives any particle with momentum p a wavelength. The default λ = 50 nm is a very slow electron. All lengths are in nanometers so that the source, slits and screen fit in one picture; real electron experiments use other scales, with the same structure of bands. Bach and coworkers (2013) did the full experiment with electrons, opening and closing each slit with a movable mask. λ stops at 50 nm, as in the app, to stay in the range where the model is accurate.</p><p>Δy ≈ λZ/d holds when the screen is far compared with the slit separation. Each slit alone gives a broad hump (the single-slit envelope); the bands are drawn under it, so only a few are bright.</p></div></details>
+<details class="derivation qn-full"><summary>Details and math: where λ comes from</summary><div class="body"><p>De Broglie's relation λ = h/p gives any particle with momentum p a wavelength. The default λ = 50 nm is a very slow electron. All lengths are in nanometers so that the source, slits and screen fit in one picture; real electron experiments use other scales, with the same structure of bands. Bach and coworkers (2013) did the full experiment with electrons, opening and closing each slit with a movable mask. λ stops at 50 nm, as in the app, to stay in the range where the model is accurate.</p><p>Δy ≈ λZ/d holds when the screen is far compared with the slit separation. Each slit alone gives a broad hump (the single-slit envelope); the bands are drawn under it, so only a few are bright.</p></div></details>
 </div>
 </div>
 </section>
 
 <!-- ============ PART 2 ============ -->
-<section class="section" id="part2">
+<section class="section" id="part2" data-nav-label="2 One electron">
 <div class="section-head">
 <h2>2. One electron, one dot <span class="time-est">≈ 6 min</span></h2>
 <p>The smooth curve is never seen directly. Each electron is described by a wave packet that passes both slits, but the screen records one spot at one place.</p>
-<div class="guided-summary"><strong>What to notice:</strong> <b>Send one</b> launches a single packet. It splits at the slits and spreads, yet when it reaches the screen exactly one dot appears. After many electrons, the dots follow the curve.<span class="guided-equation">\[P(y)\propto|\psi(y)|^2\]</span></div>
-<div class="detail-text"><p>Where a single dot lands cannot be predicted; only the frequencies can. The rule that connects the wave to the dots is the Born rule: the probability of a hit near y is proportional to |ψ(y)|². Each electron is sent alone, so the bands are not produced by electrons interacting with one another. This was first done with electrons by Merli, Missiroli and Pozzi (1976) and, in a famous version, by Tonomura and coworkers (1989). Both used an electron biprism, a charged wire that splits the beam in two, which plays the role of the two slits.</p></div>
-<div class="quiz-card" data-answer="b" data-correct="Right. One electron gives one localized hit, even though the packet reached the whole screen." data-tryagain="Send one and watch the screen when the packet arrives.">
-<p><strong>Predict first:</strong> What will the screen show after one electron?</p>
-<div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">A faint copy of the whole pattern.</button><button class="quiz-option" data-choice="b" type="button">One spot at one place.</button><button class="quiz-option" data-choice="c" type="button">Two spots, one for each slit.</button></div>
-<p aria-live="polite" class="quiz-feedback"></p></div>
+<div class="notice"><strong>What to notice:</strong> <b>Send one</b> launches a single packet. It splits at the slits and spreads, yet when it reaches the screen exactly one dot appears. After many electrons, the dots follow the curve.<span class="guided-equation">\[P(y)\propto|\psi(y)|^2\]</span></div>
+<div class="prose qn-full ds-explanation"><p>Where a single dot lands cannot be predicted; only the frequencies can. The rule that connects the wave to the dots is the Born rule: the probability of a hit near y is proportional to |ψ(y)|². Each electron is sent alone, so the bands are not produced by electrons interacting with one another. This was first done with electrons by Merli, Missiroli and Pozzi (1976) and, in a famous version, by Tonomura and coworkers (1989). Both used an electron biprism, a charged wire that splits the beam in two, which plays the role of the two slits.</p></div>
+<div class="quiz" data-quiz="">
+<p class="q"><strong>Predict first:</strong> What will the screen show after one electron?</p>
+<div class="options"><button data-choice="a" type="button" data-ok="false" data-fb="Send one and watch the screen when the packet arrives.">A faint copy of the whole pattern.</button><button data-choice="b" type="button" data-ok="true" data-fb="Right. One electron gives one localized hit, even though the packet reached the whole screen.">One spot at one place.</button><button data-choice="c" type="button" data-ok="false" data-fb="Send one and watch the screen when the packet arrives.">Two spots, one for each slit.</button></div>
+<p aria-live="polite" class="fb" hidden=""></p></div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c2" aria-label="One packet at a time travels through the slits and makes a single hit on the screen; a histogram counts the hits"></canvas><aside class="qn-results ds-left"><div class="qn-results-head"><strong>Detector record</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="r2"></div></aside></div>
+<div class="canvas-card"><canvas id="c2" aria-label="One packet at a time travels through the slits and makes a single hit on the screen; a histogram counts the hits"></canvas><aside class="qn-results ds-results"><div class="qn-results-head"><strong>Detector record</strong><button data-qn-result-collapse type="button" aria-label="Collapse detector record" aria-expanded="true">−</button></div><div class="readout" id="r2"></div></aside></div>
 <div class="controls">
-<div class="qn-demo-bar"><div class="qn-run" data-qn-run><button class="qn-run-primary" data-pause="c2" type="button">Pause</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button id="f2-clear" type="button">Clear detector record</button></div></div><label class="qn-speed"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed"/><output>0.50×</output></label></div>
+<div class="qn-demo-bar ds-demo-bar"><div class="buttons"><button class="button primary" data-pause="c2" type="button">Pause</button><button id="f2-clear" type="button" class="button">Clear detector record</button></div><label class="ds-speed" for="ds-range-4"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed" id="ds-range-4"><output>0.50×</output></label></div>
 <div class="shared-control-grid" aria-label="Shared physical conditions">
-<div class="row"><label><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50"/></div>
-<div class="row"><label><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="600" step="10" value="300"/></div>
+<div class="row"><label for="ds-range-5"><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50" id="ds-range-5"></div>
+<div class="row"><label for="ds-range-6"><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="600" step="10" value="300" id="ds-range-6"></div>
 </div>
 <div class="control-actions">
 <button class="button wide" id="f2-one" type="button">Send one electron</button>
@@ -321,104 +100,104 @@ body.qn-dark .task-card{background:#2a1f08;border-color:#7a5a12;color:#f3d9a0}bo
 </section>
 
 <!-- ============ PART 3 ============ -->
-<section class="section" id="part3">
+<section class="section" id="part3" data-nav-label="3 Add, then square">
 <div class="section-head">
 <h2>3. Add, then square <span class="time-est">≈ 8 min</span></h2>
 <p>Think of each part of the wave at a point P as an arrow, like the hand of a clock. Its length says how strong that part is; its direction says where in its cycle the wave is when it arrives. To get the probability, add the two arrows tip to tail first, then take the length of the result and square it.</p>
-<div class="guided-summary"><strong>What to notice:</strong> Drag P to a dark band. The two arrows have about the same length and point in opposite directions, so they cancel. There the two paths differ by half a wavelength.<span class="guided-equation">\[|\psi_U+\psi_L|^2=|\psi_U|^2+|\psi_L|^2+2\,\mathrm{Re}(\psi_U^{*}\psi_L)\]</span></div>
-<div class="detail-text"><p>In the language of complex numbers, the arrows are ψ<sub>U</sub> and ψ<sub>L</sub>. In the formula above, the first two terms are the two humps of Part 1. The last, the interference term, can be positive or negative; it makes the bands.</p><p>The colored lines in the figure run from each slit to P. Their lengths r<sub>U</sub> and r<sub>L</sub> differ, and every extra wavelength of path turns an arrow once around. Near the center, where the two arrows have about the same length, bright bands sit where r<sub>L</sub> − r<sub>U</sub> is a whole number of wavelengths and dark bands halfway between. Farther out, one slit's arrow is much shorter than the other, so the arrows can no longer cancel completely and the bands wash out. That is the single-slit envelope of Part 1 seen with arrows.</p></div>
-<div class="quiz-card" data-answer="a" data-correct="Right. Opposite arrows of equal length cancel, so the probability there is close to zero." data-tryagain="Look at the readout |ψU + ψL|² when the arrows point in opposite directions.">
-<p><strong>Try it:</strong> When the two arrows point in opposite directions, what happens to the probability at P?</p>
-<div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">It is close to zero.</button><button class="quiz-option" data-choice="b" type="button">It is the sum of the two humps.</button><button class="quiz-option" data-choice="c" type="button">It is largest.</button></div>
-<p aria-live="polite" class="quiz-feedback"></p></div>
+<div class="notice"><strong>What to notice:</strong> Drag P to a dark band. The two arrows have about the same length and point in opposite directions, so they cancel. There the two paths differ by half a wavelength.<span class="guided-equation">\[|\psi_U+\psi_L|^2=|\psi_U|^2+|\psi_L|^2+2\,\mathrm{Re}(\psi_U^{*}\psi_L)\]</span></div>
+<div class="prose qn-full ds-explanation"><p>In the language of complex numbers, the arrows are ψ<sub>U</sub> and ψ<sub>L</sub>. In the formula above, the first two terms are the two humps of Part 1. The last, the interference term, can be positive or negative; it makes the bands.</p><p>The colored lines in the figure run from each slit to P. Their lengths r<sub>U</sub> and r<sub>L</sub> differ, and every extra wavelength of path turns an arrow once around. Near the center, where the two arrows have about the same length, bright bands sit where r<sub>L</sub> − r<sub>U</sub> is a whole number of wavelengths and dark bands halfway between. Farther out, one slit's arrow is much shorter than the other, so the arrows can no longer cancel completely and the bands wash out. That is the single-slit envelope of Part 1 seen with arrows.</p></div>
+<div class="quiz" data-quiz="">
+<p class="q"><strong>Try it:</strong> When the two arrows point in opposite directions, what happens to the probability at P?</p>
+<div class="options"><button data-choice="a" type="button" data-ok="true" data-fb="Right. Opposite arrows of equal length cancel, so the probability there is close to zero.">It is close to zero.</button><button data-choice="b" type="button" data-ok="false" data-fb="Look at the readout |ψU + ψL|² when the arrows point in opposite directions.">It is the sum of the two humps.</button><button data-choice="c" type="button" data-ok="false" data-fb="Look at the readout |ψU + ψL|² when the arrows point in opposite directions.">It is largest.</button></div>
+<p aria-live="polite" class="fb" hidden=""></p></div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c3" style="cursor:ns-resize" aria-label="The two paths from the slits to a point P on the screen, the screen pattern, and the two amplitudes at P drawn as arrows"></canvas><canvas id="c3b" class="sub-canvas" hidden aria-label="The two amplitudes at P drawn as arrows"></canvas><aside class="qn-results ds-left"><div class="qn-results-head"><strong>At point P</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="r3"></div></aside></div>
+<div class="canvas-card"><canvas id="c3" style="cursor:ns-resize" aria-label="The two paths from the slits to a point P on the screen, the screen pattern, and the two amplitudes at P drawn as arrows"></canvas><canvas id="c3b" class="sub-canvas" hidden aria-label="The two amplitudes at P drawn as arrows"></canvas><aside class="qn-results ds-results"><div class="qn-results-head"><strong>At point P</strong><button data-qn-result-collapse type="button" aria-label="Collapse at point p" aria-expanded="true">−</button></div><div class="readout" id="r3"></div></aside></div>
 <div class="controls">
-<div class="qn-demo-bar"><div class="qn-run" data-qn-run><button class="qn-run-primary" data-pause="c3" type="button">Pause</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button data-restart="c3" type="button">↺ Restart wave</button></div></div><label class="qn-speed"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed"/><output>0.50×</output></label></div>
+<div class="qn-demo-bar ds-demo-bar"><div class="buttons"><button class="button primary" data-pause="c3" type="button">Pause</button><button data-restart="c3" type="button" class="button">↺ Restart wave</button></div><label class="ds-speed" for="ds-range-7"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed" id="ds-range-7"><output>0.50×</output></label></div>
 <div class="shared-control-grid" aria-label="Shared physical conditions">
-<div class="row"><label><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50"/></div>
-<div class="row"><label><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="600" step="10" value="300"/></div>
+<div class="row"><label for="ds-range-8"><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50" id="ds-range-8"></div>
+<div class="row"><label for="ds-range-9"><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="600" step="10" value="300" id="ds-range-9"></div>
 </div>
-<div class="row"><label><span>Point P on the screen, y</span><span id="f3-y-o">0 nm</span></label><input id="f3-y" type="range" min="-580" max="580" step="2" value="0"/></div>
+<div class="row"><label for="f3-y"><span>Point P on the screen, y</span><span id="f3-y-o">0 nm</span></label><input id="f3-y" type="range" min="-580" max="580" step="2" value="0"></div>
 <p class="path-record-note">You can also drag P along the screen in the figure.</p>
-<details class="equation-detail control-detail"><summary>Details and math: the arrows</summary><div><p>The arrows are ψ<sub>U</sub>(P) and ψ<sub>L</sub>(P), rotated together so that ψ<sub>U</sub> points right; only their relative angle matters for |ψ|². Their lengths are scaled so that the peak of one slit alone has length 1. The relative angle is close to 2π(r<sub>L</sub> − r<sub>U</sub>)/λ, with small corrections from the curvature of the beams.</p></div></details>
+<details class="derivation qn-full"><summary>Details and math: the arrows</summary><div class="body"><p>The arrows are ψ<sub>U</sub>(P) and ψ<sub>L</sub>(P), rotated together so that ψ<sub>U</sub> points right; only their relative angle matters for |ψ|². Their lengths are scaled so that the peak of one slit alone has length 1. The relative angle is close to 2π(r<sub>L</sub> − r<sub>U</sub>)/λ, with small corrections from the curvature of the beams.</p></div></details>
 </div>
 </div>
 </section>
 
 <!-- ============ PART 4 ============ -->
-<section class="section" id="part4">
+<section class="section" id="part4" data-nav-label="4 Which slit?">
 <div class="section-head">
 <h2>4. Which slit? A record at one slit <span class="time-est">≈ 8 min</span></h2>
 <p>Place a detector at the upper slit that records whether the electron passed there. The record can be any physical change: a click, a flipped spin, a moved atom. Nobody needs to look at it. The slider sets how well the record tells the two paths apart.</p>
-<div class="guided-summary"><strong>What to notice:</strong> As the record becomes reliable, the bands fade, behind the wall and on the screen, until only the two humps added remain.<span class="guided-equation">\[P_\gamma = P_U + P_L + \gamma\,(\text{interference term})\]</span></div>
-<div class="detail-text"><p>The record links the electron to the detector: "went through the upper slit" now goes together with "detector reads upper", and the same for the lower slit. The number γ measures how much the two detector readings overlap, that is, how hard they are to tell apart. If the readings can be told apart perfectly, γ = 0 and the bands disappear. If they cannot be told apart at all, γ = 1 and the bands are as strong as with no detector. In between, the bands fade. The readout gives the interference term as a percentage of its value with no detector. The app's which-slit detector is an ideal one: it always corresponds to γ = 0.</p></div>
-<div class="quiz-card" data-answer="b" data-correct="Right. What matters is a physical record that distinguishes the two paths, not a person looking." data-tryagain="Move the slider: the bands depend on γ, the distinguishability of the records.">
-<p><strong>Predict first:</strong> What most directly removes the bands?</p>
-<div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">A person deciding to look at the experiment.</button><button class="quiz-option" data-choice="b" type="button">A reliable physical record of which slit was used.</button><button class="quiz-option" data-choice="c" type="button">Moving the screen farther away.</button></div>
-<p aria-live="polite" class="quiz-feedback"></p></div>
+<div class="notice"><strong>What to notice:</strong> As the record becomes reliable, the bands fade, behind the wall and on the screen, until only the two humps added remain.<span class="guided-equation">\[P_\gamma = P_U + P_L + \gamma\,(\text{interference term})\]</span></div>
+<div class="prose qn-full ds-explanation"><p>The record links the electron to the detector: "went through the upper slit" now goes together with "detector reads upper", and the same for the lower slit. The number γ measures how much the two detector readings overlap, that is, how hard they are to tell apart. If the readings can be told apart perfectly, γ = 0 and the bands disappear. If they cannot be told apart at all, γ = 1 and the bands are as strong as with no detector. In between, the bands fade. The readout gives the interference term as a percentage of its value with no detector. The app's which-slit detector is an ideal one: it always corresponds to γ = 0.</p></div>
+<div class="quiz" data-quiz="">
+<p class="q"><strong>Predict first:</strong> What most directly removes the bands?</p>
+<div class="options"><button data-choice="a" type="button" data-ok="false" data-fb="Move the slider: the bands depend on γ, the distinguishability of the records.">A person deciding to look at the experiment.</button><button data-choice="b" type="button" data-ok="true" data-fb="Right. What matters is a physical record that distinguishes the two paths, not a person looking.">A reliable physical record of which slit was used.</button><button data-choice="c" type="button" data-ok="false" data-fb="Move the slider: the bands depend on γ, the distinguishability of the records.">Moving the screen farther away.</button></div>
+<p aria-live="polite" class="fb" hidden=""></p></div>
 <div class="task-card"><strong>Task for the week.</strong> In the app (Orthodox view), find settings of λ and slit separation that give exactly three bright bands. Count a band as bright if it is at least a quarter as tall as the central one. Before you check, use Δy ≈ λZ/d to predict values that should work, remembering that the bands only appear where the two single-slit humps overlap. You can test ideas quickly with the sliders in Part 1. In your discussion-board post, give your prediction, the values that worked, and, if they differ, why you think so.</div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c4" aria-label="A detector at the upper slit; the bands fade as the record becomes reliable"></canvas><aside class="qn-results ds-left"><div class="qn-results-head"><strong>Results</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="r4"></div></aside></div>
+<div class="canvas-card"><canvas id="c4" aria-label="A detector at the upper slit; the bands fade as the record becomes reliable"></canvas><aside class="qn-results ds-results"><div class="qn-results-head"><strong>Results</strong><button data-qn-result-collapse type="button" aria-label="Collapse results" aria-expanded="true">−</button></div><div class="readout" id="r4"></div></aside></div>
 <div class="controls">
-<div class="qn-demo-bar"><div class="qn-run" data-qn-run><button class="qn-run-primary" data-pause="c4" type="button">Pause</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button data-restart="c4" type="button">↺ Restart wave</button></div></div><label class="qn-speed"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed"/><output>0.50×</output></label></div>
+<div class="qn-demo-bar ds-demo-bar"><div class="buttons"><button class="button primary" data-pause="c4" type="button">Pause</button><button data-restart="c4" type="button" class="button">↺ Restart wave</button></div><label class="ds-speed" for="ds-range-11"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed" id="ds-range-11"><output>0.50×</output></label></div>
 <div class="shared-control-grid" aria-label="Shared physical conditions">
-<div class="row"><label><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50"/></div>
-<div class="row"><label><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="600" step="10" value="300"/></div>
+<div class="row"><label for="ds-range-12"><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50" id="ds-range-12"></div>
+<div class="row"><label for="ds-range-13"><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="600" step="10" value="300" id="ds-range-13"></div>
 </div>
-<div class="row"><label><span>Overlap of the records γ</span><span id="f4-g-o">1.00</span></label><input id="f4-g" type="range" min="0" max="1" step="0.01" value="1"/></div>
+<div class="row"><label for="f4-g"><span>Overlap of the records γ</span><span id="f4-g-o">1.00</span></label><input id="f4-g" type="range" min="0" max="1" step="0.01" value="1"></div>
 <div class="control-actions">
 <button class="button" id="f4-none" type="button">No record</button><button class="button" id="f4-part" type="button">Partial record</button>
 <button class="button wide" id="f4-full" type="button">Reliable record (γ = 0)</button>
 </div>
 <div class="app-callout"><strong>In the app</strong><ol><li>Press <span class="ui">No Detector</span> to cycle to a detector at one slit.</li><li>Run until the histogram is clear, then turn the detector off and compare.</li></ol><a class="button" target="_blank" rel="noopener" href="../../apps/comparative/double-slit-analytical/#sep=300&amp;src=225&amp;det=1000&amp;scr=1200&amp;wl=50&amp;view=copenhagen&amp;slits=11&amp;wp=slit1">Open with a detector</a></div>
-<details class="equation-detail control-detail"><summary>Details and math: the overlap γ</summary><div><p>With a record, the state of electron and detector is ψ<sub>U</sub>|D<sub>U</sub>⟩ + ψ<sub>L</sub>|D<sub>L</sub>⟩. For records |D<sub>U</sub>⟩ and |D<sub>L</sub>⟩, the screen density is |ψ<sub>U</sub>|² + |ψ<sub>L</sub>|² + 2 Re[γ ψ<sub>U</sub><sup>*</sup>ψ<sub>L</sub>] with γ = ⟨D<sub>U</sub>|D<sub>L</sub>⟩. Here γ is taken real and between 0 and 1. With γ &lt; 1 the figure draws the crests of the stronger component at each point; the probabilities do not depend on this display choice.</p></div></details>
+<details class="derivation qn-full"><summary>Details and math: the overlap γ</summary><div class="body"><p>With a record, the state of electron and detector is ψ<sub>U</sub>|D<sub>U</sub>⟩ + ψ<sub>L</sub>|D<sub>L</sub>⟩. For records |D<sub>U</sub>⟩ and |D<sub>L</sub>⟩, the screen density is |ψ<sub>U</sub>|² + |ψ<sub>L</sub>|² + 2 Re[γ ψ<sub>U</sub><sup>*</sup>ψ<sub>L</sub>] with γ = ⟨D<sub>U</sub>|D<sub>L</sub>⟩. Here γ is taken real and between 0 and 1. With γ &lt; 1 the figure draws the crests of the stronger component at each point; the probabilities do not depend on this display choice.</p></div></details>
 </div>
 </div>
 </section>
 
 <!-- ============ PART 5 ============ -->
-<section class="section" id="part5">
+<section class="section" id="part5" data-nav-label="5 Three accounts">
 <div class="section-head">
 <h2>5. Same pattern, three accounts <span class="time-est">≈ 15 min</span></h2>
 <p>All three accounts start with the same prepared wavefunction and predict the same screen statistics. They disagree about what exists and what happens between the source and the screen. Choose an account above the figure and send electrons.</p>
-<div class="guided-summary"><strong>What to notice:</strong> The histogram is the same in all three. In <b>Orthodox</b>, the packet ends in one hit. In <b>Pilot Wave</b>, a particle follows a definite path guided by the wave. In <b>Many Worlds</b>, send one electron and watch the screen split into branches: each has its own hit, its own record and its own observer. Then one branch is followed, but the others are still there.</div>
-<div class="interpretation-list">
-<div class="interp-item"><h3>Orthodox</h3>The wavefunction is the complete description of the electron, and it gives probabilities for measurement results. No path is assigned between source and screen. At detection, one result occurs and the wavefunction is replaced by one that matches it. This step, often called collapse, is not described by the Schrödinger equation. A which-slit record counts as a measurement: the state is reduced to one slit's part, so nothing is left to interfere. <i>Hard question:</i> the theory does not say exactly when or why collapse happens, or what counts as a measurement. This is the measurement problem. In the app: no trajectories; the packet fades as hits are registered.</div>
-<div class="interp-item"><h3>Pilot Wave</h3>The electron is a particle with a definite position at all times. The wavefunction is also real, and it guides the particle. The particle goes through one slit; the wave goes through both, and the particle's motion depends on both parts. The randomness comes from not knowing the exact starting position. With a which-slit record, the detector's own parts end up in one of two clearly different states; the part of the wave tied to the other reading no longer affects the particle, so it is guided by one part alone. <i>Hard question:</i> the guidance is nonlocal: with several particles, the motion of one depends instantly on where the others are, however far away. In the app: each sampled particle is drawn with its trajectory.</div>
-<div class="interp-item"><h3>Many Worlds</h3>The wavefunction is everything, and it never collapses. When the electron reaches the screen, screen and electron become correlated: each possible hit position goes with a detector showing that hit. Each of these branches is real, with weight |ψ|². An observer in one branch sees one hit. A which-slit record splits the state into branches already at the wall; branches with different records cannot interfere. <i>Hard question:</i> if every outcome happens, why should the weights |ψ|² act as the probabilities we observe? This is the probability problem of Many Worlds. In the app: turn on <span class="ui">Slow-motion branching</span> to watch the split.</div>
+<div class="notice"><strong>What to notice:</strong> The histogram is the same in all three. In <b>Orthodox</b>, the packet ends in one hit. In <b>Pilot Wave</b>, a particle follows a definite path guided by the wave. In <b>Many Worlds</b>, send one electron and watch the screen split into branches: each has its own hit, its own record and its own observer. Then one branch is followed, but the others are still there.</div>
+<div class="cards qn-full">
+<div class="card"><h3>Orthodox</h3>The wavefunction is the complete description of the electron, and it gives probabilities for measurement results. No path is assigned between source and screen. At detection, one result occurs and the wavefunction is replaced by one that matches it. This step, often called collapse, is not described by the Schrödinger equation. A which-slit record counts as a measurement: the state is reduced to one slit's part, so nothing is left to interfere. <i>Hard question:</i> the theory does not say exactly when or why collapse happens, or what counts as a measurement. This is the measurement problem. In the app: no trajectories; the packet fades as hits are registered.</div>
+<div class="card"><h3>Pilot Wave</h3>The electron is a particle with a definite position at all times. The wavefunction is also real, and it guides the particle. The particle goes through one slit; the wave goes through both, and the particle's motion depends on both parts. The randomness comes from not knowing the exact starting position. With a which-slit record, the detector's own parts end up in one of two clearly different states; the part of the wave tied to the other reading no longer affects the particle, so it is guided by one part alone. <i>Hard question:</i> the guidance is nonlocal: with several particles, the motion of one depends instantly on where the others are, however far away. In the app: each sampled particle is drawn with its trajectory.</div>
+<div class="card"><h3>Many Worlds</h3>The wavefunction is everything, and it never collapses. When the electron reaches the screen, screen and electron become correlated: each possible hit position goes with a detector showing that hit. Each of these branches is real, with weight |ψ|². An observer in one branch sees one hit. A which-slit record splits the state into branches already at the wall; branches with different records cannot interfere. <i>Hard question:</i> if every outcome happens, why should the weights |ψ|² act as the probabilities we observe? This is the probability problem of Many Worlds. In the app: turn on <span class="ui">Slow-motion branching</span> to watch the split.</div>
 </div>
-<div class="detail-text"><p>In the Pilot Wave figure the particles are colored by the slit they passed. Without a detector, and with two equal slits as here, every cyan particle lands on the upper half of the screen and every orange one on the lower half: the trajectories never cross the center line. With the which-slit detector on, each particle is guided by one component alone and the rule breaks.</p></div>
-<div class="quiz-card" data-answer="a" data-correct="Right. In this symmetric setup, pilot-wave trajectories never cross the center line, so a hit on the upper half came through the upper slit." data-tryagain="Choose Pilot Wave, send 20, and look at the colors in the histogram.">
-<p><strong>Pilot Wave, with no which-slit detector:</strong> an electron lands on the upper half of the screen in this symmetric setup. Which slit did it go through?</p>
-<div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">The upper slit.</button><button class="quiz-option" data-choice="b" type="button">Either one, with equal chance.</button><button class="quiz-option" data-choice="c" type="button">Both.</button></div>
-<p aria-live="polite" class="quiz-feedback"></p></div>
+<div class="prose qn-full ds-explanation"><p>In the Pilot Wave figure the particles are colored by the slit they passed. Without a detector, and with two equal slits as here, every cyan particle lands on the upper half of the screen and every orange one on the lower half: the trajectories never cross the center line. With the which-slit detector on, each particle is guided by one component alone and the rule breaks.</p></div>
+<div class="quiz" data-quiz="">
+<p class="q"><strong>Pilot Wave, with no which-slit detector:</strong> an electron lands on the upper half of the screen in this symmetric setup. Which slit did it go through?</p>
+<div class="options"><button data-choice="a" type="button" data-ok="true" data-fb="Right. In this symmetric setup, pilot-wave trajectories never cross the center line, so a hit on the upper half came through the upper slit.">The upper slit.</button><button data-choice="b" type="button" data-ok="false" data-fb="Choose Pilot Wave, send 20, and look at the colors in the histogram.">Either one, with equal chance.</button><button data-choice="c" type="button" data-ok="false" data-fb="Choose Pilot Wave, send 20, and look at the colors in the histogram.">Both.</button></div>
+<p aria-live="polite" class="fb" hidden=""></p></div>
 </div>
 <div class="section-body">
-<div class="canvas-card"><canvas id="c5" aria-label="The double slit in the chosen account: hits, trajectories or branches, with a histogram"></canvas><aside class="qn-results ds-left"><div class="qn-results-head"><strong>Record</strong><button data-qn-result-collapse type="button">−</button></div><div class="readout" id="r5"></div></aside></div>
+<div class="canvas-card"><canvas id="c5" aria-label="The double slit in the chosen account: hits, trajectories or branches, with a histogram"></canvas><aside class="qn-results ds-results"><div class="qn-results-head"><strong>Record</strong><button data-qn-result-collapse type="button" aria-label="Collapse record" aria-expanded="true">−</button></div><div class="readout" id="r5"></div></aside></div>
 <div class="controls">
-<div class="qn-demo-bar"><div class="qn-run" data-qn-run><button class="qn-run-primary" data-pause="c5" type="button">Pause</button><button class="qn-run-menu-toggle" data-qn-run-menu-toggle aria-label="More run actions" aria-expanded="false" type="button">▾</button><div class="qn-run-menu" data-qn-run-menu hidden><button id="f5-clear" type="button">Clear record</button></div></div><label class="qn-speed"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed"/><output>0.50×</output></label></div>
-<div class="qn-representation" role="group" aria-label="Account" style="margin:0 0 8px"><button data-qn-representation="orthodox" type="button">Orthodox</button><button class="active" data-qn-representation="pilot-wave" type="button">Pilot Wave</button><button data-qn-representation="many-worlds" type="button">Many Worlds</button></div>
+<div class="qn-demo-bar ds-demo-bar"><div class="buttons"><button class="button primary" data-pause="c5" type="button">Pause</button><button id="f5-clear" type="button" class="button">Clear record</button></div><label class="ds-speed" for="ds-range-15"><span>Speed</span><input class="spd" type="range" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Animation speed" id="ds-range-15"><output>0.50×</output></label></div>
+<div class="buttons ds-accounts" role="group" aria-label="Account"><button data-qn-representation="orthodox" type="button" class="button">Orthodox</button><button class="button primary" data-qn-representation="pilot-wave" type="button">Pilot Wave</button><button data-qn-representation="many-worlds" type="button" class="button">Many Worlds</button></div>
 <div class="shared-control-grid" aria-label="Shared physical conditions">
-<div class="row"><label><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50"/></div>
-<div class="row"><label><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="500" step="10" value="300"/></div>
+<div class="row"><label for="ds-range-16"><span>Wavelength λ</span><span data-label="lam"></span></label><input data-param="lam" type="range" min="20" max="50" step="1" value="50" id="ds-range-16"></div>
+<div class="row"><label for="ds-range-17"><span>Slit separation d</span><span data-label="d"></span></label><input data-param="d" type="range" min="150" max="500" step="10" value="300" id="ds-range-17"></div>
 </div>
 <div class="control-actions">
 <button class="button" id="f5-one" type="button">Send one</button><button class="button" id="f5-20" type="button">Send 20</button>
 </div>
-<div class="checks"><label><input id="f5-wp" type="checkbox"/> Which-slit detector</label><label><input id="f5-wave" type="checkbox" checked/> Show wave</label></div>
+<div class="checks"><label><input id="f5-wp" type="checkbox"> Which-slit detector</label><label><input id="f5-wave" type="checkbox" checked> Show wave</label></div>
 <div class="app-callout"><strong>In the app</strong><a class="button" target="_blank" rel="noopener" href="../../apps/comparative/double-slit-analytical/#sep=300&amp;src=225&amp;det=1000&amp;scr=1200&amp;wl=50&amp;view=copenhagen&amp;slits=11&amp;wp=none">Orthodox view</a><a class="button" target="_blank" rel="noopener" href="../../apps/comparative/double-slit-analytical/#sep=300&amp;src=225&amp;det=1000&amp;scr=1200&amp;wl=50&amp;view=bohmian&amp;slits=11&amp;wp=none">Pilot Wave view</a><a class="button" target="_blank" rel="noopener" href="../../apps/comparative/double-slit-analytical/#sep=300&amp;src=225&amp;det=1000&amp;scr=1200&amp;wl=50&amp;view=manyworlds&amp;slits=11&amp;wp=none">Many Worlds view</a></div>
-<details class="equation-detail control-detail"><summary>Details and math: guidance and branching</summary><div><p><b>Pilot Wave.</b> The particle moves forward at the packet speed; its sideways motion follows the phase of ψ:</p><div class="equation math-display">\[\frac{dy}{dx}=\frac{1}{k}\,\mathrm{Im}\!\left(\frac{\partial_y\psi}{\psi}\right),\qquad k=\frac{2\pi}{\lambda}.\]</div><p>This is the app's law, integrated with a fourth-order Runge–Kutta step of 2 nm. Starting positions are drawn from the source beam; at the wall a particle passes with probability T(y)², as in the app's default mode. The first published double-slit trajectories of this kind are in Philippidis, Dewdney and Hiley (1979). For photons, Kocsis and coworkers (2011) measured average paths with weak measurements. These are averages of the probability flow, which every account can compute; in Pilot Wave they are also the particle paths.</p><p><b>Many Worlds.</b> Each of the 100 detector pixels defines a possible record, as in the app. After a run, the joint state of electron, screen and observer is a sum with one term for each record, weighted by p<sub>i</sub> = ∫<sub>pixel i</sub>|ψ|²:</p><div class="equation math-display">\[\sum_i c_i\,|\text{hit at pixel } i\rangle\,|\text{observer sees } i\rangle,\qquad |c_i|^2=p_i .\]</div><p>To keep the picture readable, the split groups the 100 pixel records into 12 zones of 100 nm (6 zones of 200 nm on a phone); each miniature is one zone, drawn brighter when its weight is larger. The figure then follows one branch, chosen with probability equal to its weight, and adds its hit to that branch's record. With the which-slit detector on, the state already splits at the wall into a branch where the detector reads upper and one where it reads lower; the two branches cannot interfere.</p></div></details>
+<details class="derivation qn-full"><summary>Details and math: guidance and branching</summary><div class="body"><p><b>Pilot Wave.</b> The particle moves forward at the packet speed; its sideways motion follows the phase of ψ:</p><div class="equation math-display">\[\frac{dy}{dx}=\frac{1}{k}\,\mathrm{Im}\!\left(\frac{\partial_y\psi}{\psi}\right),\qquad k=\frac{2\pi}{\lambda}.\]</div><p>This is the app's law, integrated with a fourth-order Runge–Kutta step of 2 nm. Starting positions are drawn from the source beam; at the wall a particle passes with probability T(y)², as in the app's default mode. The first published double-slit trajectories of this kind are in Philippidis, Dewdney and Hiley (1979). For photons, Kocsis and coworkers (2011) measured average paths with weak measurements. These are averages of the probability flow, which every account can compute; in Pilot Wave they are also the particle paths.</p><p><b>Many Worlds.</b> Each of the 100 detector pixels defines a possible record, as in the app. After a run, the joint state of electron, screen and observer is a sum with one term for each record, weighted by p<sub>i</sub> = ∫<sub>pixel i</sub>|ψ|²:</p><div class="equation math-display">\[\sum_i c_i\,|\text{hit at pixel } i\rangle\,|\text{observer sees } i\rangle,\qquad |c_i|^2=p_i .\]</div><p>To keep the picture readable, the split groups the 100 pixel records into 12 zones of 100 nm (6 zones of 200 nm on a phone); each miniature is one zone, drawn brighter when its weight is larger. The figure then follows one branch, chosen with probability equal to its weight, and adds its hit to that branch's record. With the which-slit detector on, the state already splits at the wall into a branch where the detector reads upper and one where it reads lower; the two branches cannot interfere.</p></div></details>
 </div>
 </div>
 </section>
 
 <!-- ============ PART 6 ============ -->
-<section class="learning-strip" id="part6">
-<h2>6. Team questions</h2>
-<p>Each team takes one account and explains the double-slit experiment from inside it. Every team answers the same five questions, so the presentations can be compared side by side.</p>
+<section class="section" id="part6" data-nav-label="6 Team questions">
+<div class="section-head"><h2>6. Team questions</h2>
+</div><div class="prose ds-overview"><p>Each team takes one account and explains the double-slit experiment from inside it. Every team answers the same five questions, so the presentations can be compared side by side.</p>
 <ol class="questions-list">
 <li><span>What exists between the source and the screen?</span></li>
 <li><span>What goes through the slits: through one, through both, or neither?</span></li>
@@ -437,15 +216,15 @@ body.qn-dark .task-card{background:#2a1f08;border-color:#7a5a12;color:#f3d9a0}bo
 <tr><td>Q5 · Which-slit record</td><td class="blank"></td><td class="blank"></td><td class="blank"></td></tr>
 </tbody>
 </table>
-<div class="guided-summary"><strong>Wrap-up question:</strong> All three accounts give the same screen statistics. If no experiment of this kind can tell them apart, what else could make you prefer one over another? Has your answer changed since the start of the module?</div>
-</section>
+<div class="notice"><strong>Wrap-up question:</strong> All three accounts give the same screen statistics. If no experiment of this kind can tell them apart, what else could make you prefer one over another? Has your answer changed since the start of the module?</div>
+</div></section>
 
 <!-- ============ PART 7 ============ -->
-<section class="section" id="part7">
+<section class="section" id="part7" data-nav-label="7 Model &amp; references">
 <div class="section-head">
 <h2>7. About the model, and going further</h2>
 <p>The figures here and in the app use the same simplified model: the beam moves forward at constant speed and spreads only sideways, and the slits are smooth openings that absorb what they do not let through.</p>
-<div class="detail-text"><p>The wavefunction is Ψ = F(x − vt) e<sup>i(kx − ωt)</sup> φ(y, x), with a packet envelope F that translates without spreading. The crests move at the phase velocity ω/k = v/2. The speed slider changes only how fast the display runs. Defaults, as in the app: electron, λ = 50 nm, slit separation 300 nm, slit width σ = 30 nm, source width σ = 200 nm, packet length σ = 50 nm, source-to-wall 225 nm, wall-to-screen Z = 1000 nm. Brightness in the figures is rescaled at each distance from the source. The app's <span class="ui">Physics</span> tab gives the full equations and their limits.</p>
+<div class="prose qn-full ds-explanation"><p>The wavefunction is Ψ = F(x − vt) e<sup>i(kx − ωt)</sup> φ(y, x), with a packet envelope F that translates without spreading. The crests move at the phase velocity ω/k = v/2. The speed slider changes only how fast the display runs. Defaults, as in the app: electron, λ = 50 nm, slit separation 300 nm, slit width σ = 30 nm, source width σ = 200 nm, packet length σ = 50 nm, source-to-wall 225 nm, wall-to-screen Z = 1000 nm. Brightness in the figures is rescaled at each distance from the source. The app's <span class="ui">Physics</span> tab gives the full equations and their limits.</p>
 <p><b>Going further.</b> <a href="../../apps/pilot-wave/double-slit-numerical/" target="_blank" rel="noopener">Double slit, numerical</a>: the wave equation solved on a grid, without the forward approximation. <a href="../../notebooks/double-slit-webgl/" target="_blank" rel="noopener">Pilot-wave double slit notebook</a>: many trajectories in real time. <a href="../../notebooks/delayed-choice/" target="_blank" rel="noopener">Delayed choice notebook</a>: what changes when the decision to look is made late.</p>
 <p><b>References</b></p>
 <ol class="refs">
@@ -457,7 +236,7 @@ body.qn-dark .task-card{background:#2a1f08;border-color:#7a5a12;color:#f3d9a0}bo
 </ol></div>
 </div>
 </section>
-</div>
+</main>
 
 <script>
 document.addEventListener("DOMContentLoaded",()=>{
@@ -470,57 +249,6 @@ document.addEventListener("DOMContentLoaded",()=>{
     throwOnError:false
   });
 });
-</script>
-<script>
-(() => {
-  const allowed = new Set(["succinct", "detailed"]);
-  const requested = new URLSearchParams(window.location.search).get("mode");
-  const storageKey = "qontic-notebook-mode-v3";
-  let saved = null; try { saved = localStorage.getItem(storageKey); } catch (_) {}
-  let mode = allowed.has(requested) ? requested : (allowed.has(saved) ? saved : "detailed");
-
-  function setMode(nextMode, updateUrl, remember = true) {
-    mode = allowed.has(nextMode) ? nextMode : "detailed";
-    document.body.dataset.notebookMode = mode;
-    document.querySelectorAll("[data-notebook-mode-button]").forEach(button => {
-      button.setAttribute("aria-pressed", String(button.dataset.notebookModeButton === mode));
-    });
-    if (remember) { try { localStorage.setItem(storageKey, mode); } catch (_) {} }
-    if (updateUrl) {
-      const url = new URL(window.location.href);
-      if (mode === "detailed") url.searchParams.delete("mode");
-      else url.searchParams.set("mode", mode);
-      history.replaceState(null, "", url);
-    }
-  }
-
-  document.querySelectorAll("[data-notebook-mode-button]").forEach(button => {
-    button.addEventListener("click", () => setMode(button.dataset.notebookModeButton, true));
-  });
-  document.querySelector("[data-notebook-mode-reset]").addEventListener("click", () => {
-    try { localStorage.removeItem(storageKey); } catch (_) {}
-    setMode("detailed", true, false);
-  });
-  setMode(mode, false, false);
-})();
-</script>
-<script>
-/* Lightweight feedback for prediction checks. It does not alter the simulation state. */
-(()=>{
-  'use strict';
-  document.addEventListener('click',(event)=>{
-    const button=event.target.closest('.quiz-card [data-choice]');
-    if(!button) return;
-    const card=button.closest('.quiz-card');
-    const feedback=card.querySelector('.quiz-feedback');
-    const correct=card.dataset.answer;
-    const isCorrect=button.dataset.choice===correct;
-    card.classList.toggle('correct',isCorrect);
-    card.classList.toggle('incorrect',!isCorrect);
-    card.querySelectorAll('[data-choice]').forEach(el=>el.setAttribute('aria-pressed',String(el===button)));
-    feedback.textContent=isCorrect ? card.dataset.correct : card.dataset.tryagain;
-  });
-})();
 </script>
 <script>
 (() => {
@@ -1200,6 +928,5 @@ document.addEventListener("DOMContentLoaded",()=>{
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
 })();
 </script>
-<script type="module">import{mountQonticNotebook}from'../../templates/qontic-notebook/qontic-notebook.js?v=1';mountQonticNotebook();</script>
-</body>
+<script type="module" src="notebook-ui.js?v=20261108"></script></body>
 </html>

@@ -23,10 +23,10 @@
     "Multiview"
   ],
   "entry": "index.html",
-  "status": "published",
+  "status": "draft",
   "modes": [
-    "succinct",
-    "detailed"
+    "brief",
+    "full"
   ],
-  "defaultMode": "detailed"
+  "defaultMode": "full"
 }
