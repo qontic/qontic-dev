@@ -11,8 +11,8 @@
 <link rel="stylesheet" href="../../shared/qontic-shell.css?v=3.7"><link rel="stylesheet" href="../../shared/qontic-notebook.css?v=1.2"><link rel="stylesheet" href="notebook.css?v=20261108-teaching"><link rel="icon" type="image/svg+xml" href="../../shared/favicon.svg"></head>
 <body class="qontic-notebook">
 <main class="shell">
-<header><div><p class="eyebrow">Q-Ontic notebook · Development draft</p><h1>Double-Slit Notebook</h1></div></header><div class="qn-intro"><p class="lead">Electrons sent one at a time through two slits build up bands on a screen. All accounts agree on that pattern and on how to calculate it. They disagree about what happens between the source and the screen. Every figure here uses the same wave model and default settings as the analytical double-slit app.</p>
-<p class="prereq"><b>Reading path:</b> Parts 1–4 introduce the experiment; Part 5 compares three views. Use Brief for the demonstrations or Full for explanations and mathematics.</p><p class="ds-draft">Development draft — layout and teaching content are under review.</p></div><section class="section" id="foundations" data-nav-label="Before you begin">
+<header><div><p class="eyebrow">Q-Ontic notebook</p><h1>Double-Slit Notebook</h1></div></header><div class="qn-intro"><p class="lead">Electrons sent one at a time through two slits build up bands on a screen. All accounts agree on that pattern and on how to calculate it. They disagree about what happens between the source and the screen. Every figure here uses the same wave model and default settings as the analytical double-slit app.</p>
+<p class="prereq"><b>Reading path:</b> Parts 1–4 introduce the experiment; Part 5 compares three views. Use Brief for the demonstrations or Full for explanations and mathematics.</p></div><section class="section" id="foundations" data-nav-label="Before you begin">
 <div class="section-head"><h2>Before you begin: reading the pictures</h2>
 </div><div class="prose ds-overview"><p>Every figure shows the experiment from above, as in the app. The source is on the left, the wall with two slits in the middle, the detector screen on the right. The moving blue shading is the wavefunction ψ: bright where the wave is strong, with stripes that are its crests. Each column is brightened separately to keep weak regions visible. Blue stripes show phase, not extra particles or the bands counted on the screen. Use Density only to hide these stripes; brightness is still rescaled, not an absolute probability scale. The curve beside the screen gives the probability of a hit at each height y.</p>
 <div class="cards ds-concepts">
@@ -967,5 +967,5 @@ document.addEventListener("DOMContentLoaded",()=>{
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
 })();
 </script>
-<script type="module" src="notebook-ui.js?v=20261108"></script></body>
+<script type="module" src="notebook-ui.js?v=20261108-published"></script></body>
 </html>

@@ -1,12 +1,13 @@
 import { mountQonticNotebook } from '../../shared/qontic-notebook.js?v=1.2';
 
-// Use the current notebook shell; the inline simulation engine stays unchanged.
+// Use the shared notebook shell for navigation, reading depth and quizzes.
 mountQonticNotebook({
   title: 'Double-Slit Notebook',
-  eyebrow: 'Q-Ontic notebook · Development draft',
-  version: 'Double-slit notebook · Development draft',
+  eyebrow: 'Q-Ontic notebook',
+  version: 'Double-slit notebook',
   purpose: 'Build the double-slit pattern from single electrons, amplitudes and which-slit records, then compare three accounts of the same experiment.',
   depth: 'full',
+  compactHeader: true,
   homeHref: '../../index.html',
 });
 
