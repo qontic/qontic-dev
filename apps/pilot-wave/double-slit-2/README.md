@@ -1,5 +1,12 @@
 # DoubleSlit2.0
 
+**Unlisted development reference.** The site has one numerical simulation entry,
+`apps/pilot-wave/double-slit-webgl/`, shared with the numerical notebook. This
+extended fork remains accessible at its original URL for development comparison,
+but is not a second cataloged teaching app. Its metadata is retained in
+`reference.json` rather than the active `app.json` catalog.
+
+
 Standalone copy of the full-applet Bohmian double-slit WebGL2 simulation from qontic-dev/notebooks/double-slit-webgl.
 
 ## Shared page template
