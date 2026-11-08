@@ -1,0 +1,15 @@
+/* Local presentation only. Simulation files and shared template are unchanged. */
+.qontic-notebook .shell { max-width: 1200px; }
+.qontic-notebook .num-review-note { color: var(--qn-gold-ink); font-size: 13px; }
+.qontic-notebook .num-intro-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+.qontic-notebook .num-intro-actions span { color: var(--qn-muted); font-size: 13px; }
+.qontic-notebook .num-poster-one { background: #000 url('singleParticle.jpg') center/contain no-repeat; }
+.qontic-notebook .num-poster-many { background: #000 url('manyParticle.jpg') center/contain no-repeat; }
+.qontic-notebook .num-poster-density { background: #000 url('equivariance.jpg') center/contain no-repeat; }
+.qontic-notebook .applet-play { background: linear-gradient(#04101c66,#04101caa); text-shadow: 0 1px 5px #000; }
+.qontic-notebook .num-webgl-status { position: absolute; z-index: 4; bottom: 12px; left: 12px; right: 12px; margin: 0; padding: 12px; background: #102839; color: #e6f2ff; border: 1px solid #7ca5c4; border-radius: 8px; font-size: 14px; }
+.qontic-notebook .applet-play:disabled { cursor: default; }
+.qontic-notebook [hidden] { display: none !important; }
+.qontic-notebook .applet-actions .button { flex: initial; text-decoration: none; }
+.qontic-notebook .num-depth-reset { padding: 4px 8px; border: 1px solid var(--qn-line); border-radius: 6px; background: var(--qn-card); color: var(--qn-ink); cursor: pointer; }
+@media(max-width:620px) { .qontic-notebook .qn-bar { flex-wrap: wrap; } .qontic-notebook .qn-sections { flex-basis:100%; } }

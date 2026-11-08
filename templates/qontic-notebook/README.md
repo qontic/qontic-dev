@@ -38,4 +38,5 @@ Canvases stay dark in both themes. Questions dispatch a bubbling `qontic:quiz` e
 
 ## Reference adoption
 
-`notebooks/bell-atom` (0.2.1), and `notebooks/double-slit` (development draft; layout migration under review).
+`notebooks/bell-atom` (0.2.1), and `notebooks/double-slit` (published analytical companion), and
+`notebooks/double-slit-webgl` (numerical notebook migration in dev).
