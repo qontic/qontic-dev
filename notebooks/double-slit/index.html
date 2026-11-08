@@ -241,7 +241,7 @@ body.qn-dark .task-card{background:#2a1f08;border-color:#7a5a12;color:#f3d9a0}bo
 <div class="concept-card"><h3>2. Add, then square</h3><span class="symbol gold">P(y) ∝ |ψ(y)|²</span><p>The probability of a hit is the squared size of the total ψ at that point. Because the parts are added first, they can reinforce or cancel.</p></div>
 <div class="concept-card"><h3>3. One run, one dot</h3><span class="symbol orange">one electron → one hit</span><p>A single electron makes one spot at one place. The bands appear only after many electrons, each sent alone.</p></div>
 </div>
-<div class="inline-terms"><span class="term"><b>Blue:</b> the moving wave ψ (brightness ∝ |ψ|²)</span><span class="term"><b>Cyan:</b> upper-slit part or upper-slit particles</span><span class="term"><b>Orange:</b> lower-slit part or particles</span><span class="term"><b>Gold:</b> probability and detector hits</span></div>
+<div class="inline-terms"><span class="term"><b>Blue:</b> wave shading (density rescaled; stripes show phase)</span><span class="term"><b>Cyan:</b> upper-slit part or upper-slit particles</span><span class="term"><b>Orange:</b> lower-slit part or particles</span><span class="term"><b>Gold:</b> probability and detector hits</span></div>
 <h2 style="margin-top:16px">How this notebook is used in class</h2><p>Parts 1–4 take about 30 minutes with the predictions; Part 5 about 15 minutes.</p>
 <div class="plan-grid">
 <div class="concept-card"><h3>Explain <span>· class 1</span></h3><p>The setup, why it matters, and common ideas about it. Parts 1–3.</p></div>
@@ -295,7 +295,7 @@ body.qn-dark .task-card{background:#2a1f08;border-color:#7a5a12;color:#f3d9a0}bo
 <section class="section" id="part2">
 <div class="section-head">
 <h2>2. One electron, one dot <span class="time-est">≈ 6 min</span></h2>
-<p>The smooth curve is never seen directly. Each electron is a wave packet that passes both slits, but the screen records it as one spot at one place.</p>
+<p>The smooth curve is never seen directly. Each electron is described by a wave packet that passes both slits, but the screen records one spot at one place.</p>
 <div class="guided-summary"><strong>What to notice:</strong> <b>Send one</b> launches a single packet. It splits at the slits and spreads, yet when it reaches the screen exactly one dot appears. After many electrons, the dots follow the curve.<span class="guided-equation">\[P(y)\propto|\psi(y)|^2\]</span></div>
 <div class="detail-text"><p>Where a single dot lands cannot be predicted; only the frequencies can. The rule that connects the wave to the dots is the Born rule: the probability of a hit near y is proportional to |ψ(y)|². Each electron is sent alone, so the bands are not produced by electrons interacting with one another. This was first done with electrons by Merli, Missiroli and Pozzi (1976) and, in a famous version, by Tonomura and coworkers (1989). Both used an electron biprism, a charged wire that splits the beam in two, which plays the role of the two slits.</p></div>
 <div class="quiz-card" data-answer="b" data-correct="Right. One electron gives one localized hit, even though the packet reached the whole screen." data-tryagain="Send one and watch the screen when the packet arrives.">
@@ -353,7 +353,7 @@ body.qn-dark .task-card{background:#2a1f08;border-color:#7a5a12;color:#f3d9a0}bo
 <h2>4. Which slit? A record at one slit <span class="time-est">≈ 8 min</span></h2>
 <p>Place a detector at the upper slit that records whether the electron passed there. The record can be any physical change: a click, a flipped spin, a moved atom. Nobody needs to look at it. The slider sets how well the record tells the two paths apart.</p>
 <div class="guided-summary"><strong>What to notice:</strong> As the record becomes reliable, the bands fade, behind the wall and on the screen, until only the two humps added remain.<span class="guided-equation">\[P_\gamma = P_U + P_L + \gamma\,(\text{interference term})\]</span></div>
-<div class="detail-text"><p>The record links the electron to the detector: "went through the upper slit" now goes together with "detector reads upper", and the same for the lower slit. The number γ measures how much the two detector readings overlap, that is, how hard they are to tell apart. If the readings can be told apart perfectly, γ = 0 and the bands disappear. If they cannot be told apart at all, γ = 1 and the bands are as strong as with no detector. In between, the bands fade. The readout gives the strength of the bands compared with no detector. The app's which-slit detector is an ideal one: it always corresponds to γ = 0.</p></div>
+<div class="detail-text"><p>The record links the electron to the detector: "went through the upper slit" now goes together with "detector reads upper", and the same for the lower slit. The number γ measures how much the two detector readings overlap, that is, how hard they are to tell apart. If the readings can be told apart perfectly, γ = 0 and the bands disappear. If they cannot be told apart at all, γ = 1 and the bands are as strong as with no detector. In between, the bands fade. The readout gives the interference term as a percentage of its value with no detector. The app's which-slit detector is an ideal one: it always corresponds to γ = 0.</p></div>
 <div class="quiz-card" data-answer="b" data-correct="Right. What matters is a physical record that distinguishes the two paths, not a person looking." data-tryagain="Move the slider: the bands depend on γ, the distinguishability of the records.">
 <p><strong>Predict first:</strong> What most directly removes the bands?</p>
 <div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">A person deciding to look at the experiment.</button><button class="quiz-option" data-choice="b" type="button">A reliable physical record of which slit was used.</button><button class="quiz-option" data-choice="c" type="button">Moving the screen farther away.</button></div>
@@ -383,7 +383,7 @@ body.qn-dark .task-card{background:#2a1f08;border-color:#7a5a12;color:#f3d9a0}bo
 <section class="section" id="part5">
 <div class="section-head">
 <h2>5. Same pattern, three accounts <span class="time-est">≈ 15 min</span></h2>
-<p>All three accounts use the same wavefunction and predict the same screen statistics. They disagree about what exists and what happens between the source and the screen. Choose an account above the figure and send electrons.</p>
+<p>All three accounts start with the same prepared wavefunction and predict the same screen statistics. They disagree about what exists and what happens between the source and the screen. Choose an account above the figure and send electrons.</p>
 <div class="guided-summary"><strong>What to notice:</strong> The histogram is the same in all three. In <b>Orthodox</b>, the packet ends in one hit. In <b>Pilot Wave</b>, a particle follows a definite path guided by the wave. In <b>Many Worlds</b>, send one electron and watch the screen split into branches: each has its own hit, its own record and its own observer. Then one branch is followed, but the others are still there.</div>
 <div class="interpretation-list">
 <div class="interp-item"><h3>Orthodox</h3>The wavefunction is the complete description of the electron, and it gives probabilities for measurement results. No path is assigned between source and screen. At detection, one result occurs and the wavefunction is replaced by one that matches it. This step, often called collapse, is not described by the Schrödinger equation. A which-slit record counts as a measurement: the state is reduced to one slit's part, so nothing is left to interfere. <i>Hard question:</i> the theory does not say exactly when or why collapse happens, or what counts as a measurement. This is the measurement problem. In the app: no trajectories; the packet fades as hits are registered.</div>
@@ -392,7 +392,7 @@ body.qn-dark .task-card{background:#2a1f08;border-color:#7a5a12;color:#f3d9a0}bo
 </div>
 <div class="detail-text"><p>In the Pilot Wave figure the particles are colored by the slit they passed. Without a detector, and with two equal slits as here, every cyan particle lands on the upper half of the screen and every orange one on the lower half: the trajectories never cross the center line. With the which-slit detector on, each particle is guided by one component alone and the rule breaks.</p></div>
 <div class="quiz-card" data-answer="a" data-correct="Right. In this symmetric setup, pilot-wave trajectories never cross the center line, so a hit on the upper half came through the upper slit." data-tryagain="Choose Pilot Wave, send 20, and look at the colors in the histogram.">
-<p><strong>Pilot Wave:</strong> an electron lands on the upper half of the screen. Which slit did it go through?</p>
+<p><strong>Pilot Wave, with no which-slit detector:</strong> an electron lands on the upper half of the screen in this symmetric setup. Which slit did it go through?</p>
 <div class="quiz-options"><button class="quiz-option" data-choice="a" type="button">The upper slit.</button><button class="quiz-option" data-choice="b" type="button">Either one, with equal chance.</button><button class="quiz-option" data-choice="c" type="button">Both.</button></div>
 <p aria-live="polite" class="quiz-feedback"></p></div>
 </div>
@@ -922,8 +922,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const cur = SC.inc.map((v, i) => v + f4.g * (SC.both[i] - v));
     const vmax = Math.max(...SC.both) * 1.08;
     profile(ctx, L.prof, SC.s.ys, [{ vals: SC.both, color: C.ink, width: 1.2, dash: [5, 4] }, { vals: SC.inc, color: C.muted, width: 1.2, dash: [2, 4] }, { vals: cur, color: C.prob, width: 2.6, fill: true }], vmax);
-    const con = (arr) => { const mid = arr.length >> 1, win = arr.slice(mid - 110, mid + 110), mx = Math.max(...win), mn = Math.min(...win); return (mx - mn) / (mx + mn); };
-    setReadout("r4", [`<b>γ = ${f4.g.toFixed(2)}</b>`, f4.g >= 0.99 ? "records cannot be told apart" : f4.g <= 0.01 ? "records perfectly distinguishable (the app's detector)" : "records partly distinguishable", `strength of the bands compared with no detector: ${fmt(100 * con(cur) / con(SC.both))}%`, "white dashed: no record · grey dotted: two humps added"]);
+    setReadout("r4", [`<b>γ = ${f4.g.toFixed(2)}</b>`, f4.g >= 0.99 ? "records cannot be told apart" : f4.g <= 0.01 ? "records perfectly distinguishable (the app's detector)" : "records partly distinguishable", `interference term remaining: ${fmt(100 * f4.g)}%`, "white dashed: no record · grey dotted: two humps added"]);
   }
   const g4 = document.getElementById("f4-g");
   function setG(v) { f4.g = v; g4.value = v; document.getElementById("f4-g-o").textContent = v.toFixed(2); drawF4(); }
