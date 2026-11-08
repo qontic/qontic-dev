@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {atomWave,pathWaves,outputWaves,branchWave,norm2,photonMode,displayedPorts,stageOf} from '../waves.mjs';
+import {portProbability,jointDensity,visibility} from '../physics.mjs';
+const integral=fn=>{let sum=0;for(let u=-14+.001;u<14;u+=.002)sum+=fn(u)*.002;return sum;};
+const close=(a,b,tol=1e-9)=>assert.ok(Math.abs(a-b)<tol,`${a} != ${b}`);
+test('The recoil waves normalize and their complex overlap gives the visibility',()=>{for(const r of [0,1,2.5,6,8])for(const tau of [0,.3,.6]){close(integral(u=>norm2(atomWave(u,r,-1,tau))),1);close(integral(u=>norm2(atomWave(u,r,1,tau))),1);close(integral(u=>{const a=atomWave(u,r,-1,tau),b=atomWave(u,r,1,tau);return a.re*b.re+a.im*b.im;}),visibility(r));}});
+test('The complex recombiner is pointwise unitary and yields the joint and marginal probabilities',()=>{for(const r of [0,1,6])for(const phase of [0,.7,Math.PI,4.1]){for(const u of [-6,-1,0,1,6]){const [a,b]=pathWaves(u,r,phase,.4),[plus,minus]=outputWaves(u,r,phase,.4);close(norm2(a)+norm2(b),norm2(plus)+norm2(minus));close(norm2(plus),jointDensity(u,r,phase,1));close(norm2(minus),jointDensity(u,r,phase,-1));}close(integral(u=>norm2(outputWaves(u,r,phase,.4)[0])),portProbability(r,phase));}});
+test('Conditional detector branches have unit norm and zero-weight branches are excluded',()=>{for(const r of [0,1,6])for(const phase of [0,Math.PI,.8])for(const port of [1,-1]){const p=port===1?portProbability(r,phase):1-portProbability(r,phase);if(p<1e-14)assert.equal(branchWave(0,r,phase,port),null);else close(integral(u=>norm2(branchWave(u,r,phase,port,.6))),1);}});
+test('The travelling optical mode conserves norm and its envelope translates',()=>{for(const center of [.04,.4,.78])close(integral(s=>norm2(photonMode(s,center,.7))),1);close(norm2(photonMode(.4,.4)),norm2(photonMode(.78,.78)));});
+test('Collapse changes only the post-record Orthodox presentation',()=>{for(const view of ['cpn','pw','mw'])assert.deepEqual(displayedPorts(view),[1,-1]);assert.deepEqual(displayedPorts('cpn',-1),[-1]);assert.deepEqual(displayedPorts('pw',-1),[1,-1]);assert.deepEqual(displayedPorts('mw',-1),[1,-1]);assert.deepEqual([.04,.4,.78,1].map(stageOf),[0,1,2,3]);});

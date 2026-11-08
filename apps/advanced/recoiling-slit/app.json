@@ -1,12 +1,22 @@
 {
-  "id":"einstein-recoiling-slit",
-  "title":"Einstein’s Recoiling Slit",
-  "type":"app",
-  "category":"foundations",
-  "level":"advanced",
-  "description":"Explore how a quantum recoil record reduces interference, even when nobody reads it. An ideal Gaussian model inspired by the 2025 single-atom experiment.",
-  "topics":["complementarity","entanglement","which-way-information"],
-  "tags":["Advanced","Research example","Prototype"],
-  "entry":"index.html",
-  "status":"review"
+  "id": "einstein-recoiling-slit",
+  "title": "Einstein’s Recoiling Slit",
+  "type": "app",
+  "category": "foundations",
+  "level": "advanced",
+  "description": "Follow correlated light and atom waves through scattering, recombination, and detection. Compare orthodox collapse, retained pilot-wave components with a definite record, and many-worlds detector branches in an ideal Gaussian model.",
+  "topics": [
+    "complementarity",
+    "entanglement",
+    "which-way-information"
+  ],
+  "tags": [
+    "Advanced",
+    "Research example",
+    "Three views",
+    "Wave model",
+    "Prototype"
+  ],
+  "entry": "index.html",
+  "status": "review"
 }
