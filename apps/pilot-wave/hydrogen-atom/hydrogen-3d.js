@@ -727,7 +727,7 @@ let gl2Ready=false,lobeTexDirty=true;
 
 function resize(){
   const wrap=canvas.parentElement;
-  if(W===wrap.clientWidth&&H===wrap.clientHeight) return;
+  if(!wrap.clientWidth||!wrap.clientHeight||(W===wrap.clientWidth&&H===wrap.clientHeight)) return;
   W=canvas.width=wrap.clientWidth;
   H=canvas.height=wrap.clientHeight;
   if(lobeGLCanvas){lobeGLCanvas.width=W;lobeGLCanvas.height=H;}
@@ -1958,7 +1958,7 @@ function loop(now){
     if(elapsed>0) integrate(elapsed*BASE_SPEED*simSpeed);
   }
   previousFrame=running?now:undefined;
-  renderFrame();
+  if(!canvas.closest('[hidden]')) renderFrame();
   requestAnimationFrame(loop);
 }
 document.addEventListener('visibilitychange',()=>{previousFrame=undefined;});
@@ -2239,14 +2239,6 @@ function toggleExpert(){
 // ════════════════════════════════════════════════════════════════
 //  THEORY PANEL
 // ════════════════════════════════════════════════════════════════
-function toggleTheory(){
-  const p=document.getElementById('theoryPanel');
-  const b=document.getElementById('theoryBtn');
-  const open=p.style.display==='none'||p.style.display==='';
-  p.style.display=open?'flex':'none';
-  if(b)b.classList.toggle('active',open);
-}
-
 // ════════════════════════════════════════════════════════════════
 //  ANALYTICAL VERIFICATION CHECKS
 // ════════════════════════════════════════════════════════════════
@@ -2547,14 +2539,6 @@ function toggleProjections(){
   document.getElementById('projBtn').classList.toggle('active',showProjections);
 }
 
-function toggleTheme(){
-  lightTheme=!lightTheme;
-  document.body.classList.toggle('light',lightTheme);
-  const btn=document.getElementById('themeBtn');
-  btn.textContent=lightTheme?'☽ Dark':'☀ Light';
-  btn.classList.toggle('active',lightTheme);
-}
-
 // ════════════════════════════════════════════════════════════════
 //  VIEW TOGGLES
 // ════════════════════════════════════════════════════════════════
@@ -2599,11 +2583,11 @@ function toggleViz(which){
 }
 
 function _syncVizUI(){
-  document.getElementById('vtVol').classList.toggle('active',showVol);
-  document.getElementById('vtSlice').classList.toggle('active',showSlice);
-  document.getElementById('vtLobes').classList.toggle('active',showLobes);
-  document.getElementById('vtPhase').classList.toggle('active',showPhase);
-  document.getElementById('vtCloud')?.classList.toggle('active',showCloud);
+  for(const [id,active] of Object.entries({vtVol:showVol,vtSlice:showSlice,vtLobes:showLobes,vtCloud:showCloud,vtPhase:showPhase})){
+    const button=document.getElementById(id);
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+  }
   document.getElementById('sliceRow').style.display=showSlice?'flex':'none';
   document.getElementById('lobeRow').style.display=showLobes?'flex':'none';
   document.getElementById('cloudRow').style.display=showCloud?'flex':'none';
@@ -2914,7 +2898,6 @@ if(_sSphPx)_sSphPx.oninput=function(){
   if(showCloud)initCloudParts();
 };
 document.getElementById('resetCloudBtn').onclick=function(){if(showCloud)initCloudParts();};
-document.getElementById('sSP').oninput=function(){simSpeed=+this.value;document.getElementById('vSP').textContent=simSpeed.toFixed(1)+'×';};
 document.getElementById('sTR').oninput=function(){trailLen=+this.value;document.getElementById('vTR').textContent=trailLen;};
 document.getElementById('sDT').oninput=function(){dtStep=+this.value;document.getElementById('vDT').textContent=dtStep.toFixed(3);};
 document.getElementById('sDO').oninput=function(){densOp=+this.value/100;document.getElementById('vDO').textContent=this.value+'%';volNeedsRedraw=true;cachedVolCanvas=null;projVolCache=null;};
@@ -2965,40 +2948,29 @@ document.addEventListener('click',e=>{
     lp.classList.remove('open');
 });
 
-// ── Sidebar resize ─────────────────────────────────────────────
-(function(){
-  const sb=document.getElementById('sidebar');
-  const handle=document.getElementById('sidebarResize');
-  let sbDrag=false,startX=0,startW=0;
-  handle.addEventListener('mousedown',e=>{
-    sbDrag=true;startX=e.clientX;startW=sb.offsetWidth;
-    handle.classList.add('dragging');
-    document.body.style.userSelect='none';
-    e.preventDefault();
-  });
-  window.addEventListener('mousemove',e=>{
-    if(!sbDrag)return;
-    const w=Math.max(180,Math.min(560,startW+(e.clientX-startX)));
-    sb.style.width=w+'px';
-    volNeedsRedraw=true;
-  });
-  window.addEventListener('mouseup',()=>{
-    if(!sbDrag)return;
-    sbDrag=false;
-    handle.classList.remove('dragging');
-    document.body.style.userSelect='';
-  });
-})();
+// The shared shell owns playback and theme controls; the renderer owns the state.
+const hydrogenSimulation={
+  isRunning:()=>running,
+  setRunning(value){
+    if(running===value) return;
+    running=value;
+    previousFrame=undefined;
+  },
+  reset(){
+    invalidateDensity();
+    t=0;
+    previousFrame=undefined;
+    if(showCloud) initCloudParts();
+    else particles=sampleParticles(nPart);
+  },
+  setSpeed(value){simSpeed=value;},
+  setTheme(theme){
+    lightTheme=theme==='light';
+    document.body.classList.toggle('light',lightTheme);
+  },
+  getCanvasScale:()=>Math.min(W,H)*0.47/rMax()*camDist,
+};
 
-function toggleRun(){
-  previousFrame=undefined;
-  running=!running;
-  const btn=document.getElementById('runBtn');
-  btn.textContent=running?'⏸ Pause':'▶ Run';
-  btn.classList.toggle('active',running);
-}
-
-document.getElementById('resetBtn').onclick=()=>{invalidateDensity();t=0;previousFrame=undefined;if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}if(!running){running=true;const b=document.getElementById('runBtn');b.textContent='⏸ Pause';b.classList.add('active');}};
 document.getElementById('clearBtn').onclick=()=>particles.forEach(p=>p.trail=[]);
 
 canvas.addEventListener('keydown',event=>{

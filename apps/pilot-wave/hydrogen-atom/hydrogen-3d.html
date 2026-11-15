@@ -5,37 +5,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hydrogen — 3D</title>
-  <link rel="stylesheet" href="../../../shared/back-home.css">
-  <link rel="stylesheet" href="hydrogen-3d.css?v=2">
-  <script defer src="../../../shared/back-home.js"></script>
+  <link rel="stylesheet" href="hydrogen-3d.css?v=3">
+  <link rel="stylesheet" href="../../../shared/qontic-shell.css">
+  <link rel="stylesheet" href="../../../shared/qontic-app.css">
+  <link rel="stylesheet" href="hydrogen-template.css?v=1">
 </head>
 
 <body>
-  <header>
-    <h1>Hydrogen Atom</h1>
-    <span class="sub">Pilot-wave orbitals and trajectories</span>
-    <button class="vtab" id="themeBtn" onclick="toggleTheme()" title="Switch between dark and light theme"
-      style="margin-left:auto;padding:5px 12px;flex-shrink:0">☀
-      Light</button>
-  </header>
-  <div id="gpuStatusBanner" class="gpu-status-banner" hidden></div>
-  <div class="main">
-    <div class="sidebar" id="sidebar">
-      <div style="display:flex;flex-direction:row;gap:6px;">
-        <button class="btn active" id="runBtn" onclick="toggleRun()" title="Pause or resume particle simulation"
-          style="flex:2">⏸ Pause</button>
-        <button class="btn" id="resetBtn" title="Resample particles from |ψ|² and restart simulation time"
-          style="flex:1">↺ Reset</button>
-        <button class="btn danger" id="clearBtn" title="Erase all particle trail history" style="flex:1">✕
-          Clear</button>
-      </div>
+  <main class="shell">
+    <header><div><h1>Hydrogen Atom</h1></div></header>
+    <nav class="tabs" aria-label="Views">
+      <button type="button" class="qontic-app-toggle active" data-view="simulation" aria-pressed="true">Simulation</button>
+      <button type="button" class="qontic-app-toggle" data-view="physics" aria-pressed="false">Physics</button>
+    </nav>
+    <section class="qontic-workspace" id="simulation" aria-label="Hydrogen simulation">
+      <aside class="qontic-sidebar qontic-panel qontic-control-panel" id="sidebar" aria-label="Simulation controls">
+        <qontic-controls running="true" speed="1" speed-min="0.1" speed-max="10" speed-step="0.1"
+          show-reset="true" show-autorun="false" show-interpretation="false" active-tab="core"></qontic-controls>
+        <div class="qontic-control-body">
+          <div data-control-pane="core">
       <section class="quick-start" aria-label="Suggested states">
         <div class="slabel">Explore a state</div>
         <div class="quick-orbitals">
-          <button type="button" class="vtab" data-orbital-index="0">1s</button>
-          <button type="button" class="vtab" data-orbital-index="2">2p₀</button>
-          <button type="button" class="vtab active" data-orbital-index="3" aria-pressed="true">2p₊₁</button>
-          <button type="button" class="vtab" id="beatPreset">1s + 2p₀</button>
+          <button type="button" class="qontic-app-toggle" data-orbital-index="0">1s</button>
+          <button type="button" class="qontic-app-toggle" data-orbital-index="2">2p₀</button>
+          <button type="button" class="qontic-app-toggle active" data-orbital-index="3" aria-pressed="true">2p₊₁</button>
+          <button type="button" class="qontic-app-toggle" id="beatPreset">1s + 2p₀</button>
         </div>
       </section>
       <details class="options-group">
@@ -63,6 +58,15 @@
       </div>
       </details>
       <!-- Pauli–Bohm Spin Section -->
+      <div>
+        <div class="slabel">Simulation</div>
+        <div class="crow"><label title="Number of particles sampled from |ψ|² distribution">Particles</label>
+          <input type=range id="sNP" min=1 max=10 value=2 step=1>
+          <span class="crow-val" id="vNP">2</span>
+        </div>
+      </div>
+          </div>
+          <div data-control-pane="advanced" hidden>
       <details class="options-group">
         <summary>Spin</summary>
       <div id="spinSection">
@@ -100,55 +104,6 @@
         </div>
       </div>
       </details>
-      <div>
-        <div class="vtabs">
-          <button class="vtab active" id="vtVol" onclick="toggleViz('volume')"
-            title="Ray-marched 3D volume rendering of |ψ|² (mutually exclusive with Lobes)">Volume</button>
-          <button class="vtab" id="vtSlice" onclick="toggleViz('slice')"
-            title="2D cross-section slices of the probability density">Slices</button>
-          <button class="vtab" id="vtLobes" onclick="toggleViz('lobes')"
-            title="GPU isosurface lobes coloured by ψ sign — amber = positive, blue = negative (mutually exclusive with Volume)">Lobes</button>
-          <button class="vtab" id="vtCloud" onclick="toggleViz('cloud')"
-            title="Show samples of the probability density. Use Volume, Slices or Lobes to follow individual trajectories.">Cloud</button>
-          <button class="vtab" id="vtPhase" onclick="toggleViz('phase')"
-            title="Phase overlay: show arg(ψ) as hue · |ψ|² as opacity. Combines with Volume, Slices or Lobes. Most useful for m≠0 and superpositions. Incompatible with Cloud.">&#936;
-            Phase</button>
-        </div>
-        <div id="sliceRow" class="crow" style="display:none">
-          <label>Slice
-            <select id="sliceSel" style="width:auto;padding:2px 5px;font-size:10px;">
-              <option value="xz">XZ (side)</option>
-              <option value="xy">XY (top)</option>
-              <option value="yz">YZ (front)</option>
-              <option value="all">All three</option>
-            </select>
-          </label>
-        </div>
-        <div id="cloudRow" class="crow" style="display:none">
-          <label
-            title="Sphere diameter in screen pixels — particle count is auto-derived so spheres don't overlap">Sphere
-            px</label>
-          <input type=range id="sSphPx" min="4" max="24" value="10" step="1">
-          <span class="crow-val" id="vSphPx">10px</span>
-          <button id="resetCloudBtn" class="btn"
-            style="padding:0;width:22px;height:22px;font-size:13px;flex:0 0 22px;line-height:1"
-            title="Resample cloud from |ψ|²">↺</button>
-        </div>
-        <div id="cloudAutoRow" class="crow" style="display:none">
-          <label title="Auto-computed sphere count for non-overlapping coverage">Auto pts</label>
-          <span class="crow-val" id="vAutoN" style="margin-left:4px;opacity:0.7">—</span>
-        </div>
-      </div>
-      <div>
-        <div class="slabel">Simulation</div>
-        <div class="crow"><label title="Number of particles sampled from |ψ|² distribution">Particles</label>
-          <input type=range id="sNP" min=1 max=10 value=2 step=1>
-          <span class="crow-val" id="vNP">2</span>
-        </div>
-        <div class="crow"><label title="Playback speed. At 1×, the app advances up to 20 atomic time units in one real second.">Speed</label>
-          <input type=range id="sSP" min=0.1 max=10 value=1.0 step=0.1>
-          <span class="crow-val" id="vSP">1.0×</span>
-        </div>
         <details class="options-group">
           <summary>Trajectory settings</summary>
         <div class="crow"><label title="Maximum number of trail points stored per particle">Trail</label>
@@ -159,40 +114,7 @@
           <input type=range id="sDT" min=0.005 max=0.15 value=0.04 step=0.005>
           <span class="crow-val" id="vDT">0.040</span>
         </div>
-        </details>
-      </div>
-      <details class="options-group">
-        <summary>Display settings</summary>
-        <div class="crow"><label
-            title="Per-ray-step absorption (low = rays penetrate deeper and reveal inner shells; high = opaque outer cloud)">Opacity</label>
-          <input type=range id="sDO" min=0 max=100 value=60>
-          <span class="crow-val" id="vDO">60%</span>
-        </div>
-        <div class="crow"><label
-            title="Density threshold: clips low-density outer fog so inner nodal structure shows through (0 = show all, 100 = only densest core)">Fog
-            clip</label>
-          <input type=range id="sIO" min=0 max=100 value=0>
-          <span class="crow-val"><span id="vIO">0</span>%</span>
-        </div>
-        <div class="crow" id="lobeRow" style="display:none"><label
-            title="Isosurface threshold for lobe rendering (% of peak density)">Lobe level</label>
-          <input type=range id="sLB" min=1 max=40 value=12 step=1>
-          <span class="crow-val"><span id="vLB">12</span>%</span>
-        </div>
-        <div class="crow"><label title="Particle dot radius in pixels">Pt size</label>
-          <input type=range id="sPS" min=1 max=6 value=2.5 step=0.5>
-          <span class="crow-val" id="vPS">2.5</span>
-        </div>
-        <div style="display:flex;gap:5px;margin-top:4px">
-          <button class="vtab" id="axesBtn" onclick="toggleAxes()" title="Toggle XYZ coordinate axes"
-            style="flex:1;font-size:10px">Axes</button>
-          <button class="vtab" id="insetBtn" onclick="toggleInset()"
-            title="Toggle P(r) = r²|R_nl|² radial probability chart overlay" style="flex:1;font-size:10px">P(r)</button>
-          <button class="vtab" id="projBtn" onclick="toggleProjections()"
-            title="Toggle XZ / XY / YZ integrated density projection panels" style="flex:1;font-size:10px">Proj</button>
-        </div>
-      </details>
-      <details class="options-group">
+        </details>      <details class="options-group">
         <summary>State and diagnostics</summary>
         <div class="slabel" style="display:flex;justify-content:space-between;align-items:center">State
           <div style="display:flex;gap:4px">
@@ -231,24 +153,99 @@
           </div>
         </div>
       </details>
-    </div>
-    <div class="sidebar-resize" id="sidebarResize"></div>
+          </div>
+          <div data-control-pane="display" hidden>
+      <div>
+        <div class="qontic-app-toggle-group orbital-modes">
+          <button class="qontic-app-toggle active" id="vtVol" onclick="toggleViz('volume')"
+            title="Ray-marched 3D volume rendering of |ψ|² (mutually exclusive with Lobes)">Volume</button>
+          <button class="qontic-app-toggle" id="vtSlice" onclick="toggleViz('slice')"
+            title="2D cross-section slices of the probability density">Slices</button>
+          <button class="qontic-app-toggle" id="vtLobes" onclick="toggleViz('lobes')"
+            title="GPU isosurface lobes coloured by ψ sign — amber = positive, blue = negative (mutually exclusive with Volume)">Lobes</button>
+          <button class="qontic-app-toggle" id="vtCloud" onclick="toggleViz('cloud')"
+            title="Show samples of the probability density. Use Volume, Slices or Lobes to follow individual trajectories.">Cloud</button>
+          <button class="qontic-app-toggle" id="vtPhase" onclick="toggleViz('phase')"
+            title="Phase overlay: show arg(ψ) as hue · |ψ|² as opacity. Combines with Volume, Slices or Lobes. Most useful for m≠0 and superpositions. Incompatible with Cloud.">&#936;
+            Phase</button>
+        </div>
+        <div id="sliceRow" class="crow" style="display:none">
+          <label>Slice
+            <select id="sliceSel" style="width:auto;padding:2px 5px;font-size:10px;">
+              <option value="xz">XZ (side)</option>
+              <option value="xy">XY (top)</option>
+              <option value="yz">YZ (front)</option>
+              <option value="all">All three</option>
+            </select>
+          </label>
+        </div>
+        <div id="cloudRow" class="crow" style="display:none">
+          <label
+            title="Sphere diameter in screen pixels — particle count is auto-derived so spheres don't overlap">Sphere
+            px</label>
+          <input type=range id="sSphPx" min="4" max="24" value="10" step="1">
+          <span class="crow-val" id="vSphPx">10px</span>
+          <button id="resetCloudBtn" class="btn"
+            style="padding:0;width:22px;height:22px;font-size:13px;flex:0 0 22px;line-height:1"
+            title="Resample cloud from |ψ|²">↺</button>
+        </div>
+        <div id="cloudAutoRow" class="crow" style="display:none">
+          <label title="Auto-computed sphere count for non-overlapping coverage">Auto pts</label>
+          <span class="crow-val" id="vAutoN" style="margin-left:4px;opacity:0.7">—</span>
+        </div>
+      </div>
+      <details class="options-group">
+        <summary>Display settings</summary>
+        <div class="crow"><label
+            title="Per-ray-step absorption (low = rays penetrate deeper and reveal inner shells; high = opaque outer cloud)">Opacity</label>
+          <input type=range id="sDO" min=0 max=100 value=60>
+          <span class="crow-val" id="vDO">60%</span>
+        </div>
+        <div class="crow"><label
+            title="Density threshold: clips low-density outer fog so inner nodal structure shows through (0 = show all, 100 = only densest core)">Fog
+            clip</label>
+          <input type=range id="sIO" min=0 max=100 value=0>
+          <span class="crow-val"><span id="vIO">0</span>%</span>
+        </div>
+        <div class="crow" id="lobeRow" style="display:none"><label
+            title="Isosurface threshold for lobe rendering (% of peak density)">Lobe level</label>
+          <input type=range id="sLB" min=1 max=40 value=12 step=1>
+          <span class="crow-val"><span id="vLB">12</span>%</span>
+        </div>
+        <div class="crow"><label title="Particle dot radius in pixels">Pt size</label>
+          <input type=range id="sPS" min=1 max=6 value=2.5 step=0.5>
+          <span class="crow-val" id="vPS">2.5</span>
+        </div>
+        <div style="display:flex;gap:5px;margin-top:4px">
+          <button class="vtab" id="axesBtn" onclick="toggleAxes()" title="Toggle XYZ coordinate axes"
+            style="flex:1;font-size:10px">Axes</button>
+          <button class="vtab" id="insetBtn" onclick="toggleInset()"
+            title="Toggle P(r) = r²|R_nl|² radial probability chart overlay" style="flex:1;font-size:10px">P(r)</button>
+          <button class="vtab" id="projBtn" onclick="toggleProjections()"
+            title="Toggle XZ / XY / YZ integrated density projection panels" style="flex:1;font-size:10px">Proj</button>
+        </div>
+      </details>
 
-    <div class="canvas-wrap">
+            <button type="button" class="qontic-app-toggle" id="clearBtn">Clear trails</button>
+          </div>
+        </div>
+      </aside>
+      <section class="qontic-stage qontic-panel hydrogen-stage" aria-label="Orbital view">
+        <div id="gpuStatusBanner" class="gpu-status-banner" hidden></div>
+        <div class="canvas-wrap" id="hydrogen-canvas-wrap">
       <canvas id="c" aria-label="Three-dimensional hydrogen orbital and pilot-wave trajectories" tabindex="0"></canvas>
 
       <div class="hint">Drag or use arrow keys to rotate · Scroll to zoom</div>
       <div class="legend" id="legend"></div>
-      <button id="theoryBtn" onclick="toggleTheory()" aria-label="Show theory and equations" title="Show theory &amp; equations">?</button>
-
-      <!-- ═══ THEORY PANEL ═══════════════════════════════════════════ -->
-      <div id="theoryPanel" style="display:none">
-        <div class="tp-header">
-          <span class="tp-title">Theory &amp; Equations</span>
-          <button class="tp-close" onclick="toggleTheory()">×</button>
+      <div class="info">
+        <span class="ket" id="infoKet">|2, 1, +1⟩</span>
+        <span id="infoDesc"></span>
+      </div>
         </div>
-        <div class="tp-body">
-
+      </section>
+    </section>
+    <section class="qontic-reading-panel qontic-panel details-panel" id="physics" hidden>
+      <div class="tp-body">
           <section class="tp-sec">
             <h2>1 &mdash; Hydrogen Eigenstates</h2>
             <p>The time-independent Schr&ouml;dinger equation <code>Hψ = Eψ</code> for hydrogen has exact solutions
@@ -391,19 +388,10 @@
             </ul>
           </section>
 
-        </div>
       </div>
-      <!-- ═══════════════════════════════════════════════════════════ -->
-
-      <div class="info">
-        <span class="ket" id="infoKet">|2, 1, +1⟩</span>
-        <span id="infoDesc"></span>
-      </div>
-    </div>
-  </div>
-
-  <script src="hydrogen-3d.js?v=2"></script>
-
+    </section>
+  </main>
+  <script src="hydrogen-3d.js?v=3"></script>
+  <script type="module" src="hydrogen-template.js?v=1"></script>
 </body>
-
 </html>

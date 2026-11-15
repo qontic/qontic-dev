@@ -1,0 +1,51 @@
+/* The shared shell supplies page layout. These rules size the orbital canvas. */
+:root {
+  --bg-primary: #081520;
+  --bg-panel: #0b1926;
+  --text-primary: #d9edf7;
+  --text-secondary: #a8bdc9;
+  --border-color: #294b60;
+}
+:root.qontic-light {
+  --bg-primary: #eef4f7;
+  --bg-panel: #fbfdff;
+  --text-primary: #172b3a;
+  --text-secondary: #496476;
+  --border-color: #b2c8d4;
+}
+body {
+  display: block;
+  height: auto;
+  min-height: 100dvh;
+  overflow: auto;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: 14px/1.45 Inter, system-ui, sans-serif;
+}
+[hidden] { display: none !important; }
+.shell { width: calc(100% - 24px); max-width: 1440px; margin: 0 auto; }
+.qontic-workspace { max-width: 100%; margin-top: 12px; }
+[data-control-pane] { display: grid; gap: 10px; }
+.quick-orbitals .qontic-app-toggle { padding-inline: 2px; font-size: 12px; }
+.orbital-modes { margin-bottom: 8px; }
+.orbital-modes .qontic-app-toggle { flex: 1 1 auto; }
+[data-control-pane] .crow { min-height: 25px; }
+.hydrogen-stage { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+.hydrogen-stage .canvas-wrap {
+  flex: none; width: 100%; height: clamp(320px, 64dvh, 710px);
+  border: 1px solid var(--border-color); border-radius: 6px;
+}
+.hydrogen-stage .gpu-status-banner { border: 0; border-radius: 5px; padding: 6px 10px; }
+.hydrogen-stage .hint { top: auto; bottom: 5px; max-width: 100%; white-space: normal; text-align: center; }
+.hydrogen-stage .info { bottom: 37px; }
+#c { touch-action: none; }
+#physics { margin-top: 12px; }
+#physics .tp-body { display: grid; gap: 22px; width: 100%; max-width: 860px; }
+#physics .tp-sec { overflow-wrap: anywhere; }
+#physics .tp-sec h2, #physics .tp-sec h3 { font-family: inherit; }
+.qontic-expanded-dialog .hydrogen-stage .canvas-wrap { flex: 1 1 0; min-height: 0; height: auto; }
+body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) { display: none !important; }
+@media (max-width: 600px) {
+  .hydrogen-stage { padding: 7px; }
+  .hydrogen-stage .canvas-wrap { height: clamp(275px, 48dvh, 500px); }
+}
