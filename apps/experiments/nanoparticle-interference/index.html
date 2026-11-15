@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/np.css?v=0.2.0">
+<link rel="stylesheet" href="css/np.css?v=0.3.0">
 </head>
 <body class="np-app">
 <main class="shell">
@@ -64,6 +64,9 @@
         <label class="control-row" title="Distance between neighbouring gratings. The experiment uses 0.983 m.">
           <span>Grating spacing</span><input id="gl" type="range" min="0.4" max="1.6" step="0.001" aria-label="Grating spacing in m"><output id="glOut"></output>
         </label>
+        <label class="control-row" title="Independent clusters prepared in the same state and drawn with each packet: Pilot-Wave particles, or sampled outcomes in the other views.">
+          <span>Clusters per packet</span><input id="ppp" type="range" min="1" max="30" step="1" aria-label="Clusters drawn per packet"><output id="pppOut"></output>
+        </label>
         <label class="control-row" title="Where in a G1 opening the displayed cluster starts, as a distance from the edge where the light is brightest. The opening is centred at 66.5 nm.">
           <span>G1 start point</span><input id="x0" type="range" min="0.15" max="0.85" step="0.01" aria-label="Start point of the displayed cluster within a G1 opening"><output id="x0Out"></output>
         </label>
@@ -92,6 +95,7 @@
         <div class="toggle-row"><span>Classical prediction</span><button class="toggle" type="button" data-toggle="classical" aria-pressed="true" aria-label="Show the classical prediction"></button></div>
         <div class="toggle-row"><span>Counts and fit</span><button class="toggle" type="button" data-toggle="data" aria-pressed="true" aria-label="Show the simulated counts and the sine fit"></button></div>
         <div class="toggle-row"><span>Wave |ψ|²</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave inside the interferometer"></button></div>
+        <div class="toggle-row" title="While a packet is in flight, show the rest of the stationary pattern faintly."><span>Trace of the full pattern</span><button class="toggle" type="button" data-toggle="trace" aria-pressed="true" aria-label="Show a faint trace of the full stationary pattern"></button></div>
         <div class="toggle-row" title="Off: the wave of one cluster leaving one point of G1. On: the incoherent sum over all points of G1, which is what the detector sees."><span>Sum over all G1 points</span><button class="toggle" type="button" data-toggle="ensemble" aria-pressed="false" aria-label="Sum the wave density over all source points of G1"></button></div>
         <div class="toggle-row pw-only hidden"><span>Trajectories</span><button class="toggle" type="button" data-toggle="traj" aria-pressed="true" aria-label="Show pilot-wave trajectories"></button></div>
       </div>
@@ -174,7 +178,10 @@
   <p>with uniform density: by G2 the wave of a single cluster covers many openings. Write t<sub>2</sub>(x) = Σ<sub>n</sub> b<sub>n</sub> e<sup>2πinx/d</sup>. Each term turns the point-source wave into another point-source wave, from a virtual source at x<sub>n</sub> = x<sub>0</sub> − nλ<sub>dB</sub>L/d. A distance s behind G2, with R = L + s, the wave is therefore exactly</p>
   <p class="formula">ψ(x, L + s) ∝ R<sup>−1/2</sup> Σ<sub>n</sub> b<sub>n</sub> e<sup>2πinx<sub>0</sub>/d − iπn²λ<sub>dB</sub>L/d²</sup> exp[ik(x − x<sub>n</sub>)²/(2R)].</p>
   <p>The virtual sources are λ<sub>dB</sub>L/d apart, about 107 nm for 172 kDa clusters: comparable to the period, which is why the waves from neighbouring virtual sources interfere visibly. Summing |ψ|² over x<sub>0</sub> and scanning the G3 mask across it reproduces the paper's count rate to better than 0.2% for every case tested; this is an independent check of both calculations.</p>
-  <p>The panel shows the density with its brightness normalised in each slice; before G2, where the density is uniform, it is drawn at a fixed low level. <em>Sum over all G1 points</em> (Display) shows the incoherent sum instead of one cluster. The wave is computed for the central mass and speed; the counts and visibilities include the averages.</p>
+  <h2>The packet</h2>
+  <p>In the paraxial approximation the full wave factorises, as in the analytical double-slit app: Ψ(x, z, t) = F(z − vt) ψ(x, z) e<sup>i(kz − ωt)</sup>. The transverse pattern ψ(x, z) does not change in time; the longitudinal envelope F carries the cluster along the beam at its speed v. While the simulation runs, the panel lights the pattern with |F|² and dims it behind G2 by the fraction G2 removes. The real envelope is about 0.2 pm long (the paper gives a longitudinal coherence length of 160–350 fm) and crosses the 2 m apparatus in about 12 ms; the packet is drawn about 0.3 m long and slowed so it can be seen. Its length does not affect the transverse pattern in this approximation.</p>
+  <p>Each packet carries a few clusters prepared in the same state (<em>Clusters per packet</em>, Advanced). In Pilot Wave they are dots riding inside the packet, at positions drawn from |F|²|ψ|². In Orthodox and Many Worlds, outcomes are drawn from |ψ|² when the packet reaches G2 and G3: ionised (×) or counted (•). The counts in the lower panel gather about 1,600 clusters per scan position and are drawn from the same probabilities.</p>
+  <p>When no packet is in flight, the panel shows the density with its brightness normalised in each slice; before G2, where the density is uniform, it is drawn at a fixed low level. <em>Sum over all G1 points</em> (Display) shows the incoherent sum instead of one cluster. The wave is computed for the central mass and speed; the counts and visibilities include the averages.</p>
 
   <h2>Pilot-wave trajectories</h2>
   <p>In pilot-wave theory each cluster also has a position, moving with the velocity set by its wave:</p>
@@ -233,6 +240,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.2.0"></script>
+<script type="module" src="js/app.js?v=0.3.0"></script>
 </body>
 </html>

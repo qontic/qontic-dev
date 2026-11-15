@@ -1,5 +1,11 @@
 # Nanoparticle Interference (Vienna 2026) — changelog
 
+## 0.3.0 (2026-11-15)
+The moving packet, as in the analytical double-slit app.
+- Ψ(x, z, t) = F(z − vt) ψ(x, z): a longitudinal envelope travels G1 → G3 and lights the stationary transverse pattern, dimmed behind G2 by the fraction G2 removes; faint trace of the full pattern (Display). Packet length and transit time exaggerated (real: ≈ 0.2 pm, ≈ 12 ms), stated in Physics.
+- Pilot Wave: particles ride inside the packet (positions from |F|²|ψ|²), Clusters per packet in Advanced.
+- Orthodox and Many Worlds: outcomes drawn from |ψ|² as the packet reaches G2 and G3 (× ionised, • counted); Many Worlds highlights the followed branch.
+
 ## 0.2.0 (2026-11-15)
 The wave and the three interpretations.
 - New top panel: |ψ|² inside the interferometer, from the exact paraxial wave (js/wave.js). Each cluster leaves G1 as a point-source wave (coherence width ≈ 0.05 nm ≪ d); behind G2 the wave is a closed-form sum over virtual sources at x0 − nλL/d weighted by G2's Fourier coefficients. Option: incoherent sum over all G1 points. Replaces the cartoon beamline.

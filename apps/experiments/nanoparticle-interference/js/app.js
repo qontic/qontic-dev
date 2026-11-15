@@ -2,7 +2,7 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.2.0';
+import { APP_RELEASE } from './release.js?v=0.3.0';
 import { makeSetup, makeCluster, densityAfterG2, intensityTransmission, trajectory } from './wave.js?v=0.2.0';
 import {
   PAPER, averagedCoefficients, visibility, fringeProfile, fitSine, poisson,
@@ -42,8 +42,8 @@ const PRESETS = {
 const state = {
   ...structuredClone(PRESETS.fig2a),
   countsLog: 3.2, scale: true, truth: 'quantum', chart: 'power',
-  show: { predict: true, quantum: true, classical: true, data: true, wave: true, ensemble: false, traj: true },
-  interp: 'orthodox', x0frac: 0.5,
+  show: { predict: true, quantum: true, classical: true, data: true, wave: true, ensemble: false, traj: true, trace: true },
+  interp: 'orthodox', x0frac: 0.5, perPacket: 8,
   running: false, autoRun: false, speed: 1,
   step: 'setup', prediction: null, finished: false,
   scanIndex: 0, dwell: 0, data: [],
@@ -120,7 +120,7 @@ function rebuild(fast = false) {
   computeModel(fast);
   clearTimeout(modelTimer);
   if (fast) modelTimer = setTimeout(() => { computeModel(false); updateText(); }, 150);
-  trajs = [];
+  resetPacket();
   scheduleCharts();
   scheduleCarpet();
   updateText();
@@ -181,6 +181,7 @@ function syncControls() {
   $('#dm').value = state.dmRel;
   $('#gl').value = state.L;
   $('#counts').value = state.countsLog;
+  $('#ppp').value = state.perPacket; $('#pppOut').value = String(state.perPacket);
   $('#x0').value = state.x0frac; $('#x0Out').value = `${Math.round(state.x0frac * D * 1e9)} nm`;
   setPressed('.truth-group', 'data-truth', state.truth);
   setPressed('.chart-group', 'data-chart', state.chart);
@@ -203,7 +204,8 @@ $('#p3').addEventListener('input', (e) => { state.P[2] = +e.target.value * 1e-3;
 $('#sigv').addEventListener('input', (e) => { state.sigmaV = +e.target.value; changed(true); });
 $('#dm').addEventListener('input', (e) => { state.dmRel = +e.target.value; changed(true); });
 $('#gl').addEventListener('input', (e) => { state.L = +e.target.value; changed(true); });
-$('#x0').addEventListener('input', (e) => { state.x0frac = +e.target.value; model.cluster = makeCluster(model.setup, state.x0frac * D); trajs = []; $('#x0Out').value = `${Math.round(state.x0frac * D * 1e9)} nm`; scheduleCarpet(); });
+$('#ppp').addEventListener('input', (e) => { state.perPacket = +e.target.value; $('#pppOut').value = String(state.perPacket); });
+$('#x0').addEventListener('input', (e) => { state.x0frac = +e.target.value; model.cluster = makeCluster(model.setup, state.x0frac * D); resetPacket(); $('#x0Out').value = `${Math.round(state.x0frac * D * 1e9)} nm`; scheduleCarpet(); });
 $('#counts').addEventListener('input', (e) => { state.countsLog = +e.target.value; updateText(); resetRun(); });
 document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
 document.querySelectorAll('[data-truth]').forEach((b) => b.addEventListener('click', () => { state.truth = b.dataset.truth; syncControls(); resetRun(); }));
@@ -214,7 +216,8 @@ document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('cl
   state.show[k] = !state.show[k];
   b.setAttribute('aria-pressed', String(state.show[k]));
   if (k === 'predict') updateText();
-  if (k === 'ensemble') { trajs = []; computeCarpet(); }
+  if (k === 'ensemble') { resetPacket(); computeCarpet(); }
+  if (k === 'trace' && carpet) carpet.dirty = true;
 }));
 
 function applyPreset(name) {
@@ -240,6 +243,7 @@ function resetRun() {
   state.running = false; state.finished = false; state.prediction = null;
   state.scanIndex = 0; state.dwell = 0; state.data = [];
   controlsEl.setAttribute('running', 'false');
+  resetPacket(); if (carpet) carpet.dirty = true;
   showStep('setup');
 }
 function start() {
@@ -322,7 +326,7 @@ function stepScan(dt) {
   }
   if (state.scanIndex >= SCAN_X.length) {
     if (state.autoRun) { finish(); state.scanIndex = 0; state.dwell = 0; state.data = []; state.finished = false; showStep('run'); }
-    else { stop(); finish(); }
+    else { stop(); finish(); pk.z = null; pk.pending = null; if (carpet) carpet.dirty = true; }
   }
 }
 
@@ -478,9 +482,18 @@ function paintCarpet(P) {
   if (!carpet || !carpet.dirty) return;
   const img = carpetCtx.createImageData(NZ, NX);
   const [r0, g0, b0] = P.waveLo, [r1, g1, b1] = P.waveHi;
+  // While a packet is in flight the pattern is lit by the moving envelope |F|^2, dimmed behind
+  // G2 by the fraction G2 removes; a faint trace shows the rest of the stationary pattern.
+  const trace = state.show.trace ? 0.16 : 0;
+  const s2 = survivalG2(), L = model.setup.L;
+  const colW = carpet.zs.map((z) => {
+    const env = envelopeAt(z);
+    if (env === null) return 1;
+    return trace + (1 - trace) * env * (z >= L ? s2 : 1);
+  });
   for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) {
     const k = (i * NZ + j) * 4;
-    const v = j < carpet.done ? Math.pow(carpet.data[i * NZ + j], 0.6) : 0;
+    const v = j < carpet.done ? Math.pow(carpet.data[i * NZ + j], 0.6) * colW[j] : 0;
     img.data[k] = r0 + (r1 - r0) * v; img.data[k + 1] = g0 + (g1 - g0) * v; img.data[k + 2] = b0 + (b1 - b0) * v; img.data[k + 3] = 255;
   }
   carpetCtx.putImageData(img, 0, 0);
@@ -488,9 +501,9 @@ function paintCarpet(P) {
 }
 
 const CAPTION = {
-  orthodox: 'Orthodox: the wave gives the probabilities. At G1, G2 and G3 a cluster is either ionised or not; not being ionised updates the wave by the grating’s transmission t(x). No path is assigned between gratings.',
-  'pilot-wave': 'Pilot-Wave: each cluster has a position at all times, guided by its wave. Removal at a grating is drawn with probability 1 − |t(x)|² at the cluster’s position (an effective rule, not a model of the ionisation).',
-  'many-worlds': 'Many-Worlds: the wave never collapses. Ionisation at a grating, and counting at the detector, entangle the cluster with its surroundings and the state branches. The counts below are one branch; |ψ|² gives the branch weights.',
+  orthodox: 'Orthodox: the wave gives the probabilities. At G1, G2 and G3 a cluster is either ionised or not; not being ionised updates the wave by the grating’s transmission t(x). No path is assigned between gratings. Marks: outcomes sampled from |ψ|² when the packet arrives (× ionised, • counted).',
+  'pilot-wave': 'Pilot-Wave: each cluster has a position at all times, guided by its wave. Each dot rides inside the packet. Removal at a grating is drawn with probability 1 − |t(x)|² at the dot’s position (an effective rule, not a model of the ionisation).',
+  'many-worlds': 'Many-Worlds: the wave never collapses. Ionisation at a grating, and counting at the detector, entangle the cluster with its surroundings and the state branches. All marked outcomes occur, in different branches; the bright one is the branch followed. |ψ|² gives the weights.',
 };
 
 function drawWave(r, P, dt) {
@@ -543,7 +556,12 @@ function drawWave(r, P, dt) {
   }
 
   // pilot-wave trajectories
-  if (state.interp === 'pilot-wave' && state.show.traj) drawTrajectories(P, tz, tx, pr, dt);
+  if (state.interp === 'pilot-wave') { if (state.show.traj) drawParticles(P, tz, tx, pr); }
+  else drawOutcomes(P, tz, tx, pr);
+  if (pk.z !== null && pk.z >= -2 * pkSigma()) {
+    const zc = Math.min(2 * st.L, Math.max(0, pk.z));
+    label('packet', tz(zc), pr.y + 11, { color: P.text, size: 10.5, align: 'center' });
+  }
 
   // axes
   ctx.strokeStyle = P.axis; ctx.lineWidth = 1; ctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
@@ -559,63 +577,139 @@ function drawWave(r, P, dt) {
     pr.x + pr.w / 2, r.y + r.h - 8, { color: P.muted, size: 10.5, align: 'center' });
 }
 
-// ---------------------------------------------------------------- pilot-wave trajectories
-let trajs = [];
-const TRAJ_TIME = 1.8; // seconds to cross at speed 1
-function spawnTrajectory() {
-  const st = model.setup;
-  let cl = model.cluster;
-  if (state.show.ensemble) {
-    // source point drawn from the G1 intensity transmission, in one of the openings in view
-    let x0;
-    do { x0 = Math.random() * D; } while (Math.random() > intensityTransmission(x0, st.g[0].n0));
-    x0 += D * Math.floor(Math.random() * 4 - 2) ; // openings centred at -3d/2 ... 3d/2
-    cl = makeCluster(st, x0);
+// ---------------------------------------------------------------- the packet
+// As in the analytical double-slit app, the wave factorises in the paraxial approximation:
+// Psi(x, z, t) = F(z - v t) psi(x, z). psi is the stationary pattern computed above; the
+// longitudinal envelope F moves along the beam without changing it. The real envelope is
+// about 0.2 pm long (longitudinal coherence 160–350 fm) and crosses in about 12 ms; both are
+// exaggerated here so the packet can be seen.
+const PACKET_TIME = 2.2; // seconds from G1 to G3 at speed 1
+const pk = { z: null, wait: 0, outcomes: [], trajs: [] };
+const pkSigma = () => 0.07 * 2 * model.setup.L; // display length of the envelope
+const survivalG2 = () => { // fraction of a uniform wave that survives G2: mean of |t2|^2
+  let s = 0; const n0v = model.setup.g[1].n0;
+  for (let i = 0; i < 64; i++) s += intensityTransmission(((i + 0.5) * D) / 64, n0v);
+  return s / 64;
+};
+
+function resetPacket() { pk.z = null; pk.wait = 0; pk.outcomes = []; pk.trajs = []; }
+
+function launchPacket() {
+  const st = model.setup, sig = pkSigma();
+  pk.z = -3 * sig;
+  pk.outcomes = pk.outcomes.filter((o) => (o.age += 1) < 3); // keep the last packets' marks, fading
+  pk.trajs = pk.trajs.filter((t) => (t.age += 1) < 4);
+  const x3 = SCAN_X[Math.min(state.scanIndex, SCAN_X.length - 1)] || 0;
+  const n = state.perPacket;
+  for (let i = 0; i < n; i++) {
+    let cl = model.cluster;
+    if (state.show.ensemble) {
+      let x0; do { x0 = Math.random() * D; } while (Math.random() > intensityTransmission(x0, st.g[0].n0));
+      cl = makeCluster(st, x0 + D * Math.floor(Math.random() * 4 - 2));
+    }
+    const xc = windowCentre();
+    const x2 = xc - WIN - 60e-9 + Math.random() * (2 * WIN + 120e-9); // |psi|^2 is uniform at G2
+    const tr = trajectory(st, cl, x2, { x3, steps: 120 });
+    // where the particle sits inside the packet, drawn from |F|^2
+    const dz = sig * gaussRand();
+    pk.trajs.push({ ...tr, dz, age: 0 });
   }
-  // positions at G2 are uniform; draw them in a band that keeps most trajectories in view
-  const xc = windowCentre();
-  const x2 = xc - WIN - 60e-9 + Math.random() * (2 * WIN + 120e-9);
-  const tr = trajectory(st, cl, x2, { x3: SCAN_X[Math.min(state.scanIndex, SCAN_X.length - 1)] || 0, steps: 120 });
-  trajs.push({ ...tr, age: 0 });
-  if (trajs.length > 160) trajs.shift();
+  pk.pending = sampleOutcomes(n, x3);
+  if (pk.pending.length) pk.pending[Math.floor(Math.random() * pk.pending.length)].followed = true;
 }
-function drawTrajectories(P, tz, tx, pr, dt) {
-  if (state.running) {
-    trajAccumulator += dt * 22 * state.speed;
-    while (trajAccumulator >= 1) { spawnTrajectory(); trajAccumulator -= 1; }
+
+function gaussRand() { let u = 0; while (u === 0) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); }
+
+// Orthodox and Many-Worlds outcomes, from |psi|^2: ionised at G2, ionised at G3, or counted.
+function sampleOutcomes(n, x3) {
+  const st = model.setup, out = [];
+  if (!carpet || carpet.done < NZ) return out;
+  const col = Array.from({ length: NX }, (_, i) => carpet.data[i * NZ + NZ - 1]);
+  const cum = []; let acc = 0; for (const c of col) cum.push((acc += c));
+  for (let k = 0; k < n; k++) {
+    // ionised at G2: position uniform weighted by 1 - |t2|^2
+    const x2 = windowCentre() - WIN + Math.random() * 2 * WIN;
+    if (Math.random() > intensityTransmission(x2, st.g[1].n0)) { out.push({ z: st.L, x: x2, fate: 'G2', age: 0 }); continue; }
+    const u = Math.random() * acc; let i = cum.findIndex((c) => c >= u); if (i < 0) i = NX - 1;
+    const x = carpet.xs[i] + (Math.random() - 0.5) * ((2 * WIN) / NX);
+    const counted = Math.random() <= intensityTransmission(x - x3, st.g[2].n0);
+    out.push({ z: 2 * st.L, x, fate: counted ? 'counted' : 'G3', age: 0 });
   }
+  return out;
+}
+
+function advancePacket(dt) {
+  if (pk.z === null) {
+    pk.wait -= dt * state.speed;
+    if (pk.wait <= 0 && carpet && carpet.done >= NZ) launchPacket();
+    return;
+  }
+  const st = model.setup, sig = pkSigma(), span = 2 * st.L + 6 * sig;
+  const before = pk.z;
+  pk.z += (span / PACKET_TIME) * dt * state.speed;
+  // outcomes register when the packet centre reaches the grating
+  if (pk.pending) {
+    for (const o of pk.pending) if (!o.shown && before < o.z && pk.z >= o.z) { o.shown = true; pk.outcomes.push(o); }
+  }
+  if (pk.z - 3 * sig > 2 * st.L) { pk.z = null; pk.pending = null; pk.wait = 0.35; }
+  if (carpet) carpet.dirty = true;
+}
+
+function envelopeAt(z) {
+  // between packets while running: dark; stopped with no packet in flight: the full pattern
+  if (pk.z === null) return state.running ? 0 : null;
+  const sig = pkSigma();
+  return Math.exp(-((z - pk.z) ** 2) / (2 * sig * sig));
+}
+
+function drawParticles(P, tz, tx, pr) {
   ctx.save(); ctx.beginPath(); ctx.rect(pr.x, pr.y, pr.w, pr.h); ctx.clip();
   const z2 = 2 * model.setup.L;
-  for (const t of trajs) {
-    if (state.running) t.age += (dt * state.speed) / TRAJ_TIME;
-    const zNow = Math.min(1, t.age) * z2;
+  for (const t of pk.trajs) {
+    const live = t.age === 0 && pk.z !== null;
     const zEnd = t.pts[t.pts.length - 1][0];
+    const zNow = live ? Math.min(zEnd, Math.max(0, pk.z + t.dz)) : zEnd;
+    if (live && pk.z + t.dz < 0) continue;
     ctx.strokeStyle = t.fate === 'counted' ? P.data : P.beam;
-    ctx.globalAlpha = t.age > 1 ? Math.max(0.12, 0.55 - 0.1 * (t.age - 1)) : 0.9;
+    ctx.globalAlpha = live ? 0.85 : Math.max(0.1, 0.45 - 0.12 * t.age);
     ctx.lineWidth = 1;
     ctx.beginPath();
-    let started = false, last = null;
+    let last = null;
     for (const [z, x] of t.pts) {
-      if (z > zNow) break;
-      const X = tz(z), Y = tx(x);
-      if (started) ctx.lineTo(X, Y); else { ctx.moveTo(X, Y); started = true; }
-      last = [X, Y];
+      if (z > zNow + 1e-9) {
+        // interpolate to the particle's current z
+        if (last) { const [z0, x0] = last; const f = (zNow - z0) / (z - z0); const xi = x0 + f * (x - x0); ctx.lineTo(tz(zNow), tx(xi)); last = [zNow, xi]; }
+        break;
+      }
+      if (last) ctx.lineTo(tz(z), tx(x)); else ctx.moveTo(tz(z), tx(x));
+      last = [z, x];
     }
     ctx.stroke();
-    if (last && zNow >= zEnd) {
-      if (t.fate === 'counted') { ctx.fillStyle = P.data; ctx.beginPath(); ctx.arc(last[0], last[1], 2.4, 0, Math.PI * 2); ctx.fill(); }
-      else { ctx.strokeStyle = P.lost; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(last[0] - 3, last[1] - 3); ctx.lineTo(last[0] + 3, last[1] + 3); ctx.moveTo(last[0] + 3, last[1] - 3); ctx.lineTo(last[0] - 3, last[1] + 3); ctx.stroke(); }
-    } else if (last) { ctx.fillStyle = P.text; ctx.beginPath(); ctx.arc(last[0], last[1], 2.2, 0, Math.PI * 2); ctx.fill(); }
+    if (!last) continue;
+    const [lz, lx] = last;
+    const ended = zNow >= zEnd - 1e-9 && (!live || pk.z + t.dz >= zEnd);
+    if (ended && t.fate !== 'counted') cross(tz(lz), tx(lx), P.lost);
+    else { ctx.fillStyle = t.fate === 'counted' && ended ? P.data : P.text; ctx.beginPath(); ctx.arc(tz(lz), tx(lx), live ? 2.8 : 2, 0, Math.PI * 2); ctx.fill(); }
   }
-  ctx.globalAlpha = 1;
-  ctx.restore();
-  if (trajs.length) {
-    const ended = trajs.filter((t) => t.age >= 1);
-    const counted = ended.filter((t) => t.fate === 'counted').length;
-    label(`trajectories: yellow counted, × ionised at G2 or G3 (${counted} of ${ended.length} counted)`, pr.x + pr.w - 6, pr.y - 4, { color: P.muted, size: 10.5, align: 'right' });
-  }
+  ctx.globalAlpha = 1; ctx.restore();
 }
-let trajAccumulator = 0;
+
+function drawOutcomes(P, tz, tx, pr) {
+  ctx.save(); ctx.beginPath(); ctx.rect(pr.x - 8, pr.y, pr.w + 16, pr.h); ctx.clip();
+  const mw = state.interp === 'many-worlds';
+  for (const o of pk.outcomes) {
+    ctx.globalAlpha = Math.max(0.15, 1 - 0.35 * o.age);
+    if (mw && !o.followed) ctx.globalAlpha *= 0.45;
+    if (o.fate === 'counted') { ctx.fillStyle = P.data; ctx.beginPath(); ctx.arc(tz(o.z), tx(o.x), 3.2, 0, Math.PI * 2); ctx.fill(); }
+    else cross(tz(o.z), tx(o.x), P.lost);
+  }
+  ctx.globalAlpha = 1; ctx.restore();
+}
+function cross(X, Y, color) {
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
+  ctx.moveTo(X - 3.5, Y - 3.5); ctx.lineTo(X + 3.5, Y + 3.5); ctx.moveTo(X + 3.5, Y - 3.5); ctx.lineTo(X - 3.5, Y + 3.5); ctx.stroke();
+}
+
 
 // ---------------------------------------------------------------- plots
 function axes(r, P, { x0, x1, y0, y1, xlabel, ylabel, xticks, yticks, xfmt, yfmt, xlog = false, top = 34 }) {
@@ -793,7 +887,7 @@ function updateResults() {
   if (state.step === 'run') {
     const i = Math.min(state.scanIndex, SCAN_X.length - 1);
     const text = state.scanIndex < SCAN_X.length
-      ? `Counting at G3 offset ${Math.round(SCAN_X[i] * 1e9)} nm · point ${state.scanIndex + 1} of ${SCAN_X.length} · about ${fmtInt(meanCounts())} clusters per point`
+      ? `Counting at G3 offset ${Math.round(SCAN_X[i] * 1e9)} nm · point ${state.scanIndex + 1} of ${SCAN_X.length} · about ${fmtInt(meanCounts())} clusters per point; each packet above shows ${state.perPacket}`
       : 'Scan complete.';
     const el = $('#liveLine'); if (el.textContent !== text) el.textContent = text;
   }
@@ -803,7 +897,7 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  if (state.running) stepScan(dt);
+  if (state.running) { stepScan(dt); if (state.running) advancePacket(dt); }
   try { render(dt); } catch (err) { console.error(err); }
   requestAnimationFrame(frame);
 }
