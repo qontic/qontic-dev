@@ -2,11 +2,12 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.1.0';
+import { APP_RELEASE } from './release.js?v=0.2.0';
+import { makeSetup, makeCluster, densityAfterG2, intensityTransmission, trajectory } from './wave.js?v=0.2.0';
 import {
   PAPER, averagedCoefficients, visibility, fringeProfile, fitSine, poisson,
   deBroglie, talbotLength, atomsIn, diameter, n0, phi0,
-} from './talbot.js?v=0.1.0';
+} from './talbot.js?v=0.2.0';
 
 mountQonticShell({
   title: 'Nanoparticle Interference (Vienna 2026)',
@@ -41,14 +42,14 @@ const PRESETS = {
 const state = {
   ...structuredClone(PRESETS.fig2a),
   countsLog: 3.2, scale: true, truth: 'quantum', chart: 'power',
-  show: { predict: true, quantum: true, classical: true, data: true, beam: true },
+  show: { predict: true, quantum: true, classical: true, data: true, wave: true, ensemble: false, traj: true },
+  interp: 'orthodox', x0frac: 0.5,
   running: false, autoRun: false, speed: 1,
   step: 'setup', prediction: null, finished: false,
   scanIndex: 0, dwell: 0, data: [],
 };
 let model = null; // predictions for the current settings
 let charts = null; // visibility curves for the chart
-let clusters = []; // beamline animation only
 
 readUrl();
 
@@ -65,7 +66,9 @@ function computeModel(fast = false) {
   const Sc = averagedCoefficients(p, b, true, 6, nv, nm);
   const vis = (S) => (s * 2 * Math.hypot(...S[1])) / Math.abs(S[0][0]);
   const LT = talbotLength(state.massKDa, state.v);
+  const setup = makeSetup({ massKDa: state.massKDa, v: state.v, P: state.P, L: state.L });
   model = {
+    setup, cluster: makeCluster(setup, state.x0frac * D),
     vq: vis(Sq), vc: vis(Sc),
     profQ: fringeProfile(Sq, PROFILE_X, D, s), profC: fringeProfile(Sc, PROFILE_X, D, s),
     scanQ: fringeProfile(Sq, SCAN_X, D, s), scanC: fringeProfile(Sc, SCAN_X, D, s),
@@ -76,6 +79,12 @@ function computeModel(fast = false) {
   };
 }
 
+function powerRange() {
+  const natural = 60 * (state.v / 160) * (172 / state.massKDa);
+  const r = Math.min(60, Math.max(3, natural, 1.5 * state.P[1] * 1e3));
+  const step = r > 20 ? 10 : r > 6 ? 2 : 1;
+  return Math.ceil(r / step) * step;
+}
 // Chart curves are computed a few points at a time so the page stays responsive.
 let chartTimer = 0, chartToken = 0;
 function scheduleCharts() {
@@ -87,13 +96,15 @@ function computeCharts() {
   const s = scaleF(), b = beam(), p = params(), P1 = state.P[0], P3 = state.P[2];
   const nv = 9, nm = 5;
   const power = state.chart === 'power';
+  // n0 and phi0 scale as m P / v, so the useful G2 power range scales as v / m.
+  const pMax = powerRange();
   const xs = power
-    ? Array.from({ length: 121 }, (_, i) => i * 0.5)
+    ? Array.from({ length: 121 }, (_, i) => (i * pMax) / 120)
     : Array.from({ length: 61 }, (_, i) => M_MIN * (M_MAX / M_MIN) ** (i / 60));
   const at = (x, cl) => (power
     ? visibility({ ...p, P: [P1, x * 1e-3, P3] }, b, cl, s, nv, nm)
     : visibility(p, { ...b, massKDa: x }, cl, s, nv, nm));
-  charts = { kind: state.chart, xs, q: xs.map(() => NaN), c: xs.map(() => NaN) };
+  charts = { kind: state.chart, pMax, xs, q: xs.map(() => NaN), c: xs.map(() => NaN) };
   let i = 0;
   const work = () => {
     if (token !== chartToken) return;
@@ -109,7 +120,9 @@ function rebuild(fast = false) {
   computeModel(fast);
   clearTimeout(modelTimer);
   if (fast) modelTimer = setTimeout(() => { computeModel(false); updateText(); }, 150);
+  trajs = [];
   scheduleCharts();
+  scheduleCarpet();
   updateText();
 }
 
@@ -144,6 +157,7 @@ function updateText() {
     `Sodium clusters of <b>${fmtMass(state.massKDa)}</b>, about ${fmtInt(N)} atoms and ${fmt(diameter(state.massKDa) * 1e9, 1)} nm across, leave a cold source at <b>${state.v} m/s</b>. Their de Broglie wavelength is <b>${fmt(model.ldb * 1e15, 1)} fm</b>.`,
     'Three standing waves of ultraviolet light, <b>0.983 m apart</b>, act as gratings of period <b>133 nm</b>. G1 and G3 remove clusters that cross a bright fringe. G2 mainly shifts the phase of each cluster’s wave.',
     `G3 is moved sideways in <b>steps of about 15 nm</b>, and the clusters that get through are counted. A count rate that rises and falls with G3 is the fringe pattern; its <b>visibility V</b> says how strong it is.`,
+    '<b>Top panel</b>: the wave of one cluster, computed exactly in the paraxial approximation. It leaves one point of G1, spreads over many openings of G2, and interferes behind it. Violet marks where the light of each grating is bright.',
     `<b>Cyan</b>: the quantum prediction. <b>Orange</b>: a classical prediction, with clusters on straight lines bent only by the light. They differ when the spacing L is comparable to the Talbot length L<sub>T</sub> = d²/λ<sub>dB</sub>. Here L/L<sub>T</sub> = <b>${fmt(r, 2)}</b>.`,
   ].map((x) => `<li>${x}</li>`).join('');
   $('#setupNext').textContent = state.show.predict ? 'Next: the question' : 'Start the scan';
@@ -167,6 +181,7 @@ function syncControls() {
   $('#dm').value = state.dmRel;
   $('#gl').value = state.L;
   $('#counts').value = state.countsLog;
+  $('#x0').value = state.x0frac; $('#x0Out').value = `${Math.round(state.x0frac * D * 1e9)} nm`;
   setPressed('.truth-group', 'data-truth', state.truth);
   setPressed('.chart-group', 'data-chart', state.chart);
   document.querySelectorAll('[data-toggle]').forEach((b) => {
@@ -188,6 +203,7 @@ $('#p3').addEventListener('input', (e) => { state.P[2] = +e.target.value * 1e-3;
 $('#sigv').addEventListener('input', (e) => { state.sigmaV = +e.target.value; changed(true); });
 $('#dm').addEventListener('input', (e) => { state.dmRel = +e.target.value; changed(true); });
 $('#gl').addEventListener('input', (e) => { state.L = +e.target.value; changed(true); });
+$('#x0').addEventListener('input', (e) => { state.x0frac = +e.target.value; model.cluster = makeCluster(model.setup, state.x0frac * D); trajs = []; $('#x0Out').value = `${Math.round(state.x0frac * D * 1e9)} nm`; scheduleCarpet(); });
 $('#counts').addEventListener('input', (e) => { state.countsLog = +e.target.value; updateText(); resetRun(); });
 document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
 document.querySelectorAll('[data-truth]').forEach((b) => b.addEventListener('click', () => { state.truth = b.dataset.truth; syncControls(); resetRun(); }));
@@ -198,6 +214,7 @@ document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('cl
   state.show[k] = !state.show[k];
   b.setAttribute('aria-pressed', String(state.show[k]));
   if (k === 'predict') updateText();
+  if (k === 'ensemble') { trajs = []; computeCarpet(); }
 }));
 
 function applyPreset(name) {
@@ -238,6 +255,18 @@ controlsEl.addEventListener('qontic:stop', () => stop());
 controlsEl.addEventListener('qontic:reset', () => resetRun());
 controlsEl.addEventListener('qontic:autorun', (e) => { state.autoRun = e.detail.autoRun; controlsEl.setAttribute('auto-run', String(state.autoRun)); });
 controlsEl.addEventListener('qontic:speed', (e) => { state.speed = e.detail.speed; });
+controlsEl.addEventListener('qontic:interpretation', (e) => setInterpretation(e.detail.interpretation));
+// Interpretation is a display choice: the wave, the probabilities and the record are unchanged.
+const FROM_CONTROL = { cpn: 'orthodox', pw: 'pilot-wave', mw: 'many-worlds' };
+const TO_CONTROL = { orthodox: 'cpn', 'pilot-wave': 'pw', 'many-worlds': 'mw' };
+function setInterpretation(id) {
+  const name = FROM_CONTROL[id] || id;
+  if (!CAPTION[name]) return;
+  state.interp = name;
+  if (controlsEl.getAttribute('interpretation') !== TO_CONTROL[name]) controlsEl.setAttribute('interpretation', TO_CONTROL[name]);
+  document.querySelectorAll('.pw-only').forEach((el) => el.classList.toggle('hidden', name !== 'pilot-wave'));
+  if (state.finished) finish();
+}
 controlsEl.addEventListener('qontic:tab', (e) => {
   controlsEl.setAttribute('active-tab', e.detail.tab);
   document.querySelectorAll('[data-control-pane]').forEach((p) => p.classList.toggle('hidden', p.dataset.controlPane !== e.detail.tab));
@@ -270,13 +299,14 @@ function readUrl() {
   const sv = num('sv', 0, 30); if (sv !== null) state.sigmaV = sv;
   const dm = num('dm', 0, 0.5); if (dm !== null) state.dmRel = dm;
   const L = num('L', 0.4, 1.6); if (L !== null) state.L = L;
+  const view = { orthodox: 'orthodox', 'pilot-wave': 'pilot-wave', 'many-worlds': 'many-worlds' }[q.get('view')]; if (view) state.interp = view;
 }
 function shareUrl() {
   const u = new URL(location.href);
   u.search = new URLSearchParams({
     m: String(state.massKDa), v: String(state.v),
     p1: fmt(state.P[0] * 1e3, 1), p2: fmt(state.P[1] * 1e3, 1), p3: fmt(state.P[2] * 1e3, 1),
-    sv: String(state.sigmaV), dm: String(state.dmRel), L: String(state.L),
+    sv: String(state.sigmaV), dm: String(state.dmRel), L: String(state.L), view: state.interp,
   }).toString();
   return u.href;
 }
@@ -328,15 +358,28 @@ function finish() {
     if (state.truth === 'classical') text += ' These counts were drawn from the hypothetical classical world (Advanced). The real experiment found the quantum prediction.';
     else if (isFig2a()) text += ' The paper measured V = 0.10 ± 0.01 and 0.08 ± 0.01 at these settings.';
   }
+  text += ' ' + {
+    orthodox: 'Orthodox: each count is a detection sampled from |ψ|²; the account says nothing about where a cluster went between the gratings.',
+    'pilot-wave': 'Pilot-Wave: each counted cluster followed one trajectory (top panel). The trajectories are distributed as |ψ|², so they give these same probabilities.',
+    'many-worlds': 'Many-Worlds: this is one branch. Every other record also occurs, with weight given by |ψ|²; most branches look like this one.',
+  }[state.interp];
   const lead = right === null ? '' : `<strong>${right ? 'Right.' : 'Not quite.'}</strong> You chose ${state.prediction === 'same' ? '“this scan cannot tell”' : name[state.prediction]}. `;
   $('#verdict').innerHTML = lead + text;
   const next = [];
   if (!isFig2a()) next.push(['fig2a', 'Vienna 2026 settings']);
   if (state.massKDa < 900 || state.v !== 160) next.push(['heavy', 'Heavier: 1 MDa at 160 m/s']);
   if (!(state.massKDa === 1000 && state.v === 25)) next.push(['slow', '1 MDa, slowed to 25 m/s']);
+  if (state.interp === 'many-worlds') next.push(['branch', 'Sample another branch']);
   next.push(['again', 'Scan again']);
   $('#nextSteps').innerHTML = next.map(([k, l]) => `<button type="button" class="qontic-app-toggle" data-next="${k}">${l}</button>`).join('');
   showStep('verdict');
+}
+// Many-Worlds: draw another complete detector record with the same weights.
+function sampleBranch() {
+  const prof = state.truth === 'quantum' ? model.scanQ : model.scanC;
+  state.data = SCAN_X.map((x, i) => ({ x, n: poisson(meanCounts() * Math.max(0, prof[i])) }));
+  state.scanIndex = SCAN_X.length;
+  finish();
 }
 const isFig2a = () => {
   const p = PRESETS.fig2a;
@@ -346,6 +389,7 @@ $('#nextSteps').addEventListener('click', (e) => {
   const k = e.target.closest('[data-next]')?.dataset.next;
   if (!k) return;
   if (k === 'again') { state.finished = true; start(); return; }
+  if (k === 'branch') { sampleBranch(); return; }
   applyPreset(k);
   if (state.show.predict) showStep('question');
 });
@@ -356,9 +400,11 @@ function palette() {
   return light ? {
     bg: '#fbfdfe', panel: '#f1f6f8', frame: '#c9d9e0', text: '#183747', muted: '#4f6573', grid: '#dbe6eb', axis: '#7f949f',
     q: '#0b8fa0', c: '#c4661b', data: '#9a6200', laser: '#7a4fb0', laserSoft: 'rgba(122,79,176,0.28)', beam: '#35505f', lost: '#c62828',
+    waveLo: [251, 253, 254], waveHi: [8, 92, 112],
   } : {
     bg: '#071521', panel: '#0a1c2a', frame: '#23465a', text: '#d6e9f2', muted: '#9fb4c2', grid: '#163246', axis: '#5d7e90',
     q: '#62dce8', c: '#f0a35e', data: '#f0ca61', laser: '#c9a7ff', laserSoft: 'rgba(201,167,255,0.25)', beam: '#b6cad6', lost: '#ff6b6b',
+    waveLo: [4, 14, 24], waveHi: [150, 236, 245],
   };
 }
 function label(text, x, y, { color, size = 12, align = 'left', base = 'alphabetic', weight = 400 } = {}) {
@@ -372,101 +418,204 @@ function panelFrame(r, title, P) {
   if (title) label(title, r.x + 12, r.y + 20, { color: P.text, size: 13, weight: 600 });
 }
 
-// ---------------------------------------------------------------- beamline
-function beamlineX(r) {
-  return { src: r.x + r.w * 0.07, g1: r.x + r.w * 0.24, g2: r.x + r.w * 0.5, g3: r.x + r.w * 0.76, ion: r.x + r.w * 0.86, det: r.x + r.w * 0.93 };
-}
-function drawBeamline(r, P, dt) {
-  panelFrame(r, 'The interferometer', P);
-  const wide = r.w >= 640;
-  if (wide) label('Not to scale: grating period 133 nm, beam about 0.5 mm wide, total length about 2 m.', r.x + r.w - 12, r.y + 20, { color: P.muted, size: 11, align: 'right' });
-  else label('Not to scale', r.x + r.w - 12, r.y + 20, { color: P.muted, size: 11, align: 'right' });
-  const X = beamlineX(r);
-  const yc = r.y + r.h * 0.56, half = Math.min(42, r.h * 0.24);
+// ---------------------------------------------------------------- the wave inside the interferometer
+// Carpet of |psi|^2 for one cluster (or the incoherent sum over G1 source points), computed
+// from the exact paraxial wave in wave.js. z runs from G1 (0) to G3 (2L); x is in nm.
+const WIN = 2 * D; // half-width of the transverse window
+const NZ = 260, NX = 170;
+let carpet = null, carpetToken = 0;
+const carpetCanvas = document.createElement('canvas');
+carpetCanvas.width = NZ; carpetCanvas.height = NX;
+const carpetCtx = carpetCanvas.getContext('2d');
 
-  // beam axis
-  ctx.strokeStyle = P.axis; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(X.src + 18, yc); ctx.lineTo(X.det, yc); ctx.stroke(); ctx.setLineDash([]);
+const sourceX0 = () => state.x0frac * D;
+const windowCentre = () => D / 2; // centre of a G1 opening (antinodes at x = 0)
 
-  // source
-  ctx.fillStyle = P.bg; ctx.strokeStyle = P.beam; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(X.src - 22, yc - 20, 40, 40, 6); ctx.fill(); ctx.stroke();
-  label('Na', X.src - 2, yc + 4, { color: P.text, size: 12, align: 'center', weight: 600 });
-  if (wide) label('cluster source, 77 K', X.src - 2, yc + half + 22, { color: P.muted, size: 11, align: 'center' });
-
-  // gratings: standing waves drawn as stripes
-  const offset = state.step === 'setup' ? 0 : (SCAN_X[Math.min(state.scanIndex, SCAN_X.length - 1)] || 0);
-  const grating = (x, strong, name, sub, shift = 0) => {
-    const w = 12, n = 14, h = 2 * half + 14;
-    for (let i = 0; i < n; i++) {
-      const y = yc - h / 2 + ((i + (shift / D) % 1 + 1) % n) * (h / n);
-      ctx.fillStyle = strong ? P.laser : P.laserSoft;
-      ctx.globalAlpha = strong ? 0.85 : 1;
-      ctx.fillRect(x - w / 2, y, w, (h / n) * 0.5);
-    }
-    ctx.globalAlpha = 1;
-    label(name, x, yc - half - 16, { color: P.text, size: 12.5, align: 'center', weight: 600 });
-    if (wide) label(sub, x, yc + half + 22, { color: P.muted, size: 11, align: 'center' });
-  };
-  grating(X.g1, true, 'G1', 'removes clusters at bright fringes');
-  grating(X.g2, false, 'G2', 'mainly shifts the phase');
-  grating(X.g3, true, 'G3', state.step === 'setup' ? 'mask, scanned sideways' : `mask, offset ${Math.round(offset * 1e9)} nm`, offset);
-
-  // spacing arrows
-  const arrow = (x0, x1, y, text) => {
-    ctx.strokeStyle = P.axis; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x0 + 10, y); ctx.lineTo(x1 - 10, y); ctx.stroke();
-    for (const [x, s] of [[x0 + 10, 1], [x1 - 10, -1]]) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 6 * s, y - 3); ctx.lineTo(x + 6 * s, y + 3); ctx.closePath(); ctx.fillStyle = P.axis; ctx.fill(); }
-    label(text, (x0 + x1) / 2, y - 5, { color: P.muted, size: 11, align: 'center' });
-  };
-  const ya = yc - half - 34;
-  arrow(X.g1, X.g2, ya, `L = ${fmt(state.L, 3)} m`);
-  arrow(X.g2, X.g3, ya, `L = ${fmt(state.L, 3)} m`);
-
-  // ionisation laser and counter
-  ctx.strokeStyle = P.q; ctx.lineWidth = 3; ctx.globalAlpha = 0.6;
-  ctx.beginPath(); ctx.moveTo(X.ion, yc - half); ctx.lineTo(X.ion, yc + half); ctx.stroke(); ctx.globalAlpha = 1;
-  label('425 nm', X.ion, yc - half - 6, { color: P.muted, size: 11, align: 'center' });
-  ctx.fillStyle = P.bg; ctx.strokeStyle = P.beam; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(X.det - 8, yc - 22, 34, 44, 6); ctx.fill(); ctx.stroke();
-  label('Σ', X.det + 9, yc + 5, { color: P.data, size: 15, align: 'center', weight: 700 });
-  if (wide) label('mass filter + counter', X.det + 4, yc + half + 22, { color: P.muted, size: 11, align: 'center' });
-
-  // clusters (illustrative): survival at each grating drawn from exp(-n0 cos^2) at a random fringe phase
-  if (state.show.beam) animateClusters(X, yc, half, P, dt);
-
-  // key numbers
-  label(`λdB = ${fmt(model.ldb * 1e15, 1)} fm   ·   L_T = d²/λdB = ${fmt(model.LT, 2)} m   ·   L/L_T = ${fmt(model.ratio, 2)}`,
-    r.x + 12, r.y + r.h - 10, { color: P.text, size: 11.5 });
-}
-
-function animateClusters(X, yc, half, P, dt) {
-  const active = state.running;
-  if (active && Math.random() < dt * 40 * state.speed) {
-    clusters.push({ x: X.src + 18, y: yc + (Math.random() * 2 - 1) * half * 0.8, alive: true, fade: 1 });
-  }
-  const pxs = (X.det - X.src) / 1.6; // cross in about 1.6 s at speed 1
-  const gx = [X.g1, X.g2, X.g3];
-  for (const c of clusters) {
-    if (c.alive) {
-      const nx = c.x + pxs * dt * state.speed;
-      for (let i = 0; i < 3; i++) {
-        if (c.x < gx[i] && nx >= gx[i]) {
-          const u = Math.random();
-          if (Math.random() > Math.exp(-model.n0G[i] * Math.cos(Math.PI * u) ** 2)) { c.alive = false; c.lostAt = i; }
+function scheduleCarpet() { clearTimeout(carpetTimer); carpetTimer = setTimeout(computeCarpet, 80); }
+let carpetTimer = 0;
+function computeCarpet() {
+  const token = ++carpetToken;
+  const st = model.setup, xc = windowCentre();
+  const xs = Array.from({ length: NX }, (_, i) => xc + WIN - ((i + 0.5) * 2 * WIN) / NX); // top row = +x
+  const z2 = 2 * st.L;
+  const zs = Array.from({ length: NZ }, (_, j) => ((j + 0.5) * z2) / NZ);
+  const ensemble = state.show.ensemble;
+  const sources = ensemble
+    ? Array.from({ length: 24 }, (_, j) => { const x0 = ((j + 0.5) * D) / 24; return { cl: makeCluster(st, x0), w: intensityTransmission(x0, st.g[0].n0) }; })
+    : [{ cl: model.cluster, w: 1 }];
+  const data = new Float32Array(NX * NZ);
+  carpet = { data, done: 0, ensemble, xs, zs };
+  let j = 0;
+  const work = () => {
+    if (token !== carpetToken) return;
+    const t0 = performance.now();
+    while (j < NZ && performance.now() - t0 < 14) {
+      const z = zs[j];
+      let mx = 0;
+      if (z < st.L) {
+        // before G2: point-source waves, uniform in x (the paraxial density is 1/z for every x)
+        // drawn at a fixed low level so the structure behind G2 stays readable
+        for (let i = 0; i < NX; i++) data[i * NZ + j] = 0.3;
+        mx = 1;
+      } else {
+        const s = z - st.L;
+        for (let i = 0; i < NX; i++) {
+          let v = 0;
+          for (const src of sources) v += src.w * densityAfterG2(st, src.cl, xs[i], s);
+          data[i * NZ + j] = v; if (v > mx) mx = v;
         }
       }
-      c.x = c.alive ? nx : gx[c.lostAt];
-    } else c.fade -= dt * 2.5;
+      for (let i = 0; i < NX; i++) data[i * NZ + j] /= mx || 1; // brightness normalised in each slice
+      j++;
+    }
+    carpet.done = j; carpet.dirty = true;
+    if (j < NZ) setTimeout(work, 0);
+  };
+  work();
+}
+
+function paintCarpet(P) {
+  if (!carpet || !carpet.dirty) return;
+  const img = carpetCtx.createImageData(NZ, NX);
+  const [r0, g0, b0] = P.waveLo, [r1, g1, b1] = P.waveHi;
+  for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) {
+    const k = (i * NZ + j) * 4;
+    const v = j < carpet.done ? Math.pow(carpet.data[i * NZ + j], 0.6) : 0;
+    img.data[k] = r0 + (r1 - r0) * v; img.data[k + 1] = g0 + (g1 - g0) * v; img.data[k + 2] = b0 + (b1 - b0) * v; img.data[k + 3] = 255;
   }
-  clusters = clusters.filter((c) => c.fade > 0 && c.x < X.det);
-  for (const c of clusters) {
-    ctx.globalAlpha = Math.max(0, c.fade);
-    ctx.fillStyle = c.alive ? P.data : P.lost;
-    ctx.beginPath(); ctx.arc(c.x, c.y, c.alive ? 2.6 : 3.4, 0, Math.PI * 2); ctx.fill();
+  carpetCtx.putImageData(img, 0, 0);
+  carpet.dirty = false;
+}
+
+const CAPTION = {
+  orthodox: 'Orthodox: the wave gives the probabilities. At G1, G2 and G3 a cluster is either ionised or not; not being ionised updates the wave by the grating’s transmission t(x). No path is assigned between gratings.',
+  'pilot-wave': 'Pilot-Wave: each cluster has a position at all times, guided by its wave. Removal at a grating is drawn with probability 1 − |t(x)|² at the cluster’s position (an effective rule, not a model of the ionisation).',
+  'many-worlds': 'Many-Worlds: the wave never collapses. Ionisation at a grating, and counting at the detector, entangle the cluster with its surroundings and the state branches. The counts below are one branch; |ψ|² gives the branch weights.',
+};
+
+function drawWave(r, P, dt) {
+  panelFrame(r, state.show.ensemble ? 'Inside the interferometer: |ψ|² summed over all G1 points' : 'Inside the interferometer: |ψ|² of one cluster', P);
+  // caption
+  ctx.font = '400 11.5px Inter, Arial, sans-serif';
+  const capX = r.x + 12, capW = r.w - 24;
+  let y = r.y + 38;
+  const words = CAPTION[state.interp].split(' ');
+  let line = '';
+  for (const w of words) {
+    const t = line ? `${line} ${w}` : w;
+    if (ctx.measureText(t).width > capW && line) { label(line, capX, y, { color: P.muted, size: 11.5 }); y += 15; line = w; } else line = t;
+  }
+  if (line) { label(line, capX, y, { color: P.muted, size: 11.5 }); y += 15; }
+
+  const pr = { x: r.x + 58, y: y + 4, w: r.w - 58 - 16, h: r.y + r.h - y - 4 - 34 };
+  if (pr.h < 60) return;
+  const st = model.setup, z2 = 2 * st.L, xc = windowCentre();
+  const tz = (z) => pr.x + (z / z2) * pr.w;
+  const tx = (x) => pr.y + ((xc + WIN - x) / (2 * WIN)) * pr.h;
+
+  if (state.show.wave) {
+    paintCarpet(P);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(carpetCanvas, pr.x, pr.y, pr.w, pr.h);
+  } else { ctx.fillStyle = P.bg; ctx.fillRect(pr.x, pr.y, pr.w, pr.h); }
+
+  // gratings: the standing light wave drawn as violet where the light is bright
+  const offset = state.step === 'setup' ? 0 : (SCAN_X[Math.min(state.scanIndex, SCAN_X.length - 1)] || 0);
+  const grating = (z, n0v, shift, name) => {
+    const X = tz(z), w = 7;
+    for (let py = 0; py < pr.h; py += 1) {
+      const x = xc + WIN - (py / pr.h) * 2 * WIN;
+      const light = Math.cos((Math.PI * (x - shift)) / D) ** 2; // 1 at an antinode
+      ctx.globalAlpha = 0.15 + 0.85 * light * Math.min(1, n0v / 2);
+      ctx.fillStyle = P.laser; ctx.fillRect(X - w / 2, pr.y + py, w, 1.2);
+    }
+    ctx.globalAlpha = 1;
+    const align = z === 0 ? 'left' : z >= 2 * st.L - 1e-9 ? 'right' : 'center';
+    label(name, X, pr.y + pr.h + 14, { color: P.text, size: 11.5, align, weight: 600 });
+  };
+  grating(0, st.g[0].n0, 0, 'G1');
+  grating(st.L, st.g[1].n0, 0, 'G2');
+  grating(z2, st.g[2].n0, offset, state.step === 'setup' ? 'G3' : `G3 (offset ${Math.round(offset * 1e9)} nm)`);
+
+  // source point of the displayed cluster
+  if (!state.show.ensemble) {
+    ctx.fillStyle = P.data; ctx.beginPath(); ctx.arc(tz(0) + 4, tx(sourceX0()), 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // pilot-wave trajectories
+  if (state.interp === 'pilot-wave' && state.show.traj) drawTrajectories(P, tz, tx, pr, dt);
+
+  // axes
+  ctx.strokeStyle = P.axis; ctx.lineWidth = 1; ctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
+  for (let k = -2; k <= 2; k++) {
+    const x = xc + k * D;
+    label(`${k * 133}`, pr.x - 6, tx(x) + 4, { color: P.muted, size: 10.5, align: 'right' });
+  }
+  ctx.save(); ctx.translate(r.x + 14, pr.y + pr.h / 2); ctx.rotate(-Math.PI / 2);
+  label('x from opening centre (nm)', 0, 0, { color: P.muted, size: 10.5, align: 'center' }); ctx.restore();
+  const wide = r.w >= 640;
+  label(wide ? `z: 0 to ${fmt(z2, 2)} m along the beam; x: nanometres across it. Brightness normalised in each slice.   λdB = ${fmt(model.ldb * 1e15, 1)} fm · L/L_T = ${fmt(model.ratio, 2)}`
+    : `z: 0–${fmt(z2, 2)} m along; x: nm across`,
+    pr.x + pr.w / 2, r.y + r.h - 8, { color: P.muted, size: 10.5, align: 'center' });
+}
+
+// ---------------------------------------------------------------- pilot-wave trajectories
+let trajs = [];
+const TRAJ_TIME = 1.8; // seconds to cross at speed 1
+function spawnTrajectory() {
+  const st = model.setup;
+  let cl = model.cluster;
+  if (state.show.ensemble) {
+    // source point drawn from the G1 intensity transmission, in one of the openings in view
+    let x0;
+    do { x0 = Math.random() * D; } while (Math.random() > intensityTransmission(x0, st.g[0].n0));
+    x0 += D * Math.floor(Math.random() * 4 - 2) ; // openings centred at -3d/2 ... 3d/2
+    cl = makeCluster(st, x0);
+  }
+  // positions at G2 are uniform; draw them in a band that keeps most trajectories in view
+  const xc = windowCentre();
+  const x2 = xc - WIN - 60e-9 + Math.random() * (2 * WIN + 120e-9);
+  const tr = trajectory(st, cl, x2, { x3: SCAN_X[Math.min(state.scanIndex, SCAN_X.length - 1)] || 0, steps: 120 });
+  trajs.push({ ...tr, age: 0 });
+  if (trajs.length > 160) trajs.shift();
+}
+function drawTrajectories(P, tz, tx, pr, dt) {
+  if (state.running) {
+    trajAccumulator += dt * 22 * state.speed;
+    while (trajAccumulator >= 1) { spawnTrajectory(); trajAccumulator -= 1; }
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(pr.x, pr.y, pr.w, pr.h); ctx.clip();
+  const z2 = 2 * model.setup.L;
+  for (const t of trajs) {
+    if (state.running) t.age += (dt * state.speed) / TRAJ_TIME;
+    const zNow = Math.min(1, t.age) * z2;
+    const zEnd = t.pts[t.pts.length - 1][0];
+    ctx.strokeStyle = t.fate === 'counted' ? P.data : P.beam;
+    ctx.globalAlpha = t.age > 1 ? Math.max(0.12, 0.55 - 0.1 * (t.age - 1)) : 0.9;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    let started = false, last = null;
+    for (const [z, x] of t.pts) {
+      if (z > zNow) break;
+      const X = tz(z), Y = tx(x);
+      if (started) ctx.lineTo(X, Y); else { ctx.moveTo(X, Y); started = true; }
+      last = [X, Y];
+    }
+    ctx.stroke();
+    if (last && zNow >= zEnd) {
+      if (t.fate === 'counted') { ctx.fillStyle = P.data; ctx.beginPath(); ctx.arc(last[0], last[1], 2.4, 0, Math.PI * 2); ctx.fill(); }
+      else { ctx.strokeStyle = P.lost; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(last[0] - 3, last[1] - 3); ctx.lineTo(last[0] + 3, last[1] + 3); ctx.moveTo(last[0] + 3, last[1] - 3); ctx.lineTo(last[0] - 3, last[1] + 3); ctx.stroke(); }
+    } else if (last) { ctx.fillStyle = P.text; ctx.beginPath(); ctx.arc(last[0], last[1], 2.2, 0, Math.PI * 2); ctx.fill(); }
   }
   ctx.globalAlpha = 1;
+  ctx.restore();
+  if (trajs.length) {
+    const ended = trajs.filter((t) => t.age >= 1);
+    const counted = ended.filter((t) => t.fate === 'counted').length;
+    label(`trajectories: yellow counted, × ionised at G2 or G3 (${counted} of ${ended.length} counted)`, pr.x + pr.w - 6, pr.y - 4, { color: P.muted, size: 10.5, align: 'right' });
+  }
 }
+let trajAccumulator = 0;
 
 // ---------------------------------------------------------------- plots
 function axes(r, P, { x0, x1, y0, y1, xlabel, ylabel, xticks, yticks, xfmt, yfmt, xlog = false, top = 34 }) {
@@ -561,8 +710,8 @@ function drawChart(r, P) {
   const all = [...(state.show.quantum ? charts.q : []), ...(state.show.classical ? charts.c : []), model.vq, model.vc].filter(Number.isFinite);
   const y1 = Math.max(0.12, Math.min(1.2, Math.max(...all) * 1.15));
   const { tx, ty, pr } = axes(r, P, power ? {
-    x0: 0, x1: 60, y0: 0, y1, xlabel: 'G2 power (mW)', ylabel: 'visibility', xticks: [0, 10, 20, 30, 40, 50, 60], yticks: niceTicks(0, y1, 4),
-    xfmt: (x) => String(x), yfmt: (y) => fmt(y, 2),
+    x0: 0, x1: charts.pMax, y0: 0, y1, xlabel: 'G2 power (mW)', ylabel: 'visibility', xticks: niceTicks(0, charts.pMax, 6), yticks: niceTicks(0, y1, 4),
+    xfmt: (x) => String(+x.toFixed(2)), yfmt: (y) => fmt(y, 2),
   } : {
     x0: M_MIN, x1: M_MAX, y0: 0, y1, xlog: true, xlabel: 'cluster mass (kDa)', ylabel: 'visibility', xticks: [20, 50, 100, 200, 500, 1000, 2000], yticks: niceTicks(0, y1, 4),
     xfmt: (x) => String(x), yfmt: (y) => fmt(y, 2),
@@ -603,7 +752,7 @@ function drawChart(r, P) {
 // ---------------------------------------------------------------- main loop
 function layout(W, H) {
   const g = 10;
-  const top = { x: g, y: g, w: W - 2 * g, h: Math.max(190, Math.min(250, H * 0.36)) };
+  const top = { x: g, y: g, w: W - 2 * g, h: Math.max(260, Math.min(420, H * 0.5)) };
   const y = top.y + top.h + g, h = H - y - g;
   if (W >= 760) {
     const w = (W - 3 * g) / 2;
@@ -621,7 +770,7 @@ function render(dt) {
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
   const L = layout(W, H);
-  drawBeamline(L.top, P, dt);
+  drawWave(L.top, P, dt);
   drawFringes(L.left, P);
   drawChart(L.right, P);
   updateResults();
@@ -676,6 +825,8 @@ mountQonticShortcuts({
 
 rebuild();
 computeCharts();
+computeCarpet();
 syncControls();
+setInterpretation(state.interp);
 resetRun();
 requestAnimationFrame(frame);

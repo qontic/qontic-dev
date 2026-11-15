@@ -11,13 +11,19 @@
     "macroscopicity"
   ],
   "level": "intermediate",
-  "description": "Sodium clusters of 170,000 Da in the Vienna Talbot–Lau interferometer made of light (Pedalino et al., Nature 2026). Scan the third grating, count the clusters, and test the quantum prediction against a classical moiré shadow, with the published parameters.",
+  "description": "Sodium clusters of 170,000 Da in the Vienna Talbot–Lau interferometer made of light (Pedalino et al., Nature 2026). The exact paraxial wave of each cluster through the three gratings, read in Orthodox, Pilot-Wave and Many-Worlds terms; scan the third grating and test the quantum prediction against a classical moiré shadow.",
   "tags": [
     "Experiments",
     "Matter waves",
     "Talbot–Lau",
+    "Multiview",
     "Prediction mode"
   ],
   "entry": "index.html",
-  "status": "draft"
+  "status": "draft",
+  "interpretations": [
+    "orthodox",
+    "pilot-wave",
+    "many-worlds"
+  ]
 }

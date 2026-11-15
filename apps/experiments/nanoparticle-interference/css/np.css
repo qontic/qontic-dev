@@ -103,5 +103,5 @@ body.np-app.qontic-light { background: #eef3f6; color: #183747; }
 .np-app .control-row { grid-template-columns: 104px 1fr 66px; }
 .np-app .details-panel ul { padding-left: 22px; }
 .np-app .details-panel li { margin: 4px 0; }
-.np-app .canvas-host { height: clamp(460px, calc(100dvh - 300px), 760px); }
-@media (max-width: 760px) { .np-app .canvas-host { height: 620px; } }
+.np-app .canvas-host { height: clamp(560px, calc(100dvh - 260px), 880px); }
+@media (max-width: 760px) { .np-app .canvas-host { height: 820px; } }

@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/np.css?v=0.1.0">
+<link rel="stylesheet" href="css/np.css?v=0.2.0">
 </head>
 <body class="np-app">
 <main class="shell">
@@ -22,7 +22,7 @@
 <section class="lab qontic-workspace" data-panel="sim">
   <aside class="controls qontic-sidebar qontic-panel qontic-control-panel">
     <section class="always-controls" aria-label="Simulation controls">
-      <qontic-controls show-interpretation="false" running="false" auto-run="false" show-reset="true" speed="1" speed-min="0.25" speed-max="4" speed-step="0.25" active-tab="core"></qontic-controls>
+      <qontic-controls interpretation="cpn" running="false" auto-run="false" show-reset="true" speed="1" speed-min="0.25" speed-max="4" speed-step="0.25" active-tab="core"></qontic-controls>
     </section>
     <div class="control-tab-body qontic-control-body">
       <div class="control-pane" data-control-pane="core">
@@ -64,6 +64,9 @@
         <label class="control-row" title="Distance between neighbouring gratings. The experiment uses 0.983 m.">
           <span>Grating spacing</span><input id="gl" type="range" min="0.4" max="1.6" step="0.001" aria-label="Grating spacing in m"><output id="glOut"></output>
         </label>
+        <label class="control-row" title="Where in a G1 opening the displayed cluster starts, as a distance from the edge where the light is brightest. The opening is centred at 66.5 nm.">
+          <span>G1 start point</span><input id="x0" type="range" min="0.15" max="0.85" step="0.01" aria-label="Start point of the displayed cluster within a G1 opening"><output id="x0Out"></output>
+        </label>
         <label class="control-row" title="Expected number of clusters counted at each position of G3. More counts give smaller error bars.">
           <span>Counts per point</span><input id="counts" type="range" min="2" max="4.5" step="0.05" aria-label="Mean counts per scan position, logarithmic"><output id="countsOut"></output>
         </label>
@@ -88,7 +91,9 @@
         <div class="toggle-row"><span>Quantum prediction</span><button class="toggle" type="button" data-toggle="quantum" aria-pressed="true" aria-label="Show the quantum prediction"></button></div>
         <div class="toggle-row"><span>Classical prediction</span><button class="toggle" type="button" data-toggle="classical" aria-pressed="true" aria-label="Show the classical prediction"></button></div>
         <div class="toggle-row"><span>Counts and fit</span><button class="toggle" type="button" data-toggle="data" aria-pressed="true" aria-label="Show the simulated counts and the sine fit"></button></div>
-        <div class="toggle-row"><span>Clusters in the beamline</span><button class="toggle" type="button" data-toggle="beam" aria-pressed="true" aria-label="Animate clusters in the beamline"></button></div>
+        <div class="toggle-row"><span>Wave |ψ|²</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave inside the interferometer"></button></div>
+        <div class="toggle-row" title="Off: the wave of one cluster leaving one point of G1. On: the incoherent sum over all points of G1, which is what the detector sees."><span>Sum over all G1 points</span><button class="toggle" type="button" data-toggle="ensemble" aria-pressed="false" aria-label="Sum the wave density over all source points of G1"></button></div>
+        <div class="toggle-row pw-only hidden"><span>Trajectories</span><button class="toggle" type="button" data-toggle="traj" aria-pressed="true" aria-label="Show pilot-wave trajectories"></button></div>
       </div>
     </div>
     <section class="results-panel qontic-panel" data-results-panel aria-label="Results">
@@ -162,6 +167,20 @@
   <p class="formula">S<sub>ℓ</sub> = B<sup>(1)</sup><sub>−ℓ</sub>(0) · B<sup>(2)</sup><sub>2ℓ</sub>(ℓL/L<sub>T</sub>) · B<sup>(3)</sup><sub>ℓ</sub>(0).</p>
   <p>The B<sub>n</sub>(ξ) are the Fourier coefficients of e<sup>−n<sub>0</sub>/2</sup> exp(−ζ<sub>ion</sub> cos θ + iζ<sub>coh</sub> sin θ), with ζ<sub>coh</sub> = φ<sub>0</sub> sin(πξ) and ζ<sub>ion</sub> = (n<sub>0</sub>/2) cos(πξ). They have a closed form in Bessel functions; the app computes them numerically, and the closed form serves as a check. The visibility is V = 2|S<sub>1</sub>|/S<sub>0</sub>. All of this is Eqs. 1–7 of the paper.<sup><a href="#ref-1">1</a></sup></p>
 
+  <h2>The wave of one cluster</h2>
+  <p>The top panel shows the wave itself, computed directly rather than through the formula above. Along the beam the motion is fast and steady, so the transverse wave ψ(x, z) obeys the free Schrödinger equation in x with time z/v (the paraxial approximation); each grating multiplies ψ by its transmission t(x) = exp[(−n<sub>0</sub>/2 + iφ<sub>0</sub>) cos²(πx/d)].</p>
+  <p>The beam reaching G1 comes from a source far upstream through narrow collimating slits. Its transverse coherence width at G1 is about 0.05 nm, far below the period of 133 nm. Each cluster therefore leaves G1 as a point-source wave from one position x<sub>0</sub>, and the beam is an incoherent mixture of such waves, weighted by the intensity transmission |t<sub>1</sub>(x<sub>0</sub>)|². Between G1 and G2 the wave of one cluster is</p>
+  <p class="formula">ψ(x, z) ∝ z<sup>−1/2</sup> exp[ik(x − x<sub>0</sub>)²/(2z)], &nbsp; k = 2π/λ<sub>dB</sub>,</p>
+  <p>with uniform density: by G2 the wave of a single cluster covers many openings. Write t<sub>2</sub>(x) = Σ<sub>n</sub> b<sub>n</sub> e<sup>2πinx/d</sup>. Each term turns the point-source wave into another point-source wave, from a virtual source at x<sub>n</sub> = x<sub>0</sub> − nλ<sub>dB</sub>L/d. A distance s behind G2, with R = L + s, the wave is therefore exactly</p>
+  <p class="formula">ψ(x, L + s) ∝ R<sup>−1/2</sup> Σ<sub>n</sub> b<sub>n</sub> e<sup>2πinx<sub>0</sub>/d − iπn²λ<sub>dB</sub>L/d²</sup> exp[ik(x − x<sub>n</sub>)²/(2R)].</p>
+  <p>The virtual sources are λ<sub>dB</sub>L/d apart, about 107 nm for 172 kDa clusters: comparable to the period, which is why the waves from neighbouring virtual sources interfere visibly. Summing |ψ|² over x<sub>0</sub> and scanning the G3 mask across it reproduces the paper's count rate to better than 0.2% for every case tested; this is an independent check of both calculations.</p>
+  <p>The panel shows the density with its brightness normalised in each slice; before G2, where the density is uniform, it is drawn at a fixed low level. <em>Sum over all G1 points</em> (Display) shows the incoherent sum instead of one cluster. The wave is computed for the central mass and speed; the counts and visibilities include the averages.</p>
+
+  <h2>Pilot-wave trajectories</h2>
+  <p>In pilot-wave theory each cluster also has a position, moving with the velocity set by its wave:</p>
+  <p class="formula">dx/dz = (1/k) Im(∂<sub>x</sub>ψ / ψ),</p>
+  <p>evaluated in closed form from the sum above and integrated with fourth-order Runge–Kutta steps. Before G2 the trajectories are straight lines from x<sub>0</sub>. Positions at G2 are uniform, as |ψ|² is there. At G2 and G3 a cluster at x is removed with probability 1 − |t(x)|². This is an effective rule for absorption, as in the analytical double-slit app; the app does not model the ionisation itself. The app checks that the positions reaching G3 are distributed as |ψ|², bin by bin.</p>
+
   <h2>The classical prediction</h2>
   <p>Suppose the clusters were classical particles: straight lines, bent only by the dipole force of G2, which acts like an array of tiny lenses. G1 and G3 still form a moiré pattern of shadows. The same formula covers this case with sin(πξ) → πξ and cos(πξ) → 1 (Eqs. 8–9). When L/L<sub>T</sub> is small, which means heavy or fast clusters, the two predictions merge: the de Broglie wavelength is so short that waves travel like rays. The quantum signature is the difference between the two predictions, and it shows only where L is a sizeable fraction of L<sub>T</sub>. At 160 m/s that means masses below about 200 kDa.</p>
 
@@ -191,8 +210,14 @@
     <li><b>The standard formalism</b> predicts the count rate exactly; it does not say what a cluster does between source and detector.</li>
   </ul>
 
-  <h2>A question for later</h2>
-  <p>G1 and G3 are measurements: a cluster that crosses a bright fringe is ionised and removed, and the ones that remain are the ones that were <em>not</em> detected there. How each view of quantum mechanics describes this filtering, and what the trajectories look like through all three gratings, is planned for a later version of the app.</p>
+  <h2>Three views of the same wave</h2>
+  <p>The selector at the top of the controls changes the account, not the physics: the wave, the probabilities and the counts are the same in all three. What differs is what each view says happens to a cluster, and how it reads the gratings. G1 and G3 are measurements in their own right: a cluster that crosses a bright fringe is ionised and removed, and the ones that remain are the ones that were <em>not</em> detected there.</p>
+  <ul>
+    <li><b>Orthodox.</b> The wave gives probabilities for detections. Not being ionised at a grating is itself an outcome, and it updates the wave: ψ is multiplied by t(x). Counting at the detector is a detection. Between gratings the account assigns no position to the cluster, so it gives no picture of what the cluster does there.</li>
+    <li><b>Pilot Wave.</b> The cluster always has a position, and its wave guides it. Each cluster's trajectory starts at one point of G1 and fans out until G2. Behind G2 the trajectories are drawn into the bright channels of the wave, and they arrive at G3 in fringes. Whether a cluster is ionised at G2 or G3 depends on where it actually is. The panel draws the trajectories of clusters sharing one wave; with <em>Sum over all G1 points</em> on, each trajectory is guided by the wave from its own starting point.</li>
+    <li><b>Many Worlds.</b> The wave never collapses. Ionisation and counting entangle the cluster with photons, electrons and the detector, and the state branches into records that no longer interfere. The scan you see is one branch; <em>Sample another branch</em> shows another record with the same weights.</li>
+  </ul>
+  <p>All three give the same counts, and the experiment cannot tell them apart. Spontaneous-collapse theories are different: they predict reduced visibility at high mass, and experiments like this one bound them.</p>
 
   <h2>References</h2>
   <ol class="references">
@@ -208,6 +233,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.1.0"></script>
+<script type="module" src="js/app.js?v=0.2.0"></script>
 </body>
 </html>
