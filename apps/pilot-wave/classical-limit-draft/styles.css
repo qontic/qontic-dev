@@ -104,3 +104,9 @@ h1 { margin: 0; font-size: 22px; letter-spacing: -.7px; font-weight: 550; line-h
   .collapsed .brand-logo { width: 32px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.physical-readouts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin: 9px 0 2px; }
+.physical-readouts dt { font-size: 10px; color: var(--text-secondary, #a7a9bd); }
+.physical-readouts dd { margin: 2px 0 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.stage-status { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px 9px; }
+#sim-time { white-space: nowrap; letter-spacing: 0; font-variant-numeric: tabular-nums; }

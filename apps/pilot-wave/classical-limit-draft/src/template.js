@@ -1,4 +1,6 @@
 import '../../../../shared/qontic-controls.js';
+import { BOX } from './physics.js';
+import { lengthUnitNm, formatDistance } from './physical-units.js';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
@@ -36,7 +38,12 @@ export function mountClassicalTemplate(getBounds) {
     <p>The gold trajectory follows the probability current divided by the wave density.
     The cyan reference follows straight flights and ideal reflections from the walls and barrier.</p>
     <p>Within each scene, increasing Classicality shortens the wavelength while keeping the nominal launch speed fixed.
-    The scenes use different slider calibrations.</p>`;
+    The scenes use different slider calibrations.</p>
+    <h3>Physical scale</h3>
+    <p>The display uses an illustrative ${BOX.width * lengthUnitNm} × ${BOX.height * lengthUnitNm} nm reflecting box.
+    At 0% Classicality the mass is one electron mass (mₑ) in either scene.
+    Moving the slider increases the modeled mass and narrows the initial packet. The launch speed stays fixed.
+    The clock shows simulated time in picoseconds. Video length is measured in seconds of playback.</p>`;
   shell.append(header, views, workspace, physics);
 
   // Retain the existing input elements and their simulation event handlers.
@@ -134,14 +141,14 @@ export function mountClassicalTemplate(getBounds) {
   document.body.append(exportDialog);
 
   const host = document.getElementById('canvas-wrap');
-  const coordinates = mountCoordinateTools({ host, getBounds, yUp: true });
+  const coordinates = mountCoordinateTools({ host, getBounds, formatValue: formatDistance, yUp: true });
   const scale = mountDistanceScale({
     host,
     getUnitsPerPixel: () => {
       const { xMin, xMax, yMin, yMax } = getBounds();
       return { x: (xMax - xMin) / host.clientWidth, y: (yMax - yMin) / host.clientHeight };
     },
-    format: value => `${Number(value.toPrecision(3))} units`,
+    format: formatDistance,
   });
   scale.setVisible(false);
 

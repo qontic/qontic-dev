@@ -1,5 +1,6 @@
-import { mountClassicalTemplate } from './template.js?v=2';
+import { mountClassicalTemplate } from './template.js?v=3';
 import { BOX, parameters, clamp } from './physics.js';
+import { lengthUnitNm, timeUnitPs, massInElectronUnits, formatDistance } from './physical-units.js';
 import { Renderer, TrailHistory } from './renderer.js';
 import { createExperiment, SCENES, sceneKey } from './experiments.js';
 import { renderVideo } from './export.js';
@@ -38,8 +39,8 @@ const template = mountClassicalTemplate(() => {
   const [x, y] = renderer?.center ?? [0.5, 0.5];
   const half = 0.5 / (renderer?.zoom ?? 1);
   return {
-    xMin: (x - half) * BOX.width, xMax: (x + half) * BOX.width,
-    yMin: (y - half) * BOX.height, yMax: (y + half) * BOX.height,
+    xMin: (x - half) * BOX.width * lengthUnitNm, xMax: (x + half) * BOX.width * lengthUnitNm,
+    yMin: (y - half) * BOX.height * lengthUnitNm, yMax: (y + half) * BOX.height * lengthUnitNm,
   };
 });
 const sharedControls = template?.controls;
@@ -73,6 +74,18 @@ function syncParameters() {
   $('regime-description').textContent = s < 0.23 ? 'Spreading and interference shape the path.' : s < 0.62 ? 'A shorter wavelength and gentler spreading.' : s < 0.86 ? 'A compact packet guides the particle along a straighter path.' : 'Almost straight flights, with wave-guided turns.';
 }
 
+function syncPhysicalReadouts() {
+  const { alpha, wavelength, sigma, speed } = experiment.params;
+  $('wavelength-nm').textContent = formatDistance(wavelength * lengthUnitNm);
+  $('width-nm').textContent = formatDistance(sigma * lengthUnitNm);
+  $('mass-me').textContent = `${Number(massInElectronUnits(alpha).toPrecision(3))} mₑ`;
+  $('launch-speed').textContent = `${(speed * lengthUnitNm / timeUnitPs).toFixed(1)} km/s`;
+}
+
+function syncSimTime() {
+  $('sim-time').textContent = `${(experiment.time * timeUnitPs).toFixed(2)} ps`;
+}
+
 function reset() {
   // Construct the complete new state before replacing the displayed experiment.
   const next = createExperiment(renderer.gl, settings);
@@ -85,6 +98,8 @@ function reset() {
   syncRunControls();
   syncRecordButton();
   syncParameters();
+  syncPhysicalReadouts();
+  syncSimTime();
 }
 
 function scheduleReset() {
@@ -182,6 +197,7 @@ function frame(now) {
       frames++;
       if (now - lastReadout > 200) {
         $('status').lastElementChild.textContent = exportJob ? 'Rendering video' : document.hidden ? 'Inactive tab' : paused ? 'Paused' : 'Live';
+        syncSimTime();
         lastReadout = now; lastEvaluations = evaluations; evaluations = 0;
       }
     } catch (error) { showError(error); }
@@ -215,10 +231,18 @@ $('show-particles').addEventListener('change', () => {
   appearance.trailStartTime = experiment.time;
   history.clear(); history.append(experiment.time, experiment.positions);
 });
-for (const [id, key, format] of [['dot-size', 'dotSize', x => String(x)], ['trail-seconds', 'trailSeconds', x => `${x} s`], ['playback', 'playback', x => `${x.toFixed(1)}×`]]) {
-  $(id).value = appearance[key]; $(`${id}-value`).textContent = format(appearance[key]);
-  $(id).addEventListener('input', () => {
-    appearance[key] = Number($(id).value); $(`${id}-value`).textContent = format(appearance[key]);
+for (const [id, key, format] of [['dot-size', 'dotSize', x => `${x} px`], ['trail-seconds', 'trailSeconds', x => `${(x * timeUnitPs).toFixed(1)} ps`], ['playback', 'playback', x => `${x.toFixed(1)}×`]]) {
+  const input = $(id);
+  const updateValue = value => {
+    const label = format(value);
+    $(`${id}-value`).textContent = label;
+    input.setAttribute('aria-valuetext', label);
+  };
+  input.value = appearance[key];
+  updateValue(appearance[key]);
+  input.addEventListener('input', () => {
+    appearance[key] = Number(input.value);
+    updateValue(appearance[key]);
     if (key === 'playback') lastFrame = null;
     drawingDirty = true;
   });

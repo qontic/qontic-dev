@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#080b15">
   <title>Classical Limit — Draft · Q-ONTIC</title>
   <link rel="icon" type="image/png" href="./assets/q-ontic-logo.png">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="./template.css?v=2">
+  <link rel="stylesheet" href="./template.css?v=3">
 </head>
 <body>
   <main>
@@ -35,6 +35,12 @@
           <div class="range-ends"><span><i class="wave-dot"></i>Wave dominated</span><span>Nearly classical<i class="particle-dot"></i></span></div>
           <p id="classicality-note" class="hint">Compare settings within one scene. The same percentage uses different wavelengths in the two scenes. Moving the slider starts a new run.</p>
           <p id="regime-description" class="regime-description">Spreading and interference shape the path.</p>
+          <dl class="physical-readouts">
+            <div><dt>Wavelength</dt><dd id="wavelength-nm">—</dd></div>
+            <div><dt>Initial packet width (σ)</dt><dd id="width-nm">—</dd></div>
+            <div><dt>Mass</dt><dd id="mass-me">—</dd></div>
+            <div><dt>Launch speed</dt><dd id="launch-speed">—</dd></div>
+          </dl>
         </section>
         <label class="switch-row reference-toggle">Classical comparison<input type="checkbox" id="show-reference" checked></label>
         <div class="label-row angle-row"><label for="angle">Launch direction</label><output id="angle-value" for="angle">45°</output></div>
@@ -45,9 +51,9 @@
           <label class="switch-row" title="Faster flow makes the arrows longer, thicker and more opaque.">Velocity field<input type="checkbox" id="show-velocity" checked></label>
           <label class="switch-row">Particles<input type="checkbox" id="show-particles" checked></label>
           <div class="label-row"><label for="count">Particle count</label><output id="count-value" for="count">1</output></div><input id="count" type="range" min="1" max="256" step="1" value="1">
-          <div class="label-row"><label for="dot-size">Particle size</label><output id="dot-size-value">15</output></div><input id="dot-size" type="range" min="4" max="48" step="1" value="15" aria-describedby="trail-width-note">
+          <div class="label-row"><label for="dot-size">Particle size</label><output id="dot-size-value">15 px</output></div><input id="dot-size" type="range" min="4" max="48" step="1" value="15" aria-describedby="trail-width-note">
           <p class="hint" id="trail-width-note">Trail width follows 60% of the particle size.</p>
-          <div class="label-row"><label for="trail-seconds">Trail length</label><output id="trail-seconds-value">10 s</output></div><input id="trail-seconds" type="range" min="2" max="10" step="1" value="10">
+          <div class="label-row"><label for="trail-seconds">Trail duration</label><output id="trail-seconds-value">—</output></div><input id="trail-seconds" type="range" min="2" max="10" step="1" value="10">
           <div class="label-row"><label for="playback">Playback</label><output id="playback-value" for="playback">1.0×</output></div><input id="playback" type="range" min="1" max="4" step="1" value="1">
           <div class="playback-steps" aria-hidden="true"><span>1×</span><span>2×</span><span>3×</span><span>4×</span></div>
         </div></details>
@@ -65,7 +71,8 @@
       </div>
     </aside>
     <section class="stage" aria-label="Bohmian particle in a reflecting box">
-      <div class="stage-heading"><div><span id="regime-name">WAVE DOMINATED</span><span class="separator">/</span><span id="scene-name">REFLECTING BOX</span></div><div class="live-badge" id="status" role="status"><i></i><span>Starting…</span></div></div>
+      <div class="stage-heading"><div><span id="regime-name">WAVE DOMINATED</span><span class="separator">/</span><span id="scene-name">REFLECTING BOX</span></div><div class="stage-status"><span id="sim-time" aria-label="Simulated time">0.00 ps</span>
+        <div class="live-badge" id="status" role="status"><i></i><span>Starting…</span></div></div></div>
       <div class="canvas-slot" id="canvas-slot">
         <div class="canvas-wrap" id="canvas-wrap"><canvas id="canvas" aria-label="Wave density, Bohmian particles and their trajectories"></canvas><figure id="phase-legend" class="phase-key"><canvas id="phase-legend-canvas" width="336" height="296"></canvas></figure><div id="error" role="alert" hidden></div><div id="paused-badge" hidden>PAUSED</div></div>
       </div>
@@ -73,7 +80,7 @@
       <p class="canvas-hint">Scroll to zoom · drag to pan · double-click to reset</p>
     </section>
   </main>
-  <script type="module" src="./src/main.js?v=2"></script>
+  <script type="module" src="./src/main.js?v=3"></script>
   <script>
     const appParams = new URLSearchParams(window.location.search);
     const catalogLinks = document.querySelectorAll('[data-catalog-back]');
