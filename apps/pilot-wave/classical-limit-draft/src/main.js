@@ -1,9 +1,9 @@
-import { mountClassicalTemplate } from './template.js?v=3';
+import { mountClassicalTemplate } from './template.js?v=5';
 import { BOX, parameters, clamp } from './physics.js';
 import { lengthUnitNm, timeUnitPs, massInElectronUnits, formatDistance } from './physical-units.js';
 import { Renderer, TrailHistory } from './renderer.js';
-import { createExperiment, SCENES, sceneKey } from './experiments.js';
-import { renderVideo } from './export.js?v=4';
+import { createExperiment, SCENES, sceneKey } from './experiments.js?v=5';
+import { renderVideo } from './export.js?v=5';
 import { mountPhaseLegend } from './phase-legend.js?v=4';
 
 const $ = id => document.getElementById(id);
@@ -72,7 +72,7 @@ function syncParameters() {
   $('scene-name').textContent = SCENES[scene].heading;
   $('scene-note').textContent = SCENES[scene].note;
   $('regime-name').textContent = s < 0.23 ? 'WAVE DOMINATED' : s < 0.62 ? 'TOWARD THE CLASSICAL LIMIT' : s < 0.86 ? 'LOCALIZED PACKET' : 'NEARLY CLASSICAL';
-  $('regime-description').textContent = s < 0.23 ? 'Spreading and interference shape the path.' : s < 0.62 ? 'A shorter wavelength and gentler spreading.' : s < 0.86 ? 'A compact packet guides the particle along a straighter path.' : 'Almost straight flights, with wave-guided turns.';
+  $('regime-description').textContent = s < 0.23 ? 'Spreading and interference shape the path.' : s < 0.62 ? 'A shorter wavelength and gentler spreading.' : s < 0.86 ? 'A compact packet guides the particle along a straighter path.' : 'Even at 100%, the wave packet can change the path near reflections.';
 }
 
 function syncPhysicalReadouts() {
@@ -151,22 +151,42 @@ function advanceTo(target) {
     maxNormError = Math.max(maxNormError, experiment.maxNormError); waveDirty = true;
     return;
   }
-  const begin = experiment.time, before = experiment.positions.slice();
-  const end = experiment.evaluate(target).slice(); evaluations++;
-  let budget = 14;
-  const refine = (t0, p0, t1, p1, depth) => {
-    if (t1 - t0 <= experiment.params.sampleDt || depth >= 5 || budget <= 0) { appendTrail(t1, p1, depth > 0); return; }
-    const mid = (t0 + t1) / 2, pm = experiment.evaluate(mid).slice(); evaluations++; budget--;
-    let error = 0, distance = 0;
-    for (let i = 0; i < pm.length; i += 2) {
-      error = Math.max(error, Math.hypot(pm[i] - (p0[i] + p1[i]) / 2, pm[i + 1] - (p0[i + 1] + p1[i + 1]) / 2));
-      distance = Math.max(distance, Math.hypot(p1[i] - p0[i], p1[i + 1] - p0[i + 1]));
-    }
-    if (error > 0.0004 || distance > 0.018) { refine(t0, p0, mid, pm, depth + 1); refine(mid, pm, t1, p1, depth + 1); }
-    else { appendTrail(mid, pm, depth > 0); appendTrail(t1, p1, depth > 0); }
+  const begin = experiment.time;
+  const sample = time => {
+    evaluations++;
+    return experiment.evaluate(time).slice();
   };
-  refine(begin, before, target, end, 0);
-  if (experiment.time !== target) { experiment.evaluate(target); evaluations++; }
+  if (!appearance.showTrails || target - begin <= experiment.params.sampleDt) {
+    experiment.evaluate(target); evaluations++;
+    appendTrail(target, experiment.positions);
+  } else {
+    const before = experiment.positions.slice(), mid = (begin + target) / 2;
+    // Sample the midpoint before the endpoint so a straight flight leaves the
+    // final wave ready to draw without a second FFT at the same time.
+    const midpoint = sample(mid), end = sample(target);
+    let budget = 13;
+    const refine = (t0, p0, t1, p1, depth, pm) => {
+      if (t1 - t0 <= experiment.params.sampleDt || depth >= 5 || (!pm && budget <= 0)) {
+        appendTrail(t1, p1, depth > 0);
+        return;
+      }
+      const tm = (t0 + t1) / 2;
+      if (!pm) { pm = sample(tm); budget--; }
+      let error = 0, distance = 0;
+      for (let i = 0; i < pm.length; i += 2) {
+        error = Math.max(error, Math.hypot(pm[i] - (p0[i] + p1[i]) / 2, pm[i + 1] - (p0[i + 1] + p1[i + 1]) / 2));
+        distance = Math.max(distance, Math.hypot(p1[i] - p0[i], p1[i + 1] - p0[i + 1]));
+      }
+      if (error > 0.0004 || distance > 0.018) {
+        refine(t0, p0, tm, pm, depth + 1);
+        refine(tm, pm, t1, p1, depth + 1);
+      } else {
+        appendTrail(tm, pm, depth > 0); appendTrail(t1, p1, depth > 0);
+      }
+    };
+    refine(begin, before, target, end, 0, midpoint);
+    if (experiment.time !== target) { experiment.evaluate(target); evaluations++; }
+  }
   maxNormError = Math.max(maxNormError, Math.abs(experiment.xAxis.norm * experiment.yAxis.norm - 1));
   waveDirty = true;
 }
@@ -183,8 +203,9 @@ function frame(now) {
         // Keep expensive 2D frames from queuing bigger batches as the GPU slows.
         // The solver keeps its normal timestep and guidance checks within each batch.
         const requested = elapsed * appearance.playback;
+        const stepsPerFrame = elapsed >= 0.05 ? 1 : 8;
         const duration = experiment.is2D
-          ? Math.min(requested, 0.05, 8 * experiment.maxDt * experiment.guidanceStepScale)
+          ? Math.min(requested, 0.05, stepsPerFrame * experiment.maxDt * experiment.guidanceStepScale)
           : requested;
         advanceTo(experiment.time + duration);
         fps = fps * 0.95 + 0.05 / elapsed;

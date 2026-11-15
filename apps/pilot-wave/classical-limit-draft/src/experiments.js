@@ -1,5 +1,5 @@
 import { Experiment } from './physics.js';
-import { ObstacleExperiment } from './obstacle-gpu.js';
+import { ObstacleExperiment } from './obstacle-gpu.js?v=5';
 
 export const SCENES = Object.freeze({
   free: Object.freeze({ label: 'Without barrier', filename: 'without-barrier', classicality: 0, angle: 45,

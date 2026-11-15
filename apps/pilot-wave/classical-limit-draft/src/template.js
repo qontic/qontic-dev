@@ -38,7 +38,8 @@ export function mountClassicalTemplate(getBounds) {
     <p>The gold trajectory follows the probability current divided by the wave density.
     The cyan reference follows straight flights and ideal reflections from the walls and barrier.</p>
     <p>Within each scene, increasing Classicality shortens the wavelength while keeping the nominal launch speed fixed.
-    The scenes use different slider calibrations.</p>
+    At 100%, each scene reaches its shortest simulated wavelength. The packet still has finite width.
+    Near a wall or the barrier, interference can make the gold path differ from the sharp bounce of the cyan path.</p>
     <h3>Physical scale</h3>
     <p>The display uses an illustrative ${BOX.width * lengthUnitNm} × ${BOX.height * lengthUnitNm} nm reflecting box.
     At 0% Classicality the mass is one electron mass (mₑ) in either scene.

@@ -1,4 +1,4 @@
-import { createExperiment, sceneKey } from './experiments.js';
+import { createExperiment, sceneKey } from './experiments.js?v=5';
 import { Renderer, TrailHistory } from './renderer.js';
 import { paintPhaseLegend, phaseLegendLayout, phaseLegendPlacement } from './phase-legend.js?v=4';
 

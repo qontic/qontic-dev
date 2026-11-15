@@ -44,7 +44,7 @@ uniform bool finalTerm;
 uniform vec2 rotation;
 layout(location=0) out vec2 nextTerm;
 layout(location=1) out vec2 sum;
-vec2 neighbor(ivec2 p,ivec2 direction,int distance,vec2 center){
+vec2 neighbor(ivec2 p,ivec2 direction,int distance){
   for(int d=1;d<=4;d++){
     if(d>=distance)break;
     if(boundary(p+direction*d))return -texelFetch(currentTerm,p+direction*(2*d-distance),0).xy;
@@ -58,7 +58,24 @@ void main(){
   vec2 u=texelFetch(currentTerm,p,0).xy;
   vec2 nearSum=vec2(0),farSum=vec2(0),thirdSum=vec2(0),fourthSum=vec2(0);
   ivec2 directions[4]=ivec2[4](ivec2(1,0),ivec2(-1,0),ivec2(0,1),ivec2(0,-1));
-  for(int d=0;d<4;d++){nearSum+=neighbor(p,directions[d],1,u);farSum+=neighbor(p,directions[d],2,u);thirdSum+=neighbor(p,directions[d],3,u);fourthSum+=neighbor(p,directions[d],4,u);}
+  // The stencil can touch a wall only within four grid cells of it.
+  // Most cells can fetch all neighbors directly without checking for odd ghosts.
+  bool interior=all(greaterThan(p,ivec2(4)))&&all(lessThan(p,grid-ivec2(4)))&&
+    (!hasEdge||abs(p.x-edge.x)>4||p.y>edge.y+4);
+  if(interior){
+    for(int d=0;d<4;d++){
+      ivec2 axis=directions[d];
+      nearSum+=texelFetch(currentTerm,p+axis,0).xy;
+      farSum+=texelFetch(currentTerm,p+2*axis,0).xy;
+      thirdSum+=texelFetch(currentTerm,p+3*axis,0).xy;
+      fourthSum+=texelFetch(currentTerm,p+4*axis,0).xy;
+    }
+  }else{
+    for(int d=0;d<4;d++){
+      nearSum+=neighbor(p,directions[d],1);farSum+=neighbor(p,directions[d],2);
+      thirdSum+=neighbor(p,directions[d],3);fourthSum+=neighbor(p,directions[d],4);
+    }
+  }
   // The spectrum of A=(H-cI)/c lies in [-1,1], c=(2048/315)*alpha/(2 dx²).
   vec2 applied=((205.0/36.0-2048.0/315.0)*u-1.6*nearSum+0.2*farSum-8.0*thirdSum/315.0+fourthSum/560.0)*(315.0/2048.0);
   nextTerm=order==1?applied:2.0*applied-texelFetch(previousTerm,p,0).xy;
