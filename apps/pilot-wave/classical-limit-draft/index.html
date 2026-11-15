@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#080b15">
   <title>Classical Limit — Draft · Q-ONTIC</title>
   <link rel="icon" type="image/png" href="./assets/q-ontic-logo.png">
-  <link rel="stylesheet" href="./styles.css?v=3">
+  <link rel="stylesheet" href="./styles.css?v=4">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
   <link rel="stylesheet" href="./template.css?v=3">
@@ -74,13 +74,20 @@
       <div class="stage-heading"><div><span id="regime-name">WAVE DOMINATED</span><span class="separator">/</span><span id="scene-name">REFLECTING BOX</span></div><div class="stage-status"><span id="sim-time" aria-label="Simulated time">0.00 ps</span>
         <div class="live-badge" id="status" role="status"><i></i><span>Starting…</span></div></div></div>
       <div class="canvas-slot" id="canvas-slot">
-        <div class="canvas-wrap" id="canvas-wrap"><canvas id="canvas" aria-label="Wave density, Bohmian particles and their trajectories"></canvas><figure id="phase-legend" class="phase-key"><canvas id="phase-legend-canvas" width="336" height="296"></canvas></figure><div id="error" role="alert" hidden></div><div id="paused-badge" hidden>PAUSED</div></div>
+        <div class="canvas-wrap" id="canvas-wrap"><canvas id="canvas" aria-label="Wave density, Bohmian particles and their trajectories"></canvas><figure id="phase-legend" class="phase-key">
+          <button type="button" id="phase-key-content" class="phase-key-content" aria-label="Move wave phase inset"
+            title="Drag to move · arrow keys to move · Home to reset">
+            <canvas id="phase-legend-canvas" width="336" height="296"></canvas>
+          </button>
+          <button type="button" class="phase-key-toggle" aria-label="Minimize wave phase inset"
+            aria-controls="phase-key-content" aria-expanded="true" title="Minimize wave phase inset">−</button>
+        </figure><div id="error" role="alert" hidden></div><div id="paused-badge" hidden>PAUSED</div></div>
       </div>
       <div class="stage-footer"><div class="legend"><span><i class="legend-wave"></i>Probability density</span><span><i class="particle-dot"></i>Bohmian particle</span><span id="reference-legend"><i class="reference-dot"></i>Classical comparison</span></div><button id="reset-view" title="Restore the full box">Reset view ↗</button></div>
       <p class="canvas-hint">Scroll to zoom · drag to pan · double-click to reset</p>
     </section>
   </main>
-  <script type="module" src="./src/main.js?v=3"></script>
+  <script type="module" src="./src/main.js?v=4"></script>
   <script>
     const appParams = new URLSearchParams(window.location.search);
     const catalogLinks = document.querySelectorAll('[data-catalog-back]');

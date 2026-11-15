@@ -5,6 +5,81 @@ export function phaseLegendLayout(displayWidth, outputWidth = displayWidth) {
   return { scale, width: WIDTH * scale, height: HEIGHT * scale, margin: 16 * scale };
 }
 
+// Position is a fraction of the space available around the inset.
+export function phaseLegendPlacement(canvasWidth, canvasHeight, layout, position = { x: 1, y: 1 }) {
+  const marginX = Math.min(layout.margin, Math.max(0, (canvasWidth - layout.width) / 2));
+  const marginY = Math.min(layout.margin, Math.max(0, (canvasHeight - layout.height) / 2));
+  const travelX = Math.max(0, canvasWidth - layout.width - 2 * marginX);
+  const travelY = Math.max(0, canvasHeight - layout.height - 2 * marginY);
+  return { left: marginX + travelX * position.x, top: marginY + travelY * position.y, travelX, travelY };
+}
+
+export function mountPhaseLegend(inset) {
+  const host = inset.parentElement;
+  const content = inset.querySelector('.phase-key-content');
+  const toggle = inset.querySelector('.phase-key-toggle');
+  const canvas = inset.querySelector('canvas');
+  const position = { x: 1, y: 1 };
+  let minimized = false, drag;
+  paintPhaseLegend(canvas);
+  content.setAttribute('aria-description', canvas.getAttribute('aria-label'));
+
+  const layout = () => {
+    const expanded = phaseLegendLayout(host.clientWidth);
+    if (!minimized) return expanded;
+    return { ...expanded, width: Math.min(44, host.clientWidth), height: Math.min(44, host.clientHeight) };
+  };
+  function placement(dimensions = layout()) {
+    return phaseLegendPlacement(host.clientWidth, host.clientHeight, dimensions, position);
+  }
+  function update() {
+    const dimensions = layout();
+    const { left, top } = placement(dimensions);
+    Object.assign(inset.style, {
+      left: `${left}px`, top: `${top}px`, width: `${dimensions.width}px`, height: `${dimensions.height}px`,
+    });
+  }
+  function move(from, dx, dy) {
+    const { travelX, travelY } = placement();
+    if (travelX > 0) position.x = Math.max(0, Math.min(1, from.x + dx / travelX));
+    if (travelY > 0) position.y = Math.max(0, Math.min(1, from.y + dy / travelY));
+    update();
+  }
+  toggle.addEventListener('click', () => {
+    minimized = !minimized;
+    content.hidden = minimized;
+    inset.toggleAttribute('data-minimized', minimized);
+    toggle.textContent = minimized ? 'φ' : '−';
+    const label = minimized ? 'Restore wave phase inset' : 'Minimize wave phase inset';
+    toggle.setAttribute('aria-label', label);
+    toggle.title = label;
+    toggle.setAttribute('aria-expanded', String(!minimized));
+    update();
+  });
+  content.addEventListener('pointerdown', event => {
+    if (event.button !== 0 || drag) return;
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, position: { ...position } };
+    content.setPointerCapture(event.pointerId);
+  });
+  content.addEventListener('pointermove', event => {
+    if (drag?.id === event.pointerId) move(drag.position, event.clientX - drag.x, event.clientY - drag.y);
+  });
+  content.addEventListener('lostpointercapture', event => {
+    if (drag?.id === event.pointerId) drag = null;
+  });
+  content.addEventListener('keydown', event => {
+    const delta = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }[event.key];
+    if (!delta && event.key !== 'Home') return;
+    event.preventDefault();
+    if (delta) move(position, ...delta);
+    else {
+      position.x = position.y = 1;
+      update();
+    }
+  });
+  return { update, exportState: () => ({ visible: !minimized, position: { ...position } }) };
+}
+
 // Match the phase colours in renderer.js before density/visibility shading.
 function phaseColor(phase) {
   const magnitude = Math.abs(phase), halfPi = 1.57079633;

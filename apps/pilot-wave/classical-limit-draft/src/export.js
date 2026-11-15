@@ -1,6 +1,6 @@
 import { createExperiment, sceneKey } from './experiments.js';
 import { Renderer, TrailHistory } from './renderer.js';
-import { paintPhaseLegend, phaseLegendLayout } from './phase-legend.js';
+import { paintPhaseLegend, phaseLegendLayout, phaseLegendPlacement } from './phase-legend.js?v=4';
 
 export const EXPORT_FPS = 30;
 export const EXPORT_WIDTHS = [1920, 2560];
@@ -9,7 +9,7 @@ const yieldToUI = () => new Promise(resolve => setTimeout(resolve, 0));
 // The video clock is defined by frame numbers, never by wall time or rAF.
 // A separate experiment keeps exports independent of live playback and resize.
 export async function renderVideo({ settings, appearance, view, width = 2560, duration = 10,
-  startTime = 0, displayWidth = 1062, signal, onProgress = () => {}, onPreview = () => {}, onFrame }) {
+  startTime = 0, displayWidth = 1062, phaseLegend, signal, onProgress = () => {}, onPreview = () => {}, onFrame }) {
   if (!EXPORT_WIDTHS.includes(width) || !Number.isFinite(duration) || duration < 1 || duration > 120
     || !Number.isFinite(startTime) || startTime < 0) throw new Error('Choose a video length from 1 to 120 seconds.');
   if (typeof VideoEncoder === 'undefined') throw new Error('Video export needs WebCodecs. Open this page in Chrome or Edge.');
@@ -31,9 +31,12 @@ export async function renderVideo({ settings, appearance, view, width = 2560, du
   const outputCanvas = document.createElement('canvas');
   outputCanvas.width = width; outputCanvas.height = height;
   const context = outputCanvas.getContext('2d', { alpha: false, colorSpace: 'srgb' });
-  const { scale: legendScale, margin } = phaseLegendLayout(displayWidth, width);
-  const legend = paintPhaseLegend(document.createElement('canvas'), legendScale);
-  const legendMargin = Math.round(margin);
+  const legendLayout = phaseLegendLayout(displayWidth, width);
+  const legend = phaseLegend?.visible === false ? null : paintPhaseLegend(document.createElement('canvas'), legendLayout.scale);
+  const { left, top } = legend
+    ? phaseLegendPlacement(width, height, { ...legendLayout, width: legend.width, height: legend.height }, phaseLegend?.position)
+    : {};
+
   // A current-time export respects the most recent trail toggle. A fresh launch
   // starts its trails at zero along with its separately reconstructed wave.
   const trailStartTime = startTime > 0 ? Math.min(startTime, Math.max(0, appearance.trailStartTime || 0)) : 0;
@@ -87,7 +90,7 @@ export async function renderVideo({ settings, appearance, view, width = 2560, du
       renderer.render(experiment, history, appearance, true);
       if (gl.isContextLost() || gl.getError() !== gl.NO_ERROR) throw new Error('The GPU could not render a video frame. Try a smaller video size.');
       context.drawImage(canvas, 0, 0, width, height);
-      context.drawImage(legend, width - legend.width - legendMargin, height - legend.height - legendMargin);
+      if (legend) context.drawImage(legend, Math.round(left), Math.round(top));
       await onFrame?.(outputCanvas, frame, experiment.diagnostics());
       await source.add(frame / EXPORT_FPS, 1 / EXPORT_FPS);
       onProgress({ stage: 'Rendering', completed: frame + 1, total });

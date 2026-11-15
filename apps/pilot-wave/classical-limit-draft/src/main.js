@@ -3,8 +3,8 @@ import { BOX, parameters, clamp } from './physics.js';
 import { lengthUnitNm, timeUnitPs, massInElectronUnits, formatDistance } from './physical-units.js';
 import { Renderer, TrailHistory } from './renderer.js';
 import { createExperiment, SCENES, sceneKey } from './experiments.js';
-import { renderVideo } from './export.js';
-import { paintPhaseLegend, phaseLegendLayout } from './phase-legend.js';
+import { renderVideo } from './export.js?v=4';
+import { mountPhaseLegend } from './phase-legend.js?v=4';
 
 const $ = id => document.getElementById(id);
 const query = new URLSearchParams(location.search);
@@ -44,6 +44,7 @@ const template = mountClassicalTemplate(() => {
   };
 });
 const sharedControls = template?.controls;
+const phaseLegend = mountPhaseLegend($('phase-legend'));
 
 function showError(error) {
   failed = true; paused = true;
@@ -128,11 +129,6 @@ function setPaused(value) {
   $('status').lastElementChild.textContent = paused ? 'Paused' : 'Live';
 }
 
-function syncLegendSize() {
-  const { width, height, margin } = phaseLegendLayout($('canvas').clientWidth);
-  Object.assign($('phase-legend').style, { width: `${width}px`, height: `${height}px`, right: `${margin}px`, bottom: `${margin}px` });
-}
-
 function syncCanvasLayout() {
   const slot = $('canvas-slot');
   // Fit the physical box inside both available dimensions. Resizing only changes
@@ -140,7 +136,7 @@ function syncCanvasLayout() {
   const border = 2, aspect = BOX.width / BOX.height;
   const width = Math.max(0, Math.min(slot.clientWidth - border, (slot.clientHeight - border) * aspect));
   Object.assign($('canvas-wrap').style, { width: `${width + border}px`, height: `${width / aspect + border}px` });
-  syncLegendSize();
+  phaseLegend.update();
   drawingDirty = true;
 }
 
@@ -337,6 +333,7 @@ async function record() {
     if (downloadURL) { URL.revokeObjectURL(downloadURL); downloadURL = null; }
     const result = await renderVideo({ settings: { ...settings }, appearance: { ...appearance },
       view: { center: [...renderer.center], zoom: renderer.zoom }, displayWidth: $('canvas').clientWidth,
+      phaseLegend: phaseLegend.exportState(),
       width: Number($('export-size').value), duration: Number($('export-duration').value),
       startTime: $('export-start').value === 'current' ? experiment.time : 0, signal: controller.signal,
       onPreview: canvas => $('canvas-wrap').append(canvas),
@@ -387,7 +384,7 @@ try {
   if (query.get('embed') === '1') document.querySelector('.brand-home').hidden = true;
   syncCanvasLayout();
   renderer = new Renderer($('canvas')); reset(); setPaused(paused);
-  paintPhaseLegend($('phase-legend-canvas')); syncLegendSize(); draw();
+  draw();
   // Explicit test mode only: numerical inspection and deterministic stress tests.
   if (query.get('test') === '1') window.__classicalLimit = {
     ready: true,
