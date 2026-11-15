@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hydrogen Atom — Orbitals and Trajectories · Q-Ontic</title>
+  <link rel="stylesheet" href="../../../shared/qontic-shell.css">
+  <link rel="stylesheet" href="../../../shared/qontic-app.css">
+  <link rel="stylesheet" href="orbitals.css?v=1">
+</head>
+<body>
+  <main class="shell">
+    <header><div><h1>Hydrogen Atom — Orbitals and Trajectories</h1></div></header>
+    <nav class="tabs" aria-label="Views">
+      <button type="button" class="qontic-app-toggle active" data-view="simulation" aria-pressed="true">Simulation</button>
+      <button type="button" class="qontic-app-toggle" data-view="physics" aria-pressed="false">Physics</button>
+    </nav>
+    <section class="qontic-workspace" id="simulation" aria-label="Hydrogen simulation">
+      <aside class="qontic-sidebar qontic-panel qontic-control-panel">
+        <qontic-controls running="false" speed="1" speed-min="0.25" speed-max="2" speed-step="0.25" show-reset="true" show-autorun="false" show-advanced="false" show-interpretation="false"></qontic-controls>
+        <div class="qontic-control-body">
+          <div id="core-controls">
+            <label for="orbital">Orbital</label>
+            <select id="orbital">
+              <option value="1s">1s · ground state</option>
+              <option value="2p0">2p₀ · two lobes</option>
+              <option value="2p1">2p₊₁ · ring-shaped density</option>
+            </select>
+            <p id="orbital-summary" class="orbital-summary"></p>
+            <fieldset id="prediction">
+              <legend>Predict the particle’s motion</legend>
+              <div class="qontic-app-toggle-group">
+                <button class="qontic-app-toggle" type="button" data-answer="still" aria-pressed="false">Stays still</button>
+                <button class="qontic-app-toggle" type="button" data-answer="circle" aria-pressed="false">Circles the z-axis</button>
+              </div>
+            </fieldset>
+            <p id="prediction-feedback" role="status">Make a prediction, then press Start.</p>
+          </div>
+          <div id="display-controls" hidden>
+            <label><input type="checkbox" id="density" checked> Probability cloud</label>
+            <label><input type="checkbox" id="trail" checked> Particle trail</label>
+            <label><input type="checkbox" id="axes" checked> Coordinate axes</label>
+          </div>
+        </div>
+      </aside>
+      <section class="qontic-stage qontic-panel" aria-label="Orbital view">
+        <div class="orbital-stage-header">
+          <div><h2 id="orbital-name">1s</h2><p id="orbital-numbers"></p></div>
+          <div class="sim-clock"><span>Simulated time</span><output id="clock" aria-live="off">0 as</output></div>
+        </div>
+        <canvas id="orbital-canvas" tabindex="0" aria-label="3D hydrogen orbital and example pilot-wave particle" aria-describedby="view-help"></canvas>
+        <div class="orbital-stage-footer">
+          <ul class="orbital-legend"><li><i class="cloud-dot"></i>Probability cloud</li><li><i class="particle-dot"></i>Pilot-wave particle</li><li><i class="proton-dot"></i>Proton</li></ul>
+          <div class="qontic-app-toggle-group camera-controls">
+            <button type="button" class="qontic-app-toggle" id="top-view">View from above</button>
+            <button type="button" class="qontic-app-toggle" id="reset-view">Reset view</button>
+          </div>
+        </div>
+        <p id="view-help">Drag or use the arrow keys to rotate.</p>
+      </section>
+    </section>
+    <section class="qontic-panel qontic-reading-panel details-panel" id="physics" hidden>
+      <h2>Orbitals and motion</h2>
+      <p>These are three energy eigenstates of nonrelativistic hydrogen with a fixed proton. In each one, the probability density |ψ|² stays constant in time. The teal dots sample that density. The gold dot shows one possible position and its pilot-wave trajectory.</p>
+      <h3>What sets the trajectory?</h3>
+      <p>In the spin-free model, the guiding velocity is <span class="equation">v = (ħ/mₑ) Im(∇ψ/ψ)</span>. The 1s and 2p₀ orbitals can be taken real apart from their overall time phase, so their guiding velocity vanishes wherever the density is nonzero. Their probability clouds have different shapes even though both particles stay still.</p>
+      <p>The 2p₊₁ state has spatial phase e<sup>iφ</sup>. Its particle goes around the z-axis at fixed height and fixed distance ρ from that axis. Its angular speed is ħ/(mₑρ²). The example starts at the same position for all three orbitals.</p>
+      <h3>Model and scale</h3>
+      <p>This lesson uses the scalar Schrödinger current. Including electron spin adds a spin-current term that can produce motion even in 1s. The distance bar uses picometers (pm), and the clock uses attoseconds (as). Playback slows the atomic motion so you can see it.</p>
+      <p class="physics-sources"><a href="https://openstax.org/books/university-physics-volume-3/pages/8-1-the-hydrogen-atom">Hydrogen eigenstates</a> · <a href="https://arxiv.org/abs/quant-ph/0308105">Spin-dependent trajectories</a> · <a href="https://physics.nist.gov/cuu/pdf/RevModPhys.97.025002.pdf">CODATA constants</a></p>
+    </section>
+  </main>
+  <script type="module" src="lesson.js?v=1"></script>
+</body>
+</html>

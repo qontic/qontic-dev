@@ -1,0 +1,11 @@
+{
+  "id": "hydrogen-orbitals-and-trajectories",
+  "title": "Hydrogen Atom — Orbitals and Trajectories",
+  "type": "app",
+  "category": "pilot-wave",
+  "module": "potential-well",
+  "description": "Predict how a pilot-wave particle moves in three stationary hydrogen orbitals.",
+  "tags": ["Pilot-wave", "Hydrogen", "Orbitals"],
+  "entry": "index.html",
+  "status": "draft"
+}
