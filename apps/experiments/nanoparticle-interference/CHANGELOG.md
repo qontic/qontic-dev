@@ -1,5 +1,13 @@
 # Nanoparticle Interference (Vienna 2026) — changelog
 
+## 0.4.0 (2026-11-15)
+Counts and animation are one simulation (Pablo: the panels must be coordinated).
+- js/sim.js: every count is a cluster drawn with its own speed, mass (same grid and weights as the predictions, weighted by G1 passage) and G1 start point; G2 position uniform, survival |t2|²; position at G3 from the pilot-wave trajectory, from |ψ(x,2L)|² of its own wave (Orthodox, Many Worlds), or from the classical ray (what-if). Contrast factor 0.78 as Gaussian jitter σ ≈ 15 nm at G3. Counted with probability |t3|².
+- Overlapping packets, number in flight adjustable (Advanced, 1–12, default 5; 1 = one at a time); 60 clusters each, 20 per G3 position by default: 21,600 clusters, ~6,000 counted per scan). Points fill as packets arrive; partial points hollow. "Packets per position" replaces "Counts per point".
+- Many Worlds "Sample another branch" re-simulates the full record.
+- Display defaults to the sum over G1 points, since the clusters come from all of G1.
+- tests/sim.test.mjs: simulated clusters reproduce the predicted visibilities (sampled 0.107 ± 0.004 vs 0.105 in a long run; pilot-wave and classical within errors).
+
 ## 0.3.0 (2026-11-15)
 The moving packet, as in the analytical double-slit app.
 - Ψ(x, z, t) = F(z − vt) ψ(x, z): a longitudinal envelope travels G1 → G3 and lights the stationary transverse pattern, dimmed behind G2 by the fraction G2 removes; faint trace of the full pattern (Display). Packet length and transit time exaggerated (real: ≈ 0.2 pm, ≈ 12 ms), stated in Physics.

@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/np.css?v=0.3.0">
+<link rel="stylesheet" href="css/np.css?v=0.4.0">
 </head>
 <body class="np-app">
 <main class="shell">
@@ -64,14 +64,17 @@
         <label class="control-row" title="Distance between neighbouring gratings. The experiment uses 0.983 m.">
           <span>Grating spacing</span><input id="gl" type="range" min="0.4" max="1.6" step="0.001" aria-label="Grating spacing in m"><output id="glOut"></output>
         </label>
-        <label class="control-row" title="Independent clusters prepared in the same state and drawn with each packet: Pilot-Wave particles, or sampled outcomes in the other views.">
-          <span>Clusters per packet</span><input id="ppp" type="range" min="1" max="30" step="1" aria-label="Clusters drawn per packet"><output id="pppOut"></output>
+        <label class="control-row" title="Independent clusters in each packet. Each has its own speed, mass and start point in G1, drawn from the beam. In Pilot Wave they are the dots; in Orthodox and Many Worlds their outcomes are the marks at G2 and G3.">
+          <span>Clusters per packet</span><input id="ppp" type="range" min="5" max="200" step="5" aria-label="Clusters drawn per packet"><output id="pppOut"></output>
         </label>
         <label class="control-row" title="Where in a G1 opening the displayed cluster starts, as a distance from the edge where the light is brightest. The opening is centred at 66.5 nm.">
           <span>G1 start point</span><input id="x0" type="range" min="0.15" max="0.85" step="0.01" aria-label="Start point of the displayed cluster within a G1 opening"><output id="x0Out"></output>
         </label>
-        <label class="control-row" title="Expected number of clusters counted at each position of G3. More counts give smaller error bars.">
-          <span>Counts per point</span><input id="counts" type="range" min="2" max="4.5" step="0.05" aria-label="Mean counts per scan position, logarithmic"><output id="countsOut"></output>
+        <label class="control-row" title="How many packets are in the interferometer at once. 1: each packet is launched when the previous one has left. More packets in flight make the scan faster; the physics of each packet is unchanged, since independent clusters do not interact.">
+          <span>Packets in flight</span><input id="inflight" type="range" min="1" max="12" step="1" aria-label="Number of packets in flight at once"><output id="inflightOut"></output>
+        </label>
+        <label class="control-row" title="Packets sent with G3 at each of the 18 positions. Every cluster in them is simulated and drawn above; the counted ones make the points below. More packets give smaller error bars and a longer scan.">
+          <span>Packets per position</span><input id="ppos" type="range" min="2" max="60" step="1" aria-label="Packets per scan position"><output id="pposOut"></output>
         </label>
         <div class="toggle-row" title="The paper multiplies both predictions by 0.78 for imperfections: misalignment, vibrations, gravity, rotation and collisions."><span>Contrast factor 0.78</span><button class="toggle" type="button" data-toggle="scale" aria-pressed="true" aria-label="Apply the paper's contrast factor of 0.78"></button></div>
         <div class="qontic-control-section">
@@ -180,7 +183,15 @@
   <p>The virtual sources are λ<sub>dB</sub>L/d apart, about 107 nm for 172 kDa clusters: comparable to the period, which is why the waves from neighbouring virtual sources interfere visibly. Summing |ψ|² over x<sub>0</sub> and scanning the G3 mask across it reproduces the paper's count rate to better than 0.2% for every case tested; this is an independent check of both calculations.</p>
   <h2>The packet</h2>
   <p>In the paraxial approximation the full wave factorises, as in the analytical double-slit app: Ψ(x, z, t) = F(z − vt) ψ(x, z) e<sup>i(kz − ωt)</sup>. The transverse pattern ψ(x, z) does not change in time; the longitudinal envelope F carries the cluster along the beam at its speed v. While the simulation runs, the panel lights the pattern with |F|² and dims it behind G2 by the fraction G2 removes. The real envelope is about 0.2 pm long (the paper gives a longitudinal coherence length of 160–350 fm) and crosses the 2 m apparatus in about 12 ms; the packet is drawn about 0.3 m long and slowed so it can be seen. Its length does not affect the transverse pattern in this approximation.</p>
-  <p>Each packet carries a few clusters prepared in the same state (<em>Clusters per packet</em>, Advanced). In Pilot Wave they are dots riding inside the packet, at positions drawn from |F|²|ψ|². In Orthodox and Many Worlds, outcomes are drawn from |ψ|² when the packet reaches G2 and G3: ionised (×) or counted (•). The counts in the lower panel gather about 1,600 clusters per scan position and are drawn from the same probabilities.</p>
+  <h2>Where the counts come from</h2>
+  <p>Every count in the lower panel is a cluster simulated in the upper one. Packets overlap in flight (5 at a time by default; <em>Packets in flight</em>, Advanced, 1 sends them one at a time). Each carries 60 clusters by default, and 20 packets are sent at each of the 18 positions of G3. Clusters in different packets are independent, so the overlap changes only how long the scan takes. Each cluster is a full sample of the beam: its speed and mass are drawn from the same distributions the predictions average over, and its start point from the light pattern of G1. It reaches G2 at a position drawn uniformly (|ψ|² is uniform there) and is ionised there with probability 1 − |t<sub>2</sub>|². Its position at G3 is</p>
+  <ul>
+    <li>in Pilot Wave, where its guided trajectory arrives;</li>
+    <li>in Orthodox and Many Worlds, a position drawn from |ψ(x, 2L)|² of its own wave;</li>
+    <li>in the hypothetical classical world (Advanced), where a straight line bent at G2 by the dipole force arrives.</li>
+  </ul>
+  <p>The paper's contrast factor 0.78 enters as a random sideways shift of each cluster at G3, Gaussian with σ ≈ 15 nm, standing for vibrations and phase averaging; it multiplies the ℓ-th fringe harmonic by 0.78<sup>ℓ²</sup>, the same model as the predicted curves. The cluster is counted with probability |t<sub>3</sub>|² at its shifted position. The app's tests check that clusters simulated this way reproduce the predicted visibilities: 0.107 ± 0.004 against 0.105 for Orthodox sampling, and agreement within errors for pilot-wave and classical clusters. With the defaults a scan sends 21,600 clusters and counts about 6,000, enough to separate the quantum and classical predictions at the Vienna settings by about four standard errors.</p>
+  <p>In Pilot Wave the dots are the clusters, at positions drawn from |F|²|ψ|², with trails for a few per packet. In Orthodox and Many Worlds no positions are shown between gratings; the outcomes appear as marks when a packet reaches G2 and G3 (× ionised, • counted). In Many Worlds every mark is a branch; the brighter one in each packet is the branch followed.</p>
   <p>When no packet is in flight, the panel shows the density with its brightness normalised in each slice; before G2, where the density is uniform, it is drawn at a fixed low level. <em>Sum over all G1 points</em> (Display) shows the incoherent sum instead of one cluster. The wave is computed for the central mass and speed; the counts and visibilities include the averages.</p>
 
   <h2>Pilot-wave trajectories</h2>
@@ -199,8 +210,8 @@
     <li>All numbers are from the arXiv version of the paper (Methods).<sup><a href="#ref-1">1</a></sup> Grating spacing 0.983 m, period 133 nm, speed spread 10 m/s, mass window Δm/m = 0.32.</li>
     <li><b>The waist w<sub>y</sub>.</b> The paper does not state its value. Methods gives the vertical heights of the three grating beams, 620, 575 and 575 µm; the horizontal size is focused to about 20 µm on the mirror. Using 20 µm gives n<sub>0</sub> ≈ 75 at G1, which would remove essentially every cluster. Using the vertical heights reproduces the measured visibility, so the app uses those.</li>
     <li>The simulated scan uses 18 positions spread evenly over two grating periods (steps of 14.8 nm; the paper uses 15 nm), so the sine fit picks out the first harmonic without bias.</li>
-    <li>Speeds are averaged over a Gaussian of ±3σ, and masses over a flat window. The counts behind G3 are simulated by drawing Poisson numbers from the chosen prediction; they are not the measured data.</li>
-    <li>The 0.78 factor is applied equally to both predictions. In the simulated counts it is modelled as a Gaussian smearing of the fringes, which multiplies the ℓ-th harmonic by 0.78<sup>ℓ²</sup>; the first harmonic, and so the visibility, gets exactly 0.78. The model omits gravity, Earth's rotation, collisions and the thermal emission of the clusters, except through that factor.</li>
+    <li>Speeds are averaged over a Gaussian of ±3σ, and masses over a flat window. The counts behind G3 come from simulated clusters (see above); they are not the measured data.</li>
+    <li>The 0.78 factor is applied equally to both predictions, as a Gaussian smearing of the fringes that multiplies the ℓ-th harmonic by 0.78<sup>ℓ²</sup>; the first harmonic, and so the visibility, gets exactly 0.78. The model omits gravity, Earth's rotation, collisions and the thermal emission of the clusters, except through that factor.</li>
     <li>The fringe profile includes harmonics up to ℓ = 6, so it is not a pure sine when G1 and G3 are strong. The reported visibility is from a sine fit, and the verdict compares it with the two predicted visibilities, as in the paper.</li>
   </ul>
 </section>
@@ -221,7 +232,7 @@
   <p>The selector at the top of the controls changes the account, not the physics: the wave, the probabilities and the counts are the same in all three. What differs is what each view says happens to a cluster, and how it reads the gratings. G1 and G3 are measurements in their own right: a cluster that crosses a bright fringe is ionised and removed, and the ones that remain are the ones that were <em>not</em> detected there.</p>
   <ul>
     <li><b>Orthodox.</b> The wave gives probabilities for detections. Not being ionised at a grating is itself an outcome, and it updates the wave: ψ is multiplied by t(x). Counting at the detector is a detection. Between gratings the account assigns no position to the cluster, so it gives no picture of what the cluster does there.</li>
-    <li><b>Pilot Wave.</b> The cluster always has a position, and its wave guides it. Each cluster's trajectory starts at one point of G1 and fans out until G2. Behind G2 the trajectories are drawn into the bright channels of the wave, and they arrive at G3 in fringes. Whether a cluster is ionised at G2 or G3 depends on where it actually is. The panel draws the trajectories of clusters sharing one wave; with <em>Sum over all G1 points</em> on, each trajectory is guided by the wave from its own starting point.</li>
+    <li><b>Pilot Wave.</b> The cluster always has a position, and its wave guides it. Each cluster's trajectory starts at one point of G1 and fans out until G2. Behind G2 the trajectories are drawn into the bright channels of the wave, and they arrive at G3 in fringes. Whether a cluster is ionised at G2 or G3 depends on where it actually is. Each dot is guided by its own wave, which depends on its starting point, speed and mass; the counts below are where the dots arrive.</li>
     <li><b>Many Worlds.</b> The wave never collapses. Ionisation and counting entangle the cluster with photons, electrons and the detector, and the state branches into records that no longer interfere. The scan you see is one branch; <em>Sample another branch</em> shows another record with the same weights.</li>
   </ul>
   <p>All three give the same counts, and the experiment cannot tell them apart. Spontaneous-collapse theories are different: they predict reduced visibility at high mass, and experiments like this one bound them.</p>
@@ -240,6 +251,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.3.0"></script>
+<script type="module" src="js/app.js?v=0.4.0"></script>
 </body>
 </html>
