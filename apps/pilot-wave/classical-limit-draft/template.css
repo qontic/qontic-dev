@@ -79,7 +79,14 @@ html:has(.classical-template) { overflow: auto; background: var(--bg-primary, #0
 .classical-template .live-badge { color: var(--text-secondary); }
 .classical-template #qontic-context-back,
 .classical-template #catalog-back { margin-right: 8px; font-size: 12px; color: var(--text-secondary); }
-.classical-template #export-options { margin-top: 0; }
+.classical-template .qontic-measuring > #canvas { cursor: crosshair; }
+.classical-template .qontic-coordinate-readout { right: auto; left: 10px; }
+.classical-export-dialog .detail-body { padding-bottom: 0; }
+.classical-export-dialog .hint { color: #b9cfdb; }
+.classical-export-dialog .label-row { margin: 14px 0; }
+.classical-export-dialog .label-row label { display: block; margin: 0; }
+.qontic-light .classical-export-dialog { background: #f4f9fb; color: #172b3a; }
+.qontic-light .classical-export-dialog .hint { color: #496476; }
 .classical-template .qontic-reading-panel { max-width: 920px; margin: 0 auto; padding: 16px 24px; }
 .classical-template.collapsed .qontic-workspace { grid-template-columns: 100px minmax(0, 1fr); }
 .classical-template.collapsed .panel-heading { flex-direction: row; }

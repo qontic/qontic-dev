@@ -1,4 +1,4 @@
-import { mountClassicalTemplate } from './template.js';
+import { mountClassicalTemplate } from './template.js?v=2';
 import { BOX, parameters, clamp } from './physics.js';
 import { Renderer, TrailHistory } from './renderer.js';
 import { createExperiment, SCENES, sceneKey } from './experiments.js';
@@ -7,7 +7,6 @@ import { paintPhaseLegend, phaseLegendLayout } from './phase-legend.js';
 
 const $ = id => document.getElementById(id);
 const query = new URLSearchParams(location.search);
-const sharedControls = mountClassicalTemplate();
 const numericQuery = (name, fallback) => query.has(name) && Number.isFinite(Number(query.get(name))) ? Number(query.get(name)) : fallback;
 const initialScene = Object.hasOwn(SCENES, query.get('scene')) ? query.get('scene') : sceneKey(query.get('obstacle') === '1');
 const sceneClassicality = { free: SCENES.free.classicality, barrier: SCENES.barrier.classicality };
@@ -35,6 +34,16 @@ let lastFrame = null, lastReadout = 0, frames = 0, fps = 60, maxNormError = 0;
 let rafId = 0, evaluations = 0, lastEvaluations = 0;
 let exportJob = null, lastExport = null, downloadURL = null;
 
+const template = mountClassicalTemplate(() => {
+  const [x, y] = renderer?.center ?? [0.5, 0.5];
+  const half = 0.5 / (renderer?.zoom ?? 1);
+  return {
+    xMin: (x - half) * BOX.width, xMax: (x + half) * BOX.width,
+    yMin: (y - half) * BOX.height, yMax: (y + half) * BOX.height,
+  };
+});
+const sharedControls = template?.controls;
+
 function showError(error) {
   failed = true; paused = true;
   const message = error instanceof Error ? error.message : String(error);
@@ -42,6 +51,7 @@ function showError(error) {
   $('status').classList.add('failed'); $('status').lastElementChild.textContent = 'Paused · attention needed';
   $('pause').disabled = true;
   syncRunControls();
+  syncRecordButton();
   exportJob?.abort();
   console.error(error);
 }
@@ -73,6 +83,7 @@ function reset() {
   pendingReset = false; lastFrame = null; maxNormError = 0;
   failed = false; $('error').hidden = true; $('pause').disabled = false; $('status').classList.remove('failed');
   syncRunControls();
+  syncRecordButton();
   syncParameters();
 }
 
@@ -157,13 +168,17 @@ function frame(now) {
       if (pendingReset) { pendingReset = false; reset(); }
       const elapsed = lastFrame === null ? 0 : (now - lastFrame) / 1000;
       lastFrame = now;
-      if (elapsed > 0 && elapsed < 0.25 && !paused && !document.hidden) {
-        // Time comes from the display clock, never a regime-specific steps/frame.
-        // Long background gaps are discarded; resuming cannot launch a catch-up burst.
-        advanceTo(experiment.time + elapsed * appearance.playback);
+      if (elapsed > 0 && !paused && !document.hidden && (experiment.is2D || elapsed < 0.25)) {
+        // Keep expensive 2D frames from queuing bigger batches as the GPU slows.
+        // The solver keeps its normal timestep and guidance checks within each batch.
+        const requested = elapsed * appearance.playback;
+        const duration = experiment.is2D
+          ? Math.min(requested, 0.05, 8 * experiment.maxDt * experiment.guidanceStepScale)
+          : requested;
+        advanceTo(experiment.time + duration);
         fps = fps * 0.95 + 0.05 / elapsed;
       }
-      if (waveDirty || drawingDirty || !paused) draw();
+      if (waveDirty || drawingDirty) draw();
       frames++;
       if (now - lastReadout > 200) {
         $('status').lastElementChild.textContent = exportJob ? 'Rendering video' : document.hidden ? 'Inactive tab' : paused ? 'Paused' : 'Live';
@@ -225,7 +240,7 @@ function collapse() {
 $('collapse').addEventListener('click', collapse);
 document.addEventListener('keydown', event => {
   if (exportJob) return;
-  if (event.ctrlKey || event.altKey || event.metaKey || event.repeat || event.target.closest('input,select,textarea,button,summary,a')) return;
+  if (event.ctrlKey || event.altKey || event.metaKey || event.repeat || event.target.closest('input,select,textarea,button,summary,a,dialog')) return;
   if (event.code === 'Space' && !failed) { event.preventDefault(); setPaused(!paused); }
   if (event.key.toLowerCase() === 'r') scheduleReset();
   if (event.key.toLowerCase() === 'h') collapse();
@@ -237,8 +252,16 @@ window.addEventListener('message', event => {
 const layoutObserver = new ResizeObserver(syncCanvasLayout);
 layoutObserver.observe($('canvas-slot'));
 window.addEventListener('resize', syncCanvasLayout);
-$('reset-view').addEventListener('click', () => { if (renderer) renderer.resetView(); drawingDirty = true; });
-$('canvas').addEventListener('dblclick', () => { if (renderer) renderer.resetView(); drawingDirty = true; });
+function viewChanged() {
+  template?.updateOverlays();
+  drawingDirty = true;
+}
+function resetView() {
+  renderer?.resetView();
+  viewChanged();
+}
+$('reset-view').addEventListener('click', resetView);
+$('canvas').addEventListener('dblclick', () => { if (!template?.isMeasuring()) resetView(); });
 $('canvas').addEventListener('wheel', event => {
   if (!renderer || failed || exportJob) return;
   event.preventDefault();
@@ -246,15 +269,19 @@ $('canvas').addEventListener('wheel', event => {
   const mouse = [(event.clientX - rect.left) / rect.width, 1 - (event.clientY - rect.top) / rect.height];
   const previous = renderer.zoom, next = clamp(previous * Math.exp(-event.deltaY * 0.0015), 1, 12);
   for (let i = 0; i < 2; i++) renderer.center[i] += (mouse[i] - 0.5) * (1 / previous - 1 / next);
-  renderer.zoom = next; renderer.clampView(); drawingDirty = true;
+  renderer.zoom = next; renderer.clampView(); viewChanged();
 }, { passive: false });
 let drag = null;
-$('canvas').addEventListener('pointerdown', e => { if (!renderer) return; drag = [e.clientX, e.clientY, ...renderer.center]; $('canvas').setPointerCapture(e.pointerId); });
+$('canvas').addEventListener('pointerdown', event => {
+  if (!renderer || template?.isMeasuring()) return;
+  drag = [event.clientX, event.clientY, ...renderer.center];
+  $('canvas').setPointerCapture(event.pointerId);
+});
 $('canvas').addEventListener('pointermove', e => {
   if (!drag || !renderer) return;
   const r = $('canvas').getBoundingClientRect();
   renderer.center = [drag[2] - (e.clientX - drag[0]) / r.width / renderer.zoom, drag[3] + (e.clientY - drag[1]) / r.height / renderer.zoom];
-  renderer.clampView(); drawingDirty = true;
+  renderer.clampView(); viewChanged();
 });
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) $('canvas').addEventListener(type, () => { drag = null; });
 
@@ -262,8 +289,10 @@ function syncRecordButton() {
   const active = Boolean(exportJob);
   $('record').classList.toggle('recording', active);
   $('record-label').textContent = active ? 'Cancel render' : 'Render video · 30 fps';
-  $('record').disabled = typeof VideoEncoder === 'undefined';
-  if ($('record').disabled) $('export-status').textContent = 'Open in Chrome or Edge to render video.';
+  const hasEncoder = typeof VideoEncoder !== 'undefined';
+  $('record').disabled = !active && (failed || !hasEncoder);
+  if (failed && !active) $('export-status').textContent = 'The simulation must be available to render a video.';
+  else if (!hasEncoder) $('export-status').textContent = 'Open in Chrome or Edge to render video.';
 }
 async function record() {
   if (exportJob) { exportJob.abort(); $('record').disabled = true; return; }
@@ -272,7 +301,9 @@ async function record() {
   const wasPaused = paused;
   const controller = new AbortController(); exportJob = controller; lastExport = null;
   setPaused(true); syncRecordButton();
-  const controls = [...document.querySelectorAll('aside input, aside select, aside button:not(#record), #reset-view')];
+  const controls = [...document.querySelectorAll(
+    ':is(aside, .classical-export-dialog) :is(input, select, button:not(#record)), #reset-view'
+  )];
   const disabled = controls.map(control => control.disabled);
   controls.forEach(control => { control.disabled = true; });
   $('export-progress').hidden = false; $('export-progress').value = 0;
@@ -317,7 +348,7 @@ $('canvas').addEventListener('webglcontextrestored', () => {
     renderer = new Renderer($('canvas')); failed = false; waveDirty = true; drawingDirty = true; lastFrame = null;
     if (settings.obstacle) reset();
     $('error').hidden = true; $('status').classList.remove('failed'); $('pause').disabled = false;
-    setPaused(true); draw();
+    syncRecordButton(); setPaused(true); viewChanged(); draw();
   } catch (e) { showError(e); }
 });
 window.addEventListener('beforeunload', () => {
@@ -331,7 +362,7 @@ window.addEventListener('beforeunload', () => {
 try {
   if (query.get('embed') === '1') document.querySelector('.brand-home').hidden = true;
   syncCanvasLayout();
-  renderer = new Renderer($('canvas')); reset(); setPaused(paused); syncRecordButton();
+  renderer = new Renderer($('canvas')); reset(); setPaused(paused);
   paintPhaseLegend($('phase-legend-canvas')); syncLegendSize(); draw();
   // Explicit test mode only: numerical inspection and deterministic stress tests.
   if (query.get('test') === '1') window.__classicalLimit = {

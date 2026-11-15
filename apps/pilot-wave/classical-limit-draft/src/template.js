@@ -1,8 +1,9 @@
 import '../../../../shared/qontic-controls.js';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js';
+import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js';
 
-export function mountClassicalTemplate() {
+export function mountClassicalTemplate(getBounds) {
   const params = new URLSearchParams(location.search);
   if (params.get('embed') === '1') return null;
 
@@ -41,7 +42,7 @@ export function mountClassicalTemplate() {
   // Retain the existing input elements and their simulation event handlers.
   const sharedControls = document.createElement('qontic-controls');
   const attributes = {
-    'show-interpretation': 'false', 'show-reset': 'true', 'show-autorun': 'false',
+    'show-interpretation': 'false', 'show-reset': 'true', 'show-autorun': 'false', 'show-advanced': 'false',
     'speed-min': '1', 'speed-max': '4', 'speed-step': '1', speed: '1',
     running: String(params.get('paused') !== '1'), 'active-tab': 'core',
   };
@@ -51,7 +52,6 @@ export function mountClassicalTemplate() {
   const display = document.getElementById('appearance');
   const advanced = document.getElementById('export-options');
   display.open = true;
-  advanced.open = true;
   const controlsBody = document.createElement('div');
   controlsBody.className = 'qontic-control-body';
   const core = document.createElement('div');
@@ -59,7 +59,7 @@ export function mountClassicalTemplate() {
   core.append(...[...body.children].filter(node =>
     node !== display && node !== advanced && node !== legacyRunButtons && !node.matches('.keyboard-hint')
   ), countLabel, count);
-  const panes = { core, advanced, display };
+  const panes = { core, display };
   for (const [name, pane] of Object.entries(panes)) {
     pane.hidden = name !== 'core';
     controlsBody.append(pane);
@@ -119,17 +119,49 @@ export function mountClassicalTemplate() {
     header.prepend(back);
   }
 
+  const exportDialog = document.createElement('dialog');
+  exportDialog.className = 'qontic-record-dialog classical-export-dialog';
+  exportDialog.setAttribute('aria-labelledby', 'classical-export-heading');
+  exportDialog.innerHTML = `<div class="qontic-record-heading"><h2 id="classical-export-heading">Record video</h2>
+    <button type="button" aria-label="Close video settings">✕</button></div>`;
+  const closeExport = exportDialog.querySelector('button');
+  closeExport.addEventListener('click', () => exportDialog.close());
+  exportDialog.addEventListener('cancel', event => {
+    if (closeExport.disabled) event.preventDefault();
+  });
+  exportDialog.append(advanced.querySelector('.detail-body'));
+  advanced.remove();
+  document.body.append(exportDialog);
+
+  const host = document.getElementById('canvas-wrap');
+  const coordinates = mountCoordinateTools({ host, getBounds, yUp: true });
+  const scale = mountDistanceScale({
+    host,
+    getUnitsPerPixel: () => {
+      const { xMin, xMax, yMin, yMax } = getBounds();
+      return { x: (xMax - xMin) / host.clientWidth, y: (yMax - yMin) / host.clientHeight };
+    },
+    format: value => `${Number(value.toPrecision(3))} units`,
+  });
+  scale.setVisible(false);
+
   const media = mountQonticMedia({
     stage,
-    getCanvases: () => [document.getElementById('canvas'), document.getElementById('phase-legend-canvas')],
+    coordinateControl: coordinates,
+    scaleControl: scale,
+    getCanvases: () => [
+      document.getElementById('canvas'), document.getElementById('phase-legend-canvas'), coordinates.canvas, scale.canvas,
+    ],
     filename: 'classical-limit',
     onRecord: () => {
       showView('simulation');
       if (stage.closest('dialog')) media.setExpanded(false);
-      if (document.body.classList.contains('collapsed')) document.getElementById('collapse').click();
-      selectPane('advanced');
-      advanced.querySelector('summary').focus();
+      exportDialog.showModal();
     },
   });
-  return sharedControls;
+  return {
+    controls: sharedControls,
+    updateOverlays() { coordinates.update(); scale.update(); },
+    isMeasuring: coordinates.getMeasureActive,
+  };
 }

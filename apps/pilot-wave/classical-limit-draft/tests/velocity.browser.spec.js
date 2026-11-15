@@ -115,7 +115,7 @@ test('velocity toggle is independent, survives resize and appears in a 30 fps re
   expect(after.positions).toEqual(before.positions); expect(after.time).toBe(before.time);
   await page.screenshot({ path: 'validation/velocity-mobile.png' });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole('tab', { name: 'Advanced' }).click();
+  await page.getByRole('button', { name: 'Record video', exact: true }).click();
   await page.locator('#export-size').selectOption('1920'); await page.locator('#export-duration').fill('1');
   await page.locator('#export-start').selectOption('current');
   const downloaded = page.waitForEvent('download'); await page.locator('#record').click();

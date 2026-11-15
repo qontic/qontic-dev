@@ -81,16 +81,41 @@ test('scenes remember independent ranges, restart cleanly and preserve shared ap
   await writeFile('validation/unified-scenes.json', JSON.stringify({ barrier, free, views, legend, errors }, null, 2));
 });
 
+test('switching to the barrier while running keeps the wave moving on a slow display', async ({ page }) => {
+  await page.addInitScript(() => {
+    const requestFrame = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = callback => requestFrame(now => {
+      if (document.querySelector('#scene-barrier:checked')) {
+        setTimeout(() => callback(performance.now()), 300);
+      } else {
+        callback(now);
+      }
+    });
+  });
+  await page.goto('/?scene=free&test=1');
+  await page.waitForFunction(() => window.__classicalLimit?.ready);
+  await page.getByRole('radio', { name: 'With barrier', exact: true }).check();
+  await expect.poll(async () => (await snapshot(page)).scene).toBe('barrier');
+  await expect.poll(async () => (await snapshot(page)).time, { timeout: 15000 }).toBeGreaterThan(.01);
+  const barrier = await snapshot(page);
+  expect(barrier.paused).toBe(false);
+  expect(barrier.failed).toBe(false);
+  expect(barrier.glError).toBe(0);
+  await page.getByRole('radio', { name: 'Without barrier', exact: true }).check();
+  await expect.poll(async () => (await snapshot(page)).scene).toBe('free');
+});
+
 test('both scene endpoints record the selected solver, red-blue legend and ensemble', async ({ page }) => {
   test.setTimeout(180000);
   await page.goto('/?scene=free&paused=1&test=1&classicality=1&count=64&angle=0');
   await page.waitForFunction(() => window.__classicalLimit?.ready);
   await page.locator('#show-reference').check();
   await setRange(page, 'dot-size', 12); await setRange(page, 'trail-seconds', 4);
-  await page.getByRole('tab', { name: 'Advanced' }).click();
+  await page.getByRole('button', { name: 'Record video', exact: true }).click();
   await page.locator('#export-size').selectOption('1920');
   await page.locator('#export-duration').fill('1');
   await page.locator('#export-start').selectOption('current');
+  await page.getByRole('button', { name: 'Close video settings' }).click();
   const reports = [];
   for (const scene of ['free', 'barrier']) {
     await page.getByRole('tab', { name: 'Core' }).click();
@@ -100,11 +125,12 @@ test('both scene endpoints record the selected solver, red-blue legend and ensem
     await page.evaluate(() => window.__classicalLimit.run(3));
     const before = await snapshot(page);
     const downloaded = page.waitForEvent('download');
-    await page.getByRole('tab', { name: 'Advanced' }).click();
+    await page.getByRole('button', { name: 'Record video', exact: true }).click();
     await page.locator('#record').click();
     await expect(page.locator('#scene-free')).toBeDisabled();
     await expect(page.locator('#scene-barrier')).toBeDisabled();
     const download = await downloaded;
+    await page.getByRole('button', { name: 'Close video settings' }).click();
     expect(download.suggestedFilename()).toContain(scene === 'free' ? 'without-barrier' : 'with-barrier');
     const file = `validation/unified-export-${scene}.mp4`; await download.saveAs(file);
     await expect(page.locator('#scene-free')).toBeEnabled();
