@@ -3,9 +3,9 @@ import { ObstacleExperiment } from './obstacle-gpu.js';
 
 export const SCENES = Object.freeze({
   free: Object.freeze({ label: 'Without barrier', filename: 'without-barrier', classicality: 0, angle: 45,
-    heading: 'REFLECTING BOX', note: 'The full classical range, with a compact packet and gentler spreading.' }),
+    heading: 'REFLECTING BOX', note: 'Try both ends of the slider. Where does the gold trajectory come closest to the cyan path?' }),
   barrier: Object.freeze({ label: 'With barrier', filename: 'with-barrier', classicality: 0.3, angle: 0,
-    heading: 'KNIFE-EDGE DIFFRACTION', note: 'Diffraction around a knife edge, with its own classical range.' }),
+    heading: 'KNIFE-EDGE DIFFRACTION', note: 'Watch the wave spread past the edge. Can a gold trajectory bend into the shadow of the barrier?' }),
 });
 
 export const sceneKey = obstacle => obstacle ? 'barrier' : 'free';

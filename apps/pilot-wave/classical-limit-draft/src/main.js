@@ -57,7 +57,7 @@ function syncParameters() {
   $('scene-name').textContent = SCENES[scene].heading;
   $('scene-note').textContent = SCENES[scene].note;
   $('regime-name').textContent = s < 0.23 ? 'WAVE DOMINATED' : s < 0.62 ? 'TOWARD THE CLASSICAL LIMIT' : s < 0.86 ? 'LOCALIZED PACKET' : 'NEARLY CLASSICAL';
-  $('regime-description').textContent = s < 0.23 ? 'Spreading and interference shape the path.' : s < 0.62 ? 'A shorter wavelength and gentler spreading.' : s < 0.86 ? 'A compact wave follows a straighter path.' : 'Almost straight flights, with wave-guided turns.';
+  $('regime-description').textContent = s < 0.23 ? 'Spreading and interference shape the path.' : s < 0.62 ? 'A shorter wavelength and gentler spreading.' : s < 0.86 ? 'A compact packet guides the particle along a straighter path.' : 'Almost straight flights, with wave-guided turns.';
 }
 
 function reset() {

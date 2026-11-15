@@ -17,7 +17,7 @@
         <button id="collapse" class="icon-button" aria-label="Collapse controls" aria-expanded="true" aria-controls="panel-body">−</button>
       </div>
       <div id="panel-body">
-        <p class="intro">Watch a quantum wave give way to an almost classical path.</p>
+        <p class="intro">Compare the gold wave-guided trajectory with the dashed cyan classical path.</p>
         <fieldset class="scene-control" aria-describedby="scene-note">
           <legend>Scene</legend>
           <div class="scene-options">
@@ -28,8 +28,9 @@
         </fieldset>
         <section class="regime-control">
           <div class="label-row"><label for="classicality">Classicality</label><output id="classicality-value" for="classicality">0%</output></div>
-          <input id="classicality" type="range" min="0" max="1" step="0.001" value="0">
+          <input id="classicality" aria-describedby="classicality-note" type="range" min="0" max="1" step="0.001" value="0">
           <div class="range-ends"><span><i class="wave-dot"></i>Wave dominated</span><span>Nearly classical<i class="particle-dot"></i></span></div>
+          <p id="classicality-note" class="hint">Compare settings within one scene. The same percentage uses different wavelengths in the two scenes. Moving the slider starts a new run.</p>
           <p id="regime-description" class="regime-description">Spreading and interference shape the path.</p>
         </section>
         <label class="switch-row reference-toggle">Classical comparison<input type="checkbox" id="show-reference" checked></label>
