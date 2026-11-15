@@ -2229,7 +2229,9 @@ let expertMode=false;
 function toggleExpert(){
   expertMode=!expertMode;
   document.getElementById('stGrid').classList.toggle('show-expert',expertMode);
-  document.getElementById('expertBtn').classList.toggle('active',expertMode);
+  const button=document.getElementById('expertBtn');
+  button.classList.toggle('active',expertMode);
+  button.setAttribute('aria-pressed',String(expertMode));
   if(expertMode){
     if(volumeDirty) buildVoxelGrid();
     updateVerification();

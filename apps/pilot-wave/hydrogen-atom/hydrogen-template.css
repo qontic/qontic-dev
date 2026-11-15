@@ -24,7 +24,14 @@ body {
 }
 [hidden] { display: none !important; }
 .shell { width: calc(100% - 24px); max-width: 1440px; margin: 0 auto; }
+.shell > .qontic-app-header { margin-inline: -12px; }
 .qontic-workspace { max-width: 100%; margin-top: 12px; }
+.hydrogen-sidebar { display: grid; gap: 12px; }
+.hydrogen-diagnostics { min-width: 0; padding: 12px; }
+.diagnostics-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; }
+.diagnostics-heading h2 { font-size: 13px; font-weight: 600; }
+.diagnostics-actions { gap: 4px; }
+.diagnostics-actions .qontic-app-toggle { padding-inline: 6px; font-size: 12px; }
 [data-control-pane] { display: grid; gap: 10px; }
 .quick-orbitals .qontic-app-toggle { padding-inline: 2px; font-size: 12px; }
 .orbital-modes { margin-bottom: 8px; }
