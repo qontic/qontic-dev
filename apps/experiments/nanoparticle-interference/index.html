@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nanoparticle Interference (Vienna 2026) — Q-Ontic Lab</title>
+<meta name="description" content="The Vienna MUSCLE experiment: sodium clusters of 170,000 atomic mass units sent through a Talbot–Lau interferometer made of light. Compare the quantum prediction with a classical moiré shadow, using the parameters published by Pedalino et al. (Nature, 2026).">
+<link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
+<link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
+<link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
+<link rel="stylesheet" href="css/np.css?v=0.1.0">
+</head>
+<body class="np-app">
+<main class="shell">
+<header><div><p class="eyebrow">Q-Ontic · Experiments</p><h1>Nanoparticle Interference (Vienna 2026)</h1></div></header>
+<nav class="tabs" aria-label="App sections">
+  <button class="active" type="button" data-view="sim">Simulation</button>
+  <button type="button" data-view="physics">Physics</button>
+  <button type="button" data-view="rationale">Rationale</button>
+</nav>
+
+<section class="lab qontic-workspace" data-panel="sim">
+  <aside class="controls qontic-sidebar qontic-panel qontic-control-panel">
+    <section class="always-controls" aria-label="Simulation controls">
+      <qontic-controls show-interpretation="false" running="false" auto-run="false" show-reset="true" speed="1" speed-min="0.25" speed-max="4" speed-step="0.25" active-tab="core"></qontic-controls>
+    </section>
+    <div class="control-tab-body qontic-control-body">
+      <div class="control-pane" data-control-pane="core">
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Settings</div>
+          <div class="qontic-app-toggle-group preset-group" role="group" aria-label="Presets">
+            <button class="qontic-app-toggle" type="button" data-preset="fig2a" title="The settings of Fig. 2a of the paper: 172 kDa clusters at 160 m/s, grating powers 62, 15.2 and 68 mW.">Vienna 2026</button>
+            <button class="qontic-app-toggle" type="button" data-preset="heavy" title="Clusters of 1,000,000 Da at the same speed. The de Broglie wavelength is about 2.5 fm.">1 MDa</button>
+            <button class="qontic-app-toggle" type="button" data-preset="slow" title="1,000,000 Da clusters slowed to 25 m/s, which the paper projects as the way to test quantum mechanics at higher mass.">1 MDa, slow</button>
+          </div>
+        </div>
+        <label class="control-row" title="Mass of the clusters selected by the mass spectrometer, in thousands of atomic mass units (kDa). 172 kDa is about 7,500 sodium atoms.">
+          <span>Cluster mass</span><input id="mass" type="range" min="0" max="1" step="0.001" aria-label="Cluster mass"><output id="massOut"></output>
+        </label>
+        <label class="control-row" title="Mean forward speed of the clusters. Slower clusters have a longer de Broglie wavelength.">
+          <span>Speed</span><input id="speed" type="range" min="20" max="250" step="1" aria-label="Mean cluster speed in m/s"><output id="speedOut"></output>
+        </label>
+        <label class="control-row" title="Laser power of the middle grating, G2. It sets the phase the light imprints on each cluster's wave.">
+          <span>G2 power</span><input id="p2" type="range" min="0" max="60" step="0.1" aria-label="Power of the second grating in mW"><output id="p2Out"></output>
+        </label>
+        <p class="core-hint" id="coreHint"></p>
+        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
+        <div class="toggle-row"><span>Ask for a prediction</span><button class="toggle" type="button" data-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction before each scan"></button></div>
+      </div>
+
+      <div class="control-pane hidden" data-control-pane="advanced">
+        <label class="control-row" title="Laser power of the first grating, G1, which removes clusters at the bright fringes of the light.">
+          <span>G1 power</span><input id="p1" type="range" min="0" max="150" step="1" aria-label="Power of the first grating in mW"><output id="p1Out"></output>
+        </label>
+        <label class="control-row" title="Laser power of the third grating, G3, the mask scanned across the fringes.">
+          <span>G3 power</span><input id="p3" type="range" min="0" max="150" step="1" aria-label="Power of the third grating in mW"><output id="p3Out"></output>
+        </label>
+        <label class="control-row" title="Spread of forward speeds in the beam (one standard deviation). The paper reports about 10 m/s.">
+          <span>Speed spread</span><input id="sigv" type="range" min="0" max="30" step="0.5" aria-label="Speed spread in m/s"><output id="sigvOut"></output>
+        </label>
+        <label class="control-row" title="Width of the mass window passed by the mass spectrometer, as a fraction of the mass. The paper's spectrometer has 0.32.">
+          <span>Mass window</span><input id="dm" type="range" min="0" max="0.5" step="0.01" aria-label="Relative width of the mass window"><output id="dmOut"></output>
+        </label>
+        <label class="control-row" title="Distance between neighbouring gratings. The experiment uses 0.983 m.">
+          <span>Grating spacing</span><input id="gl" type="range" min="0.4" max="1.6" step="0.001" aria-label="Grating spacing in m"><output id="glOut"></output>
+        </label>
+        <label class="control-row" title="Expected number of clusters counted at each position of G3. More counts give smaller error bars.">
+          <span>Counts per point</span><input id="counts" type="range" min="2" max="4.5" step="0.05" aria-label="Mean counts per scan position, logarithmic"><output id="countsOut"></output>
+        </label>
+        <div class="toggle-row" title="The paper multiplies both predictions by 0.78 for imperfections: misalignment, vibrations, gravity, rotation and collisions."><span>Contrast factor 0.78</span><button class="toggle" type="button" data-toggle="scale" aria-pressed="true" aria-label="Apply the paper's contrast factor of 0.78"></button></div>
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Simulated counts follow</div>
+          <div class="qontic-app-toggle-group truth-group" role="group" aria-label="Model used to generate the simulated counts">
+            <button class="qontic-app-toggle active" type="button" data-truth="quantum" aria-pressed="true" title="Counts drawn from the quantum prediction, as in the real experiment.">Quantum</button>
+            <button class="qontic-app-toggle" type="button" data-truth="classical" aria-pressed="false" title="A hypothetical world in which the clusters move on classical straight lines and are only bent by the light's dipole force.">Classical (what if)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-pane hidden" data-control-pane="display">
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Chart</div>
+          <div class="qontic-app-toggle-group chart-group" role="group" aria-label="Chart">
+            <button class="qontic-app-toggle active" type="button" data-chart="power" aria-pressed="true">Visibility vs G2 power</button>
+            <button class="qontic-app-toggle" type="button" data-chart="mass" aria-pressed="false">Visibility vs mass</button>
+          </div>
+        </div>
+        <div class="toggle-row"><span>Quantum prediction</span><button class="toggle" type="button" data-toggle="quantum" aria-pressed="true" aria-label="Show the quantum prediction"></button></div>
+        <div class="toggle-row"><span>Classical prediction</span><button class="toggle" type="button" data-toggle="classical" aria-pressed="true" aria-label="Show the classical prediction"></button></div>
+        <div class="toggle-row"><span>Counts and fit</span><button class="toggle" type="button" data-toggle="data" aria-pressed="true" aria-label="Show the simulated counts and the sine fit"></button></div>
+        <div class="toggle-row"><span>Clusters in the beamline</span><button class="toggle" type="button" data-toggle="beam" aria-pressed="true" aria-label="Animate clusters in the beamline"></button></div>
+      </div>
+    </div>
+    <section class="results-panel qontic-panel" data-results-panel aria-label="Results">
+      <div class="results-head"><strong>Results</strong><button type="button" data-results-collapse aria-label="Collapse results">−</button></div>
+      <div class="results-body">
+        <span>Atoms per cluster</span><output data-result="atoms">—</output>
+        <span>Cluster diameter</span><output data-result="diam">—</output>
+        <span>de Broglie wavelength</span><output data-result="ldb">—</output>
+        <span>Talbot length L<sub>T</sub></span><output data-result="lt">—</output>
+        <span>Wave spread behind one G1 opening</span><output data-result="spread">—</output>
+        <span>Photons absorbed at a G1 bright fringe</span><output data-result="n0">—</output>
+        <span>Phase at a G2 bright fringe</span><output data-result="phi0">—</output>
+        <span>Visibility, quantum</span><output data-result="vq">—</output>
+        <span>Visibility, classical</span><output data-result="vc">—</output>
+        <span>Visibility, fit to counts</span><output data-result="vfit">—</output>
+      </div>
+    </section>
+  </aside>
+
+  <div class="visualization qontic-stage qontic-panel">
+    <div class="canvas-host">
+      <canvas id="stage" aria-label="Talbot–Lau interferometer with the fringe scan and visibility chart"></canvas>
+    </div>
+    <div class="story" id="story" aria-live="polite">
+      <div id="setupStep" class="story-step">
+        <p class="story-title">The setup</p>
+        <ol class="setup-list" id="setupList"></ol>
+        <div class="story-buttons"><button type="button" class="qontic-app-toggle" id="setupNext">Next: the question</button></div>
+      </div>
+      <div id="questionStep" class="story-step hidden">
+        <p class="story-title" id="predictionText"></p>
+        <div class="reason-buttons">
+          <button type="button" class="qontic-app-toggle" data-predict="quantum">The quantum prediction (cyan): matter-wave interference.</button>
+          <button type="button" class="qontic-app-toggle" data-predict="classical">The classical prediction (orange): a moiré shadow of straight-line paths.</button>
+          <button type="button" class="qontic-app-toggle" data-predict="same">This scan cannot tell: the two predictions are too close.</button>
+        </div>
+        <p class="story-links"><button type="button" class="link-button" id="setupBack">Back to the setup</button> · <button type="button" class="link-button" data-predict="skip">Skip and just scan</button></p>
+      </div>
+      <div id="runStep" class="story-step hidden">
+        <p class="story-live" id="liveLine"></p>
+      </div>
+      <div id="verdictStep" class="story-step hidden">
+        <div id="verdict"></div>
+        <div class="story-buttons" id="nextSteps"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="physics">
+  <p class="spoiler-note">Run a scan first: this page gives the answers.</p>
+  <h2>The experiment</h2>
+  <p>In 2026 the group of Markus Arndt and Stefan Gerlich in Vienna, with Klaus Hornberger in Duisburg-Essen, reported interference of sodium clusters with masses above 170,000 Da, more than 7,000 atoms each.<sup><a href="#ref-1">1</a></sup> Sodium vapour condenses into clusters in a cold argon–helium gas at about 77 K. The clusters fly at about 160 m/s through three gratings and are then ionised by a 425 nm laser and counted in a quadrupole mass spectrometer, which picks one mass window. Their de Broglie wavelength λ<sub>dB</sub> = h/mv is 10–22 fm, about a million times smaller than the cluster.</p>
+
+  <h2>Why three gratings: Talbot–Lau interferometry</h2>
+  <p>A wave passing a grating of period d recreates an image of the grating at multiples of the Talbot length L<sub>T</sub> = d²/λ<sub>dB</sub>. This self-imaging was first seen with light by Talbot in 1836.<sup><a href="#ref-2">2</a></sup> A Talbot–Lau interferometer uses it with a beam that is not coherent to begin with:<sup><a href="#ref-3">3</a>,<a href="#ref-4">4</a></sup></p>
+  <ul>
+    <li><b>G1</b> is a row of narrow sources. Each opening is coherent across its width, and the wave from each spreads by about λ<sub>dB</sub>L/d by the time it reaches G2.</li>
+    <li><b>G2</b> diffracts these waves. Near-field interference behind it builds a density pattern of period d at G3, provided the spacing L is comparable to L<sub>T</sub>. The pattern from every G1 opening falls in the same place, so the patterns add up.</li>
+    <li><b>G3</b> is a mask with the same period. Sliding it sideways and counting the clusters that get through reveals the pattern as a sinusoidal count rate. Its visibility is V = (max − min)/(max + min).</li>
+  </ul>
+  <p>Clauser proposed this near-field scheme for massive particles in 1997, under the title “De Broglie-wave interference of small rocks and live viruses.”<sup><a href="#ref-5">5</a></sup> It is compact and does not need the nanoradian collimation that far-field diffraction would need at these wavelengths.</p>
+
+  <h2>Gratings made of light</h2>
+  <p>Each grating is a standing wave of 266 nm ultraviolet light, retro-reflected from a mirror, so the period is d = 133 nm. A 266 nm photon has enough energy to ionise a sodium cluster. A cluster that absorbs one is charged and is lost to the neutral beam. At G1 and G3 the light is strong enough that clusters crossing a bright fringe are almost certainly removed: these are <em>photodepletion</em> gratings, and only clusters that cross near a dark fringe get through. G2 is weaker. It removes fewer clusters and mainly imprints a periodic phase through the optical dipole force. Two numbers per grating describe this: n<sub>0</sub>, the mean number of photons absorbed by a cluster crossing a bright fringe, and φ<sub>0</sub>, the phase it picks up there:</p>
+  <p class="formula">n<sub>0</sub> = 8σ<sub>266</sub>Pλ<sub>L</sub> / (√(2π) hc w<sub>y</sub> v), &nbsp;&nbsp; φ<sub>0</sub> = √(8/π) α<sub>266</sub>P / (ħcε<sub>0</sub> w<sub>y</sub> v),</p>
+  <p>with P the laser power, w<sub>y</sub> the laser waist across the cluster beam, σ<sub>266</sub> = (0.537 m/kDa − 1.5) × 10<sup>−20</sup> m² the ionisation cross section, and α<sub>266</sub> = −4πε<sub>0</sub> × 4.5 Å³ per atom the polarisability at 266 nm (negative, so clusters are pushed out of the light).<sup><a href="#ref-1">1</a></sup></p>
+
+  <h2>The quantum prediction</h2>
+  <p>The count rate behind G3 at offset x is a Fourier series, S(x) = Σ<sub>ℓ</sub> S<sub>ℓ</sub> e<sup>2πiℓx/d</sup>, with</p>
+  <p class="formula">S<sub>ℓ</sub> = B<sup>(1)</sup><sub>−ℓ</sub>(0) · B<sup>(2)</sup><sub>2ℓ</sub>(ℓL/L<sub>T</sub>) · B<sup>(3)</sup><sub>ℓ</sub>(0).</p>
+  <p>The B<sub>n</sub>(ξ) are the Fourier coefficients of e<sup>−n<sub>0</sub>/2</sup> exp(−ζ<sub>ion</sub> cos θ + iζ<sub>coh</sub> sin θ), with ζ<sub>coh</sub> = φ<sub>0</sub> sin(πξ) and ζ<sub>ion</sub> = (n<sub>0</sub>/2) cos(πξ). They have a closed form in Bessel functions; the app computes them numerically, and the closed form serves as a check. The visibility is V = 2|S<sub>1</sub>|/S<sub>0</sub>. All of this is Eqs. 1–7 of the paper.<sup><a href="#ref-1">1</a></sup></p>
+
+  <h2>The classical prediction</h2>
+  <p>Suppose the clusters were classical particles: straight lines, bent only by the dipole force of G2, which acts like an array of tiny lenses. G1 and G3 still form a moiré pattern of shadows. The same formula covers this case with sin(πξ) → πξ and cos(πξ) → 1 (Eqs. 8–9). When L/L<sub>T</sub> is small, which means heavy or fast clusters, the two predictions merge: the de Broglie wavelength is so short that waves travel like rays. The quantum signature is the difference between the two predictions, and it shows only where L is a sizeable fraction of L<sub>T</sub>. At 160 m/s that means masses below about 200 kDa.</p>
+
+  <h2>What the paper found</h2>
+  <p>For 172 kDa clusters at the settings of Fig. 2a, the measured visibility was 0.10 ± 0.01 and 0.08 ± 0.01 in two runs. Their dependence on the G2 power follows the quantum prediction, not the classical one. Both predictions are multiplied by a common factor of 0.78 for imperfections: misalignment, vibrations, gravity, rotation and collisions. With the same settings the app gives V = 0.106 for the quantum model and 0.028 for the classical one. From the full data set the authors derive a macroscopicity μ = 15.5,<sup><a href="#ref-1">1</a>,<a href="#ref-6">6</a></sup> about ten times beyond the previous record. The measure states how strongly the data rule out a minimal modification of quantum mechanics that would make heavy objects behave classically.</p>
+
+  <h2>What the model assumes</h2>
+  <ul>
+    <li>All numbers are from the arXiv version of the paper (Methods).<sup><a href="#ref-1">1</a></sup> Grating spacing 0.983 m, period 133 nm, speed spread 10 m/s, mass window Δm/m = 0.32.</li>
+    <li><b>The waist w<sub>y</sub>.</b> The paper does not state its value. Methods gives the vertical heights of the three grating beams, 620, 575 and 575 µm; the horizontal size is focused to about 20 µm on the mirror. Using 20 µm gives n<sub>0</sub> ≈ 75 at G1, which would remove essentially every cluster. Using the vertical heights reproduces the measured visibility, so the app uses those.</li>
+    <li>The simulated scan uses 18 positions spread evenly over two grating periods (steps of 14.8 nm; the paper uses 15 nm), so the sine fit picks out the first harmonic without bias.</li>
+    <li>Speeds are averaged over a Gaussian of ±3σ, and masses over a flat window. The counts behind G3 are simulated by drawing Poisson numbers from the chosen prediction; they are not the measured data.</li>
+    <li>The 0.78 factor is applied equally to both predictions. In the simulated counts it is modelled as a Gaussian smearing of the fringes, which multiplies the ℓ-th harmonic by 0.78<sup>ℓ²</sup>; the first harmonic, and so the visibility, gets exactly 0.78. The model omits gravity, Earth's rotation, collisions and the thermal emission of the clusters, except through that factor.</li>
+    <li>The fringe profile includes harmonics up to ℓ = 6, so it is not a pure sine when G1 and G3 are strong. The reported visibility is from a sine fit, and the verdict compares it with the two predicted visibilities, as in the paper.</li>
+  </ul>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="rationale">
+  <h2>Why this experiment</h2>
+  <p>Matter-wave interference started with electrons, atoms and neutrons. In 1999 the Vienna group showed it for C<sub>60</sub>, a molecule of 720 Da.<sup><a href="#ref-7">7</a></sup> The group later described those experiments for students in the <em>American Journal of Physics</em>.<sup><a href="#ref-8">8</a></sup> The 2026 clusters are about 240 times heavier. Each cluster is metal, about 8 nm across, and in principle visible under a scattering microscope; in the interferometer its centre of mass is spread over a region more than ten times its own size. The app lets you find where the quantum and classical predictions differ, and why higher masses need slower beams.</p>
+
+  <h2>What the experiment decides</h2>
+  <p>The fringes agree with standard quantum mechanics. Any interpretation that reproduces its predictions accounts for them equally well. The experiment does not choose between such interpretations; it constrains theories that predict something different.</p>
+  <ul>
+    <li><b>Collapse theories</b> such as GRW and CSL modify the Schrödinger equation so that superpositions of heavy objects decay. They predict lower visibility for large enough masses. The macroscopicity measure grades experiments by how strongly they rule out such modifications.<sup><a href="#ref-6">6</a></sup> These are distinct theories, and experiments like this one test them.</li>
+    <li><b>Pilot-wave theory</b> gives each cluster a definite trajectory at all times, guided by the wave.<sup><a href="#ref-9">9</a></sup> The fringes record where those trajectories go after the wave has passed through the gratings. When the paper says the clusters “cannot be assigned a unique trajectory,” that is a statement about the standard formalism, which assigns no trajectories. It is not something the data show.</li>
+    <li><b>The standard formalism</b> predicts the count rate exactly; it does not say what a cluster does between source and detector.</li>
+  </ul>
+
+  <h2>A question for later</h2>
+  <p>G1 and G3 are measurements: a cluster that crosses a bright fringe is ionised and removed, and the ones that remain are the ones that were <em>not</em> detected there. How each view of quantum mechanics describes this filtering, and what the trajectories look like through all three gratings, is planned for a later version of the app.</p>
+
+  <h2>References</h2>
+  <ol class="references">
+    <li id="ref-1">S. Pedalino, B. E. Ramírez-Galindo, R. Ferstl, K. Hornberger, M. Arndt and S. Gerlich, “Probing quantum mechanics with nanoparticle matter-wave interferometry,” <em>Nature</em> <strong>649</strong>, 866–870 (2026), doi:10.1038/s41586-025-09917-9; arXiv:2507.21211 (2025).</li>
+    <li id="ref-2">H. F. Talbot, “Facts relating to optical science. No. IV,” <em>Philosophical Magazine</em> <strong>9</strong>, 401 (1836).</li>
+    <li id="ref-3">J. F. Clauser and S. Li, “Talbot–vonLau atom interferometry with cold slow potassium,” <em>Physical Review A</em> <strong>49</strong>, R2213–R2216 (1994).</li>
+    <li id="ref-4">K. Hornberger, S. Gerlich, P. Haslinger, S. Nimmrichter and M. Arndt, “Colloquium: Quantum interference of clusters and molecules,” <em>Reviews of Modern Physics</em> <strong>84</strong>, 157–173 (2012), doi:10.1103/RevModPhys.84.157.</li>
+    <li id="ref-5">J. F. Clauser, “De Broglie-wave interference of small rocks and live viruses,” in <em>Experimental Metaphysics</em>, edited by R. S. Cohen, M. Horne and J. Stachel (Kluwer Academic, Dordrecht, 1997), pp. 1–11.</li>
+    <li id="ref-6">S. Nimmrichter and K. Hornberger, “Macroscopicity of mechanical quantum superposition states,” <em>Physical Review Letters</em> <strong>110</strong>, 160403 (2013), doi:10.1103/PhysRevLett.110.160403.</li>
+    <li id="ref-7">M. Arndt, O. Nairz, J. Vos-Andreae, C. Keller, G. van der Zouw and A. Zeilinger, “Wave–particle duality of C<sub>60</sub> molecules,” <em>Nature</em> <strong>401</strong>, 680–682 (1999), doi:10.1038/44348.</li>
+    <li id="ref-8">O. Nairz, M. Arndt and A. Zeilinger, “Quantum interference experiments with large molecules,” <em>American Journal of Physics</em> <strong>71</strong>, 319–325 (2003), doi:10.1119/1.1531580.</li>
+    <li id="ref-9">D. Bohm, “A suggested interpretation of the quantum theory in terms of ‘hidden’ variables. I,” <em>Physical Review</em> <strong>85</strong>, 166–179 (1952).</li>
+  </ol>
+</section>
+</main>
+<script type="module" src="js/app.js?v=0.1.0"></script>
+</body>
+</html>

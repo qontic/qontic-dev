@@ -1,0 +1,23 @@
+{
+  "id": "nanoparticle-interference-vienna-2026",
+  "title": "Nanoparticle Interference (Vienna 2026)",
+  "type": "app",
+  "category": "experiments",
+  "module": "nanoparticle-interference",
+  "topics": [
+    "matter-wave-interference",
+    "talbot-lau",
+    "quantum-classical-boundary",
+    "macroscopicity"
+  ],
+  "level": "intermediate",
+  "description": "Sodium clusters of 170,000 Da in the Vienna Talbot–Lau interferometer made of light (Pedalino et al., Nature 2026). Scan the third grating, count the clusters, and test the quantum prediction against a classical moiré shadow, with the published parameters.",
+  "tags": [
+    "Experiments",
+    "Matter waves",
+    "Talbot–Lau",
+    "Prediction mode"
+  ],
+  "entry": "index.html",
+  "status": "draft"
+}

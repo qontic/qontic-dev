@@ -37,6 +37,14 @@
       ]
     },
     {
+      "id": "experiments",
+      "title": "Experiments",
+      "description": "Recent and landmark experiments, simulated with the parameters the experimenters published. Each app shows what was measured and what it does and does not decide.",
+      "items": [
+        { "type": "module", "id": "nanoparticle-interference" }
+      ]
+    },
+    {
       "id": "advanced-modules",
       "title": "Advanced Modules",
       "description": "Relativistic quantum mechanics and other advanced topics.",

@@ -1,0 +1,8 @@
+{
+  "id": "nanoparticle-interference",
+  "title": "Nanoparticle Interference",
+  "summary": "Metal clusters of 170,000 Da show matter-wave interference (Vienna, 2026). Where the quantum prediction parts from a classical shadow, and why heavier objects need slower beams.",
+  "topics": ["matter-wave-interference", "talbot-lau", "quantum-classical-boundary", "macroscopicity"],
+  "order": 80,
+  "relatedModules": ["double-slit"]
+}
