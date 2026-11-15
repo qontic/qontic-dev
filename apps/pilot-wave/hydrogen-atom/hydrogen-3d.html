@@ -6,14 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hydrogen — 3D</title>
   <link rel="stylesheet" href="../../../shared/back-home.css">
-  <link rel="stylesheet" href="hydrogen-3d.css">
+  <link rel="stylesheet" href="hydrogen-3d.css?v=2">
   <script defer src="../../../shared/back-home.js"></script>
 </head>
 
 <body>
   <header>
     <h1>Hydrogen Atom</h1>
-    <span class="sub">volume rendering · slice planes · particle trails · complex ψ</span>
+    <span class="sub">Pilot-wave orbitals and trajectories</span>
     <button class="vtab" id="themeBtn" onclick="toggleTheme()" title="Switch between dark and light theme"
       style="margin-left:auto;padding:5px 12px;flex-shrink:0">☀
       Light</button>
@@ -21,6 +21,25 @@
   <div id="gpuStatusBanner" class="gpu-status-banner" hidden></div>
   <div class="main">
     <div class="sidebar" id="sidebar">
+      <div style="display:flex;flex-direction:row;gap:6px;">
+        <button class="btn active" id="runBtn" onclick="toggleRun()" title="Pause or resume particle simulation"
+          style="flex:2">⏸ Pause</button>
+        <button class="btn" id="resetBtn" title="Resample particles from |ψ|² and restart simulation time"
+          style="flex:1">↺ Reset</button>
+        <button class="btn danger" id="clearBtn" title="Erase all particle trail history" style="flex:1">✕
+          Clear</button>
+      </div>
+      <section class="quick-start" aria-label="Suggested states">
+        <div class="slabel">Explore a state</div>
+        <div class="quick-orbitals">
+          <button type="button" class="vtab" data-orbital-index="0">1s</button>
+          <button type="button" class="vtab" data-orbital-index="2">2p₀</button>
+          <button type="button" class="vtab active" data-orbital-index="3" aria-pressed="true">2p₊₁</button>
+          <button type="button" class="vtab" id="beatPreset">1s + 2p₀</button>
+        </div>
+      </section>
+      <details class="options-group">
+        <summary>More orbitals and superpositions</summary>
       <div>
         <div class="slabel">Orbital |n, l, m⟩</div>
         <div class="nrow" id="nrow"></div>
@@ -36,18 +55,21 @@
           <option value="pd">2pz + 3dz² [slower z beating]</option>
           <option value="circ">2p₊₁ + 3d₊₁ [circulation + radial beat]</option>
           <optgroup label="─── Pauli–Bohm spin ───">
-            <option value="spin_ss">1s↑ + 2s↓ [spin-channel breathing]</option>
-            <option value="spin_sp">1s↑ + 2p₀↓ [z-beat + spin switch]</option>
-            <option value="spin_circ">2p₊₁↑ + 3d₊₁↓ [circulation + spin]</option>
+            <option value="spin_ss">1s↑ + 2s↓ [stationary density]</option>
+            <option value="spin_sp">1s↑ + 2p₀↓ [stationary density]</option>
+            <option value="spin_circ">2p₊₁↑ + 3d₊₁↓ [spin current]</option>
           </optgroup>
         </select>
       </div>
+      </details>
       <!-- Pauli–Bohm Spin Section -->
+      <details class="options-group">
+        <summary>Spin</summary>
       <div id="spinSection">
         <div class="slabel spin-slabel">
           <span>Spin (Pauli–Bohm)</span>
           <button class="vtab" id="spinToggleBtn" onclick="toggleSpin()"
-            title="Toggle Pauli–Bohm spin extension. Stationary orbitals become non-stationary via spin-curl term ∇×S / (2ρ).">⬡
+            title="Include the Pauli spin current. A stationary density can have moving trajectories.">⬡
             Spin</button>
         </div>
         <div id="spinSubSection" style="display:none">
@@ -77,16 +99,17 @@
           </div>
         </div>
       </div>
+      </details>
       <div>
         <div class="vtabs">
           <button class="vtab active" id="vtVol" onclick="toggleViz('volume')"
             title="Ray-marched 3D volume rendering of |ψ|² (mutually exclusive with Lobes)">Volume</button>
           <button class="vtab" id="vtSlice" onclick="toggleViz('slice')"
-            title="2D cross-section slices — can combine with Volume or Lobes">Slices</button>
+            title="2D cross-section slices of the probability density">Slices</button>
           <button class="vtab" id="vtLobes" onclick="toggleViz('lobes')"
             title="GPU isosurface lobes coloured by ψ sign — amber = positive, blue = negative (mutually exclusive with Volume)">Lobes</button>
           <button class="vtab" id="vtCloud" onclick="toggleViz('cloud')"
-            title="Particle cloud: thousands of Bohmian particles sampled from |ψ|², advected by the probability current field">Cloud</button>
+            title="Show samples of the probability density. Use Volume, Slices or Lobes to follow individual trajectories.">Cloud</button>
           <button class="vtab" id="vtPhase" onclick="toggleViz('phase')"
             title="Phase overlay: show arg(ψ) as hue · |ψ|² as opacity. Combines with Volume, Slices or Lobes. Most useful for m≠0 and superpositions. Incompatible with Cloud.">&#936;
             Phase</button>
@@ -122,21 +145,24 @@
           <input type=range id="sNP" min=1 max=10 value=2 step=1>
           <span class="crow-val" id="vNP">2</span>
         </div>
-        <div class="crow"><label title="Simulation speed multiplier (1× = 20× atomic units)">Speed</label>
+        <div class="crow"><label title="Playback speed. At 1×, the app advances up to 20 atomic time units in one real second.">Speed</label>
           <input type=range id="sSP" min=0.1 max=10 value=1.0 step=0.1>
           <span class="crow-val" id="vSP">1.0×</span>
         </div>
+        <details class="options-group">
+          <summary>Trajectory settings</summary>
         <div class="crow"><label title="Maximum number of trail points stored per particle">Trail</label>
           <input type=range id="sTR" min=5 max=1250 value=800 step=5>
           <span class="crow-val" id="vTR">800</span>
         </div>
-        <div class="crow"><label title="RK4 integration time step (smaller = more accurate, slower)">dt</label>
+        <div class="crow"><label title="Maximum RK4 step in atomic units. Smaller steps improve numerical accuracy.">Time step</label>
           <input type=range id="sDT" min=0.005 max=0.15 value=0.04 step=0.005>
           <span class="crow-val" id="vDT">0.040</span>
         </div>
+        </details>
       </div>
-      <div>
-        <div class="slabel">Display</div>
+      <details class="options-group">
+        <summary>Display settings</summary>
         <div class="crow"><label
             title="Per-ray-step absorption (low = rays penetrate deeper and reveal inner shells; high = opaque outer cloud)">Opacity</label>
           <input type=range id="sDO" min=0 max=100 value=60>
@@ -165,16 +191,9 @@
           <button class="vtab" id="projBtn" onclick="toggleProjections()"
             title="Toggle XZ / XY / YZ integrated density projection panels" style="flex:1;font-size:10px">Proj</button>
         </div>
-      </div>
-      <div style="display:flex;flex-direction:row;gap:6px;">
-        <button class="btn active" id="runBtn" onclick="toggleRun()" title="Pause or resume particle simulation"
-          style="flex:2">⏸ Pause</button>
-        <button class="btn" id="resetBtn" title="Resample particles from |ψ|² and restart simulation time"
-          style="flex:1">↺ Reset</button>
-        <button class="btn danger" id="clearBtn" title="Erase all particle trail history" style="flex:1">✕
-          Clear</button>
-      </div>
-      <div>
+      </details>
+      <details class="options-group">
+        <summary>State and diagnostics</summary>
         <div class="slabel" style="display:flex;justify-content:space-between;align-items:center">State
           <div style="display:flex;gap:4px">
             <button class="vtab" id="verifyBtn" onclick="runAnalyticalChecks()"
@@ -193,7 +212,7 @@
           <div id="expertRows" style="display:contents">
             <div class="stat expert-stat"><span class="stat-label">⟨r⟩ computed</span><span class="stat-val"
                 id="stRc">—</span></div>
-            <div class="stat expert-stat"><span class="stat-label">⟨r⟩ exact</span><span class="stat-val"
+            <div class="stat expert-stat"><span class="stat-label">⟨r⟩ reference</span><span class="stat-val"
                 id="stRe">—</span></div>
             <div class="stat expert-stat"><span class="stat-label">Match</span><span class="stat-val"
                 id="stMatch">—</span></div>
@@ -207,20 +226,20 @@
                 title="Σ(|↑|²+|↓|²) over spinComps — must equal 1.0000 (spinor normalisation).">Spinor norm</span><span
                 class="stat-val" id="stSpinNorm">—</span></div>
             <div class="stat expert-stat spin-diag" id="rowSpinCurl" style="display:none"><span class="stat-label"
-                title="Speed |v| at orbital peak with Pauli–Bohm guidance. Non-zero for m=0 orbitals with spin = confirmation the spin-curl term ∇×S/2ρ is active. Zero for 1s (any spin) and for pure-spin eigenstates.">|v|
-                at peak (a.u.)</span><span class="stat-val" id="stSpinCurl">—</span></div>
+                title="Speed at a sample point on the x-axis with Pauli–Bohm guidance. It can vanish if the sampling direction is parallel to the spin.">|v|
+                at sample (a.u.)</span><span class="stat-val" id="stSpinCurl">—</span></div>
           </div>
         </div>
-      </div>
+      </details>
     </div>
     <div class="sidebar-resize" id="sidebarResize"></div>
 
     <div class="canvas-wrap">
-      <canvas id="c"></canvas>
+      <canvas id="c" aria-label="Three-dimensional hydrogen orbital and pilot-wave trajectories" tabindex="0"></canvas>
 
-      <div class="hint">🖱 Drag to rotate &nbsp;·&nbsp; Scroll to zoom</div>
+      <div class="hint">Drag or use arrow keys to rotate · Scroll to zoom</div>
       <div class="legend" id="legend"></div>
-      <button id="theoryBtn" onclick="toggleTheory()" title="Show theory &amp; equations">?</button>
+      <button id="theoryBtn" onclick="toggleTheory()" aria-label="Show theory and equations" title="Show theory &amp; equations">?</button>
 
       <!-- ═══ THEORY PANEL ═══════════════════════════════════════════ -->
       <div id="theoryPanel" style="display:none">
@@ -277,7 +296,7 @@
               For m &ne; 0: ψ ∝ e<sup>imφ</sup>, giving azimuthal circulation at speed <b>v</b><sub>φ</sub> = m / (r
               sinθ).<br>
               The key theorem (<em>equivariance</em>) guarantees that if particles start distributed as |ψ|&sup2;, they
-              remain so forever &mdash; the distribution is preserved by the flow.</p>
+              remain so forever &mdash; the distribution is preserved by the exact flow. The app’s numerical trajectories use finite steps and a velocity cap near nodes.</p>
           </section>
 
           <section class="tp-sec">
@@ -328,7 +347,7 @@
             </p>
             <div class="tp-eq">|j=3/2, m<sub>j</sub>=+1/2&rang; = &radic;(2/3)|m=0&rang;|&uarr;&rang; +
               &radic;(1/3)|m=+1&rang;|&darr;&rang;</div>
-            <p>These are the physically correct stationary states of hydrogen including fine structure. The j-state
+            <p>These states illustrate angular momentum coupling in the nonrelativistic Coulomb model. The app uses the same energy for states with the same n and does not calculate fine-structure splittings. The j-state
               dropdown auto-builds all valid states for whatever (n,l) orbital is currently selected.</p>
             <p><em>Note:</em> for l=0 (s orbitals), <b>L</b> = 0 so spin&ndash;orbit coupling vanishes. The j-states
               reduce to pure |&uarr;&rang; (m<sub>j</sub>=+&frac12;) or |&darr;&rang; (m<sub>j</sub>=&minus;&frac12;),
@@ -343,9 +362,8 @@
                 spatial guidance.</li>
               <li>No radiation reaction: the electron does not emit photons along its Bohmian trajectory.</li>
               <li>No electron&ndash;electron interaction: hydrogen only (one electron).</li>
-              <li>Product states are not physical eigenstates when l &ne; 0 &mdash; they are initial conditions that
-                would evolve under H<sub>SO</sub>.</li>
-              <li>The spin-curl velocity is computed by finite differences (h = 0.07 a₀). Numerical errors are largest
+              <li>The app omits spin–orbit evolution. In a Hamiltonian with spin–orbit coupling, a general product state can evolve into a coupled state.</li>
+              <li>The general spin-curl velocity uses finite differences (h = 0.07 a₀). Numerical errors are largest
                 near nodal surfaces where &rho; &rarr; 0.</li>
             </ul>
           </section>
@@ -384,7 +402,7 @@
     </div>
   </div>
 
-  <script src="hydrogen-3d.js"></script>
+  <script src="hydrogen-3d.js?v=2"></script>
 
 </body>
 

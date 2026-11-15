@@ -44,8 +44,8 @@ function Rnl(n,l,r){
 // ψ(x,y,z,t) → [Re,Im]
 function psiXYZ(comps,x,y,z,t){
   const r=Math.sqrt(x*x+y*y+z*z);
-  if(r<1e-12)return[0,0];
-  const theta=Math.acos(Math.max(-1,Math.min(1,z/r)));
+
+  const theta=Math.acos(Math.max(-1,Math.min(1,r > 0 ? z/r : 1)));
   const phi=Math.atan2(y,x);
   let re=0,im=0;
   for(const c of comps){
@@ -96,8 +96,8 @@ function bohmV(comps,x,y,z,t){
 // Each spinor-component c: {n,l,m, upRe,upIm,dnRe,dnIm}
 function psiSpinor(sc,x,y,z,t){
   const r=Math.sqrt(x*x+y*y+z*z);
-  if(r<1e-12)return[0,0,0,0];
-  const theta=Math.acos(Math.max(-1,Math.min(1,z/r)));
+
+  const theta=Math.acos(Math.max(-1,Math.min(1,r > 0 ? z/r : 1)));
   const phi=Math.atan2(y,x);
   let ur=0,ui=0,dr=0,di=0;
   for(const c of sc){
@@ -413,7 +413,7 @@ const PT_PRESETS=[
 let ptColor=PT_PRESETS[0];
 
 let densOp=0.60,isoOp=0.00,ptSize=2.5,lobeThresh=0.12,showAxes=false;
-let lightTheme=false,showInset=true,showProjections=true;
+let lightTheme=false,showInset=false,showProjections=false;
 let projData={xz:null,xy:null,yz:null},projDirty=true;
 let projVolCache=null; // {xz,xy,yz} offscreen canvases — volumetric render matching main canvas
 let projPanelHitBoxes=[]; // [{plane,x,y,w,h}] — rebuilt each frame by drawProjectionPanels
@@ -425,12 +425,6 @@ let showVol=true,showSlice=false,showLobes=false,showPhase=false,showCloud=false
 let cloudSpherePx=10;      // sphere sprite diameter in screen pixels (user slider)
                            // cloudN is auto-computed — see autoCloudN()
                            // (particles[] serves both roles — cloud or trail)
-const CLOUD_GN=24;         // velocity grid resolution (24³ = 13824 nodes)
-let cloudVelGrid=null;     // Float32Array [CLOUD_GN³ × 3] (vx,vy,vz)
-let cloudFieldAge=Infinity;// frames since last field build
-const CLOUD_FIELD_TTL=45;  // rebuild every N frames when running
-const CLOUD_RESAMPLE_RATE=0.02; // fraction of cloud particles reseeded per frame (~2%)
-let cloudMaxRho=-1;        // cached peak |ψ|²·r² for rejection sampling
 let cloudSprite=null;      // pre-rendered sphere sprite (rebuilt when colour changes)
 
 // Auto-compute cloud particle count: pack non-overlapping spheres of diameter
@@ -446,7 +440,7 @@ function autoCloudN(){
 
 let slicePlane='xz';
 let t=0,comps=[],particles=[];
-let camTheta=0.55,camPhi=0.5,camDist=1.0;
+let camTheta=0.55,camPhi=0.5,camDist=1.25;
 let preferSliceFallback=false;
 
 // ════════════════════════════════════════════════════════════════
@@ -474,144 +468,49 @@ function buildComps(){
     comps=sp.comps.map(c=>({...c}));  // scalar equiv for sampling/visualisation
     spinComps=sp.spinComps.map(c=>({...c}));
     spinEnabled=true; spinMode='product';
-    _syncSpinUI();
+    showPhase=false;
   } else if(superKey!=='none'&&SUPERS[superKey]){
     comps=SUPERS[superKey].map(c=>({...c}));
-    if(spinEnabled) buildSpinComps();
+    if(spinEnabled){spinMode='product';buildSpinComps();}
   } else {
     const o=ORBITALS[orbIdx];comps=[{n:o.n,l:o.l,m:o.m,cRe:1,cIm:0}];
-    cloudVelGrid=null; cloudFieldAge=Infinity; cloudMaxRho=-1;
     if(spinEnabled){
-      if(spinMode==='jstate') _refreshJStateDropdown();
+      if(spinMode==='jstate'&&superKey==='none') _refreshJStateDropdown();
       else buildSpinComps();
     }
   }
+  invalidateDensity();
+  _syncSpinUI();
+}
+
+// A single source of Born density for every renderer and sampler.
+function densityAt(x,y,z,time){
+  return spinEnabled&&spinComps.length
+    ? rhoSpinAt(spinComps,x,y,z,time)
+    : rhoAt(comps,x,y,z,time);
+}
+
+function densityEvolves(){
+  // The spin presets have orthogonal spin channels; their individual densities are stationary.
+  return !SPIN_SUPERS[superKey] && comps.some(c=>c.n!==comps[0].n);
+}
+
+function invalidateDensity(){
+  sliceDirty=true; volumeDirty=true; lobeTexDirty=true; volNeedsRedraw=true;
   projDirty=true; projVolCache=null;
-  if(showCloud) initCloudParts();
-  // Invalidate voxel grid so spin channels are rebuilt on next frame
-  volumeDirty=true; lobeTexDirty=true;
-}
-
-// ════════════════════════════════════════════════════════════════
-//  CLOUD MODE — thousands of particles advected by grid velocity
-// ════════════════════════════════════════════════════════════════
-
-// Build 24³ Bohmian velocity field at current time t.
-// Strategy: evaluate ψ once per node, then finite-difference within the grid.
-// ~13 824 psiXYZ calls ≈ 10–30 ms depending on orbital complexity.
-function buildCloudField(){
-  // When spin is active, delegate to spinor version
-  if(spinEnabled&&spinComps.length){buildCloudFieldSpin();return;}
-  const N=CLOUD_GN,rm=rMax(),step=2*rm/(N-1);
-  const pRe=new Float32Array(N*N*N),pIm=new Float32Array(N*N*N);
-  for(let i=0;i<N;i++){const x=-rm+i*step;
-    for(let j=0;j<N;j++){const y=-rm+j*step;
-      for(let k=0;k<N;k++){const z=-rm+k*step;
-        const[re,im]=psiXYZ(comps,x,y,z,t);
-        const idx=i*N*N+j*N+k;pRe[idx]=re;pIm[idx]=im;
-      }}}
-  if(!cloudVelGrid)cloudVelGrid=new Float32Array(N*N*N*3);
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(let k=0;k<N;k++){
-    const idx=i*N*N+j*N+k;
-    const re=pRe[idx],im=pIm[idx],den=re*re+im*im;
-    if(den<1e-20){cloudVelGrid[idx*3]=cloudVelGrid[idx*3+1]=cloudVelGrid[idx*3+2]=0;continue;}
-    const ig=(dre,dim)=>(re*dim-im*dre)/den;
-    const i0=Math.max(0,i-1),i1=Math.min(N-1,i+1),dx=(i1-i0)*step;
-    const j0=Math.max(0,j-1),j1=Math.min(N-1,j+1),dy=(j1-j0)*step;
-    const k0=Math.max(0,k-1),k1=Math.min(N-1,k+1),dz=(k1-k0)*step;
-    let vx=ig((pRe[i1*N*N+j*N+k]-pRe[i0*N*N+j*N+k])/dx,(pIm[i1*N*N+j*N+k]-pIm[i0*N*N+j*N+k])/dx);
-    let vy=ig((pRe[i*N*N+j1*N+k]-pRe[i*N*N+j0*N+k])/dy,(pIm[i*N*N+j1*N+k]-pIm[i*N*N+j0*N+k])/dy);
-    let vz=ig((pRe[i*N*N+j*N+k1]-pRe[i*N*N+j*N+k0])/dz,(pIm[i*N*N+j*N+k1]-pIm[i*N*N+j*N+k0])/dz);
-    const spd=Math.sqrt(vx*vx+vy*vy+vz*vz);
-    if(spd>25){const s=25/spd;vx*=s;vy*=s;vz*=s;}
-    cloudVelGrid[idx*3]=vx;cloudVelGrid[idx*3+1]=vy;cloudVelGrid[idx*3+2]=vz;
-  }
-  cloudFieldAge=0;
-}
-
-// Spinor version of buildCloudField — uses all 4 spinor channels and computes
-// the Pauli–Bohm guidance field (convective + spin-curl terms) on the 24³ grid.
-function buildCloudFieldSpin(){
-  const N=CLOUD_GN,rm=rMax(),step=2*rm/(N-1);
-  // Allocate four spinor-component arrays for the grid
-  const pUR=new Float32Array(N*N*N),pUI=new Float32Array(N*N*N);
-  const pDR=new Float32Array(N*N*N),pDI=new Float32Array(N*N*N);
-  for(let i=0;i<N;i++){const x=-rm+i*step;
-    for(let j=0;j<N;j++){const y=-rm+j*step;
-      for(let k=0;k<N;k++){const z=-rm+k*step;
-        const[ur,ui,dr,di]=psiSpinor(spinComps,x,y,z,t);
-        const idx=i*N*N+j*N+k;pUR[idx]=ur;pUI[idx]=ui;pDR[idx]=dr;pDI[idx]=di;
-      }}}
-  if(!cloudVelGrid)cloudVelGrid=new Float32Array(N*N*N*3);
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(let k=0;k<N;k++){
-    const idx=i*N*N+j*N+k;
-    const ur=pUR[idx],ui=pUI[idx],dr=pDR[idx],di=pDI[idx];
-    const rho=ur*ur+ui*ui+dr*dr+di*di;
-    if(rho<1e-20){cloudVelGrid[idx*3]=cloudVelGrid[idx*3+1]=cloudVelGrid[idx*3+2]=0;continue;}
-    const i0=Math.max(0,i-1),i1=Math.min(N-1,i+1),dx=(i1-i0)*step;
-    const j0=Math.max(0,j-1),j1=Math.min(N-1,j+1),dy=(j1-j0)*step;
-    const k0=Math.max(0,k-1),k1=Math.min(N-1,k+1),dz=(k1-k0)*step;
-    // Spinor gradients (central differences on pre-computed grid)
-    const dxUR=(pUR[i1*N*N+j*N+k]-pUR[i0*N*N+j*N+k])/dx;
-    const dxUI=(pUI[i1*N*N+j*N+k]-pUI[i0*N*N+j*N+k])/dx;
-    const dxDR=(pDR[i1*N*N+j*N+k]-pDR[i0*N*N+j*N+k])/dx;
-    const dxDI=(pDI[i1*N*N+j*N+k]-pDI[i0*N*N+j*N+k])/dx;
-    const dyUR=(pUR[i*N*N+j1*N+k]-pUR[i*N*N+j0*N+k])/dy;
-    const dyUI=(pUI[i*N*N+j1*N+k]-pUI[i*N*N+j0*N+k])/dy;
-    const dyDR=(pDR[i*N*N+j1*N+k]-pDR[i*N*N+j0*N+k])/dy;
-    const dyDI=(pDI[i*N*N+j1*N+k]-pDI[i*N*N+j0*N+k])/dy;
-    const dzUR=(pUR[i*N*N+j*N+k1]-pUR[i*N*N+j*N+k0])/dz;
-    const dzUI=(pUI[i*N*N+j*N+k1]-pUI[i*N*N+j*N+k0])/dz;
-    const dzDR=(pDR[i*N*N+j*N+k1]-pDR[i*N*N+j*N+k0])/dz;
-    const dzDI=(pDI[i*N*N+j*N+k1]-pDI[i*N*N+j*N+k0])/dz;
-    // Convective term Im(Ψ†∂ᵢΨ)/ρ
-    let vx=(ur*dxUI-ui*dxUR+dr*dxDI-di*dxDR)/rho;
-    let vy=(ur*dyUI-ui*dyUR+dr*dyDI-di*dyDR)/rho;
-    let vz=(ur*dzUI-ui*dzUR+dr*dzDI-di*dzDR)/rho;
-    // Spin-density S at stencil points
-    const si=(ic,jc,kc)=>{const f=ic*N*N+jc*N+kc;const a=pUR[f],b=pUI[f],c2=pDR[f],d=pDI[f];
-      return[2*(a*c2+b*d),2*(a*d-b*c2),a*a+b*b-c2*c2-d*d];};
-    const Sxp=si(i1,j,k),Sxn=si(i0,j,k);
-    const Syp=si(i,j1,k),Syn=si(i,j0,k);
-    const Szp=si(i,j,k1),Szn=si(i,j,k0);
-    // Spin-curl term (∇×S)/(2ρ)  where (∇×S)_x = ∂_y S_z − ∂_z S_y, etc.
-    vx=((ur*dxUI-ui*dxUR+dr*dxDI-di*dxDR)/rho) + (Syp[2]-Syn[2])/(dy*2*rho) - (Szp[1]-Szn[1])/(dz*2*rho);
-    vy=((ur*dyUI-ui*dyUR+dr*dyDI-di*dyDR)/rho) + (Szp[0]-Szn[0])/(dz*2*rho) - (Sxp[2]-Sxn[2])/(dx*2*rho);
-    vz=((ur*dzUI-ui*dzUR+dr*dzDI-di*dzDR)/rho) + (Sxp[1]-Sxn[1])/(dx*2*rho) - (Syp[0]-Syn[0])/(dy*2*rho);
-    const spd=Math.sqrt(vx*vx+vy*vy+vz*vz);
-    if(spd>25){const s=25/spd;vx*=s;vy*=s;vz*=s;}
-    cloudVelGrid[idx*3]=vx;cloudVelGrid[idx*3+1]=vy;cloudVelGrid[idx*3+2]=vz;
-  }
-  cloudFieldAge=0;
-}
-function cloudVelAt(x,y,z){
-  if(!cloudVelGrid)return[0,0,0];
-  const N=CLOUD_GN,rm=rMax(),step=2*rm/(N-1);
-  const gx=(x+rm)/step,gy=(y+rm)/step,gz=(z+rm)/step;
-  const i0=Math.max(0,Math.min(N-2,gx|0));
-  const j0=Math.max(0,Math.min(N-2,gy|0));
-  const k0=Math.max(0,Math.min(N-2,gz|0));
-  const fx=gx-i0,fy=gy-j0,fz=gz-k0;
-  const i1=i0+1,j1=j0+1,k1=k0+1;
-  const g=(ci,cj,ck,o)=>cloudVelGrid[(ci*N*N+cj*N+ck)*3+o];
-  const L=(a,b,f)=>a+(b-a)*f;
-  const bx0=(o)=>L(L(g(i0,j0,k0,o),g(i0,j0,k1,o),fz),L(g(i0,j1,k0,o),g(i0,j1,k1,o),fz),fy);
-  const bx1=(o)=>L(L(g(i1,j0,k0,o),g(i1,j0,k1,o),fz),L(g(i1,j1,k0,o),g(i1,j1,k1,o),fz),fy);
-  return[L(bx0(0),bx1(0),fx),L(bx0(1),bx1(1),fx),L(bx0(2),bx1(2),fx)];
 }
 
 function initCloudParts(){
-  cloudVelGrid=null;cloudFieldAge=Infinity;cloudMaxRho=-1;
   buildCloudSprite();
   // Auto-derive count from sphere size and orbital extent
   const n=autoCloudN();
-  particles=sampleParticlesStratified(n);
+  particles=sampleParticlesStratified(n,t);
   // For pure m≠0 eigenstates, |ψ|² is azimuthally symmetric (no φ dependence).
   // Bohmian motion only rotates φ — it never changes ρ=√(x²+y²) or z.
   // Randomising φ at init gives a uniform azimuthal distribution; rotating a
   // uniform distribution by any (ρ-dependent) angle keeps it uniform forever.
   // This prevents Cartesian-grid sampling asymmetry from winding into a spiral.
-  if(comps.length===1&&comps[0].m!==0){
+  if(!spinEnabled&&comps.length===1&&comps[0].m!==0){
     for(const p of particles){
       const rho=Math.sqrt(p.x*p.x+p.y*p.y);
       const phi=Math.random()*2*Math.PI;
@@ -628,7 +527,7 @@ function initCloudParts(){
   }
   // Update readonly count label in sidebar
   const lbl=document.getElementById('vAutoN');
-  if(lbl)lbl.textContent=n;
+  if(lbl)lbl.textContent=particles.length;
 }
 
 // Pre-render a shaded sphere sprite once; reused for every particle draw.
@@ -652,125 +551,22 @@ function buildCloudSprite(){
   cloudSprite=oc;
 }
 
-// Analytical Bohmian velocity for a single eigenstate |n,l,m⟩.
-// For ψ = R(r)·Θ(θ)·e^{imφ}, Im(∇ψ/ψ) = m/(r sinθ) in the φ̂ direction.
-// In Cartesian: v_x = -m·y/ρ², v_y = m·x/ρ², v_z = 0  (ρ²=x²+y²).
-// This is exact — no grid error, no radial drift, particles orbit forever.
-function analyticalVel(x,y,z){
-  const m=comps[0].m;
-  if(m===0)return[0,0,0]; // real eigenstate: v=0 (static Bohmian cloud)
-  const rho2=x*x+y*y;
-  if(rho2<1e-12)return[0,0,0];
-  const spd=Math.abs(m)/Math.sqrt(rho2);
-  const cap=25,s=spd>cap?cap/spd:1;
-  return[-m*y/rho2*s, m*x/rho2*s, 0];
+function rotateAroundZ(p,angle){
+  const cosine=Math.cos(angle), sine=Math.sin(angle);
+  const x=p.x*cosine-p.y*sine;
+  p.y=p.x*sine+p.y*cosine;
+  p.x=x;
 }
 
-function stepCloudParticles(){
-  if(!showCloud)return;
-  const dt=dtStep*simSpeed*BASE_SPEED;
-  const rmSq=(rMax()*1.5)**2;
-  // ── Spin mode ────────────────────────────────────────────────────────────
-  if(spinEnabled&&spinComps.length){
-    // Helper: write p.spinW from current spinor
-    const syncW=(p)=>{
-      const[ur,ui,dr,di]=psiSpinor(spinComps,p.x,p.y,p.z,t);
-      const rhoT=ur*ur+ui*ui+dr*dr+di*di;
-      p.spinW=rhoT>1e-30?(ur*ur+ui*ui)/rhoT:0.5;
-    };
-
-    // Fast path: 1s orbital (single component, n=1, l=0).
-    // Analytically v = −(r̂ × n̂), which is exact Rodrigues rotation around n̂
-    // at angular speed 1/r — r and the polar angle to n̂ are both conserved.
-    // This avoids Euler drift regardless of dt size.
-    const is1s=comps.length===1&&comps[0].n===1&&comps[0].l===0;
-    if(is1s){
-      let nax,nay,naz; // spin quantisation axis
-      if(spinMode==='product'){
-        nax=Math.sin(spinTheta)*Math.cos(spinPhi);
-        nay=Math.sin(spinTheta)*Math.sin(spinPhi);
-        naz=Math.cos(spinTheta);
-      } else {
-        // j-state on l=0: pure |↑⟩ (upRe≈1) or |↓⟩ (dnRe≈1)
-        const sg=spinComps[0].upRe>0.5?1:-1;
-        nax=0;nay=0;naz=sg;
-      }
-      for(const p of particles){
-        if(isNaN(p.x)||p.x*p.x+p.y*p.y+p.z*p.z>rmSq){
-          const sr=resampleOne(t);if(sr){p.x=sr.x;p.y=sr.y;p.z=sr.z;}syncW(p);continue;
-        }
-        const pr=Math.sqrt(p.x*p.x+p.y*p.y+p.z*p.z);
-        if(pr<0.15){syncW(p);continue;}
-        // Rodrigues rotation: r_new = r cosθ + (n̂×r) sinθ + n̂(n̂·r)(1−cosθ)
-        const ang=dt/pr,cosA=Math.cos(ang),sinA=Math.sin(ang),ocA=1-cosA;
-        const dotN=nax*p.x+nay*p.y+naz*p.z;
-        const cpx=nay*p.z-naz*p.y,cpy=naz*p.x-nax*p.z,cpz=nax*p.y-nay*p.x;
-        p.x=p.x*cosA+cpx*sinA+nax*dotN*ocA;
-        p.y=p.y*cosA+cpy*sinA+nay*dotN*ocA;
-        p.z=p.z*cosA+cpz*sinA+naz*dotN*ocA;
-        syncW(p);
-      }
-      return;
-    }
-
-    // General spin (higher orbitals, superpositions): sub-stepped RK2 midpoint.
-    // RK2 preserves orbital radius to O(dtSub⁴) per step — stable for ω·dtSub < √2.
-    // dtSub=0.1 a.u. ensures stability for ω ≤ 1/r with r ≥ 0.15 a.u.
-    const DT_SUB=0.1;
-    const nSub=Math.min(50,Math.max(1,Math.ceil(Math.abs(dt)/DT_SUB)));
-    const dtSub=dt/nSub;
+function stepCloudParticles(dt){
+  if(densityEvolves()){
+    // A fresh sample represents the changing Born density. Individual dots in
+    // this mode are not presented as continuous trajectories.
+    particles=sampleParticlesStratified(autoCloudN(),t);
+  } else if(!spinEnabled&&comps.length===1&&comps[0].m!==0){
     for(const p of particles){
-      if(isNaN(p.x)||p.x*p.x+p.y*p.y+p.z*p.z>rmSq){
-        const sr=resampleOne(t);if(sr){p.x=sr.x;p.y=sr.y;p.z=sr.z;}syncW(p);continue;
-      }
-      let px=p.x,py=p.y,pz=p.z,escaped=false;
-      for(let sub=0;sub<nSub;sub++){
-        const[k1x,k1y,k1z]=bohmVPauli(spinComps,px,py,pz,t);
-        const mx=px+0.5*dtSub*k1x,my=py+0.5*dtSub*k1y,mz=pz+0.5*dtSub*k1z;
-        const[k2x,k2y,k2z]=bohmVPauli(spinComps,mx,my,mz,t);
-        px+=dtSub*k2x;py+=dtSub*k2y;pz+=dtSub*k2z;
-        if(px*px+py*py+pz*pz>rmSq){escaped=true;break;}
-      }
-      if(escaped||isNaN(px)){
-        const sr=resampleOne(t);if(sr){p.x=sr.x;p.y=sr.y;p.z=sr.z;}syncW(p);continue;
-      }
-      p.x=px;p.y=py;p.z=pz;
-      syncW(p);
-    }
-    return;
-  }
-  const isEigenstate=comps.length===1;
-  if(isEigenstate){
-    const m=comps[0].m;
-    for(const p of particles){
-      if(isNaN(p.x)||p.x*p.x+p.y*p.y+p.z*p.z>rmSq){
-        const s=resampleOne(t);if(s){p.x=s.x;p.y=s.y;p.z=s.z;}continue;
-      }
-      if(m===0)continue; // real orbital — static density, no motion
-      const rho2=p.x*p.x+p.y*p.y;
-      if(rho2<1e-14)continue;
-      // Exact angle increment: ρ is conserved by construction (no Euler drift).
-      // Azimuthal symmetry of |ψ|² + uniform initial φ → distribution stays
-      // uniform at all times regardless of differential rotation speed.
-      const dphi=m*dt/rho2;
-      const c=Math.cos(dphi),s2=Math.sin(dphi);
-      const nx=p.x*c-p.y*s2;
-      const ny=p.x*s2+p.y*c;
-      p.x=nx;p.y=ny;
-    }
-  }else{
-    // Superposition: grid-based Bohmian velocity
-    cloudFieldAge++;
-    if(!cloudVelGrid||(cloudFieldAge>CLOUD_FIELD_TTL&&!dragging))buildCloudField();
-    for(const p of particles){
-      const[vx,vy,vz]=cloudVelAt(p.x,p.y,p.z);
-      const nx=p.x+dt*vx,ny=p.y+dt*vy,nz=p.z+dt*vz;
-      if(isNaN(nx)||nx*nx+ny*ny+nz*nz>rmSq){
-        const s=resampleOne(t);
-        if(s){p.x=s.x;p.y=s.y;p.z=s.z;}
-        continue;
-      }
-      p.x=nx;p.y=ny;p.z=nz;
+      const radiusSquared=p.x*p.x+p.y*p.y;
+      if(radiusSquared>1e-14) rotateAroundZ(p,comps[0].m*dt/radiusSquared);
     }
   }
 }
@@ -785,10 +581,9 @@ function renderCloudCanvas(cam){
   if(spinEnabled&&spinComps.length){
     // Dual-channel spin rendering: each particle coloured by its ↑/↓ weight
     // Uses arc+fill per particle (slower but required for per-particle colour).
-    // For large clouds (>8k) the cloud field cost already dominates.
     for(const p of particles){
       const[sx,sy]=proj(p.x,p.y,p.z,cam);
-      const w=p.spinW||0.5;
+      const w=p.spinW??0.5;
       const r=(spinUpColor.r*w+spinDnColor.r*(1-w))|0;
       const g=(spinUpColor.g*w+spinDnColor.g*(1-w))|0;
       const b=(spinUpColor.b*w+spinDnColor.b*(1-w))|0;
@@ -846,14 +641,13 @@ function sampleParticlesStratified(n, sampleT=0){
   const G=Math.max(20,Math.min(100,Math.max(Math.ceil(Math.cbrt(n*8)),12*maxOrbN)));
   const step=2*rm/(G-1);
   const wt=new Float32Array(G*G*G);
-  let total=0,maxRho=0;
+  let total=0;
   for(let i=0;i<G;i++){const x=-rm+i*step;
     for(let j=0;j<G;j++){const y=-rm+j*step;
       for(let k=0;k<G;k++){const z=-rm+k*step;
-        const w=rhoAt(comps,x,y,z,sampleT);
-        const idx=i*G*G+j*G+k; wt[idx]=w; total+=w; if(w>maxRho)maxRho=w;
+        const w=densityAt(x,y,z,sampleT);
+        const idx=i*G*G+j*G+k; wt[idx]=w; total+=w;
       }}}
-  cloudMaxRho=maxRho*1.2; // cache as max|ψ|² for resampleOne (also Cartesian)
   if(total<1e-30)return [];
   // Build normalised CDF over flattened voxel array
   const cdf=new Float32Array(G*G*G);
@@ -873,7 +667,13 @@ function sampleParticlesStratified(n, sampleT=0){
     const x=-rm+gi*step+(Math.random()-0.5)*step*1.5;
     const y=-rm+gj*step+(Math.random()-0.5)*step*1.5;
     const z=-rm+gk*step+(Math.random()-0.5)*step*1.5;
-    pts.push({x,y,z,trail:[],age:0});
+    const particle={x,y,z,trail:[],age:0};
+    if(spinEnabled&&spinComps.length){
+      const [ur,ui,dr,di]=psiSpinor(spinComps,x,y,z,sampleT);
+      const up=ur*ur+ui*ui;
+      particle.spinW=up/(up+dr*dr+di*di||1);
+    }
+    pts.push(particle);
   }
   return pts;
 }
@@ -883,36 +683,19 @@ function sampleParticles(n, sampleT=0){
   const rm=rMax();let maxR=1e-30;
   for(let i=0;i<3000;i++){
     const r=Math.random()*rm,th=Math.acos(2*Math.random()-1),ph=Math.random()*2*Math.PI;
-    const v=rhoAt(comps,r*Math.sin(th)*Math.cos(ph),r*Math.sin(th)*Math.sin(ph),r*Math.cos(th),sampleT)*r*r;
+    const v=densityAt(r*Math.sin(th)*Math.cos(ph),r*Math.sin(th)*Math.sin(ph),r*Math.cos(th),sampleT)*r*r;
     if(v>maxR)maxR=v;
   }
-  maxR*=1.2; cloudMaxRho=maxR;
+  maxR*=1.2;
   const pts=[];let tries=0;
   const maxTries=Math.min(n*200,800000);
   while(pts.length<n&&tries<maxTries){
     tries++;
     const r=Math.random()*rm,th=Math.acos(2*Math.random()-1),ph=Math.random()*2*Math.PI;
     const x=r*Math.sin(th)*Math.cos(ph),y=r*Math.sin(th)*Math.sin(ph),z=r*Math.cos(th);
-    if(Math.random()<rhoAt(comps,x,y,z,sampleT)*r*r/maxR)pts.push({x,y,z,trail:[],age:0});
+    if(Math.random()<densityAt(x,y,z,sampleT)*r*r/maxR)pts.push({x,y,z,trail:[],age:0});
   }
   return pts;
-}
-
-// Lightweight single-particle resample — used by the cloud trickle.
-// Uses uniform Cartesian sampling inside the bounding sphere, consistent
-// with sampleParticlesStratified (both use weight = |ψ|², no r² Jacobian).
-function resampleOne(sampleT){
-  if(cloudMaxRho<=0)return null;
-  const rm=rMax(),rm2=rm*rm;
-  for(let tries=0;tries<600;tries++){
-    // Uniform in cube, reject outside sphere
-    const x=(Math.random()*2-1)*rm;
-    const y=(Math.random()*2-1)*rm;
-    const z=(Math.random()*2-1)*rm;
-    if(x*x+y*y+z*z>rm2)continue;
-    if(Math.random()<rhoAt(comps,x,y,z,sampleT)/cloudMaxRho)return{x,y,z};
-  }
-  return null;
 }
 
 // Compute ⟨r⟩ numerically from voxel grid for verification
@@ -944,12 +727,14 @@ let gl2Ready=false,lobeTexDirty=true;
 
 function resize(){
   const wrap=canvas.parentElement;
+  if(W===wrap.clientWidth&&H===wrap.clientHeight) return;
   W=canvas.width=wrap.clientWidth;
   H=canvas.height=wrap.clientHeight;
   if(lobeGLCanvas){lobeGLCanvas.width=W;lobeGLCanvas.height=H;}
   sliceDirty=true;volumeDirty=true;
 }
-resize();window.addEventListener('resize',resize);
+resize();
+new ResizeObserver(resize).observe(canvas.parentElement);
 
 function getCam(){
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
@@ -1076,7 +861,7 @@ function computeSlice(plane){
     if(plane==='xz'){x=u;z=-v;}
     else if(plane==='xy'){x=u;y=-v;}
     else{y=u;z=-v;}
-    const d=rhoAt(comps,x,y,z,0);
+    const d=densityAt(x,y,z,t);
     vals[j*N+i]=d;if(d>maxV)maxV=d;
   }
   const img=new ImageData(N,N);
@@ -1215,51 +1000,78 @@ let meanRcomputed=0;
 let volumeImageData=null;
 let volumeBuildPending=false;
 
+let voxelBasis;
 function buildVoxelGrid(){
-  // Adaptive resolution: ensure step ≤ 3 a₀ so radial nodes are resolved for all n.
-  // VRES³ × 3 floats: at 96 that's ~10 MB — well within budget.
   const rm=rMax();
-  VRES = Math.min(96, Math.max(52, Math.ceil(2*rm/3)+1));
-  const N=VRES;
-  voxelVals  =new Float32Array(N*N*N);
-  voxelPsi   =new Float32Array(N*N*N);
-  voxelImPsi =new Float32Array(N*N*N);
-  voxelMaxV=1e-30;
-  const step=2*rm/(N-1);
-  for(let i=0;i<N;i++){
-    const x=-rm+i*step;
-    for(let j=0;j<N;j++){
-      const y=-rm+j*step;
-      for(let k=0;k<N;k++){
-        const z=-rm+k*step;
-        const[re,im]=psiXYZ(comps,x,y,z,0);
-        const v=re*re+im*im;
-        const idx2=i*N*N+j*N+k;
-        voxelVals [idx2]=v;
-        voxelPsi  [idx2]=re;
-        voxelImPsi[idx2]=im;
-        if(v>voxelMaxV)voxelMaxV=v;
+  VRES=Math.min(96,Math.max(52,Math.ceil(2*rm/3)+1));
+  const N=VRES, size=N**3, step=2*rm/(N-1);
+  const evolving=densityEvolves();
+  const spin=spinEnabled&&spinComps.length>0;
+  const product=spin&&spinMode==='product'&&!SPIN_SUPERS[superKey];
+  const sampleTime=evolving?t:0;
+  if(evolving&&voxelBasis?.comps!==comps){
+    const fields=comps.map(()=>new Float32Array(size*2));
+    for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(let k=0;k<N;k++){
+      const index=2*(i*N*N+j*N+k);
+      for(let c=0;c<comps.length;c++){
+        const [re,im]=psiXYZ([comps[c]],-rm+i*step,-rm+j*step,-rm+k*step,0);
+        fields[c][index]=re;
+        fields[c][index+1]=im;
       }
     }
+    voxelBasis={comps,fields};
+  }else if(!evolving) voxelBasis=null;
+
+  if(voxelVals?.length!==size){
+    voxelVals=new Float32Array(size);
+    voxelPsi=new Float32Array(size);
+    voxelImPsi=new Float32Array(size);
+  }
+  if(spin&&voxelRhoUp?.length!==size){
+    voxelRhoUp=new Float32Array(size);
+    voxelRhoDn=new Float32Array(size);
+  }else if(!spin){
+    voxelRhoUp=null;
+    voxelRhoDn=null;
+  }
+  const phase=comps.map(c=>sampleTime/(2*c.n*c.n));
+  const cosines=phase.map(Math.cos), sines=phase.map(Math.sin);
+  const upWeight=Math.cos(spinTheta/2)**2;
+  voxelMaxV=1e-30;
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(let k=0;k<N;k++){
+    const index=i*N*N+j*N+k;
+    let re=0,im=0,density;
+    if(evolving){
+      for(let c=0;c<comps.length;c++){
+        const field=voxelBasis.fields[c];
+        re+=field[2*index]*cosines[c]-field[2*index+1]*sines[c];
+        im+=field[2*index]*sines[c]+field[2*index+1]*cosines[c];
+      }
+    }else if(!spin||product){
+      [re,im]=psiXYZ(comps,-rm+i*step,-rm+j*step,-rm+k*step,0);
+    }
+    density=re*re+im*im;
+    if(product){
+      voxelRhoUp[index]=density*upWeight;
+      voxelRhoDn[index]=density*(1-upWeight);
+    }else if(spin){
+      const [ur,ui,dr,di]=psiSpinor(spinComps,-rm+i*step,-rm+j*step,-rm+k*step,0);
+      const up=ur*ur+ui*ui, down=dr*dr+di*di;
+      voxelRhoUp[index]=up;
+      voxelRhoDn[index]=down;
+      density=up+down;
+    }
+    voxelVals[index]=density;
+    voxelPsi[index]=re;
+    voxelImPsi[index]=im;
+    voxelMaxV=Math.max(voxelMaxV,density);
   }
   meanRcomputed=computeMeanR(voxelVals,N,rm);
-  // ── Spin dual-channel voxels (only when spin is active) ────────────────────
-  if(spinEnabled&&spinComps.length){
-    voxelRhoUp=new Float32Array(N*N*N);
-    voxelRhoDn=new Float32Array(N*N*N);
-    for(let i=0;i<N;i++){const x=-rm+i*step;
-      for(let j=0;j<N;j++){const y=-rm+j*step;
-        for(let k=0;k<N;k++){const z=-rm+k*step;
-          const[ur,ui,dr,di]=psiSpinor(spinComps,x,y,z,0);
-          const ij=i*N*N+j*N+k;
-          voxelRhoUp[ij]=ur*ur+ui*ui;
-          voxelRhoDn[ij]=dr*dr+di*di;
-        }}}
-  }else{
-    voxelRhoUp=null;voxelRhoDn=null;
-  }
   volumeDirty=false;
-  projDirty=true; projVolCache=null;
+  lobeTexDirty=true;
+  volNeedsRedraw=true;
+  projDirty=true;
+  projVolCache=null;
 }
 
 // Trilinear interpolation into voxel grid
@@ -1408,66 +1220,9 @@ function blitVolume(){
 // ════════════════════════════════════════════════════════════════
 //  WEBGL2 LOBE RENDERER — GPU ray-march, full resolution, real-time
 // ════════════════════════════════════════════════════════════════
-function showGpuFallbackNotice() {
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar || document.getElementById('gpuFallbackNotice')) return;
-
-  const notice = document.createElement('div');
-  notice.id = 'gpuFallbackNotice';
-  notice.style.cssText = [
-    'margin:0 0 10px 0',
-    'padding:10px 11px',
-    'border:1px solid rgba(245,158,11,0.55)',
-    'border-radius:10px',
-    'background:rgba(120,53,15,0.22)',
-    'color:#f8e7c4',
-    'font-size:12px',
-    'line-height:1.4'
-  ].join(';');
-
-  notice.innerHTML = `
-    <b>GPU warning:</b> WebGL2 is unavailable in this browser session, so the
-    hydrogen atom app is using the CPU lobe renderer.
-    <div style="margin-top:6px;opacity:.95">
-      If this should be GPU-accelerated, try enabling hardware acceleration,
-      open the page in Edge, reset Chrome graphics/WebGL flags, or test with a
-      clean browser profile.
-    </div>
-  `;
-
-  showGpuStatusBanner('GPU unavailable', 'WebGL2 is unavailable in this browser session, so hydrogen atom is using the CPU renderer.');
-  sidebar.prepend(notice);
-}
-
-function showGpuSoftwareRendererNotice(rendererInfo) {
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar || document.getElementById('gpuFallbackNotice')) return;
-
-  const notice = document.createElement('div');
-  notice.id = 'gpuFallbackNotice';
-  notice.style.cssText = [
-    'margin:0 0 10px 0',
-    'padding:10px 11px',
-    'border:1px solid rgba(245,158,11,0.55)',
-    'border-radius:10px',
-    'background:rgba(120,53,15,0.22)',
-    'color:#f8e7c4',
-    'font-size:12px',
-    'line-height:1.4'
-  ].join(';');
-
-  notice.innerHTML = `
-    <b>GPU warning:</b> WebGL2 is available, but this browser is using a software
-    renderer (${rendererInfo}), so hydrogen atom may run very slowly.
-    <div style="margin-top:6px;opacity:.95">
-      If this should use the GPU, try enabling hardware acceleration, open the
-      page in Edge, reset Chrome graphics/WebGL flags, or test with a clean
-      browser profile.
-    </div>
-  `;
-
-  showGpuStatusBanner('GPU software fallback', `WebGL2 is available, but this browser is using a software renderer (${rendererInfo}), so hydrogen atom is switching to the CPU renderer and may run very slowly.`);
-  sidebar.prepend(notice);
+function showGpuFallbackNotice(){
+  preferSliceFallback=true;
+  showGpuStatusBanner('Slices selected', 'This browser has limited graphics acceleration. Volume and Lobes may render more slowly.');
 }
 
 function showGpuStatusBanner(title, message) {
@@ -1502,8 +1257,7 @@ function initLobeGL(){
   const rendererInfo = detectWebGl2Renderer(gl2);
   if (!rendererInfo.hasDebugInfo || isSoftwareRenderer(rendererInfo.text)) {
     console.warn('WebGL2 software or unverified renderer detected:', rendererInfo.text);
-    showGpuSoftwareRendererNotice(rendererInfo.text);
-    preferSliceFallback=true;
+    showGpuFallbackNotice();
   }
 
   const vsrc=`#version 300 es
@@ -1660,6 +1414,8 @@ void main(){
     ri=vec2(cs*ri.x-sn*ri.y, sn*ri.x+cs*ri.y);
     float hue=fract(atan(ri.y,ri.x)/(2.0*3.14159265));
     base=texture(u_phaseTex,vec2(hue,0.5)).rgb;
+  }else if(u_spinMode>0.5){
+    base=mix(u_spinDnCol,u_spinUpCol,sSpinW(hp));
   }else{
     vec2 ri=sReIm(hp);
     // Still apply time rotation so sign coloring is consistent with evolving phase
@@ -1812,7 +1568,7 @@ function renderLobesGL(cam, volmode=0){
   gl2.uniform1f(lobeUnif['u_volmode'],volmode);
   gl2.uniform1f(lobeUnif['u_densOp'],densOp);
   gl2.uniform1f(lobeUnif['u_isoOp'],isoOp);
-  const pureEn=(superKey==='none')?(-0.5/(ORBITALS[orbIdx].n*ORBITALS[orbIdx].n)):0.0;
+  const pureEn=showPhase&&!densityEvolves() ? -0.5/comps[0].n**2 : 0;
   gl2.uniform1f(lobeUnif['u_t'],t);
   gl2.uniform1f(lobeUnif['u_en'],pureEn);
   // Spin uniforms
@@ -1920,131 +1676,60 @@ function renderLobes(cam, preview=false){
 // ════════════════════════════════════════════════════════════════
 //  MAIN LOOP
 // ════════════════════════════════════════════════════════════════
-function integrate(){
-  const dt=dtStep*simSpeed*BASE_SPEED;t+=dt;
+function integrate(dt){
+  const start=t;
+  t+=dt;
+  if(densityEvolves()) invalidateDensity();
   if(showCloud){
-    // Cloud mode: fast Euler grid step for all particles (no trails)
-    stepCloudParticles();
-  }else{
-    // Trail mode — exact integrators where possible, sub-stepped RK4 otherwise.
-    const rmSq=(rMax()*1.4)**2;
+    stepCloudParticles(dt);
+    return;
+  }
 
-    if(spinEnabled&&spinComps.length){
-      // ── 1s + spin: exact Rodrigues rotation (radius conserved by construction) ──
-      const is1s=comps.length===1&&comps[0].n===1&&comps[0].l===0;
-      if(is1s){
-        let nax,nay,naz;
-        if(spinMode==='product'){
-          nax=Math.sin(spinTheta)*Math.cos(spinPhi);
-          nay=Math.sin(spinTheta)*Math.sin(spinPhi);
-          naz=Math.cos(spinTheta);
-        }else{
-          const sg=spinComps[0].upRe>0.5?1:-1;
-          nax=0;nay=0;naz=sg;
-        }
-        for(const p of particles){
-          if(isNaN(p.x)||p.x*p.x+p.y*p.y+p.z*p.z>rmSq){respawn(p);continue;}
-          const pr=Math.sqrt(p.x*p.x+p.y*p.y+p.z*p.z);
-          if(pr<0.15) continue;
-          const ang=dt/pr,cosA=Math.cos(ang),sinA=Math.sin(ang),ocA=1-cosA;
-          const dotN=nax*p.x+nay*p.y+naz*p.z;
-          const cpx=nay*p.z-naz*p.y,cpy=naz*p.x-nax*p.z,cpz=nax*p.y-nay*p.x;
-          const nx=p.x*cosA+cpx*sinA+nax*dotN*ocA;
-          const ny=p.y*cosA+cpy*sinA+nay*dotN*ocA;
-          const nz=p.z*cosA+cpz*sinA+naz*dotN*ocA;
-          p.trail.push([p.x,p.y,p.z]);
-          if(p.trail.length>trailLen)p.trail.shift();
-          p.x=nx;p.y=ny;p.z=nz;p.age++;
-        }
-      }else{
-        // General spin eigenstate / superposition: sub-stepped exact azimuthal
-        // rotation for pure m≠0 j-eigenstates (single spinor component, azimuthal
-        // velocity only), or sub-stepped RK2 midpoint for everything else.
-        // The azimuthal-exact path mirrors the no-spin eigenstate path and is
-        // drift-free at any speed.
-        const isSingleComp = spinComps.length===1;
-        const sc0 = spinComps[0];
-        // A pure j-state with a single spinor component has only one orbital (m value).
-        // Its Bohmian velocity is v = Im(∇ψ/ψ) = m/(r sinθ) in φ̂, i.e. purely azimuthal.
-        // We can integrate exactly the same way as the no-spin m≠0 eigenstate.
-        const isPureAzimuthal = isSingleComp &&
-          (sc0.upRe*sc0.upRe+sc0.upIm*sc0.upIm > 0.99 ||
-           sc0.dnRe*sc0.dnRe+sc0.dnIm*sc0.dnIm > 0.99);
-        const mSpin = isSingleComp ? sc0.m : 0;
-
-        if(isPureAzimuthal && mSpin !== 0){
-          for(const p of particles){
-            if(isNaN(p.x)||p.x*p.x+p.y*p.y+p.z*p.z>rmSq){respawn(p);continue;}
-            const rho2=p.x*p.x+p.y*p.y;
-            if(rho2<1e-14) continue;
-            const dphi=mSpin*dt/rho2;
-            const cv=Math.cos(dphi),sv=Math.sin(dphi);
-            const nx=p.x*cv-p.y*sv,ny=p.x*sv+p.y*cv,nz=p.z;
-            p.trail.push([p.x,p.y,p.z]);
-            if(p.trail.length>trailLen)p.trail.shift();
-            p.x=nx;p.y=ny;p.z=nz;p.age++;
-          }
-        }else{
-          // General spin (mixed j-states, superpositions): sub-stepped RK2 midpoint.
-          // dtSub=0.05 keeps ω·dtSub < 0.5 even at r=0.15 (ω≈6.7).
-          // No cap on nSub — correctness at any speed takes priority.
-          const DT_SUB=0.05;
-          const nSub=Math.max(1,Math.ceil(Math.abs(dt)/DT_SUB));
-          const dtSub=dt/nSub;
-          for(const p of particles){
-            if(isNaN(p.x)||p.x*p.x+p.y*p.y+p.z*p.z>rmSq){respawn(p);continue;}
-            let px=p.x,py=p.y,pz=p.z,escaped=false;
-            for(let sub=0;sub<nSub;sub++){
-              const[k1x,k1y,k1z]=bohmVPauli(spinComps,px,py,pz,t);
-              const mx=px+0.5*dtSub*k1x,my=py+0.5*dtSub*k1y,mz=pz+0.5*dtSub*k1z;
-              const[k2x,k2y,k2z]=bohmVPauli(spinComps,mx,my,mz,t);
-              px+=dtSub*k2x;py+=dtSub*k2y;pz+=dtSub*k2z;
-              if(px*px+py*py+pz*pz>rmSq){escaped=true;break;}
-            }
-            if(escaped||isNaN(px)){respawn(p);continue;}
-            p.trail.push([p.x,p.y,p.z]);
-            if(p.trail.length>trailLen)p.trail.shift();
-            p.x=px;p.y=py;p.z=pz;p.age++;
-          }
-        }
+  const spin=spinEnabled&&spinComps.length>0;
+  const isSingleOrbital=comps.length===1;
+  const is1s=spin&&isSingleOrbital&&comps[0].n===1&&comps[0].l===0;
+  const radiusLimit=(rMax()*1.4)**2;
+  const stepCount=Math.max(1,Math.ceil(dt/Math.min(dtStep,0.05)));
+  const step=dt/stepCount;
+  for(const p of particles){
+    const previous=[p.x,p.y,p.z];
+    if(is1s){
+      const {upRe,upIm,dnRe,dnIm}=spinComps[0];
+      const axis=[2*(upRe*dnRe+upIm*dnIm),2*(upRe*dnIm-upIm*dnRe),upRe**2+upIm**2-dnRe**2-dnIm**2];
+      const r=Math.hypot(...previous);
+      if(r>0){
+        const [x,y,z]=previous, [nx,ny,nz]=axis;
+        const ca=Math.cos(dt/r), sa=Math.sin(dt/r), dot=(nx*x+ny*y+nz*z)*(1-ca);
+        p.x=x*ca+(ny*z-nz*y)*sa+nx*dot;
+        p.y=y*ca+(nz*x-nx*z)*sa+ny*dot;
+        p.z=z*ca+(nx*y-ny*x)*sa+nz*dot;
       }
+    }else if(!spin&&isSingleOrbital){
+      const radiusSquared=p.x*p.x+p.y*p.y;
+      if(radiusSquared>1e-14&&comps[0].m!==0) rotateAroundZ(p,comps[0].m*dt/radiusSquared);
     }else{
-      // Spinless trail integration
-      const isEigenstate=comps.length===1;
-      for(const p of particles){
-        const{x,y,z}=p;
-        let nx,ny,nz;
-
-        if(isEigenstate&&comps[0].m!==0){
-          // Pure m≠0 eigenstate: exact azimuthal rotation (ρ_cyl conserved exactly).
-          const rho2=x*x+y*y;
-          if(rho2<1e-14){respawn(p);continue;}
-          const dphi=comps[0].m*dt/rho2;
-          const cv=Math.cos(dphi),sv=Math.sin(dphi);
-          nx=x*cv-y*sv;ny=x*sv+y*cv;nz=z;
-        }else{
-          // General superposition or m=0: standard RK4
-          const[k1x,k1y,k1z]=bohmV(comps,x,y,z,t);
-          const[k2x,k2y,k2z]=bohmV(comps,x+.5*dt*k1x,y+.5*dt*k1y,z+.5*dt*k1z,t+.5*dt);
-          const[k3x,k3y,k3z]=bohmV(comps,x+.5*dt*k2x,y+.5*dt*k2y,z+.5*dt*k2z,t+.5*dt);
-          const[k4x,k4y,k4z]=bohmV(comps,x+dt*k3x,y+dt*k3y,z+dt*k3z,t+dt);
-          nx=x+dt*(k1x+2*k2x+2*k3x+k4x)/6;
-          ny=y+dt*(k1y+2*k2y+2*k3y+k4y)/6;
-          nz=z+dt*(k1z+2*k2z+2*k3z+k4z)/6;
-        }
-
-        if(isNaN(nx)||nx*nx+ny*ny+nz*nz>rmSq){respawn(p);continue;}
-        p.trail.push([p.x,p.y,p.z]);
-        if(p.trail.length>trailLen)p.trail.shift();
-        p.x=nx;p.y=ny;p.z=nz;p.age++;
+      for(let i=0;i<stepCount;i++){
+        const ti=start+i*step;
+        const a=bohmV(comps,p.x,p.y,p.z,ti);
+        const b=bohmV(comps,p.x+step*a[0]/2,p.y+step*a[1]/2,p.z+step*a[2]/2,ti+step/2);
+        const c=bohmV(comps,p.x+step*b[0]/2,p.y+step*b[1]/2,p.z+step*b[2]/2,ti+step/2);
+        const d=bohmV(comps,p.x+step*c[0],p.y+step*c[1],p.z+step*c[2],ti+step);
+        p.x+=step*(a[0]+2*b[0]+2*c[0]+d[0])/6;
+        p.y+=step*(a[1]+2*b[1]+2*c[1]+d[1])/6;
+        p.z+=step*(a[2]+2*b[2]+2*c[2]+d[2])/6;
       }
     }
+    if(!Number.isFinite(p.x+p.y+p.z)||p.x*p.x+p.y*p.y+p.z*p.z>radiusLimit){
+      const replacement=sampleParticles(1,t)[0];
+      Object.assign(p,replacement??{x:previous[0],y:previous[1],z:previous[2],trail:[]});
+      continue;
+    }
+    if(p.x!==previous[0]||p.y!==previous[1]||p.z!==previous[2]){
+      p.trail.push(previous);
+      if(p.trail.length>trailLen) p.trail.splice(0,p.trail.length-trailLen);
+      p.age++;
+    }
   }
-}
-
-function respawn(p){
-  const ns=sampleParticles(1);
-  if(ns.length){p.x=ns[0].x;p.y=ns[0].y;p.z=ns[0].z;}p.trail=[];
 }
 
 let volNeedsRedraw=true;
@@ -2060,7 +1745,6 @@ function renderFrame(){
   if(showLobes&&!showCloud){
     if(volumeDirty||!voxelVals){
       buildVoxelGrid();
-      updateVerification();
       volumeDirty=false;
       lobeTexDirty=true;
       cachedVolCanvas=null;
@@ -2082,7 +1766,6 @@ function renderFrame(){
   if(showVol&&!showCloud){
     if(volumeDirty||!voxelVals){
       buildVoxelGrid();
-      updateVerification();
       volumeDirty=false;
       cachedVolCanvas=null;
       lobeTexDirty=true;
@@ -2106,7 +1789,7 @@ function renderFrame(){
   // When showPhase is also on, phase-colored slices are shown; otherwise density slices.
   // If only showPhase is on (no showSlice), phase coloring is handled by the 3D volume/lobe renderers above.
   if(showSlice){
-    if(sliceDirty||!sliceData.xz) buildSlices(); // density vals needed for isocontours either way
+    if(sliceDirty) buildSlices(); // density vals needed for isocontours either way
     if(showPhase) buildPhaseSlices(t);
     const normals={xz:[0,1,0],xy:[0,0,1],yz:[1,0,0]};
     let active=slicePlane==='all'?['xz','xy','yz']:[slicePlane];
@@ -2159,7 +1842,11 @@ function renderFrame(){
   if(showInset) drawRadialInset();
   if(showProjections) drawProjectionPanels();
 
-  // Stats
+  // Diagnostics are optional and use the same clock as the displayed state.
+  if(expertMode){
+    if(volumeDirty) buildVoxelGrid();
+    updateVerification();
+  }
   const o=ORBITALS[orbIdx];
   if(superKey!=='none'&&comps.length){
     // ⟨E⟩ = Σ |c_i|² E_i  (eigenstates are orthogonal → no cross terms)
@@ -2168,8 +1855,9 @@ function renderFrame(){
   } else {
     document.getElementById('stE').textContent=(-13.6/(o.n*o.n)).toFixed(2)+' eV';
   }
+  document.getElementById('stNLM').textContent=comps.map(c=>`${c.n}, ${c.l}, ${c.m}`).join(' + ');
   document.getElementById('stN').textContent=particles.length;
-  document.getElementById('stT').textContent=t.toFixed(1)+' a.u.';
+  document.getElementById('stT').textContent=(t*24.1888).toFixed(0)+' as';
 }
 
 // Numerical normalization check: ∫₀^∞ r² |R_nl(r)|² dr should = 1
@@ -2201,7 +1889,7 @@ function updateVerification(){
       let sumUp=0,sumTot=0;
       for(let i=0;i<voxelRhoUp.length;i++){sumUp+=voxelRhoUp[i];sumTot+=voxelRhoUp[i]+voxelRhoDn[i];}
       const frac=sumTot>0?sumUp/sumTot:0.5;
-      const expected=spinMode==='product'?Math.cos(spinTheta/2)**2:null;
+      const expected=spinMode==='product'&&!SPIN_SUPERS[superKey]?Math.cos(spinTheta/2)**2:null;
       const fracEl=document.getElementById('stSpinFrac');
       if(fracEl){
         fracEl.textContent=frac.toFixed(4)+(expected!==null?' / '+expected.toFixed(4):'');
@@ -2220,14 +1908,15 @@ function updateVerification(){
     const vmag=Math.sqrt(vx*vx+vy*vy+vz*vz);
     const curlEl=document.getElementById('stSpinCurl');
     if(curlEl){
-      curlEl.textContent=vmag.toFixed(4)+(vmag>0.001?' ← non-zero ✓':' ≈ 0 (expected for 1s/pure-spin)');
+      curlEl.textContent=vmag.toFixed(4)+(vmag>0.001?' ← non-zero ✓':' ≈ 0 at this point');
       curlEl.className='stat-val '+(vmag>0.001?'ok':'');
     }
   }
 
   if(isSuper){
-    // ⟨r⟩ exact = Σ |c_i|² ⟨r⟩_i  (cross terms vanish: different n or l → orthogonal)
-    const rExact=comps.reduce((s,c)=>(c.cRe*c.cRe+c.cIm*c.cIm)*exactR(c.n,c.l)+s,0);
+    // Only the coherent 1s + 2s preset has a nonzero radial cross term.
+    const diagonal=comps.reduce((sum,c)=>sum+(c.cRe**2+c.cIm**2)*exactR(c.n,c.l),0);
+    const rExact=diagonal+(superKey==='ss'?-64/(81*Math.SQRT2)*Math.cos(3*t/8):0);
     const rComp=meanRcomputed;
     document.getElementById('stRe').textContent=rExact.toFixed(2)+' a\u2080';
     document.getElementById('stRc').textContent=rComp.toFixed(2)+' a\u2080';
@@ -2262,7 +1951,17 @@ function updateVerification(){
 
 // (radial probability chart moved to canvas inset — see drawRadialInset)
 
-function loop(){if(running)integrate();renderFrame();requestAnimationFrame(loop);}
+let previousFrame;
+function loop(now){
+  if(running&&previousFrame!==undefined){
+    const elapsed=Math.min(0.05,Math.max(0,(now-previousFrame)/1000));
+    if(elapsed>0) integrate(elapsed*BASE_SPEED*simSpeed);
+  }
+  previousFrame=running?now:undefined;
+  renderFrame();
+  requestAnimationFrame(loop);
+}
+document.addEventListener('visibilitychange',()=>{previousFrame=undefined;});
 
 // ════════════════════════════════════════════════════════════════
 //  CANVAS INSETS — P(r) radial probability + projection panels
@@ -2282,22 +1981,22 @@ function drawRadialInset(){
   const pw=iW-pl-pr,ph=iH-pt-pb;
   const tc=lightTheme?'#6070a0':'#6a80a8';
   ctx.fillStyle=tc;ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='left';
-  ctx.fillText('P(r) = r²|Rₙₗ|²',ix+pl,iy+11);
+  ctx.fillText('Radial probability P(r)',ix+pl,iy+11);
   const rPlot=rMax(),NPTS=200;
-  const COLS=['#00e5ff','#e040fb','#ffb74d','#69f0ae'];
-  const traces=comps.map((c,i)=>{
-    const amp=c.cRe*c.cRe+c.cIm*c.cIm;
-    const pts=new Float32Array(NPTS);
-    for(let j=0;j<NPTS;j++){const r=j/(NPTS-1)*rPlot;const R=Rnl(c.n,c.l,r);pts[j]=amp*r*r*R*R;}
-    return{pts,col:COLS[i%4]};
-  });
+  const total=new Float32Array(NPTS);
   let maxP=1e-30;
-  traces.forEach(t=>{for(let j=0;j<NPTS;j++)if(t.pts[j]>maxP)maxP=t.pts[j];});
+  for(let j=0;j<NPTS;j++){
+    const r=j/(NPTS-1)*rPlot;
+    let radialDensity=comps.reduce((sum,c)=>sum+(c.cRe**2+c.cIm**2)*Rnl(c.n,c.l,r)**2,0);
+    if(superKey==='ss') radialDensity+=Rnl(1,0,r)*Rnl(2,0,r)*Math.cos(3*t/8);
+    total[j]=r*r*Math.max(0,radialDensity);
+    maxP=Math.max(maxP,total[j]);
+  }
   // axes
   ctx.strokeStyle=lightTheme?'#c8d0e8':'#1e2f50';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(ix+pl,iy+pt);ctx.lineTo(ix+pl,iy+pt+ph);ctx.lineTo(ix+pl+pw,iy+pt+ph);ctx.stroke();
   // ⟨r⟩ line
-  const o=ORBITALS[orbIdx];const rE=exactR(o.n,o.l);
+  const o=ORBITALS[orbIdx];const rE=superKey==='none'?exactR(o.n,o.l):0;
   if(rE>0&&rE<=rPlot){
     const xR=ix+pl+(rE/rPlot)*pw;
     ctx.save();ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(105,240,174,0.65)';ctx.lineWidth=1;
@@ -2306,16 +2005,15 @@ function drawRadialInset(){
     ctx.fillStyle='rgba(105,240,174,0.8)';ctx.font='8px JetBrains Mono,monospace';
     ctx.fillText('⟨r⟩',xR+3,iy+pt+9);
   }
-  // traces
-  traces.forEach((tr)=>{
-    ctx.strokeStyle=lightTheme?'#0077cc':tr.col;ctx.lineWidth=1.8;
-    ctx.beginPath();
-    for(let j=0;j<NPTS;j++){
-      const x2=ix+pl+(j/(NPTS-1))*pw,y2=iy+pt+ph*(1-tr.pts[j]/maxP);
-      j===0?ctx.moveTo(x2,y2):ctx.lineTo(x2,y2);
-    }
-    ctx.stroke();
-  });
+  ctx.strokeStyle=lightTheme?'#0077cc':'#00e5ff';
+  ctx.lineWidth=1.8;
+  ctx.beginPath();
+  ctx.moveTo(ix+pl,iy+pt+ph);
+  for(let j=1;j<NPTS;j++){
+    const x=ix+pl+j/(NPTS-1)*pw, y=iy+pt+ph*(1-total[j]/maxP);
+    ctx.lineTo(x,y);
+  }
+  ctx.stroke();
   // r axis label
   ctx.fillStyle=tc;ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='center';
   ctx.fillText('r / a₀',ix+pl+pw/2,iy+iH-3);
@@ -2326,6 +2024,21 @@ function drawRadialInset(){
 // Works in any viz mode (Cloud, Slice-only, etc.) and always reflects current comps.
 // N=48: 3×48³ ≈ 330k evals ≈ 10–20 ms — acceptable on orbital change.
 function buildProjectionsDirect(){
+  if(densityEvolves()){
+    if(volumeDirty) buildVoxelGrid();
+    const n=VRES, xz=new Float32Array(n*n), xy=new Float32Array(n*n), yz=new Float32Array(n*n);
+    for(let i=0;i<n;i++)for(let j=0;j<n;j++)for(let k=0;k<n;k++){
+      const density=voxelVals[i*n*n+j*n+k];
+      xz[i*n+k]+=density;
+      xy[i*n+j]+=density;
+      yz[j*n+k]+=density;
+    }
+    for(const [plane,vals] of Object.entries({xz,xy,yz})){
+      projData[plane]={vals,maxV:Math.max(1e-30,...vals),N:n};
+    }
+    projDirty=false;
+    return;
+  }
   const PN=48, rm=rMax(), step=2*rm/(PN-1);
   ['xz','xy','yz'].forEach(pln=>{
     const p2D=new Float32Array(PN*PN); let maxV=1e-30;
@@ -2340,7 +2053,7 @@ function buildProjectionsDirect(){
           if(pln==='xz'){x=u;y=w;z=v;}
           else if(pln==='xy'){x=u;y=v;z=w;}
           else{x=w;y=u;z=v;}
-          sum+=rhoAt(comps,x,y,z,0);
+          sum+=densityAt(x,y,z,t);
         }
         p2D[a*PN+b]=sum; if(sum>maxV)maxV=sum;
       }
@@ -2400,10 +2113,10 @@ function buildVolProjections(){
 
 function drawProjectionPanels(){
   // Build volumetric cache if stale (same ray-march as GPU volume shader)
-  if(!projVolCache && voxelVals) buildVolProjections();
+  if(!projVolCache&&voxelVals&&!volumeDirty&&!densityEvolves()) buildVolProjections();
   // Keep sum-based projData as fallback for modes where voxelVals isn't built
-  if(projDirty) buildProjectionsDirect();
-  const pW=100,pH=100,gap=6;
+  if(projDirty&&!projVolCache) buildProjectionsDirect();
+  const pW=Math.min(100,Math.floor((W-42)/3)),pH=pW,gap=6;
   const labels=['XZ','XY','YZ'];
   projPanelHitBoxes=[];
   ['xz','xy','yz'].forEach((pln,pi)=>{
@@ -2517,6 +2230,10 @@ function toggleExpert(){
   expertMode=!expertMode;
   document.getElementById('stGrid').classList.toggle('show-expert',expertMode);
   document.getElementById('expertBtn').classList.toggle('active',expertMode);
+  if(expertMode){
+    if(volumeDirty) buildVoxelGrid();
+    updateVerification();
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2852,34 +2569,28 @@ function toggleViz(which){
     if(showPhase&&showCloud){
       showCloud=false;
       showVol=true;
-      particles=sampleParticles(nPart);
+      particles=sampleParticles(nPart,t);
     }
     _syncVizUI();
     return;
   }
 
   // Determine if this mode is currently active
-  const curr={volume:showVol,slice:showSlice,lobes:showLobes,cloud:showCloud};
-  const wasActive=curr[which];
   const wasCloud=showCloud;
 
   // Turn all exclusive modes off
   showVol=false; showSlice=false; showLobes=false; showCloud=false;
 
-  if(!wasActive){
-    // Activate the requested mode
-    if(which==='volume') showVol=true;
-    else if(which==='slice') showSlice=true;
-    else if(which==='lobes') showLobes=true;
-    else if(which==='cloud'){
-      showCloud=true;
-      if(!wasCloud){ cachedVolCanvas=null; initCloudParts(); }
-    }
+  if(which==='volume') showVol=true;
+  else if(which==='slice') showSlice=true;
+  else if(which==='lobes') showLobes=true;
+  else if(which==='cloud'){
+    showCloud=true;
+    if(!wasCloud){cachedVolCanvas=null;initCloudParts();}
   }
-  // If wasActive: clicking the active button turns it off (all off state)
 
   // Restore trail particles when leaving cloud mode
-  if(wasCloud&&!showCloud) particles=sampleParticles(nPart);
+  if(wasCloud&&!showCloud) particles=sampleParticles(nPart,t);
 
   // Phase overlay is incompatible with Cloud
   if(showCloud) showPhase=false;
@@ -2919,20 +2630,23 @@ function toggleSpin(){
     if(showPhase){showPhase=false;}
   }else{
     spinComps=[];
+    if(superKey==='none') buildComps();
     voxelRhoUp=null;voxelRhoDn=null;
     // If we were in a spin-super preset, revert to its scalar comps
     if(SPIN_SUPERS[superKey]){
       superKey='none';
       document.getElementById('superSel').value='none';
       buildComps();
+      updateInfo();
     }
   }
-  cloudVelGrid=null;cloudFieldAge=Infinity;
-  volumeDirty=true;lobeTexDirty=true;volNeedsRedraw=true;cachedVolCanvas=null;
+  invalidateDensity();
   t=0;
   if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}
+  if(superKey==='none') updateInfo();
   _syncSpinUI();
   _syncVizUI();
+  updateQuickPresets();
 }
 
 function _syncSpinUI(){
@@ -2950,7 +2664,12 @@ function _syncSpinUI(){
   const mProd=document.getElementById('spinModeProd');
   const mJst =document.getElementById('spinModeJst');
   if(mProd)mProd.checked=(spinMode==='product');
-  if(mJst) mJst.checked=(spinMode==='jstate');
+  if(mJst){
+    mJst.checked=spinMode==='jstate';
+    mJst.disabled=superKey!=='none';
+  }
+  const fixedSpin=Boolean(SPIN_SUPERS[superKey]);
+  for(const id of ['sSpinTheta','sSpinPhi']) document.getElementById(id).disabled=fixedSpin;
   // Update spin colour swatches in legend
   const upSw=document.getElementById('spinUpSwatch');
   const dnSw=document.getElementById('spinDnSwatch');
@@ -2960,14 +2679,12 @@ function _syncSpinUI(){
 }
 
 function setSpinMode(mode){
+  if(mode==='jstate'&&superKey!=='none') return;
   spinMode=mode;
-  if(spinEnabled){
-    if(mode==='jstate') _refreshJStateDropdown();
-    else buildSpinComps();
-  }
-  cloudVelGrid=null;cloudFieldAge=Infinity;
-  volumeDirty=true;lobeTexDirty=true;t=0;
+  t=0;previousFrame=undefined;
+  buildComps();
   if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}
+  if(superKey==='none') updateInfo();
   _syncSpinUI();
 }
 
@@ -2976,9 +2693,9 @@ function setJState(idx){
   if(!_currentJEntries.length) _refreshJStateDropdown();
   const entry=_currentJEntries[idx]; if(!entry) return;
   _applyJState(entry);
-  cloudVelGrid=null;cloudFieldAge=Infinity;
-  volumeDirty=true;lobeTexDirty=true;t=0;
+  invalidateDensity();t=0;previousFrame=undefined;
   if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}
+  updateInfo();
 }
 
 function setSpinUpColor(hex){
@@ -3020,7 +2737,7 @@ function updateLegend(){
     : palRow('|ψ|² volume');
   const lobeRows  = showPhase
     ? phaseRow('arg(ψ) lobes — red=0, cyan=±π')
-    : palRow('|ψ|² lobes')+`<div class="lrow"><span class="lsw" style="background:linear-gradient(90deg,#1010c0,#4060e0,#8090ff)"></span>Negative-ψ lobe</div>`;
+    : spinEnabled ? '<div class="lrow">Spin density isosurface</div>' : palRow('|ψ|² lobes')+`<div class="lrow"><span class="lsw" style="background:linear-gradient(90deg,#1010c0,#4060e0,#8090ff)"></span>Negative-ψ lobe</div>`;
   const sliceRows=palRow('|ψ|² slice')
     +`<div class="lrow"><span class="lsw" style="background:transparent;border:1.5px solid rgba(0,220,255,.8);border-radius:2px"></span>Isosurface</div>`;
   const tg=`linear-gradient(90deg,${ptColor.hex}22,${ptColor.hex})`;
@@ -3029,7 +2746,7 @@ function updateLegend(){
   const palOpts=PAL_META.map(p=>`<div class="pal-opt${p.key===densityPalette?' selected':''}" onclick="setPaletteByKey('${p.key}')"><span class="pal-swatch" style="background:${p.grad}"></span>${p.label}</div>`).join('');
   const phaseOpts=PHASE_PAL_META.map(p=>`<div class="pal-opt${p.key===phasePalette?' selected':''}" onclick="setPhasePaletteByKey('${p.key}')"><span class="pal-swatch" style="background:${p.grad}"></span>${p.label}</div>`).join('');
   // Spin channel rows
-  const spinRows=spinEnabled&&spinComps.length?`
+  const spinRows=spinEnabled&&spinComps.length&&!showSlice?`
     <div class="lrow spin-lrow">
       <button class="lrow-btn" onclick="document.getElementById('spinUpPicker').click()" title="Change spin-↑ colour"><span class="lsw" id="spinUpSwatch" style="background:${spinUpColor.hex}"></span>Spin ↑ (ρ<sub>↑</sub>)</button>
       <input type="color" id="spinUpPicker" style="opacity:0;position:absolute;width:0;height:0" value="${spinUpColor.hex}" oninput="setSpinUpColor(this.value)">
@@ -3040,8 +2757,8 @@ function updateLegend(){
     </div>`:'';
   const common=`
     ${spinRows}
-    <button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${tg}"></span>Particle trail</button>
-    <button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${pg}"></span>Particle</button>
+    ${showCloud?'':`<button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${tg}"></span>Particle trail</button>
+    <button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${pg}"></span>Particle</button>`}
     <div class="lrow"><span class="lsw" style="background:radial-gradient(circle at 30%,#ff7040,transparent)"></span>Proton</div>
     <div class="leg-colpop" id="legColPop">${colDots}</div>
     <div class="leg-pal-pop" id="legPalPop">${palOpts}</div>
@@ -3053,7 +2770,8 @@ function updateLegend(){
   if(showVol)   legendRows+=volRows;
   if(showSlice&&!showPhase) legendRows+=sliceRows;
   if(showSlice&&showPhase)  legendRows+=phaseRows;
-  if(!legendRows) legendRows=volRows; // fallback when all off
+  if(showCloud) legendRows='<div class="lrow">Probability samples</div>';
+  if(!legendRows) legendRows=volRows;
   div.innerHTML=legendRows+common;
 }
 function openLegColPop(e){
@@ -3080,14 +2798,7 @@ function refreshOrbGrid(){
     btn.textContent=o.label.replace(/^\d/,''); // strip leading n digit
     const desc=INFO[o.label]||'';
     btn.title=`|${o.n}, ${o.l}, ${o.m>=0?'+':''}${o.m}⟩${desc?'\n'+desc:''}`;
-    btn.onclick=()=>{
-      document.querySelectorAll('.obtn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      orbIdx=i;superKey='none';document.getElementById('superSel').value='none';
-      buildComps();sliceDirty=true;volumeDirty=true;volNeedsRedraw=true;t=0;
-      if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}
-      updateInfo();
-    };
+    btn.onclick=()=>selectPureOrbital(i);
     ogrid.appendChild(btn);
   });
 }
@@ -3110,10 +2821,51 @@ function buildOrbPicker(){
 }
 buildOrbPicker();
 
+function selectPureOrbital(index){
+  orbIdx=index;
+  selectedN=ORBITALS[index].n;
+  document.querySelectorAll('.nbtn').forEach(button=>button.classList.toggle('active',button.textContent===`n=${selectedN}`));
+  superKey='none';
+  document.getElementById('superSel').value='none';
+  t=0;
+  previousFrame=undefined;
+  buildComps();
+  if(showCloud) initCloudParts();
+  else particles=sampleParticles(nPart);
+  refreshOrbGrid();
+  updateInfo();
+  updateQuickPresets();
+  _syncVizUI();
+}
+
+function updateQuickPresets(){
+  document.querySelectorAll('[data-orbital-index], #beatPreset').forEach(button=>{
+    const active=button.id==='beatPreset' ? superKey==='sp' : superKey==='none'&&Number(button.dataset.orbitalIndex)===orbIdx;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
+}
+
+document.querySelectorAll('[data-orbital-index]').forEach(button=>{
+  button.addEventListener('click',()=>selectPureOrbital(Number(button.dataset.orbitalIndex)));
+});
+document.getElementById('beatPreset').addEventListener('click',()=>{
+  if(showSlice){
+    slicePlane='xz';
+    document.getElementById('sliceSel').value=slicePlane;
+    camTheta=PROJ_CAM.xz.theta;
+    camPhi=PROJ_CAM.xz.phi;
+  }
+  const dropdown=document.getElementById('superSel');
+  dropdown.value='sp';
+  dropdown.dispatchEvent(new Event('change'));
+});
+updateQuickPresets();
+
 document.getElementById('superSel').onchange=function(){
   superKey=this.value;
-  const isSpin=!!SPIN_SUPERS[superKey];
-  buildComps();sliceDirty=true;volumeDirty=true;volNeedsRedraw=true;t=0;
+  t=0;previousFrame=undefined;
+  buildComps();
   if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}
   const desc={
     px:'Real p_x orbital: (2p₊₁−2p₋₁)/√2 → two lobes along x. Degenerate → stationary particles.',
@@ -3121,9 +2873,9 @@ document.getElementById('superSel').onchange=function(){
     sp:'1s+2pz: density oscillates between compact sphere and elongated upper lobe. ΔE=3/8 a.u., period≈16.8 a.u.',
     pd:'2pz+3dz²: slower z-axis beating. ΔE=5/72 a.u., period≈91 a.u. Density pulses between p_z and d_z² shapes.',
     circ:'2p₊₁+3d₊₁: m=+1 on both → CCW azimuthal circulation. Radial density also beats at ΔE=5/72 a.u. Most dynamic: particles orbit while the ring expands/contracts.',
-    spin_ss:'1s↑ + 2s↓ (spin super): same radial breathing as 1s+2s but the density oscillates between two spin channels. Pauli–Bohm spin-curl term makes particles non-stationary even between the radial nodes.',
-    spin_sp:'1s↑ + 2p₀↓: z-axis density oscillation with spin-channel switching. The spin-curl term drives complex 3D trajectories.',
-    spin_circ:'2p₊₁↑ + 3d₊₁↓: CCW circulation + radial beating + spin-channel switching. Most complex preset: three coupled dynamics.',
+    spin_ss:'1s↑ + 2s↓: the two spin channels add without density interference. The local spin direction and guiding current can change in time.',
+    spin_sp:'1s↑ + 2p₀↓: the total density is stationary and symmetric about the xy plane. The spin current can still change in time.',
+    spin_circ:'2p₊₁↑ + 3d₊₁↓: stationary total density, with circulation and a time-dependent spin current.',
     none:''};
   // Per-preset lobe threshold
   const presetLb={ss:1,sp:3,pd:8,circ:6,px:10,none:12,spin_ss:1,spin_sp:3,spin_circ:6};
@@ -3133,21 +2885,27 @@ document.getElementById('superSel').onchange=function(){
     const sl=document.getElementById('sLB');sl.value=lb;document.getElementById('vLB').textContent=lb;
     cachedVolCanvas=null;
   }
-  if(superKey==='ss'&&typeof viewMode!=='undefined'&&viewMode==='lobes') setView('volume');
   document.getElementById('infoKet').textContent=this.options[this.selectedIndex].text;
   document.getElementById('infoDesc').textContent=desc[superKey]||'';
   // Sync spin UI heading when a spin preset is selected
-  if(isSpin) _syncSpinUI();
+  _syncSpinUI();
+  _syncVizUI();
+  updateQuickPresets();
 };
 
 function updateInfo(){
   const o=ORBITALS[orbIdx];
-  document.getElementById('infoKet').textContent=`|${o.n}, ${o.l}, ${o.m>=0?'+':''}${o.m}⟩`;
-  document.getElementById('infoDesc').textContent=INFO[o.label]||'';
+  const coupled=spinEnabled&&spinMode==='jstate'&&superKey==='none';
+  document.getElementById('infoKet').textContent=coupled
+    ? document.getElementById('jStateSel').selectedOptions[0]?.textContent
+    : `|${o.n}, ${o.l}, ${o.m>=0?'+':''}${o.m}⟩`;
+  document.getElementById('infoDesc').textContent=spinEnabled
+    ? 'Pilot-wave motion includes the Pauli spin current.'
+    : INFO[o.label]||'';
 }
 updateInfo();
 
-document.getElementById('sNP').oninput=function(){nPart=+this.value;document.getElementById('vNP').textContent=nPart;particles=sampleParticles(nPart);};
+document.getElementById('sNP').oninput=function(){nPart=+this.value;document.getElementById('vNP').textContent=nPart;if(!showCloud)particles=sampleParticles(nPart,t);};
 const _sSphPx=document.getElementById('sSphPx');
 if(_sSphPx)_sSphPx.oninput=function(){
   cloudSpherePx=+this.value;
@@ -3233,15 +2991,24 @@ document.addEventListener('click',e=>{
 })();
 
 function toggleRun(){
+  previousFrame=undefined;
   running=!running;
   const btn=document.getElementById('runBtn');
   btn.textContent=running?'⏸ Pause':'▶ Run';
   btn.classList.toggle('active',running);
 }
 
-document.getElementById('resetBtn').onclick=()=>{sliceDirty=true;volumeDirty=true;volNeedsRedraw=true;if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}t=0;if(!running){running=true;const b=document.getElementById('runBtn');b.textContent='⏸ Pause';b.classList.add('active');}};
+document.getElementById('resetBtn').onclick=()=>{invalidateDensity();t=0;previousFrame=undefined;if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}if(!running){running=true;const b=document.getElementById('runBtn');b.textContent='⏸ Pause';b.classList.add('active');}};
 document.getElementById('clearBtn').onclick=()=>particles.forEach(p=>p.trail=[]);
 
+canvas.addEventListener('keydown',event=>{
+  const movement={ArrowLeft:[-0.12,0],ArrowRight:[0.12,0],ArrowUp:[0,-0.12],ArrowDown:[0,0.12]}[event.key];
+  if(!movement) return;
+  event.preventDefault();
+  camPhi+=movement[0];
+  camTheta=Math.max(0.05,Math.min(Math.PI-0.05,camTheta+movement[1]));
+  volNeedsRedraw=true;
+});
 canvas.addEventListener('mousedown',e=>{dragging=true;lastMX=e.clientX;lastMY=e.clientY;});
 window.addEventListener('mouseup',()=>{dragging=false;volNeedsRedraw=true;});
 canvas.addEventListener('mousemove',e=>{
@@ -3287,6 +3054,10 @@ particles=sampleParticles(nPart);
 updateLegend();
 initLobeGL();
 if(!gl2Ready) showGpuFallbackNotice();
+if(preferSliceFallback){
+  camTheta=PROJ_CAM.xz.theta;
+  camPhi=PROJ_CAM.xz.phi;
+}
 setView(preferSliceFallback?'slice':'volume');
 document.getElementById('insetBtn')?.classList.toggle('active',showInset);
 document.getElementById('projBtn')?.classList.toggle('active',showProjections);
