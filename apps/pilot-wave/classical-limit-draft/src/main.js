@@ -1,3 +1,4 @@
+import { mountClassicalTemplate } from './template.js';
 import { BOX, parameters, clamp } from './physics.js';
 import { Renderer, TrailHistory } from './renderer.js';
 import { createExperiment, SCENES, sceneKey } from './experiments.js';
@@ -6,6 +7,7 @@ import { paintPhaseLegend, phaseLegendLayout } from './phase-legend.js';
 
 const $ = id => document.getElementById(id);
 const query = new URLSearchParams(location.search);
+const sharedControls = mountClassicalTemplate();
 const numericQuery = (name, fallback) => query.has(name) && Number.isFinite(Number(query.get(name))) ? Number(query.get(name)) : fallback;
 const initialScene = Object.hasOwn(SCENES, query.get('scene')) ? query.get('scene') : sceneKey(query.get('obstacle') === '1');
 const sceneClassicality = { free: SCENES.free.classicality, barrier: SCENES.barrier.classicality };
@@ -39,6 +41,7 @@ function showError(error) {
   $('error').textContent = message; $('error').hidden = false;
   $('status').classList.add('failed'); $('status').lastElementChild.textContent = 'Paused · attention needed';
   $('pause').disabled = true;
+  syncRunControls();
   exportJob?.abort();
   console.error(error);
 }
@@ -69,6 +72,7 @@ function reset() {
   history.append(0, next.positions); waveDirty = true; drawingDirty = true;
   pendingReset = false; lastFrame = null; maxNormError = 0;
   failed = false; $('error').hidden = true; $('pause').disabled = false; $('status').classList.remove('failed');
+  syncRunControls();
   syncParameters();
 }
 
@@ -85,9 +89,15 @@ function selectScene(obstacle) {
   settings.classicality = sceneClassicality[sceneKey(obstacle)];
 }
 
+function syncRunControls() {
+  sharedControls?.setAttribute('running', String(!paused));
+  sharedControls?.setAttribute('disabled', String(Boolean(exportJob)));
+}
+
 function setPaused(value) {
   paused = Boolean(value); lastFrame = null; drawingDirty = true;
   $('pause').textContent = paused ? 'Play' : 'Pause';
+  syncRunControls();
   $('paused-badge').hidden = !paused;
   $('status').lastElementChild.textContent = paused ? 'Paused' : 'Live';
 }
@@ -186,6 +196,7 @@ function syncVisibility() {
 for (const id of ['show-wave', 'show-velocity', 'show-reference']) $(id).addEventListener('change', syncVisibility);
 $('show-particles').addEventListener('change', () => {
   syncVisibility();
+  if (!experiment) return;
   appearance.trailStartTime = experiment.time;
   history.clear(); history.append(experiment.time, experiment.positions);
 });
@@ -199,6 +210,12 @@ for (const [id, key, format] of [['dot-size', 'dotSize', x => String(x)], ['trai
 }
 $('reset').addEventListener('click', scheduleReset);
 $('pause').addEventListener('click', () => setPaused(!paused));
+sharedControls?.addEventListener('qontic:start', () => {
+  if (failed) syncRunControls();
+  else setPaused(false);
+});
+sharedControls?.addEventListener('qontic:stop', () => setPaused(true));
+sharedControls?.addEventListener('qontic:reset', () => { if (renderer) scheduleReset(); });
 function collapse() {
   const collapsed = document.body.classList.toggle('collapsed');
   $('collapse').textContent = collapsed ? '+' : '−'; $('collapse').setAttribute('aria-expanded', String(!collapsed));
@@ -209,7 +226,7 @@ $('collapse').addEventListener('click', collapse);
 document.addEventListener('keydown', event => {
   if (exportJob) return;
   if (event.ctrlKey || event.altKey || event.metaKey || event.repeat || event.target.closest('input,select,textarea,button,summary,a')) return;
-  if (event.code === 'Space') { event.preventDefault(); setPaused(!paused); }
+  if (event.code === 'Space' && !failed) { event.preventDefault(); setPaused(!paused); }
   if (event.key.toLowerCase() === 'r') scheduleReset();
   if (event.key.toLowerCase() === 'h') collapse();
 });
@@ -220,8 +237,8 @@ window.addEventListener('message', event => {
 const layoutObserver = new ResizeObserver(syncCanvasLayout);
 layoutObserver.observe($('canvas-slot'));
 window.addEventListener('resize', syncCanvasLayout);
-$('reset-view').addEventListener('click', () => { renderer.resetView(); drawingDirty = true; });
-$('canvas').addEventListener('dblclick', () => { renderer.resetView(); drawingDirty = true; });
+$('reset-view').addEventListener('click', () => { if (renderer) renderer.resetView(); drawingDirty = true; });
+$('canvas').addEventListener('dblclick', () => { if (renderer) renderer.resetView(); drawingDirty = true; });
 $('canvas').addEventListener('wheel', event => {
   if (!renderer || failed || exportJob) return;
   event.preventDefault();

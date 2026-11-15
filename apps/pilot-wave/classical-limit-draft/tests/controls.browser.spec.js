@@ -14,7 +14,7 @@ for (const scene of ['free', 'barrier']) {
     expect(before.appearance.brightness).toBe(1);
     expect(before.appearance.showReference).toBe(true);
     for (let i = 0; i < 3; i++) {
-      await page.locator('#reset').click();
+      await page.getByRole('button', { name: 'Reset simulation' }).click();
       await expect.poll(async () => (await snapshot(page)).positions).not.toEqual(before.positions);
       const after = await snapshot(page);
       expect(after.positions).not.toEqual(before.positions);
@@ -23,6 +23,7 @@ for (const scene of ['free', 'barrier']) {
     }
     await page.evaluate(() => window.__classicalLimit.run(.2));
     const running = await snapshot(page);
+    await page.getByRole('tab', { name: 'Display' }).click();
     await page.locator('#show-wave').uncheck();
     let hidden = await snapshot(page);
     expect(hidden.appearance.showWave).toBe(false); expect(hidden.appearance.showPhase).toBe(false);
@@ -47,11 +48,13 @@ for (const scene of ['free', 'barrier']) {
     expect(await captureDraws()).toEqual([
       { name: 'drawTrails', reference: true }, { name: 'drawPoints', reference: true },
     ]);
+    await page.getByRole('tab', { name: 'Core' }).click();
     await page.locator('#show-reference').uncheck();
     expect(await captureDraws()).toEqual([]);
     await expect(page.locator('#reference-legend')).toBeHidden();
     await page.locator('#show-reference').check();
     expect((await snapshot(page)).historyLength).toBe(1);
+    await page.getByRole('tab', { name: 'Display' }).click();
     await page.locator('#show-wave').check(); await page.locator('#show-particles').check();
     const visible = await snapshot(page);
     expect(visible.appearance.showWave && visible.appearance.showPhase).toBe(true);

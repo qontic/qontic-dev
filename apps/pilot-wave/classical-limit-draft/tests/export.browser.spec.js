@@ -14,6 +14,7 @@ test('offline export saves every frame at 30 fps and preserves the live state th
   await page.evaluate(() => window.__classicalLimit.run(3.5));
   await page.locator('#show-reference').check();
   const before = await page.evaluate(() => window.__classicalLimit.snapshot());
+  await page.getByRole('tab', { name: 'Advanced' }).click();
   await page.locator('#export-duration').fill('2');
   await page.locator('#export-size').selectOption('1920');
   await page.locator('#export-start').selectOption('current');
@@ -96,6 +97,7 @@ test('WebM fallback exports at 30 fps when the browser has no AVC encoder', asyn
   });
   await page.goto('/?obstacle=0&paused=1&test=1&classicality=1');
   await page.waitForFunction(() => window.__classicalLimit?.ready);
+  await page.getByRole('tab', { name: 'Advanced' }).click();
   await page.locator('#export-size').selectOption('2560');
   await page.locator('#export-duration').fill('1');
   const downloaded = page.waitForEvent('download');

@@ -3,6 +3,7 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { templateAssets, templateDirectory } from './scripts/template-assets.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const portArg = process.argv.indexOf('--port');
@@ -12,10 +13,12 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
     const relative = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
-    const target = path.resolve(root, relative);
-    if (!target.startsWith(root + path.sep) || relative.split(/[\\/]/).some(p => p.startsWith('.') || p === 'node_modules')) {
+    const asset = relative.startsWith('shared/') ? relative.slice('shared/'.length) : '';
+    const appTarget = path.resolve(root, relative);
+    if (!appTarget.startsWith(root + path.sep) || relative.split(/[\\/]/).some(p => p.startsWith('.') || p === 'node_modules')) {
       res.writeHead(403); res.end('Forbidden'); return;
     }
+    const target = templateAssets.has(asset) ? path.join(templateDirectory, asset) : appTarget;
     const info = await stat(target);
     if (!info.isFile()) { res.writeHead(404); res.end('Not found'); return; }
     res.writeHead(200, { 'Content-Type': mime[path.extname(target)] || 'application/octet-stream', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });

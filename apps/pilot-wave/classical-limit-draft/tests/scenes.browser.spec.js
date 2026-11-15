@@ -87,17 +87,20 @@ test('both scene endpoints record the selected solver, red-blue legend and ensem
   await page.waitForFunction(() => window.__classicalLimit?.ready);
   await page.locator('#show-reference').check();
   await setRange(page, 'dot-size', 12); await setRange(page, 'trail-seconds', 4);
+  await page.getByRole('tab', { name: 'Advanced' }).click();
   await page.locator('#export-size').selectOption('1920');
   await page.locator('#export-duration').fill('1');
   await page.locator('#export-start').selectOption('current');
   const reports = [];
   for (const scene of ['free', 'barrier']) {
+    await page.getByRole('tab', { name: 'Core' }).click();
     await page.locator(`#scene-${scene}`).check();
     await setRange(page, 'classicality', 1);
     await expect.poll(async () => (await snapshot(page)).params.alpha).toBeCloseTo(scene === 'free' ? .00003 : .00015, 12);
     await page.evaluate(() => window.__classicalLimit.run(3));
     const before = await snapshot(page);
     const downloaded = page.waitForEvent('download');
+    await page.getByRole('tab', { name: 'Advanced' }).click();
     await page.locator('#record').click();
     await expect(page.locator('#scene-free')).toBeDisabled();
     await expect(page.locator('#scene-barrier')).toBeDisabled();

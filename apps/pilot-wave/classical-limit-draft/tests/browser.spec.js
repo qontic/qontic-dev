@@ -99,16 +99,19 @@ test('the original obstacle-free experiment renders and survives slider sweeps, 
   await expect.poll(() => page.evaluate(() => window.__classicalLimit.snapshot().count)).toBe(256);
   const many = await page.evaluate(() => { window.__classicalLimit.run(3); return window.__classicalLimit.snapshot(); });
   expect(many.finite).toBe(true); expect(many.glError).toBe(0);
+  await page.getByRole('tab', { name: 'Display' }).click();
   await page.locator('#show-wave').uncheck(); await page.locator('#show-particles').uncheck();
   const hidden = await page.evaluate(() => { window.__classicalLimit.run(1); return window.__classicalLimit.snapshot(); });
   expect(hidden.time).toBeCloseTo(4); expect(hidden.positions).not.toEqual(many.positions);
   await page.locator('#show-wave').check(); await page.locator('#show-particles').check();
+  await page.getByRole('tab', { name: 'Core' }).click();
   await page.locator('#count').focus(); await page.keyboard.press('Home');
   await expect.poll(() => page.evaluate(() => window.__classicalLimit.snapshot().count)).toBe(1);
   await page.locator('#show-reference').check();
   await page.evaluate(() => window.__classicalLimit.run(12));
   await page.screenshot({ path: 'validation/classical-comparison.png', fullPage: true });
 
+  await page.getByRole('button', { name: 'Record video', exact: true }).click();
   await page.locator('#export-size').selectOption('1920');
   await page.locator('#export-duration').fill('1');
   const downloadPromise = page.waitForEvent('download');
@@ -128,8 +131,8 @@ test('URL validation, graphics context recovery and paused keyboard controls', a
   const initial = await page.evaluate(() => window.__classicalLimit.snapshot());
   expect(initial.count).toBe(1); expect(initial.params.classicality).toBe(0); expect(initial.params.angle).toBe(45);
   await page.locator('body').click({ position: { x: 900, y: 30 } });
-  await page.keyboard.press('Space'); await expect(page.locator('#pause')).toHaveText('Pause');
-  await page.keyboard.press('Space'); await expect(page.locator('#pause')).toHaveText('Play');
+  await page.keyboard.press('Space'); await expect(page.getByRole('button', { name: 'Stop simulation' })).toBeVisible();
+  await page.keyboard.press('Space'); await expect(page.getByRole('button', { name: 'Start simulation' })).toBeVisible();
   await page.evaluate(() => window.__classicalLimit.recoverContext());
   await expect(page.locator('#error')).toBeHidden({ timeout: 15000 });
   await expect.poll(() => page.evaluate(() => window.__classicalLimit.snapshot().failed)).toBe(false);

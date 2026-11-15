@@ -94,7 +94,9 @@ test('velocity toggle is independent, survives resize and appears in a 30 fps re
   await page.waitForFunction(() => window.__classicalLimit?.ready);
   await expect(page.locator('#show-velocity')).toBeChecked();
   await page.evaluate(() => window.__classicalLimit.run(3));
-  await page.locator('#show-wave').uncheck(); await page.locator('#show-particles').uncheck(); await page.locator('#show-reference').uncheck();
+  await page.locator('#show-reference').uncheck();
+  await page.getByRole('tab', { name: 'Display' }).click();
+  await page.locator('#show-wave').uncheck(); await page.locator('#show-particles').uncheck();
   const pixels = () => page.evaluate(() => {
     window.__classicalLimit.run(0);
     const canvas = document.querySelector('#canvas'), gl = canvas.getContext('webgl2'), data = new Uint8Array(canvas.width * canvas.height * 4);
@@ -113,6 +115,7 @@ test('velocity toggle is independent, survives resize and appears in a 30 fps re
   expect(after.positions).toEqual(before.positions); expect(after.time).toBe(before.time);
   await page.screenshot({ path: 'validation/velocity-mobile.png' });
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole('tab', { name: 'Advanced' }).click();
   await page.locator('#export-size').selectOption('1920'); await page.locator('#export-duration').fill('1');
   await page.locator('#export-start').selectOption('current');
   const downloaded = page.waitForEvent('download'); await page.locator('#record').click();

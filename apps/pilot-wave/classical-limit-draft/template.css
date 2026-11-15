@@ -1,0 +1,110 @@
+/* Model-specific sizing and styling on top of the shared Q-Ontic layout. */
+body.classical-template {
+  --bg-primary: #06111c;
+  --bg-panel: #0b1926;
+  --text-primary: #d9edf7;
+  --text-secondary: #a8bdc9;
+  --border-color: #294b60;
+  --line: var(--border-color);
+  --muted: var(--text-secondary);
+  --purple: #55d8e6;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100dvh;
+  height: auto;
+  overflow: visible;
+}
+html:has(.classical-template) { overflow: auto; background: var(--bg-primary, #06111c); }
+.classical-template .shell {
+  display: block;
+  height: auto;
+  overflow: visible;
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: 0 14px;
+}
+.classical-template .qontic-workspace { max-width: none; }
+.classical-template #panel {
+  background: var(--qontic-panel-background);
+  border: 1px solid var(--qontic-panel-border);
+  border-top: 3px solid #2f7187;
+}
+.classical-template .panel-heading {
+  padding: 0 0 6px;
+  border: 0;
+  justify-content: space-between;
+}
+.classical-template .panel-heading h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.classical-template #panel-body {
+  overflow: auto;
+  max-height: max(310px, calc(100dvh - 160px));
+  padding: 0;
+  scrollbar-gutter: auto;
+}
+.classical-template .intro,
+.classical-template .regime-description,
+.classical-template .hint,
+.classical-template .switch-row,
+.classical-template .label-row output,
+.classical-template .scene-control legend,
+.classical-template .range-ends,
+.classical-template summary { color: var(--text-secondary); }
+.classical-template .intro { margin: 0 0 14px; }
+.classical-template .regime-description { min-height: 0; margin: 7px 0; }
+.classical-template .regime-control { padding-bottom: 8px; }
+.classical-template .scene-control { margin-bottom: 10px; }
+.classical-template .scene-options {
+  background: var(--qontic-panel-background);
+  border-color: var(--border-color);
+}
+.classical-template .scene-options span { color: var(--text-secondary); }
+.classical-template .scene-options input:checked + span {
+  background: #12394b;
+  border-color: #55d8e6;
+  color: #c2f9ff;
+}
+.classical-template #classicality-value { background: transparent; color: var(--text-primary); }
+.classical-template .hint { font-size: 12px; }
+.classical-template .stage { padding: 12px; }
+.classical-template .canvas-slot { height: clamp(175px, calc(100dvh - 248px), 650px); }
+.classical-template .qontic-expanded-dialog .stage {
+  height: 100%;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+}
+.classical-template .qontic-expanded-dialog .canvas-slot { height: 100%; }
+.classical-template .legend,
+.classical-template .canvas-hint,
+.classical-template #reset-view,
+.classical-template .stage-heading,
+.classical-template .live-badge { color: var(--text-secondary); }
+.classical-template #qontic-context-back,
+.classical-template #catalog-back { margin-right: 8px; font-size: 12px; color: var(--text-secondary); }
+.classical-template #export-options { margin-top: 0; }
+.classical-template .qontic-reading-panel { max-width: 920px; margin: 0 auto; padding: 16px 24px; }
+.classical-template.collapsed .qontic-workspace { grid-template-columns: 100px minmax(0, 1fr); }
+.classical-template.collapsed .panel-heading { flex-direction: row; }
+.qontic-light .classical-template {
+  color-scheme: light;
+  --bg-primary: #eef4f7;
+  --bg-panel: #fdfefe;
+  --text-primary: #172b3a;
+  --text-secondary: #496476;
+  --border-color: #aec2cb;
+}
+.qontic-light .classical-template #regime-name { color: #496476; }
+.qontic-light .classical-template .scene-options input:checked + span {
+  background: #dff4f7;
+  border-color: #1594a8;
+  color: #075c69;
+}
+.qontic-light .classical-template .label-row :is(select, input[type=number]) {
+  color: var(--text-primary);
+  background: var(--bg-panel);
+  border-color: var(--border-color);
+}
+.qontic-light .classical-template .record-button { color: var(--text-primary); }
+@media (max-width: 1000px) {
+  .classical-template.collapsed .qontic-workspace { grid-template-columns: minmax(0, 1fr); }
+  .classical-template .canvas-slot { height: clamp(190px, 62.5vw, 420px); }
+  .classical-template #panel-body { max-height: none; }
+}

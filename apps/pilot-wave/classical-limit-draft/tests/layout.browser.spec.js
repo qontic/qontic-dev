@@ -15,8 +15,9 @@ const measure = page => page.evaluate(() => {
   };
 });
 
-function expectFits(view) {
-  expect(view.document).toEqual(view.viewport);
+function expectFits(view, { scrollable = false } = {}) {
+  expect(view.document[0]).toBe(view.viewport[0]);
+  if (!scrollable) expect(view.document[1]).toBe(view.viewport[1]);
   expect(view.scroll).toEqual([0, 0]);
   expect(view.canvas.width).toBeGreaterThan(100);
   expect(Math.abs(view.canvas.width / view.canvas.height - 1.6)).toBeLessThan(.001);
@@ -41,7 +42,7 @@ for (const scene of ['free', 'barrier']) {
     await page.evaluate(() => window.__classicalLimit.run(1));
     await page.locator('#show-reference').check();
     await expect(page.locator('.topbar')).toHaveCount(0);
-    await expect(page.locator('#panel .brand-logo')).toBeVisible();
+    await expect(page.locator('.qontic-directory-header img')).toBeVisible();
     const box = await page.locator('#canvas').boundingBox();
     await page.mouse.move(box.x + box.width * .4, box.y + box.height * .4);
     await page.mouse.wheel(0, -400);
@@ -50,17 +51,17 @@ for (const scene of ['free', 'barrier']) {
 
     for (const [width, height] of [[1440, 1000], [1440, 650], [2560, 720], [800, 1100], [390, 844], [320, 568], [640, 360]]) {
       await page.setViewportSize({ width, height }); await settleLayout(page);
-      const initialView = await measure(page); expectFits(initialView);
-      // Actual wheel input scrolls only controls, even after reaching their end.
-      await page.locator('#panel-body').evaluate(panel => { panel.scrollTop = 0; });
-      await page.mouse.move(initialView.panel.x + initialView.panel.width / 2, initialView.panel.y + initialView.panel.height / 2);
-      await page.mouse.wheel(0, 420);
-      await expect.poll(async () => (await measure(page)).controlsScroll).toBeGreaterThan(0);
-      await page.locator('#record').scrollIntoViewIfNeeded();
-      await expect(page.locator('#record')).toBeInViewport();
-      await page.mouse.wheel(0, 3000); await settleLayout(page);
+      const initialView = await measure(page);
+      expectFits(initialView, { scrollable: width <= 1000 });
+      // When the desktop control panel overflows, it scrolls independently.
+      if (width > 1000 && initialView.controlsHeight > initialView.panel.height + 2) {
+        await page.locator('#panel-body').evaluate(panel => { panel.scrollTop = 0; });
+        await page.mouse.move(initialView.panel.x + initialView.panel.width / 2, initialView.panel.y + initialView.panel.height / 2);
+        await page.mouse.wheel(0, 420);
+        await expect.poll(async () => (await measure(page)).controlsScroll).toBeGreaterThan(0);
+      }
       const scrolled = await measure(page);
-      expectFits(scrolled);
+      expectFits(scrolled, { scrollable: width <= 1000 });
       expect(scrolled.canvas).toEqual(initialView.canvas);
       expect(scrolled.heading).toEqual(initialView.heading);
       const after = await snapshot(page);
@@ -73,7 +74,7 @@ for (const scene of ['free', 'barrier']) {
     const expanded = await measure(page);
     await page.getByRole('button', { name: 'Collapse controls', exact: true }).click(); await settleLayout(page);
     const collapsed = await measure(page); expectFits(collapsed);
-    expect(collapsed.canvas.width).toBeGreaterThan(expanded.canvas.width);
+    expect(collapsed.slot.width).toBeGreaterThan(expanded.slot.width);
     await expect(page.locator('#panel-body')).toBeHidden();
     await page.getByRole('button', { name: 'Expand controls', exact: true }).click(); await settleLayout(page);
     expect((await measure(page)).canvas).toEqual(expanded.canvas);
@@ -81,8 +82,8 @@ for (const scene of ['free', 'barrier']) {
     expect((await snapshot(page)).positions).toEqual(before.positions);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator('#collapse').click(); await settleLayout(page); expectFits(await measure(page));
-    await page.locator('#collapse').click(); await settleLayout(page); expectFits(await measure(page));
+    await page.locator('#collapse').click(); await settleLayout(page); expectFits(await measure(page), { scrollable: true });
+    await page.locator('#collapse').click(); await settleLayout(page); expectFits(await measure(page), { scrollable: true });
     await expect(page.locator('#panel-body')).toBeVisible();
     expect(errors).toEqual([]);
     await mkdir('validation', { recursive: true });
