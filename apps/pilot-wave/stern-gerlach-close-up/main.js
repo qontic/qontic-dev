@@ -13,6 +13,7 @@ function showSimulationError(title, error) {
   document.getElementById("controls").inert = true;
   simulationButtons.forEach(button => { button.disabled = true; });
   document.getElementById("stats").textContent = "";
+  canvas.dispatchEvent(new Event("stern-gerlach:unavailable"));
   console.error(title, error);
 }
 
@@ -84,7 +85,7 @@ const rawMaxSimRes = Math.min(256, maxResByStorage, maxResByDispatch);
 const MAX_SIM_RES = Math.max(32, Math.floor(rawMaxSimRes / 4) * 4);
 
 const params = {
-  simRes: Math.min(128, MAX_SIM_RES),
+  simRes: Math.min(64, MAX_SIM_RES),
   stepsPerFrame: 8,
   boxScale: 2.5,
   cameraProjection: 0,
@@ -163,7 +164,10 @@ function requestRedraw() {
   redrawPending = true;
 }
 
-const controls = document.getElementById("controls");
+const coreControls = document.querySelector('[data-control-pane="core"]');
+const displayControls = document.querySelector('[data-control-pane="display"]');
+const advancedControls = document.querySelector('[data-control-pane="advanced"]');
+let controls = coreControls;
 const statsEl = document.getElementById("stats");
 const viewGizmo = document.getElementById("viewGizmo");
 const viewButtons = {
@@ -223,6 +227,7 @@ function addToggleInt(key, label, onChange = null) {
 
   const btn = document.createElement("button");
   btn.type = "button";
+  btn.className = "qontic-app-toggle";
   lab.id = key + "-label";
   btn.setAttribute("aria-labelledby", lab.id + " " + key);
   btn.id = key;
@@ -257,6 +262,7 @@ function addCycleButton(key, label, values, onChange = null) {
 
   const btn = document.createElement("button");
   btn.type = "button";
+  btn.className = "qontic-app-toggle";
   lab.id = key + "-label";
   btn.setAttribute("aria-labelledby", lab.id + " " + key);
   btn.id = key;
@@ -306,7 +312,7 @@ addSlider("p0", "Initial momentum", 0.0, 6.0, 0.1, () => resetAll());
 addSlider("packetSigma", "Packet width", 4.0, 14.0, 0.5, () => resetAll());
 addSlider("spinS", "Spin current s", 0.0, 2.0, 0.5);
 
-addSectionHeader("Display");
+controls = displayControls;
 const cameraProjectionControl = addCycleButton("cameraProjection", "Camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
   syncCameraUi();
@@ -322,33 +328,13 @@ addSlider("dotGain", "Particle brightness", 0.1, 5.0, 0.1);
 addToggleInt("showTrail", "Draw trails");
 addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1);
 
-addSectionHeader("Numerical settings");
-addSlider("simRes", "Grid x/y", 64, MAX_SIM_RES, 4, () => rebuildSimulation());
-addSlider("stepsPerFrame", "Steps/frame", 1, 30, 1);
+controls = advancedControls;
+addSlider("simRes", "Grid x/y", Math.min(64, MAX_SIM_RES), MAX_SIM_RES, 4, () => rebuildSimulation());
 addSlider("dt", "Time step", 0.002, 0.02, 0.002);
 
-document.getElementById("reset").onclick = () => resetAll();
-const pauseButton = document.getElementById("pause");
-function syncPauseButton() {
-  pauseButton.textContent = paused ? "Resume" : "Pause";
-}
-pauseButton.onclick = () => {
-  paused = !paused;
-  syncPauseButton();
-  requestRedraw();
-};
-
-window.addEventListener("keydown", (e) => {
-  if (!simulationAvailable || e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented ||
-      isTextEntryTarget(e.target) || e.target.closest?.("button, a, summary")) return;
-  if (e.key.toLowerCase() === "r") resetAll();
-  if (e.key === " " && e.target === canvas) {
-    e.preventDefault();
-    paused = !paused;
-    syncPauseButton();
-    requestRedraw();
-  }
-  handleCameraKey(e);
+window.addEventListener("keydown", event => {
+  if (!simulationAvailable || event.defaultPrevented || event.target.closest?.("button, a, summary")) return;
+  handleCameraKey(event);
 });
 
 window.addEventListener("keyup", (e) => {
@@ -378,7 +364,7 @@ const SHADER_FILES = {
   waveInit: "./shaders/wave-init.wgsl",
   waveStep: "./shaders/wave-step.wgsl",
   particleUpdate: "./shaders/particle-update.wgsl",
-  cloud: "./shaders/cloud.wgsl",
+  cloud: "./shaders/cloud.wgsl?v=2",
   particleRender: "./shaders/particle-render.wgsl",
   density: "./shaders/density.wgsl",
   boxShell: "./shaders/box-shell.wgsl",
@@ -486,7 +472,7 @@ function configureCanvas() {
 }
 
 function resizeCanvas() {
-  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const dpr = Math.max(1, Math.min(1.5, window.devicePixelRatio || 1));
   const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
   const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
   if (canvas.width !== w || canvas.height !== h) {
@@ -1278,7 +1264,7 @@ function drawViewGizmo() {
   if (!viewGizmo) return;
 
   const rect = viewGizmo.getBoundingClientRect();
-  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const dpr = Math.max(1, Math.min(1.5, window.devicePixelRatio || 1));
   const w = Math.max(1, Math.floor(rect.width * dpr));
   const h = Math.max(1, Math.floor(rect.height * dpr));
   if (viewGizmo.width !== w || viewGizmo.height !== h) {
@@ -1764,10 +1750,7 @@ function resetAll() {
 }
 
 window.addEventListener("resize", () => {
-  if (simulationAvailable && resizeCanvas()) {
-    rebuildDensity();
-    requestRedraw();
-  }
+  requestRedraw();
 });
 
 async function main() {
@@ -1779,8 +1762,12 @@ async function main() {
   simulationButtons.forEach(button => { button.disabled = false; });
 
   let lastFrameTime = performance.now();
-  requestAnimationFrame(function loop(now = performance.now()) {
+  requestAnimationFrame(async function loop(now = performance.now()) {
     if (!simulationAvailable) return;
+    if (canvas.closest("[hidden]")) {
+      setTimeout(loop, PAUSED_IDLE_MS);
+      return;
+    }
     const wallDtSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
     const dtSeconds = wallDtSeconds;
     lastFrameTime = now;
@@ -1803,7 +1790,6 @@ async function main() {
 
     if (trailClearPending) clearDensity();
 
-    writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);
     const encoder = device.createCommandEncoder({ label: "frame encoder" });
 
     if (!paused) {
@@ -1821,8 +1807,19 @@ async function main() {
     writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);
     render(encoder, camera);
     device.queue.submit([encoder.finish()]);
-    updateStats();
+    if (redrawPending) updateStats();
     redrawPending = false;
+
+    // Wait for the current frame so a slow GPU cannot build a render backlog.
+    try {
+      await device.queue.onSubmittedWorkDone();
+    } catch (error) {
+      if (simulationAvailable) {
+        simulationAvailable = false;
+        showSimulationError("The WebGPU device stopped responding", error);
+      }
+      return;
+    }
 
     if (paused && !cameraMoved && !cameraInputActive && !trailClearPending && !redrawPending) {
       setTimeout(loop, PAUSED_IDLE_MS);
@@ -1838,3 +1835,18 @@ try {
   simulationAvailable = false;
   showSimulationError("The simulation could not start", error);
 }
+
+export const simulation = {
+  isAvailable: () => simulationAvailable,
+  isRunning: () => simulationAvailable && !paused,
+  setRunning(value) {
+    if (!simulationAvailable) return;
+    paused = !value;
+    requestRedraw();
+  },
+  setSpeed(multiplier) {
+    params.stepsPerFrame = Math.max(1, Math.min(30, Math.round(8 * multiplier)));
+  },
+  reset() { if (simulationAvailable) resetAll(); },
+  redraw: requestRedraw,
+};

@@ -4,17 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Stern–Gerlach Close-Up — Q-Ontic</title>
-  <link rel="stylesheet" href="../../../shared/back-home.css" />
-  <link rel="stylesheet" href="./style.css?v=1" />
-  <script defer src="../../../shared/back-home.js"></script>
+  <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
+  <link rel="stylesheet" href="../../../shared/qontic-app.css" />
+  <link rel="stylesheet" href="./style.css?v=2" />
 </head>
 <body>
-  <main id="wrap">
-    <header class="app-header">
-      <h1>Stern–Gerlach Close-Up</h1>
-      <p>Advanced pilot-wave simulation · Requires WebGPU</p>
+  <main class="shell">
+    <header>
+      <div><h1>Stern–Gerlach Close-Up</h1></div>
     </header>
-    <section class="stage" aria-label="Simulation">
+    <nav class="tabs" aria-label="Views">
+      <button type="button" class="qontic-app-toggle active" data-view="simulation" aria-pressed="true">Simulation</button>
+      <button type="button" class="qontic-app-toggle" data-view="physics" aria-pressed="false">Physics</button>
+    </nav>
+    <section id="simulation" class="qontic-workspace" aria-label="Simulation">
+    <section class="stage qontic-panel qontic-stage" aria-label="Wave and trajectories">
       <div class="viewport">
         <canvas id="c" tabindex="0" aria-label="Pauli spinor density and pilot-wave trajectories" aria-describedby="camera-hint"></canvas>
         <div id="gpu-status" role="status">
@@ -29,30 +33,33 @@
       <div id="viewtools">
         <canvas id="viewGizmo" width="104" height="76" aria-hidden="true"></canvas>
         <div class="view-buttons" role="group" aria-label="Camera angle and zoom">
-          <button id="viewXY" type="button" aria-label="Top XY view" aria-pressed="false" disabled>XY</button>
-          <button id="viewXZ" type="button" aria-label="Side XZ view" aria-pressed="false" disabled>XZ</button>
-          <button id="viewYZ" type="button" aria-label="Side YZ view" aria-pressed="false" disabled>YZ</button>
-          <button id="zoomOut" type="button" aria-label="Zoom out" disabled>−</button>
-          <button id="zoomIn" type="button" aria-label="Zoom in" disabled>+</button>
+          <button class="qontic-app-toggle" id="viewXY" type="button" aria-label="Top XY view" aria-pressed="false" disabled>XY</button>
+          <button class="qontic-app-toggle" id="viewXZ" type="button" aria-label="Side XZ view" aria-pressed="false" disabled>XZ</button>
+          <button class="qontic-app-toggle" id="viewYZ" type="button" aria-label="Side YZ view" aria-pressed="false" disabled>YZ</button>
+          <button class="qontic-app-toggle" id="zoomOut" type="button" aria-label="Zoom out" disabled>−</button>
+          <button class="qontic-app-toggle" id="zoomIn" type="button" aria-label="Zoom in" disabled>+</button>
         </div>
         <span id="camera-hint">Drag to rotate. Use the wheel or zoom buttons to zoom.</span>
-        <a class="controls-link" href="#ui">Controls ↓</a>
+        <a class="qontic-app-toggle controls-link" href="#ui">Controls ↓</a>
       </div>
     </section>
-    <aside class="sidebar" aria-label="Controls and explanation">
-      <section id="ui" tabindex="-1" aria-labelledby="controls-title">
-        <h2 id="controls-title">Simulation controls</h2>
-        <p class="prompt">With the gradient on, use XZ to compare the vertical deflection for +z with the splitting for the equal superposition. Changing initial spin restarts the packet.</p>
-        <div class="btns">
-          <button id="reset" type="button" disabled>Reset</button>
-          <button id="pause" type="button" disabled>Pause</button>
+    <aside class="qontic-sidebar qontic-panel qontic-control-panel" id="ui" tabindex="-1" aria-label="Simulation controls">
+      <qontic-controls running="false" speed="1" speed-min="0.1" speed-max="3.8" speed-step="0.1"
+        show-reset="true" show-autorun="false" show-interpretation="false" disabled></qontic-controls>
+      <div class="qontic-control-body" id="controls">
+        <div data-control-pane="core">
+          <p class="prompt">With the gradient on, use XZ to compare the deflection for +z with the splitting for the equal superposition. Changing initial spin restarts the packet.</p>
         </div>
-        <p class="stat" id="stats"></p>
-        <div id="controls"></div>
-      </section>
-      <details id="explain">
-        <summary>Physics and model limits</summary>
-        <div id="explainBody">
+        <div data-control-pane="advanced" hidden>
+          <p class="prompt">Use a smaller grid for faster playback. Changing the grid also changes the tunnel dimensions and restarts the packet.</p>
+        </div>
+        <div data-control-pane="display" hidden></div>
+      </div>
+      <p class="stat" id="stats"></p>
+    </aside>
+    </section>
+    <section id="physics" class="qontic-panel qontic-reading-panel" hidden>
+      <h2>Physics and model limits</h2>
           <p>The cloud shows total spinor density and the dots trace pilot-wave trajectories. The default packet starts in an equal, in-phase superposition of +z and −z spin. With the gradient enabled, the two components tend to separate vertically.</p>
         <h4>Wave</h4>
         <p>The wave function is a two-component spinor. Its density is</p>
@@ -124,10 +131,8 @@
             </mrow>
           </math>
         </div>
-        </div>
-      </details>
-    </aside>
+    </section>
   </main>
-  <script type="module" src="./main.js?v=1"></script>
+  <script type="module" src="./template.js?v=2"></script>
 </body>
 </html>

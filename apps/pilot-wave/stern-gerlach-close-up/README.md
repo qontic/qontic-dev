@@ -14,7 +14,8 @@ The spin-current coefficient defaults to ½ for the Pauli current. The coefficie
 
 - Drag to orbit or use XY, XZ and YZ to select a view. Use the wheel or zoom buttons to zoom.
 - Change the field gradient or initial spin in Simulation controls.
-- Adjust the grid resolution and steps per frame to suit the device.
+- The default grid is 64 × 64 × 128. Set Grid x/y to 128 in Advanced for the former larger tunnel. Changing the grid restarts the packet.
+- Speed changes the number of simulation steps per frame. The numerical time step is a separate Advanced control.
 - Reset restarts the wave, particles and trails. Pause stops time stepping.
 
 ## License and credit

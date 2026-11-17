@@ -12,6 +12,7 @@ struct CloudOut {
 @vertex
 fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> CloudOut {
   var out: CloudOut;
+  out.position = vec4<f32>(2.0, 2.0, 2.0, 1.0);
   let id = instanceIndex;
   let s = simResU();
   let slice = s.x * s.y;
@@ -19,41 +20,32 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
   let rem = id - z * slice;
   let y = rem / s.x;
   let x = rem - y * s.x;
-  if (x >= s.x - 1u) {
-    out.position = vec4<f32>(2.0, 2.0, 2.0, 1.0);
-    out.alpha = 0.0;
-    out.intensity = 0.0;
-    out.phase = 0.0;
-    out.local = vec2<f32>(0.0);
-    return out;
-  }
+  if (x >= s.x - 1u) { return out; }
+
   let spinor = waveSpinor(wave[id]);
   let rho = spinorRho(spinor);
-  var intensity = 1.0 - exp(-uni.visual0.x * rho);
-  intensity = pow(clamp(intensity, 0.0, 1.0), uni.visual0.y);
+  let base = 1.0 - exp(-uni.visual0.x * rho);
+  if (base <= 0.0) { return out; }
+  var intensity = pow(clamp(base, 0.0, 1.0), uni.visual0.y);
   intensity = mix(intensity, pow(intensity, 0.52), clamp(uni.visual0.z, 0.0, 1.0));
-  out.intensity = intensity;
-  let upRho = dot(spinor.up, spinor.up);
-  let downRho = dot(spinor.down, spinor.down);
-  let upWeight = upRho * upRho;
-  let downWeight = downRho * downRho;
-  let phaseVec =
-    spinor.up * (upWeight / sqrt(max(upRho, 1e-30))) +
-    spinor.down * (downWeight / sqrt(max(downRho, 1e-30)));
-  let phasePsi = select(vec2<f32>(1.0, 0.0), phaseVec, dot(phaseVec, phaseVec) > 1e-20);
-  out.phase = atan2(phasePsi.y, phasePsi.x);
-  out.alpha = 0.24 * intensity;
-  out.local = quadCorner(vertexIndex) + vec2<f32>(0.5);
-  if (intensity < uni.visual0.w) {
-    out.position = vec4<f32>(2.0, 2.0, 2.0, 1.0);
-    out.alpha = 0.0;
-    return out;
-  }
+  if (intensity < uni.visual0.w) { return out; }
+
   let visualX = nearestVisualX(f32(x));
-  if (uni.detector.y > 0.5 && visualX > uni.detector.x) {
-    out.position = vec4<f32>(2.0, 2.0, 2.0, 1.0);
-    out.alpha = 0.0;
-    return out;
+  if (uni.detector.y > 0.5 && visualX > uni.detector.x) { return out; }
+  out.intensity = intensity;
+  out.alpha = 0.24 * intensity;
+  let corner = quadCorner(vertexIndex);
+  out.local = corner + vec2<f32>(0.5);
+  if (i32(uni.visual1.y) == 1) {
+    let upRho = dot(spinor.up, spinor.up);
+    let downRho = dot(spinor.down, spinor.down);
+    let upWeight = upRho * upRho;
+    let downWeight = downRho * downRho;
+    let phaseVec =
+      spinor.up * (upWeight / sqrt(max(upRho, 1e-30))) +
+      spinor.down * (downWeight / sqrt(max(downRho, 1e-30)));
+    let phasePsi = select(vec2<f32>(1.0, 0.0), phaseVec, dot(phaseVec, phaseVec) > 1e-20);
+    out.phase = atan2(phasePsi.y, phasePsi.x);
   }
   let worldPos = vec3<f32>(visualX, f32(y), f32(z)) * uni.visual1.w;
   let clip = uni.viewProj * vec4<f32>(worldPos, 1.0);
@@ -62,7 +54,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
     viewScale = clamp(160.0 / max(1.0, uni.camera.w), 0.35, 2.3);
   }
   let pointSize = uni.visual1.x * viewScale * mix(0.65, 1.45, intensity);
-  let ndcOffset = quadCorner(vertexIndex) * pointSize * 2.0 / max(uni.viewport.xy, vec2<f32>(1.0));
+  let ndcOffset = corner * pointSize * 2.0 / max(uni.viewport.xy, vec2<f32>(1.0));
   out.position = vec4<f32>(
     clip.x + ndcOffset.x * clip.w,
     clip.y + ndcOffset.y * clip.w,
@@ -81,16 +73,13 @@ fn fs(in: CloudOut) -> @location(0) vec4<f32> {
   let edge = smoothstep(0.5, 0.18, r);
   let blur = exp(-16.0 * r * r);
   let a = in.alpha * edge * blur;
-  let params = getPaletteParams(i32(uni.visual1.z));
-  let phaseT = fract((1.0*in.phase + 3.14159265) / 6.2831853);
-  let phaseCol = palette(phaseT, params.a, params.b, params.c, params.d);
-    let densityCol = mix(vec3<f32>(0.05, 0.22, 0.46), vec3<f32>(0.58, 0.95, 1.00), smoothstep(0.08, 0.95, in.intensity));
-  var col = densityCol;
+  var col = mix(vec3<f32>(0.05, 0.22, 0.46), vec3<f32>(0.58, 0.95, 1.00), smoothstep(0.08, 0.95, in.intensity));
   var alpha = a;
   if (i32(uni.visual1.y) == 1) {
-    let phaseGate = smoothstep(0.0, 0.25, in.intensity);
-  col = 0.92 * phaseCol;
-    alpha = alpha * phaseGate;
+    let params = getPaletteParams(i32(uni.visual1.z));
+    let phaseT = fract((in.phase + 3.14159265) / 6.2831853);
+    col = 0.92 * palette(phaseT, params.a, params.b, params.c, params.d);
+    alpha = alpha * smoothstep(0.0, 0.25, in.intensity);
   }
   col = col * (0.35 + 1.15 * in.intensity);
   return vec4<f32>(col * alpha, alpha);
