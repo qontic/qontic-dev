@@ -1,112 +1,59 @@
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function getWebGpuContext() {
-  const secure = window.isSecureContext ? "yes" : "no";
-  const host = location.host;
-  const ua = navigator.userAgent;
-  const inFrame = window.top !== window ? "yes" : "no";
-  const policy = document.permissionsPolicy || document.featurePolicy;
-  let webgpuAllowed = "unknown";
-  try {
-    if (policy && typeof policy.allowsFeature === "function") {
-      webgpuAllowed = policy.allowsFeature("webgpu") ? "yes" : "no";
-    }
-  } catch {
-    webgpuAllowed = "unknown";
-  }
-  return { secure, host, ua, inFrame, webgpuAllowed };
-}
-
-function showWebGpuTroubleshooting(message, context) {
-  const isChrome = /Chrome\//.test(context.ua) && !/Edg\//.test(context.ua);
-  const panel = document.createElement("div");
-  panel.style.cssText = [
-    "position:fixed",
-    "inset:16px",
-    "z-index:99999",
-    "max-width:900px",
-    "margin:auto",
-    "overflow:auto",
-    "padding:16px 18px",
-    "background:#0f172a",
-    "color:#e2e8f0",
-    "border:1px solid #334155",
-    "border-radius:12px",
-    "box-shadow:0 12px 36px rgba(0,0,0,0.4)",
-    "font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif"
-  ].join(";");
-
-  const browserHint = isChrome
-    ? "Chrome detected. If this works in Edge but not Chrome, reset Chrome graphics settings and test with a clean profile."
-    : "Try Microsoft Edge to verify whether this is a browser-specific GPU configuration issue.";
-
-  panel.innerHTML = `
-    <h2 style="margin:0 0 10px 0;font-size:18px;color:#f8fafc;">WebGPU is unavailable in this browser session</h2>
-    <p style="margin:0 0 12px 0;color:#cbd5e1;">${escapeHtml(message)}</p>
-    <p style="margin:0 0 10px 0;color:#cbd5e1;">${escapeHtml(browserHint)}</p>
-    <ol style="margin:0 0 10px 20px;padding:0;color:#cbd5e1;">
-      <li>Enable hardware acceleration in browser settings and restart the browser.</li>
-      <li>In Chrome, open <b>chrome://flags</b> and reset graphics/WebGPU flags to Default.</li>
-      <li>Check <b>chrome://gpu</b> for disabled graphics features or software rendering.</li>
-      <li>Try a clean browser profile or private window with extensions disabled.</li>
-      <li>If this is a managed machine, ask IT to allow WebGPU for this site.</li>
-    </ol>
-    <p style="margin:0 0 8px 0;color:#93c5fd;">Diagnostics</p>
-    <pre style="margin:0;background:#020617;border:1px solid #1e293b;border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-word;color:#cbd5e1;">secureContext=${escapeHtml(context.secure)}
-host=${escapeHtml(context.host)}
-inIframe=${escapeHtml(context.inFrame)}
-permissionsPolicy.webgpu=${escapeHtml(context.webgpuAllowed)}
-userAgent=${escapeHtml(context.ua)}</pre>
-  `;
-  document.body.appendChild(panel);
-}
-
 const canvas = document.getElementById("c");
-if (!navigator.gpu) {
-  const ctx = getWebGpuContext();
-  const msg = "WebGPU API is not available (navigator.gpu is missing).";
-  showWebGpuTroubleshooting(msg, ctx);
-  throw new Error(msg);
+const status = document.getElementById("gpu-status");
+const statusTitle = document.getElementById("gpu-status-title");
+const gpuHelp = document.getElementById("gpu-help");
+const simulationButtons = [...document.querySelectorAll("#viewtools button, #ui .btns button")];
+
+function showSimulationError(title, error) {
+  statusTitle.textContent = title;
+  gpuHelp.hidden = false;
+  status.hidden = false;
+  canvas.hidden = true;
+  canvas.closest(".stage").classList.add("unavailable");
+  document.getElementById("controls").inert = true;
+  simulationButtons.forEach(button => { button.disabled = true; });
+  document.getElementById("stats").textContent = "";
+  console.error(title, error);
 }
 
-// Try several adapter hints before failing. Some environments reject
-// high-performance but still provide a valid low-power/default adapter.
-let adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
-if (!adapter) adapter = await navigator.gpu.requestAdapter({ powerPreference: "low-power" });
-if (!adapter) adapter = await navigator.gpu.requestAdapter();
-if (!adapter) adapter = await navigator.gpu.requestAdapter({ forceFallbackAdapter: true });
-if (!adapter) {
-  const ctx = getWebGpuContext();
-  const msg = "No WebGPU adapter found. This browser session may be GPU-blocked or policy-limited.";
-  showWebGpuTroubleshooting(msg, ctx);
-  throw new Error(`${msg} secureContext=${ctx.secure} host=${ctx.host} inIframe=${ctx.inFrame} permissionsPolicy.webgpu=${ctx.webgpuAllowed}`);
+async function getGpuDevice() {
+  if (!navigator.gpu) throw new Error("WebGPU API unavailable");
+  const options = [
+    { powerPreference: "high-performance" },
+    { powerPreference: "low-power" },
+    {},
+    { forceFallbackAdapter: true },
+  ];
+  let adapter = null;
+  for (const hint of options) {
+    adapter = await navigator.gpu.requestAdapter(hint);
+    if (adapter) break;
+  }
+  if (!adapter) throw new Error("No WebGPU adapter available");
+
+  const requiredLimits = {};
+  for (const name of ["maxStorageBufferBindingSize", "maxBufferSize"]) {
+    const value = adapter.limits[name];
+    if (Number.isFinite(value) && value > 0) requiredLimits[name] = value;
+  }
+  return adapter.requestDevice({ requiredLimits });
 }
 
-const requestedLimits = {};
-for (const name of ["maxStorageBufferBindingSize", "maxBufferSize"]) {
-  const value = adapter.limits?.[name];
-  if (Number.isFinite(value) && value > 0) requestedLimits[name] = value;
+let device, gpuContext;
+try {
+  device = await getGpuDevice();
+  gpuContext = canvas.getContext("webgpu");
+  if (!gpuContext) throw new Error("WebGPU canvas context unavailable");
+} catch (error) {
+  showSimulationError("WebGPU is unavailable in this browser session", error);
+  throw error;
 }
-const device = await adapter.requestDevice(
-  Object.keys(requestedLimits).length ? { requiredLimits: requestedLimits } : undefined
-);
-device.lost.then((info) => {
-  console.error("WebGPU device lost:", info);
-  alert(`WebGPU device lost: ${info.message || info.reason}`);
+
+let simulationAvailable = true;
+device.lost.then(info => {
+  simulationAvailable = false;
+  showSimulationError("The WebGPU device stopped responding", info.message || info.reason);
 });
-
-const gpuContext = canvas.getContext("webgpu");
-if (!gpuContext) {
-  alert("Could not create a WebGPU canvas context.");
-  throw new Error("WebGPU canvas context unavailable.");
-}
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const WAVE_WORKGROUP_SIZE = 256;
@@ -204,11 +151,9 @@ const GUIDING_MODE_NAMES = [
 ];
 
 const INITIAL_SPIN_NAMES = [
-  "+Z",
-  "Up+Down"
+  "+z",
+  "Equal +z and −z"
 ];
-
-const SCENE_SCREEN_OFFSET_X = 0.15;
 
 let paused = false;
 let redrawPending = true;
@@ -241,6 +186,8 @@ function addSlider(key, label, min, max, step, onChange = null) {
   lab.textContent = label;
 
   const input = document.createElement("input");
+  input.id = key;
+  lab.htmlFor = input.id;
   input.type = "range";
   input.min = min;
   input.max = max;
@@ -271,15 +218,22 @@ function addSlider(key, label, min, max, step, onChange = null) {
 function addToggleInt(key, label, onChange = null) {
   const row = document.createElement("div");
   row.className = "row";
-  const lab = document.createElement("label");
+  const lab = document.createElement("span");
   lab.textContent = label;
 
   const btn = document.createElement("button");
-  btn.style.flex = "1";
-  btn.textContent = params[key] ? "ON" : "OFF";
+  btn.type = "button";
+  lab.id = key + "-label";
+  btn.setAttribute("aria-labelledby", lab.id + " " + key);
+  btn.id = key;
+  const sync = () => {
+    btn.textContent = params[key] ? "On" : "Off";
+    btn.setAttribute("aria-pressed", String(Boolean(params[key])));
+  };
+  sync();
   btn.addEventListener("click", () => {
     params[key] = params[key] ? 0 : 1;
-    btn.textContent = params[key] ? "ON" : "OFF";
+    sync();
     if (onChange) onChange(params[key]);
     requestRedraw();
   });
@@ -298,11 +252,14 @@ function addCycleButton(key, label, values, onChange = null) {
   const row = document.createElement("div");
   row.className = "row";
 
-  const lab = document.createElement("label");
+  const lab = document.createElement("span");
   lab.textContent = label;
 
   const btn = document.createElement("button");
-  btn.style.flex = "1";
+  btn.type = "button";
+  lab.id = key + "-label";
+  btn.setAttribute("aria-labelledby", lab.id + " " + key);
+  btn.id = key;
 
   const sync = () => {
     btn.textContent = values[params[key] | 0] ?? values[0];
@@ -340,39 +297,35 @@ function addSectionHeader(label) {
   controls.appendChild(header);
 }
 
-addSlider("simRes", "sim resolution", 64, MAX_SIM_RES, 4, () => rebuildSimulation());
-addSlider("stepsPerFrame", "Steps/frame", 1, 30, 1);
-addSlider("dt", "dt", 0.002, 0.02, 0.002);
+addCycleButton("initialSpin", "Initial spin", INITIAL_SPIN_NAMES, () => resetAll());
+addToggleInt("sgFieldOn", "Field gradient", () => requestTrailClear());
+addSlider("sgGradient", "Gradient strength", 0.0, 9.9, 0.002, () => requestTrailClear());
 
-const cameraProjectionControl = addCycleButton("cameraProjection", "camera view", ["Perspective", "Orthographic"], () => {
+addSectionHeader("Wave and guidance");
+addSlider("p0", "Initial momentum", 0.0, 6.0, 0.1, () => resetAll());
+addSlider("packetSigma", "Packet width", 4.0, 14.0, 0.5, () => resetAll());
+addSlider("spinS", "Spin current s", 0.0, 2.0, 0.5);
+
+addSectionHeader("Display");
+const cameraProjectionControl = addCycleButton("cameraProjection", "Camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
   syncCameraUi();
   requestTrailClear();
 });
+addToggleInt("showCloud", "Density cloud");
+addSlider("cloudGain", "Cloud brightness", 0.05, 2.0, 0.05);
+addToggleInt("showPhase", "Show phase");
+addToggleInt("showParticles", "Show particles");
+addSlider("nParticles", "Particle count", 1, 5000, 1, () => rebuildParticles());
+addSlider("dotSize", "Particle size", 2.0, 26.0, 1);
+addSlider("dotGain", "Particle brightness", 0.1, 5.0, 0.1);
+addToggleInt("showTrail", "Draw trails");
+addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1);
 
-addSectionHeader("Physical Parameters");
-addSlider("p0", "momentum p", 0., 6.0, 0.1, () => resetAll());
-
-addSlider("packetSigma", "packet sigma", 4.0, 14.0, 0.5, () => resetAll());
-addSlider("spinS", "spin strength", 0.0, 2.0, 0.5);
-addCycleButton("initialSpin", "initial spin", INITIAL_SPIN_NAMES, () => resetAll());
-addToggleInt("sgFieldOn", "SG z-gradient", () => requestTrailClear());
-addSlider("sgGradient", "SG strength", 0.0, 9.9, 0.002, () => requestTrailClear());
-
-
-addSectionHeader("Visual Parameters");
-addToggleInt("showCloud", "density cloud");
-addSlider("cloudGain", "cloud density", 0.1, 2.0, 0.1);
-addToggleInt("showPhase", "show phase");
-
-addToggleInt("showParticles", "show particles");
-addSlider("nParticles", "particle count", 1, 5001, 100, () => rebuildParticles());
-addSlider("dotSize", "particle size", 2.0, 26.0, 1);
-addSlider("dotGain", "particle brightness", 0.1, 5.0, 0.1);
-
-addToggleInt("showTrail", "draw trails");
-addSlider("trailHalfLife", "trail half-life", .1, 10.0, .1);
-
+addSectionHeader("Numerical settings");
+addSlider("simRes", "Grid x/y", 64, MAX_SIM_RES, 4, () => rebuildSimulation());
+addSlider("stepsPerFrame", "Steps/frame", 1, 30, 1);
+addSlider("dt", "Time step", 0.002, 0.02, 0.002);
 
 document.getElementById("reset").onclick = () => resetAll();
 const pauseButton = document.getElementById("pause");
@@ -386,8 +339,10 @@ pauseButton.onclick = () => {
 };
 
 window.addEventListener("keydown", (e) => {
+  if (!simulationAvailable || e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented ||
+      isTextEntryTarget(e.target) || e.target.closest?.("button, a, summary")) return;
   if (e.key.toLowerCase() === "r") resetAll();
-  if (e.key === " ") {
+  if (e.key === " " && e.target === canvas) {
     e.preventDefault();
     paused = !paused;
     syncPauseButton();
@@ -399,29 +354,6 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("keyup", (e) => {
   handleCameraKeyUp(e);
 });
-
-const uiBody = document.getElementById("uibody");
-const minBtn = document.getElementById("minui");
-minBtn.textContent = "-";
-
-let uiMinimized = false;
-minBtn.onclick = () => {
-  uiMinimized = !uiMinimized;
-  uiBody.style.display = uiMinimized ? "none" : "block";
-  minBtn.textContent = uiMinimized ? "+" : "-";
-};
-
-const explainPanel = document.getElementById("explain");
-const explainToggle = document.getElementById("explainToggle");
-let explainOpen = false;
-if (explainPanel && explainToggle) {
-  explainToggle.onclick = () => {
-    explainOpen = !explainOpen;
-    explainPanel.classList.toggle("closed", !explainOpen);
-    explainToggle.textContent = explainOpen ? "-" : "+";
-    explainToggle.title = explainOpen ? "Close explanation" : "Open explanation";
-  };
-}
 
 const COLOR_WRITE_RED = 0x1;
 const COLOR_WRITE_ALL = 0xf;
@@ -486,7 +418,11 @@ async function loadShaders() {
   };
 }
 
-const SHADERS = await loadShaders();
+const SHADERS = await loadShaders().catch(error => {
+  simulationAvailable = false;
+  showSimulationError("The simulation could not load its shaders", error);
+  throw error;
+});
 const WAVE_INIT_WGSL = SHADERS.waveInit;
 const WAVE_STEP_WGSL = SHADERS.waveStep;
 const PARTICLE_UPDATE_WGSL = SHADERS.particleUpdate;
@@ -1022,17 +958,6 @@ function mat4Mul(a, b) {
   return out;
 }
 
-function mat4ClipOffset(x, y) {
-  const out = new Float32Array(16);
-  out[0] = 1;
-  out[5] = 1;
-  out[10] = 1;
-  out[12] = x;
-  out[13] = y;
-  out[15] = 1;
-  return out;
-}
-
 function boxCenterWorld() {
   return worldFromGrid([
     0.5 * (simW - 1),
@@ -1106,7 +1031,9 @@ function syncCameraUi() {
   cameraProjectionControl.sync();
   for (const [key, btn] of Object.entries(viewButtons)) {
     if (!btn) continue;
-    btn.classList.toggle("selected", params.cameraProjection === 1 && activeOrthoView === key);
+    const selected = params.cameraProjection === 1 && activeOrthoView === key;
+    btn.classList.toggle("selected", selected);
+    btn.setAttribute("aria-pressed", String(selected));
   }
 }
 
@@ -1253,6 +1180,8 @@ for (const [key, btn] of Object.entries(viewButtons)) {
   if (btn) btn.addEventListener("click", () => selectOrthoView(key));
 }
 syncCameraUi();
+document.getElementById("zoomIn").onclick = () => applyCameraZoomDelta(-130);
+document.getElementById("zoomOut").onclick = () => applyCameraZoomDelta(130);
 
 canvas.addEventListener("pointerdown", (e) => {
   if (e.button !== 0) return;
@@ -1309,16 +1238,17 @@ function cameraFrame() {
   ];
   const aspect = Math.max(1e-3, canvas.width / Math.max(1, canvas.height));
   const view = mat4LookAt(eye, target, up);
-  const fovy = 40 * Math.PI / 180;
+  const halfFovTangent = Math.tan(Math.PI / 9) / Math.min(1, aspect);
+  const fovy = 2 * Math.atan(halfFovTangent);
   let proj;
   if ((params.cameraProjection | 0) === 1) {
-    const halfH = Math.tan(fovy * 0.5) * cameraOrbit.distance;
+    const halfH = halfFovTangent * cameraOrbit.distance;
     const halfW = halfH * aspect;
     proj = mat4Orthographic(-halfW, halfW, -halfH, halfH, 0.04 * n, 8.0 * n);
   } else {
     proj = mat4Perspective(fovy, aspect, 0.04 * n, 8.0 * n);
   }
-  const viewProj = mat4Mul(mat4ClipOffset(SCENE_SCREEN_OFFSET_X, 0), mat4Mul(proj, view));
+  const viewProj = mat4Mul(proj, view);
   return {
     viewProj,
     eye,
@@ -1834,7 +1764,7 @@ function resetAll() {
 }
 
 window.addEventListener("resize", () => {
-  if (resizeCanvas()) {
+  if (simulationAvailable && resizeCanvas()) {
     rebuildDensity();
     requestRedraw();
   }
@@ -1845,11 +1775,12 @@ async function main() {
   buildPipelines();
   rebuildSimulation();
   updateStats();
-
-  params.trailHalfLife*=0.99;
+  status.hidden = true;
+  simulationButtons.forEach(button => { button.disabled = false; });
 
   let lastFrameTime = performance.now();
   requestAnimationFrame(function loop(now = performance.now()) {
+    if (!simulationAvailable) return;
     const wallDtSeconds = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
     const dtSeconds = wallDtSeconds;
     lastFrameTime = now;
@@ -1901,7 +1832,9 @@ async function main() {
   });
 }
 
-main().catch(err => {
-  console.error(err);
-  alert(String(err));
-});
+try {
+  await main();
+} catch (error) {
+  simulationAvailable = false;
+  showSimulationError("The simulation could not start", error);
+}

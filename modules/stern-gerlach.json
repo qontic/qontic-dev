@@ -5,5 +5,14 @@
   "topics": ["spin", "measurement"],
   "interpretations": ["orthodox", "pilot-wave", "many-worlds"],
   "order": 50,
-  "relatedModules": ["measurement", "bell-correlations"]
+  "relatedModules": ["measurement", "bell-correlations"],
+  "recommendedResources": [
+    "stern-gerlach-comparative-simulation",
+    "stern-gerlach-pilot-wave-notebook",
+    "apps-pilot-wave-stern-gerlach-close-up"
+  ],
+  "resourceNotes": {
+    "stern-gerlach-comparative-simulation": "Start here to compare the Orthodox, pilot-wave and Many-Worlds views.",
+    "apps-pilot-wave-stern-gerlach-close-up": "Advanced pilot-wave extension. Compare how the field deflects a spin-up packet and separates a superposition."
+  }
 }

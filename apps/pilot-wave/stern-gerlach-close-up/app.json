@@ -1,13 +1,23 @@
 {
-  "title": "Stern-Gerlach Close-Up — WebGPU",
+  "id": "apps-pilot-wave-stern-gerlach-close-up",
+  "title": "Stern–Gerlach Close-Up — WebGPU",
   "type": "app",
   "category": "pilot-wave",
-  "description": "WebGPU close-up of Stern-Gerlach dynamics with a Pauli spinor wave, Bohmian trajectories, and an adjustable magnetic-field gradient.",
+  "description": "Follow a Pauli spinor and pilot-wave trajectories as a magnetic-field gradient separates the packet. Requires WebGPU.",
   "tags": [
     "Pilot-wave",
     "WebGPU",
     "Spin-1/2"
   ],
   "entry": "index.html",
-  "status": "published"
+  "status": "published",
+  "module": "stern-gerlach",
+  "topics": [
+    "spin",
+    "measurement"
+  ],
+  "interpretations": [
+    "pilot-wave"
+  ],
+  "level": "advanced"
 }

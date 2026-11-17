@@ -1,26 +1,22 @@
-# 3D Bohmian Particle in a Box
+# Stern–Gerlach Close-Up
 
-WebGPU Bohmian mechanics simulation of a Gaussian wave packet in a closed 3D box.
+This WebGPU simulation follows a two-component Pauli spinor and pilot-wave trajectories through a model Stern–Gerlach magnetic field. It is an advanced companion to the three-view Stern–Gerlach app.
 
-The wave field is now an up-polarized two-component Pauli spinor advanced on a 3D grid stored in WebGPU storage buffers and updated with compute shaders. The tunnel is 1.5x taller in z than its x/y dimensions. The defaults favor cleaner reflection over speed: a higher grid resolution, a longer resolved de Broglie wavelength, and fourth-order finite-difference stencils for the Pauli Laplacian and particle guidance gradients. Bohmian particles are seeded from the same Gaussian density and guided by the Pauli current:
+## Compare the two initial spin states
 
-`v = (j_conv + (s hbar / m) curl(Psi^dagger sigma Psi)) / rho`
+Choose the XZ view and leave the field gradient on. The default packet is an equal, in-phase superposition of +z and −z spin. Compare its early splitting with the deflection of a +z packet. Changing the initial spin prepares a new packet. The cloud displays total spinor density.
 
-The default initial spinor is `+z` / up, so the spin-current slider value `0.5` matches the usual `hbar / 2m` Pauli spin current. The `SG z-gradient` toggle enables the Stern-Gerlach field used by the spin Zeeman term. The wave and particles wrap periodically across the x faces, while y/z remain hard-walled.
+The grid is twice as tall along z as along x and y. Wave propagation is periodic along x and hard-walled along y and z. A detector plate stops trajectories on contact while the wave keeps evolving. Compare the early motion before reflections become important.
 
-A translucent detector plate is placed at the right end of the shortened tunnel, one repeated cell to the right of the center cell. Particles freeze to the plate when they reach it; the detector does not modify the wave evolution.
+The spin-current coefficient defaults to ½ for the Pauli current. The coefficient affects trajectories while the spinor evolves with the same Pauli equation. The app uses simulation units.
 
 ## Controls
 
-- `grid x/y` changes the base simulation resolution; the z dimension is 1.5x larger.
-- Drag the canvas to orbit around the box center; wheel zooms.
-- `particle count` is capped lower than the 2D version for 3D performance.
-- `density cloud` draws the 3D wave density as a projected point cloud.
-- `SG z-gradient` and `SG strength` control the Stern-Gerlach-style vertical gradient.
-- `Reset` restarts the wave, particles, and trails.
-- `Pause` stops time stepping.
-- `R` resets the simulation.
+- Drag to orbit or use XY, XZ and YZ to select a view. Use the wheel or zoom buttons to zoom.
+- Change the field gradient or initial spin in Simulation controls.
+- Adjust the grid resolution and steps per frame to suit the device.
+- Reset restarts the wave, particles and trails. Pause stops time stepping.
 
-## License and Credit
+## License and credit
 
-This project is released under the MIT License. Copyright (c) 2026 anssiZander. See `LICENSE` for the full license text.
+MIT License. Copyright (c) 2026 anssiZander. See [LICENSE](LICENSE).
