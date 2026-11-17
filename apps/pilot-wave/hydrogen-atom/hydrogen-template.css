@@ -93,8 +93,7 @@ body.light .hydrogen-story.info { background: var(--bg-panel); color: var(--text
 .diagnostic-results-heading h2 { font: 600 15px/1.4 Inter, system-ui, sans-serif; }
 #diagnostic-results-text { margin-top: 10px; max-height: 62dvh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
 #c { touch-action: none; }
-#physics, #views { margin-top: 12px; }
-#views .tp-body { display: grid; gap: 22px; width: 100%; max-width: 860px; }
+#physics { margin-top: 12px; }
 #physics .tp-body { display: grid; gap: 22px; width: 100%; max-width: 860px; }
 #physics .tp-sec { overflow-wrap: anywhere; }
 #physics .tp-sec h2, #physics .tp-sec h3 { font-family: inherit; }
@@ -110,7 +109,7 @@ body.light .hydrogen-story.info { background: var(--bg-panel); color: var(--text
   #simulation > .hydrogen-stage { height: max(360px, calc(100dvh - var(--hydrogen-header-height, 80px) - 12px)); }
   #simulation .hydrogen-controls-link { display: block; margin-left: auto; }
 }
-body:is([data-view="physics"], [data-view="views"]) :is(.qontic-media-toolbar, .qontic-media-menu-toggle) { display: none !important; }
+body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) { display: none !important; }
 @media (max-width: 600px) {
   .hydrogen-stage { padding: 7px; }
   .hydrogen-stage-actions { gap: 4px; }
@@ -125,4 +124,4 @@ body:is([data-view="physics"], [data-view="views"]) :is(.qontic-media-toolbar, .
   .hydrogen-legend { display: grid; justify-items: end; gap: 4px; }
   .hydrogen-legend summary { display: list-item; width: max-content; cursor: pointer; }
 }
-#physics a, #views a { color: var(--accent, #4fd1e8); text-decoration: underline; }
+#physics a { color: var(--accent, #4fd1e8); text-decoration: underline; }

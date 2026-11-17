@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="hydrogen-template.css?v=5">
+  <link rel="stylesheet" href="hydrogen-template.css?v=6">
 </head>
 
 <body>
@@ -17,7 +17,6 @@
     <nav class="tabs" aria-label="Views">
       <button type="button" class="qontic-app-toggle active" data-view="simulation" aria-pressed="true">Simulation</button>
       <button type="button" class="qontic-app-toggle" data-view="physics" aria-pressed="false">Physics</button>
-      <button type="button" class="qontic-app-toggle" data-view="views" aria-pressed="false">Views</button>
     </nav>
     <section class="qontic-workspace" id="simulation" aria-label="Hydrogen simulation">
       <div class="qontic-sidebar hydrogen-sidebar">
@@ -282,8 +281,9 @@
       <div class="tp-body">
           <section class="tp-sec">
             <h2>1 &mdash; What you are looking at</h2>
-            <p>The density displays (Volume, Slices, Lobes, Cloud) show |ψ|&sup2; for the chosen hydrogen state. Every view of quantum mechanics uses this density in the same way: it gives the probability of finding the electron in a region if its position is measured.</p>
-            <p>The moving dots and their trails show <em>pilot-wave (de Broglie&ndash;Bohm) theory</em>. Each dot is the electron of a separate hydrogen atom prepared in the same state. Its starting position is drawn at random from |ψ|&sup2;, and it then moves with the guidance velocity of section 3. The Views tab says how orthodox quantum mechanics and many-worlds read the same display.</p>
+            <p>The density displays (Volume, Slices, Lobes, Cloud) show |ψ|&sup2; for the chosen hydrogen state.</p>
+            <p>The moving dots and their trails show <em>pilot-wave (de Broglie&ndash;Bohm) theory</em>. Each dot is the electron of a separate hydrogen atom prepared in the same state. Its starting position is drawn at random from |ψ|&sup2;, and it then moves with the guidance velocity of section 3.</p>
+            <p>The density |ψ|&sup2; is the same in every formulation of quantum mechanics: it gives the probability of finding the electron in a region if its position is measured. The trajectories are specific to pilot-wave theory: in a stationary state with no measurement, the other views add nothing to draw. The Cloud view is the one measurement-shaped display; it shows where position measurements on many atoms would find the electron, which every view accepts.</p>
             <p>Units are atomic units (a&#x2080; = ħ = m<sub>e</sub> = e = 1): lengths in Bohr radii, a&#x2080; = 52.9&nbsp;pm; one atomic unit of time is 24.2&nbsp;as. The clock shows attoseconds.</p>
           </section>
 
@@ -363,22 +363,6 @@
           </section>
       </div>
     </section>
-    <section class="qontic-reading-panel qontic-panel details-panel" id="views" hidden>
-      <div class="tp-body">
-        <section class="tp-sec">
-          <h2>One wave function, several readings</h2>
-          <p>Every view below uses the same hydrogen wave function and the same |ψ|&sup2;, and predicts the same statistics for any measurement. They differ in what they say exists between measurements. The density displays belong to all of them; the moving dots belong to pilot-wave theory only.</p>
-          <h3>Orthodox quantum mechanics</h3>
-          <p>The standard formalism assigns the electron no position between measurements. |ψ|&sup2; gives the probability of each outcome if position is measured, and a measurement updates the state. Read the Cloud view as the record of position measurements on many atoms prepared in the same state. The formalism does not offer a picture of where the electron is between measurements, so the dots and trails are not part of it.</p>
-          <h3>Pilot wave (de Broglie&ndash;Bohm)</h3>
-          <p>The electron has a definite position at all times, guided by ψ (Physics &sect; 3). The dots are those positions in an ensemble of atoms; their spread follows |ψ|&sup2; at every time. Measurement outcomes are where the electron actually is, or what the measuring interaction does to it. The theory needs a choice of guidance law for spin, and the trajectories depend on it (Physics &sect; 4).</p>
-          <h3>Many worlds</h3>
-          <p>The wave function is the whole description and never collapses. A position measurement entangles the electron with the apparatus, and each outcome is recorded in its own branch, with weight given by |ψ|&sup2;. There is no single electron position to draw; the Cloud view stands for outcomes across branches and atoms.</p>
-          <h3>What a measurement can decide</h3>
-          <p>Because these views give the same predictions, no experiment on hydrogen tells them apart. The trajectories cannot be checked by position measurements, and the at-rest 1s electron and the circling one (spin term) cannot be told apart either. Collapse theories such as GRW and CSL are different theories with different predictions; for a single atom over these times their effects are far too small to matter.</p>
-        </section>
-      </div>
-    </section>
   </main>
   <dialog id="diagnostic-results" aria-labelledby="diagnostic-results-title">
     <div class="diagnostic-results-heading">
@@ -389,7 +373,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=6"></script>
-  <script type="module" src="hydrogen-template.js?v=3"></script>
+  <script src="hydrogen-3d.js?v=7"></script>
+  <script type="module" src="hydrogen-template.js?v=4"></script>
 </body>
 </html>

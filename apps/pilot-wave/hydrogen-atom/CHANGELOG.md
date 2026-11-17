@@ -1,5 +1,8 @@
 # Hydrogen Atom — changelog
 
+## 1.1.1 · 2026-11-17
+- Removed the Views tab. With no measurement in a stationary atom, orthodox quantum mechanics and many-worlds have nothing to draw beyond |ψ|², which the density displays already show; the app is presented as a pilot-wave app. Physics § 1 now says so in two sentences, and notes that the Cloud view (where position measurements would find the electron) is accepted by every view.
+
 ## 1.1.0 · 2026-11-17
 Response to the three-reviewer evaluation of 2026-11-17 (physicist, instructor, student and orthodox-view reader).
 
