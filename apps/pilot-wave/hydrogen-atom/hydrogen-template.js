@@ -18,6 +18,15 @@ mountQonticShell({
   version: 'Hydrogen Atom',
 });
 
+// The template header can wrap or be hidden. Budget its actual height in the
+// stacked layout so the canvas and the jump to controls fit the first screen.
+const header = document.getElementById('qontic-app-header');
+function updateHeaderHeight() {
+  stage.style.setProperty('--hydrogen-header-height', `${header.getBoundingClientRect().height}px`);
+}
+new ResizeObserver(updateHeaderHeight).observe(header);
+updateHeaderHeight();
+
 function setRunning(value) {
   hydrogenSimulation.setRunning(value);
   controls.setAttribute('running', String(value));
