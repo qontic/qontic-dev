@@ -1,0 +1,29 @@
+{
+  "id": "double-slit-n-slits-preview",
+  "title": "Double Slit with N Slits — Analytical (preview)",
+  "type": "app",
+  "category": "comparative",
+  "module": "double-slit",
+  "topics": [
+    "wave-mechanics",
+    "interference",
+    "measurement",
+    "trajectories"
+  ],
+  "interpretations": [
+    "orthodox",
+    "pilot-wave",
+    "many-worlds"
+  ],
+  "level": "intermediate",
+  "description": "Preview of the analytical double-slit app with the number of slits as a parameter (1–8): the same Gaussian source-packet model, interpretations, which-slit detector, Many-Worlds branching and 3D view. In pilot-wave colour-by-slit mode the screen shows the band each slit's particles reach.",
+  "tags": [
+    "Multiview",
+    "Double slit",
+    "Many slits",
+    "Born rule",
+    "Preview"
+  ],
+  "entry": "index.html",
+  "status": "draft"
+}
