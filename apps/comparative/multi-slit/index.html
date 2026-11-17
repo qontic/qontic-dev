@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Which Slit? Many-Slit Interference — Q-Ontic Lab</title>
+<meta name="description" content="Interference behind one to fifteen slits, with the wave computed exactly in the paraxial approximation. In pilot-wave theory the position on the screen tells which slit each particle went through: every slit sends its particles to one band of the screen.">
+<link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
+<link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
+<link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
+<link rel="stylesheet" href="css/ms.css?v=0.1.0">
+</head>
+<body class="ms-app">
+<main class="shell">
+<header><div><p class="eyebrow">Q-Ontic · Double Slit</p><h1>Which Slit? Many-Slit Interference</h1></div></header>
+<nav class="tabs" aria-label="App sections">
+  <button class="active" type="button" data-view="sim">Simulation</button>
+  <button type="button" data-view="physics">Physics</button>
+  <button type="button" data-view="rationale">Rationale</button>
+</nav>
+
+<section class="lab qontic-workspace" data-panel="sim">
+  <aside class="controls qontic-sidebar qontic-panel qontic-control-panel">
+    <section class="always-controls" aria-label="Simulation controls">
+      <qontic-controls interpretation="pw" running="false" auto-run="false" show-reset="true" speed="1" speed-min="0.25" speed-max="4" speed-step="0.25" active-tab="core"></qontic-controls>
+    </section>
+    <div class="control-tab-body qontic-control-body">
+      <div class="control-pane" data-control-pane="core">
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Settings</div>
+          <div class="qontic-app-toggle-group preset-group" role="group" aria-label="Presets">
+            <button class="qontic-app-toggle" type="button" data-preset="double" title="Two equal slits, screen in the far field.">Double slit</button>
+            <button class="qontic-app-toggle" type="button" data-preset="five" title="Five equal slits, screen in the far field, where the diffraction orders have separated.">Five slits</button>
+            <button class="qontic-app-toggle" type="button" data-preset="uneven" title="Four slits lit by a Gaussian beam centred on the upper slits, so the slits carry different weights.">Uneven beam</button>
+            <button class="qontic-app-toggle" type="button" data-preset="talbot" title="Fifteen narrow slits, screen at two Talbot lengths: the near-field carpet.">Talbot carpet</button>
+          </div>
+        </div>
+        <label class="control-row" title="Number of slits, spaced by d.">
+          <span>Slits</span><input id="nslits" type="range" min="1" max="15" step="1" aria-label="Number of slits"><output id="nslitsOut"></output>
+        </label>
+        <div class="qontic-control-section">
+          <div class="qontic-control-section-title">Open slits <span class="hint-inline">(or click a slit in the drawing)</span></div>
+          <div class="slit-buttons" id="slitButtons" role="group" aria-label="Open or close each slit"></div>
+        </div>
+        <label class="control-row" title="Distance from the slits to the screen, in Talbot lengths z_T = 2d²/λ.">
+          <span>Screen at</span><input id="zeta" type="range" min="0" max="1" step="0.001" aria-label="Distance of the screen in Talbot lengths"><output id="zetaOut"></output>
+        </label>
+        <label class="control-row select-row" title="The slit asked about in the question and highlighted in the drawing.">
+          <span>Followed slit</span><select id="follow" aria-label="Followed slit"></select>
+        </label>
+        <p class="core-hint" id="coreHint"></p>
+        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
+        <div class="toggle-row"><span>Ask for a prediction</span><button class="toggle" type="button" data-toggle="predict" aria-pressed="true" aria-label="Ask for a prediction before each run"></button></div>
+      </div>
+
+      <div class="control-pane hidden" data-control-pane="advanced">
+        <label class="control-row" title="Width σ of each Gaussian slit, as a fraction of the slit spacing d. |ψ|² behind a slit has standard deviation σ.">
+          <span>Slit width σ/d</span><input id="sigma" type="range" min="0.05" max="0.25" step="0.005" aria-label="Slit width as a fraction of the spacing"><output id="sigmaOut"></output>
+        </label>
+        <div class="toggle-row" title="Off: every open slit is lit equally. On: a Gaussian beam of the given centre and width lights the slits, so they carry different weights."><span>Gaussian illumination</span><button class="toggle" type="button" data-toggle="beam" aria-pressed="false" aria-label="Light the slits with a Gaussian beam"></button></div>
+        <label class="control-row beam-row" title="Centre of the illuminating beam, in units of d (0 is the middle of the slit array).">
+          <span>Beam centre</span><input id="beamC" type="range" min="-7" max="7" step="0.1" aria-label="Beam centre in units of d"><output id="beamCOut"></output>
+        </label>
+        <label class="control-row beam-row" title="Width of the illuminating beam (standard deviation of its intensity), in units of d.">
+          <span>Beam width</span><input id="beamW" type="range" min="0.4" max="8" step="0.1" aria-label="Beam width in units of d"><output id="beamWOut"></output>
+        </label>
+        <label class="control-row" title="Independent particles in each packet. They share the wave but each has its own starting point, drawn from |ψ|² at the slits.">
+          <span>Particles per packet</span><input id="ppp" type="range" min="1" max="60" step="1" aria-label="Particles per packet"><output id="pppOut"></output>
+        </label>
+        <label class="control-row" title="How many packets are between the slits and the screen at once. Independent particles do not interact, so this only changes how fast hits accumulate.">
+          <span>Packets in flight</span><input id="inflight" type="range" min="1" max="12" step="1" aria-label="Packets in flight"><output id="inflightOut"></output>
+        </label>
+        <label class="control-row" title="A run ends after this many hits on the screen.">
+          <span>Hits per run</span><input id="target" type="range" min="200" max="10000" step="100" aria-label="Hits per run"><output id="targetOut"></output>
+        </label>
+      </div>
+
+      <div class="control-pane hidden" data-control-pane="display">
+        <div class="toggle-row" title="On: the vertical scale widens with distance from the slits so that the near field and the far field are both visible; curved grey lines mark constant y. Off: one vertical scale everywhere."><span>Vertical scale widens with distance</span><button class="toggle" type="button" data-toggle="expand" aria-pressed="true" aria-label="Vertical scale widens with distance"></button></div>
+        <div class="toggle-row"><span>Wave |ψ|²</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave density"></button></div>
+        <div class="toggle-row"><span>Predicted density on the screen</span><button class="toggle" type="button" data-toggle="curve" aria-pressed="true" aria-label="Show the predicted density on the screen"></button></div>
+        <div class="toggle-row pw-only"><span>Trajectory fan</span><button class="toggle" type="button" data-toggle="fan" aria-pressed="true" aria-label="Show a fan of trajectories, equally spaced in probability"></button></div>
+        <div class="toggle-row pw-only" title="Shade the region swept by the trajectories of each slit, bounded by the trajectories that start between slits."><span>Slit domains</span><button class="toggle" type="button" data-toggle="domains" aria-pressed="true" aria-label="Shade the region reached by each slit's trajectories"></button></div>
+        <div class="toggle-row pw-only"><span>Trails of the particles in flight</span><button class="toggle" type="button" data-toggle="trails" aria-pressed="true" aria-label="Show the trails of the particles in flight"></button></div>
+      </div>
+    </div>
+    <section class="results-panel qontic-panel" data-results-panel aria-label="Results">
+      <div class="results-head"><strong>Results</strong><button type="button" data-results-collapse aria-label="Collapse results">−</button></div>
+      <div class="results-body">
+        <span>Hits</span><output data-result="hits">—</output>
+        <span>Screen distance</span><output data-result="zeta">—</output>
+        <span title="Fraction of the probability in the brightest fringe on the screen (far field only).">Brightest fringe</span><output data-result="central">—</output>
+        <span class="pw-only" title="In pilot-wave theory: the slits whose particles land in the brightest fringe, with their share of it.">Fed by slits</span><output class="pw-only" data-result="feeders">—</output>
+      </div>
+      <table class="slit-table" aria-label="Slits, weights and screen bands">
+        <thead><tr><th>Slit</th><th title="Probability of passing this slit, from |ψ|² at the slits.">Weight</th><th class="pw-only" title="In pilot-wave theory: the band of the screen reached by this slit's particles, in units of d.">Band on screen</th><th class="pw-only">Hits</th></tr></thead>
+        <tbody id="slitTable"></tbody>
+      </table>
+    </section>
+  </aside>
+
+  <div class="visualization qontic-stage qontic-panel">
+    <div class="canvas-host">
+      <canvas id="stage" aria-label="Wave and trajectories behind the slits, with the screen histogram"></canvas>
+    </div>
+    <div class="story" id="story" aria-live="polite">
+      <div id="setupStep" class="story-step">
+        <p class="story-title">The setup</p>
+        <ol class="setup-list" id="setupList"></ol>
+        <div class="story-buttons"><button type="button" class="qontic-app-toggle" id="setupNext">Next: the question</button></div>
+      </div>
+      <div id="questionStep" class="story-step hidden">
+        <p class="story-title" id="predictionText"></p>
+        <div class="reason-buttons">
+          <button type="button" class="qontic-app-toggle" data-predict="spread">All over the pattern: wherever the wave from that slit alone would reach.</button>
+          <button type="button" class="qontic-app-toggle" data-predict="band">In one band of the screen, which no other slit's particles reach.</button>
+          <button type="button" class="qontic-app-toggle" data-predict="ahead">Mostly straight ahead, in the bright fringes in line with the slit.</button>
+        </div>
+        <p class="story-links"><button type="button" class="link-button" id="setupBack">Back to the setup</button> · <button type="button" class="link-button" data-predict="skip">Skip and just run</button></p>
+      </div>
+      <div id="runStep" class="story-step hidden">
+        <p class="story-live" id="liveLine"></p>
+      </div>
+      <div id="verdictStep" class="story-step hidden">
+        <div id="verdict"></div>
+        <div class="story-buttons" id="nextSteps"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="physics">
+  <p class="spoiler-note">Run once first: this page gives the answer to the question.</p>
+  <h2>The wave</h2>
+  <p>A plane wave falls on a row of N slits spaced by d. Each slit is modelled as a Gaussian aperture: just behind the slits the transverse wave is</p>
+  <p class="formula">ψ(y, 0) = Σ<sub>k</sub> a<sub>k</sub> exp[−(y − y<sub>k</sub>)² / 4σ²],</p>
+  <p>so |ψ|² behind one slit has standard deviation σ. The weights a<sub>k</sub> are 1 for an open slit under uniform light, 0 for a closed slit, and follow a Gaussian beam profile when Gaussian illumination is on (Advanced). In the paraxial approximation the distance z behind the slits plays the role of time, and each Gaussian evolves exactly:</p>
+  <p class="formula">ψ(y, z) = Σ<sub>k</sub> a<sub>k</sub> (σ/√s) exp[−(y − y<sub>k</sub>)² / 4s], &nbsp; s = σ² + iz/(2k),</p>
+  <p>with k = 2π/λ. The app measures y in units of d and z in units of the Talbot length z<sub>T</sub> = 2d²/λ. In these units the only parameter left is σ/d: the pictures are the same for electrons, atoms or molecules, and only the conversion to metres changes. For d = 100 nm and λ = 5 pm (a fast electron, or a slow heavy molecule), z<sub>T</sub> = 4 mm. The drawing exaggerates the vertical scale enormously: real diffraction angles are of order λ/d, here 5 × 10<sup>−5</sup>.</p>
+  <p>A test compares this closed form with an independent numerical propagation (fast Fourier transform of the initial wave, Python) and finds agreement to 10<sup>−14</sup>.</p>
+
+  <h2>Near field and far field</h2>
+  <ul>
+    <li><b>Near field (z ≲ z<sub>T</sub>).</b> The waves from neighbouring slits overlap and build the Talbot carpet. For a long grating the pattern at the slits reappears at z = z<sub>T</sub>, shifted by half a period at z<sub>T</sub>/2. A finite grating repeats the pattern only away from its edges.</li>
+    <li><b>Far field.</b> The diffraction orders of a grating move apart at an angle λ/d, that is, by 2d per Talbot length. They separate once they are farther apart than the grating is wide, roughly beyond z ≈ N z<sub>T</sub>/2. Each order is narrowed by interference among all N slits and has N − 2 weak fringes between it and the next.</li>
+  </ul>
+
+  <h2>Trajectories: the quantile map</h2>
+  <p>In pilot-wave theory each particle has a definite position y, guided by the wave:<sup><a href="#ref-8">8</a></sup></p>
+  <p class="formula">dy/dz = (1/k) Im(∂<sub>y</sub>ψ / ψ).</p>
+  <p>The initial positions are distributed as |ψ(y, 0)|². Because the motion here is effectively one-dimensional (the forward motion is uniform), two trajectories can never cross: the velocity at a point is single-valued, so trajectories that met would have to coincide. Order is preserved, and equivariance (the trajectories stay distributed as |ψ|²) fixes them completely. With</p>
+  <p class="formula">F<sub>z</sub>(y) = ∫<sub>−∞</sub><sup>y</sup> |ψ(y′, z)|² dy′</p>
+  <p>the fraction of particles below y, each trajectory keeps its value of F:</p>
+  <p class="formula">F<sub>z</sub>(y(z)) = F<sub>0</sub>(y(0)).</p>
+  <p>A particle that starts with a fraction q of the particles above it still has the fraction q above it on the screen. This is known as quantile motion;<sup><a href="#ref-1">1</a></sup> the implications of the no-crossing property were worked out for one-dimensional tunnelling.<sup><a href="#ref-2">2</a></sup> The app computes the trajectories from tables of F<sub>z</sub>. A test integrates the guidance equation directly (fourth-order Runge–Kutta) and finds the same curves to 10<sup>−4</sup> d.</p>
+
+  <h2>Which slit, from the screen</h2>
+  <p>Let the slits, from the top, carry weights p<sub>1</sub>, p<sub>2</sub>, …, p<sub>N</sub>, and let P<sub>k</sub> = p<sub>1</sub> + … + p<sub>k</sub>. A particle from slit k starts with a fraction between P<sub>k−1</sub> and P<sub>k</sub> of the particles above it. It keeps that fraction, so it lands in the band of the screen that has between P<sub>k−1</sub> and P<sub>k</sub> of the probability above it. Every slit has its own band; the bands are contiguous and in the same order as the slits; and the band of slit k holds exactly the fraction p<sub>k</sub> of the hits.</p>
+  <p>For two equal slits the boundary is the axis, which is the familiar symmetry argument. With unequal weights it moves off the axis, and with many slits there are N − 1 boundaries. The weight of a slit is computed as the probability between the midpoints to its neighbours; when the slits are narrow (σ ≲ 0.2 d) this is the same as the probability of passing it.</p>
+  <p>Only the band is fixed, not the fringes. The bands do not follow the diffraction orders. With five equal slits in the far field, the central order holds 60% of the probability and is reached almost only by particles from the middle three slits. The outer two slits feed every other order.</p>
+
+  <h2>Remote slits</h2>
+  <p>Closing a slit changes ψ everywhere downstream, so it moves every band boundary, including those of slits far from the closed one. A particle that passes the top slit can land in a different place depending on whether the bottom slit is open. In pilot-wave theory the wave is a physical field that passes all the open slits; the particle goes through one, and is guided by all of it.</p>
+
+  <h2>How the run is simulated</h2>
+  <ul>
+    <li>Each particle is given a number q, uniformly random between 0 and 1: the fraction of the probability above its starting point. Its starting point is F<sub>0</sub><sup>−1</sup>(1 − q), so starting points are distributed as |ψ(y, 0)|², and its slit is the one whose cell contains that point.</li>
+    <li>Its position at every z is F<sub>z</sub><sup>−1</sup>(1 − q). The hit on the screen is that position at the screen.</li>
+    <li>In Orthodox and Many Worlds the same hit is shown as a detection. Because the hits are distributed as |ψ|² at the screen (equivariance; a test checks this), they are the hits the standard formalism predicts.</li>
+    <li>The longitudinal motion is uniform. Packets are drawn as bands moving at that speed; the transverse wave is stationary, so the drawn pattern does not change while they pass.</li>
+  </ul>
+
+  <h2>What the model assumes</h2>
+  <ul>
+    <li>Paraxial propagation; Gaussian slits instead of sharp-edged ones (sharp edges add fine near-field structure but do not change the argument); a perfectly coherent, monochromatic incident wave.</li>
+    <li>Only the transverse coordinate across the slits is modelled. With a two-dimensional array of apertures the transverse motion is two-dimensional, trajectories can pass around each other, and there is no left-to-right order to preserve; the map from aperture to screen is still determined by ψ, but the bands become regions that have to be computed.</li>
+    <li>The tables use 241 planes between the slits and the screen and 2401 points per plane; boundaries are accurate to about 10<sup>−3</sup> d.</li>
+  </ul>
+</section>
+
+<section class="details-panel qontic-panel qontic-reading-panel hidden" data-panel="rationale">
+  <h2>Why this app</h2>
+  <p>In the double slit the pilot-wave account gives a simple rule: particles that land in the upper half came through the upper slit. The rule is usually explained by symmetry. This app shows that symmetry is not what makes it work. The rule holds for any number of slits and any weights, and it says more than which slit: the place on the screen fixes where in the slit the particle started.</p>
+  <p>It also shows that the screen bands are not the diffraction orders. A wave picture invites the thought that every bright fringe gets particles from every slit, as it gets amplitude from every slit. In pilot-wave theory each fringe is fed by a contiguous group of slits.</p>
+
+  <h2>What the experiment decides</h2>
+  <p>Nothing here can be decided by counting hits. The band of slit k holds a fraction p<sub>k</sub> of the hits by construction, and the distribution on the screen is |ψ|² in every view. The assignment of hits to slits adds no prediction beyond the Born rule. It is a consequence of pilot-wave dynamics, which reproduces the quantum predictions.</p>
+  <p>Two kinds of experiment come close to it:</p>
+  <ul>
+    <li><b>Weak measurements.</b> Averaging many weak measurements of the transverse velocity, post-selected on the final position, gives a velocity field whose flow lines are the pilot-wave trajectories.<sup><a href="#ref-3">3</a></sup> This was done for single photons in a double slit.<sup><a href="#ref-4">4</a></sup> The same procedure behind many slits would reconstruct the bands. See the <a href="../weak-velocity/index.html">Weak Velocity app</a>.</li>
+    <li><b>Which-way markers.</b> If a marker at each slit records which slit the particle passed, the interference is lost, and the record and the pilot-wave trajectory can disagree: the trajectory may arrive on the side opposite to the slit the marker records. These are the “surrealistic trajectories” of Englert, Scully, Süssmann and Walther.<sup><a href="#ref-5">5</a></sup> In pilot-wave theory the record is carried by the marker's own guided motion, which the particle influences nonlocally; this was observed with weak measurements.<sup><a href="#ref-6">6</a></sup></li>
+  </ul>
+
+  <h2>Three views of the same wave</h2>
+  <ul>
+    <li><b>Orthodox.</b> The wave gives the probabilities of detections on the screen. A particle that is detected is not said to have passed through any particular slit; the question has no answer unless a measurement at the slits is made, and such a measurement destroys the interference. The standard formalism does not give a picture of what happens between slits and screen.</li>
+    <li><b>Pilot Wave.</b> Each particle passes through one slit. Its wave passes through all of them and guides it. The trajectories never cross, so the slit of each particle can be read off from where it lands. The colours mark the slit of each particle.</li>
+    <li><b>Many Worlds.</b> The wave never collapses. Detection entangles the screen with the particle, and the state branches into records that no longer interfere. The record shown is one branch, sampled with weights |ψ|². There is no single slit for the particle in a branch: the branch's wave came through all of them.</li>
+  </ul>
+
+  <h2>Teaching notes</h2>
+  <ul>
+    <li>Ask the question before the run. Most students expect slit k's particles to spread like the wave of slit k alone; the verdict reports how much of that single-slit wave falls in the band.</li>
+    <li>Close the bottom slit and watch the band of the top slit move.</li>
+    <li>The Talbot carpet preset shows trajectories that weave through the near-field pattern without crossing.<sup><a href="#ref-7">7</a></sup></li>
+  </ul>
+  <p>Several people in the team have worked on Bohmian mechanics. John Bell regretted not having been taught the pilot-wave theory as a student; this app is meant to let students see what it says in a case where it gives a sharp answer.</p>
+
+  <h2>References</h2>
+  <ol class="references">
+    <li id="ref-1">S. Brandt, H. D. Dahmen, E. Gjonaj and T. Stroh, “Quantile motion and tunneling,” <em>Physics Letters A</em> <strong>249</strong>, 265–270 (1998); arXiv:quant-ph/9809053.</li>
+    <li id="ref-2">X. Oriols, F. Martín and J. Suñé, “Implications of the noncrossing property of Bohm trajectories in one-dimensional tunneling configurations,” <em>Physical Review A</em> <strong>54</strong>, 2594–2604 (1996), doi:10.1103/PhysRevA.54.2594.</li>
+    <li id="ref-3">H. M. Wiseman, “Grounding Bohmian mechanics in weak values and bayesianism,” <em>New Journal of Physics</em> <strong>9</strong>, 165 (2007), doi:10.1088/1367-2630/9/6/165.</li>
+    <li id="ref-4">S. Kocsis, B. Braverman, S. Ravets, M. J. Stevens, R. P. Mirin, L. K. Shalm and A. M. Steinberg, “Observing the average trajectories of single photons in a two-slit interferometer,” <em>Science</em> <strong>332</strong>, 1170–1173 (2011), doi:10.1126/science.1202218.</li>
+    <li id="ref-5">B.-G. Englert, M. O. Scully, G. Süssmann and H. Walther, “Surrealistic Bohm trajectories,” <em>Zeitschrift für Naturforschung A</em> <strong>47</strong>, 1175–1186 (1992), doi:10.1515/zna-1992-1201.</li>
+    <li id="ref-6">D. H. Mahler, L. Rozema, K. Fisher, L. Vermeyden, K. J. Resch, H. M. Wiseman and A. Steinberg, “Experimental nonlocal and surreal Bohmian trajectories,” <em>Science Advances</em> <strong>2</strong>, e1501466 (2016), doi:10.1126/sciadv.1501466.</li>
+    <li id="ref-7">A. S. Sanz and S. Miret-Artés, “A causal look into the quantum Talbot effect,” <em>Journal of Chemical Physics</em> <strong>126</strong>, 234106 (2007), doi:10.1063/1.2741555.</li>
+    <li id="ref-8">D. Bohm, “A suggested interpretation of the quantum theory in terms of ‘hidden’ variables. I,” <em>Physical Review</em> <strong>85</strong>, 166–179 (1952).</li>
+  </ol>
+</section>
+</main>
+<script type="module" src="js/app.js?v=0.1.0"></script>
+</body>
+</html>

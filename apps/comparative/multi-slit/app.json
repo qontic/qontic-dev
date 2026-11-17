@@ -1,0 +1,30 @@
+{
+  "id": "which-slit-many-slits",
+  "title": "Which Slit? Many-Slit Interference",
+  "type": "app",
+  "category": "comparative",
+  "module": "double-slit",
+  "topics": [
+    "interference",
+    "trajectories",
+    "talbot-effect",
+    "measurement"
+  ],
+  "interpretations": [
+    "orthodox",
+    "pilot-wave",
+    "many-worlds"
+  ],
+  "level": "intermediate",
+  "description": "One to fifteen slits, with the wave computed exactly in the paraxial approximation. Pilot-wave trajectories never cross, so each slit sends its particles to its own band of the screen: the place of a hit tells which slit the particle went through, for any number of slits and any weights. Close a distant slit and watch the bands move.",
+  "tags": [
+    "Multiview",
+    "Double slit",
+    "Many slits",
+    "Talbot carpet",
+    "Prediction mode",
+    "Exact analytic model"
+  ],
+  "entry": "index.html",
+  "status": "draft"
+}

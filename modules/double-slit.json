@@ -27,6 +27,7 @@
     "double-slit-notebook": "2. Work through the analytical model and its activities.",
     "double-slit-webgl-simulation": "3. Explore numerical wave dynamics, reflection and trajectories colored by their starting position.",
     "double-slit-pilot-wave-notebook": "4. Study pilot-wave trajectories and equivariance.",
-    "weak-velocity-double-slit": "Optional advanced study: weak measurement and reconstructed probability flow."
+    "weak-velocity-double-slit": "Optional advanced study: weak measurement and reconstructed probability flow.",
+    "which-slit-many-slits": "Optional: many slits — which slit, read from the screen, in pilot-wave theory."
   }
 }
