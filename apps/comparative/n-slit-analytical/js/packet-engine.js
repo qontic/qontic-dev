@@ -1,10 +1,10 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit1';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit1';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit1';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit1';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit1';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit1';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit1';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit2';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit2';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit2';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit2';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit2';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit2';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit2';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -23,8 +23,15 @@ export function mountPacketEngine({core,advanced}){
  function maxTailSafeSeparation(limit,n){
   const base={sy:+width.value/100,k:2*Math.PI*100/Math.max(1,+document.getElementById('wavelength').value),wall:+document.getElementById('source-position').value/100,sourceSigma:+sourceWidth.value/100};
   const signs=openSlitIds().map(slitCenterSign);
-  return Math.max(0,Math.floor(100*maximumCoreSafeSeparation(base,n,limit/100,signs)+1e-9));
+  // config() runs every frame; the binary search costs O(N²) per step, so reuse
+  // the answer until the geometry changes.
+  const key=JSON.stringify([base,n,limit,signs]);
+  if(separationLimitCache.has(key))return separationLimitCache.get(key);
+  const value=Math.max(0,Math.floor(100*maximumCoreSafeSeparation(base,n,limit/100,signs)+1e-9));
+  if(separationLimitCache.size>64)separationLimitCache.clear();
+  separationLimitCache.set(key,value);return value;
  }
+ const separationLimitCache=new Map();
  let dynamicWidthMax=200,dynamicSeparationMax=2000;
  function applyPacketLimits(){
   const screenRange=document.getElementById('screen-height'),screenNumber=document.getElementById('screen-height-input');
@@ -303,7 +310,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit1').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit2').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;

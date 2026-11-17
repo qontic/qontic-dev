@@ -2,12 +2,20 @@
 // i (partial_t + k partial_x) u = -partial_y^2 u / 2.
 // The longitudinal envelope translates; longitudinal dispersion and reflection
 // are outside this approximation. No numerical wave-equation solver is used.
-import {gaussian} from './packet-model.js?cache=nslit1';
+import {gaussian} from './packet-model.js?cache=nslit2';
 
 function apertureWeights(p){
  return p.apertureWeights?.length===p.centers.length?p.apertureWeights:p.centers.map(()=>1);
 }
+// The bound depends only on the geometry, so it is computed once per
+// configuration object (the grid search for N > 2 costs ~0.1 ms).
+const boundCache=new WeakMap();
 function apertureBound(p){
+ const key=p.centers.join(',')+'|'+p.sy+'|'+(p.apertureWeights||[]).join(',');
+ const hit=boundCache.get(p);if(hit&&hit.key===key)return hit.value;
+ const value=computeApertureBound(p);boundCache.set(p,{key,value});return value;
+}
+function computeApertureBound(p){
  const weights=apertureWeights(p);
  if(weights.length<2)return weights[0]||1;
  if(weights.length===2){
@@ -51,12 +59,17 @@ export function sourceCoefficients(p){
   return {ar,ai,center:c,br:-2*incidentReal*c,bi:-2*ai*c,cr:g.re*r-g.im*i,ci:g.re*i+g.im*r};
  });
 }
-function propagatedComponent(y,x,p,a){
- const u=(x-p.wall)/p.k;
-  const rr=1-2*a.ai*u,ii=2*a.ar*u,dd=rr*rr+ii*ii;
+// Factors shared by all apertures at one x (ar and ai are the same for every
+// aperture): computed once per x instead of once per aperture.
+function sharedFactors(x,p,a){
+ const u=(x-p.wall)/p.k,rr=1-2*a.ai*u,ii=2*a.ar*u,dd=rr*rr+ii*ii;
+ return {u,rr,ii,dd,root:Math.pow(dd,.25),angle:Math.atan2(ii,rr)/2};
+}
+function propagatedComponent(y,x,p,a,f=sharedFactors(x,p,a)){
+ const {u,rr,ii,dd}=f;
   const q=y-a.center,nr=-a.ar*q*q+a.br*q-u*a.br*a.bi,ni=-a.ai*q*q+a.bi*q+u*(a.br*a.br-a.bi*a.bi)/2;
   const er=(nr*rr+ni*ii)/dd,ei=(ni*rr-nr*ii)/dd;
-  const amp=Math.exp(er)/Math.pow(dd,.25),phase=ei-Math.atan2(ii,rr)/2;
+  const amp=Math.exp(er)/f.root,phase=ei-f.angle;
   const fr=amp*Math.cos(phase),fi=amp*Math.sin(phase);
   const r=a.cr*fr-a.ci*fi,i=a.cr*fi+a.ci*fr;
   const lr=((-2*a.ar*q+a.br)*rr+(-2*a.ai*q+a.bi)*ii)/dd;
@@ -66,13 +79,25 @@ function propagatedComponent(y,x,p,a){
 }
 export function sourceComponents(y,x,p,coeff=sourceCoefficients(p)){
  if(x<p.wall){const g=gaussian(y,x/p.k,p.sourceSigma);return [{...g,v:(g.re*g.di-g.im*g.dr)/Math.max(1e-300,g.rho)}];}
- return coeff.map(a=>propagatedComponent(y,x,p,a));
+ const f=sharedFactors(x,p,coeff[0]);
+ return coeff.map(a=>propagatedComponent(y,x,p,a,f));
 }
 export function sourceTransverse(y,x,p,coeff=sourceCoefficients(p)){
  if(x<p.wall)return sourceComponents(y,x,p,coeff)[0];
+ // Same arithmetic as propagatedComponent, summed without allocating one object
+ // per aperture. Apertures whose Gaussian factor underflows (exp → 0 exactly)
+ // contribute nothing and are skipped, so the result is unchanged.
+ const f=sharedFactors(x,p,coeff[0]),{u,rr,ii,dd}=f;
  let re=0,im=0,dr=0,di=0;
- for(const component of sourceComponents(y,x,p,coeff)){
-  re+=component.re;im+=component.im;dr+=component.dr;di+=component.di;
+ for(let n=0;n<coeff.length;n++){
+  const a=coeff[n],q=y-a.center,nr=-a.ar*q*q+a.br*q-u*a.br*a.bi,ni=-a.ai*q*q+a.bi*q+u*(a.br*a.br-a.bi*a.bi)/2;
+  const er=(nr*rr+ni*ii)/dd;if(er<-746)continue;
+  const ei=(ni*rr-nr*ii)/dd,amp=Math.exp(er)/f.root,phase=ei-f.angle;
+  const fr=amp*Math.cos(phase),fi=amp*Math.sin(phase);
+  const r=a.cr*fr-a.ci*fi,i=a.cr*fi+a.ci*fr;
+  const lr=((-2*a.ar*q+a.br)*rr+(-2*a.ai*q+a.bi)*ii)/dd;
+  const li=((-2*a.ai*q+a.bi)*rr-(-2*a.ar*q+a.br)*ii)/dd;
+  re+=r;im+=i;dr+=lr*r-li*i;di+=lr*i+li*r;
  }
  const rho=re*re+im*im;
  return {re,im,dr,di,rho,v:rho>1e-26?(re*di-im*dr)/rho:0};

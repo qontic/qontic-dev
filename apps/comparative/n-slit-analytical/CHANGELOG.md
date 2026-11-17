@@ -1,3 +1,10 @@
+## 3.0-dev.2 — 2026-11-17
+Speed with many slits (Pablo: with 8 slits in Pilot Wave the simulation slowed down when the packet went through the slits).
+- The mask normalization for N > 2 (a grid search, ~0.1 ms) was recomputed for every particle crossing the wall; it is now computed once per configuration. aperture() with 8 slits: 93 µs → 0.9 µs per call.
+- Guidance with many slits: factors shared by all apertures are computed once per position, the coherent sum no longer allocates one object per aperture, and apertures whose Gaussian factor underflows to exactly zero are skipped. Same results. Pilot-Wave step with 8 slits: 2.9 → 1.0 µs per particle (2 slits: 0.42 → 0.26 µs).
+- The separation limit (an O(N²) binary search) was recomputed every frame; it is now cached until the geometry changes.
+- Headless Chrome, Pilot Wave, 9 s from Start: 8 slits 21.6 fps vs 22.6 fps for 2 slits (before: 18.9 vs 23.6). Same tests pass.
+
 ## 3.0-dev.1 — 2026-11-17 (N-slit preview, draft)
 Copy of the published analytical double slit (2.128) with the number of slits as a parameter. The published app is unchanged.
 - Number of slits N = 1–8 and an open/closed button per slit (Core). Slit k is centred at (2k − 1 − N) d/2. The "Both Slits" button cycles all open → slit 1 only → … → all open; for N = 2 it behaves as before.
