@@ -45,8 +45,36 @@ body {
   border: 1px solid var(--border-color); border-radius: 6px;
 }
 .hydrogen-stage .gpu-status-banner { border: 0; border-radius: 5px; padding: 6px 10px; }
-.hydrogen-stage .hint { top: auto; bottom: 5px; max-width: 100%; white-space: normal; text-align: center; }
-.hydrogen-stage .info { bottom: 37px; }
+.hydrogen-prompt { margin: 6px 0 0; color: var(--text-secondary); font-size: 12px; }
+.hydrogen-stage-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.hydrogen-camera { flex-wrap: wrap; gap: 4px; }
+.hydrogen-camera .qontic-app-toggle { min-width: 34px; }
+#camera-plane { width: auto; font-size: 12px; }
+#camera-hint { color: var(--text-secondary); font-size: 11px; }
+.hydrogen-legend { position: absolute; top: 10px; right: 10px; z-index: 2; max-width: 80%; }
+.hydrogen-legend summary { display: none; }
+.hydrogen-legend .pal-opt { width: 100%; text-align: left; border: 0; background: transparent; }
+.hydrogen-legend .pal-opt.selected { background: var(--bg-primary); }
+.hydrogen-legend .pal-opt:hover { background: var(--bg-primary); color: var(--accent); }
+.hydrogen-legend .legend { position: relative; inset: auto; max-width: none; }
+.hydrogen-legend :is(button, summary):focus-visible, #c:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+#diagnostic-results {
+  box-sizing: border-box;
+  width: min(calc(100% - 24px), 600px);
+  margin: auto;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--text-primary);
+}
+#diagnostic-results::backdrop { background: rgb(0 0 0 / 60%); }
+.diagnostic-results-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.diagnostic-results-heading h2 { font: 600 15px/1.4 Inter, system-ui, sans-serif; }
+#diagnostic-results-text { margin-top: 10px; max-height: 62dvh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
 #c { touch-action: none; }
 #physics { margin-top: 12px; }
 #physics .tp-body { display: grid; gap: 22px; width: 100%; max-width: 860px; }
@@ -61,9 +89,16 @@ body {
 }
 @media (max-width: 1000px) {
   #simulation > .hydrogen-stage { height: max(360px, calc(100dvh - var(--hydrogen-header-height, 80px) - 12px)); }
-  #simulation .hydrogen-controls-link { display: block; align-self: flex-end; }
+  #simulation .hydrogen-controls-link { display: block; margin-left: auto; }
 }
 body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) { display: none !important; }
 @media (max-width: 600px) {
   .hydrogen-stage { padding: 7px; }
+  .hydrogen-stage-actions { gap: 4px; }
+  .hydrogen-stage-actions .qontic-app-toggle { min-height: 36px; padding-inline: 7px; }
+  #camera-hint { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .hydrogen-legend { display: grid; justify-items: end; gap: 4px; }
+  .has-projections .hydrogen-legend { top: 126px; }
+  .hydrogen-legend summary { display: list-item; width: max-content; cursor: pointer; }
+  .hydrogen-legend .legend { line-height: 1.75; }
 }

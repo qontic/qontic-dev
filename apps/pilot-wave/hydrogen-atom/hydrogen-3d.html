@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="hydrogen-template.css?v=3">
+  <link rel="stylesheet" href="hydrogen-template.css?v=4">
 </head>
 
 <body>
@@ -33,6 +33,7 @@
           <button type="button" class="qontic-app-toggle active" data-orbital-index="3" aria-pressed="true">2p₊₁</button>
           <button type="button" class="qontic-app-toggle" id="beatPreset">1s + 2p₀</button>
         </div>
+        <p class="hydrogen-prompt">With spin off, compare the trajectories in 1s and 2p₊₁. What changes in the density and trajectories for 1s + 2p₀?</p>
       </section>
       <details class="options-group">
         <summary>More orbitals and superpositions</summary>
@@ -42,7 +43,7 @@
         <div class="ogrid" id="ogrid"></div>
       </div>
       <div>
-        <div class="slabel">Superposition</div>
+        <label class="slabel" for="superSel">Superposition</label>
         <select id="superSel">
           <option value="none">None (pure state)</option>
           <option value="px">p_x = (2p₊₁ − 2p₋₁)/√2 [real, lobes along x]</option>
@@ -61,7 +62,7 @@
       <!-- Pauli–Bohm Spin Section -->
       <div>
         <div class="slabel">Simulation</div>
-        <div class="crow"><label title="Number of particles sampled from |ψ|² distribution">Particles</label>
+        <div class="crow"><label for="sNP" title="Number of particles sampled from |ψ|² distribution">Particles</label>
           <input type=range id="sNP" min=1 max=10 value=2 step=1>
           <span class="crow-val" id="vNP">2</span>
         </div>
@@ -73,7 +74,7 @@
       <div id="spinSection">
         <div class="slabel spin-slabel">
           <span>Spin (Pauli–Bohm)</span>
-          <button class="vtab" id="spinToggleBtn" onclick="toggleSpin()"
+          <button class="vtab" id="spinToggleBtn" aria-pressed="false" onclick="toggleSpin()"
             title="Include the Pauli spin current. A stationary density can have moving trajectories.">⬡
             Spin</button>
         </div>
@@ -86,20 +87,20 @@
                 name="spinMode" id="spinModeJst" onchange="setSpinMode('jstate')"> j-state</label>
           </div>
           <div id="spinProductRow" class="crow" style="display:none">
-            <label
+            <label for="sSpinTheta"
               title="Polar angle θ of the spin direction vector |n̂⟩. θ=π/2 (equatorial) breaks azimuthal symmetry and maximises spin-curl effect.">θ</label>
             <input type="range" id="sSpinTheta" min="0" max="314" value="157" step="1"
               oninput="spinTheta=this.value/100;document.getElementById('vSpinTheta').textContent=(this.value/100).toFixed(2)+'rad';buildSpinComps&&buildSpinComps();volumeDirty=true;lobeTexDirty=true;">
             <span class="crow-val" id="vSpinTheta">1.57rad</span>
           </div>
           <div id="spinProductRow2" class="crow" style="display:none">
-            <label title="Azimuthal angle φ of the spin direction vector.">φ</label>
+            <label for="sSpinPhi" title="Azimuthal angle φ of the spin direction vector.">φ</label>
             <input type="range" id="sSpinPhi" min="0" max="628" value="0" step="1"
               oninput="spinPhi=this.value/100;document.getElementById('vSpinPhi').textContent=(this.value/100).toFixed(2)+'rad';buildSpinComps&&buildSpinComps();volumeDirty=true;lobeTexDirty=true;">
             <span class="crow-val" id="vSpinPhi">0.00rad</span>
           </div>
           <div id="spinJRow" class="crow" style="display:none">
-            <label title="j-eigenstate: Clebsch–Gordan coupled spinor-spherical harmonic |j, mⱼ⟩">|j, mⱼ⟩</label>
+            <label for="jStateSel" title="j-eigenstate: Clebsch–Gordan coupled spinor-spherical harmonic |j, mⱼ⟩">|j, mⱼ⟩</label>
             <select id="jStateSel" onchange="setJState(parseInt(this.value))"></select>
           </div>
         </div>
@@ -107,12 +108,12 @@
       </details>
         <details class="options-group">
           <summary>Trajectory settings</summary>
-        <div class="crow"><label title="Maximum number of trail points stored per particle">Trail</label>
+        <div class="crow"><label for="sTR" title="Maximum number of trail points stored per particle">Trail</label>
           <input type=range id="sTR" min=5 max=1250 value=800 step=5>
           <span class="crow-val" id="vTR">800</span>
         </div>
-        <div class="crow"><label title="Maximum RK4 step in atomic units. Smaller steps improve numerical accuracy.">Time step</label>
-          <input type=range id="sDT" min=0.005 max=0.15 value=0.04 step=0.005>
+        <div class="crow"><label for="sDT" title="Maximum RK4 step in atomic units. Smaller steps improve numerical accuracy.">Time step (a.u.)</label>
+          <input type=range id="sDT" min=0.005 max=0.05 value=0.04 step=0.005>
           <span class="crow-val" id="vDT">0.040</span>
         </div>
         </details>
@@ -126,7 +127,7 @@
           <button class="qontic-app-toggle" id="vtSlice" onclick="toggleViz('slice')"
             title="2D cross-section slices of the probability density">Slices</button>
           <button class="qontic-app-toggle" id="vtLobes" onclick="toggleViz('lobes')"
-            title="GPU isosurface lobes coloured by ψ sign — amber = positive, blue = negative (mutually exclusive with Volume)">Lobes</button>
+            title="Density isosurfaces colored by wave function sign, phase, or spin component">Lobes</button>
           <button class="qontic-app-toggle" id="vtCloud" onclick="toggleViz('cloud')"
             title="Show samples of the probability density. Use Volume, Slices or Lobes to follow individual trajectories.">Cloud</button>
           <button class="qontic-app-toggle" id="vtPhase" onclick="toggleViz('phase')"
@@ -144,14 +145,14 @@
           </label>
         </div>
         <div id="cloudRow" class="crow" style="display:none">
-          <label
+          <label for="sSphPx"
             title="Sphere diameter in screen pixels — particle count is auto-derived so spheres don't overlap">Sphere
             px</label>
           <input type=range id="sSphPx" min="4" max="24" value="10" step="1">
           <span class="crow-val" id="vSphPx">10px</span>
           <button id="resetCloudBtn" class="btn"
             style="padding:0;width:22px;height:22px;font-size:13px;flex:0 0 22px;line-height:1"
-            title="Resample cloud from |ψ|²">↺</button>
+            aria-label="Resample probability cloud" title="Resample cloud from |ψ|²">↺</button>
         </div>
         <div id="cloudAutoRow" class="crow" style="display:none">
           <label title="Auto-computed sphere count for non-overlapping coverage">Auto pts</label>
@@ -160,23 +161,23 @@
       </div>
       <details class="options-group">
         <summary>Display settings</summary>
-        <div class="crow"><label
+        <div class="crow"><label for="sDO"
             title="Per-ray-step absorption (low = rays penetrate deeper and reveal inner shells; high = opaque outer cloud)">Opacity</label>
           <input type=range id="sDO" min=0 max=100 value=60>
           <span class="crow-val" id="vDO">60%</span>
         </div>
-        <div class="crow"><label
+        <div class="crow"><label for="sIO"
             title="Density threshold: clips low-density outer fog so inner nodal structure shows through (0 = show all, 100 = only densest core)">Fog
             clip</label>
           <input type=range id="sIO" min=0 max=100 value=0>
           <span class="crow-val"><span id="vIO">0</span>%</span>
         </div>
-        <div class="crow" id="lobeRow" style="display:none"><label
+        <div class="crow" id="lobeRow" style="display:none"><label for="sLB"
             title="Isosurface threshold for lobe rendering (% of peak density)">Lobe level</label>
           <input type=range id="sLB" min=1 max=40 value=12 step=1>
           <span class="crow-val"><span id="vLB">12</span>%</span>
         </div>
-        <div class="crow"><label title="Particle dot radius in pixels">Pt size</label>
+        <div class="crow"><label for="sPS" title="Particle dot radius in pixels">Pt size</label>
           <input type=range id="sPS" min=1 max=6 value=2.5 step=0.5>
           <span class="crow-val" id="vPS">2.5</span>
         </div>
@@ -201,7 +202,7 @@
             <button class="qontic-app-toggle" id="verifyBtn" onclick="runAnalyticalChecks()"
               title="Run analytical spot-checks of the velocity field against known exact formulas">Verify</button>
             <button class="qontic-app-toggle" id="sweepBtn" onclick="runSweep()"
-              title="Comprehensive sweep: tests all 40+ orbitals (exact velocity formula) + continuity equation ∂ρ/∂t+∇·(ρv)=0 for eigenstates and superpositions">Sweep</button>
+              title="Check scalar eigenstate velocities and the continuity equation for scalar superpositions">Sweep</button>
             <button class="qontic-app-toggle" id="expertBtn" aria-pressed="false" onclick="toggleExpert()"
               title="Show/hide numerical verification stats (⟨r⟩, normalization, match %)">Expert</button>
             </div>
@@ -209,6 +210,7 @@
         <div class="stat-grid" id="stGrid">
           <div class="stat"><span class="stat-label">Energy</span><span class="stat-val" id="stE">—</span></div>
           <div class="stat"><span class="stat-label">n, l, m</span><span class="stat-val" id="stNLM">—</span></div>
+          <div class="stat"><span class="stat-label">Spin</span><span class="stat-val" id="stSpin">Off</span></div>
           <div class="stat"><span class="stat-label">Particles</span><span class="stat-val" id="stN">—</span></div>
           <div class="stat"><span class="stat-label">Sim time</span><span class="stat-val" id="stT">—</span></div>
           <div id="expertRows" style="display:contents">
@@ -222,7 +224,7 @@
                 id="stNorm">—</span></div>
             <!-- Spin diagnostics — shown only when spin is enabled -->
             <div class="stat expert-stat spin-diag" id="rowSpinFrac" style="display:none"><span class="stat-label"
-                title="Measured ρ↑/(ρ↑+ρ↓) from voxel grid vs analytical expectation cos²(θ/2). Should match to &lt;1% for product states.">ρ↑
+                title="Integrated spin-up fraction on the voxel grid compared with the fraction from the spinor coefficients.">ρ↑
                 frac / expect</span><span class="stat-val" id="stSpinFrac">—</span></div>
             <div class="stat expert-stat spin-diag" id="rowSpinNorm" style="display:none"><span class="stat-label"
                 title="Σ(|↑|²+|↓|²) over spinComps — must equal 1.0000 (spinor normalisation).">Spinor norm</span><span
@@ -237,16 +239,32 @@
       <section class="qontic-stage qontic-panel hydrogen-stage" aria-label="Orbital view">
         <div id="gpuStatusBanner" class="gpu-status-banner" hidden></div>
         <div class="canvas-wrap" id="hydrogen-canvas-wrap">
-      <canvas id="c" aria-label="Three-dimensional hydrogen orbital and pilot-wave trajectories" tabindex="0"></canvas>
+      <canvas id="c" aria-label="Three-dimensional hydrogen orbital and pilot-wave trajectories" aria-describedby="camera-hint" tabindex="0"></canvas>
 
-      <div class="hint">Drag or use arrow keys to rotate · Scroll to zoom</div>
-      <div class="legend" id="legend"></div>
+      <details class="hydrogen-legend" id="hydrogen-legend" open>
+        <summary class="qontic-app-toggle">Legend</summary>
+        <div class="legend" id="legend"></div>
+      </details>
       <div class="info">
         <span class="ket" id="infoKet">|2, 1, +1⟩</span>
         <span id="infoDesc"></span>
       </div>
         </div>
-        <a class="qontic-app-toggle hydrogen-controls-link" href="#sidebar">Controls ↓</a>
+        <div class="hydrogen-stage-actions">
+          <div role="group" aria-label="Camera controls" class="qontic-app-toggle-group hydrogen-camera">
+            <button type="button" class="qontic-app-toggle" id="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
+            <button type="button" class="qontic-app-toggle" id="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+            <button type="button" class="qontic-app-toggle" id="reset-camera">Reset camera</button>
+            <select id="camera-plane" aria-label="Projection view" hidden>
+              <option value="">View plane</option>
+              <option value="xz">XZ (side)</option>
+              <option value="xy">XY (top)</option>
+              <option value="yz">YZ (front)</option>
+            </select>
+          </div>
+          <span id="camera-hint">Drag or use arrow keys to rotate. Use + or − to zoom.</span>
+          <a class="qontic-app-toggle hydrogen-controls-link" href="#sidebar">Controls ↓</a>
+        </div>
       </section>
     </section>
     <section class="qontic-reading-panel qontic-panel details-panel" id="physics" hidden>
@@ -396,7 +414,16 @@
       </div>
     </section>
   </main>
-  <script src="hydrogen-3d.js?v=4"></script>
+  <dialog id="diagnostic-results" aria-labelledby="diagnostic-results-title">
+    <div class="diagnostic-results-heading">
+      <h2 id="diagnostic-results-title"></h2>
+      <form method="dialog">
+        <button class="qontic-app-toggle" autofocus>Close</button>
+      </form>
+    </div>
+    <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
+  </dialog>
+  <script src="hydrogen-3d.js?v=5"></script>
   <script type="module" src="hydrogen-template.js?v=2"></script>
 </body>
 </html>

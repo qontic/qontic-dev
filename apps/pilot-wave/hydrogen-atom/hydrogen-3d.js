@@ -1075,7 +1075,7 @@ function buildVoxelGrid(){
 }
 
 // Trilinear interpolation into voxel grid
-function sampleVoxel(x,y,z){
+function sampleVoxel(x,y,z,values=voxelVals){
   const N=VRES,rm=rMax();
   const fi=(x+rm)/(2*rm)*(N-1);
   const fj=(y+rm)/(2*rm)*(N-1);
@@ -1085,10 +1085,10 @@ function sampleVoxel(x,y,z){
   const k0=Math.max(0,Math.min(N-2,fk|0));
   const tx=fi-i0,ty=fj-j0,tz=fk-k0;
   const idx=(i,j,k)=>i*N*N+j*N+k;
-  const v000=voxelVals[idx(i0,j0,k0)],  v100=voxelVals[idx(i0+1,j0,k0)];
-  const v010=voxelVals[idx(i0,j0+1,k0)],v110=voxelVals[idx(i0+1,j0+1,k0)];
-  const v001=voxelVals[idx(i0,j0,k0+1)],v101=voxelVals[idx(i0+1,j0,k0+1)];
-  const v011=voxelVals[idx(i0,j0+1,k0+1)],v111=voxelVals[idx(i0+1,j0+1,k0+1)];
+  const v000=values[idx(i0,j0,k0)],  v100=values[idx(i0+1,j0,k0)];
+  const v010=values[idx(i0,j0+1,k0)],v110=values[idx(i0+1,j0+1,k0)];
+  const v001=values[idx(i0,j0,k0+1)],v101=values[idx(i0+1,j0,k0+1)];
+  const v011=values[idx(i0,j0+1,k0+1)],v111=values[idx(i0+1,j0+1,k0+1)];
   return(1-tz)*((1-ty)*((1-tx)*v000+tx*v100)+ty*((1-tx)*v010+tx*v110))
         +tz*((1-ty)*((1-tx)*v001+tx*v101)+ty*((1-tx)*v011+tx*v111));
 }
@@ -1118,7 +1118,16 @@ function sampleVoxelReIm(x,y,z){
 // We render at half resolution and upscale for speed
 let cachedVolCanvas=null;
 
-function renderVolume(cam){
+function sampledSpinColor(x,y,z,density){
+  const weight=Math.max(0,Math.min(1,sampleVoxel(x,y,z,voxelRhoUp)/density));
+  return [
+    spinDnColor.r+(spinUpColor.r-spinDnColor.r)*weight,
+    spinDnColor.g+(spinUpColor.g-spinDnColor.g)*weight,
+    spinDnColor.b+(spinUpColor.b-spinDnColor.b)*weight,
+  ];
+}
+
+function renderVolume(cam,preview=false){
   // proj() maps world point P to screen as:
   //   sx = W/2 + dot(P, right) * sc
   //   sy = H/2 - dot(P, up)   * sc
@@ -1130,14 +1139,17 @@ function renderVolume(cam){
   //   Ray origin = that offset - forward*bigDist  (behind the scene)
   //   Ray direction = +forward  (pointing toward and through the scene)
 
-  const scale=2; // render at half res, upscale
+  const scale=preview?5:2;
   const rw=Math.ceil(W/scale), rh=Math.ceil(H/scale);
   const img=new ImageData(rw,rh);
   const rm=rMax();
   const sc=Math.min(W,H)*0.47/rMax()*camDist; // same scale as proj()
   const bigDist=rm*3.0;
   // Scale step count so each step ≈ 2.5 a₀ — enough to resolve radial nodes at all n
-  const STEPS=Math.min(220,Math.max(90,Math.ceil(bigDist*2/2.5)));
+  const STEPS=preview?60:Math.min(220,Math.max(90,Math.ceil(bigDist*2/2.5)));
+  // Evolving grids already contain the time-dependent phases.
+  const angle=showPhase&&!densityEvolves()?t/(2*comps[0].n**2):0;
+  const cs=Math.cos(angle),sn=Math.sin(angle);
   const stepSize=(bigDist*2)/STEPS;
   // Per-step base opacity: normalise so that integrated look is independent of STEPS.
   // Calibrated at STEPS=90 → baseDens=0.30; scales as 90/STEPS for larger step counts.
@@ -1168,18 +1180,11 @@ function renderVolume(cam){
         const v=Math.pow(raw/voxelMaxV,0.42); // gamma: matches slice/projection renderers
         if(v<0.008+isoOp*0.65) continue;      // isoOp=0: show all; isoOp=1: show top ~35%
         let cr,cg,cb,ca;
-        if(showPhase){
-          // For phase coloring, derive time-evolved Re/Im from cached t=0 values:
-          // pure state: rotate by −E·t; superposition: call psiXYZ directly (shape also changes).
-          let rp,ip;
-          if(superKey==='none'){
-            const[re0,im0]=sampleVoxelReIm(wx,wy,wz);
-            const En=-0.5/(ORBITALS[orbIdx].n*ORBITALS[orbIdx].n);
-            const cs=Math.cos(-En*t),sn=Math.sin(-En*t);
-            rp=cs*re0-sn*im0; ip=sn*re0+cs*im0;
-          }else{
-            [rp,ip]=psiXYZ(comps,wx,wy,wz,t);
-          }
+        if(spinEnabled&&voxelRhoUp){
+          [cr,cg,cb]=sampledSpinColor(wx,wy,wz,raw);ca=v;
+        }else if(showPhase){
+          const[re,im]=sampleVoxelReIm(wx,wy,wz);
+          const rp=cs*re-sn*im,ip=sn*re+cs*im;
           const ph=Math.atan2(ip,rp);
           const hue=((ph/(2*Math.PI))%1+1)%1;
           const bri=Math.pow(raw/voxelMaxV,0.14);
@@ -1649,10 +1654,12 @@ function renderLobes(cam, preview=false){
       const spec=Math.pow(Math.max(0,rx2*cam.fx+ry2*cam.fy+rz2*cam.fz),40);
       const light=0.10+0.72*dotK+0.15*dotF+0.65*spec;
 
-      // Color: phase domain coloring when showPhase, else sign-based amber/blue
+      // Use the same color quantities as the WebGL2 renderer.
       let cr,cg,cb;
-      if(showPhase){
-        const[rp,ip]=psiXYZ(comps,hx,hy,hz,t); // t not 0 — full time-dependent phase
+      if(spinEnabled&&voxelRhoUp){
+        [cr,cg,cb]=sampledSpinColor(hx,hy,hz,thresh);
+      }else if(showPhase){
+        const[rp,ip]=psiXYZ(comps,hx,hy,hz,t);
         const ph=Math.atan2(ip,rp);
         const hue=((ph/(2*Math.PI))%1+1)%1;
         [cr,cg,cb]=phaseColorCpu(hue,1.0);
@@ -1733,6 +1740,7 @@ function integrate(dt){
 }
 
 let volNeedsRedraw=true;
+let lastCpuPhaseDraw=-Infinity;
 let lastCamTheta=null,lastCamPhi=null,lastCamDist=null;
 
 function renderFrame(){
@@ -1740,6 +1748,9 @@ function renderFrame(){
   ctx.fillStyle=lightTheme?'#f0f4ff':'#04070f';ctx.fillRect(0,0,W,H);
   const cam=getCam();
   const rm=rMax();
+  const animateCpuPhase=!gl2Ready&&showPhase&&running;
+  const now=animateCpuPhase?performance.now():0;
+  const cpuPhaseDue=animateCpuPhase&&now-lastCpuPhaseDraw>=1000/15;
 
   // Lobes rendering — GPU path every frame, no caching needed
   if(showLobes&&!showCloud){
@@ -1757,12 +1768,16 @@ function renderFrame(){
       const camMoved=(camTheta!==lastCamTheta||camPhi!==lastCamPhi||camDist!==lastCamDist);
       if(camMoved){lastCamTheta=camTheta;lastCamPhi=camPhi;lastCamDist=camDist;}
       if(dragging&&camMoved){ renderLobes(cam,true); }
-      else if(!cachedVolCanvas||volNeedsRedraw||(!dragging&&camMoved)){ renderLobes(cam,false); volNeedsRedraw=false; }
+      else if(!cachedVolCanvas||volNeedsRedraw||camMoved||cpuPhaseDue){
+        renderLobes(cam,animateCpuPhase);
+        if(animateCpuPhase) lastCpuPhaseDraw=now;
+        volNeedsRedraw=false;
+      }
     }
     blitVolume();
   }
 
-  // Volume — always GPU (real-time rotation every frame, no caching needed)
+  // Volume rendering uses WebGL2 when available.
   if(showVol&&!showCloud){
     if(volumeDirty||!voxelVals){
       buildVoxelGrid();
@@ -1779,8 +1794,12 @@ function renderFrame(){
       // CPU fallback for no-WebGL2 browsers — only rerenders after drag ends
       const camMoved=(camTheta!==lastCamTheta||camPhi!==lastCamPhi||camDist!==lastCamDist);
       if(camMoved){lastCamTheta=camTheta;lastCamPhi=camPhi;lastCamDist=camDist;}
-      const needsRender=!cachedVolCanvas||volNeedsRedraw||(camMoved&&!dragging);
-      if(needsRender&&!dragging){renderVolume(cam);volNeedsRedraw=false;}
+      const needsRender=!cachedVolCanvas||volNeedsRedraw||camMoved||cpuPhaseDue;
+      if(needsRender&&!dragging){
+        renderVolume(cam,animateCpuPhase);
+        if(animateCpuPhase) lastCpuPhaseDraw=now;
+        volNeedsRedraw=false;
+      }
       blitVolume();
     }
   }
@@ -1884,17 +1903,11 @@ function updateVerification(){
     const el=document.getElementById(id);if(el)el.style.display=spinDiagVisible?'contents':'none';
   });
   if(spinDiagVisible){
-    // 1. ρ↑ fraction from voxel grid vs cos²(θ/2)
     if(voxelRhoUp&&voxelRhoDn){
-      let sumUp=0,sumTot=0;
-      for(let i=0;i<voxelRhoUp.length;i++){sumUp+=voxelRhoUp[i];sumTot+=voxelRhoUp[i]+voxelRhoDn[i];}
-      const frac=sumTot>0?sumUp/sumTot:0.5;
-      const expected=spinMode==='product'&&!SPIN_SUPERS[superKey]?Math.cos(spinTheta/2)**2:null;
+      const {measured,expected}=spinUpFractions();
       const fracEl=document.getElementById('stSpinFrac');
-      if(fracEl){
-        fracEl.textContent=frac.toFixed(4)+(expected!==null?' / '+expected.toFixed(4):'');
-        fracEl.className='stat-val '+(expected===null||Math.abs(frac-expected)<0.015?'ok':'warn');
-      }
+      fracEl.textContent=`${measured.toFixed(4)} / ${expected.toFixed(4)}`;
+      fracEl.className='stat-val '+(Math.abs(measured-expected)<0.015?'ok':'warn');
     }
     // 2. Spinor norm: Σ(upRe²+upIm²+dnRe²+dnIm²) should = 1
     const snorm=spinComps.reduce((s,c)=>s+c.upRe*c.upRe+c.upIm*c.upIm+c.dnRe*c.dnRe+c.dnIm*c.dnIm,0);
@@ -2244,9 +2257,30 @@ function toggleExpert(){
 // ════════════════════════════════════════════════════════════════
 //  ANALYTICAL VERIFICATION CHECKS
 // ════════════════════════════════════════════════════════════════
+function spinUpFractions(){
+  let sumUp=0,sumDown=0;
+  for(let i=0;i<voxelRhoUp.length;i++){
+    sumUp+=voxelRhoUp[i];
+    sumDown+=voxelRhoDn[i];
+  }
+  // The orbital basis used by spinComps is orthonormal.
+  const expected=spinComps.reduce((sum,c)=>sum+c.upRe**2+c.upIm**2,0);
+  return {measured:sumUp/(sumUp+sumDown),expected};
+}
+
+function showDiagnosticResults(title,message){
+  const dialog=document.getElementById('diagnostic-results');
+  const output=document.getElementById('diagnostic-results-text');
+  document.getElementById('diagnostic-results-title').textContent=title;
+  output.textContent=message;
+  output.scrollTop=0;
+  if(!dialog.open) dialog.showModal();
+  return output;
+}
+
 function runAnalyticalChecks(){
-  // Open expert panel so results are visible
   if(!expertMode) toggleExpert();
+  if(spinEnabled&&volumeDirty) buildVoxelGrid();
 
   const lines=[];
   const PASS='\u2713'; const FAIL='\u2717'; const WARN='\u26a0';
@@ -2311,34 +2345,16 @@ function runAnalyticalChecks(){
     lines.push(`${ok?PASS:FAIL} Spinor norm = ${norm.toFixed(6)} (expect 1.000000)`);
   }
 
-  // ── Test 4: ρ↑ fraction vs cos²(θ/2) ─────────────────────────
-  if(spinEnabled && spinMode==='product' && voxelRhoUp && voxelRhoDn){
-    let sumUp=0,sumTot=0;
-    for(let i=0;i<voxelRhoUp.length;i++){sumUp+=voxelRhoUp[i];sumTot+=voxelRhoUp[i]+voxelRhoDn[i];}
-    const frac=sumTot>0?sumUp/sumTot:0.5;
-    const expected=Math.cos(spinTheta/2)**2;
-    const err=Math.abs(frac-expected);
+  if(spinEnabled&&spinComps.length&&voxelRhoUp&&voxelRhoDn){
+    const {measured,expected}=spinUpFractions();
+    const err=Math.abs(measured-expected);
     const ok=err<0.015;
-    lines.push(`${ok?PASS:FAIL} ρ↑ fraction: measured ${frac.toFixed(4)}, analytical cos²(θ/2)=${expected.toFixed(4)}, err=${(err*100).toFixed(2)}% (expect <1.5%)`);
+    lines.push(`${ok?PASS:FAIL} ρ↑ fraction: measured ${measured.toFixed(4)}, analytical ${expected.toFixed(4)}, difference ${(err*100).toFixed(2)} percentage points (expect <1.5)`);
   }
 
   if(!lines.length) lines.push(`${WARN} No applicable tests for current state. Try: m≠0 eigenstate without spin, or 1s+product spin.`);
 
-  // Display in a browser alert (simple, always visible) + console
-  console.table(lines);
-  const msg='Analytical Verification Results\n─────────────────────────────────\n'+lines.join('\n');
-  // Show in a temporary overlay on the canvas
-  let box=document.getElementById('verifyResultBox');
-  if(!box){
-    box=document.createElement('div');box.id='verifyResultBox';
-    box.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(6,11,22,.97);border:1px solid #16213a;padding:18px 22px;z-index:500;max-width:520px;width:90%;border-radius:4px;font-size:11px;line-height:1.8;white-space:pre-wrap;cursor:pointer;';
-    box.title='Click to close';
-    box.onclick=()=>box.remove();
-    document.querySelector('.canvas-wrap').appendChild(box);
-  }
-  box.textContent=msg+'\n\n(Click to close)';
-  // Auto-close after 12 seconds
-  clearTimeout(box._t);box._t=setTimeout(()=>box.remove(),12000);
+  showDiagnosticResults('Analytical verification',lines.join('\n'));
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2401,29 +2417,16 @@ function verifyContinuity(compsArg, useSpinArg, spinCompsArg, time_t, nTests, rB
 // report pass/fail for (a) the exact velocity formula and (b) the
 // continuity equation for each case.
 function runSweep() {
-  // Show a "Computing…" placeholder immediately so the user sees a response
-  let box = document.getElementById('verifyResultBox');
-  if(!box) {
-    box = document.createElement('div'); box.id = 'verifyResultBox';
-    box.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);'
-      + 'background:rgba(6,11,22,.97);border:1px solid #16213a;padding:18px 22px;z-index:500;'
-      + 'max-width:560px;width:90%;border-radius:4px;font-size:10.5px;line-height:1.75;'
-      + 'white-space:pre;cursor:pointer;max-height:80vh;overflow-y:auto;font-family:monospace;';
-    box.title = 'Click to close';
-    box.onclick = () => box.remove();
-    document.querySelector('.canvas-wrap').appendChild(box);
-  }
-  box.textContent = 'Running sweep \u2014 please wait\u2026';
+  const output=showDiagnosticResults('Scalar verification sweep','Running sweep…');
 
-  // Defer actual work one frame so the browser paints the placeholder first
   requestAnimationFrame(() => {
+  const saveSpin = spinEnabled, saveSC = spinComps, saveComps = comps;
   try {
   const PASS = '\u2713', FAIL = '\u2717';
   const lines = [];
   let pass = 0, fail = 0;
 
-  // Save & override globals so bohmV uses scalar path for every sub-test
-  const saveSpin = spinEnabled, saveSC = spinComps, saveComps = comps;
+  // Ensure bohmV uses the scalar path for every sub-test.
   spinEnabled = false; spinComps = [];
 
   lines.push('SCALAR BOHM \u2014 ALL PURE EIGENSTATES (n=1\u20136)');
@@ -2511,34 +2514,40 @@ function runSweep() {
   lines.push('');
   lines.push(`\u2550 GRAND TOTAL: ${pass}/${pass+fail} passed \u2550`);
 
-  // Restore globals
-  spinEnabled = saveSpin; spinComps = saveSC; comps = saveComps;
-
-  // Display (box was already created and shown at the top of runSweep)
-  box.textContent = 'Comprehensive Verification Sweep\n' + '\u2550'.repeat(40) + '\n' + lines.join('\n') + '\n\n(Click to close)';
-  clearTimeout(box._t); box._t = setTimeout(() => box.remove(), 60000);
-  console.log(lines.join('\n'));
+  output.textContent=lines.join('\n');
   } catch(e) {
-    box.textContent = 'Sweep error:\n' + e.message + '\n\n' + e.stack + '\n\n(Click to close)';
-    console.error('runSweep error:', e);
+    output.textContent='Sweep error: '+e.message;
+    console.error('runSweep error:',e);
+  } finally {
+    spinEnabled=saveSpin;
+    spinComps=saveSC;
+    comps=saveComps;
   }
-  }); // end requestAnimationFrame
+  });
+}
+
+function syncDisplayToggle(id,active){
+  const button=document.getElementById(id);
+  button.classList.toggle('active',active);
+  button.setAttribute('aria-pressed',String(active));
 }
 
 function toggleAxes(){
   showAxes=!showAxes;
-  document.getElementById('axesBtn').classList.toggle('active',showAxes);
+  syncDisplayToggle('axesBtn',showAxes);
 }
 
 function toggleInset(){
   showInset=!showInset;
-  document.getElementById('insetBtn').classList.toggle('active',showInset);
+  syncDisplayToggle('insetBtn',showInset);
 }
 
 function toggleProjections(){
   showProjections=!showProjections;
   if(showProjections&&projDirty&&voxelVals) buildProjections();
-  document.getElementById('projBtn').classList.toggle('active',showProjections);
+  syncDisplayToggle('projBtn',showProjections);
+  document.getElementById('camera-plane').hidden=!showProjections;
+  canvas.parentElement.classList.toggle('has-projections',showProjections);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2599,7 +2608,9 @@ function _syncVizUI(){
   if(showLobes){lobeTexDirty=true;}
   // Grey out Phase tab when spin is active
   const phBtn=document.getElementById('vtPhase');
-  if(phBtn){phBtn.disabled=spinEnabled;phBtn.title=spinEnabled?'Phase overlay unavailable in spin mode (gauge-ambiguous for spinors)':phBtn.getAttribute('data-title')||phBtn.title;}
+  phBtn.dataset.title??=phBtn.title;
+  phBtn.disabled=spinEnabled;
+  phBtn.title=spinEnabled?'Phase overlay unavailable in spin mode (gauge-ambiguous for spinors)':phBtn.dataset.title;
   updateLegend();
 }
 
@@ -2637,7 +2648,9 @@ function toggleSpin(){
 
 function _syncSpinUI(){
   const btn=document.getElementById('spinToggleBtn');
-  if(btn)btn.classList.toggle('active',spinEnabled);
+  btn.classList.toggle('active',spinEnabled);
+  btn.setAttribute('aria-pressed',String(spinEnabled));
+  document.getElementById('stSpin').textContent=spinEnabled?'On':'Off';
   const sec=document.getElementById('spinSubSection');
   if(sec)sec.style.display=spinEnabled?'block':'none';
   const pr=document.getElementById('spinProductRow');
@@ -2716,11 +2729,11 @@ function updateLegend(){
   const div=document.getElementById('legend');
   const curPal=PAL_META.find(p=>p.key===densityPalette)||PAL_META[0];
   const curPhasePal=PHASE_PAL_META.find(p=>p.key===phasePalette)||PHASE_PAL_META[0];
-  const palRow=(lbl)=>`<button class="lrow-btn" onclick="openLegPalPop(event)" title="Change palette"><span class="lsw" style="background:${curPal.grad}"></span>${lbl}</button>`;
-  const phaseRow=(lbl)=>`<button class="lrow-btn" onclick="openLegPhasePalPop(event)" title="Change phase palette"><span class="lsw" style="background:${curPhasePal.grad}"></span>${lbl}</button>`;
+  const palRow=(lbl)=>`<button id="density-palette-button" class="lrow-btn" onclick="openLegPalPop(event)" title="Change palette"><span class="lsw" style="background:${curPal.grad}"></span>${lbl}</button>`;
+  const phaseRow=(lbl)=>`<button id="phase-palette-button" class="lrow-btn" onclick="openLegPhasePalPop(event)" title="Change phase palette"><span class="lsw" style="background:${curPhasePal.grad}"></span>${lbl}</button>`;
   const volRows   = showPhase
     ? phaseRow('arg(ψ) volume — red=0, cyan=±π')
-    : palRow('|ψ|² volume');
+    : spinEnabled ? '<div class="lrow">Spin density volume</div>' : palRow('|ψ|² volume');
   const lobeRows  = showPhase
     ? phaseRow('arg(ψ) lobes — red=0, cyan=±π')
     : spinEnabled ? '<div class="lrow">Spin density isosurface</div>' : palRow('|ψ|² lobes')+`<div class="lrow"><span class="lsw" style="background:linear-gradient(90deg,#1010c0,#4060e0,#8090ff)"></span>Negative-ψ lobe</div>`;
@@ -2728,18 +2741,18 @@ function updateLegend(){
     +`<div class="lrow"><span class="lsw" style="background:transparent;border:1.5px solid rgba(0,220,255,.8);border-radius:2px"></span>Isosurface</div>`;
   const tg=`linear-gradient(90deg,${ptColor.hex}22,${ptColor.hex})`;
   const pg=`radial-gradient(circle at 40%,${ptColor.hex},${ptColor.hex}44)`;
-  const colDots=PT_PRESETS.map(p=>`<button class="leg-col-opt${p===ptColor?' sel':''}" style="background:${p.hex}" title="${p.label}" onclick="setParticleColor('${p.label}')"></button>`).join('');
-  const palOpts=PAL_META.map(p=>`<div class="pal-opt${p.key===densityPalette?' selected':''}" onclick="setPaletteByKey('${p.key}')"><span class="pal-swatch" style="background:${p.grad}"></span>${p.label}</div>`).join('');
-  const phaseOpts=PHASE_PAL_META.map(p=>`<div class="pal-opt${p.key===phasePalette?' selected':''}" onclick="setPhasePaletteByKey('${p.key}')"><span class="pal-swatch" style="background:${p.grad}"></span>${p.label}</div>`).join('');
+  const colDots=PT_PRESETS.map(p=>`<button aria-label="${p.label}" aria-pressed="${p===ptColor}" class="leg-col-opt${p===ptColor?' sel':''}" style="background:${p.hex}" title="${p.label}" onclick="setParticleColor('${p.label}')"></button>`).join('');
+  const palOpts=PAL_META.map(p=>`<button type="button" aria-pressed="${p.key===densityPalette}" class="pal-opt${p.key===densityPalette?' selected':''}" onclick="setPaletteByKey('${p.key}');document.getElementById('density-palette-button').focus()"><span class="pal-swatch" style="background:${p.grad}"></span>${p.label}</button>`).join('');
+  const phaseOpts=PHASE_PAL_META.map(p=>`<button type="button" aria-pressed="${p.key===phasePalette}" class="pal-opt${p.key===phasePalette?' selected':''}" onclick="setPhasePaletteByKey('${p.key}');document.getElementById('phase-palette-button').focus()"><span class="pal-swatch" style="background:${p.grad}"></span>${p.label}</button>`).join('');
   // Spin channel rows
   const spinRows=spinEnabled&&spinComps.length&&!showSlice?`
     <div class="lrow spin-lrow">
       <button class="lrow-btn" onclick="document.getElementById('spinUpPicker').click()" title="Change spin-↑ colour"><span class="lsw" id="spinUpSwatch" style="background:${spinUpColor.hex}"></span>Spin ↑ (ρ<sub>↑</sub>)</button>
-      <input type="color" id="spinUpPicker" style="opacity:0;position:absolute;width:0;height:0" value="${spinUpColor.hex}" oninput="setSpinUpColor(this.value)">
+      <input type="color" id="spinUpPicker" tabindex="-1" aria-label="Spin up color" style="opacity:0;position:absolute;width:0;height:0" value="${spinUpColor.hex}" oninput="setSpinUpColor(this.value)">
     </div>
     <div class="lrow spin-lrow">
       <button class="lrow-btn" onclick="document.getElementById('spinDnPicker').click()" title="Change spin-↓ colour"><span class="lsw" id="spinDnSwatch" style="background:${spinDnColor.hex}"></span>Spin ↓ (ρ<sub>↓</sub>)</button>
-      <input type="color" id="spinDnPicker" style="opacity:0;position:absolute;width:0;height:0" value="${spinDnColor.hex}" oninput="setSpinDnColor(this.value)">
+      <input type="color" id="spinDnPicker" tabindex="-1" aria-label="Spin down color" style="opacity:0;position:absolute;width:0;height:0" value="${spinDnColor.hex}" oninput="setSpinDnColor(this.value)">
     </div>`:'';
   const common=`
     ${spinRows}
@@ -2957,6 +2970,7 @@ const hydrogenSimulation={
     if(running===value) return;
     running=value;
     previousFrame=undefined;
+    if(showPhase) volNeedsRedraw=true;
   },
   reset(){
     invalidateDensity();
@@ -2975,7 +2989,39 @@ const hydrogenSimulation={
 
 document.getElementById('clearBtn').onclick=()=>particles.forEach(p=>p.trail=[]);
 
+function zoomCamera(factor){
+  camDist=Math.max(0.3,Math.min(3,camDist*factor));
+  volNeedsRedraw=true;
+}
+
+function resetCamera(){
+  if(_camTween) cancelAnimationFrame(_camTween);
+  _camTween=null;
+  const initial=preferSliceFallback?PROJ_CAM.xz:{theta:0.55,phi:0.5};
+  camTheta=initial.theta;
+  camPhi=initial.phi;
+  camDist=1.25;
+  volNeedsRedraw=true;
+}
+document.getElementById('zoom-in').onclick=()=>zoomCamera(1.2);
+document.getElementById('zoom-out').onclick=()=>zoomCamera(1/1.2);
+document.getElementById('reset-camera').onclick=resetCamera;
+document.getElementById('camera-plane').onchange=function(){
+  if(this.value) snapCamTo(this.value);
+  this.value='';
+};
+const compactLegend=matchMedia('(max-width:600px)');
+const syncLegendLayout=()=>{document.getElementById('hydrogen-legend').open=!compactLegend.matches;};
+compactLegend.addEventListener('change',syncLegendLayout);
+syncLegendLayout();
+
 canvas.addEventListener('keydown',event=>{
+  if(event.key==='+'||event.key==='='||event.key==='-'||event.key==='Home'){
+    event.preventDefault();
+    if(event.key==='Home') resetCamera();
+    else zoomCamera(event.key==='-'?1/1.2:1.2);
+    return;
+  }
   const movement={ArrowLeft:[-0.12,0],ArrowRight:[0.12,0],ArrowUp:[0,-0.12],ArrowDown:[0,0.12]}[event.key];
   if(!movement) return;
   event.preventDefault();
@@ -3012,7 +3058,7 @@ canvas.addEventListener('click',e=>{
   const hit=projPanelHitBoxes.find(b=>mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h);
   if(hit)snapCamTo(hit.plane);
 });
-canvas.addEventListener('wheel',e=>{camDist*=1-e.deltaY*0.001;camDist=Math.max(0.3,Math.min(3,camDist));volNeedsRedraw=true;e.preventDefault();},{passive:false});
+canvas.addEventListener('wheel',e=>{zoomCamera(1-e.deltaY*0.001);e.preventDefault();},{passive:false});
 canvas.addEventListener('touchstart',e=>{dragging=true;lastMX=e.touches[0].clientX;lastMY=e.touches[0].clientY;},{passive:true});
 window.addEventListener('touchend',()=>{dragging=false;volNeedsRedraw=true;});
 canvas.addEventListener('touchmove',e=>{
@@ -3028,11 +3074,9 @@ particles=sampleParticles(nPart);
 updateLegend();
 initLobeGL();
 if(!gl2Ready) showGpuFallbackNotice();
-if(preferSliceFallback){
-  camTheta=PROJ_CAM.xz.theta;
-  camPhi=PROJ_CAM.xz.phi;
-}
+resetCamera();
 setView(preferSliceFallback?'slice':'volume');
-document.getElementById('insetBtn')?.classList.toggle('active',showInset);
-document.getElementById('projBtn')?.classList.toggle('active',showProjections);
+syncDisplayToggle('axesBtn',showAxes);
+syncDisplayToggle('insetBtn',showInset);
+syncDisplayToggle('projBtn',showProjections);
 requestAnimationFrame(loop);
