@@ -2,7 +2,7 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.5.0';
+import { APP_RELEASE } from './release.js?v=0.6.0';
 import { makeSetup, makeCluster, densityAfterG2, intensityTransmission } from './wave.js';
 import { buildEnsemble, runCluster, gauss } from './sim.js';
 import {
@@ -33,6 +33,8 @@ const D = PAPER.d;
 // so that the sine fit is not biased by the higher harmonics of the fringe profile.
 const SCAN_X = Array.from({ length: 18 }, (_, i) => (i * 2 * PAPER.d) / 18);
 const PROFILE_X = Array.from({ length: 241 }, (_, i) => (i * 270e-9) / 240);
+const ARR_BINS = 38; // arrival histogram over two periods, 7 nm bins
+const ARR_X = Array.from({ length: 241 }, (_, i) => (i * 2 * PAPER.d) / 240);
 const M_MIN = 20, M_MAX = 2000;
 
 const PRESETS = {
@@ -68,11 +70,15 @@ function computeModel(fast = false) {
   const vis = (S) => (s * 2 * Math.hypot(...S[1])) / Math.abs(S[0][0]);
   const LT = talbotLength(state.massKDa, state.v);
   const setup = makeSetup({ massKDa: state.massKDa, v: state.v, P: state.P, L: state.L });
+  // density of clusters arriving at the G3 plane (before the mask), quantum and classical
+  const Rq = averagedCoefficients(p, b, false, 12, Math.min(nv, 9), Math.min(nm, 5), false);
+  const Rc = averagedCoefficients(p, b, true, 12, Math.min(nv, 9), Math.min(nm, 5), false);
   if (!fast) ens = buildEnsemble(p, b, s);
   // probability that a cluster which passed G1 is counted: <S0> / <|t1|^2>, same weights
   const pCount = ens ? Sq[0][0] / (ens.total / averagingGrid(b, 21, 11).reduce((a, q) => a + q.w, 0)) : 0;
   model = {
     setup, cluster: makeCluster(setup, state.x0frac * D), pCount,
+    arrQ: fringeProfile(Rq, ARR_X, D, s), arrC: fringeProfile(Rc, ARR_X, D, s),
     vq: vis(Sq), vc: vis(Sc),
     profQ: fringeProfile(Sq, PROFILE_X, D, s), profC: fringeProfile(Sc, PROFILE_X, D, s),
     scanQ: fringeProfile(Sq, SCAN_X, D, s), scanC: fringeProfile(Sc, SCAN_X, D, s),
@@ -371,8 +377,10 @@ function finish() {
 // Many-Worlds: another complete detector record, from the same number of clusters.
 function sampleBranch() {
   const mode = state.truth === 'classical' ? 'classical' : 'sampled', n = state.perPacket * state.packetsPerPoint;
+  run.arrivals = new Float64Array(ARR_BINS); run.nArr = 0;
   run.points = SCAN_X.map((x) => {
-    let k = 0; for (let i = 0; i < n; i++) if (runCluster(ens, mode, x, Math.random).fate === 'counted') k++;
+    let k = 0;
+    for (let i = 0; i < n; i++) { const c = runCluster(ens, mode, x, Math.random); if (c.fate !== 'G2') addArrival(c.xj); if (c.fate === 'counted') k++; }
     return { x, n: k, arrived: state.packetsPerPoint };
   });
   state.data = run.points.map(({ x, n: k }) => ({ x, n: k }));
@@ -595,6 +603,7 @@ const expectedPerPoint = () => state.perPacket * state.packetsPerPoint * model.p
 function resetRunState() {
   run.packets = []; run.marks = []; run.launchPoint = 0; run.launchedAtPoint = 0; run.timer = 0; run.g3 = 0;
   run.points = SCAN_X.map((x) => ({ x, n: 0, arrived: 0 }));
+  run.arrivals = new Float64Array(ARR_BINS); run.nArr = 0;
   state.data = [];
   if (carpet) carpet.dirty = true;
 }
@@ -630,6 +639,7 @@ function advanceRun(dt) {
       const pt = run.points[p.point];
       for (const c of p.clusters) {
         if (c.fate === 'G2') continue;
+        addArrival(c.xj);
         if (c.fate === 'counted') pt.n++;
         run.marks.push({ z: 2 * st.L, x: c.x3, fate: c.fate, age: 0, followed: c.followed });
       }
@@ -647,6 +657,11 @@ function advanceRun(dt) {
     if (state.autoRun) { finish(); resetRunState(); showStep('run'); }
     else { stop(); finish(); }
   }
+}
+
+function addArrival(x) {
+  const u = (((x % (2 * D)) + 2 * D) % (2 * D)) / (2 * D);
+  run.arrivals[Math.min(ARR_BINS - 1, Math.floor(u * ARR_BINS))]++; run.nArr++;
 }
 
 function envelopeAt(z) {
@@ -791,6 +806,52 @@ function drawFringes(r, P) {
   }
 }
 
+// Arrival positions at the G3 plane, before the mask: random hits, as on a double-slit screen.
+function drawArrivals(r, P) {
+  panelFrame(r, 'Arrivals at G3', P);
+  const n = run.nArr || 0, bw = (2 * D) / ARR_BINS;
+  const meanQ = model.arrQ.reduce((a, y) => a + y, 0) / model.arrQ.length;
+  const meanC = model.arrC.reduce((a, y) => a + y, 0) / model.arrC.length;
+  const per = Math.max(1, n / ARR_BINS); // expected hits per bin for a flat density
+  const ys = [per * 1.15];
+  if (state.show.quantum) ys.push(...model.arrQ.map((y) => (y / meanQ) * per));
+  if (state.show.classical) ys.push(...model.arrC.map((y) => (y / meanC) * per));
+  if (state.show.data) for (const h of run.arrivals) ys.push(h + Math.sqrt(h));
+  const hi = Math.max(10, Math.max(...ys) * 1.08);
+  const { tx, ty, pr } = axes(r, P, {
+    x0: 0, x1: 2 * D, y0: 0, y1: hi, xlabel: 'position at G3 (nm), two periods', ylabel: 'clusters',
+    xticks: [0, D / 2, D, 1.5 * D, 2 * D], yticks: niceTicks(0, hi, 4),
+    xfmt: (x) => String(Math.round(x * 1e9)), yfmt: (y) => fmtInt(y), top: 58,
+  });
+  if (state.show.data && n) {
+    ctx.fillStyle = P.data; ctx.globalAlpha = 0.55;
+    for (let b = 0; b < ARR_BINS; b++) {
+      const h = run.arrivals[b]; if (!h) continue;
+      ctx.fillRect(tx(b * bw) + 0.5, ty(h), Math.max(1, tx((b + 1) * bw) - tx(b * bw) - 1), pr.y + pr.h - ty(h));
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (state.show.classical) polyline(ARR_X, model.arrC.map((y) => (y / meanC) * per), tx, ty, P.c, 1.8);
+  if (state.show.quantum) polyline(ARR_X, model.arrQ.map((y) => (y / meanQ) * per), tx, ty, P.q, 1.8);
+  // where the mask is open now (its dark fringes), as ticks along the bottom
+  if (run.packets.length || state.finished) {
+    ctx.fillStyle = P.laser; ctx.globalAlpha = 0.5;
+    for (let k = -1; k <= 2; k++) {
+      const x0 = run.g3 + (k + 0.5) * D;
+      if (x0 < 0 || x0 > 2 * D) continue;
+      ctx.fillRect(tx(x0) - 2, pr.y + pr.h - 6, 4, 6);
+    }
+    ctx.globalAlpha = 1;
+  }
+  const items = [];
+  if (state.show.quantum) items.push([P.q, 'quantum density']);
+  if (state.show.classical) items.push([P.c, 'classical']);
+  if (state.show.data) items.push([P.data, `${fmtInt(n)} hits`]);
+  let lx = r.x + 66; const ly = r.y + 39;
+  ctx.font = '400 11px Inter, Arial, sans-serif';
+  for (const [col, text] of items) { ctx.fillStyle = col; ctx.fillRect(lx, ly - 5, 10, 3); label(text, lx + 14, ly, { color: P.text, size: 11 }); lx += 14 + ctx.measureText(text).width + 16; }
+}
+
 function drawChart(r, P) {
   const power = state.chart === 'power';
   panelFrame(r, power ? 'Visibility vs G2 power' : 'Visibility vs cluster mass', P);
@@ -838,82 +899,33 @@ function drawChart(r, P) {
   const el = document.getElementById('chartTitle'); if (el.textContent !== t) el.textContent = t;
 }
 
-// ---------------------------------------------------------------- plot windows over the canvas
-// The counts plot and the visibility chart are DOM windows over the canvas, each with its own
-// canvas: drag by the title bar, resize from the lower-right corner, minimize to the bar.
-// Positions and sizes are remembered (fractions of the canvas area).
-const INSERT_KEY = 'qontic-nanoparticle-inserts-1';
+// ---------------------------------------------------------------- plot column
+// Three plots in a column to the right of the canvas, each minimizable to its title bar.
+const INSERT_KEY = 'qontic-nanoparticle-plots-2';
 const inserts = {};
 document.querySelectorAll('.np-insert').forEach((el) => {
   const cv = el.querySelector('canvas');
   inserts[el.dataset.insert] = { el, cv, cx: cv.getContext('2d'), min: false };
 });
-const hostEl = document.querySelector('.canvas-host');
-const narrow = () => getComputedStyle(inserts.counts.el).position !== 'absolute';
-function defaultInsert(name) {
-  const W = hostEl.clientWidth, H = hostEl.clientHeight;
-  const w = Math.min(380, Math.max(250, W * 0.34)), h = Math.min(250, Math.max(165, H * 0.33));
-  // the region between G1 and G2 carries no structure, so both windows start there
-  return name === 'counts' ? { l: 70, t: H - h - 52, w, h } : { l: 70, t: Math.max(64, H - 2 * h - 64), w, h };
-}
-function placeInsert(name, pos) {
-  const { el } = inserts[name];
-  const W = hostEl.clientWidth, H = hostEl.clientHeight;
-  const w = Math.min(pos.w, W - 8), h = Math.min(pos.h, H - 8);
-  el.style.width = `${w}px`; el.style.height = `${h}px`;
-  el.style.left = `${Math.max(0, Math.min(W - w, pos.l))}px`;
-  el.style.top = `${Math.max(0, Math.min(H - h, pos.t))}px`;
-}
-function saveInserts() {
-  try {
-    const W = hostEl.clientWidth, H = hostEl.clientHeight, out = {};
-    for (const [k, it] of Object.entries(inserts)) {
-      out[k] = { l: it.el.offsetLeft / W, t: it.el.offsetTop / H, w: it.el.offsetWidth / W, h: it.el.offsetHeight / H, min: it.min };
-      if (it.min) { out[k].w = (it.fullW || 300) / W; out[k].h = (it.fullH || 200) / H; }
-    }
-    localStorage.setItem(INSERT_KEY, JSON.stringify(out));
-  } catch (e) { /* storage unavailable */ }
-}
 function setMinimized(name, min) {
   const it = inserts[name];
-  if (min && !it.min) { it.fullW = it.el.offsetWidth; it.fullH = it.el.offsetHeight; }
   it.min = min;
   it.el.classList.toggle('minimized', min);
   const b = it.el.querySelector('[data-insert-min]');
   b.textContent = min ? '+' : '–'; b.setAttribute('aria-expanded', String(!min));
-  if (!min && it.fullW) placeInsert(name, { l: it.el.offsetLeft, t: it.el.offsetTop, w: it.fullW, h: it.fullH });
+  b.title = min ? 'Restore' : 'Minimize';
 }
-function loadInserts(useSaved = true) {
+function saveInserts() {
+  try { localStorage.setItem(INSERT_KEY, JSON.stringify(Object.fromEntries(Object.entries(inserts).map(([k, it]) => [k, it.min])))); } catch (e) { /* storage unavailable */ }
+}
+function loadInserts() {
   let saved = null;
-  if (useSaved) { try { saved = JSON.parse(localStorage.getItem(INSERT_KEY) || 'null'); } catch (e) { saved = null; } }
-  const W = hostEl.clientWidth, H = hostEl.clientHeight;
-  for (const name of Object.keys(inserts)) {
-    const sv = saved?.[name];
-    placeInsert(name, sv ? { l: sv.l * W, t: sv.t * H, w: sv.w * W, h: sv.h * H } : defaultInsert(name));
-    setMinimized(name, Boolean(sv?.min));
-  }
+  try { saved = JSON.parse(localStorage.getItem(INSERT_KEY) || 'null'); } catch (e) { saved = null; }
+  for (const k of Object.keys(inserts)) setMinimized(k, Boolean(saved?.[k]));
 }
 for (const [name, it] of Object.entries(inserts)) {
   it.el.querySelector('[data-insert-min]').addEventListener('click', () => { setMinimized(name, !it.min); saveInserts(); });
-  const head = it.el.querySelector('.np-insert-head');
-  head.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button') || narrow()) return;
-    e.preventDefault();
-    const sx = e.clientX, sy = e.clientY, l0 = it.el.offsetLeft, t0 = it.el.offsetTop;
-    head.setPointerCapture(e.pointerId);
-    it.el.style.zIndex = '5'; Object.values(inserts).forEach((o) => { if (o !== it) o.el.style.zIndex = '4'; });
-    const move = (ev) => {
-      const W = hostEl.clientWidth, H = hostEl.clientHeight;
-      it.el.style.left = `${Math.max(0, Math.min(W - it.el.offsetWidth, l0 + ev.clientX - sx))}px`;
-      it.el.style.top = `${Math.max(0, Math.min(H - it.el.offsetHeight, t0 + ev.clientY - sy))}px`;
-    };
-    const up = () => { head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up); saveInserts(); };
-    head.addEventListener('pointermove', move); head.addEventListener('pointerup', up);
-  });
-  new ResizeObserver(() => { if (!it.min) saveInserts(); }).observe(it.el);
 }
-new ResizeObserver(() => { if (narrow()) return; for (const [k, it] of Object.entries(inserts)) if (!it.min) placeInsert(k, { l: it.el.offsetLeft, t: it.el.offsetTop, w: it.el.offsetWidth, h: it.el.offsetHeight }); }).observe(hostEl);
-document.getElementById('resetInserts').addEventListener('click', () => { loadInserts(false); saveInserts(); });
 
 function drawInsert(name, draw, P) {
   const it = inserts[name];
@@ -950,6 +962,7 @@ function render(dt) {
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
   drawWave({ x: 6, y: 6, w: W - 12, h: H - 12 }, P, dt);
+  drawInsert('arrivals', drawArrivals, P);
   drawInsert('counts', drawFringes, P);
   drawInsert('chart', drawChart, P);
   updateResults();
@@ -991,7 +1004,7 @@ function frame(now) {
 mountQonticMedia({
   stage: $('.visualization'),
   controls: controlsEl,
-  getCanvases: () => [canvas, ...Object.values(inserts).filter((it) => !it.min && !it.el.hidden && !narrow()).map((it) => it.cv)],
+  getCanvases: () => [canvas, ...Object.values(inserts).filter((it) => !it.min).map((it) => it.cv)],
   filename: 'nanoparticle-interference',
   getShareUrl: shareUrl,
   beginRecording: () => { const was = state.running; if (!was) start(); return was; },

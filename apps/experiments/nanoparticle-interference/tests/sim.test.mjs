@@ -2,7 +2,7 @@
 // The cluster-by-cluster simulation must reproduce the predicted fringes: sampled (Orthodox,
 // Many-Worlds) and pilot-wave clusters the quantum visibility, classical clusters the classical one.
 import assert from 'node:assert/strict';
-import { PAPER, visibility, fitSine } from '../js/talbot.js';
+import { PAPER, visibility, fitSine, averagedCoefficients, fringeProfile } from '../js/talbot.js';
 import { buildEnsemble, runCluster } from '../js/sim.js';
 
 let passed = 0;
@@ -38,6 +38,28 @@ test('pilot-wave clusters reproduce the quantum visibility', () => {
   const f = scan('pilot-wave', 1500, 60);
   assert.ok(Math.abs(f.V - vq) < 3.5 * f.dV, `V = ${f.V.toFixed(4)} ± ${f.dV.toFixed(4)}`);
   console.log(`   V = ${f.V.toFixed(4)} ± ${f.dV.toFixed(4)}`);
+});
+
+test('arrival positions at G3 (before the mask) follow the predicted density', () => {
+  const nb = 36, hist = new Float64Array(nb); let n = 0;
+  for (let i = 0; i < 60000; i++) {
+    const c = runCluster(ens, 'sampled', 0, rand);
+    if (c.fate === 'G2') continue;
+    // folded over two periods, as in the app's arrivals plot
+    const u = (((c.xj % (2 * D)) + 2 * D) % (2 * D)) / (2 * D);
+    hist[Math.min(nb - 1, Math.floor(u * nb))]++; n++;
+  }
+  const S = averagedCoefficients(p, beam, false, 12, 9, 5, false);
+  // bin-averaged prediction
+  const pred = Array.from({ length: nb }, (_, b) => {
+    const xs = Array.from({ length: 10 }, (_, j) => ((b + (j + 0.5) / 10) / nb) * 2 * D);
+    return fringeProfile(S, xs, D, PAPER.scale).reduce((a, y) => a + y, 0) / 10;
+  });
+  const ps = pred.reduce((a, y) => a + y, 0);
+  let chi = 0;
+  for (let b = 0; b < nb; b++) { const e = (n * pred[b]) / ps; chi += (hist[b] - e) ** 2 / e; }
+  console.log(`   chi^2 = ${chi.toFixed(1)} for ${nb} bins`);
+  assert.ok(chi < 2.2 * nb, `chi^2 = ${chi.toFixed(1)}`);
 });
 
 console.log(`${passed} tests passed`);

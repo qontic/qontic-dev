@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/np.css?v=0.5.0">
+<link rel="stylesheet" href="css/np.css?v=0.6.0">
 </head>
 <body class="np-app">
 <main class="shell">
@@ -94,7 +94,6 @@
             <button class="qontic-app-toggle" type="button" data-chart="mass" aria-pressed="false">Visibility vs mass</button>
           </div>
         </div>
-        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="resetInserts" title="Put the counts plot and the visibility chart back in their default places and sizes">Reset the plot windows</button>
         <div class="toggle-row"><span>Quantum prediction</span><button class="toggle" type="button" data-toggle="quantum" aria-pressed="true" aria-label="Show the quantum prediction"></button></div>
         <div class="toggle-row"><span>Classical prediction</span><button class="toggle" type="button" data-toggle="classical" aria-pressed="true" aria-label="Show the classical prediction"></button></div>
         <div class="toggle-row"><span>Counts and fit</span><button class="toggle" type="button" data-toggle="data" aria-pressed="true" aria-label="Show the simulated counts and the sine fit"></button></div>
@@ -123,14 +122,20 @@
 
   <div class="visualization qontic-stage qontic-panel">
     <div class="canvas-host">
-      <canvas id="stage" aria-label="The wave of the clusters inside the Talbot–Lau interferometer"></canvas>
-      <div class="np-insert" data-insert="counts" role="region" aria-label="Counts behind G3">
-        <div class="np-insert-head" title="Drag to move; drag the lower-right corner to resize"><span class="np-insert-title">Counts behind G3</span><button type="button" data-insert-min aria-label="Minimize the counts plot" aria-expanded="true">–</button></div>
-        <canvas class="np-insert-canvas" aria-label="Clusters counted at each G3 offset, with the quantum and classical predictions"></canvas>
-      </div>
-      <div class="np-insert" data-insert="chart" role="region" aria-label="Visibility chart">
-        <div class="np-insert-head" title="Drag to move; drag the lower-right corner to resize"><span class="np-insert-title" id="chartTitle">Visibility</span><button type="button" data-insert-min aria-label="Minimize the visibility chart" aria-expanded="true">–</button></div>
-        <canvas class="np-insert-canvas" aria-label="Predicted fringe visibility, quantum and classical"></canvas>
+      <div class="np-canvas-wrap"><canvas id="stage" aria-label="The wave of the clusters inside the Talbot–Lau interferometer"></canvas></div>
+      <div class="np-plots" aria-label="Plots">
+        <div class="np-insert" data-insert="arrivals" role="region" aria-label="Arrivals at G3">
+          <div class="np-insert-head"><span class="np-insert-title" title="Where each cluster that passed G2 lands at the G3 plane, before the mask. The experiment does not record this; the mask scan below samples it.">Arrivals at G3 (before the mask)</span><button type="button" data-insert-min aria-label="Minimize the arrivals plot" aria-expanded="true">–</button></div>
+          <canvas class="np-insert-canvas" aria-label="Histogram of arrival positions at the G3 plane, with the quantum and classical predicted densities"></canvas>
+        </div>
+        <div class="np-insert" data-insert="counts" role="region" aria-label="Counts behind G3">
+          <div class="np-insert-head"><span class="np-insert-title" title="What the experiment measures: clusters that pass the G3 mask, for each sideways position of the mask.">Counts behind G3 (the measurement)</span><button type="button" data-insert-min aria-label="Minimize the counts plot" aria-expanded="true">–</button></div>
+          <canvas class="np-insert-canvas" aria-label="Clusters counted at each G3 offset, with the quantum and classical predictions"></canvas>
+        </div>
+        <div class="np-insert" data-insert="chart" role="region" aria-label="Visibility chart">
+          <div class="np-insert-head"><span class="np-insert-title" id="chartTitle">Visibility</span><button type="button" data-insert-min aria-label="Minimize the visibility chart" aria-expanded="true">–</button></div>
+          <canvas class="np-insert-canvas" aria-label="Predicted fringe visibility, quantum and classical"></canvas>
+        </div>
       </div>
     </div>
     <div class="story" id="story" aria-live="polite">
@@ -168,8 +173,9 @@
     <li><b>The large panel</b> is the inside of the interferometer, to scale in its own units: along the beam (left to right) the 1.97 m from G1 to G3, across it (up and down) ±266 nm, two grating periods either side of the centre of a G1 opening. The picture is stretched sideways about ten million times.</li>
     <li><b>Blue-white</b> is |ψ|², the computed density of the clusters' wave (see below). <b>Violet</b> marks where each grating's light is bright: G1 and G3 remove clusters there, G2 mainly shifts the phase of the wave. While packets fly, the wave is lit where the packets are.</li>
     <li><b>Marks</b>: in Pilot Wave, dots are the clusters themselves, with trails for a few in each packet; × is a cluster ionised by a grating. In Orthodox and Many Worlds, the marks are outcomes when a packet reaches a grating: × ionised, • counted.</li>
-    <li><b>Counts behind G3</b> (movable window): G3 is moved sideways in steps of about 15 nm, and the clusters that get through are counted. Cyan is the quantum prediction, orange a classical one (straight lines bent only by the light); yellow points are the simulated counts, with a sine fit. The <b>visibility</b> V = (max − min)/(max + min) measures how strong the fringes are.</li>
-    <li><b>Visibility chart</b> (movable window): the predicted visibility against the power of G2 or against the cluster mass. The two predictions differ when the grating spacing L is comparable to the Talbot length L<sub>T</sub> = d²/λ<sub>dB</sub>.</li>
+    <li><b>Arrivals at G3</b> (first plot on the right): where each cluster that passed G2 lands at the G3 plane, before the mask, built up hit by hit as packets arrive, like the screen of a double-slit experiment. This is the near-field fringe pattern, with period d. The experiment does not record it: there is no position-sensitive screen at G3.</li>
+    <li><b>Counts behind G3</b> (second plot): what the experiment measures. The mask G3 lets through clusters that land near its dark fringes; a counter behind it records how many get through, but not where. G3 is moved sideways in steps of about 15 nm, and the clusters that get through are counted. Cyan is the quantum prediction, orange a classical one (straight lines bent only by the light); yellow points are the simulated counts, with a sine fit. The <b>visibility</b> V = (max − min)/(max + min) measures how strong the fringes are.</li>
+    <li><b>Visibility chart</b> (third plot): the predicted visibility against the power of G2 or against the cluster mass. The two predictions differ when the grating spacing L is comparable to the Talbot length L<sub>T</sub> = d²/λ<sub>dB</sub>.</li>
   </ul>
 
   <h2>Why three gratings: Talbot–Lau interferometry</h2>
@@ -268,6 +274,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.5.0"></script>
+<script type="module" src="js/app.js?v=0.6.0"></script>
 </body>
 </html>

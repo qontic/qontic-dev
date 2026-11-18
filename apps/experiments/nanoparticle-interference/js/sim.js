@@ -43,6 +43,10 @@ export function drawCluster(ens, rand, xc = PAPER.d / 2, band = 2 * PAPER.d) {
   const setup = ens.pts[lo].setup, d = ens.d;
   let x0;
   do { x0 = xc - d / 2 + rand() * d; } while (rand() > intensityTransmission(x0, setup.g[0].n0, d));
+  // Every G1 opening is equivalent. The wave of one cluster repeats with period 2d at G3, so
+  // the start point is drawn from two neighbouring openings, or arrivals folded over two
+  // periods would keep a spurious 2d structure. (The mask has period d and is unaffected.)
+  if (rand() < 0.5) x0 += d;
   const x2 = xc - band + rand() * 2 * band;
   const g2 = rand() <= intensityTransmission(x2, setup.g[1].n0, d);
   return { setup, x0, x2, g2 };
@@ -79,5 +83,5 @@ export function runCluster(ens, mode, x3off, rand, opts = {}) {
   const { x3, pts } = positionAtG3(c, mode, rand, opts.steps);
   const xj = x3 + (ens.jitter ? ens.jitter * gauss(rand) : 0);
   const counted = rand() <= intensityTransmission(xj - x3off, c.setup.g[2].n0, c.setup.d);
-  return { ...c, x3, pts, fate: counted ? 'counted' : 'G3' };
+  return { ...c, x3, xj, pts, fate: counted ? 'counted' : 'G3' };
 }

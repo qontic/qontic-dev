@@ -106,26 +106,32 @@ body.np-app.qontic-light { background: #eef3f6; color: #183747; }
 .np-app .canvas-host { height: clamp(560px, calc(100dvh - 190px), 960px); }
 
 
-/* Floating plot windows over the canvas: drag by the title bar, resize from the corner, minimize to the bar. */
-.np-app .np-insert { position: absolute; z-index: 4; left: 16px; top: 16px; width: 360px; height: 240px; min-width: 220px; min-height: 150px; display: flex; flex-direction: column; border: 1px solid #42657a; border-radius: 9px; background: rgba(7, 19, 27, 0.93); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); overflow: hidden; resize: both; }
-.np-app .np-insert.minimized { height: auto !important; width: auto !important; min-width: 0; min-height: 0; resize: none; }
+/* Full screen width: controls | canvas | plot column. */
+.np-app .shell, .np-app .qontic-template { max-width: none; }
+.np-app .qontic-workspace { max-width: none; } /* this app uses the full width: controls | canvas | plots */
+.np-app .canvas-host { display: flex; gap: 8px; padding: 6px; height: clamp(560px, calc(100dvh - 190px), 1100px); }
+.np-app .np-canvas-wrap { position: relative; flex: 1 1 auto; min-width: 0; }
+.np-app #stage { position: absolute; inset: 0; width: 100%; height: 100%; }
+.np-app .np-plots { flex: 0 0 clamp(330px, 27vw, 620px); display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.np-app .np-insert { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; border: 1px solid #2b4e63; border-radius: 8px; background: #0a1c2a; overflow: hidden; }
+.np-app .np-insert.minimized { flex: none; }
 .np-app .np-insert.minimized .np-insert-canvas { display: none; }
-.np-app .np-insert-head { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 10px; background: #102839; cursor: move; user-select: none; touch-action: none; }
-.np-app .np-insert-title { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: #d9edf7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-app .np-insert-head { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 10px; background: #102839; user-select: none; }
+.np-app .np-insert-title { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: #d9edf7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .np-app .np-insert-head button { flex: none; width: 22px; height: 20px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #9edce5; font-size: 15px; line-height: 1; cursor: pointer; }
 .np-app .np-insert-head button:hover, .np-app .np-insert-head button:focus-visible { background: #1d4256; }
 .np-app .np-insert-canvas { flex: 1; display: block; width: 100%; min-height: 0; }
-.qontic-light.np-app .np-insert { background: rgba(255, 255, 255, 0.95); border-color: #aec2cb; box-shadow: 0 6px 18px rgba(24, 55, 71, 0.18); }
+.qontic-light.np-app .np-insert { background: #f1f6f8; border-color: #c9d9e0; }
 .qontic-light.np-app .np-insert-head { background: #dcebf1; }
 .qontic-light.np-app .np-insert-title { color: #183747; }
 .qontic-light.np-app .np-insert-head button { color: #0b6f7d; }
 .np-app .story-intro { margin: 0 0 8px; color: #c7dbe6; }
 .qontic-light.np-app .story-intro { color: #35505f; }
 .np-app .story { min-height: 0; padding: 9px 14px 11px; }
-@media (max-width: 760px) {
-  .np-app .canvas-host { height: auto; display: flex; flex-direction: column; gap: 8px; }
-  .np-app #stage { height: 440px; }
-  .np-app .np-insert { position: relative; left: auto !important; top: auto !important; width: auto !important; height: 260px !important; resize: none; }
-  .np-app .np-insert.minimized { height: auto !important; }
-  .np-app .np-insert-head { cursor: default; }
+@media (max-width: 1100px) {
+  .np-app .canvas-host { height: auto; flex-direction: column; }
+  .np-app .np-canvas-wrap { height: clamp(420px, 60vh, 640px); }
+  .np-app .np-plots { flex: none; }
+  .np-app .np-insert { flex: none; height: 250px; }
+  .np-app .np-insert.minimized { height: auto; }
 }

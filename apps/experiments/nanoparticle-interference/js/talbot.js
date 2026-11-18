@@ -70,7 +70,9 @@ const cmul = (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
 
 // Fringe Fourier coefficients S_l, l = 0..lmax (Eq. 2) for one mass and velocity.
 // p: { P: [P1,P2,P3], waist: [w1,w2,w3], L, d }
-export function fringeCoefficients(p, mKDa, v, classical, lmax = 1) {
+// With maskG3 = false the G3 factor is dropped: the coefficients then describe the density of
+// clusters arriving at the G3 plane, before the mask (rho(x) = sum_l rho_l e^{2 pi i l x / d}).
+export function fringeCoefficients(p, mKDa, v, classical, lmax = 1, maskG3 = true) {
   const LT = talbotLength(mKDa, v, p.d);
   const g = [0, 1, 2].map((i) => ({ n0: n0(p.P[i], mKDa, v, p.waist[i]), phi0: phi0(p.P[i], mKDa, v, p.waist[i]) }));
   const ls = Array.from({ length: lmax + 1 }, (_, l) => l);
@@ -78,7 +80,7 @@ export function fringeCoefficients(p, mKDa, v, classical, lmax = 1) {
   const b3 = talbotB(ls, g[2].n0, g[2].phi0, 0, classical);
   return ls.map((l) => {
     const [b2] = talbotB([2 * l], g[1].n0, g[1].phi0, (l * p.L) / LT, classical);
-    return cmul(cmul(b1[l], b2), b3[l]);
+    return maskG3 ? cmul(cmul(b1[l], b2), b3[l]) : cmul(b1[l], b2);
   });
 }
 
@@ -95,11 +97,11 @@ export function averagingGrid({ v, sigmaV, massKDa, dmRel }, nv = 21, nm = 11) {
 }
 
 // Averaged S_l, l = 0..lmax.
-export function averagedCoefficients(p, beam, classical, lmax = 1, nv = 21, nm = 11) {
+export function averagedCoefficients(p, beam, classical, lmax = 1, nv = 21, nm = 11, maskG3 = true) {
   const acc = Array.from({ length: lmax + 1 }, () => [0, 0]);
   let wsum = 0;
   for (const pt of averagingGrid(beam, nv, nm)) {
-    const S = fringeCoefficients(p, pt.m, pt.v, classical, lmax);
+    const S = fringeCoefficients(p, pt.m, pt.v, classical, lmax, maskG3);
     for (let l = 0; l <= lmax; l++) { acc[l][0] += pt.w * S[l][0]; acc[l][1] += pt.w * S[l][1]; }
     wsum += pt.w;
   }

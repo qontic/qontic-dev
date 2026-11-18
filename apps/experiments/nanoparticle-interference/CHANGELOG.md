@@ -1,5 +1,10 @@
 # Nanoparticle Interference (Vienna 2026) — changelog
 
+## 0.6.0 (2026-11-18)
+- Layout: controls | canvas | plot column, using the full screen width (overrides the shared 4:3 workspace cap for this app only). Plots no longer cover the canvas; each can be minimized to its title bar. Below 1100 px the plots stack under the canvas.
+- New plot "Arrivals at G3 (before the mask)": where each cluster that passed G2 lands at the G3 plane, added hit by hit as packets arrive, like a double-slit screen, with the predicted quantum and classical densities (talbot.js: Talbot–Lau coefficients without the G3 factor). The experiment does not record this; the counts plot is the measurement, made by scanning the mask.
+- Fix (sim.js): start points are drawn from two neighbouring G1 openings. With one opening, arrivals folded over two periods kept a spurious 2d structure (each cluster's own pattern repeats every 2d). Counts were unaffected, since the mask has period d. New test: arrivals over two periods match the predicted density.
+
 ## 0.5.0 (2026-11-18)
 Layout: the experiment first (Pablo: larger canvas, intuitive at a glance, results as movable inserts).
 - The canvas shows only the interferometer and fills the stage (as in the other apps); |ψ|² and the gratings are labelled with what each grating does.
