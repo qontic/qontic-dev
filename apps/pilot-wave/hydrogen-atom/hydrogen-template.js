@@ -3,7 +3,7 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { APP_RELEASE } from './release.js?v=1.2.7';
+import { APP_RELEASE } from './release.js?v=1.2.8';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');
@@ -111,57 +111,100 @@ mountQonticShortcuts({
   screenshot: () => document.querySelector('#qontic-media-tools button[aria-label="Screenshot"]')?.click(),
 });
 
-// ── Predict, then watch: three states that show the guidance law at work ──
-const steps = [
-  { label: '1s', select: () => selectPureOrbital(0), answer: 'still',
-    question: 'Step 1 of 3 · 1s ground state (no spin). In pilot-wave theory, how do the electrons move?',
+// ── Quiz tab: predict before watching ──────────────────────────────────────
+// The question shows a still image of |ψ|² only (no electrons), so the picture cannot
+// give the answer away. Opening the app with ?quiz=1 starts on the Quiz tab and keeps the
+// Simulation tab locked until the first answer.
+const quiz = [
+  { label: '1s', plane: 'xz', select: () => selectPureOrbital(0), answer: 'still',
+    question: 'The 1s ground state (no spin). In pilot-wave theory, how do the electrons move?',
+    figure: '1s: |ψ|² in the xz plane.',
     explain: 'ψ is real, so the guidance velocity Im(∇ψ/ψ) is zero everywhere: each electron stays where it started. The quantum potential cancels the Coulomb force (Physics § 3).' },
-  { label: '2p₊₁', select: () => selectPureOrbital(3), answer: 'circle',
-    question: 'Step 2 of 3 · 2p₊₁, whose |ψ|² is a ring around the z axis. How do the electrons move?',
+  { label: '2p₊₁', plane: 'xy', select: () => selectPureOrbital(3), answer: 'circle',
+    question: 'The 2p₊₁ state, whose |ψ|² is a ring around the z axis. In pilot-wave theory, how do the electrons move?',
+    figure: '2p₊₁: |ψ|² in the xy plane (the z axis points out of the page).',
     explain: 'ψ ∝ exp(iφ) carries angular momentum ħ about z. Each electron circles the z axis at fixed height and radius, faster near the axis (vᵩ = 1/(r sinθ) in atomic units).' },
-  { label: '1s + 2p₀', select: () => document.getElementById('beatPreset').click(), answer: 'swing',
-    question: 'Step 3 of 3 · 1s + 2p₀, a superposition of two energies. How do the electrons move?',
+  { label: '1s + 2p₀', plane: 'xz', select: () => document.getElementById('beatPreset').click(), answer: 'swing',
+    question: 'The superposition 1s + 2p₀ of two energies. In pilot-wave theory, how do the electrons move?',
+    figure: '1s + 2p₀: |ψ|² in the xz plane at t = 0.',
     explain: 'The density sloshes up and down z every 405 as, and the electrons ride with it, so their distribution stays |ψ|². Nothing circles: both states have m = 0.' },
 ];
-const answerButtons = [...document.querySelectorAll('[data-predict]')];
-const feedback = document.getElementById('predictFeedback');
-let step = -1;   // -1: no step chosen yet; the app opens on its default state
+const quizMode = new URLSearchParams(location.search).get('quiz') === '1';
+const simTab = document.querySelector('button[data-view="simulation"]');
+const quizTab = document.querySelector('button[data-view="quiz"]');
+const answers = [...document.querySelectorAll('[data-answer]')];
+let quizIndex = 0, answered = false;
 
-function showStep(index) {
-  step = index % steps.length;
+function drawQuizFigure(q) {
+  const qc = document.getElementById('quizCanvas'), g = qc.getContext('2d');
+  const light = document.body.classList.contains('light');
+  // Dedicated 240 × 240 image of |ψ|² over the region that holds most of the density.
+  const half = 1.8 * Math.max(...comps.map(c => exactR(c.n, c.l))) * 1.15;
+  const N = 240, vals = new Float32Array(N * N);
+  let maxV = 1e-30;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const u = -half + (i + 0.5) * 2 * half / N, w = half - (j + 0.5) * 2 * half / N;
+    const d = q.plane === 'xy' ? densityAt(u, w, 0, 0) : densityAt(u, 0, w, 0);
+    vals[j * N + i] = d; if (d > maxV) maxV = d;
+  }
+  const img = new ImageData(N, N);
+  for (let k = 0; k < N * N; k++) {
+    const vn = Math.pow(vals[k] / maxV, DENS_GAMMA), [r, gg, bb] = sliceCol(vn);
+    img.data[k * 4] = r; img.data[k * 4 + 1] = gg; img.data[k * 4 + 2] = bb; img.data[k * 4 + 3] = 255;
+  }
+  const tmp = document.createElement('canvas');
+  tmp.width = N; tmp.height = N;
+  tmp.getContext('2d').putImageData(img, 0, 0);
+  g.imageSmoothingEnabled = true;
+  g.drawImage(tmp, 0, 0, qc.width, qc.height);
+  const [h, v] = q.plane === 'xy' ? ['x', 'y'] : ['x', 'z'];
+  g.strokeStyle = light ? 'rgba(20,40,70,.5)' : 'rgba(200,220,255,.45)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(12, qc.height / 2); g.lineTo(qc.width - 12, qc.height / 2);
+  g.moveTo(qc.width / 2, qc.height - 12); g.lineTo(qc.width / 2, 12); g.stroke();
+  g.fillStyle = light ? '#1a2540' : '#cfe0ff'; g.font = '13px Inter, system-ui, sans-serif';
+  g.fillText(h, qc.width - 20, qc.height / 2 - 6); g.fillText(v, qc.width / 2 + 6, 20);
+  document.getElementById('quizFigCaption').textContent = q.figure;
+}
+
+function showQuestion(index) {
+  quizIndex = index % quiz.length;
+  answered = false;
+  const q = quiz[quizIndex];
   if (interp !== 'pw') applyInterpretation('pw');
   if (spinEnabled) toggleSpin();
-  steps[step].select();
+  q.select();
   hydrogenSimulation.reset();
   setRunning(false);
-  document.querySelector('.predict-answers').hidden = false;
-  setPredictPending(true);
-  document.getElementById('predictQ').textContent = steps[step].question;
-  feedback.textContent = 'Choose an answer; the simulation starts when you do.';
-  for (const button of answerButtons) button.setAttribute('aria-pressed', 'false');
-  document.getElementById('predictNext').textContent = `Next: ${steps[(step + 1) % steps.length].label} →`;
+  document.getElementById('quizStep').textContent = `Question ${quizIndex + 1} of ${quiz.length}`;
+  document.getElementById('quizQuestion').textContent = q.question;
+  document.getElementById('quizFeedback').textContent = '';
+  for (const b of answers) { b.setAttribute('aria-pressed', 'false'); b.disabled = false; }
+  document.getElementById('quizWatch').hidden = true;
+  document.getElementById('quizNext').hidden = true;
+  drawQuizFigure(q);
 }
 
-for (const button of answerButtons) button.addEventListener('click', () => {
-  const right = button.dataset.predict === steps[step].answer;
-  for (const other of answerButtons) other.setAttribute('aria-pressed', String(other === button));
-  setPredictPending(false);
-  feedback.textContent = `${right ? 'Yes.' : 'Not quite.'} ${steps[step].explain}`;
+for (const b of answers) b.addEventListener('click', () => {
+  if (answered) return;
+  answered = true;
+  const q = quiz[quizIndex], right = b.dataset.answer === q.answer;
+  for (const other of answers) { other.setAttribute('aria-pressed', String(other === b)); other.disabled = true; }
+  document.getElementById('quizFeedback').textContent = `${right ? 'Yes.' : 'Not quite.'} ${q.explain}`;
+  document.getElementById('quizWatch').hidden = false;
+  document.getElementById('quizNext').hidden = false;
+  document.getElementById('quizNext').textContent = quizIndex + 1 < quiz.length ? 'Next question' : 'Start again';
+  simTab.disabled = false;
+  simTab.title = '';
+});
+document.getElementById('quizWatch').addEventListener('click', () => {
+  simTab.click();
   setRunning(true);
 });
-document.getElementById('predictNext').addEventListener('click', () => showStep(step + 1));
-document.getElementById('predictQ').textContent = 'Three quick predictions about how pilot-wave electrons move. Start with the ground state.';
-document.getElementById('predictNext').textContent = `Start with ${steps[0].label} →`;
+document.getElementById('quizNext').addEventListener('click', () => showQuestion(quizIndex + 1));
+quizTab.addEventListener('click', () => { if (!answered) showQuestion(quizIndex); });
 
-// On narrow screens the canvas is above the controls; put the prediction panel under the
-// canvas so a student can answer and watch at the same time.
-const predictPanel = document.querySelector('.hydrogen-predict');
-const predictHome = predictPanel.parentElement, predictAfter = predictPanel.nextElementSibling;
-const narrow = matchMedia('(max-width: 1000px)');
-function placePredict() {
-  if (narrow.matches) document.querySelector('.hydrogen-story').after(predictPanel);
-  else predictHome.insertBefore(predictPanel, predictAfter);
-  predictPanel.classList.toggle('predict-in-stage', narrow.matches);
+if (quizMode) {
+  simTab.disabled = true;
+  simTab.title = 'Answer the quiz question first';
+  quizTab.click();
 }
-narrow.addEventListener('change', placePredict);
-placePredict();

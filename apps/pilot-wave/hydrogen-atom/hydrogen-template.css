@@ -134,3 +134,20 @@ body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) 
   #zoom-in, #zoom-out { min-width: 40px; min-height: 40px; }
   .gpu-status-banner { font-size: 11px; padding: 4px 8px; }
 }
+
+/* Quiz tab */
+.quiz-panel { margin-top: 12px; padding: 16px; }
+.quiz-layout { display: grid; grid-template-columns: minmax(220px, 360px) 1fr; gap: 20px; align-items: start; max-width: 1000px; }
+.quiz-figure { margin: 0; }
+.quiz-figure canvas { width: 100%; height: auto; aspect-ratio: 1; border: 1px solid var(--border-color); border-radius: 6px; display: block; }
+.quiz-figure figcaption { margin-top: 6px; font-size: 12px; color: var(--text-secondary); }
+.quiz-step { margin: 4px 0 0; font-size: 12px; color: var(--text-secondary); }
+.quiz-question { margin: 6px 0 12px; font-size: 16px; line-height: 1.45; }
+.quiz-answers { flex-wrap: wrap; gap: 6px; }
+.quiz-answers .qontic-app-toggle { flex: 1 1 auto; min-height: 40px; }
+.quiz-feedback { margin: 12px 0; line-height: 1.5; }
+.quiz-feedback:empty { display: none; }
+.quiz-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+button[data-view]:disabled { opacity: .45; cursor: not-allowed; }
+body[data-view="quiz"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) { display: none !important; }
+@media (max-width: 700px) { .quiz-layout { grid-template-columns: 1fr; } }

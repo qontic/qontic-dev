@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="hydrogen-template.css?v=7">
+  <link rel="stylesheet" href="hydrogen-template.css?v=8">
 </head>
 
 <body>
@@ -16,6 +16,7 @@
     <header><div><h1>Hydrogen Atom</h1></div></header>
     <nav class="tabs" aria-label="Views">
       <button type="button" class="qontic-app-toggle active" data-view="simulation" aria-pressed="true">Simulation</button>
+      <button type="button" class="qontic-app-toggle" data-view="quiz" aria-pressed="false">Quiz</button>
       <button type="button" class="qontic-app-toggle" data-view="physics" aria-pressed="false">Physics</button>
     </nav>
     <section class="qontic-workspace" id="simulation" aria-label="Hydrogen simulation">
@@ -34,17 +35,6 @@
           <button type="button" class="qontic-app-toggle active" data-orbital-index="3" aria-pressed="true">2p₊₁</button>
           <button type="button" class="qontic-app-toggle" id="beatPreset">1s + 2p₀</button>
         </div>
-      </section>
-      <section class="hydrogen-predict" aria-labelledby="predict-title">
-        <div class="slabel" id="predict-title">Predict, then watch</div>
-        <p id="predictQ" class="hydrogen-prompt"></p>
-        <div class="qontic-app-toggle-group predict-answers" hidden>
-          <button type="button" class="qontic-app-toggle" data-predict="still" aria-pressed="false">Stay still</button>
-          <button type="button" class="qontic-app-toggle" data-predict="circle" aria-pressed="false">Circle the z axis</button>
-          <button type="button" class="qontic-app-toggle" data-predict="swing" aria-pressed="false">Swing along z</button>
-        </div>
-        <p id="predictFeedback" class="hydrogen-prompt" role="status"></p>
-        <button type="button" class="qontic-app-toggle" id="predictNext">Next state →</button>
       </section>
       <details class="options-group">
         <summary>More orbitals and superpositions</summary>
@@ -285,6 +275,29 @@
         </div>
       </section>
     </section>
+    <section class="qontic-panel quiz-panel" id="quiz" hidden aria-labelledby="quiz-title">
+      <div class="quiz-layout">
+        <figure class="quiz-figure">
+          <canvas id="quizCanvas" width="360" height="360" aria-label="Density |ψ|² of the state in the question (no electrons shown)"></canvas>
+          <figcaption id="quizFigCaption"></figcaption>
+        </figure>
+        <div class="quiz-body">
+          <p class="slabel" id="quiz-title">Quiz · predict before you watch</p>
+          <p class="quiz-step" id="quizStep"></p>
+          <p class="quiz-question" id="quizQuestion"></p>
+          <div class="qontic-app-toggle-group quiz-answers">
+            <button type="button" class="qontic-app-toggle" data-answer="still" aria-pressed="false">They stay still</button>
+            <button type="button" class="qontic-app-toggle" data-answer="circle" aria-pressed="false">They circle the z axis</button>
+            <button type="button" class="qontic-app-toggle" data-answer="swing" aria-pressed="false">They swing along z</button>
+          </div>
+          <p class="quiz-feedback" id="quizFeedback" role="status"></p>
+          <div class="quiz-actions">
+            <button type="button" class="qontic-app-toggle" id="quizWatch" hidden>Watch it in the simulation →</button>
+            <button type="button" class="qontic-app-toggle" id="quizNext" hidden>Next question</button>
+          </div>
+        </div>
+      </div>
+    </section>
     <section class="qontic-reading-panel qontic-panel details-panel" id="physics" hidden>
       <div class="tp-body">
           <section class="tp-sec">
@@ -381,7 +394,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=16"></script>
-  <script type="module" src="hydrogen-template.js?v=13"></script>
+  <script src="hydrogen-3d.js?v=17"></script>
+  <script type="module" src="hydrogen-template.js?v=14"></script>
 </body>
 </html>

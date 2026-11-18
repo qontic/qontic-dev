@@ -1,5 +1,10 @@
 # Hydrogen Atom — changelog
 
+## 1.2.8 · 2026-11-18
+- The prediction questions moved from the Core tab to a new Quiz tab (next to Simulation and Physics; app-level, the shared template is unchanged). Each question shows a still image of |ψ|² only, without electrons, so the picture cannot give the answer away. After an answer, "Watch it in the simulation" switches to Simulation with that state running.
+- Opening the app with ?quiz=1 starts on the Quiz tab and keeps Simulation locked until the first answer. Without it the app opens as before.
+- Core tab: the prediction panel is gone; only states and controls remain.
+
 ## 1.2.7 · 2026-11-18
 - Real orbitals 2p_x, 2p_y, 3d_xz, 3d_yz, 3d_xy, 3d_x²−y² in the existing superposition menu (group "Real orbitals (as drawn in chemistry)"), signed as in chemistry so Lobes colours match textbook pictures. ψ is real, so pilot-wave electrons stand still; the descriptions point to the complex m states, where they circulate. The p_x preset now has the chemistry sign. No new controls.
 
