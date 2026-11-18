@@ -1,3 +1,6 @@
+## 3.0-dev.7 — 2026-11-17
+- New wave display "Phase + amplitude" (Show menu, Core and Display): hue = phase θ of Ψ, brightness = |Ψ| (domain colouring). Hue runs red (θ = 0) → yellow → green → cyan (π) → blue → magenta; the phase includes the moving carrier, as in the "Phase (cos θ)" view. A phase wheel (dark centre = small |Ψ|) is drawn in the 2D view and in screenshots; the 3D legend shows the hue ring. The value-range control scales the brightness. With the which-slit detector the branch colouring (cyan/orange) is kept.
+
 ## 3.0-dev.6 — 2026-11-17
 Nice fringes is fast (Pablo: it took forever).
 - 90% of the search time was the mask normalization for N > 2, recomputed for every candidate geometry by scanning the slit array in steps of σ/40. Now a σ/4 scan plus golden-section refinement: same maximum (tests unchanged), ~50× cheaper. This also speeds up every reset with more than two slits.
