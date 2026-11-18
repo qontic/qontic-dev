@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="./style.css?v=3" />
+  <link rel="modulepreload" href="./main.js?v=3" />
 </head>
 <body>
   <main class="shell">
@@ -48,6 +49,7 @@
         show-reset="true" show-autorun="false" show-interpretation="false" disabled></qontic-controls>
       <div class="qontic-control-body" id="controls">
         <div data-control-pane="core">
+          <button type="button" class="qontic-app-toggle" id="rerun" disabled>Rerun</button>
           <p class="prompt">With the gradient on, use XZ to compare the deflection for +z with the splitting for the equal superposition. Changing initial spin restarts the packet.</p>
         </div>
         <div data-control-pane="advanced" hidden>
@@ -133,6 +135,6 @@
         </div>
     </section>
   </main>
-  <script type="module" src="./template.js?v=2"></script>
+  <script type="module" src="./template.js?v=3"></script>
 </body>
 </html>

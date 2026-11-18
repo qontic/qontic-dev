@@ -31,6 +31,10 @@ function setRunning(running) {
 controls.addEventListener('qontic:start', () => setRunning(true));
 controls.addEventListener('qontic:stop', () => setRunning(false));
 controls.addEventListener('qontic:reset', () => simulation?.reset());
+document.getElementById('rerun').addEventListener('click', () => {
+  simulation?.reset();
+  setRunning(true);
+});
 controls.addEventListener('qontic:speed', event => simulation?.setSpeed(event.detail.speed));
 controls.addEventListener('qontic:tab', ({ detail }) => {
   for (const pane of document.querySelectorAll('[data-control-pane]')) {
@@ -58,7 +62,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=2'));
+  ({ simulation } = await import('./main.js?v=3'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {

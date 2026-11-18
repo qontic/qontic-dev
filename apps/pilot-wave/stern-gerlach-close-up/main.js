@@ -2,7 +2,7 @@ const canvas = document.getElementById("c");
 const status = document.getElementById("gpu-status");
 const statusTitle = document.getElementById("gpu-status-title");
 const gpuHelp = document.getElementById("gpu-help");
-const simulationButtons = [...document.querySelectorAll("#viewtools button, #ui .btns button")];
+const simulationButtons = [...document.querySelectorAll("#viewtools button, #rerun")];
 
 function showSimulationError(title, error) {
   statusTitle.textContent = title;
@@ -40,6 +40,61 @@ async function getGpuDevice() {
   return adapter.requestDevice({ requiredLimits });
 }
 
+const WAVE_WORKGROUP_SIZE = 256;
+const PARTICLE_WORKGROUP_SIZE = 128;
+
+const SHADER_FILES = {
+  common: "./shaders/common.wgsl",
+  palette: "./shaders/palette.wgsl",
+  waveInit: "./shaders/wave-init.wgsl",
+  waveStep: "./shaders/wave-step.wgsl",
+  particleUpdate: "./shaders/particle-update.wgsl",
+  cloud: "./shaders/cloud.wgsl?v=2",
+  particleRender: "./shaders/particle-render.wgsl",
+  density: "./shaders/density.wgsl",
+  boxShell: "./shaders/box-shell.wgsl",
+  line: "./shaders/line.wgsl",
+  fieldLine: "./shaders/field-line.wgsl",
+  detectorPlate: "./shaders/detector-plate.wgsl",
+};
+
+function applyShaderConstants(source) {
+  return source
+    .replaceAll("${WAVE_WORKGROUP_SIZE}", String(WAVE_WORKGROUP_SIZE))
+    .replaceAll("${PARTICLE_WORKGROUP_SIZE}", String(PARTICLE_WORKGROUP_SIZE));
+}
+
+async function fetchShader(path) {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`Could not load shader ${path}: ${response.status} ${response.statusText}`);
+  return applyShaderConstants(await response.text());
+}
+
+async function loadShaders() {
+  const entries = await Promise.all(
+    Object.entries(SHADER_FILES).map(async ([name, path]) => [name, await fetchShader(path)])
+  );
+  const parts = Object.fromEntries(entries);
+  return {
+    waveInit: parts.common + parts.waveInit,
+    waveStep: parts.common + parts.waveStep,
+    particleUpdate: parts.common + parts.particleUpdate,
+    cloud: parts.common + parts.palette + parts.cloud,
+    particleRender: parts.common + parts.particleRender,
+    density: parts.common + parts.density,
+    boxShell: parts.common + parts.boxShell,
+    line: parts.common + parts.line,
+    fieldLine: parts.common + parts.fieldLine,
+    detectorPlate: parts.common + parts.detectorPlate,
+  };
+}
+
+// Start shader downloads while the browser obtains its GPU device.
+const shaderLoad = loadShaders().then(
+  shaders => ({ shaders }),
+  error => ({ error }),
+);
+
 let device, gpuContext;
 try {
   device = await getGpuDevice();
@@ -57,8 +112,6 @@ device.lost.then(info => {
 });
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-const WAVE_WORKGROUP_SIZE = 256;
-const PARTICLE_WORKGROUP_SIZE = 128;
 const WAVE_CELL_BYTES = 32;
 const DEFAULT_SG_GRADIENT = 4.0;
 const TUNNEL_Z_SCALE = 2.0;
@@ -358,57 +411,13 @@ const trailUniformBuffer = device.createBuffer({
   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 
-const SHADER_FILES = {
-  common: "./shaders/common.wgsl",
-  palette: "./shaders/palette.wgsl",
-  waveInit: "./shaders/wave-init.wgsl",
-  waveStep: "./shaders/wave-step.wgsl",
-  particleUpdate: "./shaders/particle-update.wgsl",
-  cloud: "./shaders/cloud.wgsl?v=2",
-  particleRender: "./shaders/particle-render.wgsl",
-  density: "./shaders/density.wgsl",
-  boxShell: "./shaders/box-shell.wgsl",
-  line: "./shaders/line.wgsl",
-  fieldLine: "./shaders/field-line.wgsl",
-  detectorPlate: "./shaders/detector-plate.wgsl",
-};
-
-function applyShaderConstants(source) {
-  return source
-    .replaceAll("${WAVE_WORKGROUP_SIZE}", String(WAVE_WORKGROUP_SIZE))
-    .replaceAll("${PARTICLE_WORKGROUP_SIZE}", String(PARTICLE_WORKGROUP_SIZE));
-}
-
-async function fetchShader(path) {
-  const response = await fetch(path);
-  if (!response.ok) throw new Error(`Could not load shader ${path}: ${response.status} ${response.statusText}`);
-  return applyShaderConstants(await response.text());
-}
-
-async function loadShaders() {
-  const entries = await Promise.all(
-    Object.entries(SHADER_FILES).map(async ([name, path]) => [name, await fetchShader(path)])
-  );
-  const parts = Object.fromEntries(entries);
-  return {
-    waveInit: parts.common + parts.waveInit,
-    waveStep: parts.common + parts.waveStep,
-    particleUpdate: parts.common + parts.particleUpdate,
-    cloud: parts.common + parts.palette + parts.cloud,
-    particleRender: parts.common + parts.particleRender,
-    density: parts.common + parts.density,
-    boxShell: parts.common + parts.boxShell,
-    line: parts.common + parts.line,
-    fieldLine: parts.common + parts.fieldLine,
-    detectorPlate: parts.common + parts.detectorPlate,
-  };
-}
-
-const SHADERS = await loadShaders().catch(error => {
+const shaderResult = await shaderLoad;
+if (shaderResult.error) {
   simulationAvailable = false;
-  showSimulationError("The simulation could not load its shaders", error);
-  throw error;
-});
+  showSimulationError("The simulation could not load its shaders", shaderResult.error);
+  throw shaderResult.error;
+}
+const SHADERS = shaderResult.shaders;
 const WAVE_INIT_WGSL = SHADERS.waveInit;
 const WAVE_STEP_WGSL = SHADERS.waveStep;
 const PARTICLE_UPDATE_WGSL = SHADERS.particleUpdate;
@@ -513,7 +522,7 @@ function blendState(srcFactor, dstFactor) {
   };
 }
 
-function buildPipelines() {
+async function buildPipelines() {
   const waveInitModule = shaderModule("wave init", WAVE_INIT_WGSL);
   const waveStepModule = shaderModule("wave step", WAVE_STEP_WGSL);
   const particleUpdateModule = shaderModule("particle update", PARTICLE_UPDATE_WGSL);
@@ -525,23 +534,23 @@ function buildPipelines() {
   const fieldLineModule = shaderModule("SG field lines", FIELD_LINE_WGSL);
   const detectorPlateModule = shaderModule("detector plate", DETECTOR_PLATE_WGSL);
 
-  pipelineWaveInit = device.createComputePipeline({
+  const pipelineWaveInitReady = device.createComputePipelineAsync({
     label: "wave init pipeline",
     layout: "auto",
     compute: { module: waveInitModule, entryPoint: "main" },
   });
-  pipelineWaveStep = device.createComputePipeline({
+  const pipelineWaveStepReady = device.createComputePipelineAsync({
     label: "wave step pipeline",
     layout: "auto",
     compute: { module: waveStepModule, entryPoint: "main" },
   });
-  pipelineParticleUpdate = device.createComputePipeline({
+  const pipelineParticleUpdateReady = device.createComputePipelineAsync({
     label: "particle update pipeline",
     layout: "auto",
     compute: { module: particleUpdateModule, entryPoint: "main" },
   });
 
-  pipelineCloud = device.createRenderPipeline({
+  const pipelineCloudReady = device.createRenderPipelineAsync({
     label: "cloud render pipeline",
     layout: "auto",
     vertex: { module: cloudModule, entryPoint: "vs" },
@@ -553,7 +562,7 @@ function buildPipelines() {
     primitive: { topology: "triangle-list" },
   });
 
-  pipelineParticleRender = device.createRenderPipeline({
+  const pipelineParticleRenderReady = device.createRenderPipelineAsync({
     label: "particle render pipeline",
     layout: "auto",
     vertex: { module: particleModule, entryPoint: "vsRender" },
@@ -565,7 +574,7 @@ function buildPipelines() {
     primitive: { topology: "triangle-list" },
   });
 
-  pipelineParticleStamp = device.createRenderPipeline({
+  const pipelineParticleStampReady = device.createRenderPipelineAsync({
     label: "particle trail stamp pipeline",
     layout: "auto",
     vertex: { module: particleModule, entryPoint: "vsStamp" },
@@ -577,7 +586,7 @@ function buildPipelines() {
     primitive: { topology: "triangle-list" },
   });
 
-  pipelineDensityFade = device.createRenderPipeline({
+  const pipelineDensityFadeReady = device.createRenderPipelineAsync({
     label: "density fade pipeline",
     layout: "auto",
     vertex: { module: densityModule, entryPoint: "vsFull" },
@@ -585,7 +594,7 @@ function buildPipelines() {
     primitive: { topology: "triangle-list" },
   });
 
-  pipelineDensityRenderAdd = device.createRenderPipeline({
+  const pipelineDensityRenderAddReady = device.createRenderPipelineAsync({
     label: "density render additive pipeline",
     layout: "auto",
     vertex: { module: densityModule, entryPoint: "vsFull" },
@@ -596,7 +605,7 @@ function buildPipelines() {
     },
     primitive: { topology: "triangle-list" },
   });
-  pipelineDensityRenderScreen = device.createRenderPipeline({
+  const pipelineDensityRenderScreenReady = device.createRenderPipelineAsync({
     label: "density render screen pipeline",
     layout: "auto",
     vertex: { module: densityModule, entryPoint: "vsFull" },
@@ -614,7 +623,7 @@ function buildPipelines() {
     },
     primitive: { topology: "triangle-list" },
   });
-  pipelineDensityRenderGlow = device.createRenderPipeline({
+  const pipelineDensityRenderGlowReady = device.createRenderPipelineAsync({
     label: "density render glow pipeline",
     layout: "auto",
     vertex: { module: densityModule, entryPoint: "vsFull" },
@@ -626,7 +635,7 @@ function buildPipelines() {
     primitive: { topology: "triangle-list" },
   });
 
-  pipelineBoxShell = device.createRenderPipeline({
+  const pipelineBoxShellReady = device.createRenderPipelineAsync({
     label: "box shell pipeline",
     layout: "auto",
     vertex: {
@@ -650,7 +659,7 @@ function buildPipelines() {
     primitive: { topology: "triangle-list" },
   });
 
-  pipelineLine = device.createRenderPipeline({
+  const pipelineLineReady = device.createRenderPipelineAsync({
     label: "box line pipeline",
     layout: "auto",
     vertex: {
@@ -672,7 +681,7 @@ function buildPipelines() {
     primitive: { topology: "line-list" },
   });
 
-  pipelineFieldLine = device.createRenderPipeline({
+  const pipelineFieldLineReady = device.createRenderPipelineAsync({
     label: "SG field line pipeline",
     layout: "auto",
     vertex: {
@@ -697,7 +706,7 @@ function buildPipelines() {
     primitive: { topology: "triangle-list" },
   });
 
-  pipelineDetectorPlate = device.createRenderPipeline({
+  const pipelineDetectorPlateReady = device.createRenderPipelineAsync({
     label: "detector plate pipeline",
     layout: "auto",
     vertex: { module: detectorPlateModule, entryPoint: "vs" },
@@ -708,6 +717,38 @@ function buildPipelines() {
     },
     primitive: { topology: "triangle-list" },
   });
+
+  [
+    pipelineWaveInit,
+    pipelineWaveStep,
+    pipelineParticleUpdate,
+    pipelineCloud,
+    pipelineParticleRender,
+    pipelineParticleStamp,
+    pipelineDensityFade,
+    pipelineDensityRenderAdd,
+    pipelineDensityRenderScreen,
+    pipelineDensityRenderGlow,
+    pipelineBoxShell,
+    pipelineLine,
+    pipelineFieldLine,
+    pipelineDetectorPlate,
+  ] = await Promise.all([
+    pipelineWaveInitReady,
+    pipelineWaveStepReady,
+    pipelineParticleUpdateReady,
+    pipelineCloudReady,
+    pipelineParticleRenderReady,
+    pipelineParticleStampReady,
+    pipelineDensityFadeReady,
+    pipelineDensityRenderAddReady,
+    pipelineDensityRenderScreenReady,
+    pipelineDensityRenderGlowReady,
+    pipelineBoxShellReady,
+    pipelineLineReady,
+    pipelineFieldLineReady,
+    pipelineDetectorPlateReady,
+  ]);
 
   boxShellBindGroup = bindGroup(pipelineBoxShell, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
   lineBindGroup = bindGroup(pipelineLine, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
@@ -1755,8 +1796,18 @@ window.addEventListener("resize", () => {
 
 async function main() {
   configureCanvas();
-  buildPipelines();
+  statusTitle.textContent = "Preparing the graphics…";
+  await buildPipelines();
+  if (!simulationAvailable) return;
+  statusTitle.textContent = "Preparing the wave packet…";
   rebuildSimulation();
+  // Present the initial packet before the first batch of simulation steps.
+  const initialFrame = device.createCommandEncoder({ label: "initial frame encoder" });
+  render(initialFrame, cameraFrame());
+  device.queue.submit([initialFrame.finish()]);
+  await device.queue.onSubmittedWorkDone();
+  if (!simulationAvailable) return;
+  drawViewGizmo();
   updateStats();
   status.hidden = true;
   simulationButtons.forEach(button => { button.disabled = false; });
