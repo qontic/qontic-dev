@@ -1,10 +1,10 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit3';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit3';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit3';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit3';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit3';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit3';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit3';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit4';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit4';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit4';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit4';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit4';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit4';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit4';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -179,7 +179,8 @@ export function mountPacketEngine({core,advanced}){
   const previous=p;
   p=next;p.particles=previous.particles;coeff=sourceCoefficients(p);fingerprint=configFingerprint(p);
   profile=sourceProfile(p,-yOffset,screenHeight/100-yOffset,2049);law=detectorLaw(p,profile,-yOffset,screenHeight/100-yOffset);
-  screenBands=computeSlitBands();
+  // Bands are display only: compute them after this click, not inside it.
+  screenBands=null;const bandsFor=p;setTimeout(()=>{if(p===bandsFor)screenBands=computeSlitBands();},0);
   epochs.push({p,coeff,start:t,grid:null});
   for(const a of particles){
    if(a.done)continue;
@@ -193,7 +194,7 @@ export function mountPacketEngine({core,advanced}){
     a.schedule={...a.schedule,index:samplePixel(law.weights)};
    }
   }
-  syncWhichPathButton();updateMath();draw();return true;
+  syncWhichPathButton();if(!isAnimating)draw();return true;
  }
  function resetEngine(){
   window.qonticMWBranches?.cancel();detectorFlashes.clear();pending=[];particles=[];pulses=[];nextEmission=0;visualPhase=0;flash=null;hold=0;lastMode=interpretation;p=config();fingerprint=configFingerprint(p);yOffset=screenHeight/200;
@@ -352,7 +353,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit3').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit4').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -380,38 +381,66 @@ export function mountPacketEngine({core,advanced}){
    pilotWave:interpretation==='bohmian',detectorColor:colorDetector,screenColor:colorScreen,probabilityColor:colorProb,
    opacity:{wave:elementOpacity('plot_wave'),screen:elementOpacity('plot_screen'),detector:elementOpacity('plot_detector'),probability:elementOpacity('hit_prob'),hits:elementOpacity('plot_hits'),particles:elementOpacity('plot_particles'),trajectories:elementOpacity('plot_trajectories')},probability:probabilityHeights,hits,hitHeights,hitErrors,hitColors:hits.map((value,index)=>hitMarkerColor(index,value)),particles:points,trails});
  }
- function buildGrid(E,key){
-  const p=E.p,coeff=E.coeff;
-
-   const values=new Float64Array(gridW*gridH*2),branches=new Float64Array(gridW*gridH*4),xs=Array.from({length:gridW},(_,i)=>((i+.5)/gridW*worldCanvasDx-wallXWorld)/100-p.launch);let maxRho=0;
-   for(let j=0;j<gridH;j++)for(let i=0;i<gridW;i++){
-    const y=(j+.5)/gridH*screenHeight/100-yOffset,n=2*(j*gridW+i),cell=j*gridW+i;
-    if(p.whichPath&&xs[i]>=p.wall){
-     const components=sourceBranches(y,xs[i],p,coeff);let rho=0;
-     for(let branch=0;branch<Math.min(2,components.length);branch++){const component=components[branch];branches[4*cell+2*branch]=component.rho;branches[4*cell+2*branch+1]=Math.atan2(component.im,component.re);rho+=component.rho;}
-     values[n]=rho;values[n+1]=0;maxRho=Math.max(maxRho,rho);
-    }else{
-     const g=sourceTransverse(y,xs[i],p,coeff);values[n]=g.rho;values[n+1]=Math.atan2(g.im,g.re);maxRho=Math.max(maxRho,g.rho);
-    }
-   }
-   const visibility=new Float32Array(gridW*gridH),phaseCos=new Float32Array(gridW*gridH),phaseSin=new Float32Array(gridW*gridH);
-   for(let j=0;j<gridH;j++)for(let i=0;i<gridW;i++){
-    phaseCos[j*gridW+i]=Math.cos(values[2*(j*gridW+i)+1]);phaseSin[j*gridW+i]=Math.sin(values[2*(j*gridW+i)+1]);
-    const gain=2+6*(1-Math.exp(-Math.max(0,xs[i]-p.wall)/.35));
-    visibility[j*gridW+i]=1-Math.exp(-4*Math.sqrt(values[2*(j*gridW+i)]*gain/Math.max(1e-30,maxRho)));
-   }
-   return {key,values,branches,xs,maxRho,visibility,phaseCos,phaseSin,whichPath:!!p.whichPath};
-  
+ // Field grid of one mask epoch. The first epoch of a run is built at once, as
+ // before. After a slit is opened or closed the new grid is built column by
+ // column from the wall outward: only the columns between the wall and the
+ // boundary of the new pattern are needed immediately (fillGrid), the rest are
+ // filled a few milliseconds per frame, so the animation does not pause.
+ function buildGrid(E,key,prev=null){
+  const p=E.p,xs=Array.from({length:gridW},(_,i)=>((i+.5)/gridW*worldCanvasDx-wallXWorld)/100-p.launch);
+  const G={key,E,xs,values:new Float64Array(gridW*gridH*2),branches:new Float64Array(gridW*gridH*4),visibility:new Float32Array(gridW*gridH),phaseCos:new Float32Array(gridW*gridH),phaseSin:new Float32Array(gridW*gridH),maxRho:0,filled:0,whichPath:!!p.whichPath};
+  if(!prev||prev.key!==key){
+   for(let i=0;i<gridW;i++)fillColumn(G,i,false);
+   G.filled=gridW;for(let i=0;i<gridW;i++)columnVisibility(G,i);
+   return G;
+  }
+  // Before the wall the field does not depend on the mask: copy those columns.
+  G.maxRho=prev.maxRho;
+  while(G.filled<gridW&&xs[G.filled]<p.wall&&G.filled<prev.filled){
+   const i=G.filled++;
+   for(let j=0;j<gridH;j++){const c=j*gridW+i;G.values[2*c]=prev.values[2*c];G.values[2*c+1]=prev.values[2*c+1];G.visibility[c]=prev.visibility[c];G.phaseCos[c]=prev.phaseCos[c];G.phaseSin[c]=prev.phaseSin[c];}
+  }
+  return G;
  }
+ function fillColumn(G,i,withVisibility=true){
+  const p=G.E.p,coeff=G.E.coeff,x=G.xs[i];
+  for(let j=0;j<gridH;j++){
+   const y=(j+.5)/gridH*screenHeight/100-yOffset,cell=j*gridW+i,n=2*cell;
+   if(p.whichPath&&x>=p.wall){
+    const components=sourceBranches(y,x,p,coeff);let rho=0;
+    for(let branch=0;branch<Math.min(2,components.length);branch++){const component=components[branch];G.branches[4*cell+2*branch]=component.rho;G.branches[4*cell+2*branch+1]=Math.atan2(component.im,component.re);rho+=component.rho;}
+    G.values[n]=rho;G.values[n+1]=0;if(rho>G.maxRho)G.maxRho=rho;
+   }else{
+    const g=sourceTransverse(y,x,p,coeff);G.values[n]=g.rho;G.values[n+1]=Math.atan2(g.im,g.re);if(g.rho>G.maxRho)G.maxRho=g.rho;
+   }
+  }
+  if(withVisibility)columnVisibility(G,i);
+ }
+ function columnVisibility(G,i){
+  const p=G.E.p,gain=2+6*(1-Math.exp(-Math.max(0,G.xs[i]-p.wall)/.35));
+  for(let j=0;j<gridH;j++){const c=j*gridW+i;G.phaseCos[c]=Math.cos(G.values[2*c+1]);G.phaseSin[c]=Math.sin(G.values[2*c+1]);G.visibility[c]=1-Math.exp(-4*Math.sqrt(G.values[2*c]*gain/Math.max(1e-30,G.maxRho)));}
+ }
+ // Fill columns up to `target` now; then keep filling for at most `budget` ms.
+ function fillGrid(G,target,budget){
+  const t0=performance.now();
+  while(G.filled<gridW&&(G.filled<=target||performance.now()-t0<budget))fillColumn(G,G.filled++);
+ }
+
  function drawSourceWave(){
   waveCtx.clearRect(0,0,canvas.width,canvas.height);waveCtx.fillStyle='#344f63';waveCtx.fillRect(0,0,canvas.width,canvas.height);if(!waveShown())return;
  const key=[worldCanvasDx,screenHeight,wallXWorld,p.launch].join(',');
  // One field grid per mask epoch (see switchMask). A column at x shows the mask
  // that was in force when its slice crossed the wall, at t_w = t − (x − L)/v.
  const live=liveEpochs();
- for(const E of live)if(!E.grid||E.grid.key!==key)E.grid=buildGrid(E,key);
+ live.forEach((E,index)=>{if(!E.grid||E.grid.key!==key)E.grid=buildGrid(E,key,index?live[index-1].grid:null);});
+ for(let index=1;index<live.length;index++){
+  // Columns this epoch must show now: from the wall to x = L + v(t − start), plus a margin.
+  const E=live[index],G=E.grid,edge=p.wall+p.k*Math.max(0,t-E.start);
+  const column=Math.ceil(((edge+p.launch)*100+wallXWorld)/worldCanvasDx*gridW)+2;
+  fillGrid(G,Math.min(gridW-1,column),index===live.length-1?4:0);
+ }
  sourceGrid=live[live.length-1].grid;
- const colGrid=sourceGrid.xs.map(x=>{if(x<p.wall||live.length===1)return sourceGrid;const tw=t-(x-p.wall)/p.k;let G=live[0].grid;for(const E of live)if(E.start<=tw)G=E.grid;return G;});
+ const colGrid=sourceGrid.xs.map((x,i)=>{if(x<p.wall||live.length===1)return sourceGrid;const tw=t-(x-p.wall)/p.k;let G=live[0].grid;for(const E of live)if(E.start<=tw&&E.grid.filled>i)G=E.grid;return G;});
   setWaveRangeAuto(0,1);const range=getWaveRangeEffective(),span=Math.max(1e-9,range.max-range.min),mode=$('#waveFunctionOption').val();
   // Pulses are independent preparations: add densities, not coherent amplitudes.
   // Blend phase colors by density where independent pulses overlap.

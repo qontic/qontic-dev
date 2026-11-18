@@ -1,3 +1,9 @@
+## 3.0-dev.4 — 2026-11-17
+No pause when a slit is opened or closed (Pablo: the whole wave stopped for a moment).
+- The new field grid (640 × 480 points × N slits, ~175 ms with 8 slits) was built in one go at the click. It is now built column by column from the wall outward: the columns between the wall and the boundary of the new pattern are filled at once, the rest ~4 ms per frame. Columns before the wall are copied from the previous grid.
+- The pilot-wave bands are computed just after the click instead of inside it; the click no longer rebuilds the Physics text or redraws twice.
+- Headless Chrome, PW: click handler 150–260 ms → 4–10 ms; worst frame after the click 250–370 ms → 83–100 ms, the same as this browser's ordinary worst frame.
+
 ## 3.0-dev.3 — 2026-11-17
 Opening or closing a slit no longer resets the run (Pablo's request).
 - The mask is switched for the slices that cross the wall from that moment on. In the paraxial model each transverse slice moves at v and receives the mask when it crosses the wall, so the part of the packet already beyond the wall keeps the old field, and Pilot-Wave particles in it keep their old guidance (each particle keeps the mask epoch in force when it crossed). The wave image, the 3D surface and the flow arrows show, at each x, the mask in force when that slice crossed: t_w = t − (x − L)/v.

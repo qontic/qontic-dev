@@ -1230,10 +1230,12 @@ function slitConfigurationChanged(live = false) {
    const detector = whichPathDetector === 'none' ? -1 : parseInt(whichPathDetector.slice(4), 10) - 1;
    if (detector >= 0 && (detector >= numSlits || !slitOpen[detector] || openSlitIds().length < 2)) { whichPathDetector = 'none'; updateWhichPathButton(); }
    updateSlitButton();
+   // Live switch: the running animation redraws on its next frame, and the Physics
+   // text does not depend on which slits are open.
+   if (live && window.qonticPacketEngine?.switchMask?.()) return;
    updateMathFormulas();
    syncMathButtons();
    invalidateAllCaches();
-   if (live && window.qonticPacketEngine?.switchMask?.()) { drawSystem(0); return; }
    reset = 1;
    drawSystem(0);
 }
