@@ -80,8 +80,7 @@
       </div>
           </div>
           <div data-control-pane="advanced" hidden>
-      <details class="options-group">
-        <summary>Spin</summary>
+      <div class="display-settings">
       <div id="spinSection">
         <div class="slabel spin-slabel">
           <span>Pilot-wave guidance law</span>
@@ -115,9 +114,9 @@
           </div>
         </div>
       </div>
-      </details>
-        <details class="options-group">
-          <summary>Trajectory settings</summary>
+      </div>
+        <div class="display-settings">
+          <div class="slabel">Trajectory settings</div>
         <div class="crow"><label for="sTR" title="Trail length in steps for up to 10 atoms; shortened in proportion when more atoms are shown">Trail</label>
           <input type=range id="sTR" min=5 max=1250 value=800 step=5>
           <span class="crow-val" id="vTR">800</span>
@@ -126,7 +125,7 @@
           <input type=range id="sDT" min=0.005 max=0.05 value=0.04 step=0.005>
           <span class="crow-val" id="vDT">0.040</span>
         </div>
-        </details>
+        </div>
 
           </div>
           <div data-control-pane="display" hidden>
@@ -374,7 +373,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=10"></script>
-  <script type="module" src="hydrogen-template.js?v=7"></script>
+  <script src="hydrogen-3d.js?v=11"></script>
+  <script type="module" src="hydrogen-template.js?v=8"></script>
 </body>
 </html>

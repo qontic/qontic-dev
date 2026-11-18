@@ -1,5 +1,8 @@
 # Hydrogen Atom — changelog
 
+## 1.2.3 · 2026-11-17
+- Spin and Trajectory settings are always shown in the Advanced tab; no extra click to expand.
+
 ## 1.2.2 · 2026-11-17
 - Display settings (opacity, hide low density, point size, axes, P(r), projections) are always shown in the Display tab; no extra click to expand.
 
