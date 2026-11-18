@@ -1,3 +1,8 @@
+## 3.0-dev.14 — 2026-11-18
+- Defaults doubled at Pablo's request: source width σ 200 → 400 nm (slider maximum 400 → 800 nm), packet length σ 50 → 100 nm.
+- Packet-length cap relaxed from a quarter to half of the shorter of source–wall and wall–screen distances (still ≤ 200 nm), so 100 nm is allowed with the default 225 nm source distance (cap now 112 nm). The cap is a display choice: the packet starts off canvas and the transverse pattern does not depend on σx.
+- Cost: the longer packet covers more of the picture; headless, Pilot Wave with 2 slits, frames ~18 → ~22 ms. Physics unchanged.
+
 ## 3.0-dev.13 — 2026-11-18
 - Still slow after the slits in Pablo's case: 4 slits, Pilot Wave, Phase & |Ψ|, 823 particles per packet, packet interval 120 ps (two packets in flight, ~1660 particles), speed 2.2×, source width 400 nm, packet length 85 nm. In headless Chrome the physics was 3 ms per frame and never truncated; the frame time went to drawing: the wave ~14 ms and the trajectories ~11 ms of a 37 ms frame (16.6 ms with both off). With a 120 ps interval the second packet leaves about when the first crosses the wall, which is why it slows there.
   - Trajectory tails: the running arc length of each tail is cached (only new segments measured); it was re-measured every frame (~200 000 segment lengths). Identical to the old trimTail to 2.5e-14.
