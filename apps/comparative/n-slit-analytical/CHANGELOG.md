@@ -1,3 +1,7 @@
+## 3.0-dev.11 — 2026-11-17
+- Smoother motion (Pablo: the wave evolution looked bumpy under some conditions). The simulated time per frame followed each frame's real duration, so one slow frame made the packet jump. It now follows a smoothed frame time, held within ±20% of the running average; the clock catches up over the following frames. Headless Chrome: frames with a >1.5× jump in simulated advance went from up to 3 per 8 s run to 0. The physics loop was never truncated by its 12 ms budget in any tested condition (2 and 8 slits, Pilot Wave and Orthodox, with and without Nice fringes).
+- Read-only probes for testing: qonticPacketEngine.simTime and .frameStats.
+
 ## 3.0-dev.10 — 2026-11-17
 - Fixed faint streaks that ran past the packet along the dark fringes (all display modes). The opacity of each pixel was the stationary field's visibility times the square root of the packet envelope; the square root let the stationary pattern show well ahead of and behind the packet, cut by its nodal lines. The envelope now enters linearly: the packet core is unchanged, its edges fade sooner.
 - Phase & |Ψ|: |Ψ| is shown as opacity over the background instead of darkening the colour, which drew a black rim around the packet. The legend wheel fades the same way.
