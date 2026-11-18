@@ -8,7 +8,8 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="hydrogen-template.css?v=8">
+  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=1">
+  <link rel="stylesheet" href="hydrogen-template.css?v=9">
 </head>
 
 <body>
@@ -275,36 +276,14 @@
         </div>
       </section>
     </section>
-    <section class="qontic-panel quiz-panel" id="quiz" hidden aria-labelledby="quiz-title">
-      <div class="quiz-layout">
-        <figure class="quiz-figure">
-          <canvas id="quizCanvas" width="360" height="360" aria-label="Density |ψ|² of the state in the question (no electrons shown)"></canvas>
-          <figcaption id="quizFigCaption"></figcaption>
-        </figure>
-        <div class="quiz-body">
-          <p class="slabel" id="quiz-title">Quiz · predict before you watch</p>
-          <p class="quiz-step" id="quizStep"></p>
-          <p class="quiz-question" id="quizQuestion"></p>
-          <div class="qontic-app-toggle-group quiz-answers">
-            <button type="button" class="qontic-app-toggle" data-answer="still" aria-pressed="false">They stay still</button>
-            <button type="button" class="qontic-app-toggle" data-answer="circle" aria-pressed="false">They circle the z axis</button>
-            <button type="button" class="qontic-app-toggle" data-answer="swing" aria-pressed="false">They swing along z</button>
-          </div>
-          <p class="quiz-feedback" id="quizFeedback" role="status"></p>
-          <div class="quiz-actions">
-            <button type="button" class="qontic-app-toggle" id="quizWatch" hidden>Watch it in the simulation →</button>
-            <button type="button" class="qontic-app-toggle" id="quizNext" hidden>Next question</button>
-          </div>
-        </div>
-      </div>
-    </section>
+    <section id="quiz" hidden aria-label="Quiz"></section>
     <section class="qontic-reading-panel qontic-panel details-panel" id="physics" hidden>
       <div class="tp-body">
           <section class="tp-sec">
             <h2>1 &mdash; What you are looking at</h2>
             <p>The density displays (Volume, Slices, Lobes, Cloud) show |ψ|&sup2; for the chosen hydrogen state.</p>
             <p>The moving dots and their trails show <em>pilot-wave (de Broglie&ndash;Bohm) theory</em>. Each dot is the electron of a separate hydrogen atom prepared in the same state. Its starting position is drawn at random from |ψ|&sup2;, and it then moves with the guidance velocity of section 3.</p>
-            <p>The density |ψ|&sup2; is the same in every formulation of quantum mechanics: it gives the probability of finding the electron in a region if its position is measured. The button next to Reset switches between two readings of the display. <b>Orthodox</b> shows only |ψ|&sup2;: the standard formalism assigns the electron no position between measurements, so there are no dots or trails, and the Cloud view shows possible outcomes of position measurements on many atoms. <b>Pilot Wave</b> adds the electrons and their trajectories. Many-worlds is not offered separately: with no measurement there are no branches, and its display would be the orthodox one. Switching does not reset the clock.</p>
+            <p>The density |ψ|&sup2; is the same in every formulation of quantum mechanics: it gives the probability of finding the electron in a region if its position is measured. The button next to Reset switches between two readings of the display. <b>Orthodox</b> shows only |ψ|&sup2;: the standard formalism assigns the electron no position between measurements, so there are no dots or trails, and the Cloud view shows possible outcomes of position measurements on many atoms. The probability current j = (ħ/m<sub>e</sub>) Im(ψ*&nabla;ψ) is also standard quantum mechanics (it circulates about z when m &ne; 0); reading it as the motion of an electron is the pilot-wave step. <b>Pilot Wave</b> adds the electrons and their trajectories. Many-worlds is not offered separately: with no measurement there are no branches, and its display would be the orthodox one. Switching does not reset the clock.</p>
             <p>Units are atomic units (a&#x2080; = ħ = m<sub>e</sub> = e = 1): lengths in Bohr radii, a&#x2080; = 52.9&nbsp;pm; one atomic unit of time is 24.2&nbsp;as. The clock shows attoseconds.</p>
           </section>
 
@@ -394,7 +373,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=18"></script>
-  <script type="module" src="hydrogen-template.js?v=15"></script>
+  <script src="hydrogen-3d.js?v=19"></script>
+  <script type="module" src="hydrogen-template.js?v=16"></script>
 </body>
 </html>

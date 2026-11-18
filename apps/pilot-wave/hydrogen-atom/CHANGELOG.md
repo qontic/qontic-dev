@@ -1,5 +1,9 @@
 # Hydrogen Atom — changelog
 
+## 1.2.10 · 2026-11-18
+- Orthodox caption and Physics § 1: one sentence on the probability current j = (ħ/mₑ) Im(ψ*∇ψ), which is standard quantum mechanics; reading it as electron motion is the pilot-wave step.
+- The Quiz now uses the shared module shared/qontic-quiz.js (same behaviour; other apps can opt in).
+
 ## 1.2.9 · 2026-11-18
 - Electrons drawn as small shaded spheres in warm yellow (white if the trails are amber), on top of all trails and the nucleus, so long trails no longer hide them (1s + 2p₀ swing). Legend: "Trail" and "Electron". Default dot size 3.
 

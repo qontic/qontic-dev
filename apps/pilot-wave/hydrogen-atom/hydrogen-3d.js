@@ -3093,6 +3093,7 @@ function updateCaption(){
     text=showCloud
       ? 'Orthodox: each sphere is one possible outcome of a position measurement on one of many atoms prepared in this state. No position is assigned between measurements.'
       : 'Orthodox: the display is |ψ|², the probability of finding the electron in a region if its position is measured. No position or path is assigned between measurements.';
+    text+=' The probability current j = (ħ/mₑ) Im(ψ*∇ψ) is standard too; reading it as electron motion is the pilot-wave step.';
     if(evolving) text+=' The density itself changes in time.';
     el.textContent=text;
     return;

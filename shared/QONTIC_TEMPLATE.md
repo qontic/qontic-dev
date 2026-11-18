@@ -87,3 +87,12 @@ Pass `movableContainer` to `mountValueRange` to move a whole panel (for example,
 Pass the returned controller as `rangeControl` to `mountQonticMedia` for the Wave range toggle. Hiding the panel preserves the current range and color mapping. The template and Double Slit demonstrate this integration.
 
 The distance scale uses a nearly transparent background (10% opacity) to leave the simulation visible beneath it.
+
+## Optional Quiz view
+`shared/qontic-quiz.js` + `shared/qontic-quiz.css` add a "predict before you watch" view. Apps that do not use it are unchanged.
+
+- Add a top-level tab button `<button class="qontic-app-toggle" data-view="quiz">Quiz</button>` next to Simulation and Physics, and an empty `<section id="quiz" hidden></section>`. The app's own view-switching code shows and hides it like the other views; pause the simulation when the view is not Simulation.
+- Call `mountQonticQuiz({ panel, tab, simulationTab, answers, questions, onWatch })`. Each question has `question`, `answer` (an answer id), `explain`, optional `caption` and `answers`, `prepare()` (set the app state, paused) and `draw(canvas)` (paint a still 360 × 360 picture that does not give the answer away, e.g. the density without particles).
+- After an answer the view offers "Watch it in the simulation" (clicks the Simulation tab, then calls `onWatch`) and "Next question".
+- `?quiz=1` opens the page on the Quiz tab and disables the Simulation tab until the first answer. Without it the app opens normally.
+- Reference: `apps/pilot-wave/hydrogen-atom/hydrogen-template.js`.
