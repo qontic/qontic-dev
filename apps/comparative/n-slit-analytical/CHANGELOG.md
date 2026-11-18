@@ -1,3 +1,13 @@
+## 3.0-dev.12 — 2026-11-18
+- Faster drawing (Pablo: the simulation slows down, especially after the packet crosses the slits; 4 slits, Pilot Wave, Phase & |Ψ|, ~500 particles). Profiling showed the physics took 1–2 ms per frame; drawing took ~48 ms per frame in headless Chrome. A slow frame also lets more simulated time pass, so the next frame has more physics steps, which made it worse behind the wall where each step sums over every aperture.
+  - Wave image: columns where the packet envelope is too small for any pixel to reach visible opacity are skipped (the image is unchanged; the packet covers a fraction of the field). Not in the 3D view, which needs every height.
+  - Phase & |Ψ|: colour index from cos θ directly instead of atan2 then cos; the legend wheel is drawn once per palette instead of on a new canvas every frame.
+  - Particles: colour group computed once per particle per frame. The dots were drawn by scanning every particle for each of ~50 colour groups, reading a DOM control each time (~25 000 reads per frame).
+  - Field grid: x-dependent factors computed once per column (sourceColumn), not once per cell.
+  - Trajectories: allocation-free guidance velocity (sourceVelocity) with factors shared by the two RK4 midpoints; apertures whose Gaussian factor is below e^-40 of the largest are skipped. Over 300 full trajectories per case (2, 4, 8 slits), final positions agree with the previous integrator to 3e-16 (units of 100 nm).
+  - Result, headless Chrome, 4 slits, 500 particles, Phase & |Ψ|: draw time 48 → 8–11 ms per frame; frame time 60 → ~20 ms. 8 slits with 1000 particles: physics 3–8 ms per frame behind the wall at ~30 ms frames.
+- frameStats.drawMs added to the read-only test probe.
+
 ## 3.0-dev.11 — 2026-11-17
 - Smoother motion (Pablo: the wave evolution looked bumpy under some conditions). The simulated time per frame followed each frame's real duration, so one slow frame made the packet jump. It now follows a smoothed frame time, held within ±20% of the running average; the clock catches up over the following frames. Headless Chrome: frames with a >1.5× jump in simulated advance went from up to 3 per 8 s run to 0. The physics loop was never truncated by its 12 ms budget in any tested condition (2 and 8 slits, Pilot Wave and Orthodox, with and without Nice fringes).
 - Read-only probes for testing: qonticPacketEngine.simTime and .frameStats.

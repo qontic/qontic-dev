@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit12';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit12';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit12';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit12';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit12';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit12';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit12';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit12';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit13';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit13';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit13';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit13';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit13';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit13';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit13';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit13';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -355,12 +355,12 @@ export function mountPacketEngine({core,advanced}){
   }
   particles=particles.filter(a=>!a.done||(interpretation==='bohmian'&&!a.screenDetected&&realElapsed-(a.finishedAt??realElapsed)<.8));
   pulses=pulses.filter(c=>c.active||c.pending||t-c.born<p.duration);
-  updateBranchCountDisplay();draw();branch?.refreshFrame();$('#stepTime').text((performance.now()-now).toFixed(1));if(isAnimating)packetAnimationId=requestAnimationFrame(evolveSystem);
+  updateBranchCountDisplay();const drawStart=performance.now();draw();if(frameStats)frameStats.drawMs=performance.now()-drawStart;branch?.refreshFrame();$('#stepTime').text((performance.now()-now).toFixed(1));if(isAnimating)packetAnimationId=requestAnimationFrame(evolveSystem);
  }
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit12').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit13').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -411,8 +411,17 @@ export function mountPacketEngine({core,advanced}){
   }
   return G;
  }
+ const columnRho=new Float64Array(gridH),columnPhase=new Float64Array(gridH);let columnYs=null,columnYsKey='';
+ function gridYs(){const key=screenHeight+','+yOffset;if(columnYsKey!==key){columnYsKey=key;columnYs=Float64Array.from({length:gridH},(_,j)=>(j+.5)/gridH*screenHeight/100-yOffset);}return columnYs;}
  function fillColumn(G,i,withVisibility=true){
   const p=G.E.p,coeff=G.E.coeff,x=G.xs[i];
+  if(!(p.whichPath&&x>=p.wall)){
+   // One call per column: the x-dependent factors are shared by its cells.
+   sourceColumn(x,gridYs(),p,coeff,columnRho,columnPhase);
+   for(let j=0;j<gridH;j++){const n=2*(j*gridW+i),rho=columnRho[j];G.values[n]=rho;G.values[n+1]=columnPhase[j];if(rho>G.maxRho)G.maxRho=rho;}
+   if(withVisibility)columnVisibility(G,i);
+   return;
+  }
   for(let j=0;j<gridH;j++){
    const y=(j+.5)/gridH*screenHeight/100-yOffset,cell=j*gridW+i,n=2*cell;
    if(p.whichPath&&x>=p.wall){
@@ -438,17 +447,24 @@ export function mountPacketEngine({core,advanced}){
  // Phase & |Ψ|: colour from the wave palette chosen in Display, indexed by cos θ
  // as in "Phase (cos θ)" (continuous, so no seam where θ crosses ±π);
  // brightness = |Ψ|.
- const phaseIndex=theta=>Math.max(0,Math.min(1023,Math.round((.5+.5*Math.cos(theta))*1023)));
+ const cosIndex=c=>Math.max(0,Math.min(1023,Math.round((.5+.5*c)*1023)));
+ const phaseIndex=theta=>cosIndex(Math.cos(theta));
  const hueCss=theta=>{const c=paletteColors?.[phaseIndex(theta)]||[128,128,128];return `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;};
+ let wheelCache=null;
  function drawPhaseWheel(context,cx,cy,r){
   context.save();
   // Colour by cos θ around the wheel; opacity grows with |Ψ| from the centre out,
   // as in the wave (drawn offscreen so the fade shows the background).
-  const size=2*r+2,off=document.createElement('canvas');off.width=off.height=size;const o=off.getContext('2d'),c0=size/2;
-  for(let k=0;k<72;k++){const a0=-k*Math.PI/36,a1=-(k+1)*Math.PI/36;o.beginPath();o.moveTo(c0,c0);o.arc(c0,c0,r,a1,a0);o.closePath();o.fillStyle=hueCss((k+.5)*Math.PI/36);o.fill();}
-  const g=o.createRadialGradient(c0,c0,0,c0,c0,r);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
-  o.globalCompositeOperation='destination-out';o.fillStyle=g;o.fillRect(0,0,size,size);
-  context.drawImage(off,cx-c0,cy-c0);
+  // Built once per palette and size, not every frame.
+  const size=2*r+2,c0=size/2,wheelKey=paletteKey+','+r;
+  if(wheelCache?.key!==wheelKey){
+   const off=document.createElement('canvas');off.width=off.height=size;const o=off.getContext('2d');
+   for(let k=0;k<72;k++){const a0=-k*Math.PI/36,a1=-(k+1)*Math.PI/36;o.beginPath();o.moveTo(c0,c0);o.arc(c0,c0,r,a1,a0);o.closePath();o.fillStyle=hueCss((k+.5)*Math.PI/36);o.fill();}
+   const g=o.createRadialGradient(c0,c0,0,c0,c0,r);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
+   o.globalCompositeOperation='destination-out';o.fillStyle=g;o.fillRect(0,0,size,size);
+   wheelCache={key:wheelKey,canvas:off};
+  }
+  context.drawImage(wheelCache.canvas,cx-c0,cy-c0);
   context.strokeStyle='rgba(255,255,255,.6)';context.lineWidth=1;context.beginPath();context.arc(cx,cy,r,0,2*Math.PI);context.stroke();
   context.fillStyle='#e8f4f8';context.font='10px Inter,Arial,sans-serif';context.textAlign='center';context.textBaseline='middle';
   context.fillText('0',cx+r+8,cy);context.fillText('π',cx-r-8,cy);context.fillText('±π/2',cx,cy-r-8);
@@ -488,7 +504,13 @@ export function mountPacketEngine({core,advanced}){
   const envPeak=1/(Math.sqrt(2*Math.PI)*p.sx);
   if(paletteKey!==graphPalette||!paletteColors){paletteKey=graphPalette;paletteColors=Array.from({length:1024},(_,i)=>window.paletteModule.getColorForValue(i/1023,graphPalette));}
   const alpha=255*elementOpacity('plot_wave');surfaceHeights=surfaceView?new Float32Array(gridW*gridH):null;
+  // Columns where the packet envelope is so small that every pixel would round to
+  // zero opacity are left transparent (identical image, far less work: the packet
+  // covers a fraction of the field). The 3D view needs every height, so it skips none.
+  const skip=surfaceView?null:env.map(e=>alpha*3.2*e.envelope<.5);
+  if(skip)data.data.fill(0);
   for(let j=0;j<gridH;j++)for(let i=0;i<gridW;i++){
+   if(skip&&skip[i])continue;
    const G=colGrid[i],peak=G.maxRho/(Math.sqrt(2*Math.PI)*p.sx),n=j*gridW+i,rho=G.values[2*n]*env[i].rho;
    // Preserve a localized Gaussian envelope; do not amplify its remote tails. The
    // envelope enters linearly: a square root let the stationary pattern show well
@@ -516,7 +538,7 @@ export function mountPacketEngine({core,advanced}){
    }else if(mode==='PhaseAmp'){
     // Hue from the phase of Ψ (with the moving carrier), brightness from |Ψ|.
     // |Ψ| as opacity over the background (not as darkening, which drew a black rim).
-    const level=Math.max(0,Math.min(1,(value-range.min)/span)),c=paletteColors[phaseIndex(Math.atan2(sinTheta,cosTheta))];
+    const level=Math.max(0,Math.min(1,(value-range.min)/span)),c=paletteColors[cosIndex(cosTheta/(Math.hypot(cosTheta,sinTheta)||1))];
     data.data[4*n]=c[0];data.data[4*n+1]=c[1];data.data[4*n+2]=c[2];data.data[4*n+3]=alpha*weight*level;
    }else{
     const rgb=paletteColors[Math.round(Math.max(0,Math.min(1,(value-range.min)/span))*1023)];
@@ -536,11 +558,17 @@ export function mountPacketEngine({core,advanced}){
   const tails=shown('plot_trajectories'),dots=shown('plot_particles'),maxTail=+tailLength.value/100;
   const groups=['default',...slitGroups(),...Array.from({length:spectrumSteps},(_,i)=>`s${i}`)];
   const buckets=Object.fromEntries(groups.map(group=>[group,Array.from({length:9},()=>[])]));
+  // Colour group once per particle per frame (it reads a DOM control); the dots
+  // are bucketed too, instead of scanning every particle for each of the ~50 groups.
+  const dotBuckets=Object.fromEntries(groups.map(group=>[group,[]])),mode=particleColorMode.value;
+  const groupOf=a=>mode==='slit'&&a.slitSide?a.slitSide:mode==='spectrum'&&spectrumIndex(a.wallY)>=0?`s${spectrumIndex(a.wallY)}`:'default';
   for(const a of particles){
    trimTail(a.path,a.screenDetected?0:maxTail);
    const opacity=tailOpacity(a.done,a.finishedAt??realElapsed,realElapsed);
    if(!opacity)a.path=[];
-   if(tails&&a.path.length)buckets[particleColorGroup(a)][Math.min(8,Math.ceil(opacity*8))].push(a);
+   const group=groupOf(a);
+   if(tails&&a.path.length)(buckets[group]||buckets.default)[Math.min(8,Math.ceil(opacity*8))].push(a);
+   if(dots&&!a.done)(dotBuckets[group]||dotBuckets.default).push(a);
   }
   partCtx.save();partCtx.beginPath();partCtx.rect(0,0,detectorX,canvas.height);partCtx.clip();
   for(const group of groups){
@@ -551,7 +579,7 @@ export function mountPacketEngine({core,advanced}){
     partCtx.stroke();
    }
   }
-  if(dots){partCtx.globalAlpha=elementOpacity('plot_particles');for(const group of groups){partCtx.fillStyle=groupColor(group);partCtx.beginPath();for(const a of particles)if(!a.done&&particleColorGroup(a)===group){const q={x:X(a.x),y:Y(a.y)};partCtx.moveTo(q.x+3,q.y);partCtx.arc(q.x,q.y,3,0,2*Math.PI);}partCtx.fill();}}
+  if(dots){partCtx.globalAlpha=elementOpacity('plot_particles');for(const group of groups){if(!dotBuckets[group].length)continue;partCtx.fillStyle=groupColor(group);partCtx.beginPath();for(const a of dotBuckets[group]){const q={x:X(a.x),y:Y(a.y)};partCtx.moveTo(q.x+3,q.y);partCtx.arc(q.x,q.y,3,0,2*Math.PI);}partCtx.fill();}}
   partCtx.restore();
  }
  function drawDetection(){

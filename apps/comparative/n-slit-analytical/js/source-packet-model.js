@@ -2,7 +2,7 @@
 // i (partial_t + k partial_x) u = -partial_y^2 u / 2.
 // The longitudinal envelope translates; longitudinal dispersion and reflection
 // are outside this approximation. No numerical wave-equation solver is used.
-import {gaussian} from './packet-model.js?cache=nslit12';
+import {gaussian} from './packet-model.js?cache=nslit13';
 
 function apertureWeights(p){
  return p.apertureWeights?.length===p.centers.length?p.apertureWeights:p.centers.map(()=>1);
@@ -107,6 +107,23 @@ export function sourceTransverse(y,x,p,coeff=sourceCoefficients(p)){
  }
  const rho=re*re+im*im;
  return {re,im,dr,di,rho,v:rho>1e-26?(re*di-im*dr)/rho:0};
+}
+// Density and phase on a whole column of y values at one x (display grid). Same
+// arithmetic as sourceTransverse, with the x-dependent factors computed once per
+// column instead of once per cell, and without the derivative.
+export function sourceColumn(x,ys,p,coeff,rhoOut,phaseOut){
+ if(x<p.wall){for(let j=0;j<ys.length;j++){const g=sourceTransverse(ys[j],x,p,coeff);rhoOut[j]=g.rho;phaseOut[j]=Math.atan2(g.im,g.re);}return;}
+ const f=sharedFactors(x,p,coeff[0]),{u,rr,ii,dd}=f,root=f.root,angle=f.angle;
+ for(let j=0;j<ys.length;j++){
+  const y=ys[j];let re=0,im=0;
+  for(let n=0;n<coeff.length;n++){
+   const a=coeff[n],q=y-a.center,nr=-a.ar*q*q+a.br*q-u*a.br*a.bi,ni=-a.ai*q*q+a.bi*q+u*(a.br*a.br-a.bi*a.bi)/2;
+   const er=(nr*rr+ni*ii)/dd;if(er<-746)continue;
+   const ei=(ni*rr-nr*ii)/dd,amp=Math.exp(er)/root,phase=ei-angle,fr=amp*Math.cos(phase),fi=amp*Math.sin(phase);
+   re+=a.cr*fr-a.ci*fi;im+=a.cr*fi+a.ci*fr;
+  }
+  rhoOut[j]=re*re+im*im;phaseOut[j]=Math.atan2(im,re);
+ }
 }
 // Coherent sum of the apertures in each which-path branch (one entry per branch).
 export function sourceBranches(y,x,p,coeff=sourceCoefficients(p)){
@@ -260,6 +277,29 @@ export function sampleTransmittedSource(p,random=Math.random,fixedX=null,slitExt
  const slitSide=classifySlitSide(yWall,p);
  return {x0:x,x,y,done:false,passed:false,absorbed:false,path:[],conditionedTransmission:true,slitIndex,slitSide,wallY:yWall};
 }
+// Transverse guidance velocity behind the wall, v = Im(∂_yψ/ψ), without
+// allocating. Same terms as sourceTransverse, except that an aperture whose
+// Gaussian factor is below e^-40 (4e-18) of the largest one is skipped: its
+// share of ψ and ∂_yψ is below double-precision rounding of the dominant term.
+const exponentScratch=new Float64Array(64);
+export function sourceVelocity(y,p,coeff,f){
+ const {u,rr,ii,dd}=f;let top=-Infinity;
+ for(let n=0;n<coeff.length;n++){
+  const a=coeff[n],q=y-a.center,nr=-a.ar*q*q+a.br*q-u*a.br*a.bi,ni=-a.ai*q*q+a.bi*q+u*(a.br*a.br-a.bi*a.bi)/2,er=(nr*rr+ni*ii)/dd;
+  exponentScratch[n]=er;if(er>top)top=er;
+ }
+ const cut=Math.max(-746,top-40);let re=0,im=0,dr=0,di=0;
+ for(let n=0;n<coeff.length;n++){
+  const er=exponentScratch[n];if(er<cut)continue;
+  const a=coeff[n],q=y-a.center,nr=-a.ar*q*q+a.br*q-u*a.br*a.bi,ni=-a.ai*q*q+a.bi*q+u*(a.br*a.br-a.bi*a.bi)/2;
+  const ei=(ni*rr-nr*ii)/dd,amp=Math.exp(er)/f.root,phase=ei-f.angle,fr=amp*Math.cos(phase),fi=amp*Math.sin(phase);
+  const r=a.cr*fr-a.ci*fi,i=a.cr*fi+a.ci*fr;
+  const lr=((-2*a.ar*q+a.br)*rr+(-2*a.ai*q+a.bi)*ii)/dd,li=((-2*a.ai*q+a.bi)*rr-(-2*a.ar*q+a.br)*ii)/dd;
+  re+=r;im+=i;dr+=lr*r-li*i;di+=lr*i+li*r;
+ }
+ const rho=re*re+im*im;
+ return rho>1e-26?(re*di-im*dr)/rho:0;
+}
 export function advanceSourceY(y,x,dx,p,coeff){
  // Incident Gaussian trajectories have a closed expression; transmitted
  // guidance is integrated along x. Split exactly at the aperture plane.
@@ -268,8 +308,9 @@ export function advanceSourceY(y,x,dx,p,coeff){
   y*=Math.sqrt((1+(end/s)**2)/(1+(x/s)**2));
   if(end===x+dx)return y;dx=x+dx-end;x=end;
  }
- const v=(q,z)=>sourceTransverse(q,z,p,coeff).v/p.k;
- const a=v(y,x),b=v(y+dx*a/2,x+dx/2),c=v(y+dx*b/2,x+dx/2),d=v(y+dx*c,x+dx);
+ // The x-dependent factors are shared by the two midpoint evaluations.
+ const f0=sharedFactors(x,p,coeff[0]),fm=sharedFactors(x+dx/2,p,coeff[0]),f1=sharedFactors(x+dx,p,coeff[0]);
+ const a=sourceVelocity(y,p,coeff,f0)/p.k,b=sourceVelocity(y+dx*a/2,p,coeff,fm)/p.k,c=sourceVelocity(y+dx*b/2,p,coeff,fm)/p.k,d=sourceVelocity(y+dx*c,p,coeff,f1)/p.k;
  return y+dx*(a+2*b+2*c+d)/6;
 }
 export function stepSource(a,dt,p,coeff,random=Math.random){
