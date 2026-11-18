@@ -3,7 +3,7 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { APP_RELEASE } from './release.js?v=1.1.1';
+import { APP_RELEASE } from './release.js?v=1.2.0';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');
@@ -42,6 +42,12 @@ controls.addEventListener('qontic:stop', () => setRunning(false));
 controls.addEventListener('qontic:reset', () => hydrogenSimulation.reset());
 controls.addEventListener('qontic:speed', event => hydrogenSimulation.setSpeed(event.detail.speed));
 controls.addEventListener('qontic:theme', event => hydrogenSimulation.setTheme(event.detail.theme));
+controls.addEventListener('qontic:interpretation', ({ detail }) => setInterpretation(detail.interpretation));
+function applyInterpretation(id) {
+  controls.setAttribute('interpretation', id);
+  setInterpretation(id);
+}
+applyInterpretation(new URLSearchParams(location.search).get('interp') === 'cpn' ? 'cpn' : 'pw');
 controls.addEventListener('qontic:tab', ({ detail }) => {
   for (const section of paneSections) section.hidden = section.dataset.controlPane !== detail.tab;
 });
@@ -123,6 +129,7 @@ let step = -1;   // -1: no step chosen yet; the app opens on its default state
 
 function showStep(index) {
   step = index % steps.length;
+  if (interp !== 'pw') applyInterpretation('pw');
   if (spinEnabled) toggleSpin();
   steps[step].select();
   hydrogenSimulation.reset();

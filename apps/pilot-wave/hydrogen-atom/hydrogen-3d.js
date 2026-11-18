@@ -404,6 +404,9 @@ let selectedN=ORBITALS[3].n; // n-shell shown in sub-grid (defaults to n=2)
 let nPart=12,simSpeed=1.0,trailLen=800,dtStep=0.04;
 const BASE_SPEED=20;
 let running=true;
+// Reading of the display: 'pw' (pilot wave: |ψ|² plus electron positions) or 'cpn' (orthodox: |ψ|² only).
+// Switching never resets the clock or the particles; orthodox simply does not draw positions.
+let interp='pw';
 
 const PT_PRESETS=[
   {hue:190,r:0,  g:229,b:255,hex:'#00e5ff',label:'Cyan'},
@@ -582,7 +585,7 @@ const CLOUD_SPIN_MAX=500;
 const CLOUD_SPIN_STEP=0.12;   // a.u.; coarser than trail mode to keep many dots moving smoothly
 function cloudCount(){
   const n=autoCloudN();
-  return spinEnabled&&spinComps.length&&!densityEvolves() ? Math.min(n,CLOUD_SPIN_MAX) : n;
+  return interp==='pw'&&spinEnabled&&spinComps.length&&!densityEvolves() ? Math.min(n,CLOUD_SPIN_MAX) : n;
 }
 
 function stepCloudParticles(dt,start=t-dt){
@@ -592,6 +595,7 @@ function stepCloudParticles(dt,start=t-dt){
     particles=sampleParticlesStratified(cloudCount(),t);
     return;
   }
+  if(interp!=='pw') return;   // orthodox: samples are measurement outcomes, not moving positions
   const spin=spinEnabled&&spinComps.length>0;
   if(!spin&&!(comps.length===1&&comps[0].m!==0)) return;   // real ψ, no spin: v = 0
   const radiusLimit=(rMax()*1.4)**2;
@@ -1887,7 +1891,7 @@ function renderFrame(){
     // On the light background the bright presets wash out: darken dots and trails.
     const pc=lightTheme?{r:ptColor.r*0.55|0,g:ptColor.g*0.55|0,b:ptColor.b*0.55|0}:ptColor;
     const trailLight=lightTheme?38:65;
-    const sorted=particles.map(p=>{const[sx,sy,d]=proj(p.x,p.y,p.z,cam);return{p,sx,sy,d};}).sort((a,b)=>a.d-b.d);
+    const sorted=(interp==='pw'?particles:[]).map(p=>{const[sx,sy,d]=proj(p.x,p.y,p.z,cam);return{p,sx,sy,d};}).sort((a,b)=>a.d-b.d);
     for(const{p,sx,sy,d}of sorted){
       const tl=p.trail.length;
       if(tl>=2)for(let i=1;i<tl;i++){
@@ -1935,7 +1939,8 @@ function renderFrame(){
     document.getElementById('stE').textContent=(-13.6/(o.n*o.n)).toFixed(2)+' eV';
   }
   document.getElementById('stNLM').textContent=comps.map(c=>`${c.n}, ${c.l}, ${fmtM(c.m)}`).join(' + ');
-  document.getElementById('stN').textContent=particles.length;
+  document.getElementById('stN').textContent=interp==='pw'||showCloud?particles.length:'—';
+  document.getElementById('stNLabel').textContent=showCloud?'Samples':'Atoms shown';
   document.getElementById('stT').textContent=(t*24.1888).toFixed(0)+' as';
 }
 
@@ -2821,7 +2826,7 @@ function updateLegend(){
     </div>`:'';
   const common=`
     ${spinRows}
-    ${showCloud?'':`<button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${tg}"></span>Particle trail</button>
+    ${showCloud||interp!=='pw'?'':`<button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${tg}"></span>Particle trail</button>
     <button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${pg}"></span>Particle</button>`}
     <div class="lrow"><span class="lsw" style="background:radial-gradient(circle at 30%,#ff7040,transparent)"></span>Proton</div>
     <div class="leg-colpop" id="legColPop">${colDots}</div>
@@ -2833,7 +2838,7 @@ function updateLegend(){
   if(showVol)   legendRows+=volRows;
   if(showSlice&&!showPhase) legendRows+=sliceRows;
   if(showSlice&&showPhase)  legendRows+=phaseRows;
-  if(showCloud) legendRows='<div class="lrow">Probability samples</div>';
+  if(showCloud) legendRows=`<div class="lrow">${interp==='pw'?'Probability samples':'Position-measurement outcomes'}</div>`;
   if(!legendRows) legendRows=volRows;
   div.innerHTML=legendRows+common;
 }
@@ -2932,6 +2937,17 @@ document.getElementById('beatPreset').addEventListener('click',()=>{
 });
 updateQuickPresets();
 
+const SUPER_DESC={
+    px:'p_x = (2p₊₁ − 2p₋₁)/√2: two lobes along x. This combination is real, so the pilot-wave velocity is zero.',
+    ss:'1s + 2s: the density breathes radially. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as. In pilot-wave theory the electrons move in and out along radii. Volume view shows the breathing best.',
+    sp:'1s + 2p_z: the density swings between a compact sphere and a lobe along z. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as.',
+    pd:'2p_z + 3d_z²: slower beating along z. ΔE = 5/72 a.u., period 90.5 a.u. ≈ 2.2 fs.',
+    circ:'2p₊₁ + 3d₊₁: a ring of density that expands and contracts with period 90.5 a.u. ≈ 2.2 fs. Both states have m = +1, so in pilot-wave theory the electrons also circle z.',
+    spin_ss:'1s↑ + 2s↓: the spin channels add without interference, so |ψ|² is stationary. With the Pauli spin term in the guidance law the electrons still move, because the spin density changes in time.',
+    spin_sp:'1s↑ + 2p₀↓: stationary |ψ|², symmetric about the xy plane. With the Pauli spin term the electrons still move.',
+    spin_circ:'2p₊₁↑ + 3d₊₁↓: stationary |ψ|², ring-shaped. With the Pauli spin term the electrons circulate with a time-dependent speed.',
+    none:''};
+
 document.getElementById('superSel').onchange=function(){
   superKey=this.value;
   t=0;previousFrame=undefined;
@@ -2939,16 +2955,7 @@ document.getElementById('superSel').onchange=function(){
   if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}
   syncSlicePlaneToState();
   fitZoom();
-  const desc={
-    px:'p_x = (2p₊₁ − 2p₋₁)/√2: two lobes along x. This combination is real, so the pilot-wave velocity is zero.',
-    ss:'1s + 2s: the density breathes radially. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as. In pilot-wave theory the electrons move in and out along radii. Volume view shows the breathing best.',
-    sp:'1s + 2p_z: the density swings between a compact sphere and a lobe along z. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as.',
-    pd:'2p_z + 3d_z²: slower beating along z. ΔE = 5/72 a.u., period 90.5 a.u. ≈ 2.2 fs.',
-    circ:'2p₊₁ + 3d₊₁: both have m = +1, so in pilot-wave theory the electrons circle z while the ring expands and contracts (period 90.5 a.u. ≈ 2.2 fs).',
-    spin_ss:'1s↑ + 2s↓: the spin channels add without interference, so |ψ|² is stationary. With the Pauli spin term in the guidance law the electrons still move, because the spin density changes in time.',
-    spin_sp:'1s↑ + 2p₀↓: stationary |ψ|², symmetric about the xy plane. With the Pauli spin term the electrons still move.',
-    spin_circ:'2p₊₁↑ + 3d₊₁↓: stationary |ψ|²; with the Pauli spin term the electrons circulate with a time-dependent speed.',
-    none:''};
+
   // Per-preset lobe threshold
   const presetLb={ss:1,sp:3,pd:8,circ:6,px:10,none:12,spin_ss:1,spin_sp:3,spin_circ:6};
   const lb=presetLb[superKey];
@@ -2960,7 +2967,7 @@ document.getElementById('superSel').onchange=function(){
   if(superKey==='none') updateInfo();
   else{
     document.getElementById('infoKet').textContent=this.options[this.selectedIndex].text;
-    document.getElementById('infoDesc').textContent=desc[superKey]||'';
+    document.getElementById('infoDesc').textContent=forReading(SUPER_DESC[superKey]||'');
   }
   // Sync spin UI heading when a spin preset is selected
   _syncSpinUI();
@@ -2968,18 +2975,48 @@ document.getElementById('superSel').onchange=function(){
   updateQuickPresets();
 };
 
+// In the orthodox reading, drop sentences about electron motion from state descriptions.
+function forReading(text){
+  if(interp==='pw'||!text) return text;
+  return text.split(/(?<=\.)\s+/).filter(x=>!/pilot-wave|pilot wave|guidance|spin term|electrons? (still )?(move|circle|stay|ride)/i.test(x)).join(' ');
+}
+
+function setInterpretation(value){
+  interp=value==='cpn'?'cpn':'pw';
+  const spinBtn=document.getElementById('spinToggleBtn');
+  spinBtn.disabled=interp!=='pw';
+  spinBtn.title=interp==='pw'
+    ? 'Add the Pauli spin term to the guidance law. It changes the trajectories, not |ψ|². See Physics § 4.'
+    : 'The spin term is part of the pilot-wave guidance law; switch to Pilot Wave to use it.';
+  document.querySelector('.hydrogen-predict')?.toggleAttribute('hidden',interp!=='pw');
+  document.getElementById('atomsRow')?.toggleAttribute('hidden',interp!=='pw');
+  if(showCloud) initCloudParts();
+  if(superKey==='none') updateInfo();
+  else document.getElementById('infoDesc').textContent=forReading(SUPER_DESC[superKey]||'');
+  updateLegend();
+  updateCaption();
+}
+
 // One line under the canvas saying what the marks mean.
 function updateCaption(){
   const el=document.getElementById('viewCaption'); if(!el) return;
   const spin=spinEnabled&&spinComps.length>0, evolving=densityEvolves();
   let text;
+  if(interp!=='pw'){
+    text=showCloud
+      ? 'Orthodox: each sphere is one possible outcome of a position measurement on one of many atoms prepared in this state. No position is assigned between measurements.'
+      : 'Orthodox: the display is |ψ|², the probability of finding the electron in a region if its position is measured. No position or path is assigned between measurements.';
+    if(evolving) text+=' The density itself changes in time.';
+    el.textContent=text;
+    return;
+  }
   if(showCloud){
-    text='Cloud: each sphere is one sample of |ψ|², a place where a position measurement on one of many atoms could find the electron.';
+    text='Pilot wave, Cloud: each sphere is one sample of |ψ|², a place where a position measurement on one of many atoms could find the electron.';
     if(evolving) text+=' The density changes in time, so the samples are redrawn each frame.';
     else if(spin) text+=' With the spin term on, each sample also moves along its pilot-wave trajectory.';
     else if(comps.some(c=>c.m!==0)) text+=' Each sample also moves along its pilot-wave path about z.';
   }else{
-    text='Pilot-wave picture: each dot is the electron of a separate atom, started at a position drawn from |ψ|²; trails are their paths.';
+    text='Pilot wave: each dot is the electron of a separate atom, started at a position drawn from |ψ|²; trails are their paths.';
     if(spin) text+=' The spin term is on, so the electrons move even where |ψ|² does not change.';
     else if(psiRealUpToPhase()) text+=' ψ is real here, so the guidance velocity is zero and the electrons stay put (Physics § 3 explains why).';
   }
@@ -2992,9 +3029,9 @@ function updateInfo(){
   document.getElementById('infoKet').textContent=coupled
     ? document.getElementById('jStateSel').selectedOptions[0]?.textContent
     : `|${o.n}, ${o.l}, ${fmtM(o.m)}⟩`;
-  document.getElementById('infoDesc').textContent=spinEnabled
+  document.getElementById('infoDesc').textContent=forReading(spinEnabled
     ? 'Pilot-wave guidance includes the Pauli spin term.'
-    : INFO[o.label]||'';
+    : INFO[o.label]||'');
   updateCaption();
 }
 updateInfo();
@@ -3181,6 +3218,7 @@ function hydrogenShareUrl(){
     if(spinMode==='jstate') q.set('j',document.getElementById('jStateSel').value||'0');
     else{q.set('th',spinTheta.toFixed(2));q.set('ph',spinPhi.toFixed(2));}
   }
+  if(interp!=='pw') q.set('interp',interp);
   q.set('view',currentView());
   if(showSlice) q.set('plane',slicePlane);
   if(showPhase) q.set('phase','1');

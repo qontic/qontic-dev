@@ -22,7 +22,7 @@
       <div class="qontic-sidebar hydrogen-sidebar">
       <aside class="qontic-panel qontic-control-panel" id="sidebar" aria-label="Simulation controls">
         <qontic-controls running="true" speed="1" speed-min="0.1" speed-max="10" speed-step="0.1"
-          show-reset="true" show-autorun="false" show-interpretation="false" active-tab="core"></qontic-controls>
+          show-reset="true" show-autorun="false" interpretations="cpn,pw" interpretation="pw" active-tab="core"></qontic-controls>
         <div class="qontic-control-body">
           <div data-control-pane="core">
       <section class="quick-start" aria-label="Suggested states">
@@ -70,7 +70,7 @@
       </div>
       </details>
       <!-- Pauli–Bohm Spin Section -->
-      <div>
+      <div id="atomsRow">
         <div class="slabel">Simulation</div>
         <div class="crow"><label for="sNP" title="Each atom has one electron. Starting positions are drawn from |ψ|².">Atoms</label>
           <input type=range id="sNP" min=1 max=50 value=12 step=1>
@@ -219,7 +219,7 @@
           <div class="stat"><span class="stat-label" id="stELabel">Energy</span><span class="stat-val" id="stE">—</span></div>
           <div class="stat"><span class="stat-label">n, l, m</span><span class="stat-val" id="stNLM">—</span></div>
           <div class="stat"><span class="stat-label">Spin</span><span class="stat-val" id="stSpin">Off</span></div>
-          <div class="stat"><span class="stat-label" title="Number of atoms shown; each has one electron">Atoms shown</span><span class="stat-val" id="stN">—</span></div>
+          <div class="stat"><span class="stat-label" id="stNLabel" title="Number of atoms shown; each has one electron">Atoms shown</span><span class="stat-val" id="stN">—</span></div>
           <div class="stat"><span class="stat-label">Sim time</span><span class="stat-val" id="stT">—</span></div>
           <div id="expertRows" style="display:contents">
             <div class="stat expert-stat"><span class="stat-label" title="⟨r⟩ summed over the rendering voxel grid; flagged when it differs from the exact value by more than 2%">⟨r⟩ voxel grid</span><span class="stat-val"
@@ -283,7 +283,7 @@
             <h2>1 &mdash; What you are looking at</h2>
             <p>The density displays (Volume, Slices, Lobes, Cloud) show |ψ|&sup2; for the chosen hydrogen state.</p>
             <p>The moving dots and their trails show <em>pilot-wave (de Broglie&ndash;Bohm) theory</em>. Each dot is the electron of a separate hydrogen atom prepared in the same state. Its starting position is drawn at random from |ψ|&sup2;, and it then moves with the guidance velocity of section 3.</p>
-            <p>The density |ψ|&sup2; is the same in every formulation of quantum mechanics: it gives the probability of finding the electron in a region if its position is measured. The trajectories are specific to pilot-wave theory: in a stationary state with no measurement, the other views add nothing to draw. The Cloud view is the one measurement-shaped display; it shows where position measurements on many atoms would find the electron, which every view accepts.</p>
+            <p>The density |ψ|&sup2; is the same in every formulation of quantum mechanics: it gives the probability of finding the electron in a region if its position is measured. The button next to Reset switches between two readings of the display. <b>Orthodox</b> shows only |ψ|&sup2;: the standard formalism assigns the electron no position between measurements, so there are no dots or trails, and the Cloud view shows possible outcomes of position measurements on many atoms. <b>Pilot Wave</b> adds the electrons and their trajectories. Many-worlds is not offered separately: with no measurement there are no branches, and its display would be the orthodox one. Switching does not reset the clock.</p>
             <p>Units are atomic units (a&#x2080; = ħ = m<sub>e</sub> = e = 1): lengths in Bohr radii, a&#x2080; = 52.9&nbsp;pm; one atomic unit of time is 24.2&nbsp;as. The clock shows attoseconds.</p>
           </section>
 
@@ -373,7 +373,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=7"></script>
-  <script type="module" src="hydrogen-template.js?v=4"></script>
+  <script src="hydrogen-3d.js?v=8"></script>
+  <script type="module" src="hydrogen-template.js?v=5"></script>
 </body>
 </html>

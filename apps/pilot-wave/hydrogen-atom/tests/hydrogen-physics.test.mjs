@@ -25,7 +25,7 @@ const fns = ['factorial', 'laguerre', 'assocLegendre', 'ylmNorm', 'Ylm', 'Rnl', 
   'rhoSpinAt', 'bohmVPauli', 'buildSpinComps', 'exactR', 'densityAt', 'psiRealUpToPhase', 'densityEvolves', 'rotateAroundZ',
   'cloudCount', 'stepCloudParticles', 'stepParticle', 'rMax', 'sampleParticlesStratified', 'sampleParticles', 'integrate', 'autoCloudN'];
 let code = `var spinEnabled=false,spinComps=[],spinMode='product',spinTheta=Math.PI/2,spinPhi=0,comps=[],particles=[],t=0,
-superKey='none',orbIdx=0,showCloud=false,dtStep=0.04,trailLen=800,W=600,H=600,cloudSpherePx=10,lastCloudBoundMisses=0;
+superKey='none',orbIdx=0,showCloud=false,interp='pw',dtStep=0.04,trailLen=800,W=600,H=600,cloudSpherePx=10,lastCloudBoundMisses=0;
 const CLOUD_SPIN_MAX=500, CLOUD_SPIN_STEP=0.12; function invalidateDensity(){}\n`;
 for (const c of ['ORBITALS', 'SUPERS', 'SUPER_RM', 'SPIN_SUPERS']) code += grab('const', c) + '\n';
 for (const f of fns) code += grab('function', f) + '\n';
