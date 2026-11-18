@@ -1,3 +1,7 @@
+## 3.0-dev.9 — 2026-11-17
+- "Phase + amplitude" renamed "Phase & |Ψ|". The colour now comes from cos θ through the wave palette, as in "Phase (cos θ)", instead of θ itself: the palette ends no longer meet at θ = ±π, so there is no seam (Pablo's screenshot showed it with the Blue palette). Brightness is still |Ψ|. Legend wheel relabelled (cos θ; 0 and π at the sides).
+- Removed the Cyclic palette added in 3.0-dev.8; with cos θ it is not needed.
+
 ## 3.0-dev.8 — 2026-11-17
 - Phase + amplitude now takes its colours from the wave palette chosen in Display (Pablo's request): θ from −π to π runs across the palette, θ = 0 in the middle; brightness is |Ψ|. The phase wheel and the 3D legend follow the palette.
 - New cyclic palette "Cyclic" in the Display list (same colour at both ends). The other palettes are not cyclic and show a seam where θ = ±π; palettes that start dark (Inferno, Red) also make phases near −π look dim.

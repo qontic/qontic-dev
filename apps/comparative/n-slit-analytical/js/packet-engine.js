@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit8';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit8';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit8';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit8';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit8';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit8';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit8';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit8';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit9';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit9';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit9';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit9';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit9';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit9';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit9';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit9';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -354,7 +354,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit8').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit9').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -429,10 +429,10 @@ export function mountPacketEngine({core,advanced}){
   while(G.filled<gridW&&(G.filled<=target||performance.now()-t0<budget))fillColumn(G,G.filled++);
  }
 
- // Phase + amplitude: colour from the wave palette chosen in Display, by phase
- // θ ∈ (−π, π] mapped onto the palette from start to end (θ = 0 in the middle);
- // brightness = |Ψ|. A palette whose ends differ shows a seam where θ = ±π.
- const phaseIndex=theta=>{let u=(theta+Math.PI)/(2*Math.PI);u-=Math.floor(u);return Math.min(1023,Math.round(u*1023));};
+ // Phase & |Ψ|: colour from the wave palette chosen in Display, indexed by cos θ
+ // as in "Phase (cos θ)" (continuous, so no seam where θ crosses ±π);
+ // brightness = |Ψ|.
+ const phaseIndex=theta=>Math.max(0,Math.min(1023,Math.round((.5+.5*Math.cos(theta))*1023)));
  const hueCss=theta=>{const c=paletteColors?.[phaseIndex(theta)]||[128,128,128];return `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;};
  function drawPhaseWheel(context,cx,cy,r){
   context.save();
@@ -441,8 +441,8 @@ export function mountPacketEngine({core,advanced}){
   context.globalCompositeOperation='source-atop';context.fillStyle=g;context.fillRect(cx-r,cy-r,2*r,2*r);context.globalCompositeOperation='source-over';
   context.strokeStyle='rgba(255,255,255,.6)';context.lineWidth=1;context.beginPath();context.arc(cx,cy,r,0,2*Math.PI);context.stroke();
   context.fillStyle='#e8f4f8';context.font='10px Inter,Arial,sans-serif';context.textAlign='center';context.textBaseline='middle';
-  context.fillText('0',cx+r+8,cy);context.fillText('π',cx-r-8,cy);context.fillText('π/2',cx,cy-r-8);context.fillText('−π/2',cx,cy+r+8);
-  context.fillText('θ',cx,cy-r-20);context.font='9px Inter,Arial,sans-serif';context.fillText('|Ψ| → edge',cx,cy+r+20);
+  context.fillText('0',cx+r+8,cy);context.fillText('π',cx-r-8,cy);context.fillText('±π/2',cx,cy-r-8);
+  context.fillText('cos θ',cx,cy-r-20);context.font='9px Inter,Arial,sans-serif';context.fillText('|Ψ| → edge',cx,cy+r+20);
   context.restore();
  }
  function drawSourceWave(){

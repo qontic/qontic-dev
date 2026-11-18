@@ -8,9 +8,7 @@ window.paletteModule = (function () {
     Yellow:['#8c510a', '#d8b365', '#f6e8c3', '#fee08b', '#ffffbf'],
     Inferno: ['#000004', '#420a68', '#932667', '#dd513a', '#fca50a'],
     Spectral: ['#9e0142', '#f46d43', '#fdae61', '#fee08b', '#e6f598', '#abdda4', '#66c2a5', '#3288bd', '#5e4fa2'],
-    RdYlBu: ['#d73027', '#fc8d59', '#fee090', '#e0f3f8', '#91bfdb', '#4575b4'],
-    // Cyclic: the same colour at both ends, for phase displays (no seam at θ = ±π).
-    Cyclic: ['#e8384f', '#f2b134', '#7cc24a', '#1fb5c4', '#4a66d9', '#b44ad9', '#e8384f']
+    RdYlBu: ['#d73027', '#fc8d59', '#fee090', '#e0f3f8', '#91bfdb', '#4575b4']
   };
   let currentPaletteName = null;
 
