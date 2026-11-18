@@ -1,5 +1,9 @@
 # Nanoparticle Interference (Vienna 2026) — changelog
 
+## 0.7.0 (2026-11-18)
+- 3D view (default, three.js as in the analytical double slit) with a "Top view (2D)" switch in Core. The gratings are drawn as what they are: sheets of bright laser light, 133 nm apart across the beam, with gaps that let clusters through; G3's sheets shift with the scan. |ψ|² of the beam lies on the horizontal mid-plane, each packet is a glowing slab moving along the beam, Pilot-Wave clusters are dots (computed positions across and along the beam; random height, on which nothing depends), outcomes are marks on the sheets. Each axis has its own scale (1.97 m, ±266 nm, ±0.3 mm), stated on the axes and in Physics. Camera fits the canvas; "Reset the 3D view" in Display.
+- Pilot Wave now also marks ionised clusters (×) in the top view, as the caption says.
+
 ## 0.6.0 (2026-11-18)
 - Layout: controls | canvas | plot column, using the full screen width (overrides the shared 4:3 workspace cap for this app only). Plots no longer cover the canvas; each can be minimized to its title bar. Below 1100 px the plots stack under the canvas.
 - New plot "Arrivals at G3 (before the mask)": where each cluster that passed G2 lands at the G3 plane, added hit by hit as packets arrive, like a double-slit screen, with the predicted quantum and classical densities (talbot.js: Talbot–Lau coefficients without the G3 factor). The experiment does not record this; the counts plot is the measurement, made by scanning the mask.

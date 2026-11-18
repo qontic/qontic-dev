@@ -135,3 +135,10 @@ body.np-app.qontic-light { background: #eef3f6; color: #183747; }
   .np-app .np-insert { flex: none; height: 250px; }
   .np-app .np-insert.minimized { height: auto; }
 }
+
+/* 3D view */
+.np-app .np-3d-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; cursor: grab; border-radius: 8px; background: radial-gradient(circle at 50% 40%, #0c2233, #06111b 70%); }
+.qontic-light.np-app .np-3d-canvas { background: radial-gradient(circle at 50% 40%, #ffffff, #e6eef2 75%); }
+.np-app .np-3d-caption { position: absolute; left: 10px; top: 8px; right: 10px; margin: 0; padding: 6px 9px; border-radius: 7px; background: rgba(7, 19, 27, 0.72); color: #c7dbe6; font-size: 12px; line-height: 1.4; pointer-events: none; z-index: 2; }
+.qontic-light.np-app .np-3d-caption { background: rgba(255, 255, 255, 0.8); color: #35505f; }
+.np-app .view3d-group { margin-bottom: 8px; }

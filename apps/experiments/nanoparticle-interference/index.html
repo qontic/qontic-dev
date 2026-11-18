@@ -8,7 +8,8 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/np.css?v=0.6.0">
+<link rel="stylesheet" href="css/np.css?v=0.7.0">
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body class="np-app">
 <main class="shell">
@@ -28,6 +29,10 @@
       <div class="control-pane" data-control-pane="core">
         <div class="qontic-control-section">
           <div class="qontic-control-section-title">Settings</div>
+          <div class="qontic-app-toggle-group view3d-group" role="group" aria-label="View">
+            <button class="qontic-app-toggle active" type="button" data-view3d="3d" aria-pressed="true" title="The interferometer in 3D: the gratings are sheets of light; drag to turn, scroll to zoom.">3D</button>
+            <button class="qontic-app-toggle" type="button" data-view3d="2d" aria-pressed="false" title="The same experiment seen from above: along the beam and across it, where all the physics happens.">Top view (2D)</button>
+          </div>
           <div class="qontic-app-toggle-group preset-group" role="group" aria-label="Presets">
             <button class="qontic-app-toggle" type="button" data-preset="fig2a" title="The settings of Fig. 2a of the paper: 172 kDa clusters at 160 m/s, grating powers 62, 15.2 and 68 mW.">Vienna 2026</button>
             <button class="qontic-app-toggle" type="button" data-preset="heavy" title="Clusters of 1,000,000 Da at the same speed. The de Broglie wavelength is about 2.5 fm.">1 MDa</button>
@@ -94,6 +99,7 @@
             <button class="qontic-app-toggle" type="button" data-chart="mass" aria-pressed="false">Visibility vs mass</button>
           </div>
         </div>
+        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="resetCamera" title="Return the 3D view to its starting angle">Reset the 3D view</button>
         <div class="toggle-row"><span>Quantum prediction</span><button class="toggle" type="button" data-toggle="quantum" aria-pressed="true" aria-label="Show the quantum prediction"></button></div>
         <div class="toggle-row"><span>Classical prediction</span><button class="toggle" type="button" data-toggle="classical" aria-pressed="true" aria-label="Show the classical prediction"></button></div>
         <div class="toggle-row"><span>Counts and fit</span><button class="toggle" type="button" data-toggle="data" aria-pressed="true" aria-label="Show the simulated counts and the sine fit"></button></div>
@@ -122,7 +128,7 @@
 
   <div class="visualization qontic-stage qontic-panel">
     <div class="canvas-host">
-      <div class="np-canvas-wrap"><canvas id="stage" aria-label="The wave of the clusters inside the Talbot–Lau interferometer"></canvas></div>
+      <div class="np-canvas-wrap"><canvas id="stage" aria-label="The wave of the clusters inside the Talbot–Lau interferometer, seen from above"></canvas><p class="np-3d-caption" id="cap3d" hidden></p></div>
       <div class="np-plots" aria-label="Plots">
         <div class="np-insert" data-insert="arrivals" role="region" aria-label="Arrivals at G3">
           <div class="np-insert-head"><span class="np-insert-title" title="Where each cluster that passed G2 lands at the G3 plane, before the mask. The experiment does not record this; the mask scan below samples it.">Arrivals at G3 (before the mask)</span><button type="button" data-insert-min aria-label="Minimize the arrivals plot" aria-expanded="true">–</button></div>
@@ -170,7 +176,8 @@
 
   <h2>What the simulation shows</h2>
   <ul>
-    <li><b>The large panel</b> is the inside of the interferometer, to scale in its own units: along the beam (left to right) the 1.97 m from G1 to G3, across it (up and down) ±266 nm, two grating periods either side of the centre of a G1 opening. The picture is stretched sideways about ten million times.</li>
+    <li><b>3D or top view.</b> Each grating is a standing wave of laser light reflected by a mirror. Its bright fringes are thin sheets of light, 133 nm apart across the beam, about 0.6 mm tall and 20 µm thick along the beam; nothing changes in the vertical direction. The 3D view draws them as sheets, with the |ψ|² of the wave on the horizontal mid-plane and each packet as a glowing slab moving along the beam. Each axis has its own scale (1.97 m along the beam, ±266 nm across it, ±0.3 mm vertically), so the drawing is not proportional. Pilot-Wave clusters are given a random height in the 3D view; their motion across and along the beam is the computed one. The top view shows the plane across and along the beam, which is where all the physics happens.</li>
+    <li><b>The large panel</b> (top view) is the inside of the interferometer, to scale in its own units: along the beam (left to right) the 1.97 m from G1 to G3, across it (up and down) ±266 nm, two grating periods either side of the centre of a G1 opening. The picture is stretched sideways about ten million times.</li>
     <li><b>Blue-white</b> is |ψ|², the computed density of the clusters' wave (see below). <b>Violet</b> marks where each grating's light is bright: G1 and G3 remove clusters there, G2 mainly shifts the phase of the wave. While packets fly, the wave is lit where the packets are.</li>
     <li><b>Marks</b>: in Pilot Wave, dots are the clusters themselves, with trails for a few in each packet; × is a cluster ionised by a grating. In Orthodox and Many Worlds, the marks are outcomes when a packet reaches a grating: × ionised, • counted.</li>
     <li><b>Arrivals at G3</b> (first plot on the right): where each cluster that passed G2 lands at the G3 plane, before the mask, built up hit by hit as packets arrive, like the screen of a double-slit experiment. This is the near-field fringe pattern, with period d. The experiment does not record it: there is no position-sensitive screen at G3.</li>
@@ -274,6 +281,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.6.0"></script>
+<script type="module" src="js/app.js?v=0.7.0"></script>
 </body>
 </html>

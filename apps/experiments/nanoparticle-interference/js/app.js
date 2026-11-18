@@ -2,9 +2,10 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.6.0';
+import { APP_RELEASE } from './release.js?v=0.7.0';
 import { makeSetup, makeCluster, densityAfterG2, intensityTransmission } from './wave.js';
 import { buildEnsemble, runCluster, gauss } from './sim.js';
+import { mount3D, webglAvailable } from './view3d.js';
 import {
   PAPER, averagedCoefficients, averagingGrid, visibility, fringeProfile, fitSine, poisson,
   deBroglie, talbotLength, atomsIn, diameter, n0, phi0,
@@ -47,7 +48,7 @@ const state = {
   ...structuredClone(PRESETS.fig2a),
   scale: true, truth: 'quantum', chart: 'power',
   show: { predict: true, quantum: true, classical: true, data: true, wave: true, ensemble: true, traj: true, trace: true },
-  interp: 'orthodox', x0frac: 0.5, perPacket: 60, packetsPerPoint: 20, inFlight: 5,
+  interp: 'orthodox', view3d: true, x0frac: 0.5, perPacket: 60, packetsPerPoint: 20, inFlight: 5,
   running: false, autoRun: false, speed: 1,
   step: 'setup', prediction: null, finished: false,
   scanIndex: 0, dwell: 0, data: [],
@@ -560,7 +561,7 @@ function drawWave(r, P, dt) {
   }
 
   // pilot-wave trajectories
-  if (state.interp === 'pilot-wave') { if (state.show.traj) drawParticles(P, tz, tx, pr); }
+  if (state.interp === 'pilot-wave') { if (state.show.traj) drawParticles(P, tz, tx, pr); drawOutcomes(P, tz, tx, pr, true); }
   else drawOutcomes(P, tz, tx, pr);
   const newest = run.packets[run.packets.length - 1];
   if (newest && newest.z >= -2 * pkSigma() && newest.z <= 2 * st.L) {
@@ -616,6 +617,7 @@ function launchPacket() {
     const c = runCluster(ens, mode, x3off, Math.random, { xc: windowCentre(), band: 2 * D, steps: 90 });
     c.dz = sig * gauss(Math.random);
     c.trail = k < TRAILS_PER_PACKET;
+    c.y3 = (Math.random() * 2 - 1) * 2.9; // height in the 3D view only; nothing depends on it
     clusters.push(c);
   }
   // Many-Worlds: one outcome per packet is the branch followed
@@ -632,7 +634,7 @@ function advanceRun(dt) {
     p.z += (span / PACKET_TIME) * step;
     if (!p.passedG2 && p.z >= st.L) {
       p.passedG2 = true;
-      for (const c of p.clusters) if (c.fate === 'G2') run.marks.push({ z: st.L, x: c.x2, fate: 'G2', age: 0, followed: c.followed });
+      for (const c of p.clusters) if (c.fate === 'G2') run.marks.push({ z: st.L, x: c.x2, y3: c.y3, fate: 'G2', age: 0, followed: c.followed });
     }
     if (!p.passedG3 && p.z >= 2 * st.L) {
       p.passedG3 = true;
@@ -641,7 +643,7 @@ function advanceRun(dt) {
         if (c.fate === 'G2') continue;
         addArrival(c.xj);
         if (c.fate === 'counted') pt.n++;
-        run.marks.push({ z: 2 * st.L, x: c.x3, fate: c.fate, age: 0, followed: c.followed });
+        run.marks.push({ z: 2 * st.L, x: c.x3, y3: c.y3, fate: c.fate, age: 0, followed: c.followed });
       }
       pt.arrived++;
       run.g3 = SCAN_X[p.point];
@@ -698,10 +700,11 @@ function drawParticles(P, tz, tx, pr) {
   ctx.globalAlpha = 1; ctx.restore();
 }
 
-function drawOutcomes(P, tz, tx, pr) {
+function drawOutcomes(P, tz, tx, pr, onlyIonised = false) {
   ctx.save(); ctx.beginPath(); ctx.rect(pr.x - 8, pr.y, pr.w + 16, pr.h); ctx.clip();
   const mw = state.interp === 'many-worlds';
   for (const m of run.marks) {
+    if (onlyIonised && m.fate === 'counted') continue;
     let a = Math.max(0, 1 - m.age / 1.6);
     if (mw && !m.followed) a *= 0.35;
     ctx.globalAlpha = a;
@@ -954,8 +957,78 @@ function layout(W, H) {
   return { top, left: { x: g, y, w: W - 2 * g, h: hh }, right: { x: g, y: y + hh + g, w: W - 2 * g, h: hh } };
 }
 
+// ---------------------------------------------------------------- 3D view
+const wrapEl = document.querySelector('.np-canvas-wrap');
+const cap3d = document.getElementById('cap3d');
+let view3d = null;
+if (webglAvailable()) { try { view3d = mount3D(wrapEl); } catch (e) { console.error(e); view3d = null; } }
+if (!view3d) state.view3d = false;
+function setView3d(on) {
+  state.view3d = on && !!view3d;
+  view3d?.setVisible(state.view3d);
+  canvas.style.display = state.view3d ? 'none' : 'block';
+  cap3d.hidden = !state.view3d;
+  document.querySelectorAll('[data-view3d]').forEach((b) => { const a = (b.dataset.view3d === '3d') === state.view3d; b.classList.toggle('active', a); b.setAttribute('aria-pressed', String(a)); });
+  if (carpet) carpet.dirty = true;
+}
+document.querySelectorAll('[data-view3d]').forEach((b) => b.addEventListener('click', () => setView3d(b.dataset.view3d === '3d')));
+document.getElementById('resetCamera')?.addEventListener('click', () => view3d?.resetCamera());
+
+function render3d(P) {
+  const st = model.setup, z2 = 2 * st.L;
+  const changed = !!(carpet && carpet.dirty);
+  if (state.show.wave) paintCarpet(P);
+  const dots = [], trails = [], marks = [];
+  if (state.interp === 'pilot-wave' && state.show.traj) {
+    for (const p of run.packets) for (const c of p.clusters) {
+      if (!c.pts) continue;
+      const zEnd = c.pts[c.pts.length - 1][0], zp = p.z + c.dz;
+      if (zp < 0 || (zp >= zEnd && c.fate !== 'counted')) continue;
+      const zNow = Math.min(zEnd, zp);
+      const upTo = [];
+      let xNow = null;
+      for (let i = 0; i < c.pts.length; i++) {
+        const [z, x] = c.pts[i];
+        if (z > zNow) { const [z0, x0] = c.pts[i - 1]; xNow = x0 + ((zNow - z0) / (z - z0)) * (x - x0); upTo.push([zNow, xNow]); break; }
+        upTo.push([z, x]); xNow = x;
+      }
+      dots.push({ z: zNow, x: xNow, y: c.y3, c: zp >= zEnd ? P.data : P.text });
+      if (c.trail) trails.push({ pts: upTo, y: c.y3, c: c.fate === 'counted' ? P.data : P.beam });
+    }
+  }
+  const mw = state.interp === 'many-worlds';
+  for (const m of run.marks) {
+    if (state.interp === 'pilot-wave' && m.fate === 'counted') continue;
+    let a = Math.max(0, 1 - m.age / 1.6); if (mw && !m.followed) a *= 0.35;
+    marks.push({ z: m.z, x: m.x, y: m.y3 ?? 0, c: m.fate === 'counted' ? P.data : P.lost, a });
+  }
+  const sig = pkSigma();
+  view3d.render({
+    z2, xc: windowCentre(), win: WIN, d: D,
+    gratings: [
+      { z: 0, light: Math.min(1, st.g[0].n0 / 2), shift: 0, label: 'G1' },
+      { z: st.L, light: Math.min(1, st.g[1].n0 / 2), shift: 0, label: 'G2' },
+      { z: z2, light: Math.min(1, st.g[2].n0 / 2), shift: state.step === 'setup' ? 0 : run.g3, label: `G3 · offset ${Math.round((state.step === 'setup' ? 0 : run.g3) * 1e9)} nm` },
+    ],
+    carpetCanvas: carpetCanvas, carpetChanged: changed && state.show.wave,
+    packets: run.packets.map((p) => ({ z: p.z, sigma: sig })),
+    dots, trails, marks,
+    palette: { laser: P.laser, light: document.body.classList.contains('qontic-light') },
+  });
+  const cap = `${state.show.ensemble ? '|ψ|² of the beam' : '|ψ|² of one cluster'} on the mid-plane · violet sheets: bright fringes of the light gratings G1, G2, G3; clusters there are ionised, the gaps let them through (G2 mostly shifts the phase) · ${CAPTION[state.interp]}`;
+  if (cap3d.textContent !== cap) cap3d.textContent = cap;
+}
+
 function render(dt) {
   const P = palette();
+  if (state.view3d && view3d) {
+    render3d(P);
+    drawInsert('arrivals', drawArrivals, P);
+    drawInsert('counts', drawFringes, P);
+    drawInsert('chart', drawChart, P);
+    updateResults();
+    return;
+  }
   const ratio = devicePixelRatio || 1, W = canvas.clientWidth, H = canvas.clientHeight;
   if (W < 40 || H < 40) return;
   if (canvas.width !== Math.round(W * ratio) || canvas.height !== Math.round(H * ratio)) { canvas.width = Math.round(W * ratio); canvas.height = Math.round(H * ratio); }
@@ -1004,7 +1077,7 @@ function frame(now) {
 mountQonticMedia({
   stage: $('.visualization'),
   controls: controlsEl,
-  getCanvases: () => [canvas, ...Object.values(inserts).filter((it) => !it.min).map((it) => it.cv)],
+  getCanvases: () => [state.view3d && view3d ? view3d.canvas : canvas, ...Object.values(inserts).filter((it) => !it.min).map((it) => it.cv)],
   filename: 'nanoparticle-interference',
   getShareUrl: shareUrl,
   beginRecording: () => { const was = state.running; if (!was) start(); return was; },
@@ -1021,6 +1094,7 @@ rebuild();
 computeCharts();
 computeCarpet();
 syncControls();
+setView3d(state.view3d);
 setInterpretation(state.interp);
 resetRun();
 requestAnimationFrame(frame);
