@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="hydrogen-template.css?v=7">
+  <link rel="stylesheet" href="hydrogen-template.css?v=8">
 </head>
 
 <body>
@@ -21,8 +21,13 @@
     <section class="qontic-workspace" id="simulation" aria-label="Hydrogen simulation">
       <div class="qontic-sidebar hydrogen-sidebar">
       <aside class="qontic-panel qontic-control-panel" id="sidebar" aria-label="Simulation controls">
+        <div class="qontic-app-toggle-group interp-switch" role="group" aria-label="Reading of the display">
+          <button type="button" class="qontic-app-toggle" data-interp="cpn" aria-pressed="false" title="Standard quantum mechanics: |ψ|² only, no electron positions">Orthodox</button>
+          <button type="button" class="qontic-app-toggle active" data-interp="pw" aria-pressed="true" title="Pilot-wave theory: |ψ|² plus the electrons and their trajectories">Pilot wave</button>
+        </div>
         <qontic-controls running="true" speed="1" speed-min="0.1" speed-max="10" speed-step="0.1"
-          show-reset="true" show-autorun="false" interpretations="cpn,pw" interpretation="pw" active-tab="core"></qontic-controls>
+          show-reset="true" show-autorun="false" interpretations="cpn,pw" interpretation="pw" show-interpretation="false" active-tab="core"></qontic-controls>
+
         <div class="qontic-control-body">
           <div data-control-pane="core">
       <section class="quick-start" aria-label="Suggested states">
@@ -51,15 +56,17 @@
         <div class="slabel">Orbital |n, l, m⟩</div>
         <div class="nrow" id="nrow"></div>
         <div class="ogrid" id="ogrid"></div>
+        <div class="slabel" id="realGridLabel">Real orbitals (as drawn in chemistry)</div>
+        <div class="ogrid" id="ogridReal"></div>
       </div>
       <div>
         <label class="slabel" for="superSel">Superposition</label>
         <select id="superSel">
           <option value="none">None (pure state)</option>
-          <option value="px">p_x = (2p₊₁ − 2p₋₁)/√2 [real, lobes along x]</option>
+          <option value="px">2p_x = (2p₋₁ − 2p₊₁)/√2 [real, lobes along x]</option>
           <option value="ss">1s + 2s [density breathes radially]</option>
-          <option value="sp">1s + 2p_z [density swings along z]</option>
-          <option value="pd">2pz + 3dz² [slower z beating]</option>
+          <option value="sp">1s + 2p₀ [density swings along z]</option>
+          <option value="pd">2p₀ + 3d₀ [slower beating along z]</option>
           <option value="circ">2p₊₁ + 3d₊₁ [ring that beats radially]</option>
           <optgroup label="With the Pauli spin term (pilot-wave)">
             <option value="spin_ss">1s↑ + 2s↓ [stationary density]</option>
@@ -76,48 +83,54 @@
           <input type=range id="sNP" min=1 max=50 value=12 step=1>
           <span class="crow-val" id="vNP">12</span>
         </div>
-        <p class="hydrogen-prompt">Each electron belongs to its own hydrogen atom, all prepared in the same state and drawn on top of one another. They do not interact. A real orbital holds at most two electrons.</p>
+        <p class="hydrogen-prompt">Each electron belongs to its own hydrogen atom, all prepared in the same state and drawn on top of one another. They do not interact. In an actual atom, one orbital holds at most two electrons.</p>
       </div>
           </div>
           <div data-control-pane="advanced" hidden>
-      <div class="display-settings">
-      <div id="spinSection">
+      <div class="display-settings" id="spinSection">
         <div class="slabel spin-slabel">
-          <span>Pilot-wave guidance law</span>
+          <span>Spin state (spin ½)</span>
           <button class="qontic-app-toggle" id="spinToggleBtn" aria-pressed="false" onclick="toggleSpin()"
-            title="Add the Pauli spin term to the guidance law. It changes the trajectories, not |ψ|². See Physics § 4.">Spin term</button>
+            title="Describe the electron by a two-component spinor. This changes the state, not the guidance law.">Spinor</button>
         </div>
         <div id="spinSubSection" style="display:none">
           <div class="crow" id="spinModeRow">
-            <label title="Spin state mode">Mode</label>
-            <label title="Product of orbital ψ and a chosen spin direction |n̂⟩"><input type="radio" name="spinMode"
+            <label title="How the spinor is built">Mode</label>
+            <label title="Orbital ψ times a fixed spin direction |n̂⟩"><input type="radio" name="spinMode"
                 id="spinModeProd" checked onchange="setSpinMode('product')"> Product</label>
-            <label title="Spinor-spherical harmonic j-eigenstate via Clebsch–Gordan coupling"><input type="radio"
+            <label title="Eigenstate of total angular momentum j, built with Clebsch–Gordan coefficients"><input type="radio"
                 name="spinMode" id="spinModeJst" onchange="setSpinMode('jstate')"> j-state</label>
           </div>
           <div id="spinProductRow" class="crow" style="display:none">
             <label for="sSpinTheta"
-              title="Polar angle θ of the spin direction vector |n̂⟩. θ = π/2 puts the spin in the xy plane, which breaks the symmetry about z.">θ</label>
+              title="Polar angle θ of the spin direction n̂. θ = π/2 puts the spin in the xy plane.">θ</label>
             <input type="range" id="sSpinTheta" min="0" max="314" value="157" step="1"
-              oninput="spinTheta=this.value/100;document.getElementById('vSpinTheta').textContent=(this.value/100).toFixed(2)+'rad';buildSpinComps&&buildSpinComps();volumeDirty=true;lobeTexDirty=true;">
-            <span class="crow-val" id="vSpinTheta">1.57rad</span>
+              oninput="spinTheta=this.value/100;document.getElementById('vSpinTheta').textContent=(this.value/100).toFixed(2)+' rad';buildSpinComps&&buildSpinComps();invalidateDensity();updateInfo();">
+            <span class="crow-val" id="vSpinTheta">1.57 rad</span>
           </div>
           <div id="spinProductRow2" class="crow" style="display:none">
-            <label for="sSpinPhi" title="Azimuthal angle φ of the spin direction vector.">φ</label>
+            <label for="sSpinPhi" title="Azimuthal angle φ of the spin direction n̂.">φ</label>
             <input type="range" id="sSpinPhi" min="0" max="628" value="0" step="1"
-              oninput="spinPhi=this.value/100;document.getElementById('vSpinPhi').textContent=(this.value/100).toFixed(2)+'rad';buildSpinComps&&buildSpinComps();volumeDirty=true;lobeTexDirty=true;">
-            <span class="crow-val" id="vSpinPhi">0.00rad</span>
+              oninput="spinPhi=this.value/100;document.getElementById('vSpinPhi').textContent=(this.value/100).toFixed(2)+' rad';buildSpinComps&&buildSpinComps();invalidateDensity();updateInfo();">
+            <span class="crow-val" id="vSpinPhi">0.00 rad</span>
           </div>
           <div id="spinJRow" class="crow" style="display:none">
-            <label for="jStateSel" title="j-eigenstate: Clebsch–Gordan coupled spinor-spherical harmonic |j, mⱼ⟩">|j, mⱼ⟩</label>
+            <label for="jStateSel" title="Eigenstate |j, mⱼ⟩ of total angular momentum">|j, mⱼ⟩</label>
             <select id="jStateSel" onchange="setJState(parseInt(this.value))"></select>
           </div>
         </div>
       </div>
+      <div class="display-settings" id="guidanceSection">
+        <div class="slabel spin-slabel">
+          <span>Pilot-wave guidance law</span>
+          <button class="qontic-app-toggle" id="spinTermBtn" aria-pressed="true" onclick="toggleSpinTerm()"
+            title="Add the Pauli spin term (∇×S)/(2ρ) to the guidance velocity. It changes the trajectories, not |ψ|². Needs a spinor state. See Physics § 4.">Spin term</button>
+        </div>
+        <p class="hydrogen-prompt" id="spinTermNote">Applies to spinor states. Toggle it on the same state to compare the two guidance laws.</p>
       </div>
-        <div class="display-settings">
+        <div class="display-settings" id="trajectorySection">
           <div class="slabel">Trajectory settings</div>
-        <div class="crow"><label for="sTR" title="Trail length in steps for up to 10 atoms; shortened in proportion when more atoms are shown">Trail</label>
+        <div class="crow"><label for="sTR" title="Trail length in steps for up to 10 electrons; shortened in proportion when more are shown">Trail</label>
           <input type=range id="sTR" min=5 max=1250 value=800 step=5>
           <span class="crow-val" id="vTR">800</span>
         </div>
@@ -185,7 +198,11 @@
           <input type=range id="sLB" min=1 max=40 value=12 step=1>
           <span class="crow-val"><span id="vLB">12</span>%</span>
         </div>
-        <div class="crow"><label for="sPS" title="Particle dot radius in pixels">Pt size</label>
+        <div class="crow"><label for="sGM" title="Brightness ∝ (ρ/ρmax)^γ. Lower γ brightens faint outer shells, so the radial nodes of 2s, 3s… show as dark rings.">Faint regions</label>
+          <input type=range id="sGM" min=10 max=60 value=25 step=1 oninput="setDensGamma(this.value/100);document.getElementById('vGM').textContent='γ = '+(this.value/100).toFixed(2)">
+          <span class="crow-val" id="vGM">γ = 0.25</span>
+        </div>
+        <div class="crow"><label for="sPS" title="Electron dot radius in pixels">Dot size</label>
           <input type=range id="sPS" min=1 max=6 value=2.5 step=0.5>
           <span class="crow-val" id="vPS">2.5</span>
         </div>
@@ -197,6 +214,10 @@
           <button class="qontic-app-toggle" id="projBtn" aria-pressed="false" onclick="toggleProjections()"
             title="Density integrated along each axis: XZ, XY and YZ panels" style="flex:1">Projections</button>
         </div>
+        <button class="qontic-app-toggle" id="cutBtn" aria-pressed="false" onclick="toggleCut()"
+          title="Remove the half of the orbital nearer to you, to see nested shells and inner nodes (Volume, Lobes, Cloud)">Cutaway</button>
+        <button class="qontic-app-toggle" id="currentBtn" aria-pressed="false" onclick="toggleCurrent()"
+          title="Arrows of the probability current. Orthodox: j = (ħ/m) Im(Ψ†∇Ψ). Pilot wave: ρv, the current that guides the electrons.">Probability current j</button>
       </div>
 
             <button type="button" class="qontic-app-toggle" id="clearBtn">Clear trails</button>
@@ -272,7 +293,7 @@
             </select>
           </div>
           <span id="camera-hint">Drag or use arrow keys to rotate. Use + or − to zoom.</span>
-          <button type="button" class="qontic-app-toggle hydrogen-stage-play" id="stagePlay" aria-pressed="true">Pause</button>
+          <button type="button" class="qontic-app-toggle hydrogen-stage-play" id="stagePlay" aria-pressed="true">Stop</button>
           <a class="qontic-app-toggle hydrogen-controls-link" href="#sidebar">Controls ↓</a>
         </div>
       </section>
@@ -283,7 +304,7 @@
             <h2>1 &mdash; What you are looking at</h2>
             <p>The density displays (Volume, Slices, Lobes, Cloud) show |ψ|&sup2; for the chosen hydrogen state.</p>
             <p>The moving dots and their trails show <em>pilot-wave (de Broglie&ndash;Bohm) theory</em>. Each dot is the electron of a separate hydrogen atom prepared in the same state. Its starting position is drawn at random from |ψ|&sup2;, and it then moves with the guidance velocity of section 3.</p>
-            <p>The density |ψ|&sup2; is the same in every formulation of quantum mechanics: it gives the probability of finding the electron in a region if its position is measured. The button next to Reset switches between two readings of the display. <b>Orthodox</b> shows only |ψ|&sup2;: the standard formalism assigns the electron no position between measurements, so there are no dots or trails, and the Cloud view shows possible outcomes of position measurements on many atoms. <b>Pilot Wave</b> adds the electrons and their trajectories. Many-worlds is not offered separately: with no measurement there are no branches, and its display would be the orthodox one. Switching does not reset the clock.</p>
+            <p>The density |ψ|&sup2; is the same in every formulation of quantum mechanics: it gives the probability of finding the electron in a region if its position is measured. The <b>Orthodox / Pilot wave</b> switch at the top of the controls chooses the reading. <b>Orthodox</b> shows |ψ|&sup2; and the probability current j = (ħ/m<sub>e</sub>) Im(ψ*&nabla;ψ), both standard quantum mechanics; the standard formalism assigns the electron no position between measurements, so there are no dots or trails, and the Cloud view shows possible outcomes of position measurements on many atoms. <b>Pilot wave</b> adds the electrons, which move with velocity j/|ψ|&sup2;. Many-worlds is not offered separately: with no measurement there are no branches, and its display would be the orthodox one. Switching does not reset the clock.</p>
             <p>Units are atomic units (a&#x2080; = ħ = m<sub>e</sub> = e = 1): lengths in Bohr radii, a&#x2080; = 52.9&nbsp;pm; one atomic unit of time is 24.2&nbsp;as. The clock shows attoseconds.</p>
           </section>
 
@@ -295,8 +316,8 @@
             <table class="tp-tbl">
               <tr><th>Symbol</th><th>Name</th><th>Range</th><th>What it sets</th></tr>
               <tr><td>n</td><td>Principal</td><td>1, 2, 3…</td><td>Energy: E<sub>n</sub> = −13.6/n² eV</td></tr>
-              <tr><td>l</td><td>Angular</td><td>0 … n−1</td><td>Shape: s (sphere), p (two lobes), d, f…</td></tr>
-              <tr><td>m</td><td>Magnetic</td><td>−l … +l</td><td>Orientation; ψ ∝ e<sup>imφ</sup>, angular momentum L<sub>z</sub> = mħ</td></tr>
+              <tr><td>l</td><td>Angular</td><td>0 … n−1</td><td>Shape: s (sphere); p two lobes for m = 0, a ring for m = ±1; d, f…</td></tr>
+              <tr><td>m</td><td>Magnetic</td><td>−l … +l</td><td>ψ ∝ e<sup>imφ</sup>, angular momentum L<sub>z</sub> = mħ. Real orbitals (p<sub>x</sub>, d<sub>xy</sub>…) combine +m and −m</td></tr>
             </table>
             <p>R<sub>nl</sub> are the associated Laguerre radial functions and Y<sub>l</sub><sup>m</sup> the spherical harmonics (Condon&ndash;Shortley phase). An eigenstate has a stationary density. A superposition of states with different n has a density that beats at the frequency ΔE/ħ; for 1s + 2s or 1s + 2p<sub>0</sub> the period is 16.8 a.u. = 405 as.</p>
           </section>
@@ -314,15 +335,15 @@
 
           <section class="tp-sec">
             <h2>4 &mdash; The optional spin term</h2>
-            <p>For a spin-&frac12; electron the wave function is a two-component spinor Ψ = (ψ<sub>&uarr;</sub>, ψ<sub>&darr;</sub>)<sup>T</sup> with density ρ = |ψ<sub>&uarr;</sub>|&sup2; + |ψ<sub>&darr;</sub>|&sup2;. The continuity equation fixes the probability current only up to a divergence-free term, so a pilot-wave theory has to choose its guidance law. The <b>Spin term</b> button (Advanced) switches between two choices:</p>
+            <p>For a spin-&frac12; electron the wave function is a two-component spinor Ψ = (ψ<sub>&uarr;</sub>, ψ<sub>&darr;</sub>)<sup>T</sup> with density ρ = |ψ<sub>&uarr;</sub>|&sup2; + |ψ<sub>&darr;</sub>|&sup2;. The continuity equation fixes the probability current only up to a divergence-free term, so a pilot-wave theory has to choose its guidance law. In the Advanced tab, <b>Spinor</b> sets the state (spin direction, or a j-state) and is available in both readings; <b>Spin term</b> chooses the guidance law and exists only in the pilot-wave reading. Keep the state and toggle the spin term to compare:</p>
             <div class="tp-eq"><b>v</b> = Im(Ψ<sup>&dagger;</sup>&nabla;Ψ) / ρ &nbsp;&nbsp;(convective; spin off)</div>
             <div class="tp-eq"><b>v</b> = Im(Ψ<sup>&dagger;</sup>&nabla;Ψ) / ρ &nbsp;+&nbsp; (&nabla;&times;<b>S</b>) / (2ρ) &nbsp;&nbsp;(with the spin term)</div>
             <p>where <b>S</b> = Ψ<sup>&dagger;</sup><b>σ</b>Ψ is the spin density and <b>σ</b> the Pauli matrices. Holland argued that the second law is the one fixed by the nonrelativistic limit of the Dirac current; Colijn and Vrscay computed hydrogen trajectories with it (references 4&ndash;7).</p>
-            <p class="tp-highlight">The added term has zero divergence, so both laws move |ψ|&sup2; in exactly the same way and predict the same position statistics. They give different trajectories. With the spin term, a 2p<sub>0</sub> or 1s electron moves even though |ψ|&sup2; is stationary. Whether the 1s electron is at rest therefore depends on which guidance law pilot-wave theory adopts; no position measurement distinguishes the two.</p>
+            <p class="tp-highlight">The added current ½&nabla;&times;<b>S</b> = ρ·(&nabla;&times;<b>S</b>)/(2ρ) has zero divergence (the added velocity itself does not), so both laws move |ψ|&sup2; in exactly the same way and predict the same position statistics. They give different trajectories. With the spin term, a 2p<sub>0</sub> or 1s electron moves even though |ψ|&sup2; is stationary. Whether the 1s electron is at rest therefore depends on which guidance law pilot-wave theory adopts; no position measurement distinguishes the two.</p>
             <h3>1s with a fixed spin direction</h3>
             <p>For 1s &otimes; |<b>n&#x0302;</b>&rang;, <b>S</b> = ρ <b>n&#x0302;</b>, so &nabla;&times;<b>S</b> = &nabla;ρ &times; <b>n&#x0302;</b> with &nabla;ρ = &minus;2ρ <b>r&#x0302;</b>:</p>
             <div class="tp-eq"><b>v</b> = <b>n&#x0302;</b> &times; <b>r&#x0302;</b> &nbsp;&nbsp; |<b>v</b>| = sin &ang;(<b>r&#x0302;</b>, <b>n&#x0302;</b>)</div>
-            <p>The electron circles the spin axis with angular speed 1/r (ħ/(m<sub>e</sub>a&#x2080;r) in SI units), as found by Colijn and Vrscay. The Checks &rarr; Verify button compares the app's velocity field with this formula.</p>
+            <p>The electron circles the spin axis with angular speed 1/r (ħ/(m<sub>e</sub>a&#x2080;r) in SI units), as found by Colijn and Vrscay. The Verify button compares the app's velocity field with this formula and checks the continuity equation with the spin term; Sweep repeats the continuity check for several spinor states with and without it.</p>
           </section>
 
           <section class="tp-sec">
@@ -344,6 +365,7 @@
               <li>Eigenstates use the exact rotation about z. Superpositions and the spin term use fourth-order Runge&ndash;Kutta with finite-difference gradients (h = 0.07 a&#x2080;). Speeds above 25 a.u., which occur only very near nodes of ψ, are capped.</li>
               <li>Cloud samples are exact draws from |ψ|&sup2;. When the density changes in time the cloud is redrawn each frame, so its dots are not trajectories. With the spin term the cloud's dots follow trajectories (step 0.12 a.u.), and their number is limited to 500.</li>
               <li>The Checks panel compares ⟨r⟩ summed over the rendering grid with the exact value ⟨r⟩ = (3n&sup2; − l(l+1))/2.</li>
+              <li>Display brightness is ∝ (ρ/ρ<sub>max</sub>)<sup>γ</sup> (Display → Faint regions); smaller γ makes the faint outer shells and the radial nodes of s orbitals visible. The Phase view removes the global phase e<sup>−iEt</sup>, so a real orbital shows two fixed colours.</li>
             </ul>
           </section>
 
@@ -373,7 +395,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=11"></script>
-  <script type="module" src="hydrogen-template.js?v=8"></script>
+  <script src="hydrogen-3d.js?v=12"></script>
+  <script type="module" src="hydrogen-template.js?v=9"></script>
 </body>
 </html>

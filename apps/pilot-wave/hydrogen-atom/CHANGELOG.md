@@ -1,5 +1,31 @@
 # Hydrogen Atom — changelog
 
+## 1.3.0 · 2026-11-18
+Response to the five-student review of 1.2.3 (sophomore, QM I, QM II, chemistry, phone/laptop user).
+
+Spin
+- Spin state and guidance law are separate. Advanced → Spinor sets the state (product direction or j-state; spin presets) in both readings. Advanced → Spin term chooses the pilot-wave guidance law; toggling it keeps the state and the positions, so the two laws can be compared on the same spinor. Without the spin term the guidance velocity is Im(Ψ†∇Ψ)/ρ.
+- In Orthodox the guidance-law and trajectory settings are hidden; the spinor controls stay.
+- Physics § 4: the added current ½∇×S is divergence-free (not the added velocity).
+
+Checks
+- Verify: the 1s spin r-independence test now samples perpendicular to the spin axis (it compared 0 with 0 on the axis); new checks for real orbitals (v = 0), product spinor without the spin term (v equals the scalar velocity) and continuity with spinors.
+- Sweep: continuity for five spinor states with and without the spin term, scaled by the largest single term; v = 0 for all 44 real orbitals. Continuity stencil refined near the 1s cusp.
+
+New displays
+- Probability current arrows (Display → Probability current j): j = (ħ/m) Im(ψ*∇ψ) in Orthodox (on by default there), ρv of the guidance law in Pilot wave.
+- Real orbitals (p_x, p_y, d_xy, d_xz, d_yz, d_x²−y², seven f's) in a second grid row, signed as in chemistry. The p_x preset now has the same sign.
+- Faint-region control (γ, default 0.25) for Volume, Slices and Projections; the volume texture stores (ρ/ρmax)^¼ so outer s shells survive 8 bits; radial nodes of 2s, 3s… now visible. Cutaway toggle for Volume, Lobes and Cloud.
+- Phase view without the global phase e^{−iEt}: real orbitals show fixed colours; superpositions show phase relative to the first component.
+- P(r) inset with r ticks and the ⟨r⟩ value.
+
+Interface and wording
+- Orthodox / Pilot wave as a two-button switch at the top of the controls.
+- Predictions no longer give away the answer: state descriptions and captions are neutral until the student answers. On narrow screens the prediction panel sits under the canvas.
+- Consistent names: 2p₊₁, 3d₋₁ … (old share links still work), 2p₀ rather than 2p_z, vᵩ = m/(r sinθ) everywhere; "(coupled)" instead of "(mixed)" for j-states; "In an actual atom, one orbital holds at most two electrons."
+- Slices view looks at the slice face-on (x right, y up for xy); axes shown by default.
+- Software-graphics banner only with Volume or Lobes; stage button says Stop/Start like the sidebar; larger tap targets on phones; darker trails and distinct legend swatches in the light theme; orbital grid highlight clears with presets; spinor states keep their state description; Orthodox says when a state is stationary.
+
 ## 1.2.3 · 2026-11-17
 - Spin and Trajectory settings are always shown in the Advanced tab; no extra click to expand.
 

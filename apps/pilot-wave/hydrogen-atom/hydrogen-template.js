@@ -3,7 +3,7 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { APP_RELEASE } from './release.js?v=1.2.3';
+import { APP_RELEASE } from './release.js?v=1.3.0';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');
@@ -32,7 +32,7 @@ const stagePlay = document.getElementById('stagePlay');
 function setRunning(value) {
   hydrogenSimulation.setRunning(value);
   controls.setAttribute('running', String(value));
-  stagePlay.textContent = value ? 'Pause' : 'Play';
+  stagePlay.textContent = value ? 'Stop' : 'Start';
   stagePlay.setAttribute('aria-pressed', String(value));
 }
 stagePlay.addEventListener('click', () => setRunning(!hydrogenSimulation.isRunning()));
@@ -46,6 +46,9 @@ controls.addEventListener('qontic:interpretation', ({ detail }) => setInterpreta
 function applyInterpretation(id) {
   controls.setAttribute('interpretation', id);
   setInterpretation(id);
+}
+for (const button of document.querySelectorAll('[data-interp]')) {
+  button.addEventListener('click', () => applyInterpretation(button.dataset.interp));
 }
 applyInterpretation(new URLSearchParams(location.search).get('interp') === 'cpn' ? 'cpn' : 'pw');
 controls.addEventListener('qontic:tab', ({ detail }) => {
@@ -114,11 +117,11 @@ mountQonticShortcuts({
 // ── Predict, then watch: three states that show the guidance law at work ──
 const steps = [
   { label: '1s', select: () => selectPureOrbital(0), answer: 'still',
-    question: 'Step 1 of 3 · 1s ground state, spin term off. In pilot-wave theory, how do the electrons move?',
+    question: 'Step 1 of 3 · 1s ground state (no spin). In pilot-wave theory, how do the electrons move?',
     explain: 'ψ is real, so the guidance velocity Im(∇ψ/ψ) is zero everywhere: each electron stays where it started. The quantum potential cancels the Coulomb force (Physics § 3).' },
   { label: '2p₊₁', select: () => selectPureOrbital(3), answer: 'circle',
-    question: 'Step 2 of 3 · 2p₊₁, the same |ψ|² shape as a ring about z. How do the electrons move?',
-    explain: 'ψ ∝ exp(iφ) carries angular momentum ħ about z. Each electron circles the z axis at fixed height and radius, faster near the axis (vᵩ = 1/ρ in atomic units).' },
+    question: 'Step 2 of 3 · 2p₊₁, whose |ψ|² is a ring around the z axis. How do the electrons move?',
+    explain: 'ψ ∝ exp(iφ) carries angular momentum ħ about z. Each electron circles the z axis at fixed height and radius, faster near the axis (vᵩ = 1/(r sinθ) in atomic units).' },
   { label: '1s + 2p₀', select: () => document.getElementById('beatPreset').click(), answer: 'swing',
     question: 'Step 3 of 3 · 1s + 2p₀, a superposition of two energies. How do the electrons move?',
     explain: 'The density sloshes up and down z every 405 as, and the electrons ride with it, so their distribution stays |ψ|². Nothing circles: both states have m = 0.' },
@@ -135,6 +138,7 @@ function showStep(index) {
   hydrogenSimulation.reset();
   setRunning(false);
   document.querySelector('.predict-answers').hidden = false;
+  setPredictPending(true);
   document.getElementById('predictQ').textContent = steps[step].question;
   feedback.textContent = 'Choose an answer; the simulation starts when you do.';
   for (const button of answerButtons) button.setAttribute('aria-pressed', 'false');
@@ -144,9 +148,23 @@ function showStep(index) {
 for (const button of answerButtons) button.addEventListener('click', () => {
   const right = button.dataset.predict === steps[step].answer;
   for (const other of answerButtons) other.setAttribute('aria-pressed', String(other === button));
+  setPredictPending(false);
   feedback.textContent = `${right ? 'Yes.' : 'Not quite.'} ${steps[step].explain}`;
   setRunning(true);
 });
 document.getElementById('predictNext').addEventListener('click', () => showStep(step + 1));
 document.getElementById('predictQ').textContent = 'Three quick predictions about how pilot-wave electrons move. Start with the ground state.';
 document.getElementById('predictNext').textContent = `Start with ${steps[0].label} →`;
+
+// On narrow screens the canvas is above the controls; move the prediction panel next to the
+// canvas so a student can answer and watch at the same time.
+const predictPanel = document.querySelector('.hydrogen-predict');
+const predictHome = predictPanel.parentElement, predictNext = predictPanel.nextElementSibling;
+const narrow = matchMedia('(max-width: 1000px)');
+function placePredict() {
+  if (narrow.matches) document.querySelector('.hydrogen-story').after(predictPanel);
+  else predictHome.insertBefore(predictPanel, predictNext);
+  predictPanel.classList.toggle('predict-in-stage', narrow.matches);
+}
+narrow.addEventListener('change', placePredict);
+placePredict();

@@ -23,11 +23,13 @@ function grab(kind, name) {
 }
 const fns = ['factorial', 'laguerre', 'assocLegendre', 'ylmNorm', 'Ylm', 'Rnl', 'psiXYZ', 'rhoAt', 'bohmV', 'psiSpinor',
   'rhoSpinAt', 'bohmVPauli', 'buildSpinComps', 'exactR', 'densityAt', 'psiRealUpToPhase', 'densityEvolves', 'rotateAroundZ',
-  'cloudCount', 'stepCloudParticles', 'stepParticle', 'rMax', 'sampleParticlesStratified', 'sampleParticles', 'integrate', 'autoCloudN'];
+  'cloudCount', 'stepCloudParticles', 'stepParticle', 'rMax', 'sampleParticlesStratified', 'sampleParticles', 'integrate', 'autoCloudN',
+  'realComps', 'verifyContinuity', '_jState'];
 let code = `var spinEnabled=false,spinComps=[],spinMode='product',spinTheta=Math.PI/2,spinPhi=0,comps=[],particles=[],t=0,
-superKey='none',orbIdx=0,showCloud=false,interp='pw',dtStep=0.04,trailLen=800,W=600,H=600,cloudSpherePx=10,lastCloudBoundMisses=0;
+superKey='none',orbIdx=0,showCloud=false,interp='pw',spinTerm=true,dtStep=0.04,trailLen=800,W=600,H=600,cloudSpherePx=10,lastCloudBoundMisses=0;
 const CLOUD_SPIN_MAX=500, CLOUD_SPIN_STEP=0.12; function invalidateDensity(){}\n`;
-for (const c of ['ORBITALS', 'SUPERS', 'SUPER_RM', 'SPIN_SUPERS']) code += grab('const', c) + '\n';
+for (const c of ['ORBITALS', 'SUPERS', 'SUPER_RM', 'SPIN_SUPERS', 'REAL_NAMES']) code += grab('const', c) + '\n';
+{ const i = src.indexOf('for(let n=2;n<=6;n++)for(let l=1;'); code += src.slice(i, src.indexOf('\n', src.indexOf('ORBITALS.push', i)) + 1) + '\n'; }
 for (const f of fns) code += grab('function', f) + '\n';
 const ctx = vm.createContext({ Math, Float32Array, Float64Array, Number, console });
 vm.runInContext(code, ctx);
@@ -122,6 +124,55 @@ pure(3); check('sign colours off for 2p+1', A('psiRealUpToPhase()') === false);
 pure(2); check('sign colours on for 2p0', A('psiRealUpToPhase()') === true);
 set({ superKey: 'px', comps: A('SUPERS.px').map(c => ({ ...c })) }); check('sign colours on for p_x', A('psiRealUpToPhase()') === true);
 set({ superKey: 'sp', comps: A('SUPERS.sp').map(c => ({ ...c })) }); check('sign colours off for 1s+2p0', A('psiRealUpToPhase()') === false);
+
+// 7. Real orbitals: orientation and sign as in chemistry, real, v = 0, and normalised.
+{
+  const idx = (label) => A(`ORBITALS.findIndex(o=>o.label===${JSON.stringify(label)})`);
+  const val = (label, x, y, z) => { const i = idx(label); set({ orbIdx: i, superKey: 'none', spinEnabled: false, comps: A(`realComps(ORBITALS[${i}])`) }); return A(`psiXYZ(comps,${x},${y},${z},0)`); };
+  const checks = [['2p_x', [2, 0, 0], [-2, 0, 0]], ['2p_y', [0, 2, 0], [0, -2, 0]], ['3d_xy', [2, 2, 0], [2, -2, 0]], ['3d_x²−y²', [3, 0, 0], [0, 3, 0]], ['3d_xz', [2, 0, 2], [2, 0, -2]], ['4f_xyz', [2, 2, 2], [2, 2, -2]]];
+  let ok = true, detail = [];
+  for (const [label, plus, minus] of checks) {
+    const a = val(label, ...plus), b = val(label, ...minus);
+    const good = a[0] > 0 && b[0] < 0 && Math.abs(a[1]) < 1e-12 && Math.abs(b[1]) < 1e-12;
+    if (!good) { ok = false; detail.push(`${label}: ${a[0].toExponential(2)}, ${b[0].toExponential(2)}`); }
+  }
+  check('real orbitals: real, signed as in chemistry', ok, detail.join('; ') || `${checks.length} orbitals`);
+  const n = A('ORBITALS.filter(o=>o.real).length');
+  let maxV = 0;
+  for (let i = 0; i < n; i++) {
+    const k = A(`ORBITALS.findIndex(o=>o.real)`) + i;
+    set({ orbIdx: k, comps: A(`realComps(ORBITALS[${k}])`) });
+    const s0 = A(`ORBITALS[${k}].n`) ** 2;
+    for (const [x, y, z] of [[0.7 * s0, 0.4 * s0, 0.3 * s0], [0.2 * s0, 0.8 * s0, -0.3 * s0]]) {
+      if (A(`rhoAt(comps,${x},${y},${z},0)`) < 1e-12) continue;
+      maxV = Math.max(maxV, Math.hypot(...A(`bohmV(comps,${x},${y},${z},0)`)));
+    }
+  }
+  check('real orbitals: v = 0', maxV < 1e-3, `${n} orbitals, max |v| ${maxV.toExponential(1)}`);
+}
+
+// 8. Spin term separated from the state: same spinor, two laws.
+{
+  pure(2);
+  set({ spinEnabled: true, spinMode: 'product', spinTheta: Math.PI / 2, spinPhi: 0, spinTerm: true });
+  A('buildSpinComps()');
+  const pt = [1.5, 0.7, 1.1];
+  const vOn = A(`bohmV(comps,${pt},0)`);
+  set({ spinTerm: false });
+  const vOff = A(`bohmV(comps,${pt},0)`);
+  check('2p0 spinor: spin term moves it, convective law does not', Math.hypot(...vOn) > 0.05 && Math.hypot(...vOff) < 1e-6,
+    `|v| with term ${Math.hypot(...vOn).toFixed(3)}, without ${Math.hypot(...vOff).toExponential(1)}`);
+  let worstC = 0;
+  for (const [label, sc, c, T] of [['spin_ss', A('SPIN_SUPERS.spin_ss.spinComps'), A('SPIN_SUPERS.spin_ss.comps'), 5], ['2p0 x', A('spinComps'), A('comps'), 0], ['j 3/2 +1/2', A('_jState(2,1,1.5,0.5)'), [{ n: 2, l: 1, m: 0, cRe: 1, cIm: 0 }], 0]]) {
+    for (const term of [true, false]) {
+      ctx.__a = c; ctx.__b = sc;
+      const r = A(`verifyContinuity(__a,true,__b,${T},16,10,${term})`);
+      worstC = Math.max(worstC, r.maxRelErr);
+    }
+  }
+  check('continuity with and without spin term', worstC < 0.08, `worst residual ${(100 * worstC).toFixed(2)}% of largest term`);
+  set({ spinEnabled: false, spinComps: [], spinTerm: true });
+}
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);
