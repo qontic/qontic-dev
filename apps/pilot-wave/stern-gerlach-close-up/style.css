@@ -28,6 +28,11 @@ body {
 .stage { display: flex; flex-direction: column; min-height: 0; padding: 8px; gap: 6px; }
 .viewport { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; background: #03080f; border-radius: 5px; }
 #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#scene-legend { position: absolute; left: 8px; bottom: 8px; max-width: min(calc(100% - 16px), 520px); display: flex; flex-direction: column; gap: 2px; padding: 5px 8px; font-size: 11px; line-height: 1.35; color: #d7e4ee; background: rgba(3, 8, 15, 0.72); border-radius: 4px; pointer-events: none; }
+body:not(.simulation-ready) #scene-legend { display: none; }
+#scene-legend .swatch { display: inline-block; width: 16px; height: 0; margin: 0 6px 3px 0; vertical-align: middle; border-top: 3px solid; }
+#scene-legend .swatch.field { border-color: #ff3b1c; }
+#scene-legend .swatch.plate { border-color: #5cc6f0; }
 #gpu-status { position: relative; margin: 12px; width: min(calc(100% - 24px), 460px); max-height: calc(100% - 24px); overflow: auto; padding: 12px; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 6px; }
 #gpu-status h2 { margin: 0; font-size: 15px; }
 #gpu-status p { margin: 8px 0 0; }

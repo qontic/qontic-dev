@@ -1539,7 +1539,9 @@ function guidingModeLabel() {
   return `${GUIDING_MODE_NAMES[0]} ${INITIAL_SPIN_NAMES[params.initialSpin | 0] || INITIAL_SPIN_NAMES[0]}`;
 }
 
+const legendField = document.getElementById("legend-field");
 function updateStats() {
+  if (legendField) legendField.hidden = !(params.sgFieldOn && params.sgGradient > 0);
   const pPeriodic = effectivePeriodicP0();
   const lambda = pPeriodic > 1e-6 ? (2 * Math.PI * params.hbar / pPeriodic) : Infinity;
   const lambdaText = Number.isFinite(lambda) ? fmt(lambda) : "inf";

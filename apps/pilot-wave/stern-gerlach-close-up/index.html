@@ -6,8 +6,8 @@
   <title>Stern–Gerlach Close-Up — Q-Ontic</title>
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
-  <link rel="stylesheet" href="./style.css?v=3" />
-  <link rel="modulepreload" href="./main.js?v=5" />
+  <link rel="stylesheet" href="./style.css?v=4" />
+  <link rel="modulepreload" href="./main.js?v=6" />
 </head>
 <body>
   <main class="shell">
@@ -28,6 +28,10 @@
             <p>Try a browser with WebGPU and hardware acceleration enabled. If available, check whether browser or device settings restrict GPU access.</p>
             <p><a href="../../comparative/stern-gerlach/">Open the Stern–Gerlach three-view app</a></p>
           </div>
+        </div>
+        <div id="scene-legend" aria-label="Legend">
+          <span id="legend-field"><i class="swatch field"></i>Magnetic field lines (in the y–z plane; the field points mostly along +z and is stronger toward the top)</span>
+          <span><i class="swatch plate"></i>Detector plate</span>
         </div>
         <noscript><p>Enable JavaScript to run this simulation.</p></noscript>
       </div>
@@ -73,7 +77,7 @@
             </mrow>
           </math>
         </div>
-        <p>The Pauli spinor evolves on a grid with periodic boundaries along x and hard walls along y and z. Compare the early motion before reflections become important. The magnetic field fills the simulation region. Its uniform part along z is twice the gradient strength, so the field does not vanish anywhere in the box and the two spin components separate without spin flips. A detector plate that stops trajectories on contact while the wave keeps evolving.</p>
+        <p>The Pauli spinor evolves on a grid with periodic boundaries along x and hard walls along y and z. Compare the early motion before reflections become important. The red lines are magnetic field lines. They lie in planes of constant x because the field has no x component. The magnetic field fills the simulation region. Its uniform part along z is twice the gradient strength, so the field does not vanish anywhere in the box and the two spin components separate without spin flips. A detector plate that stops trajectories on contact while the wave keeps evolving.</p>
         <div class="eq">
           <math display="block">
             <mrow>
@@ -134,6 +138,6 @@
         </div>
     </section>
   </main>
-  <script type="module" src="./template.js?v=5"></script>
+  <script type="module" src="./template.js?v=6"></script>
 </body>
 </html>
