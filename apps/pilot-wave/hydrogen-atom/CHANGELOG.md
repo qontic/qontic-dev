@@ -1,5 +1,8 @@
 # Hydrogen Atom — changelog
 
+## 1.2.9 · 2026-11-18
+- Electrons drawn as small shaded spheres in warm yellow (white if the trails are amber), on top of all trails and the nucleus, so long trails no longer hide them (1s + 2p₀ swing). Legend: "Trail" and "Electron". Default dot size 3.
+
 ## 1.2.8 · 2026-11-18
 - The prediction questions moved from the Core tab to a new Quiz tab (next to Simulation and Physics; app-level, the shared template is unchanged). Each question shows a still image of |ψ|² only, without electrons, so the picture cannot give the answer away. After an answer, "Watch it in the simulation" switches to Simulation with that state running.
 - Opening the app with ?quiz=1 starts on the Quiz tab and keeps Simulation locked until the first answer. Without it the app opens as before.

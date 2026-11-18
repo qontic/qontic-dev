@@ -446,7 +446,7 @@ const PT_PRESETS=[
 ];
 let ptColor=PT_PRESETS[0];
 
-let densOp=0.60,isoOp=0.00,ptSize=2.5,lobeThresh=0.12,showAxes=false;
+let densOp=0.60,isoOp=0.00,ptSize=3,lobeThresh=0.12,showAxes=false;
 let lightTheme=false,showInset=false,showProjections=false;
 let projData={xz:null,xy:null,yz:null},projDirty=true;
 let projVolCache=null; // {xz,xy,yz} offscreen canvases — volumetric render matching main canvas
@@ -1926,7 +1926,8 @@ function renderFrame(){
     const pc=lightTheme?{r:ptColor.r*0.55|0,g:ptColor.g*0.55|0,b:ptColor.b*0.55|0}:ptColor;
     const trailLight=lightTheme?30:65;
     const sorted=(interp==='pw'?particles:[]).map(p=>{const[sx,sy,d]=proj(p.x,p.y,p.z,cam);return{p,sx,sy,d};}).sort((a,b)=>a.d-b.d);
-    for(const{p,sx,sy,d}of sorted){
+    // 1. All trails first, so no trail is drawn over an electron.
+    for(const{p}of sorted){
       const tl=p.trail.length;
       if(tl>=2)for(let i=1;i<tl;i++){
         const[ax,ay]=proj(p.trail[i-1][0],p.trail[i-1][1],p.trail[i-1][2],cam);
@@ -1936,18 +1937,24 @@ function renderFrame(){
         ctx.strokeStyle=`hsla(${ptColor.hue},90%,${trailLight}%,${(Math.pow(f,1.3)*(lightTheme?0.9:0.72)).toFixed(3)})`;
         ctx.lineWidth=(lightTheme?1:0.6)+f*(lightTheme?1.2:0.9);ctx.stroke();
       }
-      const df=Math.max(0.3,Math.min(1,(d+rm2)/(2*rm2)));
-      const g2=ctx.createRadialGradient(sx,sy,0,sx,sy,ptSize*2.8);
-      g2.addColorStop(0,`rgba(${pc.r},${pc.g},${pc.b},${df.toFixed(3)})`);
-      g2.addColorStop(0.5,`rgba(${pc.r>>1},${pc.g>>1},${pc.b>>1},${(df*0.4).toFixed(3)})`);
-      g2.addColorStop(1,`rgba(${pc.r>>2},${pc.g>>2},${pc.b>>2},0)`);
-      ctx.beginPath();ctx.arc(sx,sy,ptSize*(0.4+df*0.6),0,Math.PI*2);ctx.fillStyle=g2;ctx.fill();
     }
-    // Nucleus on top
+    // 2. Nucleus.
     const[nx2,ny2]=proj(0,0,0,cam);
     const ng=ctx.createRadialGradient(nx2,ny2,0,nx2,ny2,12);
     ng.addColorStop(0,'rgba(255,140,60,1)');ng.addColorStop(0.4,'rgba(255,60,20,.6)');ng.addColorStop(1,'rgba(255,30,0,0)');
     ctx.beginPath();ctx.arc(nx2,ny2,12,0,Math.PI*2);ctx.fillStyle=ng;ctx.fill();
+    // 3. Electrons on top: small shaded spheres in a colour that differs from the trails.
+    const ec=electronColor();
+    for(const{sx,sy,d}of sorted){
+      const df=Math.max(0.55,Math.min(1,(d+rm2)/(2*rm2)));   // nearer electrons slightly larger
+      const R=ptSize*(1.1+0.5*df);
+      const g2=ctx.createRadialGradient(sx-R*0.35,sy-R*0.35,0,sx,sy,R);
+      g2.addColorStop(0,'rgba(255,255,255,0.95)');
+      g2.addColorStop(0.35,`rgb(${ec.r},${ec.g},${ec.b})`);
+      g2.addColorStop(1,`rgb(${ec.r*0.45|0},${ec.g*0.45|0},${ec.b*0.45|0})`);
+      ctx.beginPath();ctx.arc(sx,sy,R,0,Math.PI*2);ctx.fillStyle=g2;ctx.fill();
+      ctx.lineWidth=0.8;ctx.strokeStyle=lightTheme?'rgba(30,30,40,0.7)':'rgba(0,0,0,0.6)';ctx.stroke();
+    }
   }
 
   // Axes
@@ -2893,8 +2900,8 @@ function updateLegend(){
     </div>`:'';
   const common=`
     ${spinRows}
-    ${showCloud||interp!=='pw'?'':`<button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${tg}"></span>Particle trail</button>
-    <button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${pg}"></span>Particle</button>`}
+    ${showCloud||interp!=='pw'?'':`<button class="lrow-btn" onclick="openLegColPop(event)" title="Change particle color"><span class="lsw" style="background:${tg}"></span>Trail</button>
+    <div class="lrow"><span class="lsw" style="background:radial-gradient(circle,${electronColor().hex} 0 38%,transparent 44%)"></span>Electron</div>`}
     <div class="lrow"><span class="lsw" style="background:radial-gradient(circle at 30%,#ff7040,transparent)"></span>Proton</div>
     <div class="leg-colpop" id="legColPop">${colDots}</div>
     <div class="leg-pal-pop" id="legPalPop">${palOpts}</div>
@@ -2914,6 +2921,13 @@ function openLegColPop(e){
   document.getElementById('legColPop')?.classList.toggle('open');
   document.getElementById('legPalPop')?.classList.remove('open');
 }
+// Electron spheres use a warm yellow so they stand out from the (cyan by default) trails;
+// if the trails themselves are amber, the electrons turn white.
+function electronColor(){
+  if(ptColor.label==='Amber') return {r:245,g:245,b:250,hex:'#f5f5fa'};
+  return lightTheme?{r:230,g:160,b:0,hex:'#e6a000'}:{r:255,g:214,b:64,hex:'#ffd640'};
+}
+
 function setParticleColor(label){
   ptColor=PT_PRESETS.find(p=>p.label===label)||PT_PRESETS[0];
   cloudSprite=null; // rebuild sphere sprite with new colour
