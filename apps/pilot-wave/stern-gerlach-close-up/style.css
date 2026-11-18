@@ -52,6 +52,8 @@ body {
 body:not(.simulation-ready) :is(.qontic-media-toolbar, .qontic-media-menu-toggle),
 body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) { display: none !important; }
 @media (min-width: 1001px) {
+  #simulation > .qontic-sidebar { grid-column: 1; grid-row: 1; }
+  #simulation > .qontic-stage { grid-column: 2; grid-row: 1; }
   body:has(#simulation:not([hidden])) { height: 100dvh; }
   body:has(#simulation:not([hidden])) .shell { flex: 1 1 0; min-height: 0; }
   #simulation { flex: 1 1 0; min-height: 240px; grid-template-rows: minmax(0, 1fr); align-items: stretch; }
