@@ -1,3 +1,11 @@
+## 3.0-dev.6 — 2026-11-17
+Nice fringes is fast (Pablo: it took forever).
+- 90% of the search time was the mask normalization for N > 2, recomputed for every candidate geometry by scanning the slit array in steps of σ/40. Now a σ/4 scan plus golden-section refinement: same maximum (tests unchanged), ~50× cheaper. This also speeds up every reset with more than two slits.
+- Smaller search grid (the widest source and narrowest slits were always chosen; the old full grid remains as fallback). The animation is paused during the search, since the result starts a new run anyway, and resumes afterwards; slices of 40 ms yielded through a MessageChannel instead of 8 ms setTimeout slices that competed with the animation.
+- The wave picture of a new run is filled from the packet front onward instead of all at once, with the display normalization estimated on a coarse sub-grid.
+- Fixed: with many slits the chosen separation was clamped by the slider's old maximum (e.g. 240 → 109 nm for 8 slits). The screen length and slit width are now applied and the limits recomputed before the separation is set.
+- Node: 8 slits 820 → 84 ms; headless Chrome, click to applied: 2 slits 128 ms, 8 slits 301 ms (was 1.1–1.5 s). Same geometries and bump heights.
+
 ## 3.0-dev.5 — 2026-11-17
 - **Nice fringes** button (Core): searches slit width, separation, screen distance, screen length and source width (λ = 50 nm) for a screen pattern with a clean series of bumps, the central one tallest and heights falling off on both sides, judged on the screen density computed with the app's model (js/nice-fringes.js). Runs in 8 ms slices so the animation does not freeze; applies the result, starts a new run and reports the choice. Results for all slits open: N = 2: d 640 nm, D 3000 nm, screen 1720 nm; N = 3: d 440, D 2200; N = 5: d 240, D 2200; N = 8: d 280, D 1800; seven bumps each. tests/nice-fringes.mjs.
 - Slit switching: measured cost of a switch ~16 ms (plus ~9 ms for the bands just after and ~4 ms per frame of grid filling); simulated time keeps advancing through the click (headless check with 4× CPU throttling). Pages may serve the previous index.html for up to 10 minutes after a push.

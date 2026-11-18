@@ -3,7 +3,7 @@
 // central one tallest. Every candidate is judged on the screen density computed
 // with the app's own analytical model (sourceProfile), not on a formula.
 // No DOM; importable from node. Lengths in nm.
-import {sourceProfile} from './source-packet-model.js?cache=nslit5';
+import {sourceProfile} from './source-packet-model.js?cache=nslit6';
 
 export const NICE_LIMITS = Object.freeze({
   wavelength: 50, slitWidth: [30, 200], separation: [0, 2000], distance: [50, 3000], screen: [120, 5000], sourceWidth: [50, 400],
@@ -70,15 +70,18 @@ export function niceFringeSearch({N, openIds, wall = 225, extentSigma = 1.5, tar
   function* search() {
     let best = null;
     const consider = (c) => { if (c && (!best || c.score < best.score)) best = c; };
-    for (const sigma of [30, 40, 50])
-      for (const sourceSigma of [200, 400])
+    // The widest source lights the slits most evenly and the narrowest slits spread
+    // most; earlier full searches always picked them, so the coarse grid starts there.
+    for (const sigma of [30, 40])
+      for (const sourceSigma of [400])
         for (let D = 600; D <= 3000; D += 400)
-          for (let d = 4 * sigma; d <= Math.min(1500, 40 * sigma); d += 40) { consider(evaluate(sigma, d, D, sourceSigma, 241)); yield; }
+          for (let d = 4 * sigma; d <= Math.min(1500, 40 * sigma); d += 40) { consider(evaluate(sigma, d, D, sourceSigma, 161)); yield; }
+    if (!best) for (const sigma of [30, 50]) for (let D = 600; D <= 3000; D += 400)
+      for (let d = 4 * sigma; d <= Math.min(1500, 40 * sigma); d += 40) { consider(evaluate(sigma, d, D, 200, 161)); yield; }
     if (!best) return null;
     const c = best;
-    for (const sigma of [Math.max(30, c.sigma - 5), c.sigma, c.sigma + 5])
-      for (let D = Math.max(400, c.D - 300); D <= Math.min(3000, c.D + 300); D += 100)
-        for (let d = Math.max(60, c.d - 40); d <= c.d + 40; d += 10) { consider(evaluate(sigma, d, D, c.sourceSigma, 401)); yield; }
+    for (let D = Math.max(400, c.D - 200); D <= Math.min(3000, c.D + 200); D += 100)
+      for (let d = Math.max(60, c.d - 30); d <= c.d + 30; d += 10) { consider(evaluate(c.sigma, d, D, c.sourceSigma, 321)); yield; }
     // Report the final choice on a fine grid.
     return {...(evaluate(best.sigma, best.d, best.D, best.sourceSigma, 1201) || best), wavelength: lambda};
   }
@@ -93,11 +96,15 @@ export function niceFringeGeometry(options) {
   return r.value;
 }
 // In the page: slices of `slice` ms between animation frames.
-export function niceFringeGeometryAsync(options, slice = 8) {
+// The app pauses the animation while this runs, so slices can be long; a
+// MessageChannel yields to the page without setTimeout's 4 ms clamping.
+export function niceFringeGeometryAsync(options, slice = 40) {
   const it = niceFringeSearch(options);
   if (!it) return Promise.resolve(null);
   return new Promise((resolve) => {
-    const step = () => { const t0 = performance.now(); let r; do r = it.next(); while (!r.done && performance.now() - t0 < slice); if (r.done) resolve(r.value); else setTimeout(step, 0); };
+    const channel = new MessageChannel();
+    const step = () => { const t0 = performance.now(); let r; do r = it.next(); while (!r.done && performance.now() - t0 < slice); if (r.done) { channel.port1.close(); resolve(r.value); } else channel.port2.postMessage(0); };
+    channel.port1.onmessage = step;
     step();
   });
 }

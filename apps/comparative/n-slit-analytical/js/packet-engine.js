@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit5';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit5';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit5';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit5';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit5';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit5';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit5';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit5';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit6';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit6';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit6';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit6';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit6';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit6';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit6';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit6';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -354,7 +354,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit5').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit6').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -391,8 +391,10 @@ export function mountPacketEngine({core,advanced}){
   const p=E.p,xs=Array.from({length:gridW},(_,i)=>((i+.5)/gridW*worldCanvasDx-wallXWorld)/100-p.launch);
   const G={key,E,xs,values:new Float64Array(gridW*gridH*2),branches:new Float64Array(gridW*gridH*4),visibility:new Float32Array(gridW*gridH),phaseCos:new Float32Array(gridW*gridH),phaseSin:new Float32Array(gridW*gridH),maxRho:0,filled:0,whichPath:!!p.whichPath};
   if(!prev||prev.key!==key){
-   for(let i=0;i<gridW;i++)fillColumn(G,i,false);
-   G.filled=gridW;for(let i=0;i<gridW;i++)columnVisibility(G,i);
+   // New geometry: estimate the density maximum on a coarse sub-grid (for the
+   // display normalization), then fill columns as the packet reaches them.
+   const coeff=E.coeff;
+   for(let i=0;i<gridW;i+=8)for(let j=0;j<gridH;j+=4){const y=(j+.5)/gridH*screenHeight/100-yOffset,r=sourceTransverse(y,xs[i],p,coeff).rho;if(r>G.maxRho)G.maxRho=r;}
    return G;
   }
   // Before the wall the field does not depend on the mask: copy those columns.
@@ -434,11 +436,15 @@ export function mountPacketEngine({core,advanced}){
  // that was in force when its slice crossed the wall, at t_w = t − (x − L)/v.
  const live=liveEpochs();
  live.forEach((E,index)=>{if(!E.grid||E.grid.key!==key)E.grid=buildGrid(E,key,index?live[index-1].grid:null);});
+ // Columns up to the front of the most advanced packet are needed now.
+ const front=Math.max(-Infinity,...pulses.map(c=>(p.initialCenter??0)+p.k*(t-c.born)))+6*p.sx;
+ const frontColumn=Math.min(gridW-1,Math.ceil(((front+p.launch)*100+wallXWorld)/worldCanvasDx*gridW)+2);
+ fillGrid(live[0].grid,frontColumn,live.length===1?4:0);
  for(let index=1;index<live.length;index++){
   // Columns this epoch must show now: from the wall to x = L + v(t − start), plus a margin.
   const E=live[index],G=E.grid,edge=p.wall+p.k*Math.max(0,t-E.start);
   const column=Math.ceil(((edge+p.launch)*100+wallXWorld)/worldCanvasDx*gridW)+2;
-  fillGrid(G,Math.min(gridW-1,column),index===live.length-1?4:0);
+  fillGrid(G,Math.min(gridW-1,column,frontColumn),index===live.length-1?4:0);
  }
  sourceGrid=live[live.length-1].grid;
  const colGrid=sourceGrid.xs.map((x,i)=>{if(x<p.wall||live.length===1)return sourceGrid;const tw=t-(x-p.wall)/p.k;let G=live[0].grid;for(const E of live)if(E.start<=tw&&E.grid.filled>i)G=E.grid;return G;});
@@ -710,17 +716,22 @@ export function mountPacketEngine({core,advanced}){
  if(niceButton){niceButton.dataset.title=niceButton.title;niceButton.addEventListener('click',async()=>{
   if(openSlitIds().length<2)return;
   niceButton.dataset.busy='1';niceButton.disabled=true;const label=niceButton.textContent;niceButton.textContent='Finding…';niceStatus.textContent='';
+  // The result starts a new run anyway: pause the animation so the search gets the whole CPU, then resume.
+  const wasRunning=isAnimating;if(wasRunning)document.getElementById('startButton').click();
   try{
    const r=await niceFringeGeometryAsync({N:numSlits,openIds:openSlitIds(),wall:sourcePos,extentSigma:+extent.value});
    if(!r){niceStatus.textContent='No setting within the allowed ranges gives clean fringes for these slits.';return;}
    const set=(id,v)=>document.getElementById(id+'-group').setValueInFirstUnit(v);
    set('screen-height',r.screen);set('wavelength',r.wavelength);set('detector-distance',r.D);
    width.value=r.sigma;sourceWidth.value=r.sourceSigma;syncPacketInput(width);syncPacketInput(sourceWidth);
+   // Recompute the separation limit for the new screen and slit width before
+   // setting the separation (the slider clamps to its current maximum).
+   setupGeo(false);applyPacketLimits();
    set('slit-separation',r.d);
    setupGeo(false);reset=0;resetEngine();draw();
    const clamped=slitSeparation!==r.d?` (separation limited to ${slitSeparation} nm)`:'';
    niceStatus.textContent=`λ ${r.wavelength} nm · slit σ ${r.sigma} nm · separation ${r.d} nm${clamped} · screen ${r.D} nm away, ${r.screen} nm long · source σ ${r.sourceSigma} nm: ${r.count} bumps, central tallest.`;
-  }finally{delete niceButton.dataset.busy;niceButton.textContent=label;syncNiceButton();}
+  }finally{delete niceButton.dataset.busy;niceButton.textContent=label;syncNiceButton();if(wasRunning&&!isAnimating)document.getElementById('startButton').click();}
  });}
  function sampleBranch(){
   ensure();if(nHits===0||window.qonticMWBranches?.busy)return;

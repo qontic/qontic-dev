@@ -2,7 +2,7 @@
 // i (partial_t + k partial_x) u = -partial_y^2 u / 2.
 // The longitudinal envelope translates; longitudinal dispersion and reflection
 // are outside this approximation. No numerical wave-equation solver is used.
-import {gaussian} from './packet-model.js?cache=nslit5';
+import {gaussian} from './packet-model.js?cache=nslit6';
 
 function apertureWeights(p){
  return p.apertureWeights?.length===p.centers.length?p.apertureWeights:p.centers.map(()=>1);
@@ -22,11 +22,17 @@ function computeApertureBound(p){
   const high=Math.max(...weights),low=Math.min(...weights);
   return high+low*Math.exp(-((p.centers[1]-p.centers[0])**2)/(16*p.sy*p.sy));
  }
- // More than two apertures: the largest value of the summed Gaussian mask,
- // found on a grid of step σ/40 (relative error below 1e-4), so that T ≤ 1.
- const lo=Math.min(...p.centers)-2*p.sy,hi=Math.max(...p.centers)+2*p.sy,step=p.sy/40;
- let best=0;
- for(let y=lo;y<=hi;y+=step){let sum=0;for(let j=0;j<p.centers.length;j++)sum+=weights[j]*Math.exp(-((y-p.centers[j])**2)/(4*p.sy*p.sy));if(sum>best)best=sum;}
+ // More than two apertures: the largest value of the summed Gaussian mask, so
+ // that T ≤ 1. Coarse scan in steps of σ/4, then golden-section refinement
+ // around the best point (the sum is smooth on that scale).
+ const mask=y=>{let sum=0;for(let j=0;j<p.centers.length;j++)sum+=weights[j]*Math.exp(-((y-p.centers[j])**2)/(4*p.sy*p.sy));return sum;};
+ const lo=Math.min(...p.centers)-2*p.sy,hi=Math.max(...p.centers)+2*p.sy,step=p.sy/4;
+ let bestY=lo,best=-1;
+ for(let y=lo;y<=hi+1e-12;y+=step){const v=mask(y);if(v>best){best=v;bestY=y;}}
+ let a=bestY-step,b=bestY+step;const g=(Math.sqrt(5)-1)/2;
+ let c=b-g*(b-a),d=a+g*(b-a),fc=mask(c),fd=mask(d);
+ for(let i=0;i<40;i++){if(fc>fd){b=d;d=c;fd=fc;c=b-g*(b-a);fc=mask(c);}else{a=c;c=d;fc=fd;d=a+g*(b-a);fd=mask(d);}}
+ best=Math.max(best,fc,fd);
  return best*(1+1e-4);
 }
 
