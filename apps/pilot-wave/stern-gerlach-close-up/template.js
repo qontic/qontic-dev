@@ -1,4 +1,4 @@
-import '../../../shared/qontic-controls.js';
+import '../../../shared/qontic-controls.js?v=4';
 import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
@@ -31,7 +31,7 @@ function setRunning(running) {
 controls.addEventListener('qontic:start', () => setRunning(true));
 controls.addEventListener('qontic:stop', () => setRunning(false));
 controls.addEventListener('qontic:reset', () => simulation?.reset());
-document.getElementById('rerun').addEventListener('click', () => {
+controls.addEventListener('qontic:rerun', () => {
   simulation?.reset();
   setRunning(true);
 });
@@ -62,7 +62,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=3'));
+  ({ simulation } = await import('./main.js?v=4'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {

@@ -2,7 +2,7 @@ const canvas = document.getElementById("c");
 const status = document.getElementById("gpu-status");
 const statusTitle = document.getElementById("gpu-status-title");
 const gpuHelp = document.getElementById("gpu-help");
-const simulationButtons = [...document.querySelectorAll("#viewtools button, #rerun")];
+const simulationButtons = [...document.querySelectorAll("#viewtools button")];
 
 function showSimulationError(title, error) {
   statusTitle.textContent = title;
@@ -37,7 +37,8 @@ async function getGpuDevice() {
     const value = adapter.limits[name];
     if (Number.isFinite(value) && value > 0) requiredLimits[name] = value;
   }
-  return adapter.requestDevice({ requiredLimits });
+  const device = await adapter.requestDevice({ requiredLimits });
+  return { device, adapterInfo: adapter.info };
 }
 
 const WAVE_WORKGROUP_SIZE = 256;
@@ -95,9 +96,9 @@ const shaderLoad = loadShaders().then(
   error => ({ error }),
 );
 
-let device, gpuContext;
+let device, gpuContext, adapterInfo;
 try {
-  device = await getGpuDevice();
+  ({ device, adapterInfo } = await getGpuDevice());
   gpuContext = canvas.getContext("webgpu");
   if (!gpuContext) throw new Error("WebGPU canvas context unavailable");
 } catch (error) {
@@ -137,8 +138,12 @@ const maxResByDispatch = maxBaseResolutionForCells(device.limits.maxComputeWorkg
 const rawMaxSimRes = Math.min(256, maxResByStorage, maxResByDispatch);
 const MAX_SIM_RES = Math.max(32, Math.floor(rawMaxSimRes / 4) * 4);
 
+// Memory limits bound the grid, but they do not measure rendering speed.
+const constrainedDevice = adapterInfo?.isFallbackAdapter || (navigator.deviceMemory ?? Infinity) <= 4;
+const defaultGrid = Math.min(constrainedDevice ? 48 : 64, MAX_SIM_RES);
+
 const params = {
-  simRes: Math.min(64, MAX_SIM_RES),
+  simRes: defaultGrid,
   stepsPerFrame: 8,
   boxScale: 2.5,
   cameraProjection: 0,
@@ -180,7 +185,6 @@ const params = {
   trailVisGamma: 1,
   trailStampGain: 0.45,
   trailWidth: 15.0,
-  trailBlendMode: 2,
   densityScale: 0.5,
 
   paletteId: 4,
@@ -382,7 +386,7 @@ addToggleInt("showTrail", "Draw trails");
 addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1);
 
 controls = advancedControls;
-addSlider("simRes", "Grid x/y", Math.min(64, MAX_SIM_RES), MAX_SIM_RES, 4, () => rebuildSimulation());
+addSlider("simRes", "Grid x/y", 32, MAX_SIM_RES, 4, () => rebuildSimulation());
 addSlider("dt", "Time step", 0.002, 0.02, 0.002);
 
 window.addEventListener("keydown", event => {
@@ -431,7 +435,7 @@ const DETECTOR_PLATE_WGSL = SHADERS.detectorPlate;
 let pipelineWaveInit, pipelineWaveStep, pipelineParticleUpdate;
 let pipelineCloud, pipelineBoxShell, pipelineLine, pipelineFieldLine, pipelineDetectorPlate;
 let pipelineParticleRender, pipelineParticleStamp;
-let pipelineDensityFade, pipelineDensityRenderAdd, pipelineDensityRenderScreen, pipelineDensityRenderGlow;
+let pipelineDensityFade, pipelineDensityRenderGlow;
 let nearestSampler = device.createSampler({ magFilter: "nearest", minFilter: "nearest" });
 
 let simW = 0, simH = 0, simD = 0;
@@ -448,7 +452,7 @@ let densW = 0, densH = 0;
 let densTexA = null, densTexB = null, densViewA = null, densViewB = null, densFlip = 0;
 let trailClearPending = false;
 
-let waveInitBindGroups = [];
+let waveInitBindGroup = null;
 let waveStepBindGroups = [];
 let cloudBindGroups = [];
 let particleUpdateBindGroups = [];
@@ -501,7 +505,7 @@ function deleteWaveTargets() {
   destroyGpuResource(waveBufferA);
   destroyGpuResource(waveBufferB);
   waveBufferA = waveBufferB = null;
-  waveInitBindGroups = [];
+  waveInitBindGroup = null;
   waveStepBindGroups = [];
   cloudBindGroups = [];
   particleUpdateBindGroups = [];
@@ -594,35 +598,6 @@ async function buildPipelines() {
     primitive: { topology: "triangle-list" },
   });
 
-  const pipelineDensityRenderAddReady = device.createRenderPipelineAsync({
-    label: "density render additive pipeline",
-    layout: "auto",
-    vertex: { module: densityModule, entryPoint: "vsFull" },
-    fragment: {
-      module: densityModule,
-      entryPoint: "fsRender",
-      targets: [{ format: presentationFormat, blend: blendState("src-alpha", "one"), writeMask: COLOR_WRITE_ALL }],
-    },
-    primitive: { topology: "triangle-list" },
-  });
-  const pipelineDensityRenderScreenReady = device.createRenderPipelineAsync({
-    label: "density render screen pipeline",
-    layout: "auto",
-    vertex: { module: densityModule, entryPoint: "vsFull" },
-    fragment: {
-      module: densityModule,
-      entryPoint: "fsRender",
-      targets: [{
-        format: presentationFormat,
-        blend: {
-          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src", operation: "add" },
-          alpha: { srcFactor: "one", dstFactor: "one", operation: "add" },
-        },
-        writeMask: COLOR_WRITE_ALL,
-      }],
-    },
-    primitive: { topology: "triangle-list" },
-  });
   const pipelineDensityRenderGlowReady = device.createRenderPipelineAsync({
     label: "density render glow pipeline",
     layout: "auto",
@@ -726,8 +701,6 @@ async function buildPipelines() {
     pipelineParticleRender,
     pipelineParticleStamp,
     pipelineDensityFade,
-    pipelineDensityRenderAdd,
-    pipelineDensityRenderScreen,
     pipelineDensityRenderGlow,
     pipelineBoxShell,
     pipelineLine,
@@ -741,8 +714,6 @@ async function buildPipelines() {
     pipelineParticleRenderReady,
     pipelineParticleStampReady,
     pipelineDensityFadeReady,
-    pipelineDensityRenderAddReady,
-    pipelineDensityRenderScreenReady,
     pipelineDensityRenderGlowReady,
     pipelineBoxShellReady,
     pipelineLineReady,
@@ -785,16 +756,10 @@ function makeDensityTexture(label, w, h) {
 
 function rebuildWaveBindGroups() {
   if (!waveBufferA || !waveBufferB) return;
-  waveInitBindGroups = [
-    bindGroup(pipelineWaveInit, [
-      { binding: 0, resource: { buffer: uniformBuffer } },
-      { binding: 1, resource: { buffer: waveBufferA } },
-    ]),
-    bindGroup(pipelineWaveInit, [
-      { binding: 0, resource: { buffer: uniformBuffer } },
-      { binding: 1, resource: { buffer: waveBufferB } },
-    ]),
-  ];
+  waveInitBindGroup = bindGroup(pipelineWaveInit, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer: waveBufferA } },
+  ]);
   waveStepBindGroups = [
     bindGroup(pipelineWaveStep, [
       { binding: 0, resource: { buffer: uniformBuffer } },
@@ -848,12 +813,11 @@ function rebuildDensityBindGroups() {
     { binding: 1, resource: view },
     { binding: 2, resource: nearestSampler },
   ]));
-  const renderPipelines = [pipelineDensityRenderAdd, pipelineDensityRenderScreen, pipelineDensityRenderGlow];
-  densityRenderBindGroups = renderPipelines.map((pipeline) => views.map((view) => bindGroup(pipeline, [
+  densityRenderBindGroups = views.map((view) => bindGroup(pipelineDensityRenderGlow, [
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: view },
     { binding: 2, resource: nearestSampler },
-  ])));
+  ]));
 }
 
 function dispatchCount(count, groupSize) {
@@ -873,7 +837,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([viewportW, viewportH, params.cameraProjection | 0, params.trailStampGain], 32);
   uniformData.set([detectorPlateXGrid(), 1.0, 0.0, 0.0], 36);
   uniformData.set([0.0, 0.0, 0.0, params.trailVisGain], 40);
-  uniformData.set([params.trailVisGamma, params.trailBlendMode | 0, densityFade, densitySizeScale], 44);
+  uniformData.set([params.trailVisGamma, 2, densityFade, densitySizeScale], 44);
   const sgTint = params.sgFieldOn && params.sgGradient > 0 ? 1 : 0;
   uniformData.set(sgTint ? [0.82, 0.34, 0.28, 0.30] : [0.38, 0.72, 0.68, 0.22], 48);
   const boxCenter = boxCenterWorld();
@@ -1377,9 +1341,7 @@ function resetWave() {
   const encoder = device.createCommandEncoder({ label: "reset wave encoder" });
   const pass = encoder.beginComputePass({ label: "reset wave pass" });
   pass.setPipeline(pipelineWaveInit);
-  pass.setBindGroup(0, waveInitBindGroups[0]);
-  pass.dispatchWorkgroups(dispatchCount(voxelCount, WAVE_WORKGROUP_SIZE));
-  pass.setBindGroup(0, waveInitBindGroups[1]);
+  pass.setBindGroup(0, waveInitBindGroup);
   pass.dispatchWorkgroups(dispatchCount(voxelCount, WAVE_WORKGROUP_SIZE));
   pass.end();
   device.queue.submit([encoder.finish()]);
@@ -1532,10 +1494,8 @@ function render(encoder, camera) {
   }
 
   if (params.showTrail && densityRenderBindGroups.length) {
-    const mode = Math.max(0, Math.min(2, params.trailBlendMode | 0));
-    const pipeline = mode === 0 ? pipelineDensityRenderAdd : (mode === 1 ? pipelineDensityRenderScreen : pipelineDensityRenderGlow);
-    pass.setPipeline(pipeline);
-    pass.setBindGroup(0, densityRenderBindGroups[mode][densFlip]);
+    pass.setPipeline(pipelineDensityRenderGlow);
+    pass.setBindGroup(0, densityRenderBindGroups[densFlip]);
     pass.draw(3);
   }
 
