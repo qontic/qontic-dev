@@ -41,6 +41,10 @@ function Rnl(n,l,r){
   return Math.sqrt(Math.max(0,N2))*Math.exp(-rho/2)*Math.pow(rho,l)*laguerre(n-l-1,2*l+1,rho);
 }
 
+// Brightness ∝ (ρ/ρmax)^γ in Volume, Slices and Projections. γ = 0.25 keeps the faint outer
+// shells of s orbitals (≈ 0.2–2 % of the central density) visible, so their radial nodes show.
+const DENS_GAMMA=0.25;
+
 // ψ(x,y,z,t) → [Re,Im]
 function psiXYZ(comps,x,y,z,t){
   const r=Math.sqrt(x*x+y*y+z*z);
@@ -57,6 +61,14 @@ function psiXYZ(comps,x,y,z,t){
     re+=c.cRe*sRe-c.cIm*sIm;im+=c.cRe*sIm+c.cIm*sRe;
   }
   return[re,im];
+}
+
+// ψ for the Phase display: the global phase e^{−iE₀t} of the first component is removed,
+// so a stationary state shows fixed colours and a superposition shows relative phases.
+function psiForPhase(x,y,z){
+  if(!densityEvolves()) return psiXYZ(comps,x,y,z,0);
+  const [re,im]=psiXYZ(comps,x,y,z,t), a=-0.5/comps[0].n**2*t, c=Math.cos(a), sn=Math.sin(a);
+  return [re*c-im*sn, re*sn+im*c];
 }
 
 function rhoAt(comps,x,y,z,t){const[a,b]=psiXYZ(comps,x,y,z,t);return a*a+b*b;}
@@ -912,9 +924,9 @@ function computeSlice(plane){
   }
   const img=new ImageData(N,N);
   for(let k=0;k<N*N;k++){
-    const vn=Math.pow(vals[k]/maxV,0.42);
+    const vn=Math.pow(vals[k]/maxV,DENS_GAMMA);
     const[r,g,b]=sliceCol(vn);
-    img.data[k*4]=r;img.data[k*4+1]=g;img.data[k*4+2]=b;img.data[k*4+3]=vn*255|0;
+    img.data[k*4]=r;img.data[k*4+1]=g;img.data[k*4+2]=b;img.data[k*4+3]=Math.sqrt(vn)*255|0;
   }
   return{vals,img,maxV,N,rm};
 }
@@ -941,7 +953,7 @@ function computePhaseSlice(plane,tVal){
     if(plane==='xz'){x=u;z=-v;}
     else if(plane==='xy'){x=u;y=-v;}
     else{y=u;z=-v;}
-    const[re,im]=psiXYZ(comps,x,y,z,tVal);
+    const[re,im]=psiForPhase(x,y,z);
     const rho=re*re+im*im;
     const k=j*N+i;
     rhos[k]=rho;if(rho>maxRho)maxRho=rho;
@@ -1080,7 +1092,8 @@ function buildVoxelGrid(){
     voxelRhoUp=null;
     voxelRhoDn=null;
   }
-  const phase=comps.map(c=>sampleTime/(2*c.n*c.n));
+  // Relative to the first component: the global phase does not change |ψ|² and is not shown in Phase.
+  const phase=comps.map(c=>sampleTime/(2*c.n*c.n)-sampleTime/(2*comps[0].n**2));
   const cosines=phase.map(Math.cos), sines=phase.map(Math.sin);
   const upWeight=Math.cos(spinTheta/2)**2;
   voxelMaxV=1e-30;
@@ -1194,7 +1207,7 @@ function renderVolume(cam,preview=false){
   // Scale step count so each step ≈ 2.5 a₀ — enough to resolve radial nodes at all n
   const STEPS=preview?60:Math.min(220,Math.max(90,Math.ceil(bigDist*2/2.5)));
   // Evolving grids already contain the time-dependent phases.
-  const angle=showPhase&&!densityEvolves()?t/(2*comps[0].n**2):0;
+  const angle=0;   // global phase removed: stationary grids at t = 0, evolving ones relative to component 1
   const cs=Math.cos(angle),sn=Math.sin(angle);
   const stepSize=(bigDist*2)/STEPS;
   // Per-step base opacity: normalise so that integrated look is independent of STEPS.
@@ -1223,7 +1236,7 @@ function renderVolume(cam,preview=false){
         if(Math.abs(wx)>rm||Math.abs(wy)>rm||Math.abs(wz)>rm) continue;
         const raw=sampleVoxel(wx,wy,wz);
         if(raw<1e-30) continue;
-        const v=Math.pow(raw/voxelMaxV,0.42); // gamma: matches slice/projection renderers
+        const v=Math.pow(raw/voxelMaxV,DENS_GAMMA); // same exponent as slices/projections
         if(v<0.008+isoOp*0.65) continue;      // isoOp=0: show all; isoOp=1: show top ~35%
         let cr,cg,cb,ca;
         if(spinEnabled&&voxelRhoUp){
@@ -1273,7 +1286,7 @@ function blitVolume(){
 // ════════════════════════════════════════════════════════════════
 function showGpuFallbackNotice(){
   preferSliceFallback=true;
-  showGpuStatusBanner('Slices selected', 'This browser is using software graphics. Volume and Lobes run at reduced resolution and can still be slow.');
+  showGpuStatusBanner('Software graphics', 'Volume and Lobes run at reduced resolution here and can be slow; Slices and Cloud are fast.');
 }
 
 function showGpuStatusBanner(title, message) {
@@ -1348,7 +1361,8 @@ vec3 hsv2rgb(float h,float s,float v){
 float sDens(vec3 p){
   vec3 uv=p/(2.0*u_rm)+0.5;
   if(any(lessThan(uv,vec3(0.0)))||any(greaterThan(uv,vec3(1.0))))return 0.0;
-  return texture(u_vol,uv).r;
+  float e=texture(u_vol,uv).r;   // stored as (ρ/ρmax)^(1/4)
+  return e*e*e*e;
 }
 // A channel holds ρ↑/(ρ↑+ρ↓) quantised to [0,1] when spin is enabled
 float sSpinW(vec3 p){
@@ -1385,7 +1399,7 @@ void main(){
       vec3 p=ro+rd*float(i)*vss;
       if(any(greaterThan(abs(p),vec3(u_rm)))) continue;
       float raw=sDens(p);
-      float v=pow(raw,0.42);
+      float v=pow(raw,0.25);   // = DENS_GAMMA in JS
       if(v<fogClip) continue;
       float sa=v*baseDens*(1.0-acc.a);
       vec3 col;
@@ -1415,7 +1429,7 @@ void main(){
       vec3 p=ro+rd*float(i)*vss;
       if(any(greaterThan(abs(p),vec3(u_rm)))) continue;
       float raw=sDens(p);
-      float v=pow(raw,0.42);
+      float v=pow(raw,0.25);   // = DENS_GAMMA in JS
       if(v<fogClip) continue;
       vec2 ri=sReIm(p);
       ri=vec2(cs*ri.x-sn*ri.y,sn*ri.x+cs*ri.y);
@@ -1545,7 +1559,7 @@ function uploadLobeTex(){
       for(let kz=0;kz<N;kz++){
         const volFlat=ix*N*N+jy*N+kz;
         const texFlat=ix+jy*N+kz*N*N;
-        packed[texFlat*4  ]=(voxelVals[volFlat]*invMax*255+0.5)|0; // R = density
+        packed[texFlat*4  ]=(Math.pow(voxelVals[volFlat]*invMax,0.25)*255+0.5)|0; // R = (ρ/ρmax)^¼, so faint shells survive 8 bits
         packed[texFlat*4+1]=((voxelPsi  [volFlat]*invAbs+1)*0.5*255+0.5)|0; // G = Re mapped [0,1]
         packed[texFlat*4+2]=((voxelImPsi[volFlat]*invAbs+1)*0.5*255+0.5)|0; // B = Im mapped [0,1]
               // A channel: spin-↑ fraction when spin enabled, 255 otherwise
@@ -1622,7 +1636,7 @@ function renderLobesGL(cam, volmode=0){
   gl2.uniform1f(lobeUnif['u_volmode'],volmode);
   gl2.uniform1f(lobeUnif['u_densOp'],densOp);
   gl2.uniform1f(lobeUnif['u_isoOp'],isoOp);
-  const pureEn=showPhase&&!densityEvolves() ? -0.5/comps[0].n**2 : 0;
+  const pureEn=0;   // global phase e^{−iEt} not shown (see psiForPhase)
   gl2.uniform1f(lobeUnif['u_t'],t);
   gl2.uniform1f(lobeUnif['u_en'],pureEn);
   // Spin uniforms
@@ -1709,7 +1723,7 @@ function renderLobes(cam, preview=false){
       if(spinEnabled&&voxelRhoUp){
         [cr,cg,cb]=sampledSpinColor(hx,hy,hz,thresh);
       }else if(showPhase){
-        const[rp,ip]=psiXYZ(comps,hx,hy,hz,t);
+        const[rp,ip]=psiForPhase(hx,hy,hz);
         const ph=Math.atan2(ip,rp);
         const hue=((ph/(2*Math.PI))%1+1)%1;
         [cr,cg,cb]=phaseColorCpu(hue,1.0);
@@ -1890,7 +1904,7 @@ function renderFrame(){
     const rm2=rMax();
     // On the light background the bright presets wash out: darken dots and trails.
     const pc=lightTheme?{r:ptColor.r*0.55|0,g:ptColor.g*0.55|0,b:ptColor.b*0.55|0}:ptColor;
-    const trailLight=lightTheme?38:65;
+    const trailLight=lightTheme?30:65;
     const sorted=(interp==='pw'?particles:[]).map(p=>{const[sx,sy,d]=proj(p.x,p.y,p.z,cam);return{p,sx,sy,d};}).sort((a,b)=>a.d-b.d);
     for(const{p,sx,sy,d}of sorted){
       const tl=p.trail.length;
@@ -1900,7 +1914,7 @@ function renderFrame(){
         const f=i/tl;
         ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);
         ctx.strokeStyle=`hsla(${ptColor.hue},90%,${trailLight}%,${(Math.pow(f,1.3)*(lightTheme?0.9:0.72)).toFixed(3)})`;
-        ctx.lineWidth=0.6+f*0.9;ctx.stroke();
+        ctx.lineWidth=(lightTheme?1:0.6)+f*(lightTheme?1.2:0.9);ctx.stroke();
       }
       const df=Math.max(0.3,Math.min(1,(d+rm2)/(2*rm2)));
       const g2=ctx.createRadialGradient(sx,sy,0,sx,sy,ptSize*2.8);
@@ -2053,9 +2067,9 @@ function _insetBg(x,y,w,h){
 
 function drawRadialInset(){
   if(!comps.length)return;
-  const iW=220,iH=130,ix=W-iW-14,iy=H-iH-42;
+  const iW=230,iH=140,ix=W-iW-14,iy=H-iH-42;
   _insetBg(ix,iy,iW,iH);
-  const pl=28,pr=8,pt=18,pb=18;
+  const pl=28,pr=10,pt=24,pb=28;
   const pw=iW-pl-pr,ph=iH-pt-pb;
   const tc=lightTheme?'#6070a0':'#6a80a8';
   ctx.fillStyle=tc;ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='left';
@@ -2080,8 +2094,8 @@ function drawRadialInset(){
     ctx.save();ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(105,240,174,0.65)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(xR,iy+pt);ctx.lineTo(xR,iy+pt+ph);ctx.stroke();
     ctx.restore();
-    ctx.fillStyle='rgba(105,240,174,0.8)';ctx.font='8px JetBrains Mono,monospace';
-    ctx.fillText('⟨r⟩',xR+3,iy+pt+9);
+    ctx.fillStyle='rgba(105,240,174,0.9)';ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(`⟨r⟩ = ${rE.toFixed(1)}`,Math.min(Math.max(xR,ix+pl+24),ix+pl+pw-24),iy+pt-4);ctx.textAlign='left';
   }
   ctx.strokeStyle=lightTheme?'#0077cc':'#00e5ff';
   ctx.lineWidth=1.8;
@@ -2092,9 +2106,16 @@ function drawRadialInset(){
     ctx.lineTo(x,y);
   }
   ctx.stroke();
-  // r axis label
+  // r axis ticks and label
   ctx.fillStyle=tc;ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='center';
-  ctx.fillText('r / a₀',ix+pl+pw/2,iy+iH-3);
+  const tickStep=[1,2,5,10,20,50,100].find(s=>rPlot/s<=6)||100;
+  ctx.strokeStyle=lightTheme?'#c8d0e8':'#1e2f50';
+  for(let r=0;r<=rPlot+1e-9;r+=tickStep){
+    const x=ix+pl+(r/rPlot)*pw;
+    ctx.beginPath();ctx.moveTo(x,iy+pt+ph);ctx.lineTo(x,iy+pt+ph+3);ctx.stroke();
+    ctx.fillText(String(r),x,iy+pt+ph+12);
+  }
+  ctx.fillText('r / a₀  (P in arbitrary units)',ix+pl+pw/2,iy+iH-3);
   ctx.textAlign='left';
 }
 
@@ -2169,7 +2190,7 @@ function buildVolProjections(){
           else if(pln==='xy'){wx=u;wy=vv;wz=w;}
           else{wx=w;wy=u;wz=vv;}
           const raw=sampleVoxel(wx,wy,wz)/voxelMaxV;
-          const pv=Math.pow(raw,0.42);
+          const pv=Math.pow(raw,DENS_GAMMA);
           if(pv<fogClip) continue;
           const sa=pv*baseDens*(1-accA);
           const col=palColor(pv,densityPalette);
@@ -2214,7 +2235,7 @@ function drawProjectionPanels(){
       const N=pd.N;
       const imgD=ctx.createImageData(N,N);
       for(let a=0;a<N;a++)for(let b=0;b<N;b++){
-        const v=Math.pow(pd.vals[a*N+b]/pd.maxV,0.42);
+        const v=Math.pow(pd.vals[a*N+b]/pd.maxV,DENS_GAMMA);
         const c=palColor(v,densityPalette);
         const i2=(b*N+a)*4;
         imgD.data[i2]=c[0];imgD.data[i2+1]=c[1];imgD.data[i2+2]=c[2];imgD.data[i2+3]=v>0.02?255:0;
@@ -2646,7 +2667,7 @@ function toggleViz(which){
   showVol=false; showSlice=false; showLobes=false; showCloud=false;
 
   if(which==='volume') showVol=true;
-  else if(which==='slice') showSlice=true;
+  else if(which==='slice'){showSlice=true;setTimeout(syncSlicePlaneToState);}
   else if(which==='lobes') showLobes=true;
   else if(which==='cloud'){
     showCloud=true;
@@ -2674,6 +2695,8 @@ function _syncVizUI(){
   const autoRow=document.getElementById('cloudAutoRow');
   if(autoRow)autoRow.style.display=showCloud?'flex':'none';
   if(showVol||showLobes){volNeedsRedraw=true;cachedVolCanvas=null;}
+  const banner=document.getElementById('gpuStatusBanner');
+  if(banner&&preferSliceFallback) banner.hidden=!(showVol||showLobes);
   if(showLobes){lobeTexDirty=true;}
   // Grey out Phase tab when spin is active
   const phBtn=document.getElementById('vtPhase');
@@ -2804,17 +2827,17 @@ function updateLegend(){
   const palRow=(lbl)=>`<button id="density-palette-button" class="lrow-btn" onclick="openLegPalPop(event)" title="Change palette"><span class="lsw" style="background:${curPal.grad}"></span>${lbl}</button>`;
   const phaseRow=(lbl)=>`<button id="phase-palette-button" class="lrow-btn" onclick="openLegPhasePalPop(event)" title="Change phase palette"><span class="lsw" style="background:${curPhasePal.grad}"></span>${lbl}</button>`;
   const volRows   = showPhase
-    ? phaseRow('arg(ψ) volume — red=0, cyan=±π')
+    ? phaseRow('arg ψ (global phase removed): red 0, cyan ±π')
     : spinEnabled ? '<div class="lrow">Spin density volume</div>' : palRow('|ψ|² volume');
   const lobeRows  = showPhase
-    ? phaseRow('arg(ψ) lobes — red=0, cyan=±π')
+    ? phaseRow('arg ψ (global phase removed): red 0, cyan ±π')
     : spinEnabled ? '<div class="lrow">Spin density isosurface</div>' : (psiRealUpToPhase()
         ? `<div class="lrow"><span class="lsw" style="background:#e16e14"></span>ψ &gt; 0 lobe</div><div class="lrow"><span class="lsw" style="background:linear-gradient(90deg,#1010c0,#4060e0,#8090ff)"></span>ψ &lt; 0 lobe</div>`
         : `<div class="lrow"><span class="lsw" style="background:#e16e14"></span>|ψ|² surface (ψ is complex: use Phase for arg ψ)</div>`);
   const contourRow=isoOp>0?`<div class="lrow"><span class="lsw" style="background:transparent;border:1.5px solid rgba(0,220,255,.8);border-radius:2px"></span>Density contour</div>`:'';
   const sliceRows=palRow('|ψ|² slice')+contourRow;
-  const tg=`linear-gradient(90deg,${ptColor.hex}22,${ptColor.hex})`;
-  const pg=`radial-gradient(circle at 40%,${ptColor.hex},${ptColor.hex}44)`;
+  const tg=`linear-gradient(180deg,transparent 0 40%,${ptColor.hex} 40% 60%,transparent 60% 100%)`;
+  const pg=`radial-gradient(circle,${ptColor.hex} 0 35%,transparent 40%)`;
   const colDots=PT_PRESETS.map(p=>`<button aria-label="${p.label}" aria-pressed="${p===ptColor}" class="leg-col-opt${p===ptColor?' sel':''}" style="background:${p.hex}" title="${p.label}" onclick="setParticleColor('${p.label}')"></button>`).join('');
   const palOpts=PAL_META.map(p=>`<button type="button" aria-pressed="${p.key===densityPalette}" class="pal-opt${p.key===densityPalette?' selected':''}" onclick="setPaletteByKey('${p.key}');document.getElementById('density-palette-button').focus()"><span class="pal-swatch" style="background:${p.grad}"></span>${p.label}</button>`).join('');
   const phaseOpts=PHASE_PAL_META.map(p=>`<button type="button" aria-pressed="${p.key===phasePalette}" class="pal-opt${p.key===phasePalette?' selected':''}" onclick="setPhasePaletteByKey('${p.key}');document.getElementById('phase-palette-button').focus()"><span class="pal-swatch" style="background:${p.grad}"></span>${p.label}</button>`).join('');
@@ -2836,7 +2859,7 @@ function updateLegend(){
     <div class="leg-colpop" id="legColPop">${colDots}</div>
     <div class="leg-pal-pop" id="legPalPop">${palOpts}</div>
     <div class="leg-pal-pop" id="legPhasePalPop">${phaseOpts}</div>`;
-  const phaseRows=phaseRow('arg(ψ) slice — red=0, cyan=±π')+contourRow;
+  const phaseRows=phaseRow('arg ψ (global phase removed): red 0, cyan ±π')+contourRow;
   let legendRows='';
   if(showLobes) legendRows+=lobeRows;
   if(showVol)   legendRows+=volRows;
@@ -2899,9 +2922,10 @@ function syncSlicePlaneToState(){
   slicePlane=comps.some(c=>c.m!==0)?'xy':'xz';
   document.getElementById('sliceSel').value=slicePlane;
   sliceDirty=true;
-  // Do not leave the camera looking at the new plane edge-on.
-  const cam=getCam(), normal={xy:[0,0,1],xz:[0,1,0]}[slicePlane];
-  if(Math.abs(normal[0]*cam.fx+normal[1]*cam.fy+normal[2]*cam.fz)<0.35){camTheta=1.05;camPhi=0.5;volNeedsRedraw=true;}
+  // Look at the slice face-on, so a sphere looks round and rings look like rings:
+  // xy from +z with x right and y up; xz from −y with z up.
+  const face={xy:{theta:Math.PI-0.01,phi:Math.PI/2},xz:{theta:Math.PI/2,phi:Math.PI/2}}[slicePlane];
+  camTheta=face.theta; camPhi=face.phi; volNeedsRedraw=true;
 }
 
 function selectPureOrbital(index){

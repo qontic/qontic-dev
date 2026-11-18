@@ -21,6 +21,7 @@
     <section class="qontic-workspace" id="simulation" aria-label="Hydrogen simulation">
       <div class="qontic-sidebar hydrogen-sidebar">
       <aside class="qontic-panel qontic-control-panel" id="sidebar" aria-label="Simulation controls">
+        <div class="slabel reading-label">Reading of the display (click to switch)</div>
         <qontic-controls running="true" speed="1" speed-min="0.1" speed-max="10" speed-step="0.1"
           show-reset="true" show-autorun="false" interpretations="cpn,pw" interpretation="pw" active-tab="core"></qontic-controls>
         <div class="qontic-control-body">
@@ -272,7 +273,7 @@
             </select>
           </div>
           <span id="camera-hint">Drag or use arrow keys to rotate. Use + or − to zoom.</span>
-          <button type="button" class="qontic-app-toggle hydrogen-stage-play" id="stagePlay" aria-pressed="true">Pause</button>
+          <button type="button" class="qontic-app-toggle hydrogen-stage-play" id="stagePlay" aria-pressed="true">Stop</button>
           <a class="qontic-app-toggle hydrogen-controls-link" href="#sidebar">Controls ↓</a>
         </div>
       </section>
@@ -373,7 +374,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=13"></script>
-  <script type="module" src="hydrogen-template.js?v=10"></script>
+  <script src="hydrogen-3d.js?v=14"></script>
+  <script type="module" src="hydrogen-template.js?v=11"></script>
 </body>
 </html>

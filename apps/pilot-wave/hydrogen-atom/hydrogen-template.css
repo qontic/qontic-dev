@@ -126,3 +126,11 @@ body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) 
 }
 #physics a { color: var(--accent, #4fd1e8); text-decoration: underline; }
 .display-settings { display: grid; gap: 6px; }
+.reading-label { margin-bottom: 4px; }
+.predict-in-stage { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-panel); }
+.hydrogen-stage-actions .qontic-app-toggle { display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 600px) {
+  .nbtn, .obtn { min-height: 36px; min-width: 40px; }
+  #zoom-in, #zoom-out { min-width: 40px; min-height: 40px; }
+  .gpu-status-banner { font-size: 11px; padding: 4px 8px; }
+}

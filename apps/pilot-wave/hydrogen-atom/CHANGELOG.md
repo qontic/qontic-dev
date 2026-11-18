@@ -1,5 +1,14 @@
 # Hydrogen Atom — changelog
 
+## 1.2.5 · 2026-11-18
+Student suggestions that need no new controls:
+- Radial nodes of s orbitals visible: brightness ∝ (ρ/ρmax)^0.25 (was 0.42) in Volume, Slices and Projections, and the volume texture stores (ρ/ρmax)^¼ so faint outer shells survive 8 bits.
+- Phase view without the global phase e^{−iEt}: real orbitals show fixed colours; superpositions show phase relative to the first component.
+- P(r) inset: r ticks and the ⟨r⟩ value.
+- Slices: the camera looks at the slice face-on when Slices is chosen or the state changes (xy from +z, x right, y up), so 1s looks round.
+- A label "Reading of the display (click to switch)" above the Orthodox/Pilot Wave button.
+- Software-graphics banner only with Volume or Lobes; on phones the prediction panel sits under the canvas; stage button says Stop/Start like the sidebar; larger tap targets on phones; darker trails and distinct legend swatches in the light theme.
+
 ## 1.2.4 · 2026-11-18
 1.3.0 was withdrawn: Pablo found it more confusing than 1.2.3. This release is 1.2.3 plus five small corrections from the student review:
 - Verify: the 1s spin r-independence check samples perpendicular to the spin axis (it compared 0 with 0 on the axis).
