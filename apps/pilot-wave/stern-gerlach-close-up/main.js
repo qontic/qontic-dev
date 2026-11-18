@@ -45,7 +45,7 @@ const WAVE_WORKGROUP_SIZE = 256;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl",
+  common: "./shaders/common.wgsl?v=2",
   palette: "./shaders/palette.wgsl",
   waveInit: "./shaders/wave-init.wgsl",
   waveStep: "./shaders/wave-step.wgsl",
@@ -115,6 +115,8 @@ device.lost.then(info => {
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const WAVE_CELL_BYTES = 32;
 const DEFAULT_SG_GRADIENT = 4.0;
+// Uniform field B0 = SG_FIELD_BIAS * gradient (also set in shaders/common.wgsl).
+const SG_FIELD_BIAS = 2.0;
 const TUNNEL_Z_SCALE = 2.0;
 const maxWaveBytes = Math.min(device.limits.maxStorageBufferBindingSize, device.limits.maxBufferSize);
 const maxWaveCellsByStorage = Math.max(32 ** 3, Math.floor(maxWaveBytes / WAVE_CELL_BYTES));
@@ -387,7 +389,7 @@ addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1);
 
 controls = advancedControls;
 addSlider("simRes", "Grid x/y", 32, MAX_SIM_RES, 4, () => rebuildSimulation());
-addSlider("dt", "Time step", 0.002, 0.02, 0.002);
+addSlider("dt", "Time step", 0.002, 0.014, 0.002);
 
 window.addEventListener("keydown", event => {
   if (!simulationAvailable || event.defaultPrevented || event.target.closest?.("button, a, summary")) return;
@@ -1632,7 +1634,7 @@ function sgFieldDirectionGrid(p) {
   const centerZ = 0.5 * (simD - 1);
   const scale = Math.max(1, centerZ);
   const by = -(p[1] - centerY) / scale;
-  const bz = 0.5 + (p[2] - centerZ) / scale;
+  const bz = SG_FIELD_BIAS + (p[2] - centerZ) / scale;
   const len = Math.hypot(by, bz);
   if (len < 1e-5) return null;
   return [0, by / len, bz / len];

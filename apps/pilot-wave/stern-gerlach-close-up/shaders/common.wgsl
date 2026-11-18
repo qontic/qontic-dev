@@ -61,7 +61,8 @@ fn sgMagneticFieldAt(xPx: vec3<f32>) -> vec3<f32> {
   let center = 0.5 * (uni.sim.xyz - vec3<f32>(1.0));
   let r = xPx - center;
   let scale = max(1.0, center.z);
-  let bias = 0.5 * g;
+  // Uniform part large enough that B never vanishes in the box (keep in step with SG_FIELD_BIAS in main.js).
+  let bias = 2.0 * g;
   return vec3<f32>(
     0.0,
     -g * r.y / scale,
