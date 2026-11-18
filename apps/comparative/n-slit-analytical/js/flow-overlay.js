@@ -1,4 +1,4 @@
-import {sourceTransverse, sourceCoefficients, sourceEnvelope} from './source-packet-model.js?cache=nslit9';
+import {sourceTransverse, sourceCoefficients, sourceEnvelope} from './source-packet-model.js?cache=nslit10';
 
 // Spatial streamlines of the reduced forward model: dy/dx = v_y/k.
 // These are calculated field curves, not measured paths or particle histories.

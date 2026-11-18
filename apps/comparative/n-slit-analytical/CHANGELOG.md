@@ -1,3 +1,7 @@
+## 3.0-dev.10 — 2026-11-17
+- Fixed faint streaks that ran past the packet along the dark fringes (all display modes). The opacity of each pixel was the stationary field's visibility times the square root of the packet envelope; the square root let the stationary pattern show well ahead of and behind the packet, cut by its nodal lines. The envelope now enters linearly: the packet core is unchanged, its edges fade sooner.
+- Phase & |Ψ|: |Ψ| is shown as opacity over the background instead of darkening the colour, which drew a black rim around the packet. The legend wheel fades the same way.
+
 ## 3.0-dev.9 — 2026-11-17
 - "Phase + amplitude" renamed "Phase & |Ψ|". The colour now comes from cos θ through the wave palette, as in "Phase (cos θ)", instead of θ itself: the palette ends no longer meet at θ = ±π, so there is no seam (Pablo's screenshot showed it with the Blue palette). Brightness is still |Ψ|. Legend wheel relabelled (cos θ; 0 and π at the sides).
 - Removed the Cyclic palette added in 3.0-dev.8; with cos θ it is not needed.

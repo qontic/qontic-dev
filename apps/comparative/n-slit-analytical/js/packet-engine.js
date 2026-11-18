@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit9';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit9';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit9';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit9';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit9';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit9';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit9';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit9';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit10';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit10';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit10';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit10';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit10';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit10';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit10';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit10';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -354,7 +354,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit9').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit10').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -436,9 +436,13 @@ export function mountPacketEngine({core,advanced}){
  const hueCss=theta=>{const c=paletteColors?.[phaseIndex(theta)]||[128,128,128];return `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;};
  function drawPhaseWheel(context,cx,cy,r){
   context.save();
-  for(let k=0;k<72;k++){const a0=-k*Math.PI/36,a1=-(k+1)*Math.PI/36;context.beginPath();context.moveTo(cx,cy);context.arc(cx,cy,r,a1,a0);context.closePath();context.fillStyle=hueCss((k+.5)*Math.PI/36);context.fill();}
-  const g=context.createRadialGradient(cx,cy,0,cx,cy,r);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
-  context.globalCompositeOperation='source-atop';context.fillStyle=g;context.fillRect(cx-r,cy-r,2*r,2*r);context.globalCompositeOperation='source-over';
+  // Colour by cos θ around the wheel; opacity grows with |Ψ| from the centre out,
+  // as in the wave (drawn offscreen so the fade shows the background).
+  const size=2*r+2,off=document.createElement('canvas');off.width=off.height=size;const o=off.getContext('2d'),c0=size/2;
+  for(let k=0;k<72;k++){const a0=-k*Math.PI/36,a1=-(k+1)*Math.PI/36;o.beginPath();o.moveTo(c0,c0);o.arc(c0,c0,r,a1,a0);o.closePath();o.fillStyle=hueCss((k+.5)*Math.PI/36);o.fill();}
+  const g=o.createRadialGradient(c0,c0,0,c0,c0,r);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
+  o.globalCompositeOperation='destination-out';o.fillStyle=g;o.fillRect(0,0,size,size);
+  context.drawImage(off,cx-c0,cy-c0);
   context.strokeStyle='rgba(255,255,255,.6)';context.lineWidth=1;context.beginPath();context.arc(cx,cy,r,0,2*Math.PI);context.stroke();
   context.fillStyle='#e8f4f8';context.font='10px Inter,Arial,sans-serif';context.textAlign='center';context.textBaseline='middle';
   context.fillText('0',cx+r+8,cy);context.fillText('π',cx-r-8,cy);context.fillText('±π/2',cx,cy-r-8);
@@ -473,14 +477,16 @@ export function mountPacketEngine({core,advanced}){
     const e=sourceEnvelope(x,t-c.born,p),fraction=c.branching?1:(c.active+c.pending)/Math.max(1,c.count-c.absorbed),q=e.rho*fraction;
     const displayPhase=surfaceView?p.k*x-(c.surfacePhase??0):e.phase-visualPhase;
     density+=q;cos+=q*Math.cos(displayPhase);sin+=q*Math.sin(displayPhase);
-   }return {rho:density,cos:cos/Math.max(1e-300,density),sin:sin/Math.max(1e-300,density),envelope:Math.min(1,Math.sqrt(density*Math.sqrt(2*Math.PI)*p.sx))};
+   }return {rho:density,cos:cos/Math.max(1e-300,density),sin:sin/Math.max(1e-300,density),envelope:Math.min(1,density*Math.sqrt(2*Math.PI)*p.sx)};
   });
   const envPeak=1/(Math.sqrt(2*Math.PI)*p.sx);
   if(paletteKey!==graphPalette||!paletteColors){paletteKey=graphPalette;paletteColors=Array.from({length:1024},(_,i)=>window.paletteModule.getColorForValue(i/1023,graphPalette));}
   const alpha=255*elementOpacity('plot_wave');surfaceHeights=surfaceView?new Float32Array(gridW*gridH):null;
   for(let j=0;j<gridH;j++)for(let i=0;i<gridW;i++){
    const G=colGrid[i],peak=G.maxRho/(Math.sqrt(2*Math.PI)*p.sx),n=j*gridW+i,rho=G.values[2*n]*env[i].rho;
-   // Preserve a localized Gaussian envelope; do not amplify its remote tails.
+   // Preserve a localized Gaussian envelope; do not amplify its remote tails. The
+   // envelope enters linearly: a square root let the stationary pattern show well
+   // ahead of and behind the packet, cut by its nodal lines (streaks past the packet).
    const rawWeight=G.visibility[n]*env[i].envelope;
    // Display-only contrast boost; zero density stays transparent.
    const weight=-Math.expm1(-3*rawWeight)/-Math.expm1(-3);let phaseCos=G.phaseCos[n],phaseSin=G.phaseSin[n];
@@ -503,8 +509,9 @@ export function mountPacketEngine({core,advanced}){
     data.data[4*n]=.9*red+.1*255;data.data[4*n+1]=.9*green+.1*255;data.data[4*n+2]=.9*blue+.1*255;data.data[4*n+3]=alpha*weight;
    }else if(mode==='PhaseAmp'){
     // Hue from the phase of Ψ (with the moving carrier), brightness from |Ψ|.
+    // |Ψ| as opacity over the background (not as darkening, which drew a black rim).
     const level=Math.max(0,Math.min(1,(value-range.min)/span)),c=paletteColors[phaseIndex(Math.atan2(sinTheta,cosTheta))];
-    data.data[4*n]=level*c[0];data.data[4*n+1]=level*c[1];data.data[4*n+2]=level*c[2];data.data[4*n+3]=alpha*weight;
+    data.data[4*n]=c[0];data.data[4*n+1]=c[1];data.data[4*n+2]=c[2];data.data[4*n+3]=alpha*weight*level;
    }else{
     const rgb=paletteColors[Math.round(Math.max(0,Math.min(1,(value-range.min)/span))*1023)];
     data.data[4*n]=.88*rgb[0]+.12*255;data.data[4*n+1]=.88*rgb[1]+.12*255;data.data[4*n+2]=.88*rgb[2]+.12*255;data.data[4*n+3]=alpha*weight;
