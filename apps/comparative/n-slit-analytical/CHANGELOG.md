@@ -1,3 +1,11 @@
+## 3.0-dev.3 — 2026-11-17
+Opening or closing a slit no longer resets the run (Pablo's request).
+- The mask is switched for the slices that cross the wall from that moment on. In the paraxial model each transverse slice moves at v and receives the mask when it crosses the wall, so the part of the packet already beyond the wall keeps the old field, and Pilot-Wave particles in it keep their old guidance (each particle keeps the mask epoch in force when it crossed). The wave image, the 3D surface and the flow arrows show, at each x, the mask in force when that slice crossed: t_w = t − (x − L)/v.
+- Hits and the clock are kept; the prediction curve and the pilot-wave bands switch to the new mask. Orthodox/Many-Worlds outcomes of slices not yet at the wall are redrawn from the new screen law. Direct PW particles not yet at the wall lose their transmission conditioning and face the new mask by the ordinary rule.
+- Still reset: number of slits, geometry, slit width, wavelength, detector, and Many-Worlds slow-motion branching (and any change made while the detector is on).
+- Physics and Views: new paragraphs ("Opening or closing a slit during a run"; "Closing a slit after the particle has passed", empty waves, Hardy, Phys. Lett. A 167, 11 (1992)).
+- Checked in headless Chrome: two slits, closing the lower slit while the packet crosses the wall; five slits, closing the middle one with flow arrows on; Orthodox keeps its record (400 → 800 hits); changing N still resets; no console errors. Node suites unchanged.
+
 ## 3.0-dev.2 — 2026-11-17
 Speed with many slits (Pablo: with 8 slits in Pilot Wave the simulation slowed down when the packet went through the slits).
 - The mask normalization for N > 2 (a grid search, ~0.1 ms) was recomputed for every particle crossing the wall; it is now computed once per configuration. aperture() with 8 slits: 93 µs → 0.9 µs per call.

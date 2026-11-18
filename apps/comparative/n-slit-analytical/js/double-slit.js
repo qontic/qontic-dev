@@ -1222,7 +1222,10 @@ function updateSlitCountControls() {
    if (host.dataset.html !== html) { host.innerHTML = html; host.dataset.html = html; }
    document.getElementById('slit-open-row').hidden = numSlits < 2;
 }
-function slitConfigurationChanged() {
+// live = true: a slit was only opened or closed. The packet engine then keeps
+// the run and changes the mask from now on (switchMask); if it cannot (other
+// settings changed, detector on, Many-Worlds slow motion) the run is reset.
+function slitConfigurationChanged(live = false) {
    syncLegacySlits();
    const detector = whichPathDetector === 'none' ? -1 : parseInt(whichPathDetector.slice(4), 10) - 1;
    if (detector >= 0 && (detector >= numSlits || !slitOpen[detector] || openSlitIds().length < 2)) { whichPathDetector = 'none'; updateWhichPathButton(); }
@@ -1230,6 +1233,7 @@ function slitConfigurationChanged() {
    updateMathFormulas();
    syncMathButtons();
    invalidateAllCaches();
+   if (live && window.qonticPacketEngine?.switchMask?.()) { drawSystem(0); return; }
    reset = 1;
    drawSystem(0);
 }
@@ -2311,7 +2315,7 @@ $(document).ready(function() {
          const open = openSlitIds();
          const next = open.length === numSlits ? 0 : (open.length === 1 && open[0] < numSlits - 1 ? open[0] + 1 : -1);
          for (let k = 0; k < numSlits; k++) slitOpen[k] = next < 0 || k === next;
-         slitConfigurationChanged();
+         slitConfigurationChanged(true);
       });
       $('#slit-count').on('input', function () {
          numSlits = Math.max(1, Math.min(MAX_SLITS, parseInt(this.value, 10) || 2));
@@ -2322,7 +2326,7 @@ $(document).ready(function() {
          const k = +this.dataset.slit;
          if (slitOpen[k] && openSlitIds().length === 1) return; // keep one slit open
          slitOpen[k] = !slitOpen[k];
-         slitConfigurationChanged();
+         slitConfigurationChanged(true);
       });
 
       // Which-path detector toggle: cycles through 'none' -> 'slit1' -> 'slit2' -> 'none'

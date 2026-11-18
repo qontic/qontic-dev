@@ -1,9 +1,11 @@
-import {sourceTransverse, sourceCoefficients, sourceEnvelope} from './source-packet-model.js?cache=nslit2';
+import {sourceTransverse, sourceCoefficients, sourceEnvelope} from './source-packet-model.js?cache=nslit3';
 
 // Spatial streamlines of the reduced forward model: dy/dx = v_y/k.
 // These are calculated field curves, not measured paths or particle histories.
 export function flowSlope(x,y,p,coeff=sourceCoefficients(p)) {
- const g=sourceTransverse(y,x,p,coeff);
+ // coeff may be a function of x: after a slit is opened or closed, slices
+ // beyond the wall still carry the earlier mask (see switchMask in the engine).
+ const g=sourceTransverse(y,x,p,typeof coeff==='function'?coeff(x):coeff);
  return g.rho>1e-20 && Number.isFinite(g.v) ? g.v/p.k : NaN;
 }
 export function traceFlow(seed,p,coeff=sourceCoefficients(p),steps=360) {
@@ -31,7 +33,7 @@ export function mountFlowOverlay({host,redraw}) {
   const density=(x,y)=>{
    let envelope=0;
    for(const c of pulses)envelope+=sourceEnvelope(x,t-c.born,p).rho*(c.branching?1:(c.active+c.pending)/Math.max(1,c.count-c.absorbed));
-   return sourceTransverse(y,x,p,coeff).rho*envelope;
+   return sourceTransverse(y,x,p,typeof coeff==='function'?coeff(x):coeff).rho*envelope;
   };
   const scaleY=Y(1)-Y(0),scaleX=X(1)-X(0),separation=+spacing.value/100;
   const left=Math.max(0,X(p.initialCenter-6*p.sx)),right=Math.min(width,X(p.screen)),wall=X(p.wall);
@@ -71,7 +73,7 @@ export function mountFlowOverlay({host,redraw}) {
   }
   // A fixed field/envelope reference does not brighten earlier markers when
   // a leading column disappears at the wall or detector.
-  const peak=sourceTransverse(0,0,p,coeff).rho*sourceEnvelope(p.initialCenter,0,p).rho;
+  const peak=sourceTransverse(0,0,p,typeof coeff==='function'?coeff(0):coeff).rho*sourceEnvelope(p.initialCenter,0,p).rho;
   ctx.save();ctx.beginPath();ctx.rect(0,0,right,height);ctx.clip();
   if(lines.checked){
    ctx.strokeStyle='#ffad4a';ctx.lineWidth=1.25;
