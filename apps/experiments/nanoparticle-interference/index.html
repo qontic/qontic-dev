@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/np.css?v=0.4.0">
+<link rel="stylesheet" href="css/np.css?v=0.5.0">
 </head>
 <body class="np-app">
 <main class="shell">
@@ -94,6 +94,7 @@
             <button class="qontic-app-toggle" type="button" data-chart="mass" aria-pressed="false">Visibility vs mass</button>
           </div>
         </div>
+        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="resetInserts" title="Put the counts plot and the visibility chart back in their default places and sizes">Reset the plot windows</button>
         <div class="toggle-row"><span>Quantum prediction</span><button class="toggle" type="button" data-toggle="quantum" aria-pressed="true" aria-label="Show the quantum prediction"></button></div>
         <div class="toggle-row"><span>Classical prediction</span><button class="toggle" type="button" data-toggle="classical" aria-pressed="true" aria-label="Show the classical prediction"></button></div>
         <div class="toggle-row"><span>Counts and fit</span><button class="toggle" type="button" data-toggle="data" aria-pressed="true" aria-label="Show the simulated counts and the sine fit"></button></div>
@@ -122,12 +123,19 @@
 
   <div class="visualization qontic-stage qontic-panel">
     <div class="canvas-host">
-      <canvas id="stage" aria-label="Talbot–Lau interferometer with the fringe scan and visibility chart"></canvas>
+      <canvas id="stage" aria-label="The wave of the clusters inside the Talbot–Lau interferometer"></canvas>
+      <div class="np-insert" data-insert="counts" role="region" aria-label="Counts behind G3">
+        <div class="np-insert-head" title="Drag to move; drag the lower-right corner to resize"><span class="np-insert-title">Counts behind G3</span><button type="button" data-insert-min aria-label="Minimize the counts plot" aria-expanded="true">–</button></div>
+        <canvas class="np-insert-canvas" aria-label="Clusters counted at each G3 offset, with the quantum and classical predictions"></canvas>
+      </div>
+      <div class="np-insert" data-insert="chart" role="region" aria-label="Visibility chart">
+        <div class="np-insert-head" title="Drag to move; drag the lower-right corner to resize"><span class="np-insert-title" id="chartTitle">Visibility</span><button type="button" data-insert-min aria-label="Minimize the visibility chart" aria-expanded="true">–</button></div>
+        <canvas class="np-insert-canvas" aria-label="Predicted fringe visibility, quantum and classical"></canvas>
+      </div>
     </div>
     <div class="story" id="story" aria-live="polite">
       <div id="setupStep" class="story-step">
-        <p class="story-title">The setup</p>
-        <ol class="setup-list" id="setupList"></ol>
+        <p class="story-intro" id="setupList"></p>
         <div class="story-buttons"><button type="button" class="qontic-app-toggle" id="setupNext">Next: the question</button></div>
       </div>
       <div id="questionStep" class="story-step hidden">
@@ -137,7 +145,7 @@
           <button type="button" class="qontic-app-toggle" data-predict="classical">The classical prediction (orange): a moiré shadow of straight-line paths.</button>
           <button type="button" class="qontic-app-toggle" data-predict="same">This scan cannot tell: the two predictions are too close.</button>
         </div>
-        <p class="story-links"><button type="button" class="link-button" id="setupBack">Back to the setup</button> · <button type="button" class="link-button" data-predict="skip">Skip and just scan</button></p>
+        <p class="story-links"><button type="button" class="link-button" id="setupBack">Back</button> · <button type="button" class="link-button" data-predict="skip">Skip and just scan</button></p>
       </div>
       <div id="runStep" class="story-step hidden">
         <p class="story-live" id="liveLine"></p>
@@ -154,6 +162,15 @@
   <p class="spoiler-note">Run a scan first: this page gives the answers.</p>
   <h2>The experiment</h2>
   <p>In 2026 the group of Markus Arndt and Stefan Gerlich in Vienna, with Klaus Hornberger in Duisburg-Essen, reported interference of sodium clusters with masses above 170,000 Da, more than 7,000 atoms each.<sup><a href="#ref-1">1</a></sup> Sodium vapour condenses into clusters in a cold argon–helium gas at about 77 K. The clusters fly at about 160 m/s through three gratings and are then ionised by a 425 nm laser and counted in a quadrupole mass spectrometer, which picks one mass window. Their de Broglie wavelength λ<sub>dB</sub> = h/mv is 10–22 fm, about a million times smaller than the cluster.</p>
+
+  <h2>What the simulation shows</h2>
+  <ul>
+    <li><b>The large panel</b> is the inside of the interferometer, to scale in its own units: along the beam (left to right) the 1.97 m from G1 to G3, across it (up and down) ±266 nm, two grating periods either side of the centre of a G1 opening. The picture is stretched sideways about ten million times.</li>
+    <li><b>Blue-white</b> is |ψ|², the computed density of the clusters' wave (see below). <b>Violet</b> marks where each grating's light is bright: G1 and G3 remove clusters there, G2 mainly shifts the phase of the wave. While packets fly, the wave is lit where the packets are.</li>
+    <li><b>Marks</b>: in Pilot Wave, dots are the clusters themselves, with trails for a few in each packet; × is a cluster ionised by a grating. In Orthodox and Many Worlds, the marks are outcomes when a packet reaches a grating: × ionised, • counted.</li>
+    <li><b>Counts behind G3</b> (movable window): G3 is moved sideways in steps of about 15 nm, and the clusters that get through are counted. Cyan is the quantum prediction, orange a classical one (straight lines bent only by the light); yellow points are the simulated counts, with a sine fit. The <b>visibility</b> V = (max − min)/(max + min) measures how strong the fringes are.</li>
+    <li><b>Visibility chart</b> (movable window): the predicted visibility against the power of G2 or against the cluster mass. The two predictions differ when the grating spacing L is comparable to the Talbot length L<sub>T</sub> = d²/λ<sub>dB</sub>.</li>
+  </ul>
 
   <h2>Why three gratings: Talbot–Lau interferometry</h2>
   <p>A wave passing a grating of period d recreates an image of the grating at multiples of the Talbot length L<sub>T</sub> = d²/λ<sub>dB</sub>. This self-imaging was first seen with light by Talbot in 1836.<sup><a href="#ref-2">2</a></sup> A Talbot–Lau interferometer uses it with a beam that is not coherent to begin with:<sup><a href="#ref-3">3</a>,<a href="#ref-4">4</a></sup></p>
@@ -251,6 +268,6 @@
   </ol>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.4.0"></script>
+<script type="module" src="js/app.js?v=0.5.0"></script>
 </body>
 </html>

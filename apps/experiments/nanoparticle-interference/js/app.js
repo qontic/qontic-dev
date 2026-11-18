@@ -2,7 +2,7 @@ import '../../../../shared/qontic-controls.js?v=3.2';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.4.0';
+import { APP_RELEASE } from './release.js?v=0.5.0';
 import { makeSetup, makeCluster, densityAfterG2, intensityTransmission } from './wave.js';
 import { buildEnsemble, runCluster, gauss } from './sim.js';
 import {
@@ -23,7 +23,9 @@ mountQonticShell({
 // ---------------------------------------------------------------- state
 const $ = (sel) => document.querySelector(sel);
 const canvas = $('#stage');
-const ctx = canvas.getContext('2d');
+let ctx = canvas.getContext('2d'); // switched to an insert's context while drawing it
+const mainCtx = ctx;
+let insertMode = false;
 const controlsEl = $('qontic-controls');
 
 const D = PAPER.d;
@@ -157,13 +159,7 @@ function updateText() {
   $('#coreHint').textContent = `λdB = ${fmt(model.ldb * 1e15, 1)} fm · L/L_T = ${fmt(r, 2)}.${near}`;
 
   const N = atomsIn(state.massKDa);
-  $('#setupList').innerHTML = [
-    `Sodium clusters of <b>${fmtMass(state.massKDa)}</b>, about ${fmtInt(N)} atoms and ${fmt(diameter(state.massKDa) * 1e9, 1)} nm across, leave a cold source at <b>${state.v} m/s</b>. Their de Broglie wavelength is <b>${fmt(model.ldb * 1e15, 1)} fm</b>.`,
-    'Three standing waves of ultraviolet light, <b>0.983 m apart</b>, act as gratings of period <b>133 nm</b>. G1 and G3 remove clusters that cross a bright fringe. G2 mainly shifts the phase of each cluster’s wave.',
-    `G3 is moved sideways in <b>steps of about 15 nm</b>, and the clusters that get through are counted. A count rate that rises and falls with G3 is the fringe pattern; its <b>visibility V</b> says how strong it is.`,
-    '<b>Top panel</b>: the wave of one cluster, computed exactly in the paraxial approximation. It leaves one point of G1, spreads over many openings of G2, and interferes behind it. Violet marks where the light of each grating is bright.',
-    `<b>Cyan</b>: the quantum prediction. <b>Orange</b>: a classical prediction, with clusters on straight lines bent only by the light. They differ when the spacing L is comparable to the Talbot length L<sub>T</sub> = d²/λ<sub>dB</sub>. Here L/L<sub>T</sub> = <b>${fmt(r, 2)}</b>.`,
-  ].map((x) => `<li>${x}</li>`).join('');
+  $('#setupList').innerHTML = `Sodium clusters of <b>${fmtMass(state.massKDa)}</b> (about ${fmtInt(N)} atoms, de Broglie wavelength <b>${fmt(model.ldb * 1e15, 1)} fm</b>) fly through three gratings made of light. Behind G3 the survivors are counted while G3 is moved sideways. Details in the Physics tab.`;
   $('#setupNext').textContent = state.show.predict ? 'Next: the question' : 'Start the scan';
   $('#predictionText').textContent = `Clusters of ${fmtMass(state.massKDa)} at ${state.v} m/s, with G2 at ${fmt(state.P[1] * 1e3, 1)} mW. G3 will be scanned over ${SCAN_X.length} positions. Which prediction will the counts follow?`;
 }
@@ -415,6 +411,7 @@ function label(text, x, y, { color, size = 12, align = 'left', base = 'alphabeti
   ctx.fillText(text, x, y);
 }
 function panelFrame(r, title, P) {
+  if (insertMode) { ctx.fillStyle = P.panel; ctx.fillRect(r.x, r.y, r.w, r.h); return; } // the window bar carries the title
   ctx.fillStyle = P.panel; ctx.strokeStyle = P.frame; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 8); ctx.fill(); ctx.stroke();
   if (title) label(title, r.x + 12, r.y + 20, { color: P.text, size: 13, weight: 600 });
@@ -499,17 +496,17 @@ function paintCarpet(P) {
 }
 
 const CAPTION = {
-  orthodox: 'Orthodox: the wave gives the probabilities. At G1, G2 and G3 a cluster is either ionised or not; not being ionised updates the wave by the grating’s transmission t(x). No path is assigned between gratings. Marks: outcomes sampled from |ψ|² when the packet arrives (× ionised, • counted).',
-  'pilot-wave': 'Pilot-Wave: each cluster has a position at all times, guided by its wave. Each dot rides inside its packet and is guided by its own wave (its start point, speed and mass). Removal at a grating is drawn with probability 1 − |t(x)|² at the dot’s position (an effective rule, not a model of the ionisation).',
-  'many-worlds': 'Many-Worlds: the wave never collapses. Ionisation at a grating, and counting at the detector, entangle the cluster with its surroundings and the state branches. All marked outcomes occur, in different branches; the bright one is the branch followed. |ψ|² gives the weights.',
+  orthodox: 'Orthodox · |ψ|² gives the probabilities; no paths. Marks: outcomes as a packet arrives (× ionised, • counted).',
+  'pilot-wave': 'Pilot Wave · dots are the clusters, moved by dx/dz = (1/k) Im(∂ψ/ψ) of their own wave. × ionised by a grating.',
+  'many-worlds': 'Many Worlds · no collapse: every mark is a branch (× ionised, • counted); the bright one is the branch followed.',
 };
 
 function drawWave(r, P, dt) {
-  panelFrame(r, state.show.ensemble ? 'Inside the interferometer: |ψ|² summed over all G1 points (central speed and mass)' : 'Inside the interferometer: |ψ|² of one cluster', P);
-  // caption
+  panelFrame(r, '', P);
+  label(state.show.ensemble ? '|ψ|² of the beam inside the interferometer' : '|ψ|² of one cluster inside the interferometer', r.x + 12, r.y + 20, { color: P.text, size: 13, weight: 600 });
   ctx.font = '400 11.5px Inter, Arial, sans-serif';
   const capX = r.x + 12, capW = r.w - 24;
-  let y = r.y + 38;
+  let y = r.y + 37;
   const words = CAPTION[state.interp].split(' ');
   let line = '';
   for (const w of words) {
@@ -544,9 +541,10 @@ function drawWave(r, P, dt) {
     const align = z === 0 ? 'left' : z >= 2 * st.L - 1e-9 ? 'right' : 'center';
     label(name, X, pr.y + pr.h + 14, { color: P.text, size: 11.5, align, weight: 600 });
   };
-  grating(0, st.g[0].n0, 0, 'G1');
-  grating(st.L, st.g[1].n0, 0, 'G2');
-  grating(z2, st.g[2].n0, offset, state.step === 'setup' ? 'G3' : `G3 (offset ${Math.round(offset * 1e9)} nm)`);
+  const roles = r.w >= 700;
+  grating(0, st.g[0].n0, 0, roles ? 'G1 · removes clusters at bright fringes' : 'G1');
+  grating(st.L, st.g[1].n0, 0, roles ? 'G2 · shifts the phase' : 'G2');
+  grating(z2, st.g[2].n0, offset, roles ? `G3 · mask, offset ${Math.round(offset * 1e9)} nm → counter` : 'G3');
 
   // source point of the displayed cluster
   if (!state.show.ensemble) {
@@ -559,7 +557,7 @@ function drawWave(r, P, dt) {
   const newest = run.packets[run.packets.length - 1];
   if (newest && newest.z >= -2 * pkSigma() && newest.z <= 2 * st.L) {
     const zc = Math.max(0, newest.z);
-    label('packet', tz(zc), pr.y + 11, { color: P.text, size: 10.5, align: 'center' });
+    label('packet', Math.max(pr.x + 26, Math.min(pr.x + pr.w - 26, tz(zc))), pr.y + 12, { color: P.text, size: 10.5, align: 'center' });
   }
 
   // axes
@@ -836,7 +834,99 @@ function drawChart(r, P) {
   }
   const note = power ? `${fmtMass(state.massKDa)} at ${state.v} m/s; G1 ${Math.round(state.P[0] * 1e3)} mW, G3 ${Math.round(state.P[2] * 1e3)} mW`
     : `${state.v} m/s; G2 at ${fmt(state.P[1] * 1e3, 1)} mW`;
-  if (r.w >= 560) label(note, r.x + r.w - 14, r.y + 20, { color: P.muted, size: 10.5, align: 'right' });
+  const t = `${power ? 'Visibility vs G2 power' : 'Visibility vs cluster mass'} · ${note}`;
+  const el = document.getElementById('chartTitle'); if (el.textContent !== t) el.textContent = t;
+}
+
+// ---------------------------------------------------------------- plot windows over the canvas
+// The counts plot and the visibility chart are DOM windows over the canvas, each with its own
+// canvas: drag by the title bar, resize from the lower-right corner, minimize to the bar.
+// Positions and sizes are remembered (fractions of the canvas area).
+const INSERT_KEY = 'qontic-nanoparticle-inserts-1';
+const inserts = {};
+document.querySelectorAll('.np-insert').forEach((el) => {
+  const cv = el.querySelector('canvas');
+  inserts[el.dataset.insert] = { el, cv, cx: cv.getContext('2d'), min: false };
+});
+const hostEl = document.querySelector('.canvas-host');
+const narrow = () => getComputedStyle(inserts.counts.el).position !== 'absolute';
+function defaultInsert(name) {
+  const W = hostEl.clientWidth, H = hostEl.clientHeight;
+  const w = Math.min(380, Math.max(250, W * 0.34)), h = Math.min(250, Math.max(165, H * 0.33));
+  // the region between G1 and G2 carries no structure, so both windows start there
+  return name === 'counts' ? { l: 70, t: H - h - 52, w, h } : { l: 70, t: Math.max(64, H - 2 * h - 64), w, h };
+}
+function placeInsert(name, pos) {
+  const { el } = inserts[name];
+  const W = hostEl.clientWidth, H = hostEl.clientHeight;
+  const w = Math.min(pos.w, W - 8), h = Math.min(pos.h, H - 8);
+  el.style.width = `${w}px`; el.style.height = `${h}px`;
+  el.style.left = `${Math.max(0, Math.min(W - w, pos.l))}px`;
+  el.style.top = `${Math.max(0, Math.min(H - h, pos.t))}px`;
+}
+function saveInserts() {
+  try {
+    const W = hostEl.clientWidth, H = hostEl.clientHeight, out = {};
+    for (const [k, it] of Object.entries(inserts)) {
+      out[k] = { l: it.el.offsetLeft / W, t: it.el.offsetTop / H, w: it.el.offsetWidth / W, h: it.el.offsetHeight / H, min: it.min };
+      if (it.min) { out[k].w = (it.fullW || 300) / W; out[k].h = (it.fullH || 200) / H; }
+    }
+    localStorage.setItem(INSERT_KEY, JSON.stringify(out));
+  } catch (e) { /* storage unavailable */ }
+}
+function setMinimized(name, min) {
+  const it = inserts[name];
+  if (min && !it.min) { it.fullW = it.el.offsetWidth; it.fullH = it.el.offsetHeight; }
+  it.min = min;
+  it.el.classList.toggle('minimized', min);
+  const b = it.el.querySelector('[data-insert-min]');
+  b.textContent = min ? '+' : '–'; b.setAttribute('aria-expanded', String(!min));
+  if (!min && it.fullW) placeInsert(name, { l: it.el.offsetLeft, t: it.el.offsetTop, w: it.fullW, h: it.fullH });
+}
+function loadInserts(useSaved = true) {
+  let saved = null;
+  if (useSaved) { try { saved = JSON.parse(localStorage.getItem(INSERT_KEY) || 'null'); } catch (e) { saved = null; } }
+  const W = hostEl.clientWidth, H = hostEl.clientHeight;
+  for (const name of Object.keys(inserts)) {
+    const sv = saved?.[name];
+    placeInsert(name, sv ? { l: sv.l * W, t: sv.t * H, w: sv.w * W, h: sv.h * H } : defaultInsert(name));
+    setMinimized(name, Boolean(sv?.min));
+  }
+}
+for (const [name, it] of Object.entries(inserts)) {
+  it.el.querySelector('[data-insert-min]').addEventListener('click', () => { setMinimized(name, !it.min); saveInserts(); });
+  const head = it.el.querySelector('.np-insert-head');
+  head.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button') || narrow()) return;
+    e.preventDefault();
+    const sx = e.clientX, sy = e.clientY, l0 = it.el.offsetLeft, t0 = it.el.offsetTop;
+    head.setPointerCapture(e.pointerId);
+    it.el.style.zIndex = '5'; Object.values(inserts).forEach((o) => { if (o !== it) o.el.style.zIndex = '4'; });
+    const move = (ev) => {
+      const W = hostEl.clientWidth, H = hostEl.clientHeight;
+      it.el.style.left = `${Math.max(0, Math.min(W - it.el.offsetWidth, l0 + ev.clientX - sx))}px`;
+      it.el.style.top = `${Math.max(0, Math.min(H - it.el.offsetHeight, t0 + ev.clientY - sy))}px`;
+    };
+    const up = () => { head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up); saveInserts(); };
+    head.addEventListener('pointermove', move); head.addEventListener('pointerup', up);
+  });
+  new ResizeObserver(() => { if (!it.min) saveInserts(); }).observe(it.el);
+}
+new ResizeObserver(() => { if (narrow()) return; for (const [k, it] of Object.entries(inserts)) if (!it.min) placeInsert(k, { l: it.el.offsetLeft, t: it.el.offsetTop, w: it.el.offsetWidth, h: it.el.offsetHeight }); }).observe(hostEl);
+document.getElementById('resetInserts').addEventListener('click', () => { loadInserts(false); saveInserts(); });
+
+function drawInsert(name, draw, P) {
+  const it = inserts[name];
+  if (it.min || it.el.hidden) return;
+  const ratio = devicePixelRatio || 1, W = it.cv.clientWidth, H = it.cv.clientHeight;
+  if (W < 40 || H < 40) return;
+  if (it.cv.width !== Math.round(W * ratio) || it.cv.height !== Math.round(H * ratio)) { it.cv.width = Math.round(W * ratio); it.cv.height = Math.round(H * ratio); }
+  ctx = it.cx; insertMode = true;
+  try {
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    // the drawing functions reserve ~22 px for a title, which the window bar replaces
+    draw({ x: 0, y: -22, w: W, h: H + 22 }, P);
+  } finally { ctx = mainCtx; insertMode = false; }
 }
 
 // ---------------------------------------------------------------- main loop
@@ -859,10 +949,9 @@ function render(dt) {
   if (canvas.width !== Math.round(W * ratio) || canvas.height !== Math.round(H * ratio)) { canvas.width = Math.round(W * ratio); canvas.height = Math.round(H * ratio); }
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
-  const L = layout(W, H);
-  drawWave(L.top, P, dt);
-  drawFringes(L.left, P);
-  drawChart(L.right, P);
+  drawWave({ x: 6, y: 6, w: W - 12, h: H - 12 }, P, dt);
+  drawInsert('counts', drawFringes, P);
+  drawInsert('chart', drawChart, P);
   updateResults();
 }
 
@@ -902,7 +991,7 @@ function frame(now) {
 mountQonticMedia({
   stage: $('.visualization'),
   controls: controlsEl,
-  getCanvases: () => [canvas],
+  getCanvases: () => [canvas, ...Object.values(inserts).filter((it) => !it.min && !it.el.hidden && !narrow()).map((it) => it.cv)],
   filename: 'nanoparticle-interference',
   getShareUrl: shareUrl,
   beginRecording: () => { const was = state.running; if (!was) start(); return was; },
@@ -914,6 +1003,7 @@ mountQonticShortcuts({
   screenshot: () => document.querySelector('.qontic-media-toolbar button[aria-label="Screenshot"]')?.click(),
 });
 
+loadInserts();
 rebuild();
 computeCharts();
 computeCarpet();

@@ -1,5 +1,11 @@
 # Nanoparticle Interference (Vienna 2026) — changelog
 
+## 0.5.0 (2026-11-18)
+Layout: the experiment first (Pablo: larger canvas, intuitive at a glance, results as movable inserts).
+- The canvas shows only the interferometer and fills the stage (as in the other apps); |ψ|² and the gratings are labelled with what each grating does.
+- Counts behind G3 and the visibility chart are floating windows over the canvas: drag by the title bar, resize from the corner, minimize to the bar; positions remembered; "Reset the plot windows" in Display. On phones they stack below the canvas.
+- Setup list moved to the Physics tab ("What the simulation shows"); the story strip keeps one sentence and the prediction question. Canvas captions shortened to one line per view.
+
 ## 0.4.0 (2026-11-15)
 Counts and animation are one simulation (Pablo: the panels must be coordinated).
 - js/sim.js: every count is a cluster drawn with its own speed, mass (same grid and weights as the predictions, weighted by G1 passage) and G1 start point; G2 position uniform, survival |t2|²; position at G3 from the pilot-wave trajectory, from |ψ(x,2L)|² of its own wave (Orthodox, Many Worlds), or from the classical ray (what-if). Contrast factor 0.78 as Gaussian jitter σ ≈ 15 nm at G3. Counted with probability |t3|².
