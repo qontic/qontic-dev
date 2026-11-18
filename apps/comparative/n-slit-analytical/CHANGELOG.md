@@ -1,3 +1,7 @@
+## 3.0-dev.5 — 2026-11-17
+- **Nice fringes** button (Core): searches slit width, separation, screen distance, screen length and source width (λ = 50 nm) for a screen pattern with a clean series of bumps, the central one tallest and heights falling off on both sides, judged on the screen density computed with the app's model (js/nice-fringes.js). Runs in 8 ms slices so the animation does not freeze; applies the result, starts a new run and reports the choice. Results for all slits open: N = 2: d 640 nm, D 3000 nm, screen 1720 nm; N = 3: d 440, D 2200; N = 5: d 240, D 2200; N = 8: d 280, D 1800; seven bumps each. tests/nice-fringes.mjs.
+- Slit switching: measured cost of a switch ~16 ms (plus ~9 ms for the bands just after and ~4 ms per frame of grid filling); simulated time keeps advancing through the click (headless check with 4× CPU throttling). Pages may serve the previous index.html for up to 10 minutes after a push.
+
 ## 3.0-dev.4 — 2026-11-17
 No pause when a slit is opened or closed (Pablo: the whole wave stopped for a moment).
 - The new field grid (640 × 480 points × N slits, ~175 ms with 8 slits) was built in one go at the click. It is now built column by column from the wall outward: the columns between the wall and the boundary of the new pattern are filled at once, the rest ~4 ms per frame. Columns before the wall are copied from the previous grid.

@@ -1,10 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit4';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit4';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit4';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit4';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit4';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit4';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit4';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit5';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit5';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit5';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit5';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit5';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit5';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit5';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit5';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -231,7 +232,7 @@ export function mountPacketEngine({core,advanced}){
   directedRow.hidden=slitColorRow.hidden=interpretation!=='bohmian';
   slitWidthHelp(interpretation==='bohmian'&&directed.checked);
   syncPwWaveButton();
-  syncWhichPathButton();
+  syncWhichPathButton();syncNiceButton();
   const countLabel=document.querySelector('#MaxPart-group label');if(countLabel)countLabel.textContent=interpretation==='bohmian'?'Part./packet:':'Hits / packet:';
   const countInput=document.getElementById('MaxPart-input');countInput.title=interpretation==='bohmian'?(directed.checked?'Particles per packet, conditioned on transmission through an open slit.':'Incident particles per packet; some are absorbed.'):'Screen registrations per new packet, conditioned on reaching the screen.';
   if(lastMode===interpretation)return;
@@ -353,7 +354,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit4').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit5').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -703,6 +704,24 @@ export function mountPacketEngine({core,advanced}){
   whichPathDetector=linkedSlit>=0&&linkedSlit<numSlits&&slitOpen[linkedSlit]&&openSlitIds().length>=2?linkedDetector:'none';updateWhichPathButton();setupGeo(false);reset=0;resetEngine();
   applyViewHash();draw();
  });
+ // "Nice fringes": search the geometry (nice-fringes.js), apply it, start a new run.
+ const niceButton=document.getElementById('niceFringesButton'),niceStatus=document.getElementById('nice-fringes-status');
+ function syncNiceButton(){if(!niceButton||niceButton.dataset.busy)return;const n=openSlitIds().length;niceButton.disabled=n<2;niceButton.title=n<2?'Open at least two slits.':niceButton.dataset.title||niceButton.title;}
+ if(niceButton){niceButton.dataset.title=niceButton.title;niceButton.addEventListener('click',async()=>{
+  if(openSlitIds().length<2)return;
+  niceButton.dataset.busy='1';niceButton.disabled=true;const label=niceButton.textContent;niceButton.textContent='Finding…';niceStatus.textContent='';
+  try{
+   const r=await niceFringeGeometryAsync({N:numSlits,openIds:openSlitIds(),wall:sourcePos,extentSigma:+extent.value});
+   if(!r){niceStatus.textContent='No setting within the allowed ranges gives clean fringes for these slits.';return;}
+   const set=(id,v)=>document.getElementById(id+'-group').setValueInFirstUnit(v);
+   set('screen-height',r.screen);set('wavelength',r.wavelength);set('detector-distance',r.D);
+   width.value=r.sigma;sourceWidth.value=r.sourceSigma;syncPacketInput(width);syncPacketInput(sourceWidth);
+   set('slit-separation',r.d);
+   setupGeo(false);reset=0;resetEngine();draw();
+   const clamped=slitSeparation!==r.d?` (separation limited to ${slitSeparation} nm)`:'';
+   niceStatus.textContent=`λ ${r.wavelength} nm · slit σ ${r.sigma} nm · separation ${r.d} nm${clamped} · screen ${r.D} nm away, ${r.screen} nm long · source σ ${r.sourceSigma} nm: ${r.count} bumps, central tallest.`;
+  }finally{delete niceButton.dataset.busy;niceButton.textContent=label;syncNiceButton();}
+ });}
  function sampleBranch(){
   ensure();if(nHits===0||window.qonticMWBranches?.busy)return;
   const cdf=[];let sum=0;for(const weight of law.weights){sum+=weight;cdf.push(sum);}
