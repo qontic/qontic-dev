@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit13';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit13';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit13';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit13';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit13';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit13';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit13';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit13';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit14';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit14';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit14';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit14';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit14';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit14';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit14';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit14';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -360,7 +360,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit13').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit14').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -509,7 +509,31 @@ export function mountPacketEngine({core,advanced}){
   // covers a fraction of the field). The 3D view needs every height, so it skips none.
   const skip=surfaceView?null:env.map(e=>alpha*3.2*e.envelope<.5);
   if(skip)data.data.fill(0);
-  for(let j=0;j<gridH;j++)for(let i=0;i<gridW;i++){
+  const fast=skip&&!sourceGrid.whichPath&&!colGrid.some(G=>G.whichPath);
+  if(fast){
+   // Same arithmetic as the general loop below, for the common case (2D, no
+   // which-path detector), with per-column quantities hoisted out of the pixel loop.
+   const out=data.data,cols=[];
+   for(let i=0;i<gridW;i++)if(!skip[i])cols.push(i);
+   const nc=cols.length,cR=new Float64Array(nc),cC=new Float64Array(nc),cS=new Float64Array(nc),cE=new Float64Array(nc),cP=new Float64Array(nc),cG=new Array(nc);
+   for(let k=0;k<nc;k++){const i=cols[k],G=colGrid[i];cR[k]=env[i].rho;cC[k]=env[i].cos;cS[k]=env[i].sin;cE[k]=env[i].envelope;cP[k]=Math.max(1e-30,G.maxRho/(Math.sqrt(2*Math.PI)*p.sx));cG[k]=G;}
+   const modeId=mode==='Phase'?1:mode==='LogPsi2'?2:mode==='PhaseAmp'?3:0,norm=1/-Math.expm1(-3),lo=range.min,inv=1/span;
+   for(let j=0;j<gridH;j++){const row=j*gridW;
+    for(let k=0;k<nc;k++){
+     const i=cols[k],n=row+i,G=cG[k],rawWeight=G.visibility[n]*cE[k];if(rawWeight<=0){continue;}
+     const weight=-Math.expm1(-3*rawWeight)*norm,rel=G.values[2*n]*cR[k]/cP[k],pc=G.phaseCos[n],ps=G.phaseSin[n],o=4*n;
+     if(modeId===3){
+      const ct=pc*cC[k]-ps*cS[k],st=ps*cC[k]+pc*cS[k],value=Math.sqrt(Math.min(1,rel*8)),level=Math.max(0,Math.min(1,(value-lo)*inv));
+      const r2=ct*ct+st*st,cn=r2>0?ct/Math.sqrt(r2):1,ci=Math.round((.5+.5*cn)*1023),c=paletteColors[ci<0?0:ci>1023?1023:ci];out[o]=c[0];out[o+1]=c[1];out[o+2]=c[2];out[o+3]=alpha*weight*level;
+     }else{
+      const value=modeId===1?.5+.5*(pc*cC[k]-ps*cS[k]):modeId===2?Math.max(0,Math.min(1,(Math.log(Math.max(1e-15,rel))+15)/15)):Math.sqrt(Math.min(1,rel*8));
+      const rgb=paletteColors[Math.round(Math.max(0,Math.min(1,(value-lo)*inv))*1023)];
+      out[o]=.88*rgb[0]+30.6;out[o+1]=.88*rgb[1]+30.6;out[o+2]=.88*rgb[2]+30.6;out[o+3]=alpha*weight;
+     }
+    }
+   }
+  }
+  else for(let j=0;j<gridH;j++)for(let i=0;i<gridW;i++){
    if(skip&&skip[i])continue;
    const G=colGrid[i],peak=G.maxRho/(Math.sqrt(2*Math.PI)*p.sx),n=j*gridW+i,rho=G.values[2*n]*env[i].rho;
    // Preserve a localized Gaussian envelope; do not amplify its remote tails. The
@@ -575,7 +599,10 @@ export function mountPacketEngine({core,advanced}){
    partCtx.strokeStyle=groupColor(group,true);
    for(let i=1;i<=8;i++){
     if(!buckets[group][i].length)continue;partCtx.globalAlpha=elementOpacity('plot_trajectories')*i/8;partCtx.beginPath();
-    for(const a of buckets[group][i]){let first=true;for(const [x,y] of a.path){const q={x:X(x),y:Y(y)};if(first){partCtx.moveTo(q.x,q.y);first=false;}else partCtx.lineTo(q.x,q.y);}}
+    // Points closer than ~1.5 px to the last drawn one are skipped (the last
+    // point is always drawn): same picture, far fewer segments to rasterize.
+    for(const a of buckets[group][i]){const path=a.path,m=path.length;let lx=X(path[0][0]),ly=Y(path[0][1]);partCtx.moveTo(lx,ly);
+     for(let k=1;k<m;k++){const qx=X(path[k][0]),qy=Y(path[k][1]),dx=qx-lx,dy=qy-ly;if(k<m-1&&dx*dx+dy*dy<2.25)continue;partCtx.lineTo(qx,qy);lx=qx;ly=qy;}}
     partCtx.stroke();
    }
   }

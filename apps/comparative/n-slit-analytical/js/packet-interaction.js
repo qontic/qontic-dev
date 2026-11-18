@@ -18,13 +18,21 @@ export function dragSurfaceGeometry(start,kind,worldDelta){
  return clamp(Math.round((start.width+worldDelta*start.height/(3*start.extentSigma))/5)*5,start.minWidth,start.maxWidth);
 }
 export function trimTail(path,length){
- if(length<=0){path.length=0;return;}
- let travelled=0;
- for(let i=path.length-1;i>0;i--){
-  const a=path[i],b=path[i-1],d=Math.hypot(a[0]-b[0],a[1]-b[1]);
-  if(travelled+d>length){const f=(length-travelled)/d;path.splice(0,i,[a[0]+f*(b[0]-a[0]),a[1]+f*(b[1]-a[1])]);return;}
-  travelled+=d;
+ // Keeps the last `length` of arc. The running arc length is cached on the path
+ // (only segments added since the last call are measured), so a long tail is not
+ // re-measured every frame. Same result as walking back from the end.
+ if(length<=0){path.length=0;path._sum=0;path._done=0;return;}
+ const m=path.length;if(m<2){path._sum=0;path._done=m;path._first=path[0];return;}
+ if(path._first!==path[0]||!(path._done<=m)){path._sum=0;path._done=1;}
+ let sum=path._sum;
+ for(let i=Math.max(1,path._done);i<m;i++){const a=path[i],b=path[i-1];sum+=Math.hypot(a[0]-b[0],a[1]-b[1]);}
+ if(sum>length){
+  let excess=sum-length,k=0,d=0;
+  for(;k+1<m;k++){const a=path[k],b=path[k+1];d=Math.hypot(b[0]-a[0],b[1]-a[1]);if(excess<d)break;excess-=d;}
+  const a=path[k],b=path[k+1],f=d>0?excess/d:0;
+  path.splice(0,k+1,[a[0]+f*(b[0]-a[0]),a[1]+f*(b[1]-a[1])]);sum=length;
  }
+ path._sum=sum;path._done=path.length;path._first=path[0];
 }
 export function tailOpacity(done,at,now){return done?Math.max(0,1-(now-at)/.8):1;}
 export function mountPacketGeometry({host,getGeometry,onCommit,onPreview=()=>{},pause,resume}){
