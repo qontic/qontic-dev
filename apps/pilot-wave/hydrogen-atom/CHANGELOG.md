@@ -1,5 +1,8 @@
 # Hydrogen Atom — changelog
 
+## 1.2.7 · 2026-11-18
+- Real orbitals 2p_x, 2p_y, 3d_xz, 3d_yz, 3d_xy, 3d_x²−y² in the existing superposition menu (group "Real orbitals (as drawn in chemistry)"), signed as in chemistry so Lobes colours match textbook pictures. ψ is real, so pilot-wave electrons stand still; the descriptions point to the complex m states, where they circulate. The p_x preset now has the chemistry sign. No new controls.
+
 ## 1.2.6 · 2026-11-18
 - The Spin term button no longer changes the state on a spin preset or a j-state: it switches only the guidance law (with the spin term, or the convective current Im(Ψ†∇Ψ)/ρ alone), keeps the electrons where they are and restarts their trails. On a plain orbital it works as before. Same single button; the Spin stat reads "Off (spinor kept)" when the spinor stays without the term. Share links carry term=0.
 

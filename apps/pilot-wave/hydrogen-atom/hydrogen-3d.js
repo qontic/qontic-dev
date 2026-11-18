@@ -318,9 +318,21 @@ const ORBITALS=[
 // 2p⁺¹+3d⁺¹: same m=+1 → both have azimuthal phase e^{iφ} → particles circulate.
 //   Different n → ΔE = 1/8−1/18 = 5/72 a.u. → period≈91 a.u. Density ring beats radially
 //   while particles orbit. Most dynamic preset: circulation + beating combined.
+function realOrbital(n,l,m,type){
+  const s=(-1)**m, h=1/Math.SQRT2;
+  return type==='c'
+    ? [{n,l,m,cRe:s*h,cIm:0},{n,l,m:-m,cRe:h,cIm:0}]
+    : [{n,l,m,cRe:0,cIm:-s*h},{n,l,m:-m,cRe:0,cIm:h}];
+}
+const REAL_SUPERS=new Set(['px','py','dxz','dyz','dx2y2','dxy']);
 const SUPERS={
   none:null,
-  px:[{n:2,l:1,m:+1,cRe: 1/Math.SQRT2,cIm:0},{n:2,l:1,m:-1,cRe:-1/Math.SQRT2,cIm:0}],
+  // Real orbitals as drawn in chemistry. With this code's Y_l^m (Condon–Shortley sign in P_l^m):
+  // cos type = (−1)^m [Y^m + (−1)^m Y^−m]/√2, sin type = (−1)^m [Y^m − (−1)^m Y^−m]/(i√2),
+  // signed so that, e.g., p_x > 0 on +x and d_xy > 0 at (1, 1, 0).
+  px:realOrbital(2,1,1,'c'), py:realOrbital(2,1,1,'s'),
+  dxz:realOrbital(3,2,1,'c'), dyz:realOrbital(3,2,1,'s'),
+  dx2y2:realOrbital(3,2,2,'c'), dxy:realOrbital(3,2,2,'s'),
   ss:[{n:1,l:0,m:0,cRe:1/Math.SQRT2,cIm:0},{n:2,l:0,m:0,cRe:1/Math.SQRT2,cIm:0}],
   sp:[{n:1,l:0,m:0,cRe:1/Math.SQRT2,cIm:0},{n:2,l:1,m:0,cRe:1/Math.SQRT2,cIm:0}],
   pd:[{n:2,l:1,m:0,cRe:1/Math.SQRT2,cIm:0},{n:3,l:2,m:0,cRe:1/Math.SQRT2,cIm:0}],
@@ -330,7 +342,7 @@ const SUPERS={
 // Smaller box → better voxel resolution within the fixed VRES grid.
 // px/ss/sp: both components are n≤2; virtually all density within 14 a₀.
 // pd/circ: max n=3; density mostly within 24 a₀.
-const SUPER_RM={px:14,ss:14,sp:14,pd:24,circ:24,spin_ss:14,spin_sp:14,spin_circ:24};
+const SUPER_RM={px:14,py:14,dxz:24,dyz:24,dx2y2:24,dxy:24,ss:14,sp:14,pd:24,circ:24,spin_ss:14,spin_sp:14,spin_circ:24};
 
 // Spin superpositions — each has a 'spinComps' (full spinor state) and
 // 'comps' (scalar equivalent for density sampling and volume visualisation).
@@ -528,7 +540,7 @@ function densityAt(x,y,z,time){
 function psiRealUpToPhase(){
   if(spinEnabled&&spinComps.length) return false;
   if(densityEvolves()) return false;
-  return superKey==='px'||comps.every(c=>c.m===0);
+  return REAL_SUPERS.has(superKey)||comps.every(c=>c.m===0);
 }
 
 function densityEvolves(){
@@ -1955,7 +1967,7 @@ function renderFrame(){
     // ⟨E⟩ = Σ |c_i|² E_i  (eigenstates are orthogonal → no cross terms)
     const Eavg=comps.reduce((s,c)=>(c.cRe*c.cRe+c.cIm*c.cIm)*(-13.6/(c.n*c.n))+s,0);
     document.getElementById('stE').textContent=Eavg.toFixed(2)+' eV';
-    document.getElementById('stELabel').textContent='⟨E⟩ (mean energy)';
+    document.getElementById('stELabel').textContent=comps.some(c=>c.n!==comps[0].n)?'⟨E⟩ (mean energy)':'Energy';
   } else {
     document.getElementById('stELabel').textContent='Energy';
     document.getElementById('stE').textContent=(-13.6/(o.n*o.n)).toFixed(2)+' eV';
@@ -2994,7 +3006,12 @@ document.getElementById('beatPreset').addEventListener('click',()=>{
 updateQuickPresets();
 
 const SUPER_DESC={
-    px:'p_x = (2p₊₁ − 2p₋₁)/√2: two lobes along x. This combination is real, so the pilot-wave velocity is zero.',
+    px:'2p_x = (2p₋₁ − 2p₊₁)/√2: two lobes along x. This combination is real, so the pilot-wave velocity is zero; in 2p₊₁ the electrons circulate.',
+    py:'2p_y = i(2p₋₁ + 2p₊₁)/√2: two lobes along y. Real, so the pilot-wave velocity is zero.',
+    dxz:'3d_xz: four lobes in the xz plane, a real combination of m = ±1. The pilot-wave velocity is zero; in 3d₊₁ the electrons circulate.',
+    dyz:'3d_yz: four lobes in the yz plane, a real combination of m = ±1. The pilot-wave velocity is zero.',
+    dx2y2:'3d_x²−y²: four lobes along the x and y axes, a real combination of m = ±2. The pilot-wave velocity is zero; in 3d₊₂ the electrons circulate.',
+    dxy:'3d_xy: four lobes between the x and y axes, a real combination of m = ±2. The pilot-wave velocity is zero.',
     ss:'1s + 2s: the density breathes radially. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as. In pilot-wave theory the electrons move in and out along radii. Volume view shows the breathing best.',
     sp:'1s + 2p₀: the density swings between a compact sphere and a lobe along z. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as.',
     pd:'2p₀ + 3d₀: slower beating along z. ΔE = 5/72 a.u., period 90.5 a.u. ≈ 2.2 fs.',
@@ -3013,7 +3030,7 @@ document.getElementById('superSel').onchange=function(){
   fitZoom();
 
   // Per-preset lobe threshold
-  const presetLb={ss:1,sp:3,pd:8,circ:6,px:10,none:12,spin_ss:1,spin_sp:3,spin_circ:6};
+  const presetLb={ss:1,sp:3,pd:8,circ:6,px:10,py:10,dxz:10,dyz:10,dx2y2:10,dxy:10,none:12,spin_ss:1,spin_sp:3,spin_circ:6};
   const lb=presetLb[superKey];
   if(lb!==undefined){
     lobeThresh=lb/100;

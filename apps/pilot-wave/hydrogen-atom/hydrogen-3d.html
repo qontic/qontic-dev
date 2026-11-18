@@ -57,11 +57,18 @@
         <label class="slabel" for="superSel">Superposition</label>
         <select id="superSel">
           <option value="none">None (pure state)</option>
-          <option value="px">p_x = (2p₊₁ − 2p₋₁)/√2 [real, lobes along x]</option>
           <option value="ss">1s + 2s [density breathes radially]</option>
           <option value="sp">1s + 2p₀ [density swings along z]</option>
           <option value="pd">2p₀ + 3d₀ [slower beating along z]</option>
           <option value="circ">2p₊₁ + 3d₊₁ [ring that beats radially]</option>
+          <optgroup label="Real orbitals (as drawn in chemistry)">
+            <option value="px">2p_x [lobes along x]</option>
+            <option value="py">2p_y [lobes along y]</option>
+            <option value="dxz">3d_xz</option>
+            <option value="dyz">3d_yz</option>
+            <option value="dxy">3d_xy</option>
+            <option value="dx2y2">3d_x²−y²</option>
+          </optgroup>
           <optgroup label="With the Pauli spin term (pilot-wave)">
             <option value="spin_ss">1s↑ + 2s↓ [stationary density]</option>
             <option value="spin_sp">1s↑ + 2p₀↓ [stationary density]</option>
@@ -374,7 +381,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=15"></script>
-  <script type="module" src="hydrogen-template.js?v=12"></script>
+  <script src="hydrogen-3d.js?v=16"></script>
+  <script type="module" src="hydrogen-template.js?v=13"></script>
 </body>
 </html>
