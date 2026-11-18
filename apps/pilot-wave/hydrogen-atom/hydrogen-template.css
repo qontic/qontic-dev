@@ -126,15 +126,3 @@ body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) 
 }
 #physics a { color: var(--accent, #4fd1e8); text-decoration: underline; }
 .display-settings { display: grid; gap: 6px; }
-.interp-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: 8px; }
-.interp-switch .qontic-app-toggle { border-radius: 0; font-weight: 600; }
-.interp-switch .qontic-app-toggle:first-child { border-radius: 6px 0 0 6px; }
-.interp-switch .qontic-app-toggle:last-child { border-radius: 0 6px 6px 0; }
-.predict-in-stage { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-panel); }
-.hydrogen-stage-actions .qontic-app-toggle { display: inline-flex; align-items: center; justify-content: center; }
-#ogridReal .obtn sub { font-size: 0.75em; }
-@media (max-width: 600px) {
-  .nbtn, .obtn { min-height: 36px; min-width: 40px; }
-  #zoom-in, #zoom-out { min-width: 40px; min-height: 40px; }
-  .gpu-status-banner { font-size: 11px; padding: 4px 8px; }
-}

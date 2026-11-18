@@ -1,6 +1,14 @@
 # Hydrogen Atom — changelog
 
-## 1.3.0 · 2026-11-18
+## 1.2.4 · 2026-11-18
+1.3.0 was withdrawn: Pablo found it more confusing than 1.2.3. This release is 1.2.3 plus five small corrections from the student review:
+- Verify: the 1s spin r-independence check samples perpendicular to the spin axis (it compared 0 with 0 on the axis).
+- Physics § 4: the added current ½∇×S is divergence-free, not the added velocity.
+- j-state labels say "(coupled)" instead of "(mixed)"; Electrons note: "In an actual atom, one orbital holds at most two electrons."
+- Consistent names: 2p₊₁, 3d₋₁ … (old share links still work), 2p₀ rather than 2p_z, vᵩ = 1/(r sinθ) in the prediction feedback.
+- Predictions no longer give away the answer: state text and caption stay neutral until the student answers.
+
+## 1.3.0 · 2026-11-18 (withdrawn)
 Response to the five-student review of 1.2.3 (sophomore, QM I, QM II, chemistry, phone/laptop user).
 
 Spin

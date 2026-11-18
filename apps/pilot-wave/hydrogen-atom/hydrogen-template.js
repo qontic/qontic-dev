@@ -3,7 +3,7 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { APP_RELEASE } from './release.js?v=1.3.0';
+import { APP_RELEASE } from './release.js?v=1.2.4';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');
@@ -32,7 +32,7 @@ const stagePlay = document.getElementById('stagePlay');
 function setRunning(value) {
   hydrogenSimulation.setRunning(value);
   controls.setAttribute('running', String(value));
-  stagePlay.textContent = value ? 'Stop' : 'Start';
+  stagePlay.textContent = value ? 'Pause' : 'Play';
   stagePlay.setAttribute('aria-pressed', String(value));
 }
 stagePlay.addEventListener('click', () => setRunning(!hydrogenSimulation.isRunning()));
@@ -46,9 +46,6 @@ controls.addEventListener('qontic:interpretation', ({ detail }) => setInterpreta
 function applyInterpretation(id) {
   controls.setAttribute('interpretation', id);
   setInterpretation(id);
-}
-for (const button of document.querySelectorAll('[data-interp]')) {
-  button.addEventListener('click', () => applyInterpretation(button.dataset.interp));
 }
 applyInterpretation(new URLSearchParams(location.search).get('interp') === 'cpn' ? 'cpn' : 'pw');
 controls.addEventListener('qontic:tab', ({ detail }) => {
@@ -155,16 +152,3 @@ for (const button of answerButtons) button.addEventListener('click', () => {
 document.getElementById('predictNext').addEventListener('click', () => showStep(step + 1));
 document.getElementById('predictQ').textContent = 'Three quick predictions about how pilot-wave electrons move. Start with the ground state.';
 document.getElementById('predictNext').textContent = `Start with ${steps[0].label} →`;
-
-// On narrow screens the canvas is above the controls; move the prediction panel next to the
-// canvas so a student can answer and watch at the same time.
-const predictPanel = document.querySelector('.hydrogen-predict');
-const predictHome = predictPanel.parentElement, predictNext = predictPanel.nextElementSibling;
-const narrow = matchMedia('(max-width: 1000px)');
-function placePredict() {
-  if (narrow.matches) document.querySelector('.hydrogen-story').after(predictPanel);
-  else predictHome.insertBefore(predictPanel, predictNext);
-  predictPanel.classList.toggle('predict-in-stage', narrow.matches);
-}
-narrow.addEventListener('change', placePredict);
-placePredict();
