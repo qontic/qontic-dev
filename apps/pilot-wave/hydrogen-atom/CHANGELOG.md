@@ -1,5 +1,8 @@
 # Hydrogen Atom — changelog
 
+## 1.2.1 · 2026-11-17
+- Slider and stat renamed from "Atoms" to "Electrons", with a note under the slider: each electron belongs to its own hydrogen atom in the same state, drawn together; they do not interact; a real orbital holds at most two electrons.
+
 ## 1.2.0 · 2026-11-17
 - Two readings of the display, chosen with the interpretation button next to Reset: Orthodox (|ψ|² only; no dots or trails; Cloud samples are possible position-measurement outcomes and do not move) and Pilot Wave (adds the electrons and their trajectories; default). Switching keeps the clock and the particles.
 - In Orthodox the spin-term button and the prediction sequence are hidden or disabled (both concern pilot-wave motion); the caption and legend change with the reading.

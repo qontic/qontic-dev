@@ -3,7 +3,7 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { APP_RELEASE } from './release.js?v=1.2.0';
+import { APP_RELEASE } from './release.js?v=1.2.1';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');

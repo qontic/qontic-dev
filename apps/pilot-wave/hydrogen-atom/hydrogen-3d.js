@@ -1940,7 +1940,7 @@ function renderFrame(){
   }
   document.getElementById('stNLM').textContent=comps.map(c=>`${c.n}, ${c.l}, ${fmtM(c.m)}`).join(' + ');
   document.getElementById('stN').textContent=interp==='pw'||showCloud?particles.length:'—';
-  document.getElementById('stNLabel').textContent=showCloud?'Samples':'Atoms shown';
+  document.getElementById('stNLabel').textContent=showCloud?'Samples':'Electrons shown';
   document.getElementById('stT').textContent=(t*24.1888).toFixed(0)+' as';
 }
 
@@ -3222,7 +3222,7 @@ function hydrogenShareUrl(){
   q.set('view',currentView());
   if(showSlice) q.set('plane',slicePlane);
   if(showPhase) q.set('phase','1');
-  q.set('atoms',String(nPart));
+  q.set('electrons',String(nPart));
   q.set('cam',[camTheta,camPhi,camDist].map(v=>v.toFixed(2)).join(','));
   const u=new URL(location.href); u.search=q.toString(); u.hash='';
   return u.href;
@@ -3230,7 +3230,7 @@ function hydrogenShareUrl(){
 function applyShareParams(){
   const q=new URLSearchParams(location.search);
   if(![...q.keys()].length) return;
-  const atoms=parseInt(q.get('atoms'),10);
+  const atoms=parseInt(q.get('electrons')??q.get('atoms'),10);   // 'atoms' kept for older links
   if(Number.isFinite(atoms)){
     nPart=Math.max(1,Math.min(50,atoms));
     document.getElementById('sNP').value=nPart; document.getElementById('vNP').textContent=nPart;

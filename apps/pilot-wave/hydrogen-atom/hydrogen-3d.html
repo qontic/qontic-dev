@@ -72,10 +72,11 @@
       <!-- Pauli–Bohm Spin Section -->
       <div id="atomsRow">
         <div class="slabel">Simulation</div>
-        <div class="crow"><label for="sNP" title="Each atom has one electron. Starting positions are drawn from |ψ|².">Atoms</label>
+        <div class="crow"><label for="sNP" title="Number of electrons drawn. Starting positions are drawn from |ψ|².">Electrons</label>
           <input type=range id="sNP" min=1 max=50 value=12 step=1>
           <span class="crow-val" id="vNP">12</span>
         </div>
+        <p class="hydrogen-prompt">Each electron belongs to its own hydrogen atom, all prepared in the same state and drawn on top of one another. They do not interact. A real orbital holds at most two electrons.</p>
       </div>
           </div>
           <div data-control-pane="advanced" hidden>
@@ -219,7 +220,7 @@
           <div class="stat"><span class="stat-label" id="stELabel">Energy</span><span class="stat-val" id="stE">—</span></div>
           <div class="stat"><span class="stat-label">n, l, m</span><span class="stat-val" id="stNLM">—</span></div>
           <div class="stat"><span class="stat-label">Spin</span><span class="stat-val" id="stSpin">Off</span></div>
-          <div class="stat"><span class="stat-label" id="stNLabel" title="Number of atoms shown; each has one electron">Atoms shown</span><span class="stat-val" id="stN">—</span></div>
+          <div class="stat"><span class="stat-label" id="stNLabel" title="Number of electrons drawn, each from its own atom">Electrons shown</span><span class="stat-val" id="stN">—</span></div>
           <div class="stat"><span class="stat-label">Sim time</span><span class="stat-val" id="stT">—</span></div>
           <div id="expertRows" style="display:contents">
             <div class="stat expert-stat"><span class="stat-label" title="⟨r⟩ summed over the rendering voxel grid; flagged when it differs from the exact value by more than 2%">⟨r⟩ voxel grid</span><span class="stat-val"
@@ -373,7 +374,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=8"></script>
-  <script type="module" src="hydrogen-template.js?v=5"></script>
+  <script src="hydrogen-3d.js?v=9"></script>
+  <script type="module" src="hydrogen-template.js?v=6"></script>
 </body>
 </html>
