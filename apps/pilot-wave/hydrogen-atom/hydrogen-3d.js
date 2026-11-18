@@ -76,7 +76,7 @@ function rhoAt(comps,x,y,z,t){const[a,b]=psiXYZ(comps,x,y,z,t);return a*a+b*b;}
 // Particle velocity v=Im(∇ψ/ψ)
 function bohmV(comps,x,y,z,t){
   // ── Spin gate: delegate to Pauli–Bohm guidance when spin is on ──
-  if(spinEnabled&&spinComps.length)return bohmVPauli(spinComps,x,y,z,t);
+  if(spinEnabled&&spinComps.length)return bohmVPauli(spinComps,x,y,z,t,spinTerm);
   // ψ is smooth at the nucleus, so no radial cutoff is needed; only the density guard below.
   const h=0.07,p0=psiXYZ(comps,x,y,z,t);
   const den=p0[0]*p0[0]+p0[1]*p0[1];
@@ -133,7 +133,7 @@ function rhoSpinAt(sc,x,y,z,t){
 // Pauli–Bohmian guidance velocity using 6-point central finite differences.
 // Convective term is the same as scalar bohmV but summed over both channels.
 // Spin-current term adds (∇×S)/(2ρ) where S = [2Re(ψ↑*ψ↓), 2Im(ψ↑*ψ↓), |ψ↑|²−|ψ↓|²].
-function bohmVPauli(sc,x,y,z,t){
+function bohmVPauli(sc,x,y,z,t,withCurl=true){
   const h=0.07;
   const p0=psiSpinor(sc,x,y,z,t);
   const rho=p0[0]*p0[0]+p0[1]*p0[1]+p0[2]*p0[2]+p0[3]*p0[3];
@@ -145,6 +145,10 @@ function bohmVPauli(sc,x,y,z,t){
   const vcx=(p0[0]*(pp[1]-pn[1])-p0[1]*(pp[0]-pn[0])+p0[2]*(pp[3]-pn[3])-p0[3]*(pp[2]-pn[2]))/(2*h*rho);
   const vcy=(p0[0]*(qp[1]-qn[1])-p0[1]*(qp[0]-qn[0])+p0[2]*(qp[3]-qn[3])-p0[3]*(qp[2]-qn[2]))/(2*h*rho);
   const vcz=(p0[0]*(rp[1]-rn[1])-p0[1]*(rp[0]-rn[0])+p0[2]*(rp[3]-rn[3])-p0[3]*(rp[2]-rn[2]))/(2*h*rho);
+  if(!withCurl){   // convective current only: v = Im(Ψ†∇Ψ)/ρ
+    const spd0=Math.sqrt(vcx*vcx+vcy*vcy+vcz*vcz);
+    return spd0>25?[vcx*25/spd0,vcy*25/spd0,vcz*25/spd0]:[vcx,vcy,vcz];
+  }
   // Spin-density vector S = [Sx,Sy,Sz] at each of the 6 stencil points
   const sv=(ps)=>[2*(ps[0]*ps[2]+ps[1]*ps[3]), 2*(ps[0]*ps[3]-ps[1]*ps[2]), ps[0]*ps[0]+ps[1]*ps[1]-ps[2]*ps[2]-ps[3]*ps[3]];
   const Sxp=sv(pp),Sxn=sv(pn),Syp=sv(qp),Syn=sv(qn),Szp=sv(rp),Szn=sv(rn);
@@ -468,6 +472,10 @@ let preferSliceFallback=false;
 //  a spin-current term (∇×S)/(2ρ) — making ALL m=0 orbitals
 //  non-stationary and modifying the velocity of m≠0 orbitals.
 // ════════════════════════════════════════════════════════════════
+// spinEnabled: the state is a spinor (spin preset, j-state, or orbital × spin direction).
+// spinTerm: the pilot-wave guidance law includes (∇×S)/(2ρ). On spin presets and j-states the
+// Spin term button toggles only spinTerm, so the same state can be watched under both laws.
+let spinTerm     = true;
 let spinEnabled  = false;           // master gate — false → exactly original behaviour
 let spinMode     = 'product';       // 'product': orbital × spin-state  |  'jstate': spin-orbit eigenstate
 let spinTheta    = Math.PI/2;       // spin polar angle  (π/2 = equatorial, breaks azimuthal symmetry)
@@ -483,7 +491,7 @@ let dragging=false,lastMX=0,lastMY=0;
 function buildComps(){
   if(spinFromPreset&&!SPIN_SUPERS[superKey]){
     // Leaving a spin preset restores the scalar guidance law it switched on.
-    spinEnabled=false; spinComps=[]; spinFromPreset=false;
+    spinEnabled=false; spinComps=[]; spinFromPreset=false; spinTerm=true;
     voxelRhoUp=null; voxelRhoDn=null;
   }
   if(SPIN_SUPERS[superKey]){
@@ -1751,7 +1759,7 @@ function renderLobes(cam, preview=false){
 function stepParticle(p,start,dt,maxStep=Math.min(dtStep,0.05)){
   const spin=spinEnabled&&spinComps.length>0;
   const isSingleOrbital=comps.length===1;
-  if(spin&&isSingleOrbital&&spinMode==='product'&&comps[0].n===1&&comps[0].l===0){
+  if(spin&&spinTerm&&isSingleOrbital&&spinMode==='product'&&comps[0].n===1&&comps[0].l===0){
     // 1s ⊗ |n̂⟩: exact rotation about n̂ with angular speed 1/r (v = n̂ × r̂).
     const {upRe,upIm,dnRe,dnIm}=spinComps[0];
     const axis=[2*(upRe*dnRe+upIm*dnIm),2*(upRe*dnIm-upIm*dnRe),upRe**2+upIm**2-dnRe**2-dnIm**2];
@@ -2393,7 +2401,7 @@ function runAnalyticalChecks(){
   }
 
   // ── Test 2: 1s product spin — |v| = sin∠(r̂, n̂) ─────────────
-  if(spinEnabled && spinMode==='product' && comps.length===1 && comps[0].n===1 && comps[0].l===0){
+  if(spinEnabled && spinTerm && spinMode==='product' && comps.length===1 && comps[0].n===1 && comps[0].l===0){
     const nx=Math.sin(spinTheta)*Math.cos(spinPhi);
     const ny=Math.sin(spinTheta)*Math.sin(spinPhi);
     const nz=Math.cos(spinTheta);
@@ -2710,7 +2718,22 @@ function _syncVizUI(){
 // ════════════════════════════════════════════════════════════════
 //  SPIN UI (toggle, mode, colour pickers)
 // ════════════════════════════════════════════════════════════════
+// The state is a spinor that the button must not destroy: a spin preset or a j-state.
+function spinorStateSelected(){
+  return spinEnabled&&(Boolean(SPIN_SUPERS[superKey])||(spinMode==='jstate'&&superKey==='none'));
+}
+
 function toggleSpin(){
+  if(spinorStateSelected()){
+    // Same state, same positions: only the guidance law changes; trails restart.
+    spinTerm=!spinTerm;
+    particles.forEach(p=>{p.trail=[];});
+    if(showCloud) initCloudParts();
+    updateInfo();
+    _syncSpinUI();
+    return;
+  }
+  spinTerm=true;
   spinEnabled=!spinEnabled;
   spinFromPreset=false;
   if(spinEnabled){
@@ -2742,9 +2765,13 @@ function toggleSpin(){
 
 function _syncSpinUI(){
   const btn=document.getElementById('spinToggleBtn');
-  btn.classList.toggle('active',spinEnabled);
-  btn.setAttribute('aria-pressed',String(spinEnabled));
-  document.getElementById('stSpin').textContent=spinEnabled?'On':'Off';
+  const termOn=spinEnabled&&spinTerm;
+  btn.classList.toggle('active',termOn);
+  btn.setAttribute('aria-pressed',String(termOn));
+  btn.title=spinorStateSelected()
+    ? 'Switch the Pauli spin term in the guidance law on or off. The spinor state stays the same, so you can compare the two laws.'
+    : 'Add the Pauli spin term to the guidance law. It changes the trajectories, not |ψ|². See Physics § 4.';
+  document.getElementById('stSpin').textContent=!spinEnabled?'Off':spinTerm?'On':'Off (spinor kept)';
   const sec=document.getElementById('spinSubSection');
   if(sec)sec.style.display=spinEnabled?'block':'none';
   const pr=document.getElementById('spinProductRow');
@@ -2775,6 +2802,7 @@ function _syncSpinUI(){
 function setSpinMode(mode){
   if(mode==='jstate'&&superKey!=='none') return;
   spinMode=mode;
+  spinTerm=true;
   t=0;previousFrame=undefined;
   buildComps();
   if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}
@@ -3049,7 +3077,8 @@ function updateCaption(){
     else if(comps.some(c=>c.m!==0)) text+=' Each sample also moves along its pilot-wave path about z.';
   }else{
     text='Pilot wave: each dot is the electron of a separate atom, started at a position drawn from |ψ|²; trails are their paths.';
-    if(spin) text+=' The spin term is on, so the electrons move even where |ψ|² does not change.';
+    if(spin&&spinTerm) text+=' The spin term is on, so the electrons move even where |ψ|² does not change.';
+    else if(spin) text+=' Spin term off: the same spinor, guided by the convective current Im(Ψ†∇Ψ)/ρ only.';
     else if(psiRealUpToPhase()) text+=' ψ is real here, so the guidance velocity is zero and the electrons stay put (Physics § 3 explains why).';
   }
   el.textContent=text;
@@ -3067,7 +3096,7 @@ function updateInfo(){
     : `|${o.n}, ${o.l}, ${fmtM(o.m)}⟩`;
   if(predictPending){document.getElementById('infoDesc').textContent='Make your prediction first.';updateCaption();return;}
   document.getElementById('infoDesc').textContent=forReading(spinEnabled
-    ? 'Pilot-wave guidance includes the Pauli spin term.'
+    ? (spinTerm?'Pilot-wave guidance includes the Pauli spin term.':'Spinor state; pilot-wave guidance without the spin term.')
     : INFO[o.label]||'');
   updateCaption();
 }
@@ -3256,6 +3285,7 @@ function hydrogenShareUrl(){
     else{q.set('th',spinTheta.toFixed(2));q.set('ph',spinPhi.toFixed(2));}
   }
   if(interp!=='pw') q.set('interp',interp);
+  if(spinorStateSelected()&&!spinTerm) q.set('term','0');
   q.set('view',currentView());
   if(showSlice) q.set('plane',slicePlane);
   if(showPhase) q.set('phase','1');
@@ -3298,6 +3328,7 @@ function applyShareParams(){
     }
   }
   if(q.get('phase')==='1'&&!showPhase&&!spinEnabled) toggleViz('phase');
+  if(q.get('term')==='0'&&spinorStateSelected()&&spinTerm) toggleSpin();
   const cam=(q.get('cam')||'').split(',').map(Number);
   if(cam.length===3&&cam.every(Number.isFinite)){
     camTheta=Math.max(0.05,Math.min(Math.PI-0.05,cam[0])); camPhi=cam[1]; camDist=Math.max(0.3,Math.min(5,cam[2]));

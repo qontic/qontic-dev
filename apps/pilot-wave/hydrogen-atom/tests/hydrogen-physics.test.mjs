@@ -25,7 +25,7 @@ const fns = ['factorial', 'laguerre', 'assocLegendre', 'ylmNorm', 'Ylm', 'Rnl', 
   'rhoSpinAt', 'bohmVPauli', 'buildSpinComps', 'exactR', 'densityAt', 'psiRealUpToPhase', 'densityEvolves', 'rotateAroundZ',
   'cloudCount', 'stepCloudParticles', 'stepParticle', 'rMax', 'sampleParticlesStratified', 'sampleParticles', 'integrate', 'autoCloudN'];
 let code = `var spinEnabled=false,spinComps=[],spinMode='product',spinTheta=Math.PI/2,spinPhi=0,comps=[],particles=[],t=0,
-superKey='none',orbIdx=0,showCloud=false,interp='pw',dtStep=0.04,trailLen=800,W=600,H=600,cloudSpherePx=10,lastCloudBoundMisses=0;
+superKey='none',orbIdx=0,showCloud=false,interp='pw',spinTerm=true,dtStep=0.04,trailLen=800,W=600,H=600,cloudSpherePx=10,lastCloudBoundMisses=0;
 const CLOUD_SPIN_MAX=500, CLOUD_SPIN_STEP=0.12; function invalidateDensity(){}\n`;
 for (const c of ['ORBITALS', 'SUPERS', 'SUPER_RM', 'SPIN_SUPERS']) code += grab('const', c) + '\n';
 for (const f of fns) code += grab('function', f) + '\n';
@@ -122,6 +122,17 @@ pure(3); check('sign colours off for 2p+1', A('psiRealUpToPhase()') === false);
 pure(2); check('sign colours on for 2p0', A('psiRealUpToPhase()') === true);
 set({ superKey: 'px', comps: A('SUPERS.px').map(c => ({ ...c })) }); check('sign colours on for p_x', A('psiRealUpToPhase()') === true);
 set({ superKey: 'sp', comps: A('SUPERS.sp').map(c => ({ ...c })) }); check('sign colours off for 1s+2p0', A('psiRealUpToPhase()') === false);
+
+// 7. Spin term off on a spin preset: same spinor, convective guidance only.
+{
+  set({ superKey: 'spin_ss', spinEnabled: true, spinMode: 'product', comps: A('SPIN_SUPERS.spin_ss.comps'), spinComps: A('SPIN_SUPERS.spin_ss.spinComps'), spinTerm: true });
+  const pt = [1.2, 0.8, 0.9];
+  const vOn = Math.hypot(...A(`bohmV(comps,${pt},5)`));
+  set({ spinTerm: false });
+  const vOff = Math.hypot(...A(`bohmV(comps,${pt},5)`));
+  check('1s up + 2s down: spin term moves it, convective law does not', vOn > 0.05 && vOff < 1e-6, `|v| with term ${vOn.toFixed(3)}, without ${vOff.toExponential(1)}`);
+  set({ superKey: 'none', spinEnabled: false, spinComps: [], spinTerm: true });
+}
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);
