@@ -1,5 +1,8 @@
 # Hydrogen Atom — changelog
 
+## 1.2.2 · 2026-11-17
+- Display settings (opacity, hide low density, point size, axes, P(r), projections) are always shown in the Display tab; no extra click to expand.
+
 ## 1.2.1 · 2026-11-17
 - Slider and stat renamed from "Atoms" to "Electrons", with a note under the slider: each electron belongs to its own hydrogen atom in the same state, drawn together; they do not interact; a real orbital holds at most two electrons.
 

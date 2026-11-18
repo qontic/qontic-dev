@@ -125,3 +125,4 @@ body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) 
   .hydrogen-legend summary { display: list-item; width: max-content; cursor: pointer; }
 }
 #physics a { color: var(--accent, #4fd1e8); text-decoration: underline; }
+.display-settings { display: grid; gap: 6px; }

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="hydrogen-template.css?v=6">
+  <link rel="stylesheet" href="hydrogen-template.css?v=7">
 </head>
 
 <body>
@@ -169,8 +169,8 @@
           <span class="crow-val" id="vAutoN" style="margin-left:4px;opacity:0.7">—</span>
         </div>
       </div>
-      <details class="options-group">
-        <summary>Display settings</summary>
+      <div class="display-settings">
+        <div class="slabel">Display settings</div>
         <div class="crow"><label for="sDO"
             title="Per-ray-step absorption (low = rays penetrate deeper and reveal inner shells; high = opaque outer cloud)">Opacity</label>
           <input type=range id="sDO" min=0 max=100 value=60>
@@ -198,7 +198,7 @@
           <button class="qontic-app-toggle" id="projBtn" aria-pressed="false" onclick="toggleProjections()"
             title="Density integrated along each axis: XZ, XY and YZ panels" style="flex:1">Projections</button>
         </div>
-      </details>
+      </div>
 
             <button type="button" class="qontic-app-toggle" id="clearBtn">Clear trails</button>
           </div>
@@ -374,7 +374,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=9"></script>
-  <script type="module" src="hydrogen-template.js?v=6"></script>
+  <script src="hydrogen-3d.js?v=10"></script>
+  <script type="module" src="hydrogen-template.js?v=7"></script>
 </body>
 </html>
