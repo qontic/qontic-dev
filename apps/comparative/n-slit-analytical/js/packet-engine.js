@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit7';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit7';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit7';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit7';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit7';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit7';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit7';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit7';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit8';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit8';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit8';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit8';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit8';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit8';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit8';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit8';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -354,7 +354,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit7').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit8').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -429,12 +429,11 @@ export function mountPacketEngine({core,advanced}){
   while(G.filled<gridW&&(G.filled<=target||performance.now()-t0<budget))fillColumn(G,G.filled++);
  }
 
- // Phase + amplitude ("domain colouring"): hue = phase θ, brightness = |Ψ|.
- // Hue runs red (θ = 0) → yellow → green → cyan (θ = π) → blue → magenta.
- const HUE_STEPS=720,hueTable=new Float32Array(3*HUE_STEPS);
- for(let i=0;i<HUE_STEPS;i++){const h=6*i/HUE_STEPS,x=1-Math.abs(h%2-1),c=[[1,x,0],[x,1,0],[0,1,x],[0,x,1],[x,0,1],[1,0,x]][Math.floor(h)%6];hueTable[3*i]=255*c[0];hueTable[3*i+1]=255*c[1];hueTable[3*i+2]=255*c[2];}
- const hueIndex=theta=>{let u=theta/(2*Math.PI);u-=Math.floor(u);return Math.min(HUE_STEPS-1,Math.floor(u*HUE_STEPS));};
- const hueCss=theta=>{const i=3*hueIndex(theta);return `rgb(${hueTable[i]|0},${hueTable[i+1]|0},${hueTable[i+2]|0})`;};
+ // Phase + amplitude: colour from the wave palette chosen in Display, by phase
+ // θ ∈ (−π, π] mapped onto the palette from start to end (θ = 0 in the middle);
+ // brightness = |Ψ|. A palette whose ends differ shows a seam where θ = ±π.
+ const phaseIndex=theta=>{let u=(theta+Math.PI)/(2*Math.PI);u-=Math.floor(u);return Math.min(1023,Math.round(u*1023));};
+ const hueCss=theta=>{const c=paletteColors?.[phaseIndex(theta)]||[128,128,128];return `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;};
  function drawPhaseWheel(context,cx,cy,r){
   context.save();
   for(let k=0;k<72;k++){const a0=-k*Math.PI/36,a1=-(k+1)*Math.PI/36;context.beginPath();context.moveTo(cx,cy);context.arc(cx,cy,r,a1,a0);context.closePath();context.fillStyle=hueCss((k+.5)*Math.PI/36);context.fill();}
@@ -504,8 +503,8 @@ export function mountPacketEngine({core,advanced}){
     data.data[4*n]=.9*red+.1*255;data.data[4*n+1]=.9*green+.1*255;data.data[4*n+2]=.9*blue+.1*255;data.data[4*n+3]=alpha*weight;
    }else if(mode==='PhaseAmp'){
     // Hue from the phase of Ψ (with the moving carrier), brightness from |Ψ|.
-    const level=Math.max(0,Math.min(1,(value-range.min)/span)),h=3*hueIndex(Math.atan2(sinTheta,cosTheta));
-    data.data[4*n]=level*hueTable[h];data.data[4*n+1]=level*hueTable[h+1];data.data[4*n+2]=level*hueTable[h+2];data.data[4*n+3]=alpha*weight;
+    const level=Math.max(0,Math.min(1,(value-range.min)/span)),c=paletteColors[phaseIndex(Math.atan2(sinTheta,cosTheta))];
+    data.data[4*n]=level*c[0];data.data[4*n+1]=level*c[1];data.data[4*n+2]=level*c[2];data.data[4*n+3]=alpha*weight;
    }else{
     const rgb=paletteColors[Math.round(Math.max(0,Math.min(1,(value-range.min)/span))*1023)];
     data.data[4*n]=.88*rgb[0]+.12*255;data.data[4*n+1]=.88*rgb[1]+.12*255;data.data[4*n+2]=.88*rgb[2]+.12*255;data.data[4*n+3]=alpha*weight;

@@ -1,5 +1,9 @@
+## 3.0-dev.8 — 2026-11-17
+- Phase + amplitude now takes its colours from the wave palette chosen in Display (Pablo's request): θ from −π to π runs across the palette, θ = 0 in the middle; brightness is |Ψ|. The phase wheel and the 3D legend follow the palette.
+- New cyclic palette "Cyclic" in the Display list (same colour at both ends). The other palettes are not cyclic and show a seam where θ = ±π; palettes that start dark (Inferno, Red) also make phases near −π look dim.
+
 ## 3.0-dev.7 — 2026-11-17
-- New wave display "Phase + amplitude" (Show menu, Core and Display): hue = phase θ of Ψ, brightness = |Ψ| (domain colouring). Hue runs red (θ = 0) → yellow → green → cyan (π) → blue → magenta; the phase includes the moving carrier, as in the "Phase (cos θ)" view. A phase wheel (dark centre = small |Ψ|) is drawn in the 2D view and in screenshots; the 3D legend shows the hue ring. The value-range control scales the brightness. With the which-slit detector the branch colouring (cyan/orange) is kept.
+- New wave display "Phase + amplitude" (Show menu, Core and Display): hue = phase θ of Ψ, brightness = |Ψ| (domain colouring). Colour from the wave palette chosen in Display (θ from −π to π across the palette; a non-cyclic palette shows a seam at θ = ±π); the phase includes the moving carrier, as in the "Phase (cos θ)" view. A phase wheel (dark centre = small |Ψ|) is drawn in the 2D view and in screenshots; the 3D legend shows the hue ring. The value-range control scales the brightness. With the which-slit detector the branch colouring (cyan/orange) is kept.
 
 ## 3.0-dev.6 — 2026-11-17
 Nice fringes is fast (Pablo: it took forever).
