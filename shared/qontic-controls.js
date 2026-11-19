@@ -28,7 +28,7 @@ class QonticControls extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
-      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=4", import.meta.url).href}">
+      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=5", import.meta.url).href}">
       <section class="qontic-common-controls" aria-label="Simulation controls">
         <button class="qontic-interpretation" type="button"></button>
         <div class="qontic-run-row" role="group" aria-label="Run controls">
@@ -116,6 +116,9 @@ class QonticControls extends HTMLElement {
     interpretationButton.textContent = label;
     interpretationButton.style.setProperty("--qontic-control-accent", this.getAttribute("accent") || "#55d8e6");
     interpretationButton.title = "Click to change interpretation";
+    // Screen readers: say what the button is, what it shows now and what it switches to.
+    const next = list[(list.findIndex(([id]) => id === interpretation) + 1) % list.length][1];
+    interpretationButton.setAttribute("aria-label", list.length > 1 ? `Interpretation: ${label}. Activate to switch to ${next}.` : `Interpretation: ${label}`);
 
     const running = boolAttr(this, "running");
     const runButton = root.querySelector(".qontic-main-run");

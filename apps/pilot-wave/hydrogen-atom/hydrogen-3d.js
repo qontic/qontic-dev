@@ -3012,7 +3012,9 @@ function refreshOrbGrid(){
   ORBITALS.forEach((o,i)=>{
     if(o.n!==selectedN)return;
     const btn=document.createElement('button');
-    btn.className='obtn'+(i===orbIdx&&superKey==='none'?' active':'');
+    const on=i===orbIdx&&superKey==='none';
+    btn.className='obtn'+(on?' active':'');
+    btn.setAttribute('aria-pressed',String(on));
     btn.textContent=o.label.replace(/^\d/,''); // strip leading n digit
     const desc=INFO[o.label]||'';
     btn.title=`|${o.n}, ${o.l}, ${fmtM(o.m)}⟩${desc?'\n'+desc:''}`;
@@ -3026,11 +3028,12 @@ function buildOrbPicker(){
   [1,2,3,4,5,6].forEach(n=>{
     const btn=document.createElement('button');
     btn.className='nbtn'+(n===selectedN?' active':'');
+    btn.setAttribute('aria-pressed',String(n===selectedN));
     btn.textContent='n='+n;
     btn.onclick=()=>{
       selectedN=n;
-      document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
+      document.querySelectorAll('.nbtn').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false');});
+      btn.classList.add('active');btn.setAttribute('aria-pressed','true');
       refreshOrbGrid();
     };
     nrow.appendChild(btn);
@@ -3054,7 +3057,7 @@ function syncSlicePlaneToState(){
 function selectPureOrbital(index){
   orbIdx=index;
   selectedN=ORBITALS[index].n;
-  document.querySelectorAll('.nbtn').forEach(button=>button.classList.toggle('active',button.textContent===`n=${selectedN}`));
+  document.querySelectorAll('.nbtn').forEach(button=>{const on=button.textContent===`n=${selectedN}`;button.classList.toggle('active',on);button.setAttribute('aria-pressed',String(on));});
   superKey='none';
   document.getElementById('superSel').value='none';
   t=0;

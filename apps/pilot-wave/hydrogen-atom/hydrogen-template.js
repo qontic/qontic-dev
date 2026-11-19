@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=6';
-import { APP_RELEASE } from './release.js?v=1.2.15';
+import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=7';
+import { APP_RELEASE } from './release.js?v=1.2.16';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');
@@ -104,6 +104,23 @@ mountQonticMedia({
   },
   endRecording(wasRunning) { setRunning(wasRunning); },
 });
+
+// Sidebar fade when more content is below (laptops with short screens).
+{
+  const side = document.querySelector('.hydrogen-sidebar');
+  const mark = () => side.classList.toggle('more-below', side.scrollHeight - side.scrollTop - side.clientHeight > 4);
+  side.addEventListener('scroll', mark, { passive: true });
+  new ResizeObserver(mark).observe(side);
+  [...side.children].forEach(child => new ResizeObserver(mark).observe(child));
+  window.addEventListener('resize', mark);
+  mark();
+}
+// Touch devices: shorter default trails, so 50 electrons stay smooth.
+if (matchMedia('(pointer: coarse)').matches) {
+  const trail = document.getElementById('sTR');
+  trail.value = 400;
+  trail.dispatchEvent(new Event('input'));
+}
 
 mountQonticShortcuts({
   target: canvas,

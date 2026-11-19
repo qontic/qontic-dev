@@ -139,3 +139,29 @@ body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) 
 .lrow-sub{font-size:10px;opacity:.8;margin-top:2px;white-space:normal;max-width:200px}
 #spinJRow select{flex:1 1 auto;min-width:12em;max-width:100%}
 .spin-ket{font-size:12px;line-height:1.4;flex-wrap:wrap}
+/* Contrast (WCAG 4.5:1 for small text) */
+.slabel{color:#8098c0}
+:is(body.light,body.qontic-light) .slabel{color:#004f99}
+:is(body.light,body.qontic-light) .crow label{color:#3d5070}
+:is(body.light,body.qontic-light) .crow-val{color:#004f99}
+:is(body.light,body.qontic-light) :is(.qontic-footer, .qontic-footer span, .qontic-footer p){color:#3d5070}
+/* Slice plane menu (was an inline 10 px style) */
+.slice-select{width:auto;padding:2px 5px;font-size:11px}
+/* Phones: keep the atom and the controls on one screen */
+@media (max-width: 600px) {
+  #simulation > .hydrogen-stage { height: auto; }
+  .hydrogen-stage .canvas-wrap { flex: none; height: min(84vw, 36dvh); min-height: 230px; }
+  .hydrogen-story.info { font-size: 12px; line-height: 1.4; }
+}
+/* Touch screens: larger targets and text */
+@media (pointer: coarse) {
+  .slice-select{font-size:13px;padding:6px 8px;min-height:36px}
+  .nbtn, .obtn { min-height: 36px; min-width: 40px; font-size: 12px; }
+  .crow input[type=range] { min-height: 28px; }
+  .reading-label, .slabel { font-size: 11px; }
+}
+/* Sidebar that scrolls: fade at the bottom while more content is below */
+.hydrogen-sidebar.more-below::after{content:'';position:sticky;bottom:0;display:block;height:28px;margin-top:-28px;pointer-events:none;
+  background:linear-gradient(rgba(8,21,32,0),rgb(8,21,32))}
+:is(body.light,body.qontic-light) .hydrogen-sidebar.more-below::after{background:linear-gradient(rgba(244,247,252,0),#f4f7fc)}
+.hydrogen-sidebar{scrollbar-width:thin}

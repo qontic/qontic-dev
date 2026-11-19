@@ -37,13 +37,13 @@ button { font:inherit; }
 .qontic-control-tabs button + button { border-left-width:0; }
 .qontic-control-tabs button.active { position:relative; z-index:2; border-color:#3a6578; border-bottom-color:#0f2230; background:#0f2230; color:#7cecff; }
 :host-context(.qontic-light) { color:#203746; }
-:host-context(.qontic-light) .qontic-interpretation { background:#f5fafc; }
+:host-context(.qontic-light) .qontic-interpretation { background:#f5fafc; color:#075c69; border-color:#087487; }
 :host-context(.qontic-light) .qontic-run-row button { background:#edf5f8; color:#203746; }
 :host-context(.qontic-light) .qontic-main-run {
   background:var(--qontic-run-background-light,#15803d) !important;
   color:var(--qontic-run-color-light,#fff) !important;
 }
-:host-context(.qontic-light) .qontic-auto-rerun { background:#eef4f6 !important; }
+:host-context(.qontic-light) .qontic-auto-rerun { background:#eef4f6 !important; color:#4a5f6b !important; }
 :host-context(.qontic-light) .qontic-control-tabs button { background:#e8f0f3; color:#526a77; }
 :host-context(.qontic-light) .qontic-control-tabs button.active { background:#fff; color:#087487; border-bottom-color:#fff; }
 @media (max-width:700px) { :host { font-size:12px; } }

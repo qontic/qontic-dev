@@ -1,5 +1,12 @@
 # Hydrogen Atom — changelog
 
+## 1.2.16 · 2026-11-19
+Accessibility and phones, from the ten-student review (no new controls).
+- Contrast: small text now meets 4.5:1 in both themes (section labels, slider labels and values, footer in the light theme; section labels in the dark theme). Shared controls: in the light theme the Orthodox/Pilot Wave button text and the auto-rerun ↻ are darker (affects every app's light theme, for the better).
+- Screen readers: the reading button announces "Interpretation: Pilot Wave. Activate to switch to Orthodox." (shared controls, all apps). The n and orbital buttons report their pressed state. Quiz focus moves to the feedback (1.2.13).
+- Phones: the atom view is shorter (about a third of the screen), so the state buttons are visible together with the atom. Touch screens get larger slice menu, orbital buttons, sliders and labels; "tap or click to switch"; trails default to 400 steps so 50 electrons stay smooth.
+- Laptops with short screens: the control column fades at the bottom while more of it is below.
+
 ## 1.2.15 · 2026-11-19
 Spin presets, real orbitals and diagnostics, from the ten-student review (no new controls; two rows removed).
 - Spin presets show their state written out (e.g. Ψ = 1/√2 |1,0,0⟩↑ + 1/√2 |2,1,0⟩↓, spin and orbit entangled) in place of the Mode, θ and φ rows, which do not apply to them. In State and diagnostics, spinor states (presets, j-states, orbital × spin) show the same decomposition under "State"; the j-state menu is wide enough for its labels.

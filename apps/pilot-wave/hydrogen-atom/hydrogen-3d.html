@@ -9,8 +9,8 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=6">
-  <link rel="stylesheet" href="hydrogen-template.css?v=14">
+  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=7">
+  <link rel="stylesheet" href="hydrogen-template.css?v=15">
 </head>
 
 <body>
@@ -24,7 +24,7 @@
     <section class="qontic-workspace" id="simulation" aria-label="Hydrogen simulation">
       <div class="qontic-sidebar hydrogen-sidebar">
       <aside class="qontic-panel qontic-control-panel" id="sidebar" aria-label="Simulation controls">
-        <div class="slabel reading-label">Reading of the display (click to switch)</div>
+        <div class="slabel reading-label">Reading of the display (tap or click to switch)</div>
         <qontic-controls running="true" speed="1" speed-min="0.1" speed-max="10" speed-step="0.1"
           show-reset="true" show-autorun="false" interpretations="cpn,pw" interpretation="pw" active-tab="core"></qontic-controls>
         <div class="qontic-control-body">
@@ -149,7 +149,7 @@
         </div>
         <div id="sliceRow" class="crow" style="display:none">
           <label>Slice
-            <select id="sliceSel" style="width:auto;padding:2px 5px;font-size:10px;">
+            <select id="sliceSel" class="slice-select">
               <option value="xz">XZ (side)</option>
               <option value="xy">XY (top)</option>
               <option value="yz">YZ (front)</option>
@@ -380,7 +380,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=24"></script>
-  <script type="module" src="hydrogen-template.js?v=21"></script>
+  <script src="hydrogen-3d.js?v=25"></script>
+  <script type="module" src="hydrogen-template.js?v=22"></script>
 </body>
 </html>
