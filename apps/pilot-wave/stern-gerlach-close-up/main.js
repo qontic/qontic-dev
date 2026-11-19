@@ -369,7 +369,7 @@ function addSectionHeader(label) {
 }
 
 addCycleButton("initialSpin", "Initial spin", INITIAL_SPIN_NAMES, () => resetAll());
-addToggleInt("sgFieldOn", "Field gradient", () => requestTrailClear());
+addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
 // Above ~3.5 the deflected branches reach the hard walls before the plate.
 addSlider("sgGradient", "Gradient strength", 0.0, 3.5, 0.002, () => requestTrailClear());
 
@@ -1397,18 +1397,27 @@ function rebuildParticles() {
   const y0 = params.packetY * (simH - 1);
   const z0 = params.packetZ * (simD - 1);
 
+  // Draw from |psi|^2 and reject points on or outside the hard walls (psi = 0 there)
+  // instead of clamping them onto the walls. x is periodic, so it wraps.
+  const xPeriod = Math.max(1, simW - 1);
+  const inside = (y, z) => y >= 1 && y <= simH - 2 && z >= 1 && z <= simD - 2;
   for (let i = 0; i < n; i++) {
     let x = x0 + randn() * sigma1D;
     let y = y0 + randn() * sigma1D;
     let z = z0 + randn() * sigma1D;
-    x = Math.max(0, Math.min(simW - 1, x));
-    y = Math.max(0, Math.min(simH - 1, y));
-    z = Math.max(0, Math.min(simD - 1, z));
+    for (let tries = 0; !inside(y, z) && tries < 1000; tries++) {
+      y = y0 + randn() * sigma1D;
+      z = z0 + randn() * sigma1D;
+    }
+    const xVisual = x;  // unwrapped, used for the plate crossing
+    x = ((x % xPeriod) + xPeriod) % xPeriod;
+    y = Math.max(1, Math.min(simH - 2, y));
+    z = Math.max(1, Math.min(simD - 2, z));
     startSide[i] = z > z0 ? 1 : 0;
     data[i * 4 + 0] = x;
     data[i * 4 + 1] = y;
     data[i * 4 + 2] = z;
-    data[i * 4 + 3] = x;
+    data[i * 4 + 3] = xVisual;
   }
 
   particleSrc = makeBuffer("particle src", data, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
@@ -1620,11 +1629,12 @@ function updateStats() {
   if (legendDots) legendDots.hidden = !params.showParticles;
   const pPeriodic = effectivePeriodicP0();
   const lambda = pPeriodic > 1e-6 ? (2 * Math.PI * params.hbar / pPeriodic) : Infinity;
-  const lambdaText = Number.isFinite(lambda) ? fmt(lambda) : "inf";
+  const lambdaText = Number.isFinite(lambda) ? lambda.toFixed(1) : "inf";
   // The 4th-order stencil keeps the group velocity within ~2% down to 7 cells per wavelength.
-  const quality = lambda < 6 ? ` <span style="color:#ffb347">under-resolved</span>` : "";
-  const sgText = params.sgFieldOn && params.sgGradient > 0 ? fmt(params.sgGradient) : "off";
-  statsEl.innerHTML = `<b>Physics</b>: ${guidingModeLabel()} &nbsp; <b>SG grad</b>: ${sgText} &nbsp; <b>Grid</b>: ${simW}x${simH}x${simD} &nbsp; <b>Particles</b>: ${Math.floor(params.nParticles)} &nbsp; <b>lambda</b>: ${lambdaText}${quality}`;
+  const quality = lambda < 6 ? " (too coarse: needs at least 6)" : "";
+  const sgText = params.sgFieldOn ? fmt(params.sgGradient) : "field off";
+  const spinText = INITIAL_SPIN_NAMES[params.initialSpin | 0] || INITIAL_SPIN_NAMES[0];
+  statsEl.innerHTML = `<b>Initial spin</b>: ${spinText} &nbsp; <b>Gradient</b>: ${sgText} &nbsp; <b>Grid</b>: ${simW}×${simH}×${simD} &nbsp; <b>Dots</b>: ${Math.floor(params.nParticles)} &nbsp; <b>Wavelength</b>: ${lambdaText} cells${quality}`;
 }
 
 function rebuildBoxGeometry() {

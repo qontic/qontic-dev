@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="./style.css?v=6" />
-  <link rel="modulepreload" href="./main.js?v=10" />
+  <link rel="modulepreload" href="./main.js?v=11" />
 </head>
 <body>
   <main class="shell">
@@ -56,7 +56,7 @@
         show-reset="true" show-rerun="false" show-autorun="true" auto-run="true" show-interpretation="false" disabled></qontic-controls>
       <div class="qontic-control-body" id="controls">
         <div data-control-pane="core">
-          <p class="prompt">The view opens from the side (XZ). With the gradient on, compare the deflection for +z with the splitting for the equal superposition. Changing initial spin restarts the packet. The run restarts automatically after the packet passes the plate; click the ↻ button to turn this off.</p>
+          <p class="prompt">Side view: the beam moves to the right and z points up. With the field on, the equal superposition splits into an upper (+z) and a lower (−z) part. Set Initial spin to +z and the whole packet moves up. Changing the initial spin restarts the packet. The run restarts by itself after the packet passes the plate; click ↻ to turn this off.</p>
         </div>
         <div data-control-pane="advanced" hidden>
           <p class="prompt">The app selects a starting grid from the device’s capabilities. You can adjust it here. Changing the grid also changes the tunnel dimensions and restarts the packet.</p>
@@ -68,9 +68,8 @@
     </section>
     <section id="physics" class="qontic-panel qontic-reading-panel" hidden>
       <h2>Physics and model limits</h2>
-          <p>The cloud shows total spinor density and the dots trace pilot-wave trajectories. The default packet starts in an equal, in-phase superposition of +z and −z spin. With the gradient enabled, the two components tend to separate vertically.</p>
-        <h4>Wave</h4>
-        <p>The wave function is a two-component spinor. Its density is</p>
+        <h4>What you see</h4>
+        <p>The side view (XZ) shows the beam moving to the right along x, with z up. The cloud is the total density of the two-component spinor:</p>
         <div class="eq">
           <math display="block">
             <mrow>
@@ -80,7 +79,28 @@
             </mrow>
           </math>
         </div>
-        <p>The Pauli spinor evolves on a grid with periodic boundaries along x and hard walls along y and z. Compare the early motion before reflections become important. The red lines are magnetic field lines. They lie in planes of constant x because the field has no x component. The magnetic field fills the simulation region. Its uniform part along z is twice the gradient strength, so the field does not vanish anywhere in the box and the two spin components separate without spin flips. A detector plate that stops trajectories on contact while the wave keeps evolving.</p>
+        <p>The dots are pilot-wave particles. They start at random positions drawn from |Ψ|² and then follow the guidance law below. Yellow dots start above the packet centre, green dots below. A dot stops when it reaches the detector plate, and the counts in the corner are made from those dots. The wave itself passes through the plate and keeps evolving.</p>
+        <p>The default packet is an equal, in-phase superposition of +z and −z spin. In the field the two spin components separate vertically. Each particle ends up in one branch, and which one is fixed by where it started: dots from the upper half of the packet go up, dots from the lower half go down. Only dots that start very near the middle can end in the other branch.</p>
+        <h4>Geometry</h4>
+        <p>The packet starts inside the magnetic field. There is no entrance or exit of a magnet: this is a close-up of the region inside it. The grid is periodic along x, so the box is drawn as copies placed end to end, and the cloud is shown in the copy where the packet is. The detector plate is two box lengths from the start of the first box. The grid is twice as tall along z as along x and y. Along y and z the walls are hard; with the default settings less than 2% of the density is near the top and bottom walls when the packet reaches the plate. Larger gradients push the branches into the walls, so the gradient slider stops at 3.5.</p>
+        <h4>Magnetic field</h4>
+        <p>The field has no x component and does not depend on x:</p>
+        <div class="eq">
+          <math display="block">
+            <mrow>
+              <mi mathvariant="bold">B</mi><mo>=</mo><mi>g</mi>
+              <mo>(</mo><mn>0</mn><mo>,</mo><mo>&minus;</mo><msup><mi>y</mi><mo>&prime;</mo></msup><mo>,</mo>
+              <mn>2</mn><mo>+</mo><msup><mi>z</mi><mo>&prime;</mo></msup><mo>)</mo>
+              <mo>,</mo><mspace width="1em"/>
+              <msup><mi>y</mi><mo>&prime;</mo></msup><mo>=</mo><mfrac><mrow><mi>y</mi><mo>&minus;</mo><msub><mi>y</mi><mi>c</mi></msub></mrow><mi>L</mi></mfrac>
+              <mo>,</mo><mspace width="0.5em"/>
+              <msup><mi>z</mi><mo>&prime;</mo></msup><mo>=</mo><mfrac><mrow><mi>z</mi><mo>&minus;</mo><msub><mi>z</mi><mi>c</mi></msub></mrow><mi>L</mi></mfrac>
+            </mrow>
+          </math>
+        </div>
+        <p>Here y<sub>c</sub> and z<sub>c</sub> are the centre of the box, L is half the box height, and g is the gradient strength, so ∂B<sub>z</sub>/∂z = g/L. The uniform part, 2g, keeps the field from vanishing inside the box, so the spin components separate without spin flips. The y component is required by ∇·B = 0; it has almost no effect here. The red lines are field lines of this B. The Magnetic field switch turns the whole field off, uniform part included.</p>
+        <h4>Wave</h4>
+        <p>The particle is neutral, so there is no vector potential. The spinor obeys the Pauli equation</p>
         <div class="eq">
           <math display="block">
             <mrow>
@@ -100,12 +120,14 @@
             </mrow>
           </math>
         </div>
+        <p>With this sign the magnetic moment is parallel to the spin, μ = (ħ/2m)σ, and the +z component is pushed toward the stronger field, upward. For a silver atom the magnetic moment of the outer electron is antiparallel to its spin, so there the −z component would go up.</p>
+        <p>The equation is solved with fourth-order finite differences in space and leapfrog steps in time, periodic along x and with hard walls along y and z. The initial packet is a Gaussian of width σ (Packet width) moving along x; its wave number is rounded to the nearest value that fits the periodic box.</p>
         <h4>Guidance</h4>
-        <p>The Bohmian velocity is the sum of the convective current and the spin current divided by density. The convective current is</p>
+        <p>The particle velocity is the Pauli current divided by the density. It has a convective part and a spin part. The convective part is</p>
         <div class="eq">
           <math display="block">
             <mrow>
-              <msub><mi mathvariant="bold">v</mi><mi>B</mi></msub>
+              <msub><mi mathvariant="bold">v</mi><mtext>conv</mtext></msub>
               <mo>=</mo>
               <mfrac><msub><mi mathvariant="bold">j</mi><mtext>conv</mtext></msub><mi>&rho;</mi></mfrac>
             </mrow>
@@ -122,7 +144,7 @@
             </mrow>
           </math>
         </div>
-        <p>The spin-current coefficient s is ½ for the Pauli current. Varying it changes the guidance law while the wave evolves with the same Pauli equation. The controls use simulation units.</p>
+        <p>and the full velocity is</p>
         <div class="eq">
           <math display="block">
             <mrow>
@@ -139,8 +161,9 @@
             </mrow>
           </math>
         </div>
+        <p>The coefficient s = ½ gives the Pauli current. The spin term is divergence-free, so every value of s keeps the dots distributed as |Ψ|²: the counts at the plate have the same statistics, and only the individual trajectories change. With s = ½ the trajectories of a +z packet also swirl around the beam axis; this is the spin current, not a numerical error. The controls use simulation units: ħ = 6, m = 1 and grid spacing 1.</p>
     </section>
   </main>
-  <script type="module" src="./template.js?v=10"></script>
+  <script type="module" src="./template.js?v=11"></script>
 </body>
 </html>
