@@ -63,7 +63,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=8'));
+  ({ simulation } = await import('./main.js?v=9'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {

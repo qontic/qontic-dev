@@ -6,8 +6,8 @@
   <title>Stern–Gerlach Close-Up — Q-Ontic</title>
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
-  <link rel="stylesheet" href="./style.css?v=5" />
-  <link rel="modulepreload" href="./main.js?v=8" />
+  <link rel="stylesheet" href="./style.css?v=6" />
+  <link rel="modulepreload" href="./main.js?v=9" />
 </head>
 <body>
   <main class="shell">
@@ -32,9 +32,10 @@
         <div id="scene-legend" aria-label="Legend">
           <span id="legend-field"><i class="swatch field"></i>Magnetic field lines. The field points up (+z) and is stronger toward the top; this pushes the +z spin part up and the −z part down.</span>
           <span id="legend-cloud"><i class="swatch cloud"></i>Cloud: |Ψ|², where the particle can be found.</span>
-          <span id="legend-dots"><i class="swatch dots"></i>Dots: possible particle positions, started at random according to |Ψ|². Trails show their paths.</span>
+          <span id="legend-dots"><i class="swatch dots"></i>Dots: possible particle positions, started at random according to |Ψ|². Yellow dots start in the upper half of the packet, green dots in the lower half. Trails show their paths.</span>
           <span><i class="swatch plate"></i>Detector plate: a dot stops when it reaches it.</span>
         </div>
+        <div id="plate-hits" class="plate-hits" hidden></div>
         <noscript><p>Enable JavaScript to run this simulation.</p></noscript>
       </div>
       <div id="viewtools">
@@ -140,6 +141,6 @@
         </div>
     </section>
   </main>
-  <script type="module" src="./template.js?v=8"></script>
+  <script type="module" src="./template.js?v=9"></script>
 </body>
 </html>

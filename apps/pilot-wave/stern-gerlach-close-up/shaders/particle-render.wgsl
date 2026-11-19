@@ -1,5 +1,7 @@
 
 @group(0) @binding(1) var<storage, read> particles: array<vec4<f32>>;
+// 1 = started above the packet centre, 0 = below.
+@group(0) @binding(2) var<storage, read> startSide: array<f32>;
 
 struct ParticleOut {
   @builtin(position) position: vec4<f32>,
@@ -8,6 +10,7 @@ struct ParticleOut {
   @location(2) depthFade: f32,
   @location(3) local: vec2<f32>,
   @location(4) brightness: f32,
+  @location(5) upperStart: f32,
 };
 
 fn particleVertex(vertexIndex: u32, instanceIndex: u32, stamp: bool) -> ParticleOut {
@@ -15,6 +18,7 @@ fn particleVertex(vertexIndex: u32, instanceIndex: u32, stamp: bool) -> Particle
   let state = particles[instanceIndex];
   out.alive = 1.0;
   out.particleId = f32(instanceIndex) / max(1.0, uni.particle1.z);
+  out.upperStart = startSide[instanceIndex];
   out.depthFade = 1.0;
   out.local = quadCorner(vertexIndex) + vec2<f32>(0.5);
   let hitDetector = uni.detector.y > 0.5 && state.w >= uni.detector.x - 1e-4;
@@ -73,7 +77,9 @@ fn fsRender(in: ParticleOut) -> @location(0) vec4<f32> {
   let blur = exp(-(r * r) / max(uni.particle0.y, 1e-4));
   let a = clamp(uni.particle0.z * in.depthFade * blur * edge, 0.0, 0.85);
   let flashT = smoothstep(2.0, 10.0, in.brightness);
-  let col = mix(vec3<f32>(1.0, 0.92, 0.16), vec3<f32>(1.0, 1.0, 0.72), flashT);
+  // Yellow: started in the upper half of the packet. Green: lower half.
+  let base = select(vec3<f32>(0.36, 1.0, 0.45), vec3<f32>(1.0, 0.92, 0.16), in.upperStart > 0.5);
+  let col = mix(base, mix(base, vec3<f32>(1.0), 0.6), flashT);
   return vec4<f32>(col * in.brightness, a);
 }
 

@@ -51,7 +51,7 @@ const SHADER_FILES = {
   waveStep: "./shaders/wave-step.wgsl",
   particleUpdate: "./shaders/particle-update.wgsl",
   cloud: "./shaders/cloud.wgsl?v=2",
-  particleRender: "./shaders/particle-render.wgsl",
+  particleRender: "./shaders/particle-render.wgsl?v=2",
   density: "./shaders/density.wgsl",
   boxShell: "./shaders/box-shell.wgsl",
   line: "./shaders/line.wgsl",
@@ -450,6 +450,12 @@ let waveBufferA = null, waveBufferB = null, flip = 0;
 let simTime = 0;
 
 let particleSrc = null, particleDst = null, particleFlip = 0;
+// 1 for particles that start above the packet centre, 0 below (colours the dots).
+let particleStartSide = null;
+// Plate hit counts, read back from the particle buffer a few times per second.
+let hitReadback = null, hitReadbackBusy = false, lastHitReadback = 0;
+let hitCounts = { top: 0, bottom: 0, arrived: 0, total: 0 };
+const HIT_READBACK_MS = 250;
 let boxBuffer = null, boxVertexCount = 0;
 let boxShellBuffer = null, boxShellVertexCount = 0;
 let fieldLineBuffer = null, fieldLineVertexCount = 0;
@@ -743,11 +749,11 @@ function makeBuffer(label, data, usage) {
   return buffer;
 }
 
-function makeStorageBuffer(label, byteSize) {
+function makeStorageBuffer(label, byteSize, extraUsage = 0) {
   return device.createBuffer({
     label,
     size: Math.max(4, (byteSize + 3) & ~3),
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | extraUsage,
   });
 }
 
@@ -804,10 +810,12 @@ function rebuildParticleBindGroups() {
   particleRenderBindGroups = particles.map((buffer) => bindGroup(pipelineParticleRender, [
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: { buffer } },
+    { binding: 2, resource: { buffer: particleStartSide } },
   ]));
   particleStampBindGroups = particles.map((buffer) => bindGroup(pipelineParticleStamp, [
     { binding: 0, resource: { buffer: trailUniformBuffer } },
     { binding: 1, resource: { buffer } },
+    { binding: 2, resource: { buffer: particleStartSide } },
   ]));
 }
 
@@ -1373,8 +1381,12 @@ function rebuildParticles() {
 
   destroyGpuResource(particleSrc);
   destroyGpuResource(particleDst);
+  destroyGpuResource(particleStartSide);
+  if (!hitReadbackBusy) destroyGpuResource(hitReadback);
+  hitReadback = null;
 
   const data = new Float32Array(n * 4);
+  const startSide = new Float32Array(Math.max(1, n));
 
   const sigma1D = params.packetSigma / Math.sqrt(2);
   const x0 = params.packetX * (simW - 1);
@@ -1388,16 +1400,68 @@ function rebuildParticles() {
     x = Math.max(0, Math.min(simW - 1, x));
     y = Math.max(0, Math.min(simH - 1, y));
     z = Math.max(0, Math.min(simD - 1, z));
+    startSide[i] = z > z0 ? 1 : 0;
     data[i * 4 + 0] = x;
     data[i * 4 + 1] = y;
     data[i * 4 + 2] = z;
     data[i * 4 + 3] = x;
   }
 
-  particleSrc = makeBuffer("particle src", data, GPUBufferUsage.STORAGE);
-  particleDst = makeStorageBuffer("particle dst", data.byteLength);
+  particleSrc = makeBuffer("particle src", data, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+  particleDst = makeStorageBuffer("particle dst", data.byteLength, GPUBufferUsage.COPY_SRC);
+  particleStartSide = makeBuffer("particle start side", startSide, GPUBufferUsage.STORAGE);
+  if (n > 0) {
+    hitReadback = device.createBuffer({
+      label: "plate hit readback",
+      size: Math.max(16, data.byteLength),
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    });
+  }
+  hitCounts = { top: 0, bottom: 0, arrived: 0, total: n };
+  lastHitReadback = 0;
+  updateHitDisplay();
   particleFlip = 0;
   rebuildParticleBindGroups();
+}
+
+const hitDisplay = document.getElementById("plate-hits");
+function updateHitDisplay() {
+  if (!hitDisplay) return;
+  hitDisplay.hidden = !params.showParticles || hitCounts.total <= 0;
+  const { top, bottom, arrived, total } = hitCounts;
+  hitDisplay.innerHTML = `<b>Dots at the plate</b><br>Upper half: ${top}<br>Lower half: ${bottom}<br>${arrived} of ${total} arrived`;
+}
+
+// Count the dots stopped at the plate, by the half of the plate they hit.
+function readHitCounts(now) {
+  if (hitReadbackBusy || !hitReadback || now - lastHitReadback < HIT_READBACK_MS) return;
+  const n = Math.floor(params.nParticles);
+  if (n <= 0) return;
+  lastHitReadback = now;
+  const buffer = hitReadback;
+  const source = particleFlip === 0 ? particleSrc : particleDst;
+  const encoder = device.createCommandEncoder({ label: "plate hit copy" });
+  encoder.copyBufferToBuffer(source, 0, buffer, 0, n * 16);
+  device.queue.submit([encoder.finish()]);
+  hitReadbackBusy = true;
+  const plateX = detectorPlateXGrid();
+  const zMid = params.packetZ * (simD - 1);
+  buffer.mapAsync(GPUMapMode.READ, 0, n * 16).then(() => {
+    const state = new Float32Array(buffer.getMappedRange(0, n * 16));
+    let top = 0, bottom = 0;
+    for (let i = 0; i < n; i++) {
+      if (state[i * 4 + 3] < plateX - 1e-4) continue;
+      if (state[i * 4 + 2] > zMid) top++;
+      else bottom++;
+    }
+    buffer.unmap();
+    if (buffer === hitReadback) {
+      hitCounts = { top, bottom, arrived: top + bottom, total: n };
+      updateHitDisplay();
+    } else {
+      buffer.destroy();
+    }
+  }).catch(() => {}).finally(() => { hitReadbackBusy = false; });
 }
 
 function particleUpdate(pass) {
@@ -1848,8 +1912,9 @@ async function main() {
     writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);
     render(encoder, camera);
     device.queue.submit([encoder.finish()]);
-    if (redrawPending) updateStats();
+    if (redrawPending) { updateStats(); updateHitDisplay(); }
     redrawPending = false;
+    if (!paused) readHitCounts(now);
 
     // Wait for the current frame so a slow GPU cannot build a render backlog.
     try {

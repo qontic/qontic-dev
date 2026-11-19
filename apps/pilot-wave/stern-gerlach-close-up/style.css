@@ -35,8 +35,10 @@ body:not(.simulation-ready) #scene-legend { display: none; }
 #scene-legend .swatch.plate { border-color: #5cc6f0; }
 #scene-legend .swatch.cloud, #scene-legend .swatch.dots { width: 10px; height: 10px; margin: 0 9px 2px 3px; border: 0; border-radius: 50%; }
 #scene-legend .swatch.cloud { background: radial-gradient(circle, #e8fbff 0%, #4aa8ff 45%, rgba(40, 90, 220, 0) 75%); }
-#scene-legend .swatch.dots { width: 6px; height: 6px; margin: 0 11px 2px 5px; background: #ffe680; }
+#scene-legend .swatch.dots { width: 8px; height: 8px; margin: 0 10px 2px 4px; background: linear-gradient(90deg, #ffeb29 50%, #5cff73 50%); }
 #scene-legend > span { padding-left: 25px; text-indent: -25px; }
+.plate-hits { position: absolute; right: 8px; top: 8px; padding: 5px 8px; font-size: 11px; line-height: 1.4; color: #d7e4ee; background: rgba(3, 8, 15, 0.72); border-radius: 4px; pointer-events: none; font-variant-numeric: tabular-nums; }
+body:not(.simulation-ready) .plate-hits { display: none; }
 #gpu-status { position: relative; margin: 12px; width: min(calc(100% - 24px), 460px); max-height: calc(100% - 24px); overflow: auto; padding: 12px; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 6px; }
 #gpu-status h2 { margin: 0; font-size: 15px; }
 #gpu-status p { margin: 8px 0 0; }
