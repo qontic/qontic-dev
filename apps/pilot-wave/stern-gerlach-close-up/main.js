@@ -51,7 +51,7 @@ const SHADER_FILES = {
   waveStep: "./shaders/wave-step.wgsl",
   particleUpdate: "./shaders/particle-update.wgsl",
   cloud: "./shaders/cloud.wgsl?v=2",
-  particleRender: "./shaders/particle-render.wgsl?v=2",
+  particleRender: "./shaders/particle-render.wgsl?v=3",
   density: "./shaders/density.wgsl",
   boxShell: "./shaders/box-shell.wgsl",
   line: "./shaders/line.wgsl",
@@ -218,6 +218,9 @@ const INITIAL_SPIN_NAMES = [
 let paused = false;
 let autoRun = true;
 let rerunHoldStart = null;
+// Set inside a frame; the reset runs after that frame is submitted, so the frame
+// never refers to particle buffers that the reset destroys.
+let rerunPending = false;
 const RERUN_HOLD_MS = 1200;
 let redrawPending = true;
 const PAUSED_IDLE_MS = 180;
@@ -585,7 +588,8 @@ async function buildPipelines() {
     fragment: {
       module: particleModule,
       entryPoint: "fsRender",
-      targets: [{ format: presentationFormat, blend: blendState("src-alpha", "one"), writeMask: COLOR_WRITE_ALL }],
+      // Normal alpha blending keeps the start-side colours readable over the bright cloud.
+      targets: [{ format: presentationFormat, blend: blendState("src-alpha", "one-minus-src-alpha"), writeMask: COLOR_WRITE_ALL }],
     },
     primitive: { topology: "triangle-list" },
   });
@@ -1830,6 +1834,7 @@ function rerunTime() {
 
 function resetAll() {
   rerunHoldStart = null;
+  rerunPending = false;
   resetWave();
   rebuildParticles();
   clearDensity();
@@ -1905,7 +1910,7 @@ async function main() {
       if (params.showTrail) densityStepAndStamp(encoder, camera);
       if (autoRun && simTime >= rerunTime()) {
         if (rerunHoldStart === null) rerunHoldStart = now;
-        else if (now - rerunHoldStart >= RERUN_HOLD_MS) resetAll();
+        else if (now - rerunHoldStart >= RERUN_HOLD_MS) rerunPending = true;
       }
     }
 
@@ -1925,6 +1930,11 @@ async function main() {
         showSimulationError("The WebGPU device stopped responding", error);
       }
       return;
+    }
+
+    if (rerunPending) {
+      rerunPending = false;
+      resetAll();
     }
 
     if (paused && !cameraMoved && !cameraInputActive && !trailClearPending && !redrawPending) {

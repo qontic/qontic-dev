@@ -78,9 +78,10 @@ fn fsRender(in: ParticleOut) -> @location(0) vec4<f32> {
   let a = clamp(uni.particle0.z * in.depthFade * blur * edge, 0.0, 0.85);
   let flashT = smoothstep(2.0, 10.0, in.brightness);
   // Yellow: started in the upper half of the packet. Green: lower half.
-  let base = select(vec3<f32>(0.36, 1.0, 0.45), vec3<f32>(1.0, 0.92, 0.16), in.upperStart > 0.5);
-  let col = mix(base, mix(base, vec3<f32>(1.0), 0.6), flashT);
-  return vec4<f32>(col * in.brightness, a);
+  let base = select(vec3<f32>(0.22, 0.95, 0.32), vec3<f32>(1.0, 0.86, 0.08), in.upperStart > 0.5);
+  let col = mix(base, vec3<f32>(1.0), 0.6 * flashT);
+  let a2 = clamp(a * 1.6 + 0.4 * flashT, 0.0, 1.0);
+  return vec4<f32>(col, a2);
 }
 
 @fragment
