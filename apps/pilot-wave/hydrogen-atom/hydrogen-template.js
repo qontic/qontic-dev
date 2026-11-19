@@ -3,7 +3,7 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=8';
+import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=9';
 import { APP_RELEASE } from './release.js?v=1.2.17';
 
 const controls = document.querySelector('qontic-controls');

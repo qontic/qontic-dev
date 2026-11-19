@@ -3,7 +3,7 @@
 // apparatus (slits, detectors, screen), drawn here, so that the running simulation
 // cannot give the answer away. Uses the app's classic-script globals (numSlits,
 // slitOpen, slitDetector, interpretation, …) from double-slit.js.
-import { mountQonticQuiz } from '../../../../shared/qontic-quiz.js?v=2';
+import { mountQonticQuiz } from '../../../../shared/qontic-quiz.js?v=9';
 
 const light = () => document.body.classList.contains('qontic-light');
 

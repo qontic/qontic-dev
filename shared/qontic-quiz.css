@@ -16,6 +16,7 @@
 .qontic-quiz-feedback p { margin: 0 0 6px; }
 .qontic-quiz-feedback .qontic-quiz-detail { font-size: 13px; color: var(--text-secondary, #a8bdc9); }
 .qontic-quiz-feedback:empty { display: none; }
+.qontic-quiz-answers .qontic-app-toggle.qontic-quiz-correct { opacity: 1; border-color: #2fbf71; box-shadow: inset 0 0 0 1px #2fbf71; font-weight: 600; }
 .qontic-quiz-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 button[data-view]:disabled { opacity: .45; cursor: not-allowed; }
 body[data-view="quiz"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) { display: none !important; }

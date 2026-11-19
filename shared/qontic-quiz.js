@@ -97,6 +97,7 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
       b.className = 'qontic-app-toggle';
       b.textContent = label;
       b.setAttribute('aria-pressed', 'false');
+      b.dataset.answer = id;
       b.addEventListener('click', () => choose(id, b));
       return b;
     }));
@@ -110,6 +111,8 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
     for (const b of $('.qontic-quiz-answers').children) {
       b.setAttribute('aria-pressed', String(b === button));
       b.disabled = true;
+      // Mark the correct answer (text mark as well as style, not colour alone).
+      if (b.dataset.answer === q.answer) { b.classList.add('qontic-quiz-correct'); b.textContent = '✓ ' + b.textContent; }
     }
     if (!results.has(index)) results.set(index, id === q.answer);
     if (score) $('.qontic-quiz-step').textContent = stepText();
@@ -142,7 +145,11 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
   }
   watch.addEventListener('click', () => { simulationTab.click(); onWatch(questions[index]); });
   simulationTab.addEventListener('click', dropParam);
-  next.addEventListener('click', () => { show(index + 1); $('.qontic-quiz-question').focus({ preventScroll: true }); });
+  next.addEventListener('click', () => {
+    // "Start again" after the last question starts a fresh score.
+    if (index + 1 >= questions.length) results.clear();
+    show(index + 1); $('.qontic-quiz-question').focus({ preventScroll: true });
+  });
   tab.addEventListener('click', () => { if (!answered) show(index); });
   link.addEventListener('click', async () => {
     const url = new URL(location.href);

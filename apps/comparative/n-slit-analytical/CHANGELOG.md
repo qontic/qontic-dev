@@ -1,3 +1,8 @@
+## 3.0-dev.18 — 2026-11-19
+- **Fix:** 3.0-dev.17 had a JavaScript syntax error (an apostrophe inside a quoted string in the slit-balance text, packet-engine.js), so the page loaded without the Q-Ontic template. Added a syntax check of every file to the pre-push routine, run after the last edit.
+- Shared shortcuts (shared/qontic-shortcuts.js, all apps): Space on a control reached by keyboard (Tab/arrows) now presses that control instead of toggling play/pause. After a mouse click or tap, Space still toggles play/pause, and the button is no longer pressed as well on key-up. (:focus-visible could not be used: any key press makes focus visible.)
+- Shared quiz (shared/qontic-quiz.js/.css, also Hydrogen): after an answer the correct one is marked (✓ and a green outline, not colour alone); "Start again" after the last question resets the score. Wrapping on phones and focus handling were already in the shared module (Hydrogen 1.2.13–1.2.17); the N-slit app now loads that version (?v=9). Checked: at 360 px all six questions stay 360 px wide.
+
 ## 3.0-dev.17 — 2026-11-19
 Fixes from the ten-student review (context/2026-11-19-n-slit-ten-student-review.md), text and N-slit logic.
 - Old two-slit detector sections in Physics and Views replaced by general ones: equations for detectors on any set D of slits (records |d_k⟩ and "none fired" |d₀⟩); Pilot Wave guided by its detected slit's wave, or by the coherent wave of all undetected slits (the old text said "one effective single-slit packet", wrong for N > 2); Many Worlds counter counts screen records only. Colours: each record in the colour of its first slit.
