@@ -1,5 +1,10 @@
 # Hydrogen Atom — changelog
 
+## 1.2.18 · 2026-11-19
+- Axes on/off moved to the tool buttons at the top right (new axes icon next to the distance scale); the Axes button in the Display tab is gone.
+- Removed the Stop button and the "Controls ↓" link under the canvas: Start/Stop is in the controls panel, and the link only jumped to it on narrow screens.
+- Shared media toolbar: optional axesControl ({ getVisible, setVisible }) adds the Axes button; other apps are unchanged.
+
 ## 1.2.17 · 2026-11-19
 Quiz rebuilt after a ten-student review of the quiz itself (all official answers were correct, but four of seven questions could reasonably be answered differently).
 - The guidance law is stated once under the title and in every pilot-wave question: standard law, no spin term (with the spin term, 2p_x electrons move).

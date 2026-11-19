@@ -1,10 +1,10 @@
 import '../../../shared/qontic-controls.js';
 import { mountQonticShell } from '../../../shared/qontic-shell.js';
-import { mountQonticMedia } from '../../../shared/qontic-media.js';
+import { mountQonticMedia } from '../../../shared/qontic-media.js?v=2';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=9';
-import { APP_RELEASE } from './release.js?v=1.2.17';
+import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=10';
+import { APP_RELEASE } from './release.js?v=1.2.18';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');
@@ -29,14 +29,10 @@ function updateHeaderHeight() {
 new ResizeObserver(updateHeaderHeight).observe(header);
 updateHeaderHeight();
 
-const stagePlay = document.getElementById('stagePlay');
 function setRunning(value) {
   hydrogenSimulation.setRunning(value);
   controls.setAttribute('running', String(value));
-  stagePlay.textContent = value ? 'Stop' : 'Start';
-  stagePlay.setAttribute('aria-pressed', String(value));
 }
-stagePlay.addEventListener('click', () => setRunning(!hydrogenSimulation.isRunning()));
 
 controls.addEventListener('qontic:start', () => setRunning(true));
 controls.addEventListener('qontic:stop', () => setRunning(false));
@@ -96,6 +92,7 @@ mountQonticMedia({
   scaleControl: scale,
   filename: 'hydrogen-atom',
   getShareUrl: () => hydrogenShareUrl(),
+  axesControl: { getVisible: () => showAxes, setVisible: visible => { if (visible !== showAxes) toggleAxes(); } },
   getCanvases: () => [canvas, scale.canvas],
   beginRecording() {
     const wasRunning = hydrogenSimulation.isRunning();

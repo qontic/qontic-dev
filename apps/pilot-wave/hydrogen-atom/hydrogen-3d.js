@@ -2669,6 +2669,7 @@ function runSweep() {
 
 function syncDisplayToggle(id,active){
   const button=document.getElementById(id);
+  if(!button) return;
   button.classList.toggle('active',active);
   button.setAttribute('aria-pressed',String(active));
 }

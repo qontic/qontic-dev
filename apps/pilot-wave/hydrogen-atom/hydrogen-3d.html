@@ -9,8 +9,8 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=9">
-  <link rel="stylesheet" href="hydrogen-template.css?v=16">
+  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=10">
+  <link rel="stylesheet" href="hydrogen-template.css?v=17">
 </head>
 
 <body>
@@ -194,8 +194,6 @@
           <span class="crow-val" id="vPS">3</span>
         </div>
         <div style="display:flex;gap:5px;margin-top:4px">
-          <button class="qontic-app-toggle" id="axesBtn" aria-pressed="false" onclick="toggleAxes()" title="Show x, y, z axes"
-            style="flex:1">Axes</button>
           <button class="qontic-app-toggle" id="insetBtn" aria-pressed="false" onclick="toggleInset()"
             title="Radial probability P(r) = r²|R_nl|²" style="flex:1">P(r)</button>
           <button class="qontic-app-toggle" id="projBtn" aria-pressed="false" onclick="toggleProjections()"
@@ -276,8 +274,6 @@
             </select>
           </div>
           <span id="camera-hint">Drag or use arrow keys to rotate. Use + or − to zoom.</span>
-          <button type="button" class="qontic-app-toggle hydrogen-stage-play" id="stagePlay" aria-pressed="true">Stop</button>
-          <a class="qontic-app-toggle hydrogen-controls-link" href="#sidebar">Controls ↓</a>
         </div>
       </section>
     </section>
@@ -380,7 +376,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=26"></script>
-  <script type="module" src="hydrogen-template.js?v=23"></script>
+  <script src="hydrogen-3d.js?v=27"></script>
+  <script type="module" src="hydrogen-template.js?v=24"></script>
 </body>
 </html>
