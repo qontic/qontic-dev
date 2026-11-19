@@ -217,6 +217,10 @@ const INITIAL_SPIN_NAMES = [
 
 let paused = false;
 let autoRun = true;
+// "pw": pilot wave (cloud and particles). "cpn": orthodox reading (cloud only, no particles).
+let reading = "pw";
+const dotsShown = () => reading === "pw" && params.showParticles;
+const trailsShown = () => reading === "pw" && params.showTrail;
 let rerunHoldStart = null;
 // Set inside a frame; the reset runs after that frame is submitted, so the frame
 // never refers to particle buffers that the reset destroys.
@@ -368,7 +372,7 @@ function addSectionHeader(label) {
   controls.appendChild(header);
 }
 
-addCycleButton("initialSpin", "Initial spin", INITIAL_SPIN_NAMES, () => resetAll());
+const initialSpinControl = addCycleButton("initialSpin", "Initial spin", INITIAL_SPIN_NAMES, () => resetAll());
 addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
 // Above ~3.5 the deflected branches reach the hard walls before the plate.
 addSlider("sgGradient", "Gradient strength", 0.0, 3.5, 0.002, () => requestTrailClear());
@@ -1440,7 +1444,7 @@ function rebuildParticles() {
 const hitDisplay = document.getElementById("plate-hits");
 function updateHitDisplay() {
   if (!hitDisplay) return;
-  hitDisplay.hidden = !params.showParticles || hitCounts.total <= 0;
+  hitDisplay.hidden = !dotsShown() || hitCounts.total <= 0;
   const { top, bottom, arrived, total } = hitCounts;
   hitDisplay.innerHTML = `<b>Dots at the plate</b><br>Upper half: ${top}<br>Lower half: ${bottom}<br>${arrived} of ${total} arrived`;
 }
@@ -1576,7 +1580,7 @@ function render(encoder, camera) {
     pass.draw(6, voxelCount);
   }
 
-  if (params.showTrail && densityRenderBindGroups.length) {
+  if (trailsShown() && densityRenderBindGroups.length) {
     pass.setPipeline(pipelineDensityRenderGlow);
     pass.setBindGroup(0, densityRenderBindGroups[densFlip]);
     pass.draw(3);
@@ -1607,7 +1611,7 @@ function render(encoder, camera) {
     pass.draw(fieldLineVertexCount);
   }
 
-  if (params.showParticles) {
+  if (dotsShown()) {
     pass.setPipeline(pipelineParticleRender);
     pass.setBindGroup(0, particleRenderBindGroups[particleFlip]);
     pass.draw(6, Math.floor(params.nParticles));
@@ -1623,10 +1627,18 @@ function guidingModeLabel() {
 const legendField = document.getElementById("legend-field");
 const legendCloud = document.getElementById("legend-cloud");
 const legendDots = document.getElementById("legend-dots");
+const legendCloudText = document.querySelector("#legend-cloud .legend-text");
+const legendPlateText = document.querySelector("#legend-plate .legend-text");
 function updateStats() {
   if (legendField) legendField.hidden = !(params.sgFieldOn && params.sgGradient > 0);
   if (legendCloud) legendCloud.hidden = !params.showCloud;
-  if (legendDots) legendDots.hidden = !params.showParticles;
+  if (legendDots) legendDots.hidden = !dotsShown();
+  if (legendCloudText) legendCloudText.textContent = reading === "pw"
+    ? "Cloud: |Ψ|², where the particle can be found."
+    : "Cloud: |Ψ|². In the orthodox reading it gives the probability of finding the particle at each place when its position is measured; the theory gives the particle no path.";
+  if (legendPlateText) legendPlateText.textContent = reading === "pw"
+    ? "Detector plate: a dot stops when it reaches it."
+    : "Detector plate: where the position is measured. The chance of a hit in the upper half is the weight of the upper branch.";
   const pPeriodic = effectivePeriodicP0();
   const lambda = pPeriodic > 1e-6 ? (2 * Math.PI * params.hbar / pPeriodic) : Infinity;
   const lambdaText = Number.isFinite(lambda) ? lambda.toFixed(1) : "inf";
@@ -1868,10 +1880,6 @@ async function main() {
   device.queue.submit([initialFrame.finish()]);
   await device.queue.onSubmittedWorkDone();
   if (!simulationAvailable) return;
-  // Open in the side view, where the splitting is seen directly.
-  selectOrthoView("XZ");
-  cameraOrbit.yaw = cameraTarget.yaw;
-  cameraOrbit.pitch = cameraTarget.pitch;
   drawViewGizmo();
   updateStats();
   status.hidden = true;
@@ -1917,7 +1925,7 @@ async function main() {
         simTime += params.dt;
       }
       compute.end();
-      if (params.showTrail) densityStepAndStamp(encoder, camera);
+      if (trailsShown()) densityStepAndStamp(encoder, camera);
       if (autoRun && simTime >= rerunTime()) {
         if (rerunHoldStart === null) rerunHoldStart = now;
         else if (now - rerunHoldStart >= RERUN_HOLD_MS) rerunPending = true;
@@ -1975,5 +1983,18 @@ export const simulation = {
   },
   reset() { if (simulationAvailable) resetAll(); },
   setAutoRun(value) { autoRun = Boolean(value); rerunHoldStart = null; },
+  getReading: () => reading,
+  setReading(value) {
+    reading = value === "cpn" ? "cpn" : "pw";
+    requestTrailClear();
+    updateStats();
+    updateHitDisplay();
+  },
+  // Used by the quiz: set the initial spin and restart the packet.
+  setInitialSpin(index) {
+    params.initialSpin = index ? 1 : 0;
+    initialSpinControl.sync();
+    if (simulationAvailable) resetAll();
+  },
   redraw: requestRedraw,
 };
