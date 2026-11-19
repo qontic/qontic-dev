@@ -1,0 +1,27 @@
+{
+  "id": "double-slit-numerical-n-slits-preview",
+  "title": "Double Slit · N Slits — Numerical (preview)",
+  "type": "app",
+  "category": "pilot-wave",
+  "module": "double-slit",
+  "topics": [
+    "wave-mechanics",
+    "interference",
+    "trajectories"
+  ],
+  "interpretations": [
+    "pilot-wave"
+  ],
+  "level": "intermediate",
+  "description": "Preview: numerical 2D Schrödinger wave and pilot-wave trajectories for 1–16 slits, with slits that open or close during a run (reflecting or absorbing shutter, finite closing time) and a view of the change the shutter causes. Requires WebGL2.",
+  "tags": [
+    "Pilot-wave",
+    "Double slit",
+    "N slits",
+    "Shutter",
+    "WebGL2"
+  ],
+  "gpu": true,
+  "entry": "index.html",
+  "status": "draft"
+}
