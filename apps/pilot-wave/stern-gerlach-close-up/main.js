@@ -1540,8 +1540,12 @@ function guidingModeLabel() {
 }
 
 const legendField = document.getElementById("legend-field");
+const legendCloud = document.getElementById("legend-cloud");
+const legendDots = document.getElementById("legend-dots");
 function updateStats() {
   if (legendField) legendField.hidden = !(params.sgFieldOn && params.sgGradient > 0);
+  if (legendCloud) legendCloud.hidden = !params.showCloud;
+  if (legendDots) legendDots.hidden = !params.showParticles;
   const pPeriodic = effectivePeriodicP0();
   const lambda = pPeriodic > 1e-6 ? (2 * Math.PI * params.hbar / pPeriodic) : Infinity;
   const lambdaText = Number.isFinite(lambda) ? fmt(lambda) : "inf";
