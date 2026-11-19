@@ -9,8 +9,8 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=2">
-  <link rel="stylesheet" href="hydrogen-template.css?v=10">
+  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=3">
+  <link rel="stylesheet" href="hydrogen-template.css?v=11">
 </head>
 
 <body>
@@ -76,7 +76,7 @@
           <input type=range id="sNP" min=1 max=50 value=12 step=1>
           <span class="crow-val" id="vNP">12</span>
         </div>
-        <p class="hydrogen-prompt">Each electron belongs to its own hydrogen atom, all prepared in the same state and drawn on top of one another. They do not interact. In an actual atom, one orbital holds at most two electrons.</p>
+        <p class="hydrogen-prompt">Each electron belongs to its own hydrogen atom, all prepared in the same state and drawn on top of one another. They do not interact. A real hydrogen atom has one electron; the dots are many separate atoms.</p>
       </div>
           </div>
           <div data-control-pane="advanced" hidden>
@@ -218,9 +218,9 @@
         <div class="stat-grid" id="stGrid">
           <div class="stat"><span class="stat-label" id="stELabel">Energy</span><span class="stat-val" id="stE">—</span></div>
           <div class="stat"><span class="stat-label">n, l, m</span><span class="stat-val" id="stNLM">—</span></div>
-          <div class="stat"><span class="stat-label">Spin</span><span class="stat-val" id="stSpin">Off</span></div>
+          <div class="stat"><span class="stat-label">Spin term</span><span class="stat-val" id="stSpin">Off</span></div>
           <div class="stat"><span class="stat-label" id="stNLabel" title="Number of electrons drawn, each from its own atom">Electrons shown</span><span class="stat-val" id="stN">—</span></div>
-          <div class="stat"><span class="stat-label">Sim time</span><span class="stat-val" id="stT">—</span></div>
+          <div class="stat"><span class="stat-label">Sim time (attoseconds)</span><span class="stat-val" id="stT">—</span></div>
           <div id="expertRows" style="display:contents">
             <div class="stat expert-stat"><span class="stat-label" title="⟨r⟩ summed over the rendering voxel grid; flagged when it differs from the exact value by more than 2%">⟨r⟩ voxel grid</span><span class="stat-val"
                 id="stRc">—</span></div>
@@ -284,8 +284,8 @@
             <h2>1 &mdash; What you are looking at</h2>
             <p>The density displays (Volume, Slices, Lobes, Cloud) show |ψ|&sup2; for the chosen hydrogen state.</p>
             <p>The moving dots and their trails show <em>pilot-wave (de Broglie&ndash;Bohm) theory</em>. Each dot is the electron of a separate hydrogen atom prepared in the same state. Its starting position is drawn at random from |ψ|&sup2;, and it then moves with the guidance velocity of section 3.</p>
-            <p>The density |ψ|&sup2; is the same in every formulation of quantum mechanics: it gives the probability of finding the electron in a region if its position is measured. The button next to Reset switches between two readings of the display. <b>Orthodox</b> shows only |ψ|&sup2;: the standard formalism assigns the electron no position between measurements, so there are no dots or trails, and the Cloud view shows possible outcomes of position measurements on many atoms. The probability current j = (ħ/m<sub>e</sub>) Im(ψ*&nabla;ψ) is also standard quantum mechanics (it circulates about z when m &ne; 0); reading it as the motion of an electron is the pilot-wave step. <b>Pilot Wave</b> adds the electrons and their trajectories. Many-worlds is not offered separately: with no measurement there are no branches, and its display would be the orthodox one. Switching does not reset the clock.</p>
-            <p>Units are atomic units (a&#x2080; = ħ = m<sub>e</sub> = e = 1): lengths in Bohr radii, a&#x2080; = 52.9&nbsp;pm; one atomic unit of time is 24.2&nbsp;as. The clock shows attoseconds.</p>
+            <p>The density |ψ|&sup2; is the same in every formulation of quantum mechanics: it gives the probability of finding the electron in a region if its position is measured. The button next to Reset switches between two readings of the display. <b>Orthodox</b> shows only |ψ|&sup2;: in the standard (Dirac&ndash;von Neumann) reading an electron has a definite position only when its position is measured, so there are no dots or trails, and the Cloud view shows possible outcomes of position measurements on many atoms. The probability current j = (ħ/m<sub>e</sub>) Im(ψ*&nabla;ψ) is also standard quantum mechanics (it circulates about z when m &ne; 0); reading j/|ψ|&sup2; as the velocity of an electron that always has a position is the pilot-wave step. <b>Pilot Wave</b> adds the electrons and their trajectories. No measurement takes place in this app, so the two readings agree on everything it shows. Many-worlds and spontaneous-collapse (GRW) theories are not offered separately: an isolated atom does not branch, and a GRW collapse of a single atom happens about once in 3&times;10<sup>8</sup> years (rate 10<sup>&minus;16</sup> s<sup>&minus;1</sup>, reference 10), so both would draw the same picture as Orthodox. They read it differently: in many-worlds |ψ|&sup2; gives the weights of the branches in a later measurement; in the mass-density version of GRW it is how the electron's matter is spread. Switching does not reset the clock.</p>
+            <p>Units are atomic units (a&#x2080; = ħ = m<sub>e</sub> = e = 1): lengths in Bohr radii, a&#x2080; = 52.9&nbsp;pm; one atomic unit of time is 24.2 attoseconds (as). The clock shows attoseconds; 1 fs = 1000 as.</p>
           </section>
 
           <section class="tp-sec">
@@ -299,17 +299,17 @@
               <tr><td>l</td><td>Angular</td><td>0 … n−1</td><td>Shape: s (sphere), p (two lobes for p₀, p<sub>x</sub>, p<sub>y</sub>; a ring for p₊₁, p₋₁), d, f…</td></tr>
               <tr><td>m</td><td>Magnetic</td><td>−l … +l</td><td>Orientation; ψ ∝ e<sup>imφ</sup>, angular momentum L<sub>z</sub> = mħ</td></tr>
             </table>
-            <p>R<sub>nl</sub> are the associated Laguerre radial functions and Y<sub>l</sub><sup>m</sup> the spherical harmonics (Condon&ndash;Shortley phase). An eigenstate has a stationary density. A superposition of states with different n has a density that beats at the frequency ΔE/ħ; for 1s + 2s or 1s + 2p<sub>0</sub> the period is 16.8 a.u. = 405 as.</p>
+            <p>R<sub>nl</sub> are the associated Laguerre radial functions and Y<sub>l</sub><sup>m</sup> the spherical harmonics (Condon&ndash;Shortley phase). An eigenstate has a stationary density. A superposition of states with different energies has a density that beats at the angular frequency ΔE/ħ (period 2πħ/ΔE); for 1s + 2s or 1s + 2p<sub>0</sub> the period is 16.8 a.u. = 405 as.</p>
           </section>
 
           <section class="tp-sec">
             <h2>3 &mdash; Pilot-wave (de Broglie&ndash;Bohm) guidance</h2>
             <p>In pilot-wave theory the electron has a definite position at all times. Its velocity is set by the wave function:</p>
             <div class="tp-eq"><b>v</b> = (ħ/m<sub>e</sub>) Im(&nabla;ψ / ψ)</div>
-            <p>In atomic units <b>v</b> = Im(&nabla;ψ/ψ). For m &ne; 0, ψ ∝ e<sup>imφ</sup> and the electron circles the z axis at speed v<sub>φ</sub> = m/(r sinθ), at fixed r and θ. For a real ψ (every m = 0 eigenstate, and real combinations such as p<sub>x</sub>) the velocity is zero: the electron stays where it is.</p>
-            <p>If the starting positions are distributed as |ψ|&sup2;, they stay distributed as |ψ|&sup2; at all later times (<em>equivariance</em>), because <b>v</b> = <b>j</b>/|ψ|&sup2; with <b>j</b> the probability current of the Schr&ouml;dinger equation. This is why pilot-wave theory gives the same position statistics as standard quantum mechanics.</p>
-            <h3>Why is the 1s electron at rest?</h3>
-            <p>Write ψ = R e<sup>iS/ħ</sup>. In pilot-wave theory the electron then feels, besides the Coulomb potential V, the <em>quantum potential</em> Q = −(ħ&sup2;/2m<sub>e</sub>) &nabla;&sup2;R / R. For 1s, R ∝ e<sup>−r</sup> gives Q = −1/2 + 1/r (a.u.), so Q + V = −1/2 = E everywhere: the two forces cancel and an electron at rest stays at rest. It does not fall into the proton.</p>
+            <p>In atomic units <b>v</b> = Im(&nabla;ψ/ψ). For m &ne; 0, ψ ∝ e<sup>imφ</sup> and the electron circles the z axis at speed v<sub>φ</sub> = m/(r sinθ), at fixed r and θ. For a real ψ (every m = 0 eigenstate, and real combinations such as p<sub>x</sub>) the velocity is zero: the electron stays where it is. (This holds for the standard guidance law; with the spin term of section 4 it moves.)</p>
+            <p>If the starting positions are distributed as |ψ|&sup2;, they stay distributed as |ψ|&sup2; at all later times (<em>equivariance</em>), because <b>v</b> = <b>j</b>/|ψ|&sup2; with <b>j</b> the probability current of the Schr&ouml;dinger equation. Given that starting distribution (the <em>quantum-equilibrium hypothesis</em>, which D&uuml;rr, Goldstein and Zangh&igrave; justify by a typicality argument, reference 3), pilot-wave theory gives the same position statistics as standard quantum mechanics.</p>
+            <h3>Why is the 1s electron at rest (standard guidance law)?</h3>
+            <p>In the first-order theory used here no force is needed: ψ is real, so v = 0. Bohm's original second-order formulation (reference 1) gives the same answer in terms of forces. Write ψ = R e<sup>iS/ħ</sup>. The electron then feels, besides the Coulomb potential V, the <em>quantum potential</em> Q = −(ħ&sup2;/2m<sub>e</sub>) &nabla;&sup2;R / R. For 1s, R ∝ e<sup>−r</sup> gives Q = −1/2 + 1/r (a.u.), so Q + V = −1/2 = E everywhere: the two forces cancel and an electron at rest stays at rest. It does not fall into the proton.</p>
             <p>For 1s, the mean kinetic energy ⟨p&sup2;⟩/2m<sub>e</sub> = 13.6 eV is what momentum measurements give. In pilot-wave theory a momentum measurement is an interaction that changes the guiding wave; its result is not the velocity the electron had before. The outcomes follow |ψ̃(p)|&sup2;, as in standard quantum mechanics.</p>
           </section>
 
@@ -341,10 +341,10 @@
             <ul class="tp-list">
               <li>Nonrelativistic hydrogen with a fixed proton. No fine structure, no electron&ndash;electron interaction.</li>
               <li>The model includes no coupling to the radiation field.</li>
-              <li>The app omits spin&ndash;orbit evolution; with spin&ndash;orbit coupling a general product state would evolve into a coupled one.</li>
+              <li>The app omits spin&ndash;orbit evolution; with spin&ndash;orbit coupling a general product state would evolve into a coupled one. The presets 1s&uarr; + 2p<sub>0</sub>&darr; and 2p<sub>+1</sub>&uarr; + 3d<sub>+1</sub>&darr; are therefore not stationary once fine structure is included.</li>
               <li>Eigenstates use the exact rotation about z. Superpositions and the spin term use fourth-order Runge&ndash;Kutta with finite-difference gradients (h = 0.07 a&#x2080;). Speeds above 25 a.u., which occur only very near nodes of ψ, are capped.</li>
               <li>Cloud samples are exact draws from |ψ|&sup2;. When the density changes in time the cloud is redrawn each frame, so its dots are not trajectories. With the spin term the cloud's dots follow trajectories (step 0.12 a.u.), and their number is limited to 500.</li>
-              <li>The Checks panel compares ⟨r⟩ summed over the rendering grid with the exact value ⟨r⟩ = (3n&sup2; − l(l+1))/2.</li>
+              <li>The Checks panel compares ⟨r⟩ summed over the rendering grid with the exact value ⟨r⟩ = (3n&sup2; − l(l+1))/2 for an eigenstate. In 1s + 2s, ⟨r⟩ oscillates in time (the 1s&ndash;2s cross term is nonzero); in 1s + 2p<sub>0</sub> it does not.</li>
             </ul>
           </section>
 
@@ -360,6 +360,7 @@
               <li>C. Colijn and E. R. Vrscay, &ldquo;Spin-dependent Bohm trajectories for Pauli and Dirac eigenstates of hydrogen,&rdquo; Found. Phys. Lett. <b>16</b>, 303&ndash;323 (2003), <a href="https://arxiv.org/abs/quant-ph/0304198" target="_blank" rel="noopener">arXiv:quant-ph/0304198</a>.</li>
               <li>P. R. Holland, <i>The Quantum Theory of Motion</i> (Cambridge University Press, 1993), ch. 9 (spin).</li>
               <li>D. Bohm and B. J. Hiley, <i>The Undivided Universe</i> (Routledge, 1993).</li>
+              <li>G. C. Ghirardi, A. Rimini and T. Weber, &ldquo;Unified dynamics for microscopic and macroscopic systems,&rdquo; Phys. Rev. D <b>34</b>, 470&ndash;491 (1986), doi:10.1103/PhysRevD.34.470.</li>
             </ol>
           </section>
       </div>
@@ -374,7 +375,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=20"></script>
-  <script type="module" src="hydrogen-template.js?v=17"></script>
+  <script src="hydrogen-3d.js?v=21"></script>
+  <script type="module" src="hydrogen-template.js?v=18"></script>
 </body>
 </html>

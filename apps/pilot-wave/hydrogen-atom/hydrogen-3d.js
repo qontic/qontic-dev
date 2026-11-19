@@ -378,7 +378,7 @@ function fmtM(m){return m>0?'+'+m:m<0?'−'+(-m):'0';}
 function exactR(n,l){return 0.5*(3*n*n-l*(l+1));}
 
 const INFO={
-  '1s':'Ground state. ψ is real, so the pilot-wave velocity Im(∇ψ/ψ) is zero: each electron stays where it is. Most probable radius 1 a₀.',
+  '1s':'Ground state. ψ is real, so with the standard guidance law the pilot-wave velocity Im(∇ψ/ψ) is zero: each electron stays where it is (Physics § 4: with the spin term it moves). Most probable radius 1 a₀.',
   '2s':'Two radial shells, node at r = 2 a₀. ψ is real: zero pilot-wave velocity.',
   '2p₀':'Dumbbell along z (the chemists’ 2p_z), nodal plane at z = 0. ψ is real: zero pilot-wave velocity.',
   '2p₊₁':'m = +1, ψ ∝ exp(+iφ). In pilot-wave theory the electron circles the z axis anticlockwise at vᵩ = 1/(r sinθ) a.u., at fixed height and radius.',
@@ -1982,7 +1982,7 @@ function renderFrame(){
   document.getElementById('stNLM').textContent=comps.map(c=>`${c.n}, ${c.l}, ${fmtM(c.m)}`).join(' + ');
   document.getElementById('stN').textContent=interp==='pw'||showCloud?particles.length:'—';
   document.getElementById('stNLabel').textContent=showCloud?'Samples':'Electrons shown';
-  document.getElementById('stT').textContent=(t*24.1888).toFixed(0)+' as';
+  document.getElementById('stT').textContent=(t*24.1888).toFixed(0);
 }
 
 // Numerical normalization check: ∫₀^∞ r² |R_nl(r)|² dr should = 1
@@ -3037,10 +3037,10 @@ const SUPER_DESC={
     dyz:'3d_yz: four lobes in the yz plane, a real combination of m = ±1. The pilot-wave velocity is zero.',
     dx2y2:'3d_x²−y²: four lobes along the x and y axes, a real combination of m = ±2. The pilot-wave velocity is zero; in 3d₊₂ the electrons circulate.',
     dxy:'3d_xy: four lobes between the x and y axes, a real combination of m = ±2. The pilot-wave velocity is zero.',
-    ss:'1s + 2s: the density breathes radially. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as. In pilot-wave theory the electrons move in and out along radii. Volume view shows the breathing best.',
-    sp:'1s + 2p₀: the density sloshes up and down the z axis; ⟨r⟩ stays the same. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as.',
-    pd:'2p₀ + 3d₀: slower beating along z. ΔE = 5/72 a.u., period 90.5 a.u. ≈ 2.2 fs.',
-    circ:'2p₊₁ + 3d₊₁: a ring of density that sloshes above and below the xy plane with period 90.5 a.u. ≈ 2.2 fs; its radius stays the same. Both states have m = +1, so in pilot-wave theory the electrons also circle z.',
+    ss:'1s + 2s: the density breathes radially. ΔE = 3/8 a.u., period 16.8 atomic units ≈ 405 attoseconds. In pilot-wave theory the electrons move in and out along radii. Volume view shows the breathing best.',
+    sp:'1s + 2p₀: the density sloshes up and down the z axis; ⟨r⟩ stays the same. ΔE = 3/8 a.u., period 16.8 atomic units ≈ 405 attoseconds.',
+    pd:'2p₀ + 3d₀: slower beating along z. ΔE = 5/72 a.u., period 90.5 atomic units ≈ 2.2 femtoseconds.',
+    circ:'2p₊₁ + 3d₊₁: a ring of density that sloshes above and below the xy plane with period 90.5 atomic units ≈ 2.2 femtoseconds; its radius stays the same. Both states have m = +1, so in pilot-wave theory the electrons also circle z.',
     spin_ss:'1s↑ + 2s↓: the spin channels add without interference, so |ψ|² is stationary. With the Pauli spin term in the guidance law the electrons still move, because the spin density S has a nonzero curl.',
     spin_sp:'1s↑ + 2p₀↓: stationary |ψ|², symmetric about the xy plane. With the Pauli spin term the electrons still move.',
     spin_circ:'2p₊₁↑ + 3d₊₁↓: stationary |ψ|², ring-shaped. With the Pauli spin term the electrons circulate with a time-dependent speed.',
@@ -3105,7 +3105,7 @@ function updateCaption(){
     text=showCloud
       ? 'Orthodox: each sphere is one possible outcome of a position measurement on one of many atoms prepared in this state. No position is assigned between measurements.'
       : 'Orthodox: the display is |ψ|², the probability of finding the electron in a region if its position is measured. No position or path is assigned between measurements.';
-    text+=' The probability current j = (ħ/mₑ) Im(ψ*∇ψ) is standard too; reading it as electron motion is the pilot-wave step.';
+    if(!spin&&comps.some(c=>c.m!==0)&&!psiRealUpToPhase()) text+=' The probability current j = (ħ/mₑ) Im(ψ*∇ψ) circulates about z; it is standard too. Reading j/|ψ|² as the velocity of an electron that always has a position is the pilot-wave step.';
     if(evolving) text+=' The density itself changes in time.';
     el.textContent=text;
     return;
@@ -3123,7 +3123,7 @@ function updateCaption(){
     text='Pilot wave: each dot is the electron of a separate atom, started at a position drawn from |ψ|²; trails are their paths.';
     if(spin&&spinTerm) text+=' The spin term is on, so the electrons move even where |ψ|² does not change.';
     else if(spin) text+=' Spin term off: the same spinor, guided by the convective current Im(Ψ†∇Ψ)/ρ only.';
-    else if(psiRealUpToPhase()) text+=' ψ is real here, so the guidance velocity is zero and the electrons stay put (Physics § 3 explains why).';
+    else if(psiRealUpToPhase()) text+=' ψ is real here, so with the standard guidance law the velocity is zero and the electrons stay put (Physics § 3; § 4 for the spin term).';
   }
   el.textContent=text;
 }
@@ -3148,7 +3148,9 @@ function updateInfo(){
     ? document.getElementById('jStateSel').selectedOptions[0]?.textContent
     : `|${o.n}, ${o.l}, ${fmtM(o.m)}⟩`;
   if(predictPending){document.getElementById('infoDesc').textContent='Make your prediction first.';updateCaption();return;}
-  document.getElementById('infoDesc').textContent=forReading(spinEnabled
+  document.getElementById('infoDesc').textContent=(spinEnabled&&interp!=='pw')
+    ? 'Spinor state: the density shown is |ψ↑|² + |ψ↓|².'
+    : forReading(spinEnabled
     ? (spinTerm?'Pilot-wave guidance includes the Pauli spin term.':'Spinor state; pilot-wave guidance without the spin term.')
     : INFO[o.label]||'');
   updateCaption();

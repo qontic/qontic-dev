@@ -1,5 +1,16 @@
 # Hydrogen Atom — changelog
 
+## 1.2.12 · 2026-11-19
+Wording from the ten-student review (no change to the controls).
+- "At rest" qualified everywhere it appears (1s description, caption, Physics § 3 heading and text, Quiz question 1): it holds for the standard guidance law; with the spin term of § 4 the electron moves.
+- Physics § 3: equivariance needs the quantum-equilibrium hypothesis (|ψ|²-distributed starting positions; Dürr–Goldstein–Zanghì's typicality argument). The quantum-potential paragraph is introduced as Bohm's second-order formulation; in the first-order theory used here v = 0 follows from ψ being real.
+- Physics § 1: Orthodox defined (Dirac–von Neumann: a definite position only when measured); no measurement takes place, so both readings agree on everything shown. Many-worlds and GRW: why they are not offered separately and how each reads |ψ|² (GRW 1986 added as reference 10).
+- Probability current: "reading j/|ψ|² as the velocity of an electron that always has a position is the pilot-wave step"; the caption shows it only when j ≠ 0.
+- Orthodox with spin: the state description no longer goes blank.
+- Electrons note: "A real hydrogen atom has one electron; the dots are many separate atoms."
+- Units: "attoseconds"/"femtoseconds"/"atomic units" written out in captions and quiz; "Sim time (attoseconds)". Stat row "Spin" renamed "Spin term".
+- § 2: "angular frequency ΔE/ħ (period 2πħ/ΔE)", "different energies". § 6: ⟨r⟩ oscillates in 1s + 2s, not in 1s + 2p₀; the spin presets with 2p₀↓ or 3d₊₁↓ are not stationary once fine structure is included.
+
 ## 1.2.11 · 2026-11-19
 Fixes from the ten-student review (no change to the controls).
 - Quiz: preparing a question now returns fully to the spinless state and the standard guidance law. Opening the quiz from a spin preset or j-state no longer shows circling electrons for the 1s question.

@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=2';
-import { APP_RELEASE } from './release.js?v=1.2.11';
+import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=3';
+import { APP_RELEASE } from './release.js?v=1.2.12';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');
@@ -161,10 +161,10 @@ mountQonticQuiz({
     { id: 'swing', label: 'They swing along z' },
   ],
   questions: [
-    { question: 'The 1s ground state (no spin). In pilot-wave theory, how do the electrons move?',
+    { question: 'The 1s ground state, with the standard guidance law (no spin term). In pilot-wave theory, how do the electrons move?',
       answer: 'still', caption: '1s: |ψ|² in the xz plane.',
       prepare: prepare(() => selectPureOrbital(0)), draw: c => drawDensity(c, 'xz'),
-      explain: 'ψ is real, so the guidance velocity Im(∇ψ/ψ) is zero everywhere: each electron stays where it started. The quantum potential cancels the Coulomb force (Physics § 3).' },
+      explain: 'ψ is real, so the guidance velocity Im(∇ψ/ψ) is zero everywhere: each electron stays where it started. (With the spin term of Physics § 4 it would move; the statistics are the same.)' },
     { question: 'The 2p₊₁ state, whose |ψ|² is a ring around the z axis. In pilot-wave theory, how do the electrons move?',
       answer: 'circle', caption: '2p₊₁: |ψ|² in the xy plane (the z axis points out of the page).',
       prepare: prepare(() => selectPureOrbital(3)), draw: c => drawDensity(c, 'xy'),
@@ -172,7 +172,7 @@ mountQonticQuiz({
     { question: 'The superposition 1s + 2p₀ of two energies. In pilot-wave theory, how do the electrons move?',
       answer: 'swing', caption: '1s + 2p₀: |ψ|² in the xz plane at t = 0.',
       prepare: prepare(() => document.getElementById('beatPreset').click()), draw: c => drawDensity(c, 'xz'),
-      explain: 'The density sloshes up and down z every 405 as, and the electrons ride with it, so their distribution stays |ψ|². Nothing circles: both states have m = 0.' },
+      explain: 'The density sloshes up and down z every 405 attoseconds, and the electrons ride with it, so their distribution stays |ψ|². Nothing circles: both states have m = 0.' },
   ],
   onWatch: () => setRunning(true),
 });
