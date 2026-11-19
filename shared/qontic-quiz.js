@@ -25,13 +25,16 @@
 //   score,            // optional: show the running score in the step line and a final
 //                     //   "k of n right" line after the last question (default false)
 //   shareLink,        // optional: a "Copy link to this question" button (default false)
+//   intro,            // optional: one line shown under the title (e.g. the assumptions all questions share)
 // })
+// Per question, optionally: drawAfterAnswer: true (the picture appears only after an answer,
+// for questions the picture would answer) and watch: false (no "Watch it in the simulation").
 // prepare() sets the app state for the question (paused); draw(canvas) paints the still
 // picture onto a 360 × 360 canvas. Returns { show(index), get index() }.
 
 export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · predict before you watch',
   answers: defaultAnswers = [], questions, onWatch = () => {}, param = 'quiz', shuffle = false, score = false,
-  shareLink = false }) {
+  shareLink = false, intro = '' }) {
   panel.classList.add('qontic-panel', 'qontic-quiz');
   panel.innerHTML = `
     <div class="qontic-quiz-layout">
@@ -41,8 +44,9 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
       </figure>
       <div class="qontic-quiz-body">
         <p class="qontic-quiz-title"></p>
+        <p class="qontic-quiz-intro" hidden></p>
         <p class="qontic-quiz-step"></p>
-        <p class="qontic-quiz-question"></p>
+        <p class="qontic-quiz-question" tabindex="-1"></p>
         <div class="qontic-app-toggle-group qontic-quiz-answers"></div>
         <div class="qontic-quiz-feedback" role="status" tabindex="-1"></div>
         <div class="qontic-quiz-actions">
@@ -57,6 +61,18 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
   const watch = $('[data-quiz="watch"]'), next = $('[data-quiz="next"]'), link = $('[data-quiz="link"]');
   link.hidden = !shareLink;
   $('.qontic-quiz-title').textContent = title;
+  if (intro) { $('.qontic-quiz-intro').textContent = intro; $('.qontic-quiz-intro').hidden = false; }
+  function placeholder() {
+    const g = canvas.getContext('2d');
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    g.fillStyle = getComputedStyle(panel).color || '#a8bdc9';
+    g.globalAlpha = 0.6;
+    g.font = '15px Inter, system-ui, sans-serif';
+    g.textAlign = 'center';
+    g.fillText('The picture appears after you answer.', canvas.width / 2, canvas.height / 2);
+    g.globalAlpha = 1;
+    g.textAlign = 'start';
+  }
   let index = 0, answered = false;
   const results = new Map(); // question index → answered correctly (first answer only)
   const stepText = () => `Question ${index + 1} of ${questions.length}` + (score && results.size ? ` · score ${[...results.values()].filter(Boolean).length} / ${results.size}` : '');
@@ -84,7 +100,7 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
       b.addEventListener('click', () => choose(id, b));
       return b;
     }));
-    q.draw?.(canvas);
+    if (q.drawAfterAnswer) placeholder(); else q.draw?.(canvas);
   }
 
   function choose(id, button) {
@@ -110,7 +126,8 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
       return p;
     }));
     feedback.focus({ preventScroll: true });
-    watch.hidden = false;
+    if (q.drawAfterAnswer) q.draw?.(canvas);
+    watch.hidden = q.watch === false;
     next.hidden = false;
     next.textContent = index + 1 < questions.length ? 'Next question' : 'Start again';
     simulationTab.disabled = false;
@@ -125,7 +142,7 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
   }
   watch.addEventListener('click', () => { simulationTab.click(); onWatch(questions[index]); });
   simulationTab.addEventListener('click', dropParam);
-  next.addEventListener('click', () => show(index + 1));
+  next.addEventListener('click', () => { show(index + 1); $('.qontic-quiz-question').focus({ preventScroll: true }); });
   tab.addEventListener('click', () => { if (!answered) show(index); });
   link.addEventListener('click', async () => {
     const url = new URL(location.href);

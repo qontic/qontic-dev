@@ -1,5 +1,16 @@
 # Hydrogen Atom — changelog
 
+## 1.2.17 · 2026-11-19
+Quiz rebuilt after a ten-student review of the quiz itself (all official answers were correct, but four of seven questions could reasonably be answered differently).
+- The guidance law is stated once under the title and in every pilot-wave question: standard law, no spin term (with the spin term, 2p_x electrons move).
+- Each question has its own answers, including real misconceptions (2p_x: "swing from one lobe to the other"; 1s: "jiggle at random"; 2p₊₁: clockwise vs anticlockwise); stems no longer give the answer away ("ring", "real", "of two energies" removed).
+- 1s + 2p₀: "They move back and forth, mostly along z, without circling"; the feedback says the paths are closed, curved, in planes containing z, and mostly do not cross the nucleus (checked by integrating trajectories).
+- 3s nodes: the picture appears only after the answer.
+- Orthodox question rebuilt: four equal-length options (probability current as motion; charge cloud; definite but unknown position; only measurement probabilities); feedback "the orthodox reading assigns no position between measurements" and names where each wrong option comes from. No Watch button.
+- New question 8: what all readings agree on for 1s + 2p₀ (|ψ|² sloshes every 405 as; no quantum jumps).
+- Fixes: answers wrap on phones (the long option made the page 541 px wide on a 390 px screen); keyboard focus moves to the next question; "Simulation → Display"; "the wave does not change" and "the electrons ride along" reworded.
+- Shared quiz module: optional intro line, per-question drawAfterAnswer and watch: false, focus on Next, wrapping answers.
+
 ## 1.2.16 · 2026-11-19
 Accessibility and phones, from the ten-student review (no new controls).
 - Contrast: small text now meets 4.5:1 in both themes (section labels, slider labels and values, footer in the light theme; section labels in the dark theme). Shared controls: in the light theme the Orthodox/Pilot Wave button text and the auto-rerun ↻ are darker (affects every app's light theme, for the better).
