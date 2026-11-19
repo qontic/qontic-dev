@@ -1,3 +1,9 @@
+## 3.0-dev.16 — 2026-11-19
+- Quiz tab (between Simulation and Physics), with the shared quiz module used by the Hydrogen app. Six questions, each with a still schematic of the apparatus drawn by the app so the simulation does not give the answer away: (1) Pilot Wave, three slits, which slit for a hit near the top; (2) detector on one of four slits; (3) detectors on all four; (4) Orthodox, which slit for a hit in the central fringe (no slit assigned without a measurement at the slits); (5) Pilot Wave, closing a slit after the packet has passed (empty wave); (6) Many Worlds, what a detector at one slit does. Each question sets the app (paused); "Watch it in the simulation" starts it. ?quiz=1 opens on the Quiz tab with the Simulation tab locked until the first answer.
+- Facts behind the questions checked against the model: slit bands in order from the top (slitBands); densities with detectors (n-slit tests). A question on 2 → 8 slits was dropped: within the 3000 nm screen-distance limit the 8-slit pattern is near-field, not the textbook narrowing.
+- Shared module (shared/qontic-quiz.js): two opt-in options, shuffle (random answer order) and score (running score after each first answer). Both default off; the Hydrogen quiz is unchanged (checked).
+- The legacy global rule canvas{position:absolute} is overridden inside the quiz panel.
+
 ## 3.0-dev.15 — 2026-11-19
 Pablo's requests of 2026-11-19.
 - Which-slit detectors at any set of slits. Each slit button cycles open → closed → open with a detector (D). Closing stays one click, so a slit can still be closed mid-packet without resetting the run; adding or removing a detector starts a new run, as before.

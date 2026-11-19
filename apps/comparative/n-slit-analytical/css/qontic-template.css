@@ -440,3 +440,7 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 .analytical-template #niceFringesButton { width: 100%; }
 .analytical-template .nice-fringes-status { margin: 0; font-size: 12px; line-height: 1.4; opacity: .85; }
 .analytical-template .nice-fringes-status:empty { display: none; }
+
+/* Quiz tab: the legacy global canvas rule (qsf-style.css: absolute) must not apply to the quiz picture. */
+.analytical-template #quiz-panel canvas { position: static; width: 100%; height: auto; }
+.analytical-template #quiz-panel { padding: 16px 0; }

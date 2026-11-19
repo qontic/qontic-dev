@@ -1,10 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=nslit16';
-import { mountMWBranching } from './mw-branching.js?cache=nslit16';
-import { APP_RELEASE } from './release.js?cache=nslit16';
+import { mountPacketEngine } from './packet-engine.js?cache=nslit17';
+import { mountMWBranching } from './mw-branching.js?cache=nslit17';
+import { APP_RELEASE } from './release.js?cache=nslit17';
+import { mountNSlitQuiz } from './quiz.js?cache=nslit17';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=nslit16';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=nslit17';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.1';
@@ -15,9 +16,10 @@ $(function () {
   shell.className = 'shell analytical-shell';
   shell.innerHTML = `<header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Double Slit · N Slits</h1></div></header>
     <nav class="tabs" aria-label="Application sections">
-      <button type="button" data-page="0" class="active">Simulation</button>
-      <button type="button" data-page="1">Physics</button>
-      <button type="button" data-page="2">Views</button>
+      <button type="button" data-page="0" data-view="simulation" class="active">Simulation</button>
+      <button type="button" data-page="1" data-view="quiz">Quiz</button>
+      <button type="button" data-page="2">Physics</button>
+      <button type="button" data-page="3">Views</button>
     </nav>`;
   const root = document.getElementById('superContainer');
   root.before(shell);
@@ -27,6 +29,9 @@ $(function () {
   root.append(math);
   document.querySelector('#superContainer > ul a[href="#rationale"]')?.closest('li').remove();
   document.getElementById('rationale')?.remove();
+  // Quiz panel (shared module), between Simulation and Physics.
+  const quizPanel=document.createElement('section');quizPanel.id='quiz-panel';quizPanel.setAttribute('aria-label','Quiz');root.append(quizPanel);
+  $('#superContainer > ul').append('<li><a href="#quiz-panel">Quiz</a></li>');
   $('#superContainer > ul').append('<li><a href="#math-container">Physics</a></li>');
   const views=document.createElement('div');views.id='rationale';root.append(views);
   $('#superContainer > ul').append('<li><a href="#rationale">Views</a></li>');
@@ -49,6 +54,7 @@ $(function () {
     showPage(Number(button.dataset.page));
   }));
   $('#superContainer').on('tabsactivate', syncPage);
+  $('#superContainer').on('tabsactivate', () => { document.body.dataset.view = $('#superContainer').tabs('option', 'active') === 1 ? 'quiz' : ''; });
   // Handle these links directly: the outer jQuery tabs widget can consume
   // their hash-link click before the legacy document-level handler sees it.
   root.querySelectorAll('.view-link').forEach(link => link.addEventListener('click', event => {
@@ -441,6 +447,8 @@ $(function () {
   mountExpandedResize({container,storageKey:'qontic-double-slit-expanded-size'});
   renderSetupFlag=1;window.qonticScaleOverlay.update();if(!isAnimating)drawSystem(currentCycleIndex);
   window.qonticPacketEngine=mountPacketEngine({core,advanced});
+  // Quiz after the engine exists: with ?quiz=1 the first question is prepared at once.
+  mountNSlitQuiz({ panel: quizPanel, tab: shell.querySelector('[data-view="quiz"]'), simulationTab: shell.querySelector('[data-view="simulation"]') });
   mountQonticShortcuts({
     togglePlayback:()=>document.getElementById('startButton').click(),
     reset:()=>document.getElementById('resetButton').click(),

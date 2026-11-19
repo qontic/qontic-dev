@@ -16,12 +16,14 @@
 //   questions,        // [{ question, answer, explain, caption?, answers?, prepare(), draw(canvas) }]
 //   onWatch,          // called after switching to the simulation (e.g. start running)
 //   param,            // URL parameter that enables quiz-first mode, default 'quiz'
+//   shuffle,          // optional: show the answers in a random order (default false)
+//   score,            // optional: show the running score in the step line (default false)
 // })
 // prepare() sets the app state for the question (paused); draw(canvas) paints the still
 // picture onto a 360 × 360 canvas. Returns { show(index), get index() }.
 
 export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · predict before you watch',
-  answers: defaultAnswers = [], questions, onWatch = () => {}, param = 'quiz' }) {
+  answers: defaultAnswers = [], questions, onWatch = () => {}, param = 'quiz', shuffle = false, score = false }) {
   panel.classList.add('qontic-panel', 'qontic-quiz');
   panel.innerHTML = `
     <div class="qontic-quiz-layout">
@@ -46,20 +48,24 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
   const watch = $('[data-quiz="watch"]'), next = $('[data-quiz="next"]');
   $('.qontic-quiz-title').textContent = title;
   let index = 0, answered = false;
+  const results = new Map(); // question index → answered correctly (first answer only)
+  const stepText = () => `Question ${index + 1} of ${questions.length}` + (score && results.size ? ` · score ${[...results.values()].filter(Boolean).length} / ${results.size}` : '');
 
   function show(i) {
     index = ((i % questions.length) + questions.length) % questions.length;
     answered = false;
     const q = questions[index];
     q.prepare?.();
-    $('.qontic-quiz-step').textContent = `Question ${index + 1} of ${questions.length}`;
+    $('.qontic-quiz-step').textContent = stepText();
     $('.qontic-quiz-question').textContent = q.question;
     $('figcaption').textContent = q.caption || '';
     feedback.textContent = '';
     watch.hidden = true;
     next.hidden = true;
     const box = $('.qontic-quiz-answers');
-    box.replaceChildren(...(q.answers || defaultAnswers).map(({ id, label }) => {
+    const list = [...(q.answers || defaultAnswers)];
+    if (shuffle) for (let k = list.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [list[k], list[r]] = [list[r], list[k]]; }
+    box.replaceChildren(...list.map(({ id, label }) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'qontic-app-toggle';
@@ -79,6 +85,8 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
       b.setAttribute('aria-pressed', String(b === button));
       b.disabled = true;
     }
+    if (!results.has(index)) results.set(index, id === q.answer);
+    if (score) $('.qontic-quiz-step').textContent = stepText();
     feedback.textContent = `${id === q.answer ? 'Yes.' : 'Not quite.'} ${q.explain}`;
     watch.hidden = false;
     next.hidden = false;
