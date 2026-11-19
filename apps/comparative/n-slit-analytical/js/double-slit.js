@@ -1304,7 +1304,7 @@ function updateModeExplanation() {
    const descriptions = {
       copenhagen: 'Orthodox: the wave gives outcome probabilities; individual screen detections are sampled. No path between preparation and detection is assigned.',
       bohmian: 'Pilot-Wave: particles have definite positions guided by the wave. Positions are sampled at the Gaussian source and propagated forward; screen crossings generate hits.',
-      manyworlds: 'Many-Worlds: the wave evolves without collapse. The curve represents outcome weights; dots follow one sampled branch. The finite display branches over screen pixels conditional on detection; absorption and missed-screen records are not expanded.'
+      manyworlds: 'Many-Worlds: the wave evolves without collapse. The curve represents outcome weights; the hit markers on the histogram are the record of one sampled branch. The finite display branches over screen pixels conditional on detection; absorption and missed-screen records are not expanded.'
    };
    $('#modeExplanation').text(descriptions[interpretation]);
    $('#recordMeaning').text(interpretation === 'manyworlds'

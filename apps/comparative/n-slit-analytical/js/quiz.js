@@ -62,6 +62,14 @@ function drawSetup(canvas, slits, { hitY = null, packet = false, shutter = null 
   }
 }
 
+// The colour selector is attached to the page a little after the engine starts;
+// with ?quiz=1 the first question is prepared before that, so wait for it.
+function setColor(color, tries = 60) {
+  const select = document.getElementById('packet-particle-color');
+  if (!select) { if (tries > 0) setTimeout(() => setColor(color, tries - 1), 50); return; }
+  if (select.value !== color) { select.value = color; select.dispatchEvent(new Event('change', { bubbles: true })); }
+}
+
 function isRunning() { return typeof isAnimating !== 'undefined' && isAnimating; }
 
 // Put the app in the question's configuration, paused and reset.
@@ -74,7 +82,7 @@ function setTo({ view, slits, color = null }) {
     slitOpen[k] = s === undefined || s !== 'closed';
     slitDetector[k] = s === 'detector';
   }
-  if (color) { const select = document.getElementById('packet-particle-color'); if (select && select.value !== color) { select.value = color; select.dispatchEvent(new Event('change', { bubbles: true })); } }
+  if (color) setColor(color);
   slitConfigurationChanged();
   window.qonticPacketEngine?.setWhichPath?.(whichPathDetector);
 }
@@ -139,7 +147,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
         { id: 'stop', label: 'Stop where they are' },
       ],
       answer: 'keep',
-      explain: 'The part of the wave that came through the lower slit is already past the wall. Closing the slit cannot remove it, and it keeps guiding the particles. For the particles that used the upper slit it is an empty wave. Only the part of the packet that crosses the wall after the click sees one slit. Try it: press Start, and close slit 2 when the packet reaches the wall.',
+      explain: 'The part of the wave that came through the lower slit is already past the wall. Closing the slit cannot remove it, and it keeps guiding the particles. For the particles that used the upper slit it is an empty wave. Only the part of the packet that crosses the wall after the click sees one slit. Try it: the run starts when you watch; click slit 2 to close it when the packet reaches the wall (lower the Speed to make this easier).',
       prepare: () => setTo({ view: 'bohmian', slits: ['open', 'open'], color: 'slit' }),
       draw: c => drawSetup(c, ['open', 'open'], { packet: true, shutter: 1 }),
     },

@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit17';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit17';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit17';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit17';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit17';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit17';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit17';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit17';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit18';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit18';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit18';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit18';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit18';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit18';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit18';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit18';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -13,7 +13,7 @@ export function mountPacketEngine({core,advanced}){
  const [sourceWidth,length,width]=panel.querySelectorAll('input[type=range],input[type=checkbox]');
  const extent=panel.querySelector('#packet-slit-extent');
  const extentRow=extent.closest('.packet-inline');
- const balanceRow=document.createElement('div');balanceRow.className='input-group packet-inline packet-balance';balanceRow.innerHTML='<label for="packet-slit-balance" title="Expert control: attenuate either slit while leaving the other at full field amplitude.">Slit balance</label><input id="packet-slit-balance" aria-label="Relative slit transmission" type="range" min="-100" max="100" step="5" value="0"><button type="button" class="packet-balance-equal" aria-label="Set equal slit transmission" title="Set equal slit transmission">=</button><output>Equal</output>';
+ const balanceRow=document.createElement('div');balanceRow.className='input-group packet-inline packet-balance';balanceRow.innerHTML='<label for="packet-slit-balance" title="Expert control, exactly two open slits: attenuate one of them while leaving the other at full field amplitude.">Slit balance</label><input id="packet-slit-balance" aria-label="Relative slit transmission" type="range" min="-100" max="100" step="5" value="0"><button type="button" class="packet-balance-equal" aria-label="Set equal slit transmission" title="Set equal slit transmission">=</button><output>Equal</output>';
  extentRow.after(balanceRow);
  const balance=balanceRow.querySelector('input'),balanceEqual=balanceRow.querySelector('button'),balanceOutput=balanceRow.querySelector('output');
  const syncBalance=()=>{const value=+balance.value;balanceOutput.textContent=value===0?'Equal':value===100?'Upper only':value===-100?'Lower only':`${value>0?'Upper':'Lower'} ${Math.round(100/(1+(1-Math.abs(value)/100)**2))}%`;};
@@ -111,7 +111,8 @@ export function mountPacketEngine({core,advanced}){
  function syncWhichPathButton(){
   const button=document.getElementById('toggleWhichPath');if(!button)return;
   button.disabled=(p?.centers.length??0)<2;
-  button.title=button.disabled?'Open at least two slits to use the which-slit detector.':numSlits===2?'Cycle the ideal which-slit detector: none, upper slit, or lower slit. The two detector-tagged waves add incoherently.':'Cycle the ideal which-slit detector through the open slits. It records "this slit" or "another slit"; those two waves add incoherently, while the other slits stay coherent with each other.';
+  // The current behaviour is described by data-tip (double-slit.js); no native title, so no second tooltip.
+  button.removeAttribute('title');if(button.disabled)button.title='Open at least two slits to use a which-slit detector.';
  }
  // Pilot-wave screen bands. Coherent trajectories cannot cross, so each keeps the
  // fraction of the probability above it: slit k (weight p_k, cumulative P_k from
@@ -220,7 +221,7 @@ export function mountPacketEngine({core,advanced}){
  }
  function ensure(){syncSlowPacketMode();const next=config();if(configFingerprint(next)!==fingerprint)resetEngine();else p.particles=next.particles;}
  function updateMath(){
-  packetMath.innerHTML=physicsHTML+nSlitPhysicsHTML+'<h3>Direct-PW preparation</h3><p>Direct PW samples transmitted configurations within a fixed ±3σₐ window around each Gaussian aperture, independently of the displayed Slit extent. This window contains 99.73% of an isolated Gaussian profile. The green comparison curve remains the common analytical Gaussian-wave prediction rather than introducing a hard finite-core cut.</p><h3>Unequal slit transmission</h3><p>The expert “Slit balance” control multiplies the upper and lower aperture amplitudes by factors a₁ and a₂ between zero and one. One slit remains fully open while the other is attenuated; “Upper only” or “Lower only” sets the opposite factor to zero. The analytical Gaussian propagation is unchanged: only the corresponding closed-form component coefficients change. Unequal amplitudes reduce fringe visibility and break the reflection symmetry of the Pilot-Wave velocity field.</p>'+whichPathPhysicsHTML;
+  packetMath.innerHTML=physicsHTML+nSlitPhysicsHTML+'<h3>Direct-PW preparation</h3><p>Direct PW samples transmitted configurations within a fixed ±3σₐ window around each Gaussian aperture, independently of the displayed Slit extent. This window contains 99.73% of an isolated Gaussian profile. The green comparison curve remains the common analytical Gaussian-wave prediction rather than introducing a hard finite-core cut.</p><h3>Unequal slit transmission</h3><p>The expert “Slit balance” control works only when exactly two slits are open (it is disabled otherwise). It multiplies the upper and lower open apertures' amplitudes by factors a₁ and a₂ between zero and one. One slit remains fully open while the other is attenuated; “Upper only” or “Lower only” sets the opposite factor to zero. The analytical Gaussian propagation is unchanged: only the corresponding closed-form component coefficients change. Unequal amplitudes reduce fringe visibility and break the reflection symmetry of the Pilot-Wave velocity field.</p>'+whichPathPhysicsHTML;
   math.removeAttribute('aria-busy');
   const views=document.getElementById('rationale');views.innerHTML=viewsHTML+nSlitViewsHTML+'<h3>3D wave surface</h3><p>The optional interactive 3D view graphs the same analytical field used by the 2D view. Dragging rotates the camera, the wheel or a pinch gesture zooms, and right-dragging pans. The Height selector can graph contrast-enhanced |Ψ|², cos θ, or Re Ψ and Im Ψ with the same enhanced amplitude envelope. The monotonic height boost preserves zeros and ordering but is not a linear amplitude scale; it keeps the weaker transmitted wave readable beside the incident packet. The cos θ choice is a continuous phase display that avoids an artificial moving cliff at the ±π wrap; unlike θ itself, it does not uniquely identify the phase angle. For cos θ, Re Ψ and Im Ψ, the middle of the height range is zero, and the reference grid and apparatus lie on that zero plane; the translucent floor lets negative lobes remain visible below it. To prevent temporal aliasing, the 3D carrier-phase animation is display-capped at 2 rad/s; this changes neither the wavefunction used for guidance nor any simulated timing. Surface color independently retains the wave quantity selected in the ordinary Show control and uses the same slowed display phase in 3D. With which-path tagging, phase and signed height use a density-weighted display of the two noninterfering tagged components rather than treating them as a coherent sum. Height and color are display coordinates and do not add a physical spatial dimension. The detector histogram is likewise graphed vertically above a low detector wall: it uses the same predicted curve, retained hits and square-root count error bars as the 2D histogram. Pilot-Wave particles and trajectories are drawn on a flat plane, not on the graph of the wave: by default the apparatus zero plane, the physical x–y plane. The 3D toolbar’s Particle height slider raises that plane for visibility only, and its Wave slider sets the surface opacity in Pilot-Wave. When Show is set to Phase, a wheel in the corner gives the surface color for each phase angle θ; because the display uses cos θ, +θ and −θ share a color. Their dynamics are always calculated entirely in the physical x–y plane. The Pilot-Wave toolbar eye hides or shows the wave in both the 2D and 3D displays; it does not alter the guidance field or interrupt the simulation.</p><h3>Direct-PW statistics</h3><p>The fixed ±3σₐ Direct-PW window omits only the 0.27% isolated-Gaussian tails. The green curve continues to show the common analytical probability distribution, without a hard central cut. Toggling Direct PW preserves earlier hits and affects new packets.</p>'+whichPathViewsHTML;
   views.removeAttribute('aria-busy');
@@ -364,7 +365,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit17').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit18').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -832,7 +833,7 @@ export function mountPacketEngine({core,advanced}){
   const wasRunning=isAnimating;if(wasRunning)document.getElementById('startButton').click();
   try{
    const r=await niceFringeGeometryAsync({N:numSlits,openIds:openSlitIds(),wall:sourcePos,extentSigma:+extent.value});
-   if(!r){niceStatus.textContent=openSlitIds().length>12?'No clean fringes within the allowed ranges: with this many slits the screen (≤ 3000 nm away) is still in the near field of the grating, where it shows an image of the slits rather than separated fringes. Close some slits, or try fewer.':'No setting within the allowed ranges gives clean fringes for these slits.';return;}
+   if(!r){niceStatus.textContent=openSlitIds().length>2?'No setting within the allowed ranges gives a series of bumps with a single tallest centre for these slits. With many slits the screen (≤ 3000 nm away) is in the near field of the grating, where it shows an image of the slits rather than separated fringes (see Physics, Near and far field). Close some slits, or try fewer.':'No setting within the allowed ranges gives clean fringes for these slits.';return;}
    const set=(id,v)=>document.getElementById(id+'-group').setValueInFirstUnit(v);
    set('screen-height',r.screen);set('wavelength',r.wavelength);set('detector-distance',r.D);
    width.value=r.sigma;sourceWidth.value=r.sourceSigma;syncPacketInput(width);syncPacketInput(sourceWidth);
@@ -842,7 +843,7 @@ export function mountPacketEngine({core,advanced}){
    set('slit-separation',r.d);
    setupGeo(false);reset=0;resetEngine();draw();
    const clamped=slitSeparation!==r.d?` (separation limited to ${slitSeparation} nm)`:'';
-   niceStatus.textContent=`λ ${r.wavelength} nm · slit σ ${r.sigma} nm · separation ${r.d} nm${clamped} · screen ${r.D} nm away, ${r.screen} nm long · source σ ${r.sourceSigma} nm: ${r.count} bumps, central tallest.`;
+   niceStatus.textContent=`λ ${r.wavelength} nm · slit σ ${r.sigma} nm · separation ${r.d} nm${clamped} · screen ${r.D} nm away, ${r.screen} nm long · source σ ${r.sourceSigma} nm: ${r.count} bumps, central tallest; spacing ${Math.round(r.spacing)} nm`+(Math.abs(r.spacing/r.farField-1)<=.15?` (far-field λD/d = ${Math.round(r.farField)} nm).`:`, not the far-field λD/d = ${Math.round(r.farField)} nm: this screen is in the near field of the slits, and the bumps are an image of the slits (see Physics, Near and far field).`);
   }finally{delete niceButton.dataset.busy;niceButton.textContent=label;syncNiceButton();if(wasRunning&&!isAnimating)document.getElementById('startButton').click();}
  });}
  function sampleBranch(){

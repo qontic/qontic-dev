@@ -37,7 +37,7 @@ for (const equation of ['schrodinger', 'exactEnvelope', 'approxEnvelope', 'packe
 for (const statement of ['forward, paraxial approximation', 'Direct PW', 'Part./packet', 'Phase colors show cos θ']) {
   assert(content.includes(statement), `missing current Views/Physics statement: ${statement}`);
 }
-assert(content.includes('orthogonal which-slit detector records'));
+assert(content.includes('The records are orthogonal'));
 assert(content.includes('incoherent sum'));
 
 // New packets and in-flight interpretation changes use analytical conditional

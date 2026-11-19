@@ -1,3 +1,16 @@
+## 3.0-dev.17 — 2026-11-19
+Fixes from the ten-student review (context/2026-11-19-n-slit-ten-student-review.md), text and N-slit logic.
+- Old two-slit detector sections in Physics and Views replaced by general ones: equations for detectors on any set D of slits (records |d_k⟩ and "none fired" |d₀⟩); Pilot Wave guided by its detected slit's wave, or by the coherent wave of all undetected slits (the old text said "one effective single-slit packet", wrong for N > 2); Many Worlds counter counts screen records only. Colours: each record in the colour of its first slit.
+- Views: trajectory integration is adaptive Dormand–Prince 5(4) (since dev.13), not fourth-order Runge–Kutta.
+- New Physics paragraph "Near and far field": the textbook N-slit pattern needs D ≫ W²/λ (≈ 80 µm for 8 slits 290 nm apart); two slits are special; with more slits the screen here is in the Fresnel field, with Talbot images of the slits near multiples of 2d²/λ. Paraxial vs exact Helmholtz propagation: up to 4–10% of peak density at default and Nice-fringes settings (checked: 3.6–9.5%).
+- Nice fringes: a pattern whose centre is not clearly tallest is rejected (10 and 12 slits had two equal central peaks reported as "central tallest"); the search prefers spacing near λD/d; the status reports the measured spacing and, when it is far from λD/d, says the bumps are a near-field image of the slits. Results: 2–8 slits within 8% of λD/d; 10 slits near-field image (stated); 12 and 16 none (explained).
+- Normalization text: C is the closed-form bound for exactly two open slits and the numerical maximum for three or more; the peak of T (0.73–0.9 vs 1) changes the absorbed fraction, not the pattern.
+- Slit balance: text and tooltip say it works only with exactly two open slits.
+- ?quiz=1: Q1 now sets Color: By slit (the selector is attached after the quiz prepares Q1; the quiz now waits for it).
+- Detector button: stale native title removed (two contradictory tooltips).
+- Q5 explanation no longer says "press Start" after Watch has started the run.
+- Many Worlds caption: "the hit markers on the histogram are the record of one sampled branch" (there are no dots on the canvas).
+
 ## 3.0-dev.16 — 2026-11-19
 - Quiz tab (between Simulation and Physics), with the shared quiz module used by the Hydrogen app. Six questions, each with a still schematic of the apparatus drawn by the app so the simulation does not give the answer away: (1) Pilot Wave, three slits, which slit for a hit near the top; (2) detector on one of four slits; (3) detectors on all four; (4) Orthodox, which slit for a hit in the central fringe (no slit assigned without a measurement at the slits); (5) Pilot Wave, closing a slit after the packet has passed (empty wave); (6) Many Worlds, what a detector at one slit does. Each question sets the app (paused); "Watch it in the simulation" starts it. ?quiz=1 opens on the Quiz tab with the Simulation tab locked until the first answer.
 - Facts behind the questions checked against the model: slit bands in order from the top (slitBands); densities with detectors (n-slit tests). A question on 2 → 8 slits was dropped: within the 3000 nm screen-distance limit the 8-slit pattern is near-field, not the textbook narrowing.
