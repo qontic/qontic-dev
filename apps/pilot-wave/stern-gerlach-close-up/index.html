@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="./style.css?v=5" />
-  <link rel="modulepreload" href="./main.js?v=7" />
+  <link rel="modulepreload" href="./main.js?v=8" />
 </head>
 <body>
   <main class="shell">
@@ -52,10 +52,10 @@
     </section>
     <aside class="qontic-sidebar qontic-panel qontic-control-panel" id="ui" tabindex="-1" aria-label="Simulation controls">
       <qontic-controls running="false" speed="1" speed-min="0.1" speed-max="3.8" speed-step="0.1"
-        show-reset="true" show-rerun="true" show-autorun="false" show-interpretation="false" disabled></qontic-controls>
+        show-reset="true" show-rerun="false" show-autorun="true" auto-run="true" show-interpretation="false" disabled></qontic-controls>
       <div class="qontic-control-body" id="controls">
         <div data-control-pane="core">
-          <p class="prompt">With the gradient on, use XZ to compare the deflection for +z with the splitting for the equal superposition. Changing initial spin restarts the packet.</p>
+          <p class="prompt">The view opens from the side (XZ). With the gradient on, compare the deflection for +z with the splitting for the equal superposition. Changing initial spin restarts the packet. The run restarts automatically after the packet passes the plate; click the ↻ button to turn this off.</p>
         </div>
         <div data-control-pane="advanced" hidden>
           <p class="prompt">The app selects a starting grid from the device’s capabilities. You can adjust it here. Changing the grid also changes the tunnel dimensions and restarts the packet.</p>
@@ -140,6 +140,6 @@
         </div>
     </section>
   </main>
-  <script type="module" src="./template.js?v=7"></script>
+  <script type="module" src="./template.js?v=8"></script>
 </body>
 </html>

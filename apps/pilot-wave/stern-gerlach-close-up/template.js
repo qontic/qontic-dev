@@ -35,6 +35,7 @@ controls.addEventListener('qontic:rerun', () => {
   simulation?.reset();
   setRunning(true);
 });
+controls.addEventListener('qontic:autorun', event => simulation?.setAutoRun(event.detail.autoRun));
 controls.addEventListener('qontic:speed', event => simulation?.setSpeed(event.detail.speed));
 controls.addEventListener('qontic:tab', ({ detail }) => {
   for (const pane of document.querySelectorAll('[data-control-pane]')) {
@@ -62,7 +63,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=7'));
+  ({ simulation } = await import('./main.js?v=8'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {

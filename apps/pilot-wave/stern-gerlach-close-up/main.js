@@ -114,7 +114,7 @@ device.lost.then(info => {
 
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const WAVE_CELL_BYTES = 32;
-const DEFAULT_SG_GRADIENT = 4.0;
+const DEFAULT_SG_GRADIENT = 3.0;
 // Uniform field B0 = SG_FIELD_BIAS * gradient (also set in shaders/common.wgsl).
 const SG_FIELD_BIAS = 2.0;
 const TUNNEL_Z_SCALE = 2.0;
@@ -216,6 +216,9 @@ const INITIAL_SPIN_NAMES = [
 ];
 
 let paused = false;
+let autoRun = true;
+let rerunHoldStart = null;
+const RERUN_HOLD_MS = 1200;
 let redrawPending = true;
 const PAUSED_IDLE_MS = 180;
 
@@ -364,7 +367,8 @@ function addSectionHeader(label) {
 
 addCycleButton("initialSpin", "Initial spin", INITIAL_SPIN_NAMES, () => resetAll());
 addToggleInt("sgFieldOn", "Field gradient", () => requestTrailClear());
-addSlider("sgGradient", "Gradient strength", 0.0, 9.9, 0.002, () => requestTrailClear());
+// Above ~3.5 the deflected branches reach the hard walls before the plate.
+addSlider("sgGradient", "Gradient strength", 0.0, 3.5, 0.002, () => requestTrailClear());
 
 addSectionHeader("Wave and guidance");
 addSlider("p0", "Initial momentum", 0.0, 6.0, 0.1, () => resetAll());
@@ -1549,7 +1553,8 @@ function updateStats() {
   const pPeriodic = effectivePeriodicP0();
   const lambda = pPeriodic > 1e-6 ? (2 * Math.PI * params.hbar / pPeriodic) : Infinity;
   const lambdaText = Number.isFinite(lambda) ? fmt(lambda) : "inf";
-  const quality = lambda < 8 ? ` <span style="color:#ffb347">under-resolved</span>` : "";
+  // The 4th-order stencil keeps the group velocity within ~2% down to 7 cells per wavelength.
+  const quality = lambda < 6 ? ` <span style="color:#ffb347">under-resolved</span>` : "";
   const sgText = params.sgFieldOn && params.sgGradient > 0 ? fmt(params.sgGradient) : "off";
   statsEl.innerHTML = `<b>Physics</b>: ${guidingModeLabel()} &nbsp; <b>SG grad</b>: ${sgText} &nbsp; <b>Grid</b>: ${simW}x${simH}x${simD} &nbsp; <b>Particles</b>: ${Math.floor(params.nParticles)} &nbsp; <b>lambda</b>: ${lambdaText}${quality}`;
 }
@@ -1751,7 +1756,16 @@ function rebuildSimulation() {
   rebuildDensity();
 }
 
+// Time for the packet, including its tail, to pass the detector plate.
+function rerunTime() {
+  const v = effectivePeriodicP0() / Math.max(1e-6, params.mass);
+  if (v < 0.5) return Infinity;
+  const x0 = params.packetX * (simW - 1);
+  return (detectorPlateXGrid() - x0 + 2.5 * params.packetSigma) / v;
+}
+
 function resetAll() {
+  rerunHoldStart = null;
   resetWave();
   rebuildParticles();
   clearDensity();
@@ -1775,6 +1789,10 @@ async function main() {
   device.queue.submit([initialFrame.finish()]);
   await device.queue.onSubmittedWorkDone();
   if (!simulationAvailable) return;
+  // Open in the side view, where the splitting is seen directly.
+  selectOrthoView("XZ");
+  cameraOrbit.yaw = cameraTarget.yaw;
+  cameraOrbit.pitch = cameraTarget.pitch;
   drawViewGizmo();
   updateStats();
   status.hidden = true;
@@ -1821,6 +1839,10 @@ async function main() {
       }
       compute.end();
       if (params.showTrail) densityStepAndStamp(encoder, camera);
+      if (autoRun && simTime >= rerunTime()) {
+        if (rerunHoldStart === null) rerunHoldStart = now;
+        else if (now - rerunHoldStart >= RERUN_HOLD_MS) resetAll();
+      }
     }
 
     writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);
@@ -1867,5 +1889,6 @@ export const simulation = {
     params.stepsPerFrame = Math.max(1, Math.min(30, Math.round(8 * multiplier)));
   },
   reset() { if (simulationAvailable) resetAll(); },
+  setAutoRun(value) { autoRun = Boolean(value); rerunHoldStart = null; },
   redraw: requestRedraw,
 };
