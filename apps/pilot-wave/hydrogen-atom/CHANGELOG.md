@@ -1,5 +1,15 @@
 # Hydrogen Atom — changelog
 
+## 1.2.11 · 2026-11-19
+Fixes from the ten-student review (no change to the controls).
+- Quiz: preparing a question now returns fully to the spinless state and the standard guidance law. Opening the quiz from a spin preset or j-state no longer shows circling electrons for the 1s question.
+- 1s + 2p₀ caption: the density sloshes up and down z with ⟨r⟩ fixed (it never becomes a sphere). 2p₊₁ + 3d₊₁ caption and menu label: the ring sloshes above and below the xy plane (interference ∝ sin²θ cosθ), its radius fixed; it does not beat radially.
+- 1s↑ + 2s↓: the electrons move with the spin term because S has a nonzero curl, not because S changes in time.
+- Spin |v| diagnostic: uses the guidance law in force and a sample point off the axes (it used the x axis, a node of 2p₀).
+- The orbital grid no longer highlights an orbital while a superposition or real orbital is shown.
+- Spin presets keep their title when the Spin term is switched off.
+- Text: "2p+" → "2p₊₁"; Physics § 2 shape row includes the p₊₁ ring; § 3 "For 1s" on the 13.6 eV kinetic energy; § 4 points to the Verify button. Code comments on the spin term corrected (1s↑ moves too). Page icon added (removes a 404).
+
 ## 1.2.10 · 2026-11-18
 - Orthodox caption and Physics § 1: one sentence on the probability current j = (ħ/mₑ) Im(ψ*∇ψ), which is standard quantum mechanics; reading it as electron motion is the pilot-wave step.
 - The Quiz now uses the shared module shared/qontic-quiz.js (same behaviour; other apps can opt in).

@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=1';
-import { APP_RELEASE } from './release.js?v=1.2.10';
+import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=2';
+import { APP_RELEASE } from './release.js?v=1.2.11';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');
@@ -145,7 +145,7 @@ function drawDensity(canvas, plane) {
 function prepare(select) {
   return () => {
     if (interp !== 'pw') applyInterpretation('pw');
-    if (spinEnabled) toggleSpin();
+    clearSpin();
     select();
     hydrogenSimulation.reset();
     setRunning(false);

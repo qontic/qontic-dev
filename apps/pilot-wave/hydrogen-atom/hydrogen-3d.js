@@ -100,9 +100,9 @@ function bohmV(comps,x,y,z,t){
 //  Colijn & Vrscay, Phys. Lett. A 300, 334 (2002).
 //  v_P = Im(Ψ†∇Ψ)/ρ  +  (∇×S)/(2ρ)
 //  where S = Ψ†σΨ  is the local spin-density vector.
-//  The second term is zero for the scalar case and makes every
-//  m=0 eigenstate non-stationary when the spin is not aligned
-//  with z (the orbital quantisation axis).
+//  The second term is zero for the scalar case. It sets the electrons
+//  of every eigenstate moving (|ψ|² stays stationary), including
+//  1s with spin along z, since ∇×(ρẑ) = ∇ρ×ẑ ≠ 0.
 // ════════════════════════════════════════════════════════════════
 
 // Spinor ψ(x,y,z,t) → [ψ↑_Re, ψ↑_Im, ψ↓_Re, ψ↓_Im]
@@ -316,7 +316,7 @@ const ORBITALS=[
 //   ΔE = E₁−E₂ = 1/2−1/8 = 3/8 a.u. → period = 2π/(3/8) ≈16.8 a.u.
 //
 // 2p⁺¹+3d⁺¹: same m=+1 → both have azimuthal phase e^{iφ} → particles circulate.
-//   Different n → ΔE = 1/8−1/18 = 5/72 a.u. → period≈91 a.u. Density ring beats radially
+//   Different n → ΔE = 1/8−1/18 = 5/72 a.u. → period≈91 a.u. Density ring sloshes above and below the xy plane (interference ∝ sin²θ cosθ)
 //   while particles orbit. Most dynamic preset: circulation + beating combined.
 function realOrbital(n,l,m,type){
   const s=(-1)**m, h=1/Math.SQRT2;
@@ -382,7 +382,7 @@ const INFO={
   '2s':'Two radial shells, node at r = 2 a₀. ψ is real: zero pilot-wave velocity.',
   '2p₀':'Dumbbell along z (the chemists’ 2p_z), nodal plane at z = 0. ψ is real: zero pilot-wave velocity.',
   '2p₊₁':'m = +1, ψ ∝ exp(+iφ). In pilot-wave theory the electron circles the z axis anticlockwise at vᵩ = 1/(r sinθ) a.u., at fixed height and radius.',
-  '2p₋₁':'m = −1, ψ ∝ exp(−iφ). Same |ψ|² as 2p+; in pilot-wave theory the circulation is clockwise.',
+  '2p₋₁':'m = −1, ψ ∝ exp(−iφ). Same |ψ|² as 2p₊₁; in pilot-wave theory the circulation is clockwise.',
   '3s':'Three concentric shells. ψ is real: zero pilot-wave velocity.',
   '3p₀':'3p_z dumbbell with an inner radial node. ψ is real: zero pilot-wave velocity.',
   '3p₊₁':'m = +1, n = 3. Ring-shaped density; pilot-wave circulation anticlockwise about z.',
@@ -481,8 +481,8 @@ let preferSliceFallback=false;
 //  SPIN — Pauli–Bohmian extension (completely non-destructive)
 //  Toggle spinEnabled to switch between the original scalar-Bohm
 //  guidance equation and the full Pauli–Bohm equation which adds
-//  a spin-current term (∇×S)/(2ρ) — making ALL m=0 orbitals
-//  non-stationary and modifying the velocity of m≠0 orbitals.
+//  a spin-current term (∇×S)/(2ρ) — setting the electrons of m=0
+//  orbitals moving and changing the velocity in m≠0 orbitals (|ψ|² unchanged).
 // ════════════════════════════════════════════════════════════════
 // spinEnabled: the state is a spinor (spin preset, j-state, or orbital × spin direction).
 // spinTerm: the pilot-wave guidance law includes (∇×S)/(2ρ). On spin presets and j-states the
@@ -2021,14 +2021,16 @@ function updateVerification(){
     if(snEl){snEl.textContent=snorm.toFixed(6);snEl.className='stat-val '+(Math.abs(snorm-1)<0.0001?'ok':'warn');}
     // 3. |v| at orbital peak: sample one point near Bohr-radius-weighted peak
     //    For hydrogen: peak radial density at r ≈ n²·a₀ for dominant component
+    // Off-axis direction (θ ≈ 37°, off the nodes of p₀, d₀, p_x…) at the dominant radius;
+    // uses the guidance law in force (spinTerm).
     const n0=spinComps[0].n;
-    const testR=n0*n0*1.05; // just outside the peak
-    const[vx,vy,vz]=bohmVPauli(spinComps,testR,0,0,t);
+    const testR=n0*n0*1.05;
+    const[vx,vy,vz]=bohmVPauli(spinComps,0.36*testR,0.48*testR,0.8*testR,t,spinTerm);
     const vmag=Math.sqrt(vx*vx+vy*vy+vz*vz);
     const curlEl=document.getElementById('stSpinCurl');
     if(curlEl){
-      curlEl.textContent=vmag.toFixed(4)+(vmag>0.001?' ← non-zero ✓':' ≈ 0 at this point');
-      curlEl.className='stat-val '+(vmag>0.001?'ok':'');
+      curlEl.textContent=vmag.toFixed(4)+(spinTerm?'':' (spin term off)');
+      curlEl.className='stat-val';
     }
   }
 
@@ -2742,6 +2744,15 @@ function spinorStateSelected(){
   return spinEnabled&&(Boolean(SPIN_SUPERS[superKey])||(spinMode==='jstate'&&superKey==='none'));
 }
 
+// Return to the spinless state and the standard guidance law (used by the Quiz).
+function clearSpin(){
+  if(!spinEnabled) return;
+  if(SPIN_SUPERS[superKey]){superKey='none';document.getElementById('superSel').value='none';}
+  spinMode='product';
+  spinTerm=true;
+  toggleSpin();
+}
+
 function toggleSpin(){
   if(spinorStateSelected()){
     // Same state, same positions: only the guidance law changes; trails restart.
@@ -2943,7 +2954,7 @@ function refreshOrbGrid(){
   ORBITALS.forEach((o,i)=>{
     if(o.n!==selectedN)return;
     const btn=document.createElement('button');
-    btn.className='obtn'+(i===orbIdx?' active':'');
+    btn.className='obtn'+(i===orbIdx&&superKey==='none'?' active':'');
     btn.textContent=o.label.replace(/^\d/,''); // strip leading n digit
     const desc=INFO[o.label]||'';
     btn.title=`|${o.n}, ${o.l}, ${fmtM(o.m)}⟩${desc?'\n'+desc:''}`;
@@ -3027,10 +3038,10 @@ const SUPER_DESC={
     dx2y2:'3d_x²−y²: four lobes along the x and y axes, a real combination of m = ±2. The pilot-wave velocity is zero; in 3d₊₂ the electrons circulate.',
     dxy:'3d_xy: four lobes between the x and y axes, a real combination of m = ±2. The pilot-wave velocity is zero.',
     ss:'1s + 2s: the density breathes radially. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as. In pilot-wave theory the electrons move in and out along radii. Volume view shows the breathing best.',
-    sp:'1s + 2p₀: the density swings between a compact sphere and a lobe along z. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as.',
+    sp:'1s + 2p₀: the density sloshes up and down the z axis; ⟨r⟩ stays the same. ΔE = 3/8 a.u., period 16.8 a.u. ≈ 405 as.',
     pd:'2p₀ + 3d₀: slower beating along z. ΔE = 5/72 a.u., period 90.5 a.u. ≈ 2.2 fs.',
-    circ:'2p₊₁ + 3d₊₁: a ring of density that expands and contracts with period 90.5 a.u. ≈ 2.2 fs. Both states have m = +1, so in pilot-wave theory the electrons also circle z.',
-    spin_ss:'1s↑ + 2s↓: the spin channels add without interference, so |ψ|² is stationary. With the Pauli spin term in the guidance law the electrons still move, because the spin density changes in time.',
+    circ:'2p₊₁ + 3d₊₁: a ring of density that sloshes above and below the xy plane with period 90.5 a.u. ≈ 2.2 fs; its radius stays the same. Both states have m = +1, so in pilot-wave theory the electrons also circle z.',
+    spin_ss:'1s↑ + 2s↓: the spin channels add without interference, so |ψ|² is stationary. With the Pauli spin term in the guidance law the electrons still move, because the spin density S has a nonzero curl.',
     spin_sp:'1s↑ + 2p₀↓: stationary |ψ|², symmetric about the xy plane. With the Pauli spin term the electrons still move.',
     spin_circ:'2p₊₁↑ + 3d₊₁↓: stationary |ψ|², ring-shaped. With the Pauli spin term the electrons circulate with a time-dependent speed.',
     none:''};
@@ -3042,6 +3053,7 @@ document.getElementById('superSel').onchange=function(){
   if(showCloud){initCloudParts();}else{particles=sampleParticles(nPart);}
   syncSlicePlaneToState();
   fitZoom();
+  refreshOrbGrid();
 
   // Per-preset lobe threshold
   const presetLb={ss:1,sp:3,pd:8,circ:6,px:10,py:10,dxz:10,dyz:10,dx2y2:10,dxy:10,none:12,spin_ss:1,spin_sp:3,spin_circ:6};
@@ -3122,6 +3134,15 @@ function setPredictPending(value){predictPending=value;updateInfo();updateCaptio
 
 function updateInfo(){
   const o=ORBITALS[orbIdx];
+  if(superKey!=='none'){
+    const sel=document.getElementById('superSel');
+    document.getElementById('infoKet').textContent=sel.options[sel.selectedIndex].text;
+    let d=SUPER_DESC[superKey]||'';
+    if(SPIN_SUPERS[superKey]&&!spinTerm) d+=' Spin term off: the electrons follow the guidance law without it.';
+    document.getElementById('infoDesc').textContent=predictPending?'Make your prediction first.':forReading(d);
+    updateCaption();
+    return;
+  }
   const coupled=spinEnabled&&spinMode==='jstate'&&superKey==='none';
   document.getElementById('infoKet').textContent=coupled
     ? document.getElementById('jStateSel').selectedOptions[0]?.textContent

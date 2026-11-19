@@ -5,11 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hydrogen Atom · Q-Ontic</title>
+  <link rel="icon" href="../../../shared/qontic-logo.png">
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=1">
-  <link rel="stylesheet" href="hydrogen-template.css?v=9">
+  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=2">
+  <link rel="stylesheet" href="hydrogen-template.css?v=10">
 </head>
 
 <body>
@@ -51,7 +52,7 @@
           <option value="ss">1s + 2s [density breathes radially]</option>
           <option value="sp">1s + 2p₀ [density swings along z]</option>
           <option value="pd">2p₀ + 3d₀ [slower beating along z]</option>
-          <option value="circ">2p₊₁ + 3d₊₁ [ring that beats radially]</option>
+          <option value="circ">2p₊₁ + 3d₊₁ [ring that swings along z]</option>
           <optgroup label="Real orbitals (as drawn in chemistry)">
             <option value="px">2p_x [lobes along x]</option>
             <option value="py">2p_y [lobes along y]</option>
@@ -237,7 +238,7 @@
                 title="Σ(|↑|²+|↓|²) over spinComps — must equal 1.0000 (spinor normalisation).">Spinor norm</span><span
                 class="stat-val" id="stSpinNorm">—</span></div>
             <div class="stat expert-stat spin-diag" id="rowSpinCurl" style="display:none"><span class="stat-label"
-                title="Speed at a sample point on the x-axis with Pauli–Bohm guidance. It can vanish if the sampling direction is parallel to the spin.">|v|
+                title="Speed at a sample point off the axes, near the most probable radius, with the guidance law in force.">|v|
                 at sample (a.u.)</span><span class="stat-val" id="stSpinCurl">—</span></div>
           </div>
         </div>
@@ -295,7 +296,7 @@
             <table class="tp-tbl">
               <tr><th>Symbol</th><th>Name</th><th>Range</th><th>What it sets</th></tr>
               <tr><td>n</td><td>Principal</td><td>1, 2, 3…</td><td>Energy: E<sub>n</sub> = −13.6/n² eV</td></tr>
-              <tr><td>l</td><td>Angular</td><td>0 … n−1</td><td>Shape: s (sphere), p (two lobes), d, f…</td></tr>
+              <tr><td>l</td><td>Angular</td><td>0 … n−1</td><td>Shape: s (sphere), p (two lobes for p₀, p<sub>x</sub>, p<sub>y</sub>; a ring for p₊₁, p₋₁), d, f…</td></tr>
               <tr><td>m</td><td>Magnetic</td><td>−l … +l</td><td>Orientation; ψ ∝ e<sup>imφ</sup>, angular momentum L<sub>z</sub> = mħ</td></tr>
             </table>
             <p>R<sub>nl</sub> are the associated Laguerre radial functions and Y<sub>l</sub><sup>m</sup> the spherical harmonics (Condon&ndash;Shortley phase). An eigenstate has a stationary density. A superposition of states with different n has a density that beats at the frequency ΔE/ħ; for 1s + 2s or 1s + 2p<sub>0</sub> the period is 16.8 a.u. = 405 as.</p>
@@ -309,7 +310,7 @@
             <p>If the starting positions are distributed as |ψ|&sup2;, they stay distributed as |ψ|&sup2; at all later times (<em>equivariance</em>), because <b>v</b> = <b>j</b>/|ψ|&sup2; with <b>j</b> the probability current of the Schr&ouml;dinger equation. This is why pilot-wave theory gives the same position statistics as standard quantum mechanics.</p>
             <h3>Why is the 1s electron at rest?</h3>
             <p>Write ψ = R e<sup>iS/ħ</sup>. In pilot-wave theory the electron then feels, besides the Coulomb potential V, the <em>quantum potential</em> Q = −(ħ&sup2;/2m<sub>e</sub>) &nabla;&sup2;R / R. For 1s, R ∝ e<sup>−r</sup> gives Q = −1/2 + 1/r (a.u.), so Q + V = −1/2 = E everywhere: the two forces cancel and an electron at rest stays at rest. It does not fall into the proton.</p>
-            <p>The mean kinetic energy ⟨p&sup2;⟩/2m<sub>e</sub> = 13.6 eV is what momentum measurements give. In pilot-wave theory a momentum measurement is an interaction that changes the guiding wave; its result is not the velocity the electron had before. The outcomes follow |ψ̃(p)|&sup2;, as in standard quantum mechanics.</p>
+            <p>For 1s, the mean kinetic energy ⟨p&sup2;⟩/2m<sub>e</sub> = 13.6 eV is what momentum measurements give. In pilot-wave theory a momentum measurement is an interaction that changes the guiding wave; its result is not the velocity the electron had before. The outcomes follow |ψ̃(p)|&sup2;, as in standard quantum mechanics.</p>
           </section>
 
           <section class="tp-sec">
@@ -322,7 +323,7 @@
             <h3>1s with a fixed spin direction</h3>
             <p>For 1s &otimes; |<b>n&#x0302;</b>&rang;, <b>S</b> = ρ <b>n&#x0302;</b>, so &nabla;&times;<b>S</b> = &nabla;ρ &times; <b>n&#x0302;</b> with &nabla;ρ = &minus;2ρ <b>r&#x0302;</b>:</p>
             <div class="tp-eq"><b>v</b> = <b>n&#x0302;</b> &times; <b>r&#x0302;</b> &nbsp;&nbsp; |<b>v</b>| = sin &ang;(<b>r&#x0302;</b>, <b>n&#x0302;</b>)</div>
-            <p>The electron circles the spin axis with angular speed 1/r (ħ/(m<sub>e</sub>a&#x2080;r) in SI units), as found by Colijn and Vrscay. The Checks &rarr; Verify button compares the app's velocity field with this formula.</p>
+            <p>The electron circles the spin axis with angular speed 1/r (ħ/(m<sub>e</sub>a&#x2080;r) in SI units), as found by Colijn and Vrscay. The Verify button (State and diagnostics) compares the app's velocity field with this formula.</p>
           </section>
 
           <section class="tp-sec">
@@ -373,7 +374,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=19"></script>
-  <script type="module" src="hydrogen-template.js?v=16"></script>
+  <script src="hydrogen-3d.js?v=20"></script>
+  <script type="module" src="hydrogen-template.js?v=17"></script>
 </body>
 </html>
