@@ -9,7 +9,9 @@
 .qontic-quiz-question { margin: 6px 0 12px; font-size: 16px; line-height: 1.45; }
 .qontic-quiz-answers { flex-wrap: wrap; gap: 6px; }
 .qontic-quiz-answers .qontic-app-toggle { flex: 1 1 auto; min-height: 40px; }
-.qontic-quiz-feedback { margin: 12px 0; line-height: 1.5; }
+.qontic-quiz-feedback { margin: 12px 0; line-height: 1.5; outline: none; }
+.qontic-quiz-feedback p { margin: 0 0 6px; }
+.qontic-quiz-feedback .qontic-quiz-detail { font-size: 13px; color: var(--text-secondary, #a8bdc9); }
 .qontic-quiz-feedback:empty { display: none; }
 .qontic-quiz-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 button[data-view]:disabled { opacity: .45; cursor: not-allowed; }

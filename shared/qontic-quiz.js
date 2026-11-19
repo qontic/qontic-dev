@@ -5,7 +5,9 @@
 // cannot give the answer away), a set of answers and an explanation. After an answer,
 // "Watch it in the simulation" switches to the Simulation tab with that state running.
 // Opening the page with ?quiz=1 starts on the Quiz tab and keeps the Simulation tab
-// locked until the first answer. Apps that do not call mountQonticQuiz are unaffected.
+// locked until the first answer; ?quiz=N starts at question N. Leaving for the
+// simulation removes the parameter from the address bar, so a reload opens the app.
+// Apps that do not call mountQonticQuiz are unaffected.
 //
 // mountQonticQuiz({
 //   panel,            // element that receives the quiz markup (e.g. <section id="quiz" hidden>)
@@ -13,17 +15,23 @@
 //   simulationTab,    // the top-level button for the simulation
 //   title,            // optional heading, default 'Quiz · predict before you watch'
 //   answers,          // default answers: [{ id, label }]
-//   questions,        // [{ question, answer, explain, caption?, answers?, prepare(), draw(canvas) }]
+//   questions,        // [{ question, answer, explain, plain?, caption?, answers?, prepare(), draw(canvas) }]
+//                     //   plain: optional one-sentence answer in everyday words, shown first;
+//                     //   explain then follows on its own line.
 //   onWatch,          // called after switching to the simulation (e.g. start running)
 //   param,            // URL parameter that enables quiz-first mode, default 'quiz'
-//   shuffle,          // optional: show the answers in a random order (default false)
-//   score,            // optional: show the running score in the step line (default false)
+//   shuffle,          // optional: show the answers in a random order (default false;
+//                     //   a question can override it with its own shuffle: false)
+//   score,            // optional: show the running score in the step line and a final
+//                     //   "k of n right" line after the last question (default false)
+//   shareLink,        // optional: a "Copy link to this question" button (default false)
 // })
 // prepare() sets the app state for the question (paused); draw(canvas) paints the still
 // picture onto a 360 × 360 canvas. Returns { show(index), get index() }.
 
 export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · predict before you watch',
-  answers: defaultAnswers = [], questions, onWatch = () => {}, param = 'quiz', shuffle = false, score = false }) {
+  answers: defaultAnswers = [], questions, onWatch = () => {}, param = 'quiz', shuffle = false, score = false,
+  shareLink = false }) {
   panel.classList.add('qontic-panel', 'qontic-quiz');
   panel.innerHTML = `
     <div class="qontic-quiz-layout">
@@ -36,16 +44,18 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
         <p class="qontic-quiz-step"></p>
         <p class="qontic-quiz-question"></p>
         <div class="qontic-app-toggle-group qontic-quiz-answers"></div>
-        <p class="qontic-quiz-feedback" role="status"></p>
+        <div class="qontic-quiz-feedback" role="status" tabindex="-1"></div>
         <div class="qontic-quiz-actions">
           <button type="button" class="qontic-app-toggle" data-quiz="watch" hidden>Watch it in the simulation →</button>
           <button type="button" class="qontic-app-toggle" data-quiz="next" hidden>Next question</button>
+          <button type="button" class="qontic-app-toggle qontic-quiz-link" data-quiz="link" hidden>Copy link to this question</button>
         </div>
       </div>
     </div>`;
   const $ = selector => panel.querySelector(selector);
   const canvas = $('canvas'), feedback = $('.qontic-quiz-feedback');
-  const watch = $('[data-quiz="watch"]'), next = $('[data-quiz="next"]');
+  const watch = $('[data-quiz="watch"]'), next = $('[data-quiz="next"]'), link = $('[data-quiz="link"]');
+  link.hidden = !shareLink;
   $('.qontic-quiz-title').textContent = title;
   let index = 0, answered = false;
   const results = new Map(); // question index → answered correctly (first answer only)
@@ -64,7 +74,7 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
     next.hidden = true;
     const box = $('.qontic-quiz-answers');
     const list = [...(q.answers || defaultAnswers)];
-    if (shuffle) for (let k = list.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [list[k], list[r]] = [list[r], list[k]]; }
+    if (q.shuffle ?? shuffle) for (let k = list.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [list[k], list[r]] = [list[r], list[k]]; }
     box.replaceChildren(...list.map(({ id, label }) => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -87,7 +97,19 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
     }
     if (!results.has(index)) results.set(index, id === q.answer);
     if (score) $('.qontic-quiz-step').textContent = stepText();
-    feedback.textContent = `${id === q.answer ? 'Yes.' : 'Not quite.'} ${q.explain}`;
+    const verdict = id === q.answer ? 'Yes.' : 'Not quite.';
+    const lines = q.plain ? [`${verdict} ${q.plain}`, q.explain] : [`${verdict} ${q.explain}`];
+    if (score && results.size === questions.length && index === questions.length - 1) {
+      const right = [...results.values()].filter(Boolean).length;
+      lines.push(`You got ${right} of ${questions.length} right on the first try.`);
+    }
+    feedback.replaceChildren(...lines.map((text, k) => {
+      const p = document.createElement('p');
+      p.textContent = text;
+      if (k > 0) p.className = 'qontic-quiz-detail';
+      return p;
+    }));
+    feedback.focus({ preventScroll: true });
     watch.hidden = false;
     next.hidden = false;
     next.textContent = index + 1 < questions.length ? 'Next question' : 'Start again';
@@ -95,11 +117,27 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
     simulationTab.removeAttribute('title');
   }
 
+  function dropParam() {
+    const url = new URL(location.href);
+    if (!url.searchParams.has(param)) return;
+    url.searchParams.delete(param);
+    history.replaceState(history.state, '', url);
+  }
   watch.addEventListener('click', () => { simulationTab.click(); onWatch(questions[index]); });
+  simulationTab.addEventListener('click', dropParam);
   next.addEventListener('click', () => show(index + 1));
   tab.addEventListener('click', () => { if (!answered) show(index); });
+  link.addEventListener('click', async () => {
+    const url = new URL(location.href);
+    url.search = `?${param}=${index + 1}`;
+    try { await navigator.clipboard.writeText(url.href); link.textContent = 'Link copied'; }
+    catch { link.textContent = url.href; }
+    setTimeout(() => { link.textContent = 'Copy link to this question'; }, 2500);
+  });
 
-  if (new URLSearchParams(location.search).get(param) === '1') {
+  const start = parseInt(new URLSearchParams(location.search).get(param), 10);
+  if (start >= 1) {
+    index = Math.min(start, questions.length) - 1;
     simulationTab.disabled = true;
     simulationTab.title = 'Answer the quiz question first';
     tab.click();

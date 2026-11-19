@@ -1,5 +1,15 @@
 # Hydrogen Atom — changelog
 
+## 1.2.13 · 2026-11-19
+Quiz, from the ten-student review (Quiz tab only; Core unchanged).
+- Seven questions instead of three: 1s, 2p₊₁, 2p_x (same energy as 2p₊₁, but real, so the electrons stand still), 1s + 2p₀, 1s + 2s (in and out along radii), 3s radial nodes, and one Orthodox question (what the 2p₊₁ display says between measurements; it switches the reading to Orthodox).
+- A fourth motion answer ("They move in and out along radii"); answers appear in random order, so the right one is no longer 1st, 2nd, 3rd.
+- Each feedback opens with one sentence in everyday words; the formula follows on its own line.
+- Running score, and "You got k of n right on the first try" after the last question.
+- ?quiz=N opens at question N; "Copy link to this question" in the Quiz panel. Going to the Simulation tab removes quiz= from the address bar, so a reload opens the app.
+- Keyboard: focus moves to the feedback after an answer.
+- Shared module shared/qontic-quiz.js gains plain, per-question shuffle, shareLink, ?quiz=N, the final score line and the URL clean-up (all optional; the N-slit preview is unaffected except for the final score line it already asks for with score: true).
+
 ## 1.2.12 · 2026-11-19
 Wording from the ten-student review (no change to the controls).
 - "At rest" qualified everywhere it appears (1s description, caption, Physics § 3 heading and text, Quiz question 1): it holds for the standard guidance law; with the spin term of § 4 the electron moves.
