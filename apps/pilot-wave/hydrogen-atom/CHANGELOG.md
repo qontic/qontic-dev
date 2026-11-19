@@ -1,5 +1,12 @@
 # Hydrogen Atom — changelog
 
+## 1.2.14 · 2026-11-19
+Display defaults, from the ten-student review (no new controls).
+- Axes on by default, with tick marks in Bohr radii (numbers on the x axis), so "circles the z axis", "lobes along z" and the size of the orbital can be read off the picture.
+- Leaving Slices for Volume or Lobes returns to the tilted camera; 2p₀ no longer looks like a ball after the face-on slice view.
+- Phase colours default to Twilight, whose purple and orange halves stay distinct with red-green colour blindness (HSV and 4-Phase remain in the palette menu). The legend names the colours by angle: 0, +π/2, ±π, −π/2.
+- With the spin term on an orbital, the caption names the spin axis (+x by default) and says the 1s electrons circle it.
+
 ## 1.2.13 · 2026-11-19
 Quiz, from the ten-student review (Quiz tab only; Core unchanged).
 - Seven questions instead of three: 1s, 2p₊₁, 2p_x (same energy as 2p₊₁, but real, so the electrons stand still), 1s + 2p₀, 1s + 2s (in and out along radii), 3s radial nodes, and one Orthodox question (what the 2p₊₁ display says between measurements; it switches the reading to Orthodox).

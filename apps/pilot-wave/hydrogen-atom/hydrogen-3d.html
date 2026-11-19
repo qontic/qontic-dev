@@ -9,8 +9,8 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=4">
-  <link rel="stylesheet" href="hydrogen-template.css?v=12">
+  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=5">
+  <link rel="stylesheet" href="hydrogen-template.css?v=13">
 </head>
 
 <body>
@@ -99,13 +99,13 @@
             <label for="sSpinTheta"
               title="Polar angle θ of the spin direction vector |n̂⟩. θ = π/2 puts the spin in the xy plane, which breaks the symmetry about z.">θ</label>
             <input type="range" id="sSpinTheta" min="0" max="314" value="157" step="1"
-              oninput="spinTheta=this.value/100;document.getElementById('vSpinTheta').textContent=(this.value/100).toFixed(2)+'rad';buildSpinComps&&buildSpinComps();volumeDirty=true;lobeTexDirty=true;">
+              oninput="spinTheta=this.value/100;document.getElementById('vSpinTheta').textContent=(this.value/100).toFixed(2)+'rad';buildSpinComps&&buildSpinComps();volumeDirty=true;lobeTexDirty=true;updateCaption();">
             <span class="crow-val" id="vSpinTheta">1.57rad</span>
           </div>
           <div id="spinProductRow2" class="crow" style="display:none">
             <label for="sSpinPhi" title="Azimuthal angle φ of the spin direction vector.">φ</label>
             <input type="range" id="sSpinPhi" min="0" max="628" value="0" step="1"
-              oninput="spinPhi=this.value/100;document.getElementById('vSpinPhi').textContent=(this.value/100).toFixed(2)+'rad';buildSpinComps&&buildSpinComps();volumeDirty=true;lobeTexDirty=true;">
+              oninput="spinPhi=this.value/100;document.getElementById('vSpinPhi').textContent=(this.value/100).toFixed(2)+'rad';buildSpinComps&&buildSpinComps();volumeDirty=true;lobeTexDirty=true;updateCaption();">
             <span class="crow-val" id="vSpinPhi">0.00rad</span>
           </div>
           <div id="spinJRow" class="crow" style="display:none">
@@ -375,7 +375,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=22"></script>
-  <script type="module" src="hydrogen-template.js?v=19"></script>
+  <script src="hydrogen-3d.js?v=23"></script>
+  <script type="module" src="hydrogen-template.js?v=20"></script>
 </body>
 </html>

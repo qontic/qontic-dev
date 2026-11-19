@@ -446,7 +446,7 @@ const PT_PRESETS=[
 ];
 let ptColor=PT_PRESETS[0];
 
-let densOp=0.60,isoOp=0.00,ptSize=3,lobeThresh=0.12,showAxes=false;
+let densOp=0.60,isoOp=0.00,ptSize=3,lobeThresh=0.12,showAxes=true;
 let lightTheme=false,showInset=false,showProjections=false;
 let projData={xz:null,xy:null,yz:null},projDirty=true;
 let projVolCache=null; // {xz,xy,yz} offscreen canvases — volumetric render matching main canvas
@@ -860,7 +860,7 @@ const PHASE_PAL_META=[
   {key:'twilight', label:'Twilight', grad:'linear-gradient(90deg,#1d2073,#6d52a2,#b999d6,#faeedd,#dc8c5a,#c45c26,#1d2073)'},
   {key:'phase4',   label:'4-Phase',  grad:'linear-gradient(90deg,#dc3220,#ebc800,#00c8dc,#3737dc,#dc3220)'},
 ];
-let phasePalette='hsv';
+let phasePalette='twilight'; // purple and orange halves stay distinct with red-green colour blindness
 
 function palColor(v,pal){
   const stops=PALETTES[pal]||PALETTES.cyan;
@@ -2334,6 +2334,8 @@ function drawAxes(cam,rm){
   const[ox,oy]=proj(0,0,0,cam);
   const len=rm*0.9;
   const AS=10; // arrowhead size px
+  const raw=len/4, mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const step=[1,2,5,10].map(f=>f*mag).find(v=>v>=raw)||10*mag;
   for(const{dir:[dx,dy,dz],col,label} of axes){
     const[tx,ty]=proj(dx*len,dy*len,dz*len,cam);
     // Axis line
@@ -2350,6 +2352,19 @@ function drawAxes(cam,rm){
     ctx.font='bold 13px JetBrains Mono,monospace';
     ctx.fillStyle=col;
     ctx.fillText(label,tx+6,ty-4);
+    // Tick marks in Bohr radii (numbers on the x axis only)
+    const L=Math.hypot(tx-ox,ty-oy); if(L<20) continue;
+    const nx=-(ty-oy)/L, ny=(tx-ox)/L;
+    ctx.font='10px JetBrains Mono,monospace';
+    for(let k=1;k*step<len*0.95;k++){
+      const[px,py]=proj(dx*k*step,dy*k*step,dz*k*step,cam);
+      ctx.beginPath();ctx.moveTo(px-4*nx,py-4*ny);ctx.lineTo(px+4*nx,py+4*ny);
+      ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.stroke();
+      if(label==='x'){
+        const last=(k+1)*step>=len*0.95;
+        ctx.fillText(String(k*step)+(last?' a₀':''),px+6*nx-6,py+6*ny+12);
+      }
+    }
   }
 }
 
@@ -2870,14 +2885,23 @@ function hexToRgb(hex){
 // Legacy helper — still used in a few places (ss auto-switch, init).
 // Deactivates all exclusive modes, then activates the requested one.
 function setView(mode){
+  const wasSliceOnly=showSlice&&!showVol&&!showLobes;
   showVol=false;showLobes=false;showSlice=false;
   if(mode==='volume') showVol=true;
   else if(mode==='lobes') showLobes=true;
   else if(mode==='slice') showSlice=true;
   else if(mode==='both'){showVol=true;showSlice=true;}
+  // Slices looks face-on; a 3D view needs the tilted camera, or 2p₀ looks like a ball.
+  if(wasSliceOnly&&(showVol||showLobes)) resetCamera();
   _syncVizUI();
 }
 
+function phaseLegendText(){
+  const names={twilight:'0 blue, +π/2 purple, ±π cream, −π/2 orange',
+    hsv:'0 red, +π/2 green, ±π cyan, −π/2 violet',
+    phase4:'0 red, +π/2 yellow, ±π cyan, −π/2 blue'};
+  return '<span class="lrow-txt">arg ψ (global phase removed)<span class="lrow-sub">'+(names[phasePalette]||'0 → ±π → 0 around the colour wheel')+'</span></span>';
+}
 function updateLegend(){
   const div=document.getElementById('legend');
   const curPal=PAL_META.find(p=>p.key===densityPalette)||PAL_META[0];
@@ -2885,10 +2909,10 @@ function updateLegend(){
   const palRow=(lbl)=>`<button id="density-palette-button" class="lrow-btn" onclick="openLegPalPop(event)" title="Change palette"><span class="lsw" style="background:${curPal.grad}"></span>${lbl}</button>`;
   const phaseRow=(lbl)=>`<button id="phase-palette-button" class="lrow-btn" onclick="openLegPhasePalPop(event)" title="Change phase palette"><span class="lsw" style="background:${curPhasePal.grad}"></span>${lbl}</button>`;
   const volRows   = showPhase
-    ? phaseRow('arg ψ (global phase removed): red 0, cyan ±π')
+    ? phaseRow(phaseLegendText())
     : spinEnabled ? '<div class="lrow">Spin density volume</div>' : palRow('|ψ|² volume');
   const lobeRows  = showPhase
-    ? phaseRow('arg ψ (global phase removed): red 0, cyan ±π')
+    ? phaseRow(phaseLegendText())
     : spinEnabled ? '<div class="lrow">Spin density isosurface</div>' : (psiRealUpToPhase()
         ? `<div class="lrow"><span class="lsw" style="background:#e16e14"></span>ψ &gt; 0 lobe</div><div class="lrow"><span class="lsw" style="background:linear-gradient(90deg,#1010c0,#4060e0,#8090ff)"></span>ψ &lt; 0 lobe</div>`
         : `<div class="lrow"><span class="lsw" style="background:#e16e14"></span>|ψ|² surface (ψ is complex: use Phase for arg ψ)</div>`);
@@ -2917,7 +2941,7 @@ function updateLegend(){
     <div class="leg-colpop" id="legColPop">${colDots}</div>
     <div class="leg-pal-pop" id="legPalPop">${palOpts}</div>
     <div class="leg-pal-pop" id="legPhasePalPop">${phaseOpts}</div>`;
-  const phaseRows=phaseRow('arg ψ (global phase removed): red 0, cyan ±π')+contourRow;
+  const phaseRows=phaseRow(phaseLegendText())+contourRow;
   let legendRows='';
   if(showLobes) legendRows+=lobeRows;
   if(showVol)   legendRows+=volRows;
@@ -3097,6 +3121,20 @@ function setInterpretation(value){
 }
 
 // One line under the canvas saying what the marks mean.
+// Names the spin direction in product mode (spin along +x by default).
+function spinAxisText(){
+  if(!(spinEnabled&&spinMode==='product'&&superKey==='none')) return '';
+  const th=spinTheta, ph=spinPhi, near=(a,b)=>Math.abs(a-b)<0.03;
+  let axis;
+  if(near(th,0)) axis='+z';
+  else if(near(th,Math.PI)) axis='−z';
+  else if(near(th,Math.PI/2)&&(near(ph,0)||near(ph,2*Math.PI))) axis='+x';
+  else if(near(th,Math.PI/2)&&near(ph,Math.PI/2)) axis='+y';
+  else if(near(th,Math.PI/2)&&near(ph,Math.PI)) axis='−x';
+  else if(near(th,Math.PI/2)&&near(ph,3*Math.PI/2)) axis='−y';
+  else axis=`θ = ${th.toFixed(2)}, φ = ${ph.toFixed(2)}`;
+  return ` Spin along ${axis}; for 1s the electrons circle that axis (Advanced: θ, φ).`;
+}
 function updateCaption(){
   const el=document.getElementById('viewCaption'); if(!el) return;
   const spin=spinEnabled&&spinComps.length>0, evolving=densityEvolves();
@@ -3121,7 +3159,7 @@ function updateCaption(){
     else if(comps.some(c=>c.m!==0)) text+=' Each sample also moves along its pilot-wave path about z.';
   }else{
     text='Pilot wave: each dot is the electron of a separate atom, started at a position drawn from |ψ|²; trails are their paths.';
-    if(spin&&spinTerm) text+=' The spin term is on, so the electrons move even where |ψ|² does not change.';
+    if(spin&&spinTerm) text+=' The spin term is on, so the electrons move even where |ψ|² does not change.'+spinAxisText();
     else if(spin) text+=' Spin term off: the same spinor, guided by the convective current Im(Ψ†∇Ψ)/ρ only.';
     else if(psiRealUpToPhase()) text+=' ψ is real here, so with the standard guidance law the velocity is zero and the electrons stay put (Physics § 3; § 4 for the spin term).';
   }
