@@ -9,8 +9,8 @@
   <link rel="stylesheet" href="hydrogen-3d.css?v=3">
   <link rel="stylesheet" href="../../../shared/qontic-shell.css">
   <link rel="stylesheet" href="../../../shared/qontic-app.css">
-  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=5">
-  <link rel="stylesheet" href="hydrogen-template.css?v=13">
+  <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=6">
+  <link rel="stylesheet" href="hydrogen-template.css?v=14">
 </head>
 
 <body>
@@ -44,6 +44,7 @@
         <div class="slabel">Orbital |n, l, m⟩</div>
         <div class="nrow" id="nrow"></div>
         <div class="ogrid" id="ogrid"></div>
+        <p class="hydrogen-prompt">Each n has n² states, all with the same energy. Only some m are listed: −m has the same |ψ|² as +m, and its electrons circulate the other way.</p>
       </div>
       <div>
         <label class="slabel" for="superSel">Superposition</label>
@@ -56,10 +57,12 @@
           <optgroup label="Real orbitals (as drawn in chemistry)">
             <option value="px">2p_x [lobes along x]</option>
             <option value="py">2p_y [lobes along y]</option>
+            <option value="pz">2p_z [= 2p₀, lobes along z]</option>
+            <option value="dxy">3d_xy</option>
             <option value="dxz">3d_xz</option>
             <option value="dyz">3d_yz</option>
-            <option value="dxy">3d_xy</option>
             <option value="dx2y2">3d_x²−y²</option>
+            <option value="dz2">3d_z² [= 3d₀]</option>
           </optgroup>
           <optgroup label="With the Pauli spin term (pilot-wave)">
             <option value="spin_ss">1s↑ + 2s↓ [stationary density]</option>
@@ -95,6 +98,7 @@
             <label title="Spinor-spherical harmonic j-eigenstate via Clebsch–Gordan coupling"><input type="radio"
                 name="spinMode" id="spinModeJst" onchange="setSpinMode('jstate')"> j-state</label>
           </div>
+          <div id="spinKetRow" class="crow spin-ket" hidden><span id="spinKetText"></span></div>
           <div id="spinProductRow" class="crow" style="display:none">
             <label for="sSpinTheta"
               title="Polar angle θ of the spin direction vector |n̂⟩. θ = π/2 puts the spin in the xy plane, which breaks the symmetry about z.">θ</label>
@@ -181,7 +185,7 @@
           <span class="crow-val"><span id="vIO">0</span>%</span>
         </div>
         <div class="crow" id="lobeRow" style="display:none"><label for="sLB"
-            title="Isosurface threshold for lobe rendering (% of peak density)">Lobe level</label>
+            title="Surface drawn where |ψ|² equals this percentage of its peak value. Chemistry books often draw the surface that encloses 90% of the probability instead.">Lobe level (% of peak)</label>
           <input type=range id="sLB" min=1 max=40 value=12 step=1>
           <span class="crow-val"><span id="vLB">12</span>%</span>
         </div>
@@ -217,9 +221,9 @@
           </div>
         <div class="stat-grid" id="stGrid">
           <div class="stat"><span class="stat-label" id="stELabel">Energy</span><span class="stat-val" id="stE">—</span></div>
-          <div class="stat"><span class="stat-label">n, l, m</span><span class="stat-val" id="stNLM">—</span></div>
+          <div class="stat"><span class="stat-label" id="stNLMLabel">n, l, m</span><span class="stat-val" id="stNLM">—</span></div>
           <div class="stat"><span class="stat-label">Spin term</span><span class="stat-val" id="stSpin">Off</span></div>
-          <div class="stat"><span class="stat-label" id="stNLabel" title="Number of electrons drawn, each from its own atom">Electrons shown</span><span class="stat-val" id="stN">—</span></div>
+          <div class="stat"><span class="stat-label" title="Exact mean distance from the proton, (3n² − l(l+1))/2 Bohr radii for an eigenstate">⟨r⟩ (mean radius)</span><span class="stat-val" id="stRmean">—</span></div>
           <div class="stat"><span class="stat-label">Sim time (attoseconds)</span><span class="stat-val" id="stT">—</span></div>
           <div id="expertRows" style="display:contents">
             <div class="stat expert-stat"><span class="stat-label" title="⟨r⟩ summed over the rendering voxel grid; flagged when it differs from the exact value by more than 2%">⟨r⟩ voxel grid</span><span class="stat-val"
@@ -344,6 +348,7 @@
               <li>The app omits spin&ndash;orbit evolution; with spin&ndash;orbit coupling a general product state would evolve into a coupled one. The presets 1s&uarr; + 2p<sub>0</sub>&darr; and 2p<sub>+1</sub>&uarr; + 3d<sub>+1</sub>&darr; are therefore not stationary once fine structure is included.</li>
               <li>Eigenstates use the exact rotation about z. Superpositions and the spin term use fourth-order Runge&ndash;Kutta with finite-difference gradients (h = 0.07 a&#x2080;). Speeds above 25 a.u., which occur only very near nodes of ψ, are capped.</li>
               <li>Cloud samples are exact draws from |ψ|&sup2;. When the density changes in time the cloud is redrawn each frame, so its dots are not trajectories. With the spin term the cloud's dots follow trajectories (step 0.12 a.u.), and their number is limited to 500.</li>
+              <li>Lobes are drawn where |ψ|&sup2; equals a set fraction of its peak (Display: Lobe level), not as the surface that encloses 90% of the probability often drawn in chemistry books, so their size depends on that setting.</li>
               <li>The Checks panel compares ⟨r⟩ summed over the rendering grid with the exact value ⟨r⟩ = (3n&sup2; − l(l+1))/2 for an eigenstate. In 1s + 2s, ⟨r⟩ oscillates in time (the 1s&ndash;2s cross term is nonzero); in 1s + 2p<sub>0</sub> it does not.</li>
             </ul>
           </section>
@@ -375,7 +380,7 @@
     </div>
     <pre id="diagnostic-results-text" tabindex="0" aria-label="Diagnostic output" aria-live="polite"></pre>
   </dialog>
-  <script src="hydrogen-3d.js?v=23"></script>
-  <script type="module" src="hydrogen-template.js?v=20"></script>
+  <script src="hydrogen-3d.js?v=24"></script>
+  <script type="module" src="hydrogen-template.js?v=21"></script>
 </body>
 </html>

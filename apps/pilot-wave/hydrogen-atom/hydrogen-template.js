@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js';
 import { mountDistanceScale } from '../../../shared/qontic-overlays.js';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
-import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=5';
-import { APP_RELEASE } from './release.js?v=1.2.14';
+import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=6';
+import { APP_RELEASE } from './release.js?v=1.2.15';
 
 const controls = document.querySelector('qontic-controls');
 const canvas = document.getElementById('c');

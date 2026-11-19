@@ -137,7 +137,7 @@ set({ superKey: 'sp', comps: A('SUPERS.sp').map(c => ({ ...c })) }); check('sign
 
 // 8. Real orbitals in the superposition menu: real, chemistry signs, v = 0.
 {
-  const cases = { px: [[2, 0, 0], [-2, 0, 0]], py: [[0, 2, 0], [0, -2, 0]], dxz: [[2, 0, 2], [2, 0, -2]], dyz: [[0, 2, 2], [0, 2, -2]], dxy: [[2, 2, 0], [2, -2, 0]], dx2y2: [[3, 0, 0], [0, 3, 0]] };
+  const cases = { px: [[2, 0, 0], [-2, 0, 0]], py: [[0, 2, 0], [0, -2, 0]], pz: [[0, 0, 2], [0, 0, -2]], dz2: [[0, 0, 3], [3, 0, 0]], dxz: [[2, 0, 2], [2, 0, -2]], dyz: [[0, 2, 2], [0, 2, -2]], dxy: [[2, 2, 0], [2, -2, 0]], dx2y2: [[3, 0, 0], [0, 3, 0]] };
   let ok = true, maxV = 0, bad = [];
   for (const [key, [plus, minus]] of Object.entries(cases)) {
     set({ superKey: key, spinEnabled: false, comps: A(`SUPERS.${key}`).map(c => ({ ...c })) });
@@ -146,7 +146,7 @@ set({ superKey: 'sp', comps: A('SUPERS.sp').map(c => ({ ...c })) }); check('sign
     for (const pt of [[1.7, 0.9, 1.2], [-0.8, 2.1, 0.6]]) if (A(`rhoAt(comps,${pt},0)`) > 1e-10) maxV = Math.max(maxV, Math.hypot(...A(`bohmV(comps,${pt},0)`)));
     if (!A('psiRealUpToPhase()')) { ok = false; bad.push(key + ' (sign colours off)'); }
   }
-  check('real orbitals: real, chemistry signs, v = 0', ok && maxV < 1e-6, bad.join(', ') || `6 orbitals, max |v| ${maxV.toExponential(1)}`);
+  check('real orbitals: real, chemistry signs, v = 0', ok && maxV < 1e-6, bad.join(', ') || `8 orbitals, max |v| ${maxV.toExponential(1)}`);
   set({ superKey: 'none' });
 }
 

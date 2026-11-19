@@ -1,5 +1,13 @@
 # Hydrogen Atom — changelog
 
+## 1.2.15 · 2026-11-19
+Spin presets, real orbitals and diagnostics, from the ten-student review (no new controls; two rows removed).
+- Spin presets show their state written out (e.g. Ψ = 1/√2 |1,0,0⟩↑ + 1/√2 |2,1,0⟩↓, spin and orbit entangled) in place of the Mode, θ and φ rows, which do not apply to them. In State and diagnostics, spinor states (presets, j-states, orbital × spin) show the same decomposition under "State"; the j-state menu is wide enough for its labels.
+- Real orbitals: 2p_z (= 2p₀) and 3d_z² (= 3d₀) added, so the group holds all three p and all five d orbitals.
+- Orbital picker: a note that each n has n² states at the same energy and that −m has the same |ψ|² as +m.
+- Display: "Lobe level (% of peak)"; Physics § 6 says lobes are drawn at a fraction of the peak density, not as the 90%-probability surfaces of chemistry books.
+- State and diagnostics: "⟨r⟩ (mean radius)", exact, replaces "Electrons shown" (the slider already shows the number); for 1s + 2s it oscillates in time.
+
 ## 1.2.14 · 2026-11-19
 Display defaults, from the ten-student review (no new controls).
 - Axes on by default, with tick marks in Bohr radii (numbers on the x axis), so "circles the z axis", "lobes along z" and the size of the orbital can be read off the picture.

@@ -324,13 +324,14 @@ function realOrbital(n,l,m,type){
     ? [{n,l,m,cRe:s*h,cIm:0},{n,l,m:-m,cRe:h,cIm:0}]
     : [{n,l,m,cRe:0,cIm:-s*h},{n,l,m:-m,cRe:0,cIm:h}];
 }
-const REAL_SUPERS=new Set(['px','py','dxz','dyz','dx2y2','dxy']);
+const REAL_SUPERS=new Set(['px','py','pz','dxz','dyz','dx2y2','dxy','dz2']);
 const SUPERS={
   none:null,
   // Real orbitals as drawn in chemistry. With this code's Y_l^m (Condon–Shortley sign in P_l^m):
   // cos type = (−1)^m [Y^m + (−1)^m Y^−m]/√2, sin type = (−1)^m [Y^m − (−1)^m Y^−m]/(i√2),
   // signed so that, e.g., p_x > 0 on +x and d_xy > 0 at (1, 1, 0).
-  px:realOrbital(2,1,1,'c'), py:realOrbital(2,1,1,'s'),
+  px:realOrbital(2,1,1,'c'), py:realOrbital(2,1,1,'s'), pz:[{n:2,l:1,m:0,cRe:1,cIm:0}],
+  dz2:[{n:3,l:2,m:0,cRe:1,cIm:0}],
   dxz:realOrbital(3,2,1,'c'), dyz:realOrbital(3,2,1,'s'),
   dx2y2:realOrbital(3,2,2,'c'), dxy:realOrbital(3,2,2,'s'),
   ss:[{n:1,l:0,m:0,cRe:1/Math.SQRT2,cIm:0},{n:2,l:0,m:0,cRe:1/Math.SQRT2,cIm:0}],
@@ -342,7 +343,7 @@ const SUPERS={
 // Smaller box → better voxel resolution within the fixed VRES grid.
 // px/ss/sp: both components are n≤2; virtually all density within 14 a₀.
 // pd/circ: max n=3; density mostly within 24 a₀.
-const SUPER_RM={px:14,py:14,dxz:24,dyz:24,dx2y2:24,dxy:24,ss:14,sp:14,pd:24,circ:24,spin_ss:14,spin_sp:14,spin_circ:24};
+const SUPER_RM={px:14,py:14,pz:14,dz2:24,dxz:24,dyz:24,dx2y2:24,dxy:24,ss:14,sp:14,pd:24,circ:24,spin_ss:14,spin_sp:14,spin_circ:24};
 
 // Spin superpositions — each has a 'spinComps' (full spinor state) and
 // 'comps' (scalar equivalent for density sampling and volume visualisation).
@@ -1980,8 +1981,14 @@ function renderFrame(){
     document.getElementById('stE').textContent=(-13.6/(o.n*o.n)).toFixed(2)+' eV';
   }
   document.getElementById('stNLM').textContent=comps.map(c=>`${c.n}, ${c.l}, ${fmtM(c.m)}`).join(' + ');
-  document.getElementById('stN').textContent=interp==='pw'||showCloud?particles.length:'—';
-  document.getElementById('stNLabel').textContent=showCloud?'Samples':'Electrons shown';
+  // Mean radius ⟨r⟩ (exact): (3n² − l(l+1))/2 per component; 1s + 2s adds a cross term that oscillates.
+  const rMean=superKey==='none'&&!spinEnabled
+    ? exactR(o.n,o.l)
+    : comps.reduce((s,c)=>s+(c.cRe**2+c.cIm**2)*exactR(c.n,c.l),0)/comps.reduce((s,c)=>s+c.cRe**2+c.cIm**2,0)
+      +(superKey==='ss'?-64/(81*Math.SQRT2)*Math.cos(3*t/8):0);
+  document.getElementById('stRmean').textContent=rMean.toFixed(2)+' a\u2080';
+  if(spinEnabled&&spinComps.length) document.getElementById('stNLM').textContent=spinKetText(spinComps);
+  document.getElementById('stNLMLabel').textContent=spinEnabled&&spinComps.length?'State':'n, l, m';
   document.getElementById('stT').textContent=(t*24.1888).toFixed(0);
 }
 
@@ -2047,7 +2054,7 @@ function updateVerification(){
     el.className='stat-val '+(err<0.02?'ok':'warn');
     // Show component summary: "2,1,+1 + 3,2,+1"
     const klabel=comps.map(c=>`${c.n},${c.l},${fmtM(c.m)}`).join(' + ');
-    document.getElementById('stNLM').textContent=klabel;
+    if(!(spinEnabled&&spinComps.length)) document.getElementById('stNLM').textContent=klabel;
     // Normalization: Σ|c_i|² should equal 1
     const norm=comps.reduce((s,c)=>s+c.cRe*c.cRe+c.cIm*c.cIm,0);
     const normEl=document.getElementById('stNorm');
@@ -2062,7 +2069,7 @@ function updateVerification(){
     const el=document.getElementById('stMatch');
     el.textContent=(err*100).toFixed(1)+'% err';
     el.className='stat-val '+(err<0.02?'ok':'warn');
-    document.getElementById('stNLM').textContent=`${o.n}, ${o.l}, ${fmtM(o.m)}`;
+    if(!(spinEnabled&&spinComps.length)) document.getElementById('stNLM').textContent=`${o.n}, ${o.l}, ${fmtM(o.m)}`;
     const norm=computeRadialNorm(o.n,o.l);
     const normEl=document.getElementById('stNorm');
     normEl.textContent=norm.toFixed(4);
@@ -2808,6 +2815,27 @@ function toggleSpin(){
   updateQuickPresets();
 }
 
+// Spinor written out: e.g. "1/√2 |1,0,0⟩↑ + 1/√2 |2,0,0⟩↓".
+function spinKetText(sc){
+  const coef=(re,im)=>{
+    const mag=Math.hypot(re,im), known=[[1,''],[Math.SQRT1_2,'1/√2'],[Math.sqrt(2/3),'√(2/3)'],[Math.sqrt(1/3),'√(1/3)'],[0.5,'1/2'],[Math.sqrt(3)/2,'√3/2']];
+    const k=known.find(([v])=>Math.abs(v-mag)<5e-4);
+    const body=k?k[1]:mag.toFixed(2);
+    const imag=Math.abs(im)>Math.abs(re);
+    const neg=imag?im<0:re<0;
+    return {neg, txt:(imag?(body?body+'i':'i'):body)};
+  };
+  const terms=[];
+  for(const c of sc){
+    for(const [re,im,arrow] of [[c.upRe,c.upIm,'↑'],[c.dnRe,c.dnIm,'↓']]){
+      if(Math.hypot(re,im)<1e-6) continue;
+      const {neg,txt}=coef(re,im);
+      terms.push({neg,str:`${txt?txt+' ':''}|${c.n},${c.l},${fmtM(c.m)}⟩${arrow}`});
+    }
+  }
+  return terms.map((t,i)=>i===0?(t.neg?'−':'')+t.str:(t.neg?' − ':' + ')+t.str).join('');
+}
+
 function _syncSpinUI(){
   const btn=document.getElementById('spinToggleBtn');
   const termOn=spinEnabled&&spinTerm;
@@ -2822,8 +2850,14 @@ function _syncSpinUI(){
   const pr=document.getElementById('spinProductRow');
   const pr2=document.getElementById('spinProductRow2');
   const jr=document.getElementById('spinJRow');
-  if(pr) pr.style.display=(spinEnabled&&spinMode==='product')?'flex':'none';
-  if(pr2)pr2.style.display=(spinEnabled&&spinMode==='product')?'flex':'none';
+  // Spin presets are fixed (often entangled) spinors: show the state, not the Mode/θ/φ controls.
+  const preset=Boolean(SPIN_SUPERS[superKey]);
+  const modeRow=document.getElementById('spinModeRow');
+  if(modeRow) modeRow.style.display=preset?'none':'flex';
+  const ketRow=document.getElementById('spinKetRow');
+  if(ketRow){ketRow.hidden=!(spinEnabled&&preset);if(preset)document.getElementById('spinKetText').textContent='Ψ = '+spinKetText(spinComps)+(SPIN_SUPERS[superKey].comps.length>1?' (spin and orbit entangled)':'');}
+  if(pr) pr.style.display=(spinEnabled&&spinMode==='product'&&!preset)?'flex':'none';
+  if(pr2)pr2.style.display=(spinEnabled&&spinMode==='product'&&!preset)?'flex':'none';
   if(jr) jr.style.display=(spinEnabled&&spinMode==='jstate') ?'flex':'none';
   // Update mode radio buttons
   const mProd=document.getElementById('spinModeProd');
@@ -3057,6 +3091,8 @@ updateQuickPresets();
 const SUPER_DESC={
     px:'2p_x = (2p₋₁ − 2p₊₁)/√2: two lobes along x. This combination is real, so the pilot-wave velocity is zero; in 2p₊₁ the electrons circulate.',
     py:'2p_y = i(2p₋₁ + 2p₊₁)/√2: two lobes along y. Real, so the pilot-wave velocity is zero.',
+    pz:'2p_z is the m = 0 state 2p₀: two lobes along z. Real, so the pilot-wave velocity is zero.',
+    dz2:'3d_z² is the m = 0 state 3d₀: two lobes along z and a ring in the xy plane of opposite sign. Real, so the pilot-wave velocity is zero.',
     dxz:'3d_xz: four lobes in the xz plane, a real combination of m = ±1. The pilot-wave velocity is zero; in 3d₊₁ the electrons circulate.',
     dyz:'3d_yz: four lobes in the yz plane, a real combination of m = ±1. The pilot-wave velocity is zero.',
     dx2y2:'3d_x²−y²: four lobes along the x and y axes, a real combination of m = ±2. The pilot-wave velocity is zero; in 3d₊₂ the electrons circulate.',
@@ -3080,7 +3116,7 @@ document.getElementById('superSel').onchange=function(){
   refreshOrbGrid();
 
   // Per-preset lobe threshold
-  const presetLb={ss:1,sp:3,pd:8,circ:6,px:10,py:10,dxz:10,dyz:10,dx2y2:10,dxy:10,none:12,spin_ss:1,spin_sp:3,spin_circ:6};
+  const presetLb={ss:1,sp:3,pd:8,circ:6,px:10,py:10,pz:10,dz2:10,dxz:10,dyz:10,dx2y2:10,dxy:10,none:12,spin_ss:1,spin_sp:3,spin_circ:6};
   const lb=presetLb[superKey];
   if(lb!==undefined){
     lobeThresh=lb/100;
