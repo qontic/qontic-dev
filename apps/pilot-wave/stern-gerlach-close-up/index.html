@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
   <link rel="stylesheet" href="./style.css?v=8" />
-  <link rel="modulepreload" href="./main.js?v=13" />
+  <link rel="modulepreload" href="./main.js?v=14" />
 </head>
 <body>
   <main class="shell">
@@ -43,6 +43,7 @@
       <div id="viewtools">
         <canvas id="viewGizmo" width="104" height="76" aria-hidden="true"></canvas>
         <div class="view-buttons" role="group" aria-label="Camera angle and zoom">
+          <button class="qontic-app-toggle" id="view3D" type="button" aria-label="Default 3D view" aria-pressed="true" disabled>3D</button>
           <button class="qontic-app-toggle" id="viewXY" type="button" aria-label="Top XY view" aria-pressed="false" disabled>XY</button>
           <button class="qontic-app-toggle" id="viewXZ" type="button" aria-label="Side XZ view" aria-pressed="false" disabled>XZ</button>
           <button class="qontic-app-toggle" id="viewYZ" type="button" aria-label="Side YZ view" aria-pressed="false" disabled>YZ</button>
@@ -58,7 +59,7 @@
         show-reset="true" show-rerun="false" show-autorun="true" auto-run="true" show-interpretation="true" interpretations="cpn,pw" interpretation="pw" disabled></qontic-controls>
       <div class="qontic-control-body" id="controls">
         <div data-control-pane="core">
-          <p class="prompt">Click XZ for the side view: the beam moves to the right and z points up. With the field on, the equal superposition splits into an upper (+z) and a lower (−z) part. Set Initial spin to +z and the whole packet moves up. Changing the initial spin restarts the packet. The run restarts by itself after the packet passes the plate; click ↻ to turn this off.</p>
+          <p class="prompt">Click XZ for the side view and 3D to come back: the beam moves to the right and z points up. With the field on, the equal superposition splits into an upper (+z) and a lower (−z) part. Set Initial spin to +z and the whole packet moves up. Changing the initial spin restarts the packet. The run restarts by itself after the packet passes the plate; click ↻ to turn this off.</p>
         </div>
         <div data-control-pane="advanced" hidden>
           <p class="prompt">The app selects a starting grid from the device’s capabilities. You can adjust it here. Changing the grid also changes the tunnel dimensions and restarts the packet.</p>
@@ -102,7 +103,7 @@
             </mrow>
           </math>
         </div>
-        <p>Here y<sub>c</sub> and z<sub>c</sub> are the centre of the box, L is half the box height, and g is the gradient strength, so ∂B<sub>z</sub>/∂z = g/L. The uniform part, 2g, keeps the field from vanishing inside the box, so the spin components separate without spin flips. The y component is required by ∇·B = 0; it has almost no effect here. The red lines are field lines of this B. The Magnetic field switch turns the whole field off, uniform part included.</p>
+        <p>Here y<sub>c</sub> and z<sub>c</sub> are the centre of the box, L is half the box height, and g is the gradient strength, so ∂B<sub>z</sub>/∂z = g/L. The uniform part, 2g, keeps the field from vanishing inside the box, so the spin components separate without spin flips. The y component is required by ∇·B = 0; it has almost no effect here. The red lines are field lines of this B. The Magnetic field switch (Display tab) turns the whole field off, uniform part included.</p>
         <h4>Wave</h4>
         <p>The particle is neutral, so there is no vector potential. The spinor obeys the Pauli equation</p>
         <div class="eq">
@@ -169,6 +170,6 @@
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=13"></script>
+  <script type="module" src="./template.js?v=14"></script>
 </body>
 </html>

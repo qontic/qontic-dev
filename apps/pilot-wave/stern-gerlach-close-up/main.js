@@ -375,7 +375,6 @@ function addSectionHeader(label) {
 }
 
 const initialSpinControl = addCycleButton("initialSpin", "Initial spin", INITIAL_SPIN_NAMES, () => resetAll());
-addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
 // Above ~3.5 the deflected branches reach the hard walls before the plate.
 addSlider("sgGradient", "Gradient strength", 0.0, 3.5, 0.002, () => requestTrailClear());
 
@@ -385,6 +384,7 @@ addSlider("packetSigma", "Packet width", 4.0, 14.0, 0.5, () => resetAll());
 addSlider("spinS", "Spin current s", 0.0, 2.0, 0.5);
 
 controls = displayControls;
+addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
 const cameraProjectionControl = addCycleButton("cameraProjection", "Camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
   syncCameraUi();
@@ -1027,9 +1027,10 @@ function cameraLookAtWorld() {
 
 // Default 3D view: from the front-left and a little above, so the box is seen
 // nearly side-on and the vertical splitting is visible, with depth.
+const DEFAULT_VIEW = { yaw: -1.85, pitch: 0.26 };
 const cameraOrbit = {
-  yaw: -1.85,
-  pitch: 0.26,
+  yaw: DEFAULT_VIEW.yaw,
+  pitch: DEFAULT_VIEW.pitch,
   distance: 1,
 };
 const KEYBOARD_YAW_CENTER = -Math.PI * 0.5;
@@ -1087,6 +1088,12 @@ function syncCameraUi() {
     const selected = params.cameraProjection === 1 && activeOrthoView === key;
     btn.classList.toggle("selected", selected);
     btn.setAttribute("aria-pressed", String(selected));
+  }
+  const view3D = document.getElementById("view3D");
+  if (view3D) {
+    const selected3D = params.cameraProjection !== 1;
+    view3D.classList.toggle("selected", selected3D);
+    view3D.setAttribute("aria-pressed", String(selected3D));
   }
 }
 
@@ -1232,6 +1239,16 @@ function updateCameraKeyMotion(dtSeconds) {
 for (const [key, btn] of Object.entries(viewButtons)) {
   if (btn) btn.addEventListener("click", () => selectOrthoView(key));
 }
+// "3D" returns to the default perspective view.
+const view3DButton = document.getElementById("view3D");
+view3DButton?.addEventListener("click", () => {
+  setCameraProjection(0);
+  cameraTarget.yaw = DEFAULT_VIEW.yaw;
+  cameraTarget.pitch = DEFAULT_VIEW.pitch;
+  cameraTarget.distance = 1;
+  requestTrailClear();
+  syncCameraUi();
+});
 syncCameraUi();
 document.getElementById("zoomIn").onclick = () => applyCameraZoomDelta(-130);
 document.getElementById("zoomOut").onclick = () => applyCameraZoomDelta(130);
