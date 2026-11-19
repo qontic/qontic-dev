@@ -3,7 +3,7 @@
 // central one tallest. Every candidate is judged on the screen density computed
 // with the app's own analytical model (sourceProfile), not on a formula.
 // No DOM; importable from node. Lengths in nm.
-import {sourceProfile} from './source-packet-model.js?cache=nslit22';
+import {sourceProfile} from './source-packet-model.js?cache=nslit23';
 
 export const NICE_LIMITS = Object.freeze({
   wavelength: 50, slitWidth: [30, 200], separation: [0, 2000], distance: [50, 3000], screen: [120, 5000], sourceWidth: [50, 400],
@@ -69,8 +69,9 @@ export function niceFringeSearch({N, openIds, wall = 225, extentSigma = 1.5, tar
     if (screen > NICE_LIMITS.screen[1] || screen < Math.max(NICE_LIMITS.screen[0], needed)) return null;
     // Mean spacing of the bumps against the far-field (Fraunhofer) spacing λD/d.
     const spacing = (r.peaks.at(-1) - r.peaks[0]) / Math.max(1, r.peaks.length - 1), farField = lambda * D / d;
-    // Prefer real fringes: penalize bumps whose spacing is far from λD/d (at many
-    // slits those are near-field images of the slits).
+    // Prefer spacing near λD/d, the period of the pattern where the slit beams overlap.
+    // This is not a far-field test: with three or more slits every pattern within the
+    // app's distances is near-field (see Physics, Near and far field).
     const regime = Math.abs(spacing / farField - 1);
     return {score: r.score + 6 * regime, sigma, d, D, sourceSigma, screen, count: r.count, peaks: r.peaks, heights: r.heights, spacing, farField};
   };

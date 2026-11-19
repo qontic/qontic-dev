@@ -1,3 +1,20 @@
+## 3.0-dev.22 — 2026-11-19
+Fixes from the five-student follow-up on dev.21 (Emma, Leila, Jun, Raj, Tomás).
+- **Correction (Raj):** dev.17 called 3–8-slit Nice-fringes results far-field when their spacing was near λD/d, and its changelog said "2–8 slits within 8% of λD/d". Both were wrong: where the slit beams overlap, the near-field pattern repeats every λD/d anyway, and 7 and 9 slits give slit images (269 vs 536, 199 vs 381 nm). All Nice-fringes picks for three or more slits sit near a quarter, a half or a whole number of Talbot lengths (3–5 slits ≈ 0.25, 6 and 8 ≈ 0.5, 7 and 9 ≈ 1, 10 and 11 ≈ 2; checked). The status line now gives the spacing, λD/d and the screen distance in Talbot lengths, and says "double-slit fringes" (two slits) or "near field … image of the slits, not the textbook N-slit pattern". Physics text corrected to match.
+- **Correction (Tomás):** Views and quiz Q1 said the band edges depend on the |ψ|² starting distribution. They follow from the guidance flow alone (each trajectory keeps the fraction of |ψ|² on its side); the |ψ|² hypothesis fixes the fraction of particles per band and the hit distribution.
+- Normalization numbers corrected: with two slits open the peak of T is 0.73 at d = 3σₐ, 0.94 at about 7σₐ, 0.998 at the default 10σₐ (checked with aperture()); the text said 0.73–0.9.
+- Stats row "Fringes" counts only slits without a detector ("none (detectors)" when fewer than two remain).
+- Wide slits: the slit width maximum shrinks when the openings could not fit side by side on a 5000 nm wall (16 slits: 100 nm), so openings never overlap (Raj: 16 slits at 200 nm still overlapped).
+- Links: view=orthodox / pilotwave / pw / mw accepted; unknown names ignored (view=orthodox lost the caption sentence).
+- Caption: hit swatch matches the drawing (coloured by slit or by wall position in Pilot Wave); particle colours shown alongside detector-record colours; closed slits with hits still on screen stay in the legend; band-line sentence only without detectors; "black strip with green bars"; one packet = N particles.
+- "Apply at the wall" checkbox is unticked at every quiz question; the closed-slit tooltip says it reopens without a detector while ticked.
+- Detector button for two slits: "Detector @ 2 (lower)", matching the numbered slit buttons.
+- Contrast: removed the leftover opacity 0.7 on the view label and shortcut hint (light theme was 3.5:1); closed slit buttons full opacity with a dashed border; dark edges on light swatches, slit-coloured hit markers and band numbers.
+- Accessibility: the image role moved from the canvas container (which holds the range sliders) to the main canvas; Hits tooltip explains packets.
+- Quiz: each question opens its explanation with one plain sentence; no kets (Q6 in words); Q4 "In the orthodox view, quantum mechanics…"; Q3 qualifies decoherence (erasable ideal records); Q6 stem says macroscopic detector; captions say "the dot".
+- Wording: "In short" no longer uses path language; Many-Worlds sentence in "Closing a slit…" made specific; 3D paragraph no longer says "the two" components.
+- Not changed: colour mode chosen by the quiz is still remembered in the browser (Emma); Views still lacks a plain opening paragraph.
+
 ## 3.0-dev.21 — 2026-11-19
 Accessibility and 16-slit geometry (Jun, Priya, Sofia).
 - Slit colours for three or more slits replaced: worst pair over all eight is ΔE 8.1 under normal, deutan and protan vision (was 1.4; checked with the dataviz palette validator and a Machado-matrix search over Okabe–Ito/Tol colours); neighbouring slits ≥ 15.7. Slits 9–16 repeat the eight; band numbers and the caption legend give the slit number too. Two slits keep cyan/orange.

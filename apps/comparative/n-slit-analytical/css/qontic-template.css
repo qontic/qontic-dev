@@ -436,7 +436,7 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 .analytical-template .slit-open-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
 .analytical-template .slit-open-buttons .slit-open-button { width: auto; min-width: 28px; height: 26px; padding: 0 7px; flex: 0 0 auto; }
 /* Slit states: open (active), closed (dim), open with a which-slit detector (yellow, as the D marker). */
-.analytical-template .slit-open-buttons .slit-open-button.slit-closed { opacity: .8; text-decoration: line-through; }
+.analytical-template .slit-open-buttons .slit-open-button.slit-closed { opacity: 1; text-decoration: line-through; border-style: dashed; }
 .analytical-template .slit-open-buttons .slit-open-button.slit-detector { background: #ffd54a; border-color: #ffd54a; color: #3b2d00; font-weight: 700; }
 .analytical-template .slit-open-buttons .slit-open-button.slit-detector::after { content: "D"; font-size: 9px; margin-left: 2px; vertical-align: super; }
 .analytical-template #experiment-bar #niceFringesButton { width: auto; }
@@ -459,7 +459,10 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 @keyframes slitPending { from { opacity: 1; } to { opacity: .55; } }
 
 /* Contrast (3.0-dev.21, Jun's review): small grey text reached 2.4–2.6:1 in the light theme and ~4:1 in the dark. */
-body.analytical-template #view-label, body.analytical-template #shortcut-hint { color: #b9c8d4; }
+body.analytical-template #view-label, body.analytical-template #shortcut-hint { color: #b9c8d4; opacity: 1; }
 body.qontic-light.analytical-template #view-label, body.qontic-light.analytical-template #shortcut-hint { color: #3f5868; }
 body.qontic-light.analytical-template footer a { color: #0b5e6e; }
 body.qontic-light.analytical-template .view-caption { color: #3f5868; }
+
+/* Light swatches (yellow, pink) need a dark edge on the light page (3.0-dev.22). */
+body.qontic-light.analytical-template .view-caption .cap-swatch { border-color: rgba(20,40,60,.55); }

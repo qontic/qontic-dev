@@ -1223,7 +1223,8 @@ function updateSlitCountControls() {
    // Each slit cycles open → closed → detector → open.
    const html = Array.from({ length: numSlits }, (_, k) => {
       const state = !slitOpen[k] ? 'closed' : slitDetector[k] ? 'detector' : 'open';
-      const next = state === 'open' ? 'close it' : state === 'closed' ? 'open it with a which-slit detector' : 'remove the detector';
+      const atWall = document.getElementById('slit-at-wall')?.checked;
+      const next = state === 'open' ? 'close it' : state === 'closed' ? (atWall ? 'open it (no detector while “Apply at the wall” is ticked)' : 'open it with a which-slit detector') : 'remove the detector';
       return '<button type="button" class="qontic-app-toggle slit-open-button slit-' + state + (state !== 'closed' ? ' active' : '') + '" data-slit="' + k + '" data-state="' + state + '" aria-label="Slit ' + (k + 1) + ', ' + state + '" title="Slit ' + (k + 1) + ' ' + (state === 'detector' ? 'open, with a which-slit detector' : state) + ': click to ' + next + '">' + (k + 1) + '</button>';
    }).join('');
    if (host.dataset.html !== html) {
@@ -1298,7 +1299,7 @@ function updateWhichPathButton() {
    $('#detectorWaveControls').hide();
    const ids = whichPathDetector === 'none' ? [] : detectorSlitIds(), open = openSlitIds();
    if (!ids.length) label = 'No Detectors';
-   else if (numSlits === 2 && ids.length === 1) label = 'Detector @ ' + slitName(ids[0]);
+   else if (numSlits === 2 && ids.length === 1) label = 'Detector @ ' + (ids[0] + 1) + ' (' + slitName(ids[0]).toLowerCase() + ')';
    else if (ids.length === open.length) label = 'Detectors @ all open';
    else label = (ids.length === 1 ? 'Detector @ ' : 'Detectors @ ') + ids.map(k => k + 1).join(', ');
    $('#toggleWhichPath').text(label).attr('aria-pressed', ids.length > 0)
@@ -1570,6 +1571,9 @@ function applyUrlHash() {
    if (params.scr) $('#screen-height-group')[0].setValueInFirstUnit(parseFloat(params.scr));
    if (params.wl)  $('#wavelength-group')[0].setValueInFirstUnit(parseFloat(params.wl));
    // Apply view
+   // Accept common names for the views; ignore unknown ones (3.0-dev.22).
+   const viewNames = { copenhagen: 'copenhagen', orthodox: 'copenhagen', o: 'copenhagen', bohmian: 'bohmian', pilotwave: 'bohmian', pw: 'bohmian', manyworlds: 'manyworlds', mw: 'manyworlds' };
+   if (params.view) params.view = viewNames[String(params.view).toLowerCase().replace(/[-_ ]/g, '')];
    if (params.view) {
       interpretation = params.view;
       updateViewButton();
@@ -2354,6 +2358,7 @@ $(document).ready(function() {
          }
       });
       window.addEventListener('qontic-atwall-cancel', () => updateSlitCountControls());
+      $(document).on('change', '#slit-at-wall', () => updateSlitCountControls());
       function detectorsChanged() {
          syncWhichPathDetector();
          updateWhichPathButton();

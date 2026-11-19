@@ -75,6 +75,8 @@ function isRunning() { return typeof isAnimating !== 'undefined' && isAnimating;
 // Put the app in the question's configuration, paused and reset.
 function setTo({ view, slits, color = null }) {
   if (isRunning()) $('#startButton').trigger('click');
+  // Q5's Watch ticks this; every question starts with it off.
+  const atWall = document.getElementById('slit-at-wall'); if (atWall && atWall.checked) { atWall.checked = false; atWall.dispatchEvent(new Event('change', { bubbles: true })); }
   if (view && interpretation !== view) changeInterpretation(view);
   numSlits = slits.length;
   for (let k = 0; k < MAX_SLITS; k++) {
@@ -91,16 +93,18 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
   const questions = [
     {
       question: 'Pilot Wave, three equal slits open. A particle lands near the top of the screen. Which slit did it go through?',
-      caption: 'Three open slits; the red dot is where the particle landed.',
+      caption: 'Three open slits; the dot is where the particle landed.',
+      plain: 'Slit 1: in pilot-wave theory paths never cross, so the top slit feeds the top of the screen.',
       answers: [{ id: 's1', label: 'Slit 1' }, { id: 's2', label: 'Slit 2' }, { id: 's3', label: 'Slit 3' }, { id: 'any', label: 'Any of them: the waves overlap there' }],
       answer: 's1',
-      explain: 'In pilot-wave theory each particle passes one slit, and trajectories never cross, so the slits map onto bands of the screen in order: slit 1 to the top band, slit 3 to the bottom one. Where the band edges fall also uses the theory’s assumption that the starting positions are distributed as |ψ|². In the simulation, Color: By slit colours each particle by its slit, and dashed lines on the histogram mark the bands. The Orthodox view gives no slit at all (question 4).',
+      explain: 'In pilot-wave theory each particle passes one slit, and trajectories never cross, so the slits map onto bands of the screen in order: slit 1 to the top band, slit 3 to the bottom one. The band edges follow from the guidance law itself; how many particles land in each band comes from the theory’s assumption that starting positions are distributed as |ψ|². In the simulation, Color: By slit colours each particle by its slit, and dashed lines on the histogram mark the bands. The Orthodox view gives no slit at all (question 4).',
       prepare: () => setTo({ view: 'bohmian', slits: ['open', 'open', 'open'], color: 'slit' }),
       draw: c => drawSetup(c, ['open', 'open', 'open'], { hitY: .1 }),
     },
     {
       question: 'Four slits, with an ideal which-slit detector on slit 2 only. What does the screen show?',
       caption: 'Four open slits; D marks the detector on slit 2.',
+      plain: 'Slits 1, 3 and 4 still make fringes together; slit 2 only adds a smooth bump.',
       answers: [
         { id: 'none', label: 'No interference left anywhere on the screen' },
         { id: 'partial', label: 'Slits 1, 3, 4 interfere; slit 2 adds a bump' },
@@ -115,6 +119,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
     {
       question: 'The same four slits, now with a detector on every slit. What does the screen show?',
       caption: 'Four open slits, each with a detector.',
+      plain: 'No fringes: every slit is told apart, so only smooth single-slit bumps add up.',
       answers: [
         { id: 'four', label: 'The four-slit fringes, unchanged' },
         { id: 'pairs', label: 'Weaker fringes from neighbouring pairs' },
@@ -122,13 +127,14 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
         { id: 'nothing', label: 'Nothing: detectors absorb the particles' },
       ],
       answer: 'smooth',
-      explain: 'Every pair of slits is now told apart by the detector records, so no cross term is left: the density is |ψ₁|² + |ψ₂|² + |ψ₃|² + |ψ₄|². Here the single-slit bumps overlap into one smooth hump; with slits farther apart they would show as separate humps, still without fringes. This is the mechanism of decoherence. With imperfect detectors the fringes would only fade.',
+      explain: 'Every pair of slits is now told apart by the detector records, so no cross term is left: the density is |ψ₁|² + |ψ₂|² + |ψ₃|² + |ψ₄|². Here the single-slit bumps overlap into one smooth hump; with slits farther apart they would show as separate humps, still without fringes. This is how decoherence removes interference; with these ideal detectors the records could in principle be erased and the fringes brought back. With imperfect detectors the fringes would only fade.',
       prepare: () => setTo({ view: 'copenhagen', slits: ['detector', 'detector', 'detector', 'detector'] }),
       draw: c => drawSetup(c, ['detector', 'detector', 'detector', 'detector']),
     },
     {
       question: 'Orthodox view, two slits, no detector. A particle is detected in the central bright fringe. Which slit did it go through?',
-      caption: 'Two open slits; the red dot is the detection in the central fringe.',
+      caption: 'Two open slits; the dot is the detection in the central fringe.',
+      plain: 'Standard quantum mechanics does not say: without a measurement at the slits it assigns no slit.',
       answers: [
         { id: 'upper', label: 'The upper slit; which one is random' },
         { id: 'lower', label: 'The lower slit; which one is random' },
@@ -136,13 +142,14 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
         { id: 'none', label: 'No slit is assigned without measuring' },
       ],
       answer: 'none',
-      explain: 'The orthodox formalism gives the probabilities of measurement outcomes. With no measurement at the slits it says nothing about a path, not even that the particle split in two. Put a detector on a slit and the question gets an answer, but the interference involving that slit goes away.',
+      explain: 'In the orthodox view, quantum mechanics gives the probabilities of measurement outcomes. With no measurement at the slits it says nothing about a path, not even that the particle split in two. Put a detector on a slit and the question gets an answer, but the interference involving that slit goes away.',
       prepare: () => setTo({ view: 'copenhagen', slits: ['open', 'open'] }),
       draw: c => drawSetup(c, ['open', 'open'], { hitY: .5 }),
     },
     {
       question: 'Pilot Wave, two slits. The packet has just crossed the wall when you close the lower slit. What do the particles already past the wall do?',
       caption: 'The packet is past the wall; slit 2 is being closed.',
+      plain: 'They keep moving in the two-slit pattern: the wave from slit 2 is already past the wall.',
       answers: [
         { id: 'keep', label: 'Keep moving in the two-slit pattern' },
         { id: 'switch', label: 'Switch at once to a one-slit pattern' },
@@ -155,8 +162,9 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       draw: c => drawSetup(c, ['open', 'open'], { packet: true, shutter: 1 }),
     },
     {
-      question: 'Many Worlds, two slits, a detector on the upper slit. What happens at the slits?',
+      question: 'Many Worlds, two slits, a (macroscopic) which-slit detector on the upper slit. What happens at the slits?',
       caption: 'Two open slits; D marks the detector on slit 1.',
+      plain: 'The state splits into two branches: one where the detector fired, one where it stayed silent.',
       answers: [
         { id: 'split', label: 'Two branches: detector fired, and silent' },
         { id: 'late', label: 'One branch until the particle hits the screen' },
@@ -164,7 +172,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
         { id: 'nothing', label: 'No change: the detector does not affect the wave' },
       ],
       answer: 'split',
-      explain: 'The wave never collapses. The detector becomes correlated with the slit: ψᵤ|fired⟩ + ψₗ|silent⟩, two branches with different records, so they no longer interfere on the screen. Each branch’s weight is |ψ|² of its part; reading weights as probabilities is assumed here, and how Many Worlds justifies that is debated.',
+      explain: 'The wave never collapses. The detector becomes correlated with the slit: (upper-slit wave) × (detector fired) + (lower-slit wave) × (detector silent). With a macroscopic detector these two branches have different, practically irreversible records, so they no longer interfere on the screen. Each branch’s weight is |ψ|² of its part; reading weights as probabilities is assumed here, and how Many Worlds justifies that is debated.',
       prepare: () => setTo({ view: 'manyworlds', slits: ['detector', 'open'] }),
       draw: c => drawSetup(c, ['detector', 'open']),
     },

@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit22';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit22';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit22';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit22';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit22';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit22';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit22';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit22';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit23';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit23';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit23';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit23';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit23';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit23';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit23';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit23';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -50,6 +50,10 @@ export function mountPacketEngine({core,advanced}){
   // the wall and hold the transmitted probability; take the strictest limit.
   const n=+extent.value,windows=directPW&&n!==3?[n,3]:[n],widest=Math.max(...windows);
   dynamicWidthMax=Math.max(30,Math.floor(height/(4*widest)/5)*5);
+  // With many open slits, the openings (±extent·σ each, 10 nm apart) must still fit side by
+  // side on the longest allowed wall (5000 nm): cap the slit width accordingly (3.0-dev.22).
+  {const outerSign=Math.max(1,...openSlitIds().map(k=>Math.abs(slitCenterSign(k))));
+   if(openSlitIds().length>=2){const fit=Math.floor((5000-10*outerSign)/(2*widest*(outerSign+1))/5)*5;dynamicWidthMax=Math.max(30,Math.min(dynamicWidthMax,fit));}}
   width.max=width.parentElement.querySelector('input[type=number]').max=dynamicWidthMax;
   if(+width.value>dynamicWidthMax)width.value=dynamicWidthMax;
   // The outermost open slit sits at |sign|·d/2 from the axis (|sign| = 1 for two
@@ -250,7 +254,7 @@ export function mountPacketEngine({core,advanced}){
  function updateMath(){
   packetMath.innerHTML=physicsHTML+nSlitPhysicsHTML+'<h3>Direct-PW preparation</h3><p>Direct PW samples transmitted configurations within a fixed ±3σₐ window around each Gaussian aperture, independently of the displayed Slit extent. This window contains 99.73% of an isolated Gaussian profile. The green comparison curve remains the common analytical Gaussian-wave prediction rather than introducing a hard finite-core cut.</p><h3>Unequal slit transmission</h3><p>The expert “Slit balance” control works only when exactly two slits are open (it is disabled otherwise). It multiplies the amplitudes of the upper and lower open apertures by factors a₁ and a₂ between zero and one. One slit remains fully open while the other is attenuated; “Upper only” or “Lower only” sets the opposite factor to zero. The analytical Gaussian propagation is unchanged: only the corresponding closed-form component coefficients change. Unequal amplitudes reduce fringe visibility and break the reflection symmetry of the Pilot-Wave velocity field.</p>'+whichPathPhysicsHTML;
   math.removeAttribute('aria-busy');
-  const views=document.getElementById('rationale');views.innerHTML=viewsHTML+nSlitViewsHTML+'<h3>3D wave surface</h3><p>The optional interactive 3D view graphs the same analytical field used by the 2D view. Dragging rotates the camera, the wheel or a pinch gesture zooms, and right-dragging pans. The Height selector can graph contrast-enhanced |Ψ|², cos θ, or Re Ψ and Im Ψ with the same enhanced amplitude envelope. The monotonic height boost preserves zeros and ordering but is not a linear amplitude scale; it keeps the weaker transmitted wave readable beside the incident packet. The cos θ choice is a continuous phase display that avoids an artificial moving cliff at the ±π wrap; unlike θ itself, it does not uniquely identify the phase angle. For cos θ, Re Ψ and Im Ψ, the middle of the height range is zero, and the reference grid and apparatus lie on that zero plane; the translucent floor lets negative lobes remain visible below it. To prevent temporal aliasing, the 3D carrier-phase animation is display-capped at 2 rad/s; this changes neither the wavefunction used for guidance nor any simulated timing. Surface color independently retains the wave quantity selected in the ordinary Show control and uses the same slowed display phase in 3D. With which-path tagging, phase and signed height use a density-weighted display of the two noninterfering tagged components rather than treating them as a coherent sum. Height and color are display coordinates and do not add a physical spatial dimension. The detector histogram is likewise graphed vertically above a low detector wall: it uses the same predicted curve, retained hits and square-root count error bars as the 2D histogram. Pilot-Wave particles and trajectories are drawn on a flat plane, not on the graph of the wave: by default the apparatus zero plane, the physical x–y plane. The 3D toolbar’s Particle height slider raises that plane for visibility only, and its Wave slider sets the surface opacity in Pilot-Wave. When Show is set to Phase, a wheel in the corner gives the surface color for each phase angle θ; because the display uses cos θ, +θ and −θ share a color. Their dynamics are always calculated entirely in the physical x–y plane. The Pilot-Wave toolbar eye hides or shows the wave in both the 2D and 3D displays; it does not alter the guidance field or interrupt the simulation.</p><h3>Direct-PW statistics</h3><p>The fixed ±3σₐ Direct-PW window omits only the 0.27% isolated-Gaussian tails. The green curve continues to show the common analytical probability distribution, without a hard central cut. Toggling Direct PW preserves earlier hits and affects new packets.</p>'+whichPathViewsHTML;
+  const views=document.getElementById('rationale');views.innerHTML=viewsHTML+nSlitViewsHTML+'<h3>3D wave surface</h3><p>The optional interactive 3D view graphs the same analytical field used by the 2D view. Dragging rotates the camera, the wheel or a pinch gesture zooms, and right-dragging pans. The Height selector can graph contrast-enhanced |Ψ|², cos θ, or Re Ψ and Im Ψ with the same enhanced amplitude envelope. The monotonic height boost preserves zeros and ordering but is not a linear amplitude scale; it keeps the weaker transmitted wave readable beside the incident packet. The cos θ choice is a continuous phase display that avoids an artificial moving cliff at the ±π wrap; unlike θ itself, it does not uniquely identify the phase angle. For cos θ, Re Ψ and Im Ψ, the middle of the height range is zero, and the reference grid and apparatus lie on that zero plane; the translucent floor lets negative lobes remain visible below it. To prevent temporal aliasing, the 3D carrier-phase animation is display-capped at 2 rad/s; this changes neither the wavefunction used for guidance nor any simulated timing. Surface color independently retains the wave quantity selected in the ordinary Show control and uses the same slowed display phase in 3D. With which-path tagging, phase and signed height use a density-weighted display of the noninterfering detector-record components rather than treating them as a coherent sum. Height and color are display coordinates and do not add a physical spatial dimension. The detector histogram is likewise graphed vertically above a low detector wall: it uses the same predicted curve, retained hits and square-root count error bars as the 2D histogram. Pilot-Wave particles and trajectories are drawn on a flat plane, not on the graph of the wave: by default the apparatus zero plane, the physical x–y plane. The 3D toolbar’s Particle height slider raises that plane for visibility only, and its Wave slider sets the surface opacity in Pilot-Wave. When Show is set to Phase, a wheel in the corner gives the surface color for each phase angle θ; because the display uses cos θ, +θ and −θ share a color. Their dynamics are always calculated entirely in the physical x–y plane. The Pilot-Wave toolbar eye hides or shows the wave in both the 2D and 3D displays; it does not alter the guidance field or interrupt the simulation.</p><h3>Direct-PW statistics</h3><p>The fixed ±3σₐ Direct-PW window omits only the 0.27% isolated-Gaussian tails. The green curve continues to show the common analytical probability distribution, without a hard central cut. Toggling Direct PW preserves earlier hits and affects new packets.</p>'+whichPathViewsHTML;
   views.removeAttribute('aria-busy');
   for(const node of [...packetMath.querySelectorAll('[data-equation]'),...views.querySelectorAll('[data-equation]')]){
    const formula=physicsEquations[node.dataset.equation]??whichPathEquations[node.dataset.equation];
@@ -398,7 +402,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit22').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit23').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -693,6 +697,8 @@ export function mountPacketEngine({core,advanced}){
      // complete retained count so mixed histories never produce black overlays.
      const markerColor=slitColorOf(binSlitGroup(i,n));
      context.strokeStyle=context.fillStyle=markerColor;context.beginPath();context.moveTo(x-error,y);context.lineTo(x+error,y);context.stroke();context.beginPath();context.arc(x,y,3,0,2*Math.PI);context.fill();
+     // Dark edge so pale slit colours (yellow, pink) stay visible on the white histogram.
+     context.save();context.lineWidth=.8;context.strokeStyle='rgba(20,30,40,.6)';context.stroke();context.restore();
     }else{let markerColor=colorHit;if(pwColors&&particleColorMode.value==='uniform')markerColor=colorPart;else if(pwColors&&particleColorMode.value==='spectrum'){const spectrum=spectrumHitCounts[i]?Math.round(spectrumHitSums[i]/spectrumHitCounts[i]):Math.round((i+.5)/p.bins*(spectrumSteps-1));markerColor=spectrumColor(spectrum);}context.strokeStyle=context.fillStyle=markerColor;context.beginPath();context.moveTo(x-error,y);context.lineTo(x+error,y);context.stroke();context.beginPath();context.arc(x,y,3,0,2*Math.PI);context.fill();}
    }
   });
@@ -701,7 +707,7 @@ export function mountPacketEngine({core,advanced}){
    context.globalAlpha=.85;context.setLineDash([5,4]);context.lineWidth=1;context.strokeStyle='#4b5d68';
    for(const band of screenBands.slice(1)){const y=Y(band.top);if(y>0&&y<canvas.height){context.beginPath();context.moveTo(histo,y);context.lineTo(canvas.width,y);context.stroke();}}
    context.setLineDash([]);context.font='600 11px Inter,Arial,sans-serif';context.textAlign='right';context.textBaseline='middle';
-   for(const band of screenBands){const y0=Math.max(0,Y(band.top)),y1=Math.min(canvas.height,Y(band.bottom));if(y1-y0<14)continue;context.fillStyle=slitColorOf(band.group);context.fillText(String(+band.group.slice(1)+1),canvas.width-6,(y0+y1)/2);}
+   for(const band of screenBands){const y0=Math.max(0,Y(band.top)),y1=Math.min(canvas.height,Y(band.bottom));if(y1-y0<14)continue;context.fillStyle=slitColorOf(band.group);context.lineWidth=2.5;context.strokeStyle='rgba(20,30,40,.55)';context.strokeText(String(+band.group.slice(1)+1),canvas.width-6,(y0+y1)/2);context.fillText(String(+band.group.slice(1)+1),canvas.width-6,(y0+y1)/2);}
   }
   context.restore();
  }
@@ -709,8 +715,10 @@ export function mountPacketEngine({core,advanced}){
  // Stats row "Fringes": λD/d for two slits; the near-field / far-field scale W²/λ for more.
  function updateFringeScale(){
   const el=document.getElementById('fringeScale');if(!el||!p)return;
-  const c=p.centers||[],lambda=2*Math.PI/p.k*100,D=(p.screen-p.wall)*100;let text;
-  if(c.length<2)text='single slit';
+  // Only slits without a detector interfere (detected slits add single-slit patterns).
+  const detected=new Set(p.whichPath?p.detectorSlots:[]),c=(p.centers||[]).filter((_,slot)=>!detected.has(slot)),lambda=2*Math.PI/p.k*100,D=(p.screen-p.wall)*100;let text;
+  if((p.centers||[]).length<2)text='single slit';
+  else if(c.length<2)text='none (detectors)';
   else if(c.length===2){const d=Math.abs(c[1]-c[0])*100;text=`spacing λD/d = ${Math.round(lambda*D/d)} nm`;}
   else{const W=(Math.max(...c)-Math.min(...c))*100,far=W*W/lambda;text=D>=10*far?'far field':`near field (far field ≫ ${far>=1000?(far/1000).toFixed(far>=10000?0:1)+' µm':Math.round(far)+' nm'})`;}
   if(el.textContent!==text)el.textContent=text;
@@ -725,16 +733,23 @@ export function mountPacketEngine({core,advanced}){
    bohmian:'Pilot Wave: each dot is a particle with a position at all times, guided by the wave; its line is its recent path. Particles that hit the wall are absorbed.',
    manyworlds:'Many Worlds: the wave never collapses. The hits shown are the record of one branch, chosen with weights |ψ|². “Branch records” counts possible screen records, not worlds.'}[interpretation]||'';
   const swatch=(color,label)=>`<span class="cap-swatch" style="background:${color}"></span>${label}`;
-  let colours='';
+  const lines=[];
   if(p?.whichPath){
    const map=branchOf(p),groups=[];map.forEach((b,slot)=>{(groups[b]||=[]).push(p.slitIds[slot]+1);});
-   colours='Wave colours, one per detector record: '+groups.map((slits,b)=>swatch(slitColorOf('k'+(slits[0]-1)),(p.detectorSlots.some(s=>p.slitIds[s]+1===slits[0])?`slit ${slits[0]} (its detector fired)`:`slit${slits.length>1?'s':''} ${slits.join(', ')} (no detector fired)`))).join(' · ')+'.';
-  }else if(interpretation==='bohmian'&&particleColorMode.value==='slit'&&(p?.slitIds?.length??0)>1){
-   colours='Particle colours: '+p.slitIds.map(k=>swatch(slitColorOf('k'+k),`slit ${k+1}`)).join(' · ')+'. Dashed lines on the screen mark each slit’s band.';
+   lines.push('Wave colours, one per detector record: '+groups.map((slits,b)=>swatch(slitColorOf('k'+(slits[0]-1)),(p.detectorSlots.some(s=>p.slitIds[s]+1===slits[0])?`slit ${slits[0]} (its detector fired)`:`slit${slits.length>1?'s':''} ${slits.join(', ')} (no detector fired)`))).join(' · ')+'.');
   }
-  const legend='Screen: '+swatch(colorProb,'curve = predicted distribution')+(transition&&t<transition.until?' (dashed: the earlier slit setting, for packets already past the wall)':'')+' · '+swatch(interpretation==='bohmian'&&particleColorMode.value==='uniform'?colorPart:colorHit,'dots = hits counted, bars = ±√n')+' · black strip = detector pixels.';
+  const pwMode=interpretation==='bohmian'?particleColorMode.value:'';
+  if(pwMode==='slit'){
+   // Open slits, plus closed slits whose hits are still on the screen.
+   const ids=new Set(p?.slitIds||[]);for(const [g,counts] of Object.entries(slitHits||{}))if(counts?.some?.(n=>n>0))ids.add(+String(g).slice(1));
+   const list=[...ids].sort((a,b)=>a-b);
+   if(list.length>1)lines.push('Particle and hit colours: '+list.map(k=>swatch(slitColorOf('k'+k),`slit ${k+1}`)).join(' · ')+(p?.whichPath?'.':'. Dashed lines on the screen mark each slit’s band.'));
+  }else if(pwMode==='spectrum')lines.push('Particle and hit colours: position where the particle crossed the wall, blue (top) to yellow (bottom).');
+  const colours=lines.map(l=>`<p class="cap-legend">${l}</p>`).join('');
+  const hitText=pwMode==='slit'?'dots = hits counted (coloured by slit), bars = ±√n':pwMode==='spectrum'?'dots = hits counted (coloured by wall position), bars = ±√n':swatch(pwMode==='uniform'?colorPart:colorHit,'dots = hits counted, bars = ±√n');
+  const legend='Screen: '+swatch(colorProb,'curve = predicted distribution')+(transition&&t<transition.until?' (dashed: the earlier slit setting, for the part of the wave already past the wall)':'')+' · '+hitText+' · black strip with green bars = hits per detector pixel. One packet = '+(p?.particles??'')+' particles (set in Advanced).';
   const key=view+colours+legend;if(key===captionKey)return;captionKey=key;
-  host.innerHTML=`<p>${view}</p><p class="cap-legend">${legend}</p>${colours?`<p class="cap-legend">${colours}</p>`:''}`;
+  host.innerHTML=`<p>${view}</p><p class="cap-legend">${legend}</p>${colours}`;
  }
  function draw(){if(!enabled)return;ensure();syncMode();updateFringeScale();updateCaption();setupCtx.clearRect(0,0,canvas.width,canvas.height);
   setupCtx.save();if(!surfaceView&&shown('plot_screen')){setupCtx.globalAlpha=elementOpacity('plot_screen');setupCtx.strokeStyle=colorScreen;if(p.source){
@@ -895,7 +910,10 @@ export function mountPacketEngine({core,advanced}){
   // Accessible names (3.0-dev.21): number boxes named by their quantity; the stacked
   // canvases form one image described by the caption below it.
   for(const [id,name] of [['wavelength-input','Wavelength in nm'],['slit-separation-input','Slit separation in nm'],['detector-distance-input','Wall-to-screen distance in nm'],['screen-height-input','Screen length in nm']]){const el=document.getElementById(id);if(el)el.setAttribute('aria-label',name);}
-  {const container=document.getElementById('canvas-container');if(container){container.setAttribute('role','img');container.setAttribute('aria-label','Simulation: source, wall with slits, the wave and particles, and the screen with its histogram. The caption below describes the current view.');container.querySelectorAll('canvas').forEach(c=>c.setAttribute('aria-hidden','true'));}}
+  {const container=document.getElementById('canvas-container');if(container){
+   // One canvas carries the description; the container keeps its controls (range sliders) accessible.
+   container.querySelectorAll('canvas').forEach(c=>c.setAttribute('aria-hidden','true'));const main=document.getElementById('setupCanvas');if(main){main.removeAttribute('aria-hidden');main.setAttribute('role','img');main.setAttribute('aria-label','Simulation: source, wall with slits, the wave and particles, and the screen with its histogram. The caption below describes the current view.');}}}
+  {const hitsRow=document.getElementById('nhits')?.closest('tr');if(hitsRow)hitsRow.dataset.tip='Hits recorded on the screen. Each packet sends many particles at once (Particles / packet, in Advanced); in Pilot Wave many are absorbed at the wall.';}
   applyViewHash();draw();
  });
  // "Nice fringes": search the geometry (nice-fringes.js), apply it, start a new run.
@@ -918,7 +936,7 @@ export function mountPacketEngine({core,advanced}){
    set('slit-separation',r.d);
    setupGeo(false);reset=0;resetEngine();draw();
    const clamped=slitSeparation!==r.d?` (separation limited to ${slitSeparation} nm)`:'';
-   niceStatus.textContent=`λ ${r.wavelength} nm · slit σ ${r.sigma} nm · separation ${r.d} nm${clamped} · screen ${r.D} nm away, ${r.screen} nm long · source σ ${r.sourceSigma} nm: ${r.count} bumps, central tallest; spacing ${Math.round(r.spacing)} nm`+(Math.abs(r.spacing/r.farField-1)<=.15?` (far-field λD/d = ${Math.round(r.farField)} nm).`:`, not the far-field λD/d = ${Math.round(r.farField)} nm: this screen is in the near field of the slits, and the bumps are an image of the slits (see Physics, Near and far field).`);
+   niceStatus.textContent=`λ ${r.wavelength} nm · slit σ ${r.sigma} nm · separation ${r.d} nm${clamped} · screen ${r.D} nm away, ${r.screen} nm long · source σ ${r.sourceSigma} nm: ${r.count} bumps, central tallest, spacing ${Math.round(r.spacing)} nm (λD/d = ${Math.round(r.farField)} nm)`+(openSlitIds().length===2?': double-slit fringes.':`. Near field: the screen is ${(r.D/(2*r.d*r.d/r.wavelength)).toFixed(2)} Talbot lengths (2d²/λ = ${Math.round(2*r.d*r.d/r.wavelength)} nm) from the wall, so the bumps are an image of the slits, not the textbook N-slit pattern (see Physics, Near and far field).`);
   }finally{delete niceButton.dataset.busy;niceButton.textContent=label;syncNiceButton();if(wasRunning&&!isAnimating)document.getElementById('startButton').click();}
  });}
  function sampleBranch(){
