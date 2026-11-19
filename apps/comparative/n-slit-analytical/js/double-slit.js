@@ -2324,19 +2324,29 @@ $(document).ready(function() {
       // adding or removing a detector restarts it.
       $('#slit-open-buttons').on('click', '[data-slit]', function () {
          const k = +this.dataset.slit, state = this.dataset.state;
+         // "Apply at wall": during a run, an open/close waits until the packet centre
+         // reaches the wall (the front of the packet then sees the old slits, the back the new).
+         const atWall = document.getElementById('slit-at-wall')?.checked && isAnimating && window.qonticPacketEngine?.whenPacketAtWall;
+         const live = apply => {
+            if (!atWall) { apply(); return; }
+            this.classList.add('slit-pending'); this.title = 'Waiting for the packet to reach the wall';
+            window.qonticPacketEngine.whenPacketAtWall(apply);
+         };
          if (state === 'open') {
             if (openSlitIds().length === 1) return; // keep one slit open
-            slitOpen[k] = false;
-            slitConfigurationChanged(true);
+            live(() => { slitOpen[k] = false; slitConfigurationChanged(true); });
          } else if (state === 'closed') {
-            slitOpen[k] = true;
-            if (openSlitIds().length >= 2) { slitDetector[k] = true; slitConfigurationChanged(); }
-            else slitConfigurationChanged(true); // a detector on the only open slit would record nothing
+            // Another slit is always open, so reopening gives at least two: open it with a
+            // detector. With "Apply at wall" during a run it reopens without one (adding a
+            // detector restarts the run, which the demonstration should not do).
+            if (atWall) live(() => { slitOpen[k] = true; slitConfigurationChanged(true); });
+            else { slitOpen[k] = true; slitDetector[k] = true; slitConfigurationChanged(); }
          } else {
             slitDetector[k] = false;
             detectorsChanged();
          }
       });
+      window.addEventListener('qontic-atwall-cancel', () => updateSlitCountControls());
       function detectorsChanged() {
          syncWhichPathDetector();
          updateWhichPathButton();

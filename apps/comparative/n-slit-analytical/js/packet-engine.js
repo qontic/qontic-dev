@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit20';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit20';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit20';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit20';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit20';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit20';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit20';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit20';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit21';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit21';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit21';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit21';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit21';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit21';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit21';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit21';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -82,7 +82,7 @@ export function mountPacketEngine({core,advanced}){
  const layoutStyle=document.createElement('style');layoutStyle.textContent='.packet-core-options{display:flex!important;align-items:center;gap:8px;margin:0 0 8px;padding:0 0 8px;border-bottom:1px solid var(--border-color,#476477)}.packet-core-options>select{flex:1 1 78px;min-width:68px}.packet-core-options .packet-directed-inline,.packet-core-options .packet-slit-colors{display:flex!important;align-items:center;gap:4px!important;width:auto;min-width:0;margin:0!important;font-size:12px;white-space:nowrap}.packet-core-options .packet-directed-inline[hidden],.packet-core-options .packet-slit-colors[hidden]{display:none!important}.packet-core-options input{margin:0;flex:0 0 auto}.packet-core-options .packet-slit-colors select{width:86px;min-width:86px;padding:3px 2px;font-size:11px}.packet-settings .packet-balance{grid-template-columns:90px minmax(40px,1fr) 28px 58px}.packet-settings .packet-balance button{width:26px;height:25px;padding:0;border:1px solid #476477;border-radius:4px;background:#153447;color:inherit;font-weight:700;cursor:pointer}.packet-settings .packet-balance button:hover,.packet-settings .packet-balance button:focus-visible{border-color:#62d8e7;background:#1d465c}.packet-settings .packet-balance output{grid-column:auto;text-align:right;min-width:58px}';document.head.append(layoutStyle);
  const math=document.getElementById('math-container'),packetMath=document.createElement('section');packetMath.className='math-section';math.replaceChildren(packetMath);
  let slowPacketMode=false,savedPacketCount=null;
- let frameStats=null,frameDtAverage=0,enabled=true,p=null,coeff=null,profile=null,law=null,sourceGrid=null,epochs=[],fingerprint='',particles=[],pending=[],pulses=[],slitHits={},spectrumHitCounts=[],spectrumHitSums=[],nextEmission=0,t=0,totalTime=0,pulse=0,absorbed=0,pulseAbsorbed=0,missed=0,last=null,realElapsed=0,timeUnit=1,yOffset=0,finished=false,packetAnimationId=null,visualPhase=0,flash=null,hold=0,lastMode=interpretation;
+ let atWallQueue=[],atWallPrev=null,transition=null,frameStats=null,frameDtAverage=0,enabled=true,p=null,coeff=null,profile=null,law=null,sourceGrid=null,epochs=[],fingerprint='',particles=[],pending=[],pulses=[],slitHits={},spectrumHitCounts=[],spectrumHitSums=[],nextEmission=0,t=0,totalTime=0,pulse=0,absorbed=0,pulseAbsorbed=0,missed=0,last=null,realElapsed=0,timeUnit=1,yOffset=0,finished=false,packetAnimationId=null,visualPhase=0,flash=null,hold=0,lastMode=interpretation;
  let surfaceView=localStorage.getItem('qontic-double-slit-surface-view')==='true',surfaceHeightMode=localStorage.getItem('qontic-double-slit-surface-height')||'psi2',surfaceHeights=null,surfaceLegend=null,surface3D=null,surface3DLoad=null,pwWaveVisible=localStorage.getItem('qontic-pw-wave-visible')!=='false',pwWaveButton=null;
  if(!['psi2','phase','real','imag'].includes(surfaceHeightMode))surfaceHeightMode='psi2';
  // Slit colours follow the slit, not its rank. Two slits keep the original cyan
@@ -183,6 +183,9 @@ export function mountPacketEngine({core,advanced}){
   const next=config(),strip=q=>{const {centers,slitIds,apertureWeights,slits,...rest}=q;return JSON.stringify([rest,screenHeight,particleType]);};
   if(strip(next)!==strip(p)||next.whichPath||p.whichPath||window.qonticMWBranches?.enabled||window.qonticMWBranches?.busy)return false;
   const previous=p;
+  // Keep the previous prediction until the slices that crossed the wall before this
+  // click have reached the screen: (screen − wall)/v later.
+  transition={profile,until:t+(previous.screen-previous.wall)/previous.k};
   p=next;p.particles=previous.particles;coeff=sourceCoefficients(p);fingerprint=configFingerprint(p);
   profile=sourceProfile(p,-yOffset,screenHeight/100-yOffset,2049);law=detectorLaw(p,profile,-yOffset,screenHeight/100-yOffset);
   // Bands are display only: compute them after this click, not inside it.
@@ -202,7 +205,7 @@ export function mountPacketEngine({core,advanced}){
   }
   syncWhichPathButton();if(!isAnimating)draw();return true;
  }
- function resetEngine(){
+ function resetEngine(){transition=null;if(atWallQueue.length){atWallQueue=[];atWallPrev=null;window.dispatchEvent(new Event('qontic-atwall-cancel'));}
   window.qonticMWBranches?.cancel();detectorFlashes.clear();pending=[];particles=[];pulses=[];nextEmission=0;visualPhase=0;flash=null;hold=0;lastMode=interpretation;p=config();fingerprint=configFingerprint(p);yOffset=screenHeight/200;
   coeff=sourceCoefficients(p);sourceGrid=null;epochs=[{p,coeff,start:-Infinity,grid:null}];profile=sourceProfile(p,-yOffset,screenHeight/100-yOffset,2049);law=detectorLaw(p,profile,-yOffset,screenHeight/100-yOffset);
   timeUnit=(particleType==='neutron'?mNeutron:mElectron)*10000/hbar;syncWhichPathButton();
@@ -356,6 +359,12 @@ export function mountPacketEngine({core,advanced}){
     if(performance.now()-now>=12)break;
    }
    frameStats={requested,advanced:t-tStart,physicsMs:performance.now()-now,steps:limit};
+   // "Apply at wall": run queued slit changes when the newest packet's centre crosses the wall.
+   if(atWallQueue.length&&pulses.length){
+    const latest=pulses[pulses.length-1],centre=(p.initialCenter??0)+p.k*(t-latest.born);
+    const before=atWallPrev&&atWallPrev.born===latest.born?atWallPrev.centre:-Infinity;atWallPrev={born:latest.born,centre};
+    if(before<p.wall&&centre>=p.wall){const queue=atWallQueue;atWallQueue=[];atWallPrev=null;queue.forEach(f=>f());}
+   }
    if(!waiting){if(slow)processPending();else while(pending.length)processPending();}
   }
   particles=particles.filter(a=>!a.done||(interpretation==='bohmian'&&!a.screenDetected&&realElapsed-(a.finishedAt??realElapsed)<.8));
@@ -365,7 +374,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit20').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit21').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -637,7 +646,15 @@ export function mountPacketEngine({core,advanced}){
   const prediction=options.profile||profile;
   const {curve:predictionDensity,predictionScale,hitScale}=histogramLayout(record,prediction,options.screenHeight??screenHeight/100,widthPx);
   context.save();context.globalAlpha=1;context.fillStyle='#fff';context.fillRect(histo,0,widthPx,canvas.height);context.fillStyle='#000';context.fillRect(detectorX,0,sensorWidth,canvas.height);
-  if((geometryEditing||shown('hit_prob'))&&!p.focused){context.globalAlpha=geometryEditing?1:elementOpacity('hit_prob');context.strokeStyle=colorProb;context.beginPath();predictionDensity.forEach((q,i)=>{const x=histo+q*predictionScale,y=i*canvas.height/(predictionDensity.length-1);i?context.lineTo(x,y):context.moveTo(x,y);});context.stroke();}
+  if((geometryEditing||shown('hit_prob'))&&!p.focused){
+   // After a live slit change, the previous prediction stays (dashed) while hits from
+   // packets already past the wall are still arriving.
+   if(transition&&t<transition.until&&!options.profile&&context===setupCtx){
+    const old=histogramLayout(record,transition.profile,options.screenHeight??screenHeight/100,widthPx);
+    context.save();context.globalAlpha=.75*(geometryEditing?1:elementOpacity('hit_prob'));context.strokeStyle=colorProb;context.setLineDash([5,4]);context.beginPath();
+    old.curve.forEach((q,i)=>{const x=histo+q*old.predictionScale,y=i*canvas.height/(old.curve.length-1);i?context.lineTo(x,y):context.moveTo(x,y);});context.stroke();context.restore();
+   }else if(transition&&t>=transition.until)transition=null;
+   context.globalAlpha=geometryEditing?1:elementOpacity('hit_prob');context.strokeStyle=colorProb;context.beginPath();predictionDensity.forEach((q,i)=>{const x=histo+q*predictionScale,y=i*canvas.height/(predictionDensity.length-1);i?context.lineTo(x,y):context.moveTo(x,y);});context.stroke();}
   const rgb=getRGBComponents(colorSensor);
   record.forEach((n,i)=>{if(!n)return;const y=(i+.5)*canvas.height/p.bins,x=histo+n*hitScale,error=Math.sqrt(n)*hitScale;
    if(shown('plot_sensor')){context.globalAlpha=elementOpacity('plot_sensor');const intensity=n/maxRecord;context.fillStyle=`rgb(${rgb.red*intensity},${rgb.green*intensity},${rgb.blue*intensity})`;context.fillRect(detectorX,i*canvas.height/p.bins,sensorWidth,canvas.height/p.bins);}
@@ -674,7 +691,28 @@ export function mountPacketEngine({core,advanced}){
   else{const W=(Math.max(...c)-Math.min(...c))*100,far=W*W/lambda;text=D>=10*far?'far field':`near field (far field ≫ ${far>=1000?(far/1000).toFixed(far>=10000?0:1)+' µm':Math.round(far)+' nm'})`;}
   if(el.textContent!==text)el.textContent=text;
  }
- function draw(){if(!enabled)return;ensure();syncMode();updateFringeScale();setupCtx.clearRect(0,0,canvas.width,canvas.height);
+ // Caption under the canvas: one plain sentence for the view, a histogram legend,
+ // and a colour legend for slits or detector records (colour plus text, never colour alone).
+ let captionKey='';
+ function updateCaption(){
+  let host=document.getElementById('view-caption');
+  if(!host){const container=document.getElementById('canvas-container');if(!container)return;host=document.createElement('div');host.id='view-caption';host.className='view-caption';host.setAttribute('aria-live','polite');container.after(host);}
+  const view={copenhagen:'Orthodox: the wave gives the probability of each detection; each hit on the screen is one detection. No path is drawn between source and screen.',
+   bohmian:'Pilot Wave: each dot is a particle with a position at all times, guided by the wave; its line is its recent path. Particles that hit the wall are absorbed.',
+   manyworlds:'Many Worlds: the wave never collapses. The hits shown are the record of one branch, chosen with weights |ψ|². “Branch records” counts possible screen records, not worlds.'}[interpretation]||'';
+  const swatch=(color,label)=>`<span class="cap-swatch" style="background:${color}"></span>${label}`;
+  let colours='';
+  if(p?.whichPath){
+   const map=branchOf(p),groups=[];map.forEach((b,slot)=>{(groups[b]||=[]).push(p.slitIds[slot]+1);});
+   colours='Wave colours, one per detector record: '+groups.map((slits,b)=>swatch(slitColorOf('k'+(slits[0]-1)),(p.detectorSlots.some(s=>p.slitIds[s]+1===slits[0])?`slit ${slits[0]} (its detector fired)`:`slit${slits.length>1?'s':''} ${slits.join(', ')} (no detector fired)`))).join(' · ')+'.';
+  }else if(interpretation==='bohmian'&&particleColorMode.value==='slit'&&(p?.slitIds?.length??0)>1){
+   colours='Particle colours: '+p.slitIds.map(k=>swatch(slitColorOf('k'+k),`slit ${k+1}`)).join(' · ')+'. Dashed lines on the screen mark each slit’s band.';
+  }
+  const legend='Screen: '+swatch(colorProb,'curve = predicted distribution')+(transition&&t<transition.until?' (dashed: the earlier slit setting, for packets already past the wall)':'')+' · '+swatch(interpretation==='bohmian'&&particleColorMode.value==='uniform'?colorPart:colorHit,'dots = hits counted, bars = ±√n')+' · black strip = detector pixels.';
+  const key=view+colours+legend;if(key===captionKey)return;captionKey=key;
+  host.innerHTML=`<p>${view}</p><p class="cap-legend">${legend}</p>${colours?`<p class="cap-legend">${colours}</p>`:''}`;
+ }
+ function draw(){if(!enabled)return;ensure();syncMode();updateFringeScale();updateCaption();setupCtx.clearRect(0,0,canvas.width,canvas.height);
   setupCtx.save();if(!surfaceView&&shown('plot_screen')){setupCtx.globalAlpha=elementOpacity('plot_screen');setupCtx.strokeStyle=colorScreen;if(p.source){
    // Draw the expert-selected slit cores, except that Direct PW displays its
    // fixed ±3σ preparation window. The analytical wave remains untruncated.
@@ -867,5 +905,5 @@ export function mountPacketEngine({core,advanced}){
   }
   hits=record;slitHits=emptySlitHits(p.bins);spectrumHitCounts=Array(p.bins).fill(0);spectrumHitSums=Array(p.bins).fill(0);hitMax=Math.max(...hits);detectorFlashes.clear();flash=null;draw();
  }
- return {sampleBranch,switchMask,get simTime(){return t;},get frameStats(){return frameStats;},syncBranching(){ensure();draw();},setWhichPath(){resetEngine();draw();},get viewportWidth(){return (sourcePos+detectorDistance)/.7;},get enabled(){return true;},reset:resetEngine,draw,drawWave,drawParticles,histogram,frame,updateMath,hash,pause(){last=null;if(packetAnimationId!==null)cancelAnimationFrame(packetAnimationId);packetAnimationId=null;}};
+ return {whenPacketAtWall(f){atWallQueue.push(f);},get atWallPending(){return atWallQueue.length>0;},sampleBranch,switchMask,get simTime(){return t;},get frameStats(){return frameStats;},syncBranching(){ensure();draw();},setWhichPath(){resetEngine();draw();},get viewportWidth(){return (sourcePos+detectorDistance)/.7;},get enabled(){return true;},reset:resetEngine,draw,drawWave,drawParticles,histogram,frame,updateMath,hash,pause(){last=null;if(packetAnimationId!==null)cancelAnimationFrame(packetAnimationId);packetAnimationId=null;}};
 }

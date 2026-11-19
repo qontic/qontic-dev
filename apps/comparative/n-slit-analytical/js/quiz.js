@@ -149,8 +149,9 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
         { id: 'stop', label: 'Stop, or vanish from the screen' },
       ],
       answer: 'keep',
-      explain: 'Each particle went through one slit but is guided by the whole wave, including the part from the other slit, which is already past the wall: closing the slit cannot remove it. (At the slits that part was an empty wave for the particle; behind the wall it guides it.) Only the part of the packet that crosses the wall after the click sees one slit. All three views predict the same recorded pattern; Pilot Wave adds the trajectories. Try it: the run starts when you watch; click slit 2 to close it when the packet reaches the wall (lower the Speed to make this easier).',
+      explain: 'Each particle went through one slit but is guided by the whole wave, including the part from the other slit, which is already past the wall: closing the slit cannot remove it. (At the slits that part was an empty wave for the particle; behind the wall it guides it.) Only the part of the packet that crosses the wall after the click sees one slit. All three views predict the same recorded pattern; Pilot Wave adds the trajectories. Watch it: the app ticks “Apply slit changes when the packet reaches the wall” and closes slit 2 as the packet centre reaches the wall. The front of the packet keeps the two-slit fringes; the back shows one slit. The dashed curve on the screen is the two-slit prediction for the packets already past the wall.',
       prepare: () => setTo({ view: 'bohmian', slits: ['open', 'open'], color: 'slit' }),
+      afterWatch: () => { const box = document.getElementById('slit-at-wall'); if (box) box.checked = true; setTimeout(() => document.querySelector('#slit-open-buttons button[data-slit="1"]')?.click(), 100); },
       draw: c => drawSetup(c, ['open', 'open'], { packet: true, shutter: 1 }),
     },
     {
@@ -171,6 +172,6 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
   return mountQonticQuiz({
     panel, tab, simulationTab, questions, shuffle: true, score: true,
     title: 'Quiz · predict before you watch',
-    onWatch: () => { if (!isRunning()) $('#startButton').trigger('click'); },
+    onWatch: q => { if (!isRunning()) $('#startButton').trigger('click'); q?.afterWatch?.(); },
   });
 }

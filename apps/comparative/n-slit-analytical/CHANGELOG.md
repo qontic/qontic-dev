@@ -1,3 +1,11 @@
+## 3.0-dev.20 — 2026-11-19
+Classroom aids from the review (Emma, Leila, Sofia, Jun).
+- Caption under the canvas: one plain sentence for the current view; a screen legend (curve = predicted distribution, dots = hits ± √n, black strip = detector pixels); and a colour legend, with swatch plus text, for detector records ("slits 1, 3, 4 (no detector fired) · slit 2 (its detector fired)") or, in Pilot Wave By slit, for the slits. Many Worlds says what "Branch records" counts.
+- After a live slit change the previous prediction stays on the screen as a dashed curve until the slices that crossed the wall before the click have reached the screen ((screen − wall)/v); the legend says what the dashed curve is.
+- "Apply slit changes when the packet reaches the wall" (checkbox under the slit buttons): during a run, an open/close waits until the newest packet's centre crosses the wall (the button blinks while waiting). While ticked, a closed slit reopens without a detector.
+- Quiz Q5 "Watch it" ticks that box and closes slit 2 automatically at the wall, so the demonstration no longer depends on timing a click.
+- Physics opens with an "In short" paragraph in plain words.
+
 ## 3.0-dev.19 — 2026-11-19
 Review follow-ups: near/far field, quiz, interpretive wording.
 - Stats panel row "Fringes": λD/d for two slits; for three or more, "near field (far field ≫ W²/λ)" with W the width of the open slit array (e.g. 4 slits at 300 nm: ≫ 16 µm). Tooltip explains; the Near and far field paragraph was added in dev.17.

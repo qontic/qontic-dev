@@ -444,3 +444,13 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 /* Quiz tab: the legacy global canvas rule (qsf-style.css: absolute) must not apply to the quiz picture. */
 .analytical-template #quiz-panel canvas { position: static; width: 100%; height: auto; }
 .analytical-template #quiz-panel { padding: 16px 0; }
+
+/* Caption under the canvas (view sentence, screen legend, colour legend). */
+.analytical-template .view-caption { margin: 8px 2px 0; font-size: 12.5px; line-height: 1.45; color: var(--text-secondary, #a8bdc9); }
+.analytical-template .view-caption p { margin: 0 0 3px; }
+.analytical-template .view-caption .cap-legend { font-size: 12px; }
+.analytical-template .view-caption .cap-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 2px; vertical-align: -1px; border: 1px solid rgba(255,255,255,.35); }
+
+.analytical-template .slit-at-wall { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary, #a8bdc9); }
+.analytical-template .slit-open-buttons .slit-open-button.slit-pending { outline: 2px dashed #ffd54a; outline-offset: 1px; animation: slitPending 1s ease-in-out infinite alternate; }
+@keyframes slitPending { from { opacity: 1; } to { opacity: .55; } }
