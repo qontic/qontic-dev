@@ -1,3 +1,17 @@
+## 3.0-dev.15 — 2026-11-19
+Pablo's requests of 2026-11-19.
+- Which-slit detectors at any set of slits. Each slit button cycles open → closed → open with a detector (D). Closing stays one click, so a slit can still be closed mid-packet without resetting the run; adding or removing a detector starts a new run, as before.
+  - Physics: one branch per detected slit (record "this slit") and one branch for no detector firing, in which the undetected open slits stay coherent. Screen density Σ_{k∈D}|ψ_k|² + |Σ_{j∉D}ψ_j|². Detectors on every open slit: Σ_k|ψ_k|², no interference. For two slits identical to the single-detector model (branch i = aperture i). The model layer (sourceBranches, transmittedMixture, stepSource) was already general; the engine now builds the branches with detectorBranches().
+  - Wave picture: any number of branches, each in the colour of its first slit (cyan/orange for two slits, as before). The density-weighted colour and phase are computed when a column is filled, not per frame: 16 slits with 8 detectors, frames 50 → 26 ms (headless).
+  - D markers on every detected slit, in 2D and 3D.
+  - Detector button: "No Detectors" puts a detector on every open slit; otherwise it removes them all. Label lists the detected slits.
+  - Links: slits=1d0… (d = open with a detector); old links with wp=slitK still work.
+  - Physics text: N-slit detector formula, and a paragraph on detectors as decoherence (Zurek, Rev. Mod. Phys. 75, 715 (2003)); ideal detectors only, partial which-path information not modelled (Englert, Phys. Rev. Lett. 77, 2154 (1996), for two paths). Views text: what each view says with several detectors. Both references checked.
+- "Both Slits" cycle button removed (the slit buttons do the same and more). Nice fringes moved to the row with the Detector button.
+- Up to 16 slits; eight more slit colours (lighter tints of the first eight). With more than 12 slits Nice fringes finds no clean pattern within the 3000 nm screen-distance limit (near field of the grating) and now says so.
+- Electron/Neutron selector moved to Advanced (top row, "Particle").
+- Tests: n-slit.mjs +6 checks (branch assignment; density with detectors at slits 2 and 4 equals |ψ1+ψ3|² + |ψ2|² + |ψ4|² to rounding; all detectors = Σ|ψk|²; PW hits with two detectors follow the prediction, KS 0.021; 16-slit mask). model-checks and resize-state updated for the detector set.
+
 ## 3.0-dev.14 — 2026-11-18
 - Defaults doubled at Pablo's request: source width σ 200 → 400 nm (slider maximum 400 → 800 nm), packet length σ 50 → 100 nm.
 - Packet-length cap relaxed from a quarter to half of the shorter of source–wall and wall–screen distances (still ≤ 200 nm), so 100 nm is allowed with the default 225 nm source distance (cap now 112 nm). The cap is a display choice: the packet starts off canvas and the transverse pattern does not depend on σx.

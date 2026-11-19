@@ -1,5 +1,5 @@
-import {aimedAngle} from './packet-cache.js?cache=nslit15';
-import {spectrum,hankel0,hankel1,angularModes,screenFrame,evaluate} from './spherical-packet-model.js?cache=nslit15';
+import {aimedAngle} from './packet-cache.js?cache=nslit16';
+import {spectrum,hankel0,hankel1,angularModes,screenFrame,evaluate} from './spherical-packet-model.js?cache=nslit16';
 const COMPONENTS=['re','im','dr','di','yr','yi'];
 export function build(p,{nx=144,ny=161,xmin=-.5,xmax=p.screen,ymin=-6,ymax=6,frequencies=96,order=96}={}){
  const freq=spectrum(p,frequencies),xs=Float64Array.from({length:nx},(_,i)=>xmin+(xmax-xmin)*i/(nx-1)),ys=Float64Array.from({length:ny},(_,j)=>ymin+(ymax-ymin)*j/(ny-1));

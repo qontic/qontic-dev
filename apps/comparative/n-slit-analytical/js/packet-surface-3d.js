@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {dragSurfaceGeometry} from './packet-interaction.js?cache=nslit15';
-import {surfaceZeroLevel} from './packet-model.js?cache=nslit15';
+import {dragSurfaceGeometry} from './packet-interaction.js?cache=nslit16';
+import {surfaceZeroLevel} from './packet-model.js?cache=nslit16';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
 
@@ -147,7 +147,7 @@ export function mountPacketSurface3D({host}){
   };
   openings.forEach(([top,bottom],index)=>{addSegment(cursor,top);const transmission=state.apertureWeights[index]??1;if(transmission<1)addSegment(top,bottom,1-transmission);cursor=Math.max(cursor,bottom);});addSegment(cursor,1);
   const edgePositions=[];for(const [top,bottom] of openings)for(const v of [top,bottom]){const y=Y_MAX-v*(Y_MAX-Y_MIN);edgePositions.push(x-.12,y,zero+.185,x+.12,y,zero+.185);}dynamic.add(lines(edgePositions,null,.9*screenOpacity));
-  if(state.whichPathFraction!==null){const marker=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.22),new THREE.MeshPhongMaterial({color:0xffd54a}));marker.position.set(x-.10,Y_MAX-state.whichPathFraction*(Y_MAX-Y_MIN),zero+.18);dynamic.add(marker);}
+  for(const fraction of state.whichPathFractions||[]){const marker=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.22),new THREE.MeshPhongMaterial({color:0xffd54a}));marker.position.set(x-.10,Y_MAX-fraction*(Y_MAX-Y_MIN),zero+.18);dynamic.add(marker);}
  }
 
  function addDetector(state){

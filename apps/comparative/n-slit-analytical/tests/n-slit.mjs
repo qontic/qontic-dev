@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {gaussian} from '../js/packet-model.js';
 import {
   aperture, branchOf, sourceCoefficients, sourceComponents, sourceBranches, sourceDensity, sourceTransverse,
-  sampleTransmittedSource, stepSource, sourceProfile, slitBands,
+  sampleTransmittedSource, stepSource, sourceProfile, slitBands, detectorBranches,
 } from '../js/source-packet-model.js';
 
 let checks = 0;
@@ -105,4 +105,40 @@ ok(slitBands({ ...make(4, 1.5), whichPath: true, branchOf: [0, 1, 0, 0] }) === n
   const b = slitBands(make(4, 1.5));
   ok(Math.abs(b[1].bottom) < 1e-3 && Math.abs(b[0].bottom + b[2].bottom) < 1e-3, 'four equal slits: symmetric band edges');
 }
+
+// 9. Several detectors (3.0-dev.15).
+{
+  // Branch assignment: N = 2 matches the old two-branch rule.
+  ok(JSON.stringify(detectorBranches([0, 1], [0])) === '[0,1]' && JSON.stringify(detectorBranches([0, 1], [1])) === '[0,1]', 'two slits: one detector gives branch i = aperture i');
+  ok(JSON.stringify(detectorBranches([0, 1, 2, 3], [1, 3])) === '[0,1,0,2]', 'four slits, detectors at 2 and 4: branches {1,3}, {2}, {4}');
+  const N = 4, sep = 1.8, ids = [0, 1, 2, 3];
+  const plain = make(N, sep), coeffPlain = sourceCoefficients(plain);
+  const single = (k) => { const q = make(N, sep, ids.map((j) => j === k)); return [q, sourceCoefficients(q)]; };
+  // Density with detectors on D = {1, 3}: |ψ0+ψ2|² + |ψ1|² + |ψ3|², from apertures of the full mask.
+  const D = [1, 3], p = { ...plain, whichPath: true, branchOf: detectorBranches(ids, D) }, coeff = sourceCoefficients(p);
+  let maxErr = 0, scale = 0;
+  for (let y = -6; y <= 6; y += .05) {
+    const c = sourceComponents(y, plain.screen, plain, coeffPlain);
+    const sum = (list) => { let re = 0, im = 0; for (const i of list) { re += c[i].re; im += c[i].im; } return re * re + im * im; };
+    const expected = sum([0, 2]) + sum([1]) + sum([3]), got = sourceDensity(y, p.screen, p, coeff);
+    maxErr = Math.max(maxErr, Math.abs(got - expected)); scale = Math.max(scale, expected);
+  }
+  ok(maxErr / scale < 1e-12, `detectors at slits 2 and 4: density = |ψ1+ψ3|² + |ψ2|² + |ψ4|² (rel. err ${(maxErr / scale).toExponential(1)})`);
+  // Detectors on every open slit: no cross terms left; density = Σ_k |ψ_k|².
+  const all = { ...plain, whichPath: true, branchOf: detectorBranches(ids, ids) }, coeffAll = sourceCoefficients(all);
+  let errAll = 0, scaleAll = 0, minPlain = Infinity, maxPlain = 0;
+  for (let y = -6; y <= 6; y += .05) {
+    const c = sourceComponents(y, plain.screen, plain, coeffPlain), expected = c.reduce((t, q) => t + q.re * q.re + q.im * q.im, 0);
+    errAll = Math.max(errAll, Math.abs(sourceDensity(y, all.screen, all, coeffAll) - expected)); scaleAll = Math.max(scaleAll, expected);
+  }
+  ok(errAll / scaleAll < 1e-12, 'detectors on all four slits: density = Σ|ψk|², no interference');
+  // Pilot-wave statistics with two detectors follow the predicted density.
+  const hits = run(p, 2500).map((h) => h.y), profile = sourceProfile(p, -8, 8, 2049), ks = ksError(hits, profile, -8, 8);
+  ok(ks < .04, `PW hits with detectors at slits 2 and 4 follow the prediction (KS ${ks.toFixed(3)}, n=${hits.length})`);
+  // Sixteen slits: the field and the mask are well defined.
+  const p16 = make(16, .9), c16 = sourceCoefficients(p16);
+  let maxT = 0; for (let y = -9; y <= 9; y += .01) maxT = Math.max(maxT, aperture(y, p16));
+  ok(Math.abs(maxT - 1) < 1e-3 && Number.isFinite(sourceTransverse(0, p16.screen, p16, c16).rho), `sixteen slits: max T = ${maxT.toFixed(4)}, field finite`);
+}
+
 console.log(JSON.stringify({ passed: true, checks }));

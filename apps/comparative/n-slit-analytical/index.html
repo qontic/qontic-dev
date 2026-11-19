@@ -33,7 +33,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
     <script>window.qonticTemplateLayout = true;</script>
-    <script src="js/double-slit.js?cache=nslit15"></script>
+    <script src="js/double-slit.js?cache=nslit16"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
     <style>
@@ -56,11 +56,11 @@
     </style>
     <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
     <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-    <link rel="stylesheet" href="css/qontic-template.css?cache=nslit15">
+    <link rel="stylesheet" href="css/qontic-template.css?cache=nslit16">
     <script type="importmap">
       {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
     </script>
-    <script type="module" src="js/qontic-template.js?cache=nslit15"></script>
+    <script type="module" src="js/qontic-template.js?cache=nslit16"></script>
 </head>
 <body>
   <!-- Loading overlay — visible until JS init completes -->
@@ -99,15 +99,14 @@
      <div id="psiTabs" class="container">
         <!-- Fixed experiment controls — always visible above all tabs -->
         <div id="experiment-bar">
-            <button id="toggleSlits" data-tip="Click to cycle: Both slits open → upper slit only → lower slit only.">Both Slits</button>
-            <button id="toggleWhichPath" data-tip="Cycle the ideal which-slit detector through the open slits. A detector at one slit records whether the particle passed that slit or another one: the two detector-tagged waves add incoherently, while the other slits stay coherent with each other.">No Detector</button>
+            <button type="button" id="niceFringesButton" class="qontic-app-toggle" title="Choose slit width, separation, screen distance, screen length and source width so that the screen shows a clean series of bumps, the central one tallest. The choice is checked on the screen density computed with the app's wave model. Starts a new run.">Nice fringes</button>
+            <button id="toggleWhichPath" data-tip="Cycle the ideal which-slit detector through the open slits. A detector at one slit records whether the particle passed that slit or another one: the two detector-tagged waves add incoherently, while the other slits stay coherent with each other.">No Detectors</button>
             <button id="toggleView" data-tip="Cycle view: Orthodox (sampled detections) → Pilot-Wave (guided trajectories) → Many-Worlds (outcome weights and one record). Changing interpretation preserves the run and accumulated hits.">Orthodox</button>
             <div id="setupBtnStatus" class="btn-status-line">&nbsp;</div>
         </div>
         <div id="slit-count-bar" class="slit-count-bar">
-            <div class="slit-count-row" title="Number of slits, one slit separation apart. Two reproduces the double slit."><label for="slit-count">Number of slits</label><input id="slit-count" type="range" min="1" max="8" step="1" value="2" aria-label="Number of slits"><output id="slit-count-output">2</output></div>
-            <div id="slit-open-row" class="slit-open-row"><span>Open</span><div id="slit-open-buttons" class="slit-open-buttons" role="group" aria-label="Open or close each slit"></div></div>
-            <button type="button" id="niceFringesButton" class="qontic-app-toggle" title="Choose slit width, separation, screen distance, screen length and source width so that the screen shows a clean series of bumps, the central one tallest. The choice is checked on the screen density computed with the app's wave model. Starts a new run.">Nice fringes</button>
+            <div class="slit-count-row" title="Number of slits, one slit separation apart. Two reproduces the double slit."><label for="slit-count">Number of slits</label><input id="slit-count" type="range" min="1" max="16" step="1" value="2" aria-label="Number of slits"><output id="slit-count-output">2</output></div>
+            <div id="slit-open-row" class="slit-open-row" title="Click a slit to cycle: open → closed → open with a which-slit detector (D) → open."><span>Slits</span><div id="slit-open-buttons" class="slit-open-buttons" role="group" aria-label="Open, close or put a detector on each slit"></div></div>
             <p id="nice-fringes-status" class="nice-fringes-status" aria-live="polite"></p>
         </div>
         <ul>

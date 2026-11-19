@@ -149,7 +149,7 @@ var shouldResetCache=false
 var slitSeparation ;
 // N-slit generalization. Slit k (0-based, k = 0 at the top) has its centre at
 // (2k - (N - 1)) · separation / 2, so neighbouring slits are one separation apart.
-const MAX_SLITS = 8;
+const MAX_SLITS = 16;
 let numSlits = 2;
 let slitOpen = Array(MAX_SLITS).fill(true);
 let slit1Open = true;   // legacy aliases for the first two slits
@@ -161,9 +161,17 @@ function slitName(k) {
    if (numSlits === 2) return k === 0 ? 'Upper' : 'Lower';
    return 'Slit ' + (k + 1);
 }
-// Which-path detector: 'none' or 'slitK' (K = 1 … N)
-// When active, interference is destroyed and waves are rendered separately
+// Which-slit detectors: any set of open slits may carry an ideal detector
+// (slitDetector[k]). whichPathDetector is a derived summary: 'none' or
+// 'slits:1,3' (1-based), kept for older code and shared links.
+let slitDetector = Array(MAX_SLITS).fill(false);
 let whichPathDetector = 'none';
+function detectorSlitIds() { return openSlitIds().filter(k => slitDetector[k]); }
+function syncWhichPathDetector() {
+   for (let k = 0; k < MAX_SLITS; k++) if (k >= numSlits || !slitOpen[k]) slitDetector[k] = false;
+   const ids = detectorSlitIds();
+   whichPathDetector = ids.length && openSlitIds().length >= 2 ? 'slits:' + ids.map(k => k + 1).join(',') : 'none';
+}
 var slit1X ;
 var slit2X ;
 var slit1Y ;
@@ -1202,15 +1210,7 @@ async function evolveSystem() {
 //
 //==================================================================================================================
 function updateSlitButton() {
-   const open = openSlitIds();
-   let label;
-   if (numSlits === 1) label = 'One Slit';
-   else if (open.length === numSlits) label = numSlits === 2 ? 'Both Slits' : 'All ' + numSlits + ' Slits';
-   else if (open.length === 1) label = numSlits === 2 ? slitName(open[0]) + ' Slit Only' : 'Slit ' + (open[0] + 1) + ' Only';
-   else label = 'Slits ' + open.map(k => k + 1).join(', ');
-   $('#toggleSlits').text(label).attr('data-tip', numSlits === 2
-      ? 'Click to cycle: Both slits open → upper slit only → lower slit only.'
-      : 'Click to cycle: all slits open → slit 1 only → slit 2 only → … Use the numbered buttons for any other pattern.');
+   // The old "Both Slits" cycle button was replaced by the per-slit buttons.
    updateSlitCountControls();
 }
 // Number of slits and one open/closed button per slit (Core tab).
@@ -1218,7 +1218,12 @@ function updateSlitCountControls() {
    const range = document.getElementById('slit-count'), out = document.getElementById('slit-count-output'), host = document.getElementById('slit-open-buttons');
    if (!range || !host) return;
    range.value = numSlits; out.textContent = String(numSlits);
-   const html = Array.from({ length: numSlits }, (_, k) => '<button type="button" class="qontic-app-toggle slit-open-button' + (slitOpen[k] ? ' active' : '') + '" data-slit="' + k + '" aria-pressed="' + slitOpen[k] + '" title="Slit ' + (k + 1) + (slitOpen[k] ? ' open: click to close' : ' closed: click to open') + '">' + (k + 1) + '</button>').join('');
+   // Each slit cycles open → closed → detector → open.
+   const html = Array.from({ length: numSlits }, (_, k) => {
+      const state = !slitOpen[k] ? 'closed' : slitDetector[k] ? 'detector' : 'open';
+      const next = state === 'open' ? 'close it' : state === 'closed' ? 'open it with a which-slit detector' : 'remove the detector';
+      return '<button type="button" class="qontic-app-toggle slit-open-button slit-' + state + (state !== 'closed' ? ' active' : '') + '" data-slit="' + k + '" data-state="' + state + '" aria-label="Slit ' + (k + 1) + ', ' + state + '" title="Slit ' + (k + 1) + ' ' + (state === 'detector' ? 'open, with a which-slit detector' : state) + ': click to ' + next + '">' + (k + 1) + '</button>';
+   }).join('');
    if (host.dataset.html !== html) { host.innerHTML = html; host.dataset.html = html; }
    document.getElementById('slit-open-row').hidden = numSlits < 2;
 }
@@ -1227,8 +1232,7 @@ function updateSlitCountControls() {
 // settings changed, detector on, Many-Worlds slow motion) the run is reset.
 function slitConfigurationChanged(live = false) {
    syncLegacySlits();
-   const detector = whichPathDetector === 'none' ? -1 : parseInt(whichPathDetector.slice(4), 10) - 1;
-   if (detector >= 0 && (detector >= numSlits || !slitOpen[detector] || openSlitIds().length < 2)) { whichPathDetector = 'none'; updateWhichPathButton(); }
+   syncWhichPathDetector(); updateWhichPathButton();
    updateSlitButton();
    // Live switch: the running animation redraws on its next frame, and the Physics
    // text does not depend on which slits are open.
@@ -1285,13 +1289,13 @@ function lightweightReset() {
 function updateWhichPathButton() {
    let label;
    $('#detectorWaveControls').hide();
-   if (whichPathDetector === 'none') {
-      label = 'No Detector';
-   } else {
-      const k = parseInt(whichPathDetector.slice(4), 10) - 1;
-      label = numSlits === 2 ? 'Detector @ ' + slitName(k) : 'Detector @ Slit ' + (k + 1);
-   }
-   $('#toggleWhichPath').text(label).attr('aria-pressed', whichPathDetector !== 'none');
+   const ids = whichPathDetector === 'none' ? [] : detectorSlitIds(), open = openSlitIds();
+   if (!ids.length) label = 'No Detectors';
+   else if (numSlits === 2 && ids.length === 1) label = 'Detector @ ' + slitName(ids[0]);
+   else if (ids.length === open.length) label = 'Detectors @ all open';
+   else label = (ids.length === 1 ? 'Detector @ ' : 'Detectors @ ') + ids.map(k => k + 1).join(', ');
+   $('#toggleWhichPath').text(label).attr('aria-pressed', ids.length > 0)
+      .attr('data-tip', ids.length ? 'Remove all which-slit detectors. Each slit button cycles open → closed → detector.' : 'Put an ideal which-slit detector at every open slit (no interference left). Each slit button cycles open → closed → detector, for any other choice.');
 }
 //==================================================================================================================
 //
@@ -1472,7 +1476,7 @@ function syncMathButtons() {}
 // Wire up button hover → status-line help text
 function initButtonStatusLines() {
    var $status = $('#setupBtnStatus');
-   $('#toggleSlits, #toggleWhichPath, #toggleView').on('mouseenter', function() {
+   $('#toggleWhichPath, #toggleView, #niceFringesButton').on('mouseenter', function() {
       var tip = $(this).attr('data-tip') || $(this).attr('data-help');
       if (tip) $status.text(tip);
    }).on('mouseleave', function() {
@@ -1535,9 +1539,8 @@ function buildUrlHash() {
       scr: $('#screen-height-group')[0].getValueInFirstUnit(),
       wl:  $('#wavelength-group')[0].getValueInFirstUnit(),
       view: interpretation,
-      slits: slitOpen.slice(0, numSlits).map(o => (o ? '1' : '0')).join(''),
-      opacity: JSON.stringify(displayOpacities),
-      wp: whichPathDetector
+      slits: slitOpen.slice(0, numSlits).map((o, k) => (!o ? '0' : slitDetector[k] ? 'd' : '1')).join(''),
+      opacity: JSON.stringify(displayOpacities)
    };
    var parts = [];
    for (var k in p) parts.push(k + '=' + encodeURIComponent(p[k]));
@@ -1566,18 +1569,19 @@ function applyUrlHash() {
       updateInterpretationDisplay();
    }
    // Apply slit config
-   if (params.slits && /^[01]{1,8}$/.test(params.slits)) {
+   if (params.slits && /^[01d]{1,16}$/.test(params.slits)) {
       numSlits = params.slits.length;
-      slitOpen = Array.from({ length: MAX_SLITS }, (_, k) => k >= numSlits || params.slits[k] === '1');
+      slitOpen = Array.from({ length: MAX_SLITS }, (_, k) => k >= numSlits || params.slits[k] !== '0');
+      slitDetector = Array.from({ length: MAX_SLITS }, (_, k) => k < numSlits && params.slits[k] === 'd');
       if (!openSlitIds().length) slitOpen[0] = true;
       syncLegacySlits();
       updateSlitButton();
    }
    // Apply which-path detector
-   if (params.wp) {
-      whichPathDetector = params.wp;
-      updateWhichPathButton();
-   }
+   // Older links: wp=slitK puts one detector at slit K.
+   if (params.wp && /^slit\d+$/.test(params.wp)) slitDetector[parseInt(params.wp.slice(4), 10) - 1] = true;
+   syncWhichPathDetector();
+   updateWhichPathButton();
    // Recalc geometry with new parameters
    setupGeo(false);
    runPrecomputeAsync();
@@ -2309,36 +2313,34 @@ $(document).ready(function() {
          }
       });
 
-      // Slit toggle: cycles Both → Slit 1 → Slit 2 → Both
-      $('#toggleSlits').on('click', function () {
-         // All open → slit 1 only → slit 2 only → … → slit N only → all open.
-         // For two slits this is Both → Upper → Lower → Both, as before.
-         if (numSlits < 2) return;
-         const open = openSlitIds();
-         const next = open.length === numSlits ? 0 : (open.length === 1 && open[0] < numSlits - 1 ? open[0] + 1 : -1);
-         for (let k = 0; k < numSlits; k++) slitOpen[k] = next < 0 || k === next;
-         slitConfigurationChanged(true);
-      });
       $('#slit-count').on('input', function () {
          numSlits = Math.max(1, Math.min(MAX_SLITS, parseInt(this.value, 10) || 2));
          slitOpen.fill(true);
+         slitDetector.fill(false);
          slitConfigurationChanged();
       });
+      // Slit buttons: open → closed → detector → open. Closing or opening a slit
+      // keeps the run (live mask switch, so one click closes a slit mid-packet);
+      // adding or removing a detector restarts it.
       $('#slit-open-buttons').on('click', '[data-slit]', function () {
-         const k = +this.dataset.slit;
-         if (slitOpen[k] && openSlitIds().length === 1) return; // keep one slit open
-         slitOpen[k] = !slitOpen[k];
-         slitConfigurationChanged(true);
+         const k = +this.dataset.slit, state = this.dataset.state;
+         if (state === 'open') {
+            if (openSlitIds().length === 1) return; // keep one slit open
+            slitOpen[k] = false;
+            slitConfigurationChanged(true);
+         } else if (state === 'closed') {
+            slitOpen[k] = true;
+            if (openSlitIds().length >= 2) { slitDetector[k] = true; slitConfigurationChanged(); }
+            else slitConfigurationChanged(true); // a detector on the only open slit would record nothing
+         } else {
+            slitDetector[k] = false;
+            detectorsChanged();
+         }
       });
-
-      // Which-path detector toggle: cycles through 'none' -> 'slit1' -> 'slit2' -> 'none'
-      $('#toggleWhichPath').on('click', function () {
-         // none → detector at the first open slit → … → the last open slit → none
-         const open = openSlitIds();
-         const current = whichPathDetector === 'none' ? -1 : parseInt(whichPathDetector.slice(4), 10) - 1;
-         const next = open.find(k => k > current);
-         whichPathDetector = open.length >= 2 && next !== undefined ? 'slit' + (next + 1) : 'none';
+      function detectorsChanged() {
+         syncWhichPathDetector();
          updateWhichPathButton();
+         updateSlitCountControls();
          updateMathFormulas();
          if (window.qonticPacketEngine?.enabled) {
             window.qonticPacketEngine.setWhichPath(whichPathDetector);
@@ -2347,10 +2349,18 @@ $(document).ready(function() {
          }
          invalidateAllCaches();
          lightweightReset();
-         setupGeo(false);  // recalc canvas coords without precompute
+         setupGeo(false);
          runPrecomputeAsync();
          syncMathButtons();
          drawSystem(0);
+      }
+      // Detector button: remove all detectors, or put one at every open slit.
+      $('#toggleWhichPath').on('click', function () {
+         const open = openSlitIds();
+         if (detectorSlitIds().length) slitDetector.fill(false);
+         else if (open.length >= 2) open.forEach(k => { slitDetector[k] = true; });
+         else return;
+         detectorsChanged();
       });
 
       // View toggle: cycles Measure → Trajectory → Wave → Measure

@@ -2,7 +2,7 @@
 // i (partial_t + k partial_x) u = -partial_y^2 u / 2.
 // The longitudinal envelope translates; longitudinal dispersion and reflection
 // are outside this approximation. No numerical wave-equation solver is used.
-import {gaussian} from './packet-model.js?cache=nslit15';
+import {gaussian} from './packet-model.js?cache=nslit16';
 
 function apertureWeights(p){
  return p.apertureWeights?.length===p.centers.length?p.apertureWeights:p.centers.map(()=>1);
@@ -43,6 +43,13 @@ function computeApertureBound(p){
 // the same partition.
 export function branchOf(p){
  return p.branchOf?.length===p.centers.length?p.branchOf:p.centers.map((_,index)=>index);
+}
+// Which-slit branches for detectors on some open slits: one branch per detected
+// slit and one for all undetected open slits together; ids in slit order (for
+// two slits, branch i is aperture i).
+export function detectorBranches(slitIds,detectorSlits){
+ let next=0,undetected=-1;
+ return slitIds.map(k=>{if(detectorSlits.includes(k))return next++;if(undetected<0)undetected=next++;return undetected;});
 }
 export function branchCount(p){return p.whichPath?Math.max(...branchOf(p))+1:1;}
 export function aperture(y,p){

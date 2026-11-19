@@ -83,12 +83,12 @@ assert(engine.includes('maximumCoreSafeSeparation'));
 assert(content.includes('finite slit core extending ±nσₐ'));
 assert(model.includes('sourceComponents'));
 assert(model.includes('if(p.whichPath)'));
-assert(engine.includes('next.whichPath=detectorSlit>=0&&next.centers.length>=2&&next.slitIds.includes(detectorSlit)'));
+assert(engine.includes('next.whichPath=detectorSlits.length>0&&next.centers.length>=2'));
 assert(engine.includes('setWhichPath(){resetEngine();draw();}'));
 // 2.125: Pilot-Wave particles stay on the apparatus zero plane; the wave is see-through in Pilot-Wave.
 assert(surface.includes('particleZ=(u,v,lift)=>fixedZ+(state.pilotWave?pwStyle.height/100*SURFACE_HEIGHT:0)+lift'));
 assert(surface.includes('seeThrough=!!state.pilotWave'));
-assert(engine.includes("colors=[[34,211,238],[255,159,67]]"));
+assert(engine.includes("const colors=G.branchColors")&&engine.includes("function branchColorsOf(p)"));
 assert(template.includes('context.createLinearGradient(0, 0, canvas.width, 0)'));
 assert(template.includes('window.qonticUpdateWavePalettePreview = updateWavePalettePreview'));
 assert(palette.includes('window.qonticUpdateWavePalettePreview?.()'));
