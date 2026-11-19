@@ -1,3 +1,13 @@
+## 3.0-dev.21 — 2026-11-19
+Accessibility and 16-slit geometry (Jun, Priya, Sofia).
+- Slit colours for three or more slits replaced: worst pair over all eight is ΔE 8.1 under normal, deutan and protan vision (was 1.4; checked with the dataviz palette validator and a Machado-matrix search over Okabe–Ito/Tol colours); neighbouring slits ≥ 15.7. Slits 9–16 repeat the eight; band numbers and the caption legend give the slit number too. Two slits keep cyan/orange.
+- Default hit colour blue (#2f6fd6) instead of red on the green curve; the old red default in saved settings is migrated.
+- Spectrum colouring uses viridis (0.2–1) instead of an HSL rainbow; tooltip says blue (top) to yellow (bottom).
+- Accessible names for the λ, separation, distance and screen-length number boxes; the canvas stack is one image with a description (canvases aria-hidden); keyboard focus stays on a slit button after it is pressed.
+- Contrast: view label and shortcut hint #b9c8d4 (dark) / #3f5868 (light), footer link and caption darker in the light theme, closed slit buttons less dimmed (strike-through kept).
+- Slit openings never overlap: the separation has a minimum of one core width plus 10 nm (2·extent·σ + 10), and the minimum screen length rises with the number of open slits when needed (16 slits at default width: 1600 nm), with a status message. Previously 16 slits were clamped to 74 nm with 90 nm cores and the wall vanished.
+- Expanded view on a portrait phone: the canvas was placed in the 36 px toolbar row (a more specific rule overrode the phone layout); now it fills the rest of the screen (390 × 844: 374 × 740 px). The caption is hidden in expanded view.
+
 ## 3.0-dev.20 — 2026-11-19
 Classroom aids from the review (Emma, Leila, Sofia, Jun).
 - Caption under the canvas: one plain sentence for the current view; a screen legend (curve = predicted distribution, dots = hits ± √n, black strip = detector pixels); and a colour legend, with swatch plus text, for detector records ("slits 1, 3, 4 (no detector fired) · slit 2 (its detector fired)") or, in Pilot Wave By slit, for the slits. Many Worlds says what "Branch records" counts.

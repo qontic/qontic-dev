@@ -1,11 +1,11 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=nslit21';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit21';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit21';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit21';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit21';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit21';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit21';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit21';
+import {mountFlowOverlay} from './flow-overlay.js?cache=nslit22';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=nslit22';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=nslit22';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=nslit22';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=nslit22';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=nslit22';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=nslit22';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=nslit22';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -34,12 +34,12 @@ export function mountPacketEngine({core,advanced}){
  }
  const separationLimitCache=new Map();
  let dynamicWidthMax=200,dynamicSeparationMax=2000;
+ let screenRaisePending=false;
  function applyPacketLimits(){
   const screenRange=document.getElementById('screen-height'),screenNumber=document.getElementById('screen-height-input');
   const separationRange=document.getElementById('slit-separation'),separationNumber=document.getElementById('slit-separation-input');
   const height=Math.max(120,+screenRange.value||1200);
-  screenRange.min=screenNumber.min='120';
-  if(+screenRange.value<120){screenRange.value=screenNumber.value='120';}
+
   const extentMax=Math.max(1,Math.min(5,Math.floor(height/(4*30)*2)/2));
   extent.max=extentMax;extent.parentElement.querySelector('input[type=number]').max=extentMax;
   if(+extent.value>extentMax)extent.value=extentMax;
@@ -55,7 +55,25 @@ export function mountPacketEngine({core,advanced}){
   // The outermost open slit sits at |sign|·d/2 from the axis (|sign| = 1 for two
   // slits), so the room left on the wall is divided by that offset.
   const outer=Math.max(1,...openSlitIds().map(k=>Math.abs(slitCenterSign(k))));
-  dynamicSeparationMax=Math.min(...windows.map(m=>maxTailSafeSeparation(Math.min(2000,Math.max(0,Math.floor((height-2*m*(+width.value))/outer))),m)));
+  const sepMaxFor=h=>Math.min(...windows.map(m=>maxTailSafeSeparation(Math.min(2000,Math.max(0,Math.floor((h-2*m*(+width.value))/outer))),m)));
+  // Neighbouring slit cores must not overlap (separation ≥ 2·extent·σ). With many slits
+  // that needs a longer screen (the wall is as long as the screen): raise the minimum
+  // screen length, as the separation maximum already shrinks with N (3.0-dev.21).
+  const core=2*widest*(+width.value)+10;let minHeight=120;
+  if(openSlitIds().length>=2&&sepMaxFor(5000)>=core){
+   let lo=120,hi=5000;
+   if(sepMaxFor(lo)<core){while(hi-lo>10){const mid=Math.round((lo+hi)/2);if(sepMaxFor(mid)>=core)hi=mid;else lo=mid;}minHeight=Math.ceil(hi/10)*10;}
+  }
+  screenRange.min=screenNumber.min=String(minHeight);
+  if(height<minHeight){
+   screenRange.value=screenNumber.value=String(minHeight);
+   const status=document.getElementById('nice-fringes-status');if(status)status.textContent=`Screen length raised to ${minHeight} nm so that the ${openSlitIds().length} slit openings fit on the wall without overlapping.`;
+   if(!screenRaisePending){screenRaisePending=true;setTimeout(()=>{screenRaisePending=false;setupGeo(false);draw();},0);}
+  }
+  dynamicSeparationMax=sepMaxFor(Math.max(height,minHeight));
+  const separationMin=openSlitIds().length>=2?Math.min(core,dynamicSeparationMax):0;
+  separationRange.min=separationNumber.min=String(separationMin);
+  if(+separationRange.value<separationMin)separationRange.value=separationNumber.value=String(separationMin);
   // Compare before lowering max: the browser silently clamps a range input when
   // its max drops, which used to leave the number box showing the old value.
   const requestedSeparation=Math.max(+separationRange.value,+separationNumber.value||0);
@@ -69,7 +87,7 @@ export function mountPacketEngine({core,advanced}){
   separationNumber.title=separationRange.title;
  }
  const directedRow=document.createElement('label');directedRow.className='bohmian-only packet-directed-inline';directedRow.title='PW postselection uses a fixed ±3σ window around each Gaussian slit, independently of the displayed Slit extent. It does not add a steering force.';directedRow.innerHTML='Direct PW <input id="packet-directed-slits" type="checkbox">';const directed=directedRow.querySelector('input');directed.checked=localStorage.getItem('qontic-pw-directed-slits')==='true';
- const slitColorRow=document.createElement('label');slitColorRow.className='bohmian-only packet-slit-colors';slitColorRow.title='Pilot-Wave particle and hit color. Uniform uses the selected particle color. By slit colours each particle by the slit it went through (cyan/orange for two slits, one colour per slit for more) and marks on the screen the band reached by the particles of each slit. Spectrum maps each exact wall-crossing position continuously from violet (top) to red (bottom), with each histogram bin using the mean hue of its particles. This changes only the display.';slitColorRow.innerHTML='<span>Color</span><select id="packet-particle-color" aria-label="Pilot-Wave particle color"><option value="uniform">Uniform</option><option value="slit">By slit</option><option value="spectrum">Spectrum</option></select>';const particleColorMode=slitColorRow.querySelector('select');particleColorMode.value=localStorage.getItem('qontic-pw-particle-color')||(localStorage.getItem('qontic-pw-color-by-slit')==='true'?'slit':'uniform');
+ const slitColorRow=document.createElement('label');slitColorRow.className='bohmian-only packet-slit-colors';slitColorRow.title='Pilot-Wave particle and hit color. Uniform uses the selected particle color. By slit colours each particle by the slit it went through (cyan/orange for two slits, one colour per slit for more) and marks on the screen the band reached by the particles of each slit. Spectrum maps each exact wall-crossing position continuously from blue (top) to yellow (bottom), with each histogram bin using the mean hue of its particles. This changes only the display.';slitColorRow.innerHTML='<span>Color</span><select id="packet-particle-color" aria-label="Pilot-Wave particle color"><option value="uniform">Uniform</option><option value="slit">By slit</option><option value="spectrum">Spectrum</option></select>';const particleColorMode=slitColorRow.querySelector('select');particleColorMode.value=localStorage.getItem('qontic-pw-particle-color')||(localStorage.getItem('qontic-pw-color-by-slit')==='true'?'slit':'uniform');
  function syncPacketInput(control){const number=control.parentElement.querySelector('input[type=number]');number.value=control.value;number.max=control.max;number.min=control.min;control.parentElement.querySelector('output').textContent=control===interval?(+interval.value===0?'Auto':particleType==='neutron'?'ns':'ps'):control===extent?'σ':'nm';if(control===interval)interval.title='0 = wait until the previous packet has completed all outcomes. Positive values set time between source launches in '+(particleType==='neutron'?'nanoseconds':'picoseconds')+' of simulation time; independent of packet speed and width.';}
  for(const number of panel.querySelectorAll('input[type=number]')){const commitNumber=()=>{const range=number.parentElement.querySelector('input[type=range]'),value=Number(number.value);if(Number.isFinite(value))range.value=Math.max(+range.min,Math.min(+range.max,value));range.dispatchEvent(new Event('input',{bubbles:true}));};number.addEventListener('change',commitNumber);number.addEventListener('blur',commitNumber);number.addEventListener('keydown',event=>{if(event.key==='Enter'){commitNumber();number.blur();}});}
  tailLength.addEventListener('input',()=>{syncPacketInput(tailLength);for(const a of particles)trimTail(a.path,+tailLength.value/100);draw();});
@@ -87,7 +105,10 @@ export function mountPacketEngine({core,advanced}){
  if(!['psi2','phase','real','imag'].includes(surfaceHeightMode))surfaceHeightMode='psi2';
  // Slit colours follow the slit, not its rank. Two slits keep the original cyan
  // and orange; more slits use a validated eight-colour categorical order.
- const SLIT_PALETTE=['#3987e5','#d95926','#199e70','#c98500','#d55181','#0ca30c','#9085e9','#e66767','#8fbaf2','#f0a07e','#6fd3ad','#f0c25a','#ee9dbb','#6fd36f','#c3bcf6','#f4a9a9'];
+ // Slit colours chosen for colour-vision deficiency (3.0-dev.21): worst pair over all 8 is ΔE 8.1 under
+ // normal, deutan and protan vision (was 1.4), neighbouring slits ≥ 15.7. Slits 9–16 repeat the 8;
+ // band numbers and the caption legend carry the slit number as well.
+ const SLIT_PALETTE=['#e69f00','#33bbee','#009988','#f0e442','#9a6fe0','#ff9da7','#d55e00','#e78ac3'];
  const slitColorOf=group=>{const k=+String(group).slice(1);return numSlits===2?(k===0?'#22d3ee':'#ff9f43'):SLIT_PALETTE[k%SLIT_PALETTE.length];};
  const slitGroups=()=>Array.from({length:MAX_SLITS},(_,k)=>'k'+k);
  const emptySlitHits=bins=>Object.fromEntries(slitGroups().map(g=>[g,Array(bins).fill(0)]));
@@ -101,7 +122,10 @@ export function mountPacketEngine({core,advanced}){
   const half=displayExtentSigma()*p.sy,lo=Math.min(...p.centers)-half,hi=Math.max(...p.centers)+half;
   return Math.max(0,Math.min(spectrumSteps-1,Math.round((wallY-lo)/Math.max(1e-12,hi-lo)*(spectrumSteps-1))));
  }
- function spectrumColor(index){const t=index/Math.max(1,spectrumSteps-1);return `hsl(${270*(1-t)}, 88%, 58%)`;}
+ // Spectrum: viridis from 0.2 to 1 (perceptually ordered, readable with colour-vision
+ // deficiency and on the dark canvas), instead of an HSL rainbow (3.0-dev.21).
+ const VIRIDIS=[[65,68,135],[57,86,140],[47,106,141],[38,130,142],[31,150,139],[33,170,128],[53,183,121],[94,201,98],[144,215,67],[198,224,42],[253,231,37]];
+ function spectrumColor(index){const t=index/Math.max(1,spectrumSteps-1)*(VIRIDIS.length-1),i=Math.min(VIRIDIS.length-2,Math.floor(t)),f=t-i,c=VIRIDIS[i].map((v,k)=>Math.round(v+f*(VIRIDIS[i+1][k]-v)));return `rgb(${c[0]},${c[1]},${c[2]})`;}
  function groupColor(group,trajectory=false){return group==='default'?(trajectory?colorTraj:colorPart):group[0]==='s'?spectrumColor(+group.slice(1)):slitColorOf(group);}
  function particleColorGroup(a){
   if(particleColorMode.value==='slit'&&a.slitSide)return a.slitSide;
@@ -374,7 +398,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit21').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=nslit22').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -868,6 +892,10 @@ export function mountPacketEngine({core,advanced}){
   if(/^[01d]{1,16}$/.test(linkedSlits))for(let k=0;k<linkedSlits.length;k++)if(linkedSlits[k]==='d')slitDetector[k]=true;
   if(/^slit\d+$/.test(linkedDetector||''))slitDetector[parseInt(linkedDetector.slice(4),10)-1]=true;
   syncWhichPathDetector();updateWhichPathButton();updateSlitCountControls();setupGeo(false);reset=0;resetEngine();
+  // Accessible names (3.0-dev.21): number boxes named by their quantity; the stacked
+  // canvases form one image described by the caption below it.
+  for(const [id,name] of [['wavelength-input','Wavelength in nm'],['slit-separation-input','Slit separation in nm'],['detector-distance-input','Wall-to-screen distance in nm'],['screen-height-input','Screen length in nm']]){const el=document.getElementById(id);if(el)el.setAttribute('aria-label',name);}
+  {const container=document.getElementById('canvas-container');if(container){container.setAttribute('role','img');container.setAttribute('aria-label','Simulation: source, wall with slits, the wave and particles, and the screen with its histogram. The caption below describes the current view.');container.querySelectorAll('canvas').forEach(c=>c.setAttribute('aria-hidden','true'));}}
   applyViewHash();draw();
  });
  // "Nice fringes": search the geometry (nice-fringes.js), apply it, start a new run.

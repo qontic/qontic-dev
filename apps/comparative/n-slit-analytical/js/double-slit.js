@@ -49,7 +49,7 @@ let basePsiPhase = null;  // Float32Array (phase at t=0)
 var idebug=0;
 var canvas;
 var colorDetector="blue"
-var colorHit="#ef4444"
+var colorHit="#2f6fd6" // blue: distinct from the green prediction curve also for red-green colour blindness (3.0-dev.21)
 var colorPart="red"
 var colorProb="green"
 var colorPsi   ="white"
@@ -907,7 +907,9 @@ function restoreSimulationState() {
   if (!state || typeof state !== 'object') return;
   // Version 2.96 changes the former black default to a visible red. Preserve
   // every explicitly selected non-black color while migrating the old default.
-  if(state.colors&&['black','#000','#000000','rgb(0, 0, 0)'].includes(String(state.colors.hit).toLowerCase()))state.colors.hit='#ef4444';
+  if(state.colors&&['black','#000','#000000','rgb(0, 0, 0)'].includes(String(state.colors.hit).toLowerCase()))state.colors.hit='#2f6fd6';
+  // 3.0-dev.21: the old red default on the green curve was hard to tell apart for red-green colour blindness.
+  if(state.colors&&['#ef4444','rgb(239, 68, 68)'].includes(String(state.colors.hit).toLowerCase()))state.colors.hit='#2f6fd6';
   // Version 2.122 draws the slit wall in its swatch color; migrate the old unused blue default.
   if(state.colors&&['blue','#0000ff','rgb(0, 0, 255)'].includes(String(state.colors.screen).toLowerCase()))state.colors.screen='#d4e6ef';
   restoreDisplayOpacities(state.displayOpacities);
@@ -1224,7 +1226,12 @@ function updateSlitCountControls() {
       const next = state === 'open' ? 'close it' : state === 'closed' ? 'open it with a which-slit detector' : 'remove the detector';
       return '<button type="button" class="qontic-app-toggle slit-open-button slit-' + state + (state !== 'closed' ? ' active' : '') + '" data-slit="' + k + '" data-state="' + state + '" aria-label="Slit ' + (k + 1) + ', ' + state + '" title="Slit ' + (k + 1) + ' ' + (state === 'detector' ? 'open, with a which-slit detector' : state) + ': click to ' + next + '">' + (k + 1) + '</button>';
    }).join('');
-   if (host.dataset.html !== html) { host.innerHTML = html; host.dataset.html = html; }
+   if (host.dataset.html !== html) {
+      // Rebuilding the buttons would drop keyboard focus: restore it to the same slit.
+      const focused = host.contains(document.activeElement) ? document.activeElement.dataset.slit : null;
+      host.innerHTML = html; host.dataset.html = html;
+      if (focused !== null && focused !== undefined) host.querySelector('[data-slit="' + focused + '"]')?.focus();
+   }
    document.getElementById('slit-open-row').hidden = numSlits < 2;
 }
 // live = true: a slit was only opened or closed. The packet engine then keeps
