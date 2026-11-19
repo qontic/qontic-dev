@@ -80,3 +80,4 @@ body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) 
   .view-buttons { gap: 3px; }
   .view-buttons .qontic-app-toggle, .controls-link { padding-inline: 5px; min-height: 36px; }
 }
+.plate-hits .plate-hits-note { display: inline-block; margin-top: 3px; font-size: 10px; color: #a9bccb; }

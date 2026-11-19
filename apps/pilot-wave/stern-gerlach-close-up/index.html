@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=7" />
-  <link rel="modulepreload" href="./main.js?v=12" />
+  <link rel="stylesheet" href="./style.css?v=8" />
+  <link rel="modulepreload" href="./main.js?v=13" />
 </head>
 <body>
   <main class="shell">
@@ -84,7 +84,7 @@
         <p>The dots are pilot-wave particles. They start at random positions drawn from |Ψ|² and then follow the guidance law below. Yellow dots start above the packet centre, green dots below. A dot stops when it reaches the detector plate, and the counts in the corner are made from those dots. The wave itself passes through the plate and keeps evolving.</p>
         <p>The default packet is an equal, in-phase superposition of +z and −z spin. In the field the two spin components separate vertically. Each particle ends up in one branch, and which one is fixed by where it started: dots from the upper half of the packet go up, dots from the lower half go down. Only dots that start very near the middle can end in the other branch.</p>
         <h4>Two readings</h4>
-        <p>The interpretation button in the controls switches between two readings of the same wave. In the pilot-wave reading the particle has a position at all times and is guided by the wave; the dots show possible positions. In the orthodox reading only the wave is shown: the theory gives the particle no position before it is measured, and |Ψ|² gives the probabilities of where it will be found at the plate. For the equal superposition each half of the plate gets probability ½; for +z the upper half gets nearly all of it. Both readings predict the same statistics at the plate.</p>
+        <p>The interpretation button in the controls switches between two readings of the same wave. In the pilot-wave reading the particle has a position at all times and is guided by the wave; the dots show possible positions. In the orthodox reading only the wave is shown: the theory gives the particle no position before it is measured, and |Ψ|² gives the probabilities of where it will be found at the plate. For the equal superposition each half of the plate gets probability ½; for +z the upper half gets nearly all of it. Both readings predict the same statistics at the plate. In the orthodox reading the box in the corner shows the weight of |Ψ|² above and below the middle of the box; when the packet reaches the plate, these are the chances of a hit in each half.</p>
         <h4>Geometry</h4>
         <p>The packet starts inside the magnetic field. There is no entrance or exit of a magnet: this is a close-up of the region inside it. The grid is periodic along x, so the box is drawn as copies placed end to end, and the cloud is shown in the copy where the packet is. The detector plate is two box lengths from the start of the first box. The grid is twice as tall along z as along x and y. Along y and z the walls are hard; with the default settings less than 2% of the density is near the top and bottom walls when the packet reaches the plate. Larger gradients push the branches into the walls, so the gradient slider stops at 3.5.</p>
         <h4>Magnetic field</h4>
@@ -169,6 +169,6 @@
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=12"></script>
+  <script type="module" src="./template.js?v=13"></script>
 </body>
 </html>

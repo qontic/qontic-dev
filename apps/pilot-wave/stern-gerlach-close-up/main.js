@@ -57,6 +57,7 @@ const SHADER_FILES = {
   line: "./shaders/line.wgsl",
   fieldLine: "./shaders/field-line.wgsl",
   detectorPlate: "./shaders/detector-plate.wgsl",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=1",
 };
 
 function applyShaderConstants(source) {
@@ -87,6 +88,7 @@ async function loadShaders() {
     line: parts.common + parts.line,
     fieldLine: parts.common + parts.fieldLine,
     detectorPlate: parts.common + parts.detectorPlate,
+    weightReduce: parts.common + parts.weightReduce,
   };
 }
 
@@ -445,6 +447,8 @@ const BOX_SHELL_WGSL = SHADERS.boxShell;
 const LINE_WGSL = SHADERS.line;
 const FIELD_LINE_WGSL = SHADERS.fieldLine;
 const DETECTOR_PLATE_WGSL = SHADERS.detectorPlate;
+const WEIGHT_REDUCE_WGSL = SHADERS.weightReduce;
+let pipelineWeightReduce = null;
 let pipelineWaveInit, pipelineWaveStep, pipelineParticleUpdate;
 let pipelineCloud, pipelineBoxShell, pipelineLine, pipelineFieldLine, pipelineDetectorPlate;
 let pipelineParticleRender, pipelineParticleStamp;
@@ -460,9 +464,12 @@ let particleSrc = null, particleDst = null, particleFlip = 0;
 // 1 for particles that start above the packet centre, 0 below (colours the dots).
 let particleStartSide = null;
 // Plate hit counts, read back from the particle buffer a few times per second.
-let hitReadback = null, hitReadbackBusy = false, lastHitReadback = 0;
+let hitReadback = null, readbackBusy = false, lastHitReadback = 0;
 let hitCounts = { top: 0, bottom: 0, arrived: 0, total: 0 };
 const HIT_READBACK_MS = 250;
+// Orthodox reading: |Psi|^2 weight above and below the packet-centre height.
+let weightPartials = null, weightReadback = null, weightBindGroups = [];
+let weightCounts = { upper: 0.5, lower: 0.5, valid: false };
 let boxBuffer = null, boxVertexCount = 0;
 let boxShellBuffer = null, boxShellVertexCount = 0;
 let fieldLineBuffer = null, fieldLineVertexCount = 0;
@@ -556,6 +563,7 @@ async function buildPipelines() {
   const lineModule = shaderModule("line", LINE_WGSL);
   const fieldLineModule = shaderModule("SG field lines", FIELD_LINE_WGSL);
   const detectorPlateModule = shaderModule("detector plate", DETECTOR_PLATE_WGSL);
+  const weightReduceModule = shaderModule("probability weight", WEIGHT_REDUCE_WGSL);
 
   const pipelineWaveInitReady = device.createComputePipelineAsync({
     label: "wave init pipeline",
@@ -566,6 +574,11 @@ async function buildPipelines() {
     label: "wave step pipeline",
     layout: "auto",
     compute: { module: waveStepModule, entryPoint: "main" },
+  });
+  const pipelineWeightReduceReady = device.createComputePipelineAsync({
+    label: "probability weight pipeline",
+    layout: "auto",
+    compute: { module: weightReduceModule, entryPoint: "main" },
   });
   const pipelineParticleUpdateReady = device.createComputePipelineAsync({
     label: "particle update pipeline",
@@ -726,6 +739,7 @@ async function buildPipelines() {
     pipelineLine,
     pipelineFieldLine,
     pipelineDetectorPlate,
+    pipelineWeightReduce,
   ] = await Promise.all([
     pipelineWaveInitReady,
     pipelineWaveStepReady,
@@ -739,6 +753,7 @@ async function buildPipelines() {
     pipelineLineReady,
     pipelineFieldLineReady,
     pipelineDetectorPlateReady,
+    pipelineWeightReduceReady,
   ]);
 
   boxShellBindGroup = bindGroup(pipelineBoxShell, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
@@ -802,7 +817,30 @@ function rebuildWaveBindGroups() {
       { binding: 1, resource: { buffer: waveBufferB } },
     ]),
   ];
+  rebuildWeightResources();
   rebuildParticleBindGroups();
+}
+
+function rebuildWeightResources() {
+  const groups = dispatchCount(voxelCount, WAVE_WORKGROUP_SIZE);
+  if (weightPartials?.size !== groups * 8) {
+    if (!readbackBusy) {
+      destroyGpuResource(weightPartials);
+      destroyGpuResource(weightReadback);
+    }
+    weightPartials = makeStorageBuffer("probability weight partial sums", groups * 8, GPUBufferUsage.COPY_SRC);
+    weightReadback = device.createBuffer({
+      label: "probability weight readback",
+      size: groups * 8,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    });
+  }
+  weightBindGroups = [waveBufferA, waveBufferB].map(buffer => bindGroup(pipelineWeightReduce, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer } },
+    { binding: 2, resource: { buffer: weightPartials } },
+  ]));
+  weightCounts = { upper: 0.5, lower: 0.5, valid: false };
 }
 
 function rebuildParticleBindGroups() {
@@ -987,9 +1025,11 @@ function cameraLookAtWorld() {
   ]);
 }
 
+// Default 3D view: from the front-left and a little above, so the box is seen
+// nearly side-on and the vertical splitting is visible, with depth.
 const cameraOrbit = {
-  yaw: -2.22,
-  pitch: 0.43,
+  yaw: -1.85,
+  pitch: 0.26,
   distance: 1,
 };
 const KEYBOARD_YAW_CENTER = -Math.PI * 0.5;
@@ -1036,7 +1076,7 @@ function cameraDistanceBounds() {
 
 function clampCameraDistance(distance) {
   const bounds = cameraDistanceBounds();
-  if (!Number.isFinite(distance) || distance <= 1) return 2.15 * bounds.n;
+  if (!Number.isFinite(distance) || distance <= 1) return 1.95 * bounds.n;
   return Math.max(bounds.min, Math.min(bounds.max, distance));
 }
 
@@ -1390,7 +1430,7 @@ function rebuildParticles() {
   destroyGpuResource(particleSrc);
   destroyGpuResource(particleDst);
   destroyGpuResource(particleStartSide);
-  if (!hitReadbackBusy) destroyGpuResource(hitReadback);
+  if (!readbackBusy) destroyGpuResource(hitReadback);
   hitReadback = null;
 
   const data = new Float32Array(n * 4);
@@ -1444,14 +1484,49 @@ function rebuildParticles() {
 const hitDisplay = document.getElementById("plate-hits");
 function updateHitDisplay() {
   if (!hitDisplay) return;
+  if (reading === "cpn") {
+    hitDisplay.hidden = false;
+    const f = v => weightCounts.valid ? v.toFixed(2) : "–";
+    hitDisplay.innerHTML = `<b>Probability now</b><br>Upper half: ${f(weightCounts.upper)}<br>Lower half: ${f(weightCounts.lower)}<br><span class="plate-hits-note">Weight of |Ψ|² above and below the middle.<br>At the plate: the chance of a hit in each half.</span>`;
+    return;
+  }
   hitDisplay.hidden = !dotsShown() || hitCounts.total <= 0;
   const { top, bottom, arrived, total } = hitCounts;
   hitDisplay.innerHTML = `<b>Dots at the plate</b><br>Upper half: ${top}<br>Lower half: ${bottom}<br>${arrived} of ${total} arrived`;
 }
 
+// Orthodox reading: sum |Psi|^2 above and below the middle on the GPU, then read the sums back.
+function readWeights(now) {
+  if (readbackBusy || !weightReadback || !weightBindGroups.length || now - lastHitReadback < HIT_READBACK_MS) return;
+  lastHitReadback = now;
+  const groups = dispatchCount(voxelCount, WAVE_WORKGROUP_SIZE);
+  const readback = weightReadback;
+  const encoder = device.createCommandEncoder({ label: "probability weight" });
+  const pass = encoder.beginComputePass({ label: "probability weight pass" });
+  pass.setPipeline(pipelineWeightReduce);
+  pass.setBindGroup(0, weightBindGroups[flip]);
+  pass.dispatchWorkgroups(groups);
+  pass.end();
+  encoder.copyBufferToBuffer(weightPartials, 0, readback, 0, groups * 8);
+  device.queue.submit([encoder.finish()]);
+  readbackBusy = true;
+  readback.mapAsync(GPUMapMode.READ, 0, groups * 8).then(() => {
+    const sums = new Float32Array(readback.getMappedRange(0, groups * 8));
+    let upper = 0, total = 0;
+    for (let i = 0; i < groups; i++) { upper += sums[2 * i]; total += sums[2 * i + 1]; }
+    readback.unmap();
+    if (readback === weightReadback && total > 0) {
+      weightCounts = { upper: upper / total, lower: 1 - upper / total, valid: true };
+      updateHitDisplay();
+    } else if (readback !== weightReadback) {
+      readback.destroy();
+    }
+  }).catch(() => {}).finally(() => { readbackBusy = false; });
+}
+
 // Count the dots stopped at the plate, by the half of the plate they hit.
 function readHitCounts(now) {
-  if (hitReadbackBusy || !hitReadback || now - lastHitReadback < HIT_READBACK_MS) return;
+  if (readbackBusy || !hitReadback || now - lastHitReadback < HIT_READBACK_MS) return;
   const n = Math.floor(params.nParticles);
   if (n <= 0) return;
   lastHitReadback = now;
@@ -1460,7 +1535,7 @@ function readHitCounts(now) {
   const encoder = device.createCommandEncoder({ label: "plate hit copy" });
   encoder.copyBufferToBuffer(source, 0, buffer, 0, n * 16);
   device.queue.submit([encoder.finish()]);
-  hitReadbackBusy = true;
+  readbackBusy = true;
   const plateX = detectorPlateXGrid();
   const zMid = params.packetZ * (simD - 1);
   buffer.mapAsync(GPUMapMode.READ, 0, n * 16).then(() => {
@@ -1478,7 +1553,7 @@ function readHitCounts(now) {
     } else {
       buffer.destroy();
     }
-  }).catch(() => {}).finally(() => { hitReadbackBusy = false; });
+  }).catch(() => {}).finally(() => { readbackBusy = false; });
 }
 
 function particleUpdate(pass) {
@@ -1780,6 +1855,9 @@ function traceSgFieldLine(verts, start, sign, fade, step, maxSteps, margin) {
   }
 }
 
+// Few, faint field lines so they read as a guide rather than a curtain in 3D.
+// copyFade is for the box copies at x offsets -1, 0, +1 (the packet starts in copy 0).
+const FIELD_LINE_STYLE = { xFracs: [0.2, 0.5, 0.8], copyFade: [0.2, 0.65, 0.65] };
 function rebuildMagneticFieldLines() {
   destroyGpuResource(fieldLineBuffer);
   fieldLineBuffer = null;
@@ -1794,12 +1872,12 @@ function rebuildMagneticFieldLines() {
   const step = Math.max(0.75, Math.max(simH, simD) / 112);
   const maxSteps = Math.ceil(3.2 * Math.max(simH, simD) / step);
   const copyOffsets = [-1, 0, 1];
-  const xFracs = [0.12, 0.32, 0.5, 0.68, 0.88];
+  const xFracs = FIELD_LINE_STYLE.xFracs;
   const yFracs = [0.22, 0.78];
   const zFracs = [0.30, 0.50];
 
   for (const copy of copyOffsets) {
-    const copyFade = Math.abs(copy) <= 1 ? 0.88 : 0.52;
+    const copyFade = FIELD_LINE_STYLE.copyFade[copy + 1];
     for (const xf of xFracs) {
       const x = copy * periodX + xf * periodX;
       const xFade = 1.0 - 0.18 * Math.abs(xf - 0.5) / 0.5;
@@ -1937,7 +2015,10 @@ async function main() {
     device.queue.submit([encoder.finish()]);
     if (redrawPending) { updateStats(); updateHitDisplay(); }
     redrawPending = false;
-    if (!paused) readHitCounts(now);
+    if (!paused) {
+      if (reading === "cpn") readWeights(now);
+      else readHitCounts(now);
+    }
 
     // Wait for the current frame so a slow GPU cannot build a render backlog.
     try {
@@ -1986,6 +2067,7 @@ export const simulation = {
   getReading: () => reading,
   setReading(value) {
     reading = value === "cpn" ? "cpn" : "pw";
+    lastHitReadback = 0;
     requestTrailClear();
     updateStats();
     updateHitDisplay();
@@ -1998,3 +2080,4 @@ export const simulation = {
   },
   redraw: requestRedraw,
 };
+
