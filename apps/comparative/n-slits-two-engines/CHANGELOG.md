@@ -3,6 +3,16 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.8 — 2026-11-20
+Pablo: port all the features of the numerical N-slit app that this app lacked.
+- **Blade shutter** (numerical engine; Advanced → Blade, Closing time, Blade W/E): a slit closed during a run is covered by a blade coming down from its upper edge over τ (units of σₓ/v; 0 = instant), reflecting (V₀) or absorbing (−iW); opening retracts it. The potential now carries all slits with per-slit blade fills. Mask wall: changes stay instant.
+- **Show change** (Advanced): at the first slit change of a packet a reference run (old slits) starts from a copy of the wave; the picture shows ψ − ψ_ref × gain, a dashed line marks the cut, and the canvas gives |δψ|/|ψ_ref| behind the wall ahead of and behind it (per-column GPU sums, read asynchronously). Default geometry, slit 2 closed as the packet centre reaches the wall, cut at the screen: instant reflecting blade 31% ahead / 59% behind; instant absorbing 29% / 58%; τ = 6 σₓ/v 1.1% / 16%.
+- **Pauli guidance** (Advanced → Guiding law: Schrödinger / Pauli ↑ / Pauli ↓): adds (ħ/2m) ∇×(ρ ẑ)/ρ (fourth-order ∇ρ, interpolated); sign as in the numerical N-slit app (its y axis points up).
+- **Particle colours by starting position** (both engines): Start up/down, ahead/behind, quadrant, radial (equal-number quartiles), the numerical app's colours. Kept through the analytical PW rebuild on a view switch.
+- **Replay clicks** (Advanced, on by default): each new packet starts from the slits as they were and replays the slit and detector changes at the same packet times with the same blade settings.
+- **Quiz:** five numerical questions (closing a slit at the wall, particle heading for the reflecting wall, instant vs slow blade, Pauli vs Schrödinger, how much the reflecting wall sends back), with this app's numbers; Watch sets the engine, wall, blade and Show change.
+- **Display:** glowing particle dots and fading glow trails (half-life) in the classic look; trails Glow/Lines; particle size; zoom 1×/2×/4× with drag to pan (both engines); One-particle preset (also `?preset=one`).
+
 ## 1.0-dev.7 — 2026-11-20
 Pablo: the numerical run sometimes slows down and then speeds up; are there other features of the numerical app missing here?
 - **Steady step budget.** The dev.5 governor cut the steps per frame by 25% on every frame the GPU was behind and grew them by 2 per frame; a backlog of a few frames cut it several times, and the climb back took a second or more: slow-down / speed-up cycles. Now the GPU time per step is measured with the WebGL2 GPU timer (EXT_disjoint_timer_query_webgl2) and the budget is set to about 70% of a frame of GPU time (30 fps allowed when a step is very slow), smoothed. Without the timer: cut 15% after two late frames, then 20 frames' pause; grow 5% after 30 on-time frames, only while the budget limits.

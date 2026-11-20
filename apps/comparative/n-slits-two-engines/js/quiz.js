@@ -11,7 +11,7 @@ const light = () => document.body.classList.contains('qontic-light');
 // slits: array of 'open' | 'closed' | 'detector'. Options: hitY (fraction of the
 // screen height, 0 = top) marks one detection; packet draws wavefronts past the
 // wall; shutter marks a slit being closed.
-function drawSetup(canvas, slits, { hitY = null, packet = false, shutter = null } = {}) {
+function drawSetup(canvas, slits, { hitY = null, packet = false, shutter = null, arrow = false, reflected = false, label = null } = {}) {
   const g = canvas.getContext('2d'), W = canvas.width, H = canvas.height, isLight = light();
   const ink = isLight ? '#16324a' : '#d8ecf5', dim = isLight ? '#6b8796' : '#7f9cab';
   g.fillStyle = isLight ? '#eef4f8' : '#16293a'; g.fillRect(0, 0, W, H);
@@ -52,6 +52,16 @@ function drawSetup(canvas, slits, { hitY = null, packet = false, shutter = null 
       for (let r = 18; r <= 66; r += 12) { g.beginPath(); g.arc(wallX, (top + bottom) / 2, r, -Math.PI / 2.6, Math.PI / 2.6); g.stroke(); }
     }
   }
+  // a particle heading for the wall between slits 1 and 2
+  if (arrow) {
+    const yy = (centre(0) + centre(1)) / 2;
+    g.fillStyle = '#ff4d4d'; g.beginPath(); g.arc(wallX - 52, yy, 6, 0, 2 * Math.PI); g.fill();
+    g.strokeStyle = '#ff4d4d'; g.lineWidth = 2; g.beginPath(); g.moveTo(wallX - 44, yy); g.lineTo(wallX - 14, yy); g.stroke();
+    g.beginPath(); g.moveTo(wallX - 14, yy); g.lineTo(wallX - 22, yy - 5); g.lineTo(wallX - 22, yy + 5); g.closePath(); g.fill();
+  }
+  // a question mark for the wave coming back from the wall
+  if (reflected) { g.fillStyle = '#e66767'; g.font = 'bold 22px Inter, system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('← ?', wallX - 45, 40); }
+  if (label) { g.fillStyle = dim; g.font = '11px Inter, system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(label, 8, 16); }
   // screen
   g.strokeStyle = ink; g.lineWidth = 3; g.beginPath(); g.moveTo(screenX, 14); g.lineTo(screenX, H - 14); g.stroke();
   g.fillStyle = dim; g.font = '11px Inter, system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('screen', screenX, H - 2);
@@ -70,11 +80,24 @@ function setColor(color, tries = 60) {
   if (select.value !== color) { select.value = color; select.dispatchEvent(new Event('change', { bubbles: true })); }
 }
 
+// Watch for the blade questions: tick "Apply slit changes when the packet reaches the
+// wall", start, and click slit 2 so that it closes when the packet centre gets there.
+function closeSlit2AtWall() {
+  const atWall = document.getElementById('slit-at-wall');
+  if (atWall && !atWall.checked) { atWall.checked = true; atWall.dispatchEvent(new Event('change', { bubbles: true })); }
+  setTimeout(() => document.querySelector('#slit-open-buttons [data-slit="1"]')?.click(), 150);
+}
+
 function isRunning() { return typeof isAnimating !== 'undefined' && isAnimating; }
 
 // Put the app in the question's configuration, paused and reset.
-function setTo({ view, slits, color = null }) {
+function setTo({ view, slits, color = null, engine = 'analytical', num = null }) {
   if (isRunning()) $('#startButton').trigger('click');
+  const pe = window.qonticPacketEngine;
+  if (pe?.setEngine && pe.engine !== engine) pe.setEngine(engine);
+  // Numerical questions set the wall, blade, closing time, Show change and guiding law;
+  // the others put back the defaults.
+  pe?.setNumOptions?.(num || { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: true });
   // Q5's Watch ticks this; every question starts with it off.
   const atWall = document.getElementById('slit-at-wall'); if (atWall && atWall.checked) { atWall.checked = false; atWall.dispatchEvent(new Event('change', { bubbles: true })); }
   if (view && interpretation !== view) changeInterpretation(view);
@@ -175,6 +198,59 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       explain: 'The wave never collapses. The detector becomes correlated with the slit: (upper-slit wave) × (detector fired) + (lower-slit wave) × (detector silent). With a macroscopic detector these two branches have different, practically irreversible records, so they no longer interfere on the screen. Each branch’s weight is |ψ|² of its part; reading weights as probabilities is assumed here, and how Many Worlds justifies that is debated.',
       prepare: () => setTo({ view: 'manyworlds', slits: ['detector', 'open'] }),
       draw: c => drawSetup(c, ['detector', 'open']),
+    },
+    // Numerical engine (ported from the numerical N-slit app, numbers from this app).
+    {
+      question: 'Numerical engine, reflecting wall. Slit 2 is closed at once just as the packet centre reaches the wall. What happens to the part of the wave that had already passed the slits?',
+      caption: 'The packet is crossing the wall; slit 2 is being closed.',
+      plain: 'That part itself is unchanged, but the wave in the region it occupies changes: later parts, changed by the closing, move into it.',
+      answers: [{ id: 'same', label: 'Unchanged, and so is the wave in that region' }, { id: 'spread', label: 'Unchanged, but the wave in that region changes' }, { id: 'instant', label: 'It is changed at once by the closing' }],
+      answer: 'spread',
+      explain: 'The Schrödinger equation is local and linear: the part that has already left the slits does not come back to them, so closing slit 2 does not touch it. But the parts still in front of the wall or inside the slit are changed, and they do not stay behind: the spread of speeds in the packet, diffraction to wide angles and the waves scattered by a sudden closure carry them forward. Measured in this app (default geometry), when the cut reaches the screen the wave ahead of it differs by 31% from the wave with slit 2 left open, and by 59% behind it. Watch with Show change on: the picture shows ψ − ψ(slit left open), and the dashed line is the cut.',
+      prepare: () => setTo({ engine: 'numerical', view: 'copenhagen', slits: ['open', 'open'], num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: true, guide: 'schrodinger', replay: false } }),
+      draw: c => drawSetup(c, ['open', 'open'], { shutter: 1, packet: true, label: 'numerical engine' }),
+      afterWatch: closeSlit2AtWall,
+    },
+    {
+      question: 'Numerical engine, reflecting wall, Pilot Wave. A particle heads straight for the wall between the two slits. What happens to it?',
+      caption: 'The red particle moves towards the wall between the slits.',
+      plain: 'It is turned away before it reaches the wall.',
+      answers: [{ id: 'turned', label: 'It is turned away before it reaches the wall' }, { id: 'through', label: 'It goes through the wall' }, { id: 'stops', label: 'It stops at the wall' }],
+      answer: 'turned',
+      explain: 'The particle moves with the velocity given by the wave, (ħ/m) Im(∇ψ/ψ). In front of the reflecting wall the incident and reflected waves overlap, and the guidance turns the particle back or sideways; it never enters the wall, where ψ is almost zero. With the Absorbing wall, particles that reach it are removed instead (an effective rule, with the probability that |ψ|² is absorbed there). The analytical engine has no reflected wave: its mask only absorbs.',
+      prepare: () => setTo({ engine: 'numerical', view: 'bohmian', slits: ['open', 'open'], color: 'updown', num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: true } }),
+      draw: c => drawSetup(c, ['open', 'open'], { arrow: true, label: 'numerical engine' }),
+    },
+    {
+      question: 'Numerical engine. Slit 2 is closed from the moment the packet centre reaches the wall, either at once or by a blade taking 6 σₓ/v. Which changes the wave ahead of the cut more?',
+      caption: 'Same start time; the blade closes at once or slowly.',
+      plain: 'The instant closure, by far.',
+      answers: [{ id: 'fast', label: 'The instant closure' }, { id: 'slow', label: 'The slow blade' }, { id: 'neither', label: 'Neither: nothing ahead of the cut changes' }],
+      answer: 'fast',
+      explain: 'Measured in this app (default geometry, reflecting blade), when the cut reaches the screen the wave ahead of it differs from the open-slit wave by 31% for the instant closure and by 1% for the slow blade (behind the cut: 59% and 16%). A sudden closure scatters fast waves that overtake the cut; the slow blade scatters little, and most of the packet has passed slit 2 before it closes. An instant absorbing blade gives 29%. Try it with Show change on and different closing times (Advanced).',
+      prepare: () => setTo({ engine: 'numerical', view: 'copenhagen', slits: ['open', 'open'], num: { wall: 'reflecting', blade: 'reflecting', tau: 6, showChange: true, guide: 'schrodinger', replay: false } }),
+      draw: c => drawSetup(c, ['open', 'open'], { shutter: 1, packet: true, label: 'numerical engine · slow blade' }),
+      afterWatch: closeSlit2AtWall,
+    },
+    {
+      question: 'Numerical engine, Pilot Wave. The guiding law is switched from Schrödinger to Pauli ↑ (a spin-½ particle with spin along z). What changes?',
+      caption: 'Same wave; two guiding laws for the particles.',
+      plain: 'The trajectories change; the screen pattern does not.',
+      answers: [{ id: 'paths', label: 'The trajectories, but not the screen pattern' }, { id: 'both', label: 'Both the trajectories and the screen pattern' }, { id: 'nothing', label: 'Nothing' }],
+      answer: 'paths',
+      explain: 'The Pauli velocity adds (ħ/2m) ∇×(ρ ẑ)/ρ to the Schrödinger one. The extra current has zero divergence, so |ψ|² still moves with the particles (equivariance) and the distribution of hits is the same. The individual paths differ, most visibly where ρ changes quickly, near the wall and the slits. Which velocity is the right one is a question the screen statistics cannot settle.',
+      prepare: () => setTo({ engine: 'numerical', view: 'bohmian', slits: ['open', 'open'], color: 'slit', num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'up', replay: true } }),
+      draw: c => drawSetup(c, ['open', 'open'], { packet: true, label: 'numerical engine · Pauli ↑' }),
+    },
+    {
+      question: 'Two slits, default geometry. With the numerical engine and the reflecting wall, how much of the packet comes back from the wall?',
+      caption: 'Numerical engine, reflecting wall.',
+      plain: 'About three quarters.',
+      answers: [{ id: 'none', label: 'Almost none, as in the analytical engine' }, { id: 'quarter', label: 'About a quarter' }, { id: 'most', label: 'About three quarters' }],
+      answer: 'most',
+      explain: 'The slits are narrow, so most of the packet hits the wall: in this app the reflecting wall sends back 76% of it and lets 19% past (the rest is absorbed at the edges of the grid). The analytical engine’s mask, and the numerical Mask and Absorbing walls, reflect less than 0.3%. The screen pattern depends on what passes, so the engines can agree on the fringes while disagreeing about the wave in front of the wall.',
+      prepare: () => setTo({ engine: 'numerical', view: 'copenhagen', slits: ['open', 'open'], num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: true } }),
+      draw: c => drawSetup(c, ['open', 'open'], { reflected: true, label: 'numerical engine · reflecting wall' }),
     },
   ];
   return mountQonticQuiz({

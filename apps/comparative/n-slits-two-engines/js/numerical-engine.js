@@ -63,8 +63,12 @@ void main(){ vec2 p = gl_VertexID == 0 ? vec2(-1.,-1.) : gl_VertexID == 1 ? vec2
 const COMMON = `
 uniform ivec2 uRes;
 uniform float uWallX, uWallHalf, uLayerHalf, uV0, uWmax, uWscale, uSy, uBound, uHalfOpen, uAbsPx, uAbsW, uV, uWallW;
-uniform int uMode, uNOpen;
+uniform int uMode, uNOpen, uNAll;
 uniform float uCenters[16], uWeights[16];
+// All slits (open or closed) with their blade fills: uFillV covered by a reflecting
+// blade (V0), uFillW by an absorbing one (-i uBladeW). The blade comes down from the
+// slit's upper edge (smaller y); the open part keeps the lower edge.
+uniform float uAllC[16], uFillV[16], uFillW[16], uBladeW;
 float sstep(float a, float b, float x){ float t = clamp((x-a)/(b-a), 0., 1.); return t*t*(3.-2.*t); }
 float band(float x, float c, float hw){ return sstep(c-hw-1., c-hw, x) * (1. - sstep(c+hw, c+hw+1., x)); }
 float apertureT(float y){
@@ -86,9 +90,16 @@ vec2 potential(vec2 q){
   } else {
     float slab = band(q.x, uWallX, uWallHalf);
     if (slab > 0.) {
-      float open = 0.;
-      for (int j = 0; j < 16; j++) { if (j >= uNOpen) break; open += band(q.y, uCenters[j], uHalfOpen); }
-      float solid = slab * clamp(1. - open, 0., 1.);
+      float slit = 0., covV = 0., covW = 0.;
+      for (int j = 0; j < 16; j++) {
+        if (j >= uNAll) break;
+        float f = clamp(uFillV[j] + uFillW[j], 0., 1.), oh = uHalfOpen * (1. - f);
+        float sl = band(q.y, uAllC[j], uHalfOpen);
+        float op = f < .999 ? band(q.y, uAllC[j] + uHalfOpen * f, oh) * clamp(2.*oh, 0., 1.) : 0.;
+        float cov = max(sl - op, 0.), aw = f > 0. ? uFillW[j] / f : 0.;
+        slit += sl; covV += cov * (1. - aw); covW += cov * aw;
+      }
+      float solid = slab * clamp(1. - slit, 0., 1.);
       if (uMode == 2) {
         // absorbing wall: absorbing ramp over the front 90%, wall behind
         float u = clamp((q.x - (uWallX - uWallHalf)) / (2.*uWallHalf), 0., 1.);
@@ -96,6 +107,8 @@ vec2 potential(vec2 q){
         V = uV0 * solid * (1. - front);
         W += uWallW * solid * front * ramp * ramp;
       } else V = uV0 * solid;
+      V += uV0 * slab * covV;
+      W += uBladeW * slab * covW;
     }
   }
   float d = min(min(q.x, float(uRes.x) - q.x), min(q.y, float(uRes.y) - q.y));
@@ -211,6 +224,23 @@ void main(){
   o = vec4(acc.x + max(jx, 0.)*uDt, acc.y + jx*uDt, 0., 0.);
 }`;
 
+// Show change: per column, sum over y of |psi - psi_ref|^2 and |psi_ref|^2.
+const COLSUM = `#version 300 es
+precision highp float;
+uniform sampler2D uState, uRef;
+uniform ivec2 uRes;
+out vec4 o;
+void main(){
+  int i = int(gl_FragCoord.x);
+  float d = 0., r = 0.;
+  for (int j = 0; j < 4096; j++) {
+    if (j >= uRes.y) break;
+    vec2 a = texelFetch(uState, ivec2(i, j), 0).rg, b = texelFetch(uRef, ivec2(i, j), 0).rg;
+    vec2 e = a - b; d += dot(e, e); r += dot(b, b);
+  }
+  o = vec4(d, r, 0., 0.);
+}`;
+
 // Time-integrated probability flux j_x through the screen column.
 const FLUX = `#version 300 es
 precision highp float;
@@ -242,6 +272,7 @@ uniform sampler2D uState;
 uniform sampler2DArray uRec;
 uniform float uDt, uScreenX, uRecordOfSlit[16];
 uniform int uFrame, uNRec, uOff, uDrive, uPre;
+uniform float uSpin;   // Pauli spin term: 0 (Schrodinger), +-1/2 (spin up / down along z)
 int layer = -1;
 vec2 tf(ivec2 p){
   if (layer < 0) return texelFetch(uState, p, 0).rg;
@@ -262,6 +293,14 @@ vec3 jr(ivec2 p){
   vec2 dy = (8.*(tf(min(p+ivec2(0,1),m)) - tf(max(p-ivec2(0,1),ivec2(0)))) - (tf(min(p+ivec2(0,2),m)) - tf(max(p-ivec2(0,2),ivec2(0))))) / 12.;
   return vec3(c.x*dx.y - c.y*dx.x, c.x*dy.y - c.y*dy.x, dot(c, c));
 }
+// Density gradient at a node (fourth-order), for the Pauli spin term.
+vec2 grho(ivec2 p){
+  ivec2 m = uRes - 1;
+  vec2 c = tf(p);
+  vec2 dx = (8.*(tf(min(p+ivec2(1,0),m)) - tf(max(p-ivec2(1,0),ivec2(0)))) - (tf(min(p+ivec2(2,0),m)) - tf(max(p-ivec2(2,0),ivec2(0))))) / 12.;
+  vec2 dy = (8.*(tf(min(p+ivec2(0,1),m)) - tf(max(p-ivec2(0,1),ivec2(0)))) - (tf(min(p+ivec2(0,2),m)) - tf(max(p-ivec2(0,2),ivec2(0))))) / 12.;
+  return 2. * vec2(dot(c, dx), dot(c, dy));
+}
 // v = j / rho with j and rho interpolated between nodes: unlike psi they carry no
 // carrier oscillation, so bilinear interpolation is accurate at 8 points per wavelength.
 vec2 vel(vec2 x){
@@ -269,6 +308,12 @@ vec2 vel(vec2 x){
   vec2 x0 = floor(y), t = y - x0; ivec2 p = ivec2(x0);
   vec3 a = mix(mix(jr(p), jr(p+ivec2(1,0)), t.x), mix(jr(p+ivec2(0,1)), jr(p+ivec2(1,1)), t.x), t.y);
   vec2 v = a.xy / max(a.z, 1e-12);
+  if (uSpin != 0.) {
+    // Pauli current for spin along z: (hbar/2m) curl(rho z)/rho. Grid y points down the
+    // canvas, so the sign is that of the numerical N-slit app with y up.
+    vec2 g = mix(mix(grho(p), grho(p+ivec2(1,0)), t.x), mix(grho(p+ivec2(0,1)), grho(p+ivec2(1,1)), t.x), t.y);
+    v += uSpin * vec2(-g.y, g.x) / max(a.z, 1e-12);
+  }
   float s = length(v); if (s > 4.) v *= 4./s;
   return v;
 }
@@ -311,7 +356,9 @@ precision highp float;
 precision highp sampler2DArray;
 uniform sampler2D uState, uPalette;
 uniform sampler2DArray uRec;
-uniform int uNRec, uOff, uDrive;
+uniform int uNRec, uOff, uDrive, uChange;
+uniform sampler2D uRef;
+uniform float uChangeGain;
 uniform ivec2 uRes;
 uniform vec4 uMap;      // grid x = uMap.x + u * uMap.y ; grid y = uMap.z + v * uMap.w  (u, v in 0..1 over the canvas)
 uniform float uPeak, uLo, uInv, uAlpha, uFieldU, uGain;
@@ -333,6 +380,14 @@ vec2 samp(vec2 x){
   vec2 x0 = floor(y), t = y - x0;
   ivec2 p = ivec2(x0), pe = min(p + ivec2(1,0), uRes-1), pn = min(p + ivec2(0,1), uRes-1), pne = min(p + ivec2(1,1), uRes-1);
   return mix(mix(texelFetch(uState,p,0).rg, texelFetch(uState,pe,0).rg, t.x), mix(texelFetch(uState,pn,0).rg, texelFetch(uState,pne,0).rg, t.x), t.y);
+}
+vec2 sampRef(vec2 x){
+  vec2 m = vec2(uRes) - 1.;
+  if (x.x < 0. || x.y < 0. || x.x > float(uRes.x) || x.y > float(uRes.y)) return vec2(0.);
+  vec2 y = clamp(x - .5, vec2(0.), m);
+  vec2 x0 = floor(y), t = y - x0;
+  ivec2 p = ivec2(x0), pe = min(p + ivec2(1,0), uRes-1), pn = min(p + ivec2(0,1), uRes-1), pne = min(p + ivec2(1,1), uRes-1);
+  return mix(mix(texelFetch(uRef,p,0).rg, texelFetch(uRef,pe,0).rg, t.x), mix(texelFetch(uRef,pn,0).rg, texelFetch(uRef,pne,0).rg, t.x), t.y);
 }
 // Density interpolated from the nodes' |psi|^2 (no carrier ripple at 8 points per wavelength).
 float r2(ivec2 p){ vec2 c = texelFetch(uState, p, 0).rg; return dot(c, c); }
@@ -373,6 +428,8 @@ void main(){
   float rho = sampRho(gq);
   bool inRec = uNRec > 0 && gq.x > float(uDrive) + 1.;
   if (inRec) { vec3 r = recSamp(gq); psi = r.xy; rho = r.z; }
+  // Show change: the live wave minus the reference wave (old slits), times the gain.
+  if (uChange == 1) { psi = (psi - sampRef(gq)) * uChangeGain; rho = dot(psi, psi); inRec = false; }
   float rel = rho / uPeak;
   if (uShow == 4) {
     float vis = smoothstep(0.001, 0.002, sqrt(rel));
@@ -426,6 +483,7 @@ export function createNumericalEngine() {
   const progInit = program(gl, VS, INIT), progStep = program(gl, VS, STEP), progFlux = program(gl, VS, FLUX), progRender = program(gl, VS, RENDER);
   const progPart = program(gl, PARTICLE_VS, PARTICLE_FS, ["vState"]);
   const progBStep = program(gl, VS, BSTEP), progBFlux = program(gl, VS, BFLUX);
+  const progStepRef = program(gl, VS, STEP), progColSum = program(gl, VS, COLSUM);
   const vao = gl.createVertexArray();
   const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
 
@@ -459,6 +517,11 @@ export function createNumericalEngine() {
   let fluxPBO = null, fluxFence = null, fluxData = null, fluxReady = null;
   // Record fields (detectors): rec = { A, B, fboA[], fboB[], layers, flip, list: [{ slits: Set of slit ids | null, pre }] }.
   let rec = null, uniformVersion = 0;
+  // Blades (shutter): fill[id] = { v, w } covered fraction of slit id by a reflecting or
+  // absorbing blade; ramps move them over the closing time. Shutter settings from the app.
+  let spin = 0, fill = {}, ramps = [], shutter = { tau: 0, mode: "reflecting", wOverE: 4.4 }, showChange = false;
+  // Show change: a reference run keeping the slits as they were at the first slit change.
+  let ref = null, refVersion = 0, colPBO = null, colFence = null, colTex = null, colFbo = null, changeStats = null;
 
   function free() {
     if (!state) return;
@@ -484,10 +547,11 @@ export function createNumericalEngine() {
   }
 
   // Potential and slit uniforms change only with the geometry: set once per program and version.
-  function setPotentialUniforms(prog) {
-    if (prog.ver === uniformVersion) return;
-    prog.ver = uniformVersion;
-    const { p, h, geom } = G;
+  function setPotentialUniforms(prog, src = null) {
+    const ver = src ? "r" + refVersion : uniformVersion;
+    if (prog.ver === ver) return;
+    prog.ver = ver;
+    const { p, h } = G, geom = src ? src.geom : G.geom, fl = src ? src.fill : fill;
     const k = p.k * h, v = k;     // grid wavenumber and speed (hbar = m = 1)
     gl.uniform2i(prog.u("uRes"), G.nx, G.ny);
     gl.uniform1i(prog.u("uMode"), G.mode === "mask" ? 0 : G.mode === "absorbing" ? 2 : 1);
@@ -507,11 +571,107 @@ export function createNumericalEngine() {
     gl.uniform1i(prog.u("uNOpen"), geom.open.centers.length);
     gl.uniform1fv(prog.u("uCenters"), centers);
     gl.uniform1fv(prog.u("uWeights"), weights);
+    const allC = new Float32Array(16), fv = new Float32Array(16), fw = new Float32Array(16);
+    geom.slits.forEach((sl, i) => { if (i >= 16) return; allC[i] = G.gy(sl.center); const f = fl[sl.id] || { v: sl.state === "closed" ? 1 : 0, w: 0 }; fv[i] = f.v; fw[i] = f.w; });
+    gl.uniform1i(prog.u("uNAll"), Math.min(16, geom.slits.length));
+    gl.uniform1fv(prog.u("uAllC"), allC); gl.uniform1fv(prog.u("uFillV"), fv); gl.uniform1fv(prog.u("uFillW"), fw);
+    gl.uniform1f(prog.u("uBladeW"), shutter.wOverE * 0.5 * k * k);
     gl.uniform1f(prog.u("uAbsPx"), G.absorber / h);
     gl.uniform1f(prog.u("uAbsW"), 1.5 * 0.5 * k * k);
     gl.uniform1f(prog.u("uPartS"), 0.35 * geom.separation / h);
     gl.uniform1i(prog.u("uDrive"), G.drive); gl.uniform1i(prog.u("uOff"), G.off);
     gl.uniform1f(prog.u("uDt"), G.dt);
+  }
+
+  // ---- Blades --------------------------------------------------------------------
+  function resetFills() {
+    fill = {}; ramps = [];
+    for (const sl of G.geom.slits) fill[sl.id] = { v: sl.state === "closed" ? 1 : 0, w: 0 };
+  }
+  const smoothRamp = u => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
+  function updateRamps() {
+    if (!ramps.length) return;
+    const still = [];
+    for (const r of ramps) {
+      const u = r.tau > 0 ? (simTau - r.t0) / r.tau : 1, f = smoothRamp(u);
+      fill[r.id] = { v: r.from.v + (r.to.v - r.from.v) * f, w: r.from.w + (r.to.w - r.from.w) * f };
+      if (u < 1) still.push(r);
+    }
+    ramps = still; uniformVersion++;
+  }
+  // Slits that change between two geometries during a run get a blade ramp (closing:
+  // a reflecting or absorbing blade comes down over the closing time; opening: it
+  // retracts). Before the run, or in the mask model, the change is immediate.
+  function bladeChanges(oldGeom, newGeom) {
+    const was = Object.fromEntries(oldGeom.slits.map(sl => [sl.id, sl.state !== "closed"]));
+    const changed = [];
+    for (const sl of newGeom.slits) {
+      const open = sl.state !== "closed";
+      if (was[sl.id] === undefined || was[sl.id] === open) continue;
+      changed.push(sl.id);
+      const to = open ? { v: 0, w: 0 } : shutter.mode === "absorbing" ? { v: 0, w: 1 } : { v: 1, w: 0 };
+      const cur = fill[sl.id] || { v: open ? 1 : 0, w: 0 };
+      ramps = ramps.filter(r => r.id !== sl.id);
+      if (stepsDone > 0 && G.mode !== "mask") ramps.push({ id: sl.id, t0: simTau, tau: shutter.tau / (G.h * G.h), from: { ...cur }, to });
+      else fill[sl.id] = to;
+    }
+    updateRamps();
+    return changed;
+  }
+
+  // ---- Show change -------------------------------------------------------------------
+  function startReference(oldGeom, oldFill) {
+    freeReference();
+    const A = tex(G.nx, G.ny), B = tex(G.nx, G.ny);
+    ref = { A, B, fA: fbo(A), fB: fbo(B), flip: 0, geom: oldGeom, fill: JSON.parse(JSON.stringify(oldFill)), t0: simTau };
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, state.flip ? state.fB : state.fA);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, ref.fA);
+    gl.blitFramebuffer(0, 0, G.nx, G.ny, 0, 0, G.nx, G.ny, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    refVersion++; changeStats = null;
+  }
+  function freeReference() {
+    if (!ref) return;
+    gl.deleteTexture(ref.A); gl.deleteTexture(ref.B); gl.deleteFramebuffer(ref.fA); gl.deleteFramebuffer(ref.fB);
+    ref = null; changeStats = null;
+    if (colFence) { gl.deleteSync(colFence); colFence = null; }
+  }
+  function stepReference() {
+    if (!ref) return;
+    gl.useProgram(progStepRef); setPotentialUniforms(progStepRef, ref);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, ref.flip ? ref.B : ref.A); gl.uniform1i(progStepRef.u("uState"), 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, ref.flip ? ref.fA : ref.fB); gl.viewport(0, 0, G.nx, G.ny); gl.drawArrays(gl.TRIANGLES, 0, 3);
+    ref.flip = 1 - ref.flip;
+  }
+  // |delta psi| / |psi_ref| behind the wall, ahead of and behind the cut: the slice that
+  // left the wall's exit face when the slit change started, moving at v (read asynchronously).
+  function updateChangeStats() {
+    if (!ref) return;
+    if (!colTex || colTex.w !== G.nx) {
+      if (colTex) { gl.deleteTexture(colTex.t); gl.deleteFramebuffer(colFbo); }
+      colTex = { t: tex(G.nx, 1), w: G.nx }; colFbo = fbo(colTex.t);
+      if (colPBO) gl.deleteBuffer(colPBO);
+      colPBO = gl.createBuffer(); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, colPBO); gl.bufferData(gl.PIXEL_PACK_BUFFER, 16 * G.nx, gl.STREAM_READ); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    }
+    if (colFence) {
+      const st = gl.clientWaitSync(colFence, 0, 0);
+      if (st !== gl.ALREADY_SIGNALED && st !== gl.CONDITION_SATISFIED) return;
+      gl.deleteSync(colFence); colFence = null;
+      const buf = new Float32Array(4 * G.nx);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, colPBO); gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, buf); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      const cut = G.drive + G.k * (simTau - ref.t0);
+      let dA = 0, rA = 0, dB = 0, rB = 0;
+      for (let i = G.drive + 2; i < G.nx; i++) { if (i > cut) { dA += buf[4 * i]; rA += buf[4 * i + 1]; } else { dB += buf[4 * i]; rB += buf[4 * i + 1]; } }
+      changeStats = { ahead: rA > 0 ? Math.sqrt(dA / rA) : null, behind: rB > 0 ? Math.sqrt(dB / rB) : null, cutX: G.mx(cut), aheadNorm: rA / G.norm0, behindNorm: rB / G.norm0 };
+    }
+    gl.useProgram(progColSum); gl.bindVertexArray(vao);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, state.flip ? state.B : state.A); gl.uniform1i(progColSum.u("uState"), 0);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, ref.flip ? ref.B : ref.A); gl.uniform1i(progColSum.u("uRef"), 1);
+    gl.uniform2i(progColSum.u("uRes"), G.nx, G.ny);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, colFbo); gl.viewport(0, 0, G.nx, 1); gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, colPBO); gl.readPixels(0, 0, G.nx, 1, gl.RGBA, gl.FLOAT, 0); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.activeTexture(gl.TEXTURE0);
+    colFence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); gl.flush();
   }
 
   // ---- Records (which-slit detectors) ------------------------------------------
@@ -628,7 +788,7 @@ export function createNumericalEngine() {
     G.k = k;
     G.screenCol = Math.round(G.gx(G.geom.screen));
     setDrive();
-    free(); freeRecords();
+    free(); freeRecords(); freeReference();
     const A = tex(G.nx, G.ny), B = tex(G.nx, G.ny), FA = tex(1, G.ny), FB = tex(1, G.ny);
     state = { A, B, fA: fbo(A), fB: fbo(B), FA, FB, ffA: fbo(FA), ffB: fbo(FB), flip: 0, fflip: 0 };
     state.textures = [A, B, FA, FB]; state.fbos = [state.fA, state.fB, state.ffA, state.ffB];
@@ -650,6 +810,7 @@ export function createNumericalEngine() {
     for (const f of [state.fA, state.fB]) { gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.drawArrays(gl.TRIANGLES, 0, 3); }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     state.flip = 0;
+    resetFills(); freeReference();
     syncRecords(false);
     // Peak density for the display: the initial packet's maximum (|psi0| <= 1 at the waist).
     const tauW = (G.x0 - G.geom.source) / p.k, s = p.sourceSigma;
@@ -663,7 +824,7 @@ export function createNumericalEngine() {
     for (let i = 0; i < n; i++) {
       const x = G.x0 + randn() * p.sx, tau = (x - G.geom.source) / p.k, sy = s * Math.sqrt(1 + (tau / (2 * s * s)) ** 2), y = randn() * sy;
       partData.set([G.gx(x), G.gy(y), 1, i + 1 + Math.random()], 4 * i);
-      parts.push({ x, y, x0: x, path: [[x, y]], done: false, passed: false, absorbed: false, wallY: undefined, slitSide: undefined, numerical: true });
+      parts.push({ x, y, x0: x, y0: y, path: [[x, y]], done: false, passed: false, absorbed: false, wallY: undefined, slitSide: undefined, numerical: true });
     }
     for (const b of [partBufA, partBufB]) if (b) gl.deleteBuffer(b);
     if (partVao) gl.deleteVertexArray(partVao); if (tf) gl.deleteTransformFeedback(tf);
@@ -681,11 +842,14 @@ export function createNumericalEngine() {
   function step() {
     const src = state.flip ? state.B : state.A, dst = state.flip ? state.fA : state.fB;
     gl.bindVertexArray(vao);
+    updateRamps();
     gl.useProgram(progStep); setPotentialUniforms(progStep);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src); gl.uniform1i(progStep.u("uState"), 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, dst); gl.viewport(0, 0, G.nx, G.ny); gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.flip = 1 - state.flip;
     const cur = state.flip ? state.B : state.A;
+    stepReference();
+    gl.bindVertexArray(vao);
     stepRecords(cur);
     // flux at the screen: of the total wave, or with records the sum over records
     if (rec) {
@@ -719,6 +883,7 @@ export function createNumericalEngine() {
       gl.uniform1i(progPart.u("uPre"), rec ? Math.max(0, rec.list.findIndex(r => r.pre)) : 0);
       gl.uniform1fv(progPart.u("uRecordOfSlit"), recordOfSlit());
       gl.uniform1i(progPart.u("uRec"), 2);
+      gl.uniform1f(progPart.u("uSpin"), spin);
     }
     gl.uniform1i(progPart.u("uFrame"), frame++);
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D_ARRAY, rec ? (rec.flip ? rec.B : rec.A) : dummyArray); gl.activeTexture(gl.TEXTURE0);
@@ -862,7 +1027,7 @@ export function createNumericalEngine() {
   }
 
   // Draw the wave into this engine's canvas at the app's canvas size.
-  function render({ width, height, map, fieldU, show, palette, paletteName, lo, inv, alpha }) {
+  function render({ width, height, map, fieldU, show, palette, paletteName, lo, inv, alpha, change = false, changeGain = 1 }) {
     if (!state) return canvas;
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     if (paletteKey !== paletteName) {
@@ -885,6 +1050,8 @@ export function createNumericalEngine() {
     gl.uniform1f(progRender.u("uPeak"), G.peak); gl.uniform1f(progRender.u("uLo"), lo); gl.uniform1f(progRender.u("uInv"), inv);
     gl.uniform1f(progRender.u("uAlpha"), alpha); gl.uniform1f(progRender.u("uFieldU"), fieldU);
     gl.uniform1i(progRender.u("uShow"), show);
+    gl.uniform1i(progRender.u("uChange"), ref && change ? 1 : 0); gl.uniform1f(progRender.u("uChangeGain"), changeGain || 1);
+    gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, ref ? (ref.flip ? ref.B : ref.A) : (state.flip ? state.B : state.A)); gl.uniform1i(progRender.u("uRef"), 3); gl.activeTexture(gl.TEXTURE0);
     gl.uniform1i(progRender.u("uNRec"), rec ? rec.list.length : 0);
     gl.uniform1i(progRender.u("uOff"), G.off); gl.uniform1i(progRender.u("uDrive"), G.drive);
     gl.activeTexture(gl.TEXTURE2); if (rec) gl.bindTexture(gl.TEXTURE_2D_ARRAY, rec.flip ? rec.B : rec.A); else gl.bindTexture(gl.TEXTURE_2D_ARRAY, dummyArray); gl.uniform1i(progRender.u("uRec"), 2);
@@ -900,8 +1067,11 @@ export function createNumericalEngine() {
     // Returns false if the change cannot be made live (record limit); the app then restarts.
     setGeometry(geom) {
       if (!G) return true;
-      const old = G.geom; G.geom = geom; uniformVersion++;
+      const old = G.geom, oldFill = JSON.parse(JSON.stringify(fill)); G.geom = geom; uniformVersion++;
       if (!state) return true;
+      const changed = bladeChanges(old, geom);
+      // Show change: the first slit change of the packet starts the reference run (old slits).
+      if (showChange && changed.length && stepsDone > 0 && !ref && !wantedRecords(geom).length && !rec) startReference(old, oldFill);
       // Before the packet has moved there is nothing behind the wall: no pre-detector record.
       if (!syncRecords(stepsDone > 0)) { G.geom = old; uniformVersion++; return false; }
       return true;
@@ -921,6 +1091,13 @@ export function createNumericalEngine() {
       }
       return { mismatch: Math.sqrt(d / t), normTotal: t, normRecords: rb, records: L.length };
     },
+    setShutter(opts) { Object.assign(shutter, opts); uniformVersion++; refVersion++; },
+    setSpin(s) { spin = s; uniformVersion++; },
+    setShowChange(on) { showChange = !!on; if (!on) freeReference(); },
+    get changeActive() { return !!ref; },
+    get changeStats() { return changeStats; },
+    updateChangeStats,
+    get slitFills() { return G ? G.geom.slits.map(sl => ({ id: sl.id, center: sl.center, state: sl.state, ...(fill[sl.id] || { v: 0, w: 0 }) })) : []; },
     get records() { return rec ? rec.list.map(r => ({ slits: r.slits ? r.slits.slice() : null, pre: !!r.pre })) : []; },
     get particles() { return parts; },
     get grid() { return G ? { nx: G.nx, ny: G.ny, h: G.h, dt: G.dt, x0: G.x0, xMin: G.xMin, yMin: G.yMin, peak: G.peak } : null; },
