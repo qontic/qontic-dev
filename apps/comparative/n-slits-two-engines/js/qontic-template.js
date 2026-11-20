@@ -1,14 +1,14 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te9';
-import { mountMWBranching } from './mw-branching.js?cache=te9';
-import { APP_RELEASE } from './release.js?cache=te9';
-import { mountNSlitQuiz } from './quiz.js?cache=te9';
+import { mountPacketEngine } from './packet-engine.js?cache=te10';
+import { mountMWBranching } from './mw-branching.js?cache=te10';
+import { APP_RELEASE } from './release.js?cache=te10';
+import { mountNSlitQuiz } from './quiz.js?cache=te10';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te9';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te10';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
-import '../../../../shared/qontic-controls.js?v=3.1';
+import '../../../../shared/qontic-controls.js?v=3.2';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
 $(function () {
@@ -68,6 +68,8 @@ $(function () {
   controls.id = 'sharedControls';
   controls.setAttribute('show-reset', 'true');
   controls.setAttribute('show-autorun', 'false');
+  // Engine tab (between Core and Advanced): the analytical/numerical choice and the numerical options.
+  controls.setAttribute('extra-tabs', 'engine:Engine');
   document.getElementById('psiTabs').prepend(controls);
   const themeStyle = document.createElement('style');
   themeStyle.textContent = `:host-context(.qontic-light) .qontic-speed { color: #526a77; }
@@ -85,6 +87,10 @@ $(function () {
   const advanced = document.createElement('div');
   advanced.id = 'analytical-advanced';
   core.after(advanced);
+  const enginePanel = document.createElement('div');
+  enginePanel.id = 'engine-panel';
+  enginePanel.className = 'packet-settings engine-panel';
+  advanced.before(enginePanel);
   for (const id of ['particle-parameter-container', 'detector-parameter-container']) {
     advanced.append(document.getElementById(id));
   }
@@ -229,12 +235,12 @@ $(function () {
   lastCycleIndex = -1;
   if (!isAnimating) drawSystem(currentCycleIndex);
 
-  const panels = {core, advanced, display: document.getElementById('graphics-parameter-container')};
+  const panels = {core, engine: enginePanel, advanced, display: document.getElementById('graphics-parameter-container')};
   const showControls = name => {
     Object.entries(panels).forEach(([key, panel]) => { panel.hidden = key !== name; });
     document.body.classList.toggle('show-advanced', name === 'advanced');
   };
-  controls.addEventListener('qontic:tab', event => showControls(event.detail.tab));
+  controls.addEventListener('qontic:tab', event => { showControls(event.detail.tab); if (event.detail.tab === 'engine') { try { localStorage.setItem('qontic-te-engine-tab-seen', '1'); } catch (_) {} window.dispatchEvent(new Event('qontic-engine-tab')); } });
   showControls('core');
 
   const modeMap = {cpn: 'copenhagen', pw: 'bohmian', mw: 'manyworlds'};
@@ -446,7 +452,7 @@ $(function () {
   syncWorldCount();
   mountExpandedResize({container,storageKey:'qontic-double-slit-expanded-size'});
   renderSetupFlag=1;window.qonticScaleOverlay.update();if(!isAnimating)drawSystem(currentCycleIndex);
-  window.qonticPacketEngine=mountPacketEngine({core,advanced});
+  window.qonticPacketEngine=mountPacketEngine({core,advanced,engine:enginePanel});
   // Quiz after the engine exists: with ?quiz=1 the first question is prepared at once.
   mountNSlitQuiz({ panel: quizPanel, tab: shell.querySelector('[data-view="quiz"]'), simulationTab: shell.querySelector('[data-view="simulation"]') });
   mountQonticShortcuts({

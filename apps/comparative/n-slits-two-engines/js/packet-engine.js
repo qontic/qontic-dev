@@ -1,16 +1,16 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te9';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te9';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te9';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te9';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te9';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te9';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te9';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te9';
-import {createNumericalEngine} from './numerical-engine.js?cache=te9';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te9';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te9';
-import {classifySlitSide} from './source-packet-model.js?cache=te9';
-export function mountPacketEngine({core,advanced}){
+import {mountFlowOverlay} from './flow-overlay.js?cache=te10';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te10';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te10';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te10';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te10';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te10';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te10';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te10';
+import {createNumericalEngine} from './numerical-engine.js?cache=te10';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te10';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te10';
+import {classifySlitSide} from './source-packet-model.js?cache=te10';
+export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
  panel.innerHTML="<div class=\"input-group packet-inline\"><label for=\"packet-source-width\">Source width σ</label><input id=\"packet-source-width\" aria-label=\"Packet source width\" type=\"range\" min=\"50\" max=\"800\" step=\"5\" value=\"400\"><input aria-label=\"Packet source width value\" type=\"number\" min=\"50\" max=\"800\" step=\"5\" value=\"400\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-length\">Packet length σ</label><input id=\"packet-length\" aria-label=\"Packet length\" type=\"range\" min=\"50\" max=\"200\" step=\"5\" value=\"100\"><input aria-label=\"Packet length value\" type=\"number\" min=\"50\" max=\"200\" step=\"5\" value=\"100\"><output>nm</output></div><div class=\"input-group packet-inline\"><label for=\"packet-slit-width\">Slit width σ</label><input id=\"packet-slit-width\" aria-label=\"Packet slit width\" type=\"range\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><input aria-label=\"Packet slit width value\" type=\"number\" min=\"30\" max=\"200\" step=\"5\" value=\"30\"><output>nm</output></div><div class=\"input-group packet-inline packet-expert\"><label for=\"packet-slit-extent\" title=\"Expert control: half-width of each drawn slit core, measured in aperture standard deviations.\">Slit extent</label><input id=\"packet-slit-extent\" aria-label=\"Displayed slit core extent in sigma\" type=\"range\" min=\"1\" max=\"5\" step=\"0.5\" value=\"1.5\"><input aria-label=\"Displayed slit core extent value\" type=\"number\" min=\"1\" max=\"5\" step=\"0.5\" value=\"1.5\"><output>σ</output></div>";advanced.prepend(panel);
@@ -137,18 +137,23 @@ export function mountPacketEngine({core,advanced}){
  function pushShutter(){if(!num.available||!p)return;num.setShutter({tau:numOpt.tau*p.sx/p.k,mode:numOpt.blade,wOverE:numOpt.bladeW});num.setShowChange(numOpt.showChange);num.setSpin(numOpt.guide==='up'?.5:numOpt.guide==='down'?-.5:0);}
  const classicLook=()=>numericalActive()&&numLook==='classic';
  function mountEngineControls(){
-  // Engine switch (Core, top of the experiment bar) and numerical slit model (Advanced).
-  const bar=document.getElementById('experiment-bar');
+  // Engine tab: engine switch, introduction and the numerical engine's options.
+  // Engine tab: a short introduction, the switch, and (numerical engine only) its options.
+  const host=enginePanel||document.getElementById('experiment-bar');
+  const intro=document.createElement('p');intro.className='engine-intro';
+  intro.innerHTML='The same experiment, computed two ways. <b>Analytical</b>: the paraxial model of the Physics tab, a closed-form wave (fast). <b>Numerical</b>: the full Schrödinger equation solved on a grid; it keeps reflection, waves spread to wide angles and slit shutters, and runs slower. Each engine keeps its own hits.';
+  const numBox=document.createElement('div');numBox.className='engine-num-box';
+  const numHead=document.createElement('h4');numHead.className='engine-num-head';numHead.textContent='Numerical engine';numBox.append(numHead);
   const row=document.createElement('div');row.className='engine-row';row.setAttribute('role','group');row.setAttribute('aria-label','Engine');
   row.innerHTML='<span class="engine-label">Engine</span><button type="button" class="qontic-app-toggle" data-engine="analytical" title="Analytical engine: the paraxial model of this app (closed-form wave, stretched time).">Analytical</button><button type="button" class="qontic-app-toggle" data-engine="numerical" title="Numerical engine: the Schrödinger equation solved on a grid for the same geometry (WebGL2). Each engine keeps its own hits.">Numerical</button><p id="engine-note" class="engine-note"></p>';
-  bar?.prepend(row);
+  if(enginePanel){enginePanel.append(intro,row,numBox);}else host?.prepend(row);
   row.querySelectorAll('[data-engine]').forEach(b=>b.addEventListener('click',()=>setEngine(b.dataset.engine)));
   if(!num.available){const b=row.querySelector('[data-engine="numerical"]');b.disabled=true;b.title='Numerical engine unavailable: '+num.reason;}
   const slitsRow=document.createElement('div');slitsRow.className='input-group packet-inline engine-slits-row';
-  slitsRow.innerHTML='<label title="How the numerical engine models the wall. Reflecting: a thin wall with sharp-edged openings as wide as the drawn slit cores; it reflects the wave that hits it. Absorbing: a thicker wall whose front absorbs most, not all, of the wave that hits it. Mask: the analytical Gaussian aperture (an absorbing layer that keeps the amplitude factor T(y)), for comparing the engines; it does not reflect.">Numerical wall</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-slits="reflecting">Reflecting</button><button type="button" class="qontic-app-toggle" data-num-slits="absorbing">Absorbing</button><button type="button" class="qontic-app-toggle" data-num-slits="mask">Mask</button></span>';
+  slitsRow.innerHTML='<label title="How the numerical engine models the wall. Reflecting: a thin wall with sharp-edged openings as wide as the drawn slit cores; it reflects the wave that hits it. Absorbing: a thicker wall whose front absorbs most, not all, of the wave that hits it. Mask: the analytical Gaussian aperture (an absorbing layer that keeps the amplitude factor T(y)), for comparing the engines; it does not reflect.">Wall</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-slits="reflecting">Reflecting</button><button type="button" class="qontic-app-toggle" data-num-slits="absorbing">Absorbing</button><button type="button" class="qontic-app-toggle" data-num-slits="mask">Mask</button></span>';
   const lookRow=document.createElement('div');lookRow.className='input-group packet-inline engine-slits-row';
-  lookRow.innerHTML='<label title="Classic: the colours of the numerical N-slit app (black background, phase blue/red over a purple density, metal wall, particles coloured by slit). Analytical: the palette and Show options of the analytical engine.">Numerical look</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-look="classic">Classic</button><button type="button" class="qontic-app-toggle" data-num-look="analytical">Analytical</button></span>';
-  panel.prepend(lookRow);
+  lookRow.innerHTML='<label title="Classic: the colours of the numerical N-slit app (black background, phase blue/red over a purple density, metal wall, particles coloured by slit). Analytical: the palette and Show options of the analytical engine.">Look</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-look="classic">Classic</button><button type="button" class="qontic-app-toggle" data-num-look="analytical">Analytical</button></span>';
+  numBox.append(lookRow);
   // Shutter: a blade slides across a slit opened or closed during a run (numerical engine).
   const shutterBox=document.createElement('div');shutterBox.className='engine-shutter-box';
   shutterBox.innerHTML=`<div class="input-group packet-inline engine-slits-row"><label title="Pilot-Wave guidance in the numerical engine. Schrödinger: v = (ħ/m) Im(∇ψ/ψ). Pauli ↑ / ↓: the velocity of a spin-½ particle with spin up or down along z (out of the screen), which adds (ħ/2m) ∇×(ρ ẑ)/ρ. The extra current has zero divergence, so |ψ|² and the screen statistics are unchanged; the trajectories differ.">Guiding law</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-guide="schrodinger">Schrödinger</button><button type="button" class="qontic-app-toggle" data-num-guide="up">Pauli ↑</button><button type="button" class="qontic-app-toggle" data-num-guide="down">Pauli ↓</button></span></div>
@@ -161,7 +166,7 @@ export function mountPacketEngine({core,advanced}){
    <div class="input-group packet-inline"><label for="num-half" title="Glow trails: time for a trail to fade to half its brightness (seconds of real time).">Trail half-life</label><input id="num-half" type="range" min="0.2" max="10" step="0.1"><input id="num-half-n" type="number" min="0.2" max="10" step="0.1"><output>s</output></div>
    <div class="input-group packet-inline"><label for="num-dot" title="Classic look: radius of the glowing particle dots, in pixels.">Particle size</label><input id="num-dot" type="range" min="1" max="8" step="0.5"><input id="num-dot-n" type="number" min="1" max="8" step="0.5"><output>px</output></div>
    <div class="input-group packet-inline engine-slits-row"><label title="One particle per packet in the Pilot-Wave view, with large dots and long trails: follow a single particle through the computed wave, packet after packet (as the numerical N-slit app's one-particle preset). Click again to go back.">Preset</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-one="1">One particle</button></span></div>`;
-  panel.prepend(shutterBox);
+  numBox.append(shutterBox);
   const tauR=shutterBox.querySelector('#num-tau'),tauN=shutterBox.querySelector('#num-tau-n'),wR=shutterBox.querySelector('#num-bladew'),wN=shutterBox.querySelector('#num-bladew-n'),chg=shutterBox.querySelector('#num-change'),gain=shutterBox.querySelector('#num-gain'),gainO=shutterBox.querySelector('#num-gain-o');
   const halfR=shutterBox.querySelector('#num-half'),halfN=shutterBox.querySelector('#num-half-n'),dotR=shutterBox.querySelector('#num-dot'),dotN=shutterBox.querySelector('#num-dot-n'),oneB=shutterBox.querySelector('[data-num-one]');
   shutterBox.querySelectorAll('[data-num-trails]').forEach(b=>b.addEventListener('click',()=>{numOpt.trails=b.dataset.numTrails;commit();}));
@@ -176,9 +181,9 @@ export function mountPacketEngine({core,advanced}){
   chg.addEventListener('change',()=>{numOpt.showChange=chg.checked;commit();});
   gain.addEventListener('input',()=>{numOpt.changeGain=+gain.value;commit();});
   lookRow.querySelectorAll('[data-num-look]').forEach(b=>b.addEventListener('click',()=>{numLook=b.dataset.numLook;localStorage.setItem('qontic-te-num-look',numLook);syncEngineControls();draw();}));
-  panel.prepend(slitsRow);
+  numBox.insertBefore(slitsRow,numHead.nextSibling);
   slitsRow.querySelectorAll('[data-num-slits]').forEach(b=>b.addEventListener('click',()=>{numSlitModel=b.dataset.numSlits;localStorage.setItem('qontic-te-num-wall',numSlitModel);resetEngine();draw();}));
-  const css=document.createElement('style');css.textContent='.engine-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;margin:0 0 6px}.engine-row .engine-label{font-size:12px;font-weight:600;margin-right:4px;min-width:52px}.engine-row button{flex:1 1 0;min-width:0}.engine-row button.active,.engine-slit-buttons button.active{background:#2d6e86;border-color:#7ee9fb;color:#fff}.engine-note{flex:1 1 100%;margin:2px 0 0;font-size:11px;line-height:1.35;opacity:.85}.engine-slit-buttons{grid-column:2/-1;display:flex;gap:4px}.engine-slit-buttons button{flex:1;padding:3px 4px;font-size:12px}.te-classic #paletteScaleCanvas,.te-classic #paletteRangeSlider,.te-classic #waveRangeLabel,.te-classic .qontic-range-panel{visibility:hidden!important}';document.head.append(css);
+  const css=document.createElement('style');css.textContent='.engine-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;margin:0 0 6px}.engine-row .engine-label{font-size:12px;font-weight:600;margin-right:4px;min-width:52px}.engine-row button{flex:1 1 0;min-width:0}.engine-row button.active,.engine-slit-buttons button.active{background:#2d6e86;border-color:#7ee9fb;color:#fff}.engine-note{flex:1 1 100%;margin:2px 0 0;font-size:11px;line-height:1.35;opacity:.85}.engine-slit-buttons{grid-column:2/-1;display:flex;gap:4px}.engine-slit-buttons button{flex:1;padding:3px 4px;font-size:12px}.engine-panel,#engine-panel{padding:12px 0 0}.engine-num-box .engine-slit-buttons button{padding:3px 2px;font-size:11px}.engine-num-box [data-num-guide="schrodinger"]{flex:1.6 1 0!important;min-width:0}.engine-intro{font-size:12px;line-height:1.45;margin:2px 0 8px;opacity:.9}.engine-num-box{margin-top:8px;padding-top:6px;border-top:1px solid var(--border-color,#476477)}.engine-num-box[hidden]{display:none!important}.engine-num-head{margin:2px 0 4px;font-size:12px;font-weight:700;letter-spacing:.02em}.te-classic #paletteScaleCanvas,.te-classic #paletteRangeSlider,.te-classic #waveRangeLabel,.te-classic .qontic-range-panel{visibility:hidden!important}';document.head.append(css);
  }
  const layoutStyle=document.createElement('style');layoutStyle.textContent='.packet-core-options{display:flex!important;align-items:center;gap:8px;margin:0 0 8px;padding:0 0 8px;border-bottom:1px solid var(--border-color,#476477)}.packet-core-options>select{flex:1 1 78px;min-width:68px}.packet-core-options .packet-directed-inline,.packet-core-options .packet-slit-colors{display:flex!important;align-items:center;gap:4px!important;width:auto;min-width:0;margin:0!important;font-size:12px;white-space:nowrap}.packet-core-options .packet-directed-inline[hidden],.packet-core-options .packet-slit-colors[hidden]{display:none!important}.packet-core-options input{margin:0;flex:0 0 auto}.packet-core-options .packet-slit-colors select{width:86px;min-width:86px;padding:3px 2px;font-size:11px}.packet-settings .packet-balance{grid-template-columns:90px minmax(40px,1fr) 28px 58px}.packet-settings .packet-balance button{width:26px;height:25px;padding:0;border:1px solid #476477;border-radius:4px;background:#153447;color:inherit;font-weight:700;cursor:pointer}.packet-settings .packet-balance button:hover,.packet-settings .packet-balance button:focus-visible{border-color:#62d8e7;background:#1d465c}.packet-settings .packet-balance output{grid-column:auto;text-align:right;min-width:58px}';document.head.append(layoutStyle);
  const math=document.getElementById('math-container'),packetMath=document.createElement('section');packetMath.className='math-section';math.replaceChildren(packetMath);
@@ -221,6 +226,7 @@ export function mountPacketEngine({core,advanced}){
  let numStatus=null,numProfile=null,numProfileAt=-Infinity,numSlitModel=['reflecting','absorbing','mask'].includes(localStorage.getItem('qontic-te-num-wall'))?localStorage.getItem('qontic-te-num-wall'):'reflecting';
  const savedHits={analytical:null,numerical:null};
  mountEngineControls();
+ window.addEventListener('qontic-engine-tab',()=>{captionKey='';updateCaption();});
  // ?preset=one: the numerical engine's one-particle preset (as in the numerical N-slit app).
  if(new URLSearchParams(location.search).get('preset')==='one')setTimeout(()=>{try{setEngine('numerical');toggleOneParticle(true);}catch(e){console.warn(e);}},300);
  // Zoom (1×, 2×, 4×) of the canvas layers, with drag to pan when zoomed; both engines.
@@ -304,11 +310,11 @@ export function mountPacketEngine({core,advanced}){
   document.querySelectorAll('[data-engine]').forEach(b=>{const on=b.dataset.engine===engine;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   const note=document.getElementById('engine-note');
   if(note){delete note.dataset.base;note.textContent=engineWanted()?(numericalActive()?`Schrödinger equation on a ${num.grid.nx} × ${num.grid.ny} grid, step λ/${Math.round(2*Math.PI/p.k/num.grid.h)} = ${(num.grid.h*100).toFixed(2)} nm.`:numStatus?.reason||''):'Paraxial model: closed-form wave, stretched time.';}
-  const sbox=document.querySelector('.engine-shutter-box');if(sbox)sbox.hidden=!engineWanted();
+  const sbox=document.querySelector('.engine-num-box');if(sbox)sbox.hidden=!engineWanted();
   document.querySelectorAll('[data-num-look]').forEach(b=>{const on=b.dataset.numLook===numLook;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   // Classic look: the Show menu does not apply; particles coloured by slit unless chosen otherwise.
   document.body.classList.toggle('te-classic',classicLook());
-  const show=document.getElementById('waveFunctionOption');if(show){show.disabled=classicLook();show.title=classicLook()?'Classic numerical look: phase and density as in the numerical N-slit app (Advanced → Numerical look).':'';}
+  const show=document.getElementById('waveFunctionOption');if(show){show.disabled=classicLook();show.title=classicLook()?'Classic numerical look: phase and density as in the numerical N-slit app (Engine tab → Numerical look).':'';}
   // Each engine keeps its own particle colour; the numerical default is By slit, as in the numerical N-slit app.
   const colorKey=numericalActive()?'num':'ana';
   if(colorKey!==particleColorEngine){particleColorEngine=colorKey;particleColorMode.value=colorKey==='num'?(localStorage.getItem('qontic-te-num-particle-color')||'slit'):(localStorage.getItem('qontic-pw-particle-color')||'uniform');}
@@ -620,7 +626,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te9').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te10').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1067,6 +1073,9 @@ export function mountPacketEngine({core,advanced}){
   }else if(pwMode==='spectrum')lines.push('Particle and hit colours: position where the particle crossed the wall, blue (top) to yellow (bottom).');
   else if(START_MODES.includes(pwMode)){const L={updown:[[1,'started in the upper half'],[0,'lower half']],rightleft:[[2,'started ahead of the packet centre'],[0,'behind it']],quadrant:[[1,'upper, behind'],[3,'upper, ahead'],[0,'lower, behind'],[2,'lower, ahead']],radial:[[0,'innermost quarter'],[1,'second'],[2,'third'],[3,'outermost quarter (from the packet centre)']]}[pwMode];
    lines.push('Particle colours by starting position: '+L.map(([g,t])=>swatch(START_COLORS[g],t)).join(' · ')+'.');}
+  // After the first complete analytical packet, point once to the other engine (until the Engine tab is opened).
+  let engineSeen=false;try{engineSeen=localStorage.getItem('qontic-te-engine-tab-seen')==='1';}catch(_){}
+  if(!engineSeen&&!engineWanted()&&(pulse>=2||nHits>=(p?.particles||1e9)))lines.push('Same experiment with the full Schrödinger equation: <b>Engine</b> tab.');
   if(niceInfo&&niceInfo.fp===fingerprint)lines.push('<b>Nice fringes:</b> '+niceInfo.text);
   else if(niceInfo){niceInfo=null;const el=document.getElementById('nice-fringes-status');if(el&&el.textContent.includes('details below'))el.textContent='';}
   const colours=lines.map(l=>`<p class="cap-legend">${l}</p>`).join('');

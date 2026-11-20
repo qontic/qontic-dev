@@ -227,7 +227,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       plain: 'The instant closure, by far.',
       answers: [{ id: 'fast', label: 'The instant closure' }, { id: 'slow', label: 'The slow blade' }, { id: 'neither', label: 'Neither: nothing ahead of the cut changes' }],
       answer: 'fast',
-      explain: 'Measured in this app (default geometry, reflecting blade), when the cut reaches the screen the wave ahead of it differs from the open-slit wave by 31% for the instant closure and by 1% for the slow blade (behind the cut: 59% and 16%). A sudden closure scatters fast waves that overtake the cut; the slow blade scatters little, and most of the packet has passed slit 2 before it closes. An instant absorbing blade gives 29%. Try it with Show change on and different closing times (Advanced).',
+      explain: 'Measured in this app (default geometry, reflecting blade), when the cut reaches the screen the wave ahead of it differs from the open-slit wave by 31% for the instant closure and by 1% for the slow blade (behind the cut: 59% and 16%). A sudden closure scatters fast waves that overtake the cut; the slow blade scatters little, and most of the packet has passed slit 2 before it closes. An instant absorbing blade gives 29%. Try it with Show change on and different closing times (Engine tab).',
       prepare: () => setTo({ engine: 'numerical', view: 'copenhagen', slits: ['open', 'open'], num: { wall: 'reflecting', blade: 'reflecting', tau: 6, showChange: true, guide: 'schrodinger', replay: false } }),
       draw: c => drawSetup(c, ['open', 'open'], { shutter: 1, packet: true, label: 'numerical engine · slow blade' }),
       afterWatch: closeSlit2AtWall,

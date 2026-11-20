@@ -3,6 +3,12 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.10 — 2026-11-20
+Pablo: the engine choice should not be the first thing a student meets; suggest a solution. Agreed: an Engine tab between Core and Advanced.
+- **Engine tab** (shared controls: optional `extra-tabs` attribute, here `engine:Engine`; other apps unchanged). It holds a two-sentence introduction, the Analytical/Numerical switch with its note, and, with the numerical engine, all its options (Wall, Look, Guiding law, Blade, Closing time, Blade W/E, Replay clicks, Show change, Trails, half-life, particle size, One-particle preset). Core no longer shows the engine row; Advanced holds the model parameters only. The app opens with the analytical engine.
+- After the first complete analytical packet the caption adds "Same experiment with the full Schrödinger equation: Engine tab", until the Engine tab has been opened once.
+- Physics: "Two engines: analytical and numerical" moved to the end, after the analytical model; "In short" says so. References to Advanced for numerical options now say Engine tab.
+
 ## 1.0-dev.9 — 2026-11-20
 Pablo: too much text in the panel after Nice fringes.
 - The Core panel shows one line ("7 bumps, spacing 235 nm (details below the picture)"); the full explanation (parameters, near/far field, the numerical engine's ± 2.5 σ openings) is a "Nice fringes:" line in the caption below the picture, kept while that geometry is unchanged and removed with the panel line when it changes. A failure shows one line, with the reason on hover.

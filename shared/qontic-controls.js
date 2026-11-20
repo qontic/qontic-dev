@@ -22,7 +22,7 @@ const boolAttr = (element, name, fallback = false) => {
 };
 
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "interpretations", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-rerun", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-advanced", "show-expert"];
+  static observedAttributes = ["interpretation", "interpretations", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-rerun", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-advanced", "show-expert", "extra-tabs"];
 
   constructor() {
     super();
@@ -161,6 +161,16 @@ class QonticControls extends HTMLElement {
     const showExpert = this.getAttribute("show-expert") === "true";
     const expertButton = root.querySelector('[data-tab="expert"]');
     expertButton.hidden = !showExpert;
+    // Optional app tabs after Core: extra-tabs="id:Label,id2:Label2" (additive; apps without
+    // the attribute are unchanged). The grid then has one column per visible tab.
+    const nav = root.querySelector(".qontic-control-tabs");
+    const extra = (this.getAttribute("extra-tabs") || "").split(",").map(t => t.trim()).filter(Boolean).map(t => t.split(":"));
+    let anchor = nav.querySelector('[data-tab="core"]');
+    for (const [id, label] of extra) {
+      let b = nav.querySelector(`[data-tab="${id}"]`);
+      if (!b) { b = document.createElement("button"); b.type = "button"; b.dataset.tab = id; b.setAttribute("role", "tab"); b.textContent = label || id; anchor.after(b); }
+      anchor = b;
+    }
     let tab = this.getAttribute("active-tab") || "core";
     if ((tab === "advanced" && !showAdvanced) || (tab === "expert" && !showExpert)) {
       tab = "core";
@@ -177,6 +187,7 @@ class QonticControls extends HTMLElement {
       button.classList.toggle("active", active);
       button.setAttribute("aria-selected", String(active));
     });
+    if (extra.length) nav.style.gridTemplateColumns = `repeat(${[...nav.querySelectorAll("[data-tab]")].filter(b => !b.hidden).length},minmax(0,1fr))`;
 
     const theme = this.getAttribute("theme") || "dark";
     const light = theme === "light";
