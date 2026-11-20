@@ -4,7 +4,8 @@
 // Units are the analytical model's: lengths in 100 nm, hbar = m = 1. The grid step
 // is h = lambda / PPW (PPW points per wavelength). On the grid (x = h xi, t = h^2 tau)
 // the equation is i d_tau psi = -1/2 lap_xi psi + V psi - i W psi, solved by leapfrog
-// with the five-point Laplacian, a constant step (stable for dt (4 + V0) < 1), a weak
+// with the fourth-order (nine-point cross) Laplacian, a constant step (stable for
+// dt (16/3 + V0) < 1), a weak
 // Robert–Asselin filter (nu = 0.01) against leapfrog's alternating mode, and smooth
 // absorbing layers (-i W) at the edges of the domain.
 //
@@ -46,7 +47,10 @@
 // reaches the screen is a detection; the probability flux through the screen is
 // accumulated as the numerical prediction.
 
-const PPW = 16;            // numerical method: grid points per wavelength
+// Fourth-order differences: phase error (kh)^4/90 = 0.4% per wavelength at PPW = 8
+// (the second-order five-point Laplacian needs PPW = 16 for 0.5%). The cost goes as PPW^4
+// (cells and time steps per unit time each as PPW^2), so this is about 5x faster.
+const PPW = 8;             // numerical method: grid points per wavelength
 const RA_NU = 0.01;
 const MAX_CELLS = 2.2e6;   // grid size limit (x * y cells)
 const MAX_RECORDS = 12;     // record fields (texture-array layers); beyond this a detector change restarts the packet
@@ -125,7 +129,7 @@ void main(){
   vec2 q = gl_FragCoord.xy;
   vec2 p = psi0(q);
   // Previous level from the packet's dominant frequency E = k^2/2.
-  vec2 prev = cmul(p, vec2(cos(uE*uDt), sin(uE*uDt)));
+  vec2 prev = cmul(p, vec2(cos(uE*uDt), sin(uE*uDt)));   // uE: the scheme's energy for k
   o = vec4(p, prev);
 }`;
 
@@ -140,7 +144,9 @@ void main(){
   ivec2 p = ivec2(gl_FragCoord.xy);
   vec4 s = texelFetch(uState, p, 0);
   vec2 psi = s.rg, prev = s.ba;
-  vec2 lap = f(p+ivec2(1,0)) + f(p-ivec2(1,0)) + f(p+ivec2(0,1)) + f(p-ivec2(0,1)) - 4.*psi;
+  // Fourth-order Laplacian: (-f(+-2) + 16 f(+-1) - 30 f) / 12 in each direction.
+  vec2 lap = (16.*(f(p+ivec2(1,0)) + f(p-ivec2(1,0)) + f(p+ivec2(0,1)) + f(p-ivec2(0,1)))
+             - (f(p+ivec2(2,0)) + f(p-ivec2(2,0)) + f(p+ivec2(0,2)) + f(p-ivec2(0,2))) - 60.*psi) / 12.;
   vec2 VW = potential(gl_FragCoord.xy);
   // i dpsi/dt = -lap/2 + V psi  ->  dpsi/dt = (i lap/2 - i V psi)
   vec2 rhs = vec2(-.5*lap.y + VW.x*psi.y, .5*lap.x - VW.x*psi.x);
@@ -177,7 +183,8 @@ void main(){
   int w = uRes.x - uOff;
   vec4 s = texelFetch(uSrc, ivec3(p, uLayer), 0);
   vec2 psi = s.rg, prev = s.ba;
-  vec2 lap = f(p+ivec2(1,0),w) + f(p-ivec2(1,0),w) + f(p+ivec2(0,1),w) + f(p-ivec2(0,1),w) - 4.*psi;
+  vec2 lap = (16.*(f(p+ivec2(1,0),w) + f(p-ivec2(1,0),w) + f(p+ivec2(0,1),w) + f(p-ivec2(0,1),w))
+             - (f(p+ivec2(2,0),w) + f(p-ivec2(2,0),w) + f(p+ivec2(0,2),w) + f(p-ivec2(0,2),w)) - 60.*psi) / 12.;
   vec2 VW = potential(vec2(q) + .5);
   vec2 rhs = vec2(-.5*lap.y + VW.x*psi.y, .5*lap.x - VW.x*psi.x);
   float a = uDt * VW.y;
@@ -197,7 +204,8 @@ out vec4 o;
 void main(){
   int j = int(gl_FragCoord.y);
   vec2 c = texelFetch(uSrc, ivec3(uCol, j, uLayer), 0).rg;
-  vec2 d = .5*(texelFetch(uSrc, ivec3(uCol+1, j, uLayer), 0).rg - texelFetch(uSrc, ivec3(uCol-1, j, uLayer), 0).rg);
+  vec2 d = (8.*(texelFetch(uSrc, ivec3(uCol+1, j, uLayer), 0).rg - texelFetch(uSrc, ivec3(uCol-1, j, uLayer), 0).rg)
+          - (texelFetch(uSrc, ivec3(uCol+2, j, uLayer), 0).rg - texelFetch(uSrc, ivec3(uCol-2, j, uLayer), 0).rg)) / 12.;
   float jx = c.x*d.y - c.y*d.x;
   vec4 acc = texelFetch(uAcc, ivec2(0, j), 0);
   o = vec4(acc.x + max(jx, 0.)*uDt, acc.y + jx*uDt, 0., 0.);
@@ -214,7 +222,8 @@ void main(){
   int j = int(gl_FragCoord.y);
   vec2 c = texelFetch(uState, ivec2(uCol, j), 0).rg;
   vec2 e = texelFetch(uState, ivec2(uCol+1, j), 0).rg, w = texelFetch(uState, ivec2(uCol-1, j), 0).rg;
-  vec2 d = .5*(e - w);
+  vec2 e2 = texelFetch(uState, ivec2(uCol+2, j), 0).rg, w2 = texelFetch(uState, ivec2(uCol-2, j), 0).rg;
+  vec2 d = (8.*(e - w) - (e2 - w2)) / 12.;   // fourth-order derivative
   float jx = c.x*d.y - c.y*d.x;
   vec4 acc = texelFetch(uAcc, ivec2(0, j), 0);
   o = vec4(acc.x + max(jx, 0.)*uDt, acc.y + jx*uDt, 0., 0.);
@@ -245,11 +254,21 @@ vec2 samp(vec2 x){
   ivec2 p = ivec2(x0), pe = min(p + ivec2(1,0), uRes-1), pn = min(p + ivec2(0,1), uRes-1), pne = min(p + ivec2(1,1), uRes-1);
   return mix(mix(tf(p), tf(pe), t.x), mix(tf(pn), tf(pne), t.x), t.y);
 }
+// Current j = Im(psi* grad psi) (fourth-order differences) and density at a grid node.
+vec3 jr(ivec2 p){
+  ivec2 m = uRes - 1;
+  vec2 c = tf(p);
+  vec2 dx = (8.*(tf(min(p+ivec2(1,0),m)) - tf(max(p-ivec2(1,0),ivec2(0)))) - (tf(min(p+ivec2(2,0),m)) - tf(max(p-ivec2(2,0),ivec2(0))))) / 12.;
+  vec2 dy = (8.*(tf(min(p+ivec2(0,1),m)) - tf(max(p-ivec2(0,1),ivec2(0)))) - (tf(min(p+ivec2(0,2),m)) - tf(max(p-ivec2(0,2),ivec2(0))))) / 12.;
+  return vec3(c.x*dx.y - c.y*dx.x, c.x*dy.y - c.y*dy.x, dot(c, c));
+}
+// v = j / rho with j and rho interpolated between nodes: unlike psi they carry no
+// carrier oscillation, so bilinear interpolation is accurate at 8 points per wavelength.
 vec2 vel(vec2 x){
-  vec2 c = samp(x);
-  vec2 dx = .5*(samp(x+vec2(1.,0.)) - samp(x-vec2(1.,0.))), dy = .5*(samp(x+vec2(0.,1.)) - samp(x-vec2(0.,1.)));
-  float r = max(dot(c,c), 1e-12);
-  vec2 v = vec2(c.x*dx.y - c.y*dx.x, c.x*dy.y - c.y*dy.x) / r;
+  vec2 y = clamp(x - .5, vec2(0.), vec2(uRes) - 2.);
+  vec2 x0 = floor(y), t = y - x0; ivec2 p = ivec2(x0);
+  vec3 a = mix(mix(jr(p), jr(p+ivec2(1,0)), t.x), mix(jr(p+ivec2(0,1)), jr(p+ivec2(1,1)), t.x), t.y);
+  vec2 v = a.xy / max(a.z, 1e-12);
   float s = length(v); if (s > 4.) v *= 4./s;
   return v;
 }
@@ -315,6 +334,16 @@ vec2 samp(vec2 x){
   ivec2 p = ivec2(x0), pe = min(p + ivec2(1,0), uRes-1), pn = min(p + ivec2(0,1), uRes-1), pne = min(p + ivec2(1,1), uRes-1);
   return mix(mix(texelFetch(uState,p,0).rg, texelFetch(uState,pe,0).rg, t.x), mix(texelFetch(uState,pn,0).rg, texelFetch(uState,pne,0).rg, t.x), t.y);
 }
+// Density interpolated from the nodes' |psi|^2 (no carrier ripple at 8 points per wavelength).
+float r2(ivec2 p){ vec2 c = texelFetch(uState, p, 0).rg; return dot(c, c); }
+float sampRho(vec2 x){
+  vec2 m = vec2(uRes) - 1.;
+  if (x.x < 0. || x.y < 0. || x.x > float(uRes.x) || x.y > float(uRes.y)) return 0.;
+  vec2 y = clamp(x - .5, vec2(0.), m);
+  vec2 x0 = floor(y), t = y - x0;
+  ivec2 p = ivec2(x0), pe = min(p + ivec2(1,0), uRes-1), pn = min(p + ivec2(0,1), uRes-1), pne = min(p + ivec2(1,1), uRes-1);
+  return mix(mix(r2(p), r2(pe), t.x), mix(r2(pn), r2(pne), t.x), t.y);
+}
 // Records behind the exit face: density sum_b |psi_b|^2; colours (phase) of the records
 // mixed with weights |psi_b|^2 (recCos: cos theta, recCol: classic phase colour).
 float recCos; vec3 recCol;
@@ -325,9 +354,11 @@ vec3 recSamp(vec2 x){
   float rho = 0., cs = 0.; vec3 col = vec3(0.); vec2 ph = vec2(1., 0.); float best = -1.;
   for (int b = 0; b < 16; b++) {
     if (b >= uNRec) break;
-    vec2 c = mix(mix(recAt(p,b), recAt(p+ivec2(1,0),b), t.x), mix(recAt(p+ivec2(0,1),b), recAt(p+ivec2(1,1),b), t.x), t.y);
-    float r = dot(c, c); rho += r;
-    if (r > 0.) { cs += r * c.x / sqrt(r); col += r * phaseColor(atan(c.y, c.x)); }
+    vec2 c00 = recAt(p,b), c10 = recAt(p+ivec2(1,0),b), c01 = recAt(p+ivec2(0,1),b), c11 = recAt(p+ivec2(1,1),b);
+    vec2 c = mix(mix(c00, c10, t.x), mix(c01, c11, t.x), t.y);
+    float r = mix(mix(dot(c00,c00), dot(c10,c10), t.x), mix(dot(c01,c01), dot(c11,c11), t.x), t.y); rho += r;
+    float cn = length(c);
+    if (r > 0. && cn > 0.) { cs += r * c.x / cn; col += r * phaseColor(atan(c.y, c.x)); }
     if (r > best) { best = r; ph = c; }
   }
   recCos = rho > 0. ? cs / rho : 1.; recCol = rho > 0. ? col / rho : vec3(0.);
@@ -339,7 +370,7 @@ void main(){
   if (u > uFieldU) { o = vec4(0.); return; }
   vec2 gq = vec2(uMap.x + u*uMap.y, uMap.z + v*uMap.w);
   vec2 psi = samp(gq);
-  float rho = dot(psi, psi);
+  float rho = sampRho(gq);
   bool inRec = uNRec > 0 && gq.x > float(uDrive) + 1.;
   if (inRec) { vec3 r = recSamp(gq); psi = r.xy; rho = r.z; }
   float rel = rho / uPeak;
@@ -356,7 +387,8 @@ void main(){
   float raw = clamp((log(max(rel, 1e-12))/2.302585 + 4.)/3., 0., 1.);
   float weight = (1. - exp(-3.*raw)) / (1. - exp(-3.));
   if (weight <= 0.002) { o = vec4(0.); return; }
-  float c = inRec ? recCos : rho > 0. ? psi.x / sqrt(rho) : 1.;
+  float pn = length(psi);
+  float c = inRec ? recCos : pn > 0. ? psi.x / pn : 1.;
   vec3 col; float a = uAlpha * weight;
   if (uShow == 3) {
     float val = sqrt(min(1., rel*uGain)), level = clamp((val - uLo)*uInv, 0., 1.);
@@ -584,7 +616,7 @@ export function createNumericalEngine() {
     if (G.tooBig) { free(); return { ok: false, reason: `The numerical grid would be ${G.nx} × ${G.ny} cells (limit ${MAX_CELLS / 1e6} million). Shorten the screen distance or the screen length.` }; }
     const k = p.k * G.h, E = 0.5 * k * k;
     G.V0 = Math.max(1, 12 * E);
-    G.dt = 0.9 / (4 + G.V0);
+    G.dt = 0.9 / (16 / 3 + G.V0);   // leapfrog limit: dt * (max eigenvalue 16/3 of -lap/2, plus V0) < 1
     G.k = k;
     G.screenCol = Math.round(G.gx(G.geom.screen));
     setDrive();
@@ -605,7 +637,7 @@ export function createNumericalEngine() {
     setPotentialUniforms(progInit);
     gl.uniform1f(progInit.u("uX0"), G.gx(G.x0)); gl.uniform1f(progInit.u("uSx"), p.sx / G.h); gl.uniform1f(progInit.u("uK"), G.k);
     gl.uniform1f(progInit.u("uS"), p.sourceSigma / G.h); gl.uniform1f(progInit.u("uXs"), G.gx(G.geom.source)); gl.uniform1f(progInit.u("uYc"), G.gy(0));
-    gl.uniform1f(progInit.u("uE"), 0.5 * G.k * G.k); gl.uniform1f(progInit.u("uDt"), G.dt);
+    gl.uniform1f(progInit.u("uE"), (30 - 32 * Math.cos(G.k) + 2 * Math.cos(2 * G.k)) / 24);   // -lap/2 of the fourth-order stencil for e^{ikx} gl.uniform1f(progInit.u("uDt"), G.dt);
     gl.viewport(0, 0, G.nx, G.ny);
     for (const f of [state.fA, state.fB]) { gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.drawArrays(gl.TRIANGLES, 0, 3); }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
