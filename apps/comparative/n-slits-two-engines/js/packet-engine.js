@@ -1,14 +1,14 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te4';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te4';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te4';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te4';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te4';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te4';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te4';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te4';
-import {createNumericalEngine} from './numerical-engine.js?cache=te4';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te4';
-import {classifySlitSide} from './source-packet-model.js?cache=te4';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te5';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te5';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te5';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te5';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te5';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te5';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te5';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te5';
+import {createNumericalEngine} from './numerical-engine.js?cache=te5';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te5';
+import {classifySlitSide} from './source-packet-model.js?cache=te5';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -155,12 +155,12 @@ export function mountPacketEngine({core,advanced}){
  const savedHits={analytical:null,numerical:null};
  mountEngineControls();
  const engineWanted=()=>engine==='numerical';
- const numericalActive=()=>engineWanted()&&num.available&&numStatus?.ok&&!p?.whichPath;
+ const numericalActive=()=>engineWanted()&&num.available&&numStatus?.ok;
  // Display only: where the canvas starts (model x), so the packet starts off screen.
  function numView(){return {canvasLeft:-wallXWorld/100-p.launch};}
  function numReset(){
   numProfile=null;numProfileAt=-Infinity;
-  if(!engineWanted()||!num.available||p.whichPath){numStatus=engineWanted()?{ok:false,reason:!num.available?num.reason:'Detectors are not in the numerical engine yet; showing the analytical engine.'}:null;return;}
+  if(!engineWanted()||!num.available){numStatus=engineWanted()?{ok:false,reason:num.reason}:null;return;}
   numStatus=num.reset(p,numView(),numSlitModel);
   if(numStatus.ok){particles=num.particles;pulses=[];nParticles=p.particles;}
  }
@@ -310,11 +310,13 @@ export function mountPacketEngine({core,advanced}){
   if(!p||!particles.length)return false;
   if(numericalActive()){
    // Numerical engine: the slits change in the potential at once; the run goes on.
-   const n2=config(),st=q=>{const {centers,slitIds,apertureWeights,slits,...rest}=q;return JSON.stringify([rest,screenHeight,particleType]);};
-   if(st(n2)!==st(p)||n2.whichPath)return false;
+   // Detectors too: the engine keeps the fields of records that still exist, lets ended
+   // records evolve freely and starts new ones at the wall's exit face (numerical-engine.js).
+   const n2=config(),st=q=>{const {centers,slitIds,apertureWeights,slits,geometry,whichPath,detectorSlots,branchOf,...rest}=q;return JSON.stringify([rest,screenHeight,particleType]);};
+   if(st(n2)!==st(p))return false;
+   if(!num.setGeometry(n2.geometry))return false;
    n2.particles=p.particles;p=n2;coeff=sourceCoefficients(p);fingerprint=configFingerprint(p);
-   profile=sourceProfile(p,-yOffset,screenHeight/100-yOffset,2049);law=detectorLaw(p,profile,-yOffset,screenHeight/100-yOffset);
-   num.setGeometry(p.geometry);screenBands=null;syncWhichPathButton();if(!isAnimating)draw();return true;
+   profile=sourceProfile(p,-yOffset,screenHeight/100-yOffset,2049);law=detectorLaw(p,profile,-yOffset,screenHeight/100-yOffset);screenBands=null;syncWhichPathButton();if(!isAnimating)draw();return true;
   }
   const next=config(),strip=q=>{const {centers,slitIds,apertureWeights,slits,...rest}=q;return JSON.stringify([rest,screenHeight,particleType]);};
   if(strip(next)!==strip(p)||next.whichPath||p.whichPath||window.qonticMWBranches?.enabled||window.qonticMWBranches?.busy)return false;
@@ -513,7 +515,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te4').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te5').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -634,13 +636,21 @@ export function mountPacketEngine({core,advanced}){
   context.fillText('cos θ',cx,cy-r-20);context.font='9px Inter,Arial,sans-serif';context.fillText('|Ψ| → edge',cx,cy+r+20);
   context.restore();
  }
+ function numLayer(on){
+  const el=num.canvas,waveCanvas=waveCtx?.canvas;if(!el||!waveCanvas)return;
+  if(on&&!el.isConnected){el.id='numericalWaveCanvas';el.style.position='absolute';el.style.zIndex='0';el.style.pointerEvents='none';waveCanvas.after(el);}
+  if(!el.isConnected)return;
+  if(!on){if(el.style.display!=='none')el.style.display='none';return;}
+  el.style.display='';
+  const st=el.style,L=waveCanvas.offsetLeft+'px',T=waveCanvas.offsetTop+'px',W=waveCanvas.clientWidth+'px',H=waveCanvas.clientHeight+'px';
+  if(st.left!==L)st.left=L;if(st.top!==T)st.top=T;if(st.width!==W)st.width=W;if(st.height!==H)st.height=H;
+ }
  function drawNumericalWave(){
   setWaveRangeAuto(0,1);const range=getWaveRangeEffective(),span=Math.max(1e-9,range.max-range.min),mode=$('#waveFunctionOption').val();
   if(paletteKey!==graphPalette||!paletteColors){paletteKey=graphPalette;paletteColors=Array.from({length:1024},(_,i)=>window.paletteModule.getColorForValue(i/1023,graphPalette));}
   const g=num.grid,x0=-wallXWorld/100-p.launch,y0=-yOffset;
   const img=num.render({width:canvas.width,height:canvas.height,map:[num.gridX(x0),worldCanvasDx/100/g.h,num.gridY(y0),screenHeight/100/g.h],fieldU:detectorX/canvas.width,
    show:classicLook()?4:mode==='Phase'?1:mode==='LogPsi2'?2:mode==='PhaseAmp'?3:0,palette:paletteColors,paletteName:graphPalette,lo:range.min,inv:1/span,alpha:elementOpacity('plot_wave')});
-  waveCtx.save();waveCtx.beginPath();waveCtx.rect(0,0,detectorX,canvas.height);waveCtx.clip();waveCtx.drawImage(img,0,0,canvas.width,canvas.height);waveCtx.restore();
   if(classicLook())return;
   if(mode==='PhaseAmp')drawPhaseWheel(waveCtx,detectorX-48,canvas.height-58,20);
   drawPaletteScale(graphPalette,mode==='Phase'?2*range.min-1:range.min,mode==='Phase'?2*range.max-1:range.max);
@@ -669,16 +679,19 @@ export function mountPacketEngine({core,advanced}){
   }
   ctx.restore();
  }
- function drawEngineLabel(){
+ function drawEngineLabel(ctx=waveCtx){
   const wide=detectorX>560,text=numericalActive()?(wide?'Numerical engine · Schrödinger equation on a grid':'Numerical engine'):engineWanted()?(wide?'Analytical engine (numerical not available)':'Analytical engine'):(wide?'Analytical engine · paraxial model':'Analytical engine');
-  waveCtx.save();waveCtx.font='600 12px Inter,Arial,sans-serif';waveCtx.textAlign='right';waveCtx.textBaseline='top';
-  const w=waveCtx.measureText(text).width+16,x=detectorX-10,y=10;
-  waveCtx.fillStyle=numericalActive()?'rgba(120,60,10,.82)':'rgba(10,40,60,.78)';waveCtx.fillRect(x-w,y,w,22);
-  waveCtx.fillStyle='#fff';waveCtx.fillText(text,x-8,y+5);waveCtx.restore();
+  ctx.save();ctx.globalAlpha=1;ctx.font='600 12px Inter,Arial,sans-serif';ctx.textAlign='right';ctx.textBaseline='top';
+  const w=ctx.measureText(text).width+16,x=detectorX-10,y=10;
+  ctx.fillStyle=numericalActive()?'rgba(120,60,10,.82)':'rgba(10,40,60,.78)';ctx.fillRect(x-w,y,w,22);
+  ctx.fillStyle='#fff';ctx.fillText(text,x-8,y+5);ctx.restore();
  }
  function drawSourceWave(){
   waveCtx.clearRect(0,0,canvas.width,canvas.height);waveCtx.fillStyle='#344f63';waveCtx.fillRect(0,0,canvas.width,canvas.height);
-  if(numericalActive()){if(waveShown())drawNumericalWave();drawEngineLabel();return;}
+  // Numerical engine: its WebGL canvas is shown directly as a layer above this one
+  // (no copy into a 2D canvas, so the page never waits for the GPU); label on the setup layer.
+  if(numericalActive()){numLayer(waveShown());if(waveShown())drawNumericalWave();drawEngineLabel(setupCtx);return;}
+  numLayer(false);
   drawEngineLabel();if(!waveShown())return;
  const key=[worldCanvasDx,screenHeight,wallXWorld,p.launch].join(',');
  // One field grid per mask epoch (see switchMask). A column at x shows the mask
@@ -901,7 +914,7 @@ export function mountPacketEngine({core,advanced}){
   const lines=[];
   if(p?.whichPath){
    const map=branchOf(p),groups=[];map.forEach((b,slot)=>{(groups[b]||=[]).push(p.slitIds[slot]+1);});
-   lines.push('Wave colours, one per detector record: '+groups.map((slits,b)=>swatch(slitColorOf('k'+(slits[0]-1)),(p.detectorSlots.some(s=>p.slitIds[s]+1===slits[0])?`slit ${slits[0]} (its detector fired)`:`slit${slits.length>1?'s':''} ${slits.join(', ')} (no detector fired)`))).join(' · ')+'.');
+   if(!numericalActive())lines.push('Wave colours, one per detector record: '+groups.map((slits,b)=>swatch(slitColorOf('k'+(slits[0]-1)),(p.detectorSlots.some(s=>p.slitIds[s]+1===slits[0])?`slit ${slits[0]} (its detector fired)`:`slit${slits.length>1?'s':''} ${slits.join(', ')} (no detector fired)`))).join(' · ')+'.');
   }
   const pwMode=interpretation==='bohmian'?particleColorMode.value:'';
   if(pwMode==='slit'){
@@ -1125,5 +1138,5 @@ export function mountPacketEngine({core,advanced}){
   hits=record;slitHits=emptySlitHits(p.bins);spectrumHitCounts=Array(p.bins).fill(0);spectrumHitSums=Array(p.bins).fill(0);hitMax=Math.max(...hits);detectorFlashes.clear();flash=null;draw();
  }
  return {get wallModel(){return p.geometry.wall;},get engine(){return engine;},get numericalActive(){return numericalActive();},get numProfile(){return numProfile;},get anaProfile(){return profile;},get numStatus(){return numStatus;},get hitsTotal(){return nHits;},setEngine,num,
-  whenPacketAtWall(f){atWallQueue.push(f);},get atWallPending(){return atWallQueue.length>0;},sampleBranch,switchMask,get simTime(){return t;},get frameStats(){return frameStats;},syncBranching(){ensure();draw();},setWhichPath(){resetEngine();draw();},get viewportWidth(){return (sourcePos+detectorDistance)/.7;},get enabled(){return true;},reset:resetEngine,draw,drawWave,drawParticles,histogram,frame,updateMath,hash,pause(){last=null;if(packetAnimationId!==null)cancelAnimationFrame(packetAnimationId);packetAnimationId=null;}};
+  whenPacketAtWall(f){atWallQueue.push(f);},get atWallPending(){return atWallQueue.length>0;},sampleBranch,switchMask,get simTime(){return t;},get frameStats(){return frameStats;},syncBranching(){ensure();draw();},setWhichPath(){if(numericalActive()&&switchMask())return;resetEngine();draw();},get viewportWidth(){return (sourcePos+detectorDistance)/.7;},get enabled(){return true;},reset:resetEngine,draw,drawWave,drawParticles,histogram,frame,updateMath,hash,pause(){last=null;if(packetAnimationId!==null)cancelAnimationFrame(packetAnimationId);packetAnimationId=null;}};
 }

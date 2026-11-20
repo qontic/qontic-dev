@@ -3,6 +3,12 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.5 — 2026-11-20
+Pablo: the numerical engine is still bumpy on his computer; placing or opening a detector should not restart the wave and particles but carry on with the new conditions.
+- **Smoother numerical engine.** The wave picture was copied from the engine's WebGL canvas into the 2D wave canvas every frame (drawImage). That copy makes the browser wait until the GPU has finished all the time steps queued in the frame, so CPU and GPU took turns instead of overlapping (headless: 1.4 s per frame in the copy; now 5 ms). The WebGL canvas is now a layer of its own in the canvas stack (screenshots and recordings include it). A load governor lowers the steps per frame when the GPU has not finished the previous frame, so work never queues up; the clock follows the steps done. The potential uniforms are set only when the geometry changes (were ~60 GL calls per time step).
+- **Which-slit detectors in the numerical engine**, ported from the numerical N-slit app's record (branch) fields: each record is a field behind the wall's exit face, driven there by the total wave times a smooth partition weight, evolving freely behind; picture and screen prediction use Σ|ψ_b|²; PW particles follow their slit's record after the exit face. Records add up to the total wave to 8×10⁻⁷. Detectors on both slits from the start (mask wall): screen profile vs analytical which-path L1 0.057, fraction at the screen 0.130 (0.133 without detectors).
+- **Detector changes are live in the numerical engine**: kept records keep their fields, ended records evolve undriven, new records start at the exit face; the first detector turns the wave already behind the wall into a record of its own. Opening a closed slit (which adds a detector) and the Detectors button no longer restart the run. Limit 12 record fields, then the packet restarts. The analytical engine still restarts on a detector change.
+
 ## 1.0-dev.4 — 2026-11-20
 Pablo: switching from Orthodox to Pilot Wave in the numerical engine breaks the app; the numerical engine should use the colours and display of the old numerical app.
 - **Fix:** a change of view rebuilt the in-flight particles with the analytical sampler, which in numerical mode replaced the engine's own GPU-tracked particles. In the numerical engine the particles are tracked in every view, so nothing is rebuilt; clocks, record and particles carry through Orthodox ↔ Pilot Wave ↔ Many Worlds.

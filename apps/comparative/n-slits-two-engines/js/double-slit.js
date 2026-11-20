@@ -2332,7 +2332,8 @@ $(document).ready(function() {
       });
       // Slit buttons: open → closed → detector → open. Closing or opening a slit
       // keeps the run (live mask switch, so one click closes a slit mid-packet);
-      // adding or removing a detector restarts it.
+      // adding or removing a detector keeps it in the numerical engine and restarts
+      // it in the analytical engine.
       $('#slit-open-buttons').on('click', '[data-slit]', function () {
          const k = +this.dataset.slit, state = this.dataset.state;
          // "Apply at wall": during a run, an open/close waits until the packet centre
@@ -2351,7 +2352,8 @@ $(document).ready(function() {
             // detector. With "Apply at wall" during a run it reopens without one (adding a
             // detector restarts the run, which the demonstration should not do).
             if (atWall) live(() => { slitOpen[k] = true; slitConfigurationChanged(true); });
-            else { slitOpen[k] = true; slitDetector[k] = true; slitConfigurationChanged(); }
+            // Live where the engine can (numerical engine); the analytical engine restarts.
+            else { slitOpen[k] = true; slitDetector[k] = true; slitConfigurationChanged(true); }
          } else {
             slitDetector[k] = false;
             detectorsChanged();

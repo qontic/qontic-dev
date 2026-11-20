@@ -25,6 +25,21 @@
 // What is set here are numerical-method choices, not geometry: points per wavelength,
 // the absorbing margins of the domain, and the time step.
 //
+// Which-slit detectors (records): with detectors at slits D the state behind the wall is
+//   sum_{k in D} psi_k |d_k> + (the other open slits' wave) |d_0>.
+// Each record b is a field behind the wall's exit face (a layer of a 2D-array texture
+// that starts at column off). By linearity the wave behind the wall is fixed by its
+// values on the exit face: field b is driven there by the total wave times a smooth
+// weight w_b(y) that shares the face among the open slits (sum_b w_b = 1), and evolves
+// freely behind it. The fields add up to the total wave behind the wall; the picture
+// and the screen prediction use sum_b |psi_b|^2. A pilot-wave particle is guided by the
+// total wave until it crosses the exit face, then by the field of its slit's record.
+// Detectors switched during a run (setGeometry): records that still exist keep their
+// field; records that end stop being driven and keep evolving (their wave is already
+// behind the wall); new records start from the exit face. When the first records
+// appear, the wave already behind the wall becomes a record of its own (it passed before
+// any detector was there). So the run goes on; nothing is restarted.
+//
 // Pilot-wave particles start from |psi|^2 of the initial packet and move with
 // v = Im(grad psi / psi) (RK2, every step) on the GPU; their positions are read back
 // once per frame and handed to the app as ordinary particle objects. A particle that
@@ -34,6 +49,7 @@
 const PPW = 16;            // numerical method: grid points per wavelength
 const RA_NU = 0.01;
 const MAX_CELLS = 2.2e6;   // grid size limit (x * y cells)
+const MAX_RECORDS = 12;     // record fields (texture-array layers); beyond this a detector change restarts the packet
 const WALL_W_OVER_E = 2.67; // absorbing-wall material: peak W / packet energy (W = 3 at E = 1.125 in the numerical N-slit app)
 
 const VS = `#version 300 es
@@ -134,6 +150,59 @@ void main(){
   o = vec4(next, filtered);
 }`;
 
+// Record fields: layer uLayer of a 2D-array texture covering columns uOff.. of the grid.
+// Columns up to uDrive (the wall's exit face) are driven by the total wave times the
+// record's weight; elsewhere the field evolves like the total wave.
+const BSTEP = `#version 300 es
+precision highp float;
+precision highp sampler2DArray;
+${COMMON}
+uniform sampler2D uTotal;
+uniform sampler2DArray uSrc;
+uniform int uLayer, uOff, uDrive;
+uniform float uDt, uPartS, uMask[16];
+out vec4 o;
+vec2 f(ivec2 q, int w){ if (q.x < 0 || q.y < 0 || q.x >= w || q.y >= uRes.y) return vec2(0.); return texelFetch(uSrc, ivec3(q, uLayer), 0).rg; }
+void main(){
+  ivec2 p = ivec2(gl_FragCoord.xy), q = p + ivec2(uOff, 0);
+  if (q.x <= uDrive) {
+    // Smooth partition of the exit face among the open slits (Gaussian weights around
+    // the slit centres, normalised so they add to 1 over the records).
+    float y = gl_FragCoord.y, emax = -1e30, num = 0., den = 0.;
+    for (int j = 0; j < 16; j++) { if (j >= uNOpen) break; float d = (y - uCenters[j]) / uPartS; emax = max(emax, -.5*d*d); }
+    for (int j = 0; j < 16; j++) { if (j >= uNOpen) break; float d = (y - uCenters[j]) / uPartS; float w = exp(-.5*d*d - emax); den += w; num += uMask[j]*w; }
+    o = (den > 0. ? num/den : 0.) * texelFetch(uTotal, q, 0);
+    return;
+  }
+  int w = uRes.x - uOff;
+  vec4 s = texelFetch(uSrc, ivec3(p, uLayer), 0);
+  vec2 psi = s.rg, prev = s.ba;
+  vec2 lap = f(p+ivec2(1,0),w) + f(p-ivec2(1,0),w) + f(p+ivec2(0,1),w) + f(p-ivec2(0,1),w) - 4.*psi;
+  vec2 VW = potential(vec2(q) + .5);
+  vec2 rhs = vec2(-.5*lap.y + VW.x*psi.y, .5*lap.x - VW.x*psi.x);
+  float a = uDt * VW.y;
+  vec2 next = ((1. - a)*prev + 2.*uDt*rhs) / (1. + a);
+  o = vec4(next, psi + ${RA_NU.toFixed(3)} * (next - 2.*psi + prev));
+}`;
+
+// Flux of one record field (layer of the array) added to the accumulated flux.
+const BFLUX = `#version 300 es
+precision highp float;
+precision highp sampler2DArray;
+uniform sampler2DArray uSrc;
+uniform sampler2D uAcc;
+uniform int uCol, uLayer;
+uniform float uDt;
+out vec4 o;
+void main(){
+  int j = int(gl_FragCoord.y);
+  vec2 c = texelFetch(uSrc, ivec3(uCol, j, uLayer), 0).rg;
+  vec2 d = .5*(texelFetch(uSrc, ivec3(uCol+1, j, uLayer), 0).rg - texelFetch(uSrc, ivec3(uCol-1, j, uLayer), 0).rg);
+  float jx = c.x*d.y - c.y*d.x;
+  vec4 acc = texelFetch(uAcc, ivec2(0, j), 0);
+  o = vec4(acc.x + max(jx, 0.)*uDt, acc.y + jx*uDt, 0., 0.);
+}`;
+
 // Time-integrated probability flux j_x through the screen column.
 const FLUX = `#version 300 es
 precision highp float;
@@ -151,21 +220,30 @@ void main(){
   o = vec4(acc.x + max(jx, 0.)*uDt, acc.y + jx*uDt, 0., 0.);
 }`;
 
-// Particle state: x, y (grid), mode (1 moving, 2 detected, 3 absorbed at the wall, 4 lost at the edge), seed.
+// Particle state: x, y (grid), mode, seed. Mode: 1 moving (guided by the total wave),
+// 10 + b moving in record b (guided by record field b), 2 detected, 3 absorbed at the
+// wall, 4 lost at the edge.
 const PARTICLE_VS = `#version 300 es
 precision highp float;
+precision highp sampler2DArray;
 ${COMMON}
 layout(location=0) in vec4 aState;
 out vec4 vState;
 uniform sampler2D uState;
-uniform float uDt, uScreenX;
-uniform int uFrame;
+uniform sampler2DArray uRec;
+uniform float uDt, uScreenX, uRecordOfSlit[16];
+uniform int uFrame, uNRec, uOff, uDrive, uPre;
+int layer = -1;
+vec2 tf(ivec2 p){
+  if (layer < 0) return texelFetch(uState, p, 0).rg;
+  return texelFetch(uRec, ivec3(max(p.x - uOff, 0), p.y, layer), 0).rg;
+}
 vec2 samp(vec2 x){
   vec2 m = vec2(uRes) - 1.;
   vec2 y = clamp(x - .5, vec2(0.), m);
   vec2 x0 = floor(y), t = y - x0;
   ivec2 p = ivec2(x0), pe = min(p + ivec2(1,0), uRes-1), pn = min(p + ivec2(0,1), uRes-1), pne = min(p + ivec2(1,1), uRes-1);
-  return mix(mix(texelFetch(uState,p,0).rg, texelFetch(uState,pe,0).rg, t.x), mix(texelFetch(uState,pn,0).rg, texelFetch(uState,pne,0).rg, t.x), t.y);
+  return mix(mix(tf(p), tf(pe), t.x), mix(tf(pn), tf(pne), t.x), t.y);
 }
 vec2 vel(vec2 x){
   vec2 c = samp(x);
@@ -179,17 +257,31 @@ float rnd(float s){ return fract(sin(s)*43758.5453123); }
 void main(){
   vState = aState;
   gl_Position = vec4(-2.);
-  if (aState.z != 1.) return;
+  float mode = aState.z;
+  if (mode != 1. && mode < 10.) return;
   vec2 x = aState.xy;
+  if (mode >= 10.) layer = int(mode - 10. + .5);
+  else if (uNRec > 0 && x.x > float(uDrive) + .5) {
+    // Behind the exit face when the records appeared: the record of the wave that passed before.
+    layer = uPre; mode = 10. + float(uPre);
+  }
+  if (layer >= uNRec) { layer = -1; mode = 1.; }
   vec2 x1 = x + .5*uDt*vel(x);
   vec2 xn = x + uDt*vel(x1);
+  if (layer < 0 && uNRec > 0 && x.x <= float(uDrive) + .5 && xn.x > float(uDrive) + .5) {
+    // Crossing the exit face: the record of the slit it came through (nearest open slit).
+    int best = 0; float bd = 1e30;
+    for (int j = 0; j < 16; j++) { if (j >= uNOpen) break; float d = abs(xn.y - uCenters[j]); if (d < bd) { bd = d; best = j; } }
+    float r = uRecordOfSlit[best];
+    if (r >= 0.) mode = 10. + r;
+  }
   vec2 VW = potential(xn);
   float seed = aState.w * 17.13 + float(uFrame) * 0.618;
   float d = min(min(xn.x, float(uRes.x) - xn.x), min(xn.y, float(uRes.y) - xn.y));
   if (xn.x >= uScreenX) { vState = vec4(uScreenX, xn.y, 2., aState.w); return; }
   if (VW.x > .5*uV0) { vState = vec4(xn, 3., aState.w); return; }
   if (VW.y > 0. && rnd(seed) < 1. - exp(-2.*VW.y*uDt)) { vState = vec4(xn, d < uAbsPx ? 4. : 3., aState.w); return; }
-  vState = vec4(xn, 1., aState.w);
+  vState = vec4(xn, mode, aState.w);
 }`;
 const PARTICLE_FS = `#version 300 es
 precision highp float; out vec4 o; void main(){ o = vec4(0.); }`;
@@ -197,7 +289,10 @@ precision highp float; out vec4 o; void main(){ o = vec4(0.); }`;
 // Wave picture in the app's colours: one pass over the display grid.
 const RENDER = `#version 300 es
 precision highp float;
+precision highp sampler2DArray;
 uniform sampler2D uState, uPalette;
+uniform sampler2DArray uRec;
+uniform int uNRec, uOff, uDrive;
 uniform ivec2 uRes;
 uniform vec4 uMap;      // grid x = uMap.x + u * uMap.y ; grid y = uMap.z + v * uMap.w  (u, v in 0..1 over the canvas)
 uniform float uPeak, uLo, uInv, uAlpha, uFieldU, uGain;
@@ -220,18 +315,40 @@ vec2 samp(vec2 x){
   ivec2 p = ivec2(x0), pe = min(p + ivec2(1,0), uRes-1), pn = min(p + ivec2(0,1), uRes-1), pne = min(p + ivec2(1,1), uRes-1);
   return mix(mix(texelFetch(uState,p,0).rg, texelFetch(uState,pe,0).rg, t.x), mix(texelFetch(uState,pn,0).rg, texelFetch(uState,pne,0).rg, t.x), t.y);
 }
+// Records behind the exit face: density sum_b |psi_b|^2; colours (phase) of the records
+// mixed with weights |psi_b|^2 (recCos: cos theta, recCol: classic phase colour).
+float recCos; vec3 recCol;
+vec2 recAt(ivec2 p, int b){ return texelFetch(uRec, ivec3(clamp(p.x - uOff, 0, uRes.x - uOff - 1), clamp(p.y, 0, uRes.y - 1), b), 0).rg; }
+vec3 recSamp(vec2 x){
+  vec2 y = clamp(x - .5, vec2(0.), vec2(uRes) - 1.);
+  vec2 x0 = floor(y), t = y - x0; ivec2 p = ivec2(x0);
+  float rho = 0., cs = 0.; vec3 col = vec3(0.); vec2 ph = vec2(1., 0.); float best = -1.;
+  for (int b = 0; b < 16; b++) {
+    if (b >= uNRec) break;
+    vec2 c = mix(mix(recAt(p,b), recAt(p+ivec2(1,0),b), t.x), mix(recAt(p+ivec2(0,1),b), recAt(p+ivec2(1,1),b), t.x), t.y);
+    float r = dot(c, c); rho += r;
+    if (r > 0.) { cs += r * c.x / sqrt(r); col += r * phaseColor(atan(c.y, c.x)); }
+    if (r > best) { best = r; ph = c; }
+  }
+  recCos = rho > 0. ? cs / rho : 1.; recCol = rho > 0. ? col / rho : vec3(0.);
+  return vec3(ph * sqrt(rho / max(best, 1e-30)), rho);
+}
 vec3 pal(float v){ return texture(uPalette, vec2(clamp(v,0.,1.), .5)).rgb; }
 void main(){
   float u = vUV.x, v = 1. - vUV.y;     // canvas y downwards
   if (u > uFieldU) { o = vec4(0.); return; }
-  vec2 psi = samp(vec2(uMap.x + u*uMap.y, uMap.z + v*uMap.w));
-  float rho = dot(psi, psi), rel = rho / uPeak;
+  vec2 gq = vec2(uMap.x + u*uMap.y, uMap.z + v*uMap.w);
+  vec2 psi = samp(gq);
+  float rho = dot(psi, psi);
+  bool inRec = uNRec > 0 && gq.x > float(uDrive) + 1.;
+  if (inRec) { vec3 r = recSamp(gq); psi = r.xy; rho = r.z; }
+  float rel = rho / uPeak;
   if (uShow == 4) {
     float vis = smoothstep(0.001, 0.002, sqrt(rel));
     float I = pow(clamp(1. - exp(-20.*rel), 0., 1.), 0.5);
     float ph = rel > 0. && vis > 0. ? atan(psi.y, psi.x) : 0.;
     vec3 dens = mix(vec3(0.26,0.13,0.49), vec3(0.72,0.50,0.99), pow(I, 0.7));
-    o = vec4(mix(dens, phaseColor(ph), 0.77905591) * I * vis * uAlpha, 1.0);
+    o = vec4(mix(dens, inRec ? recCol : phaseColor(ph), 0.77905591) * I * vis * uAlpha, 1.0);
     return;
   }
   // Visibility on a log scale (down to 1e-4 of the incoming peak), so the much
@@ -239,7 +356,7 @@ void main(){
   float raw = clamp((log(max(rel, 1e-12))/2.302585 + 4.)/3., 0., 1.);
   float weight = (1. - exp(-3.*raw)) / (1. - exp(-3.));
   if (weight <= 0.002) { o = vec4(0.); return; }
-  float c = rho > 0. ? psi.x / sqrt(rho) : 1.;
+  float c = inRec ? recCos : rho > 0. ? psi.x / sqrt(rho) : 1.;
   vec3 col; float a = uAlpha * weight;
   if (uShow == 3) {
     float val = sqrt(min(1., rel*uGain)), level = clamp((val - uLo)*uInv, 0., 1.);
@@ -276,6 +393,7 @@ export function createNumericalEngine() {
 
   const progInit = program(gl, VS, INIT), progStep = program(gl, VS, STEP), progFlux = program(gl, VS, FLUX), progRender = program(gl, VS, RENDER);
   const progPart = program(gl, PARTICLE_VS, PARTICLE_FS, ["vState"]);
+  const progBStep = program(gl, VS, BSTEP), progBFlux = program(gl, VS, BFLUX);
   const vao = gl.createVertexArray();
   const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
 
@@ -287,15 +405,20 @@ export function createNumericalEngine() {
   }
   function fbo(t) { const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); gl.bindFramebuffer(gl.FRAMEBUFFER, null); return f; }
   const paletteTex = gl.createTexture(); let paletteKey = "";
+  // A 1-layer array texture bound when there are no records (samplers must have a texture).
+  const dummyArray = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D_ARRAY, dummyArray); gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA32F, 1, 1, 1);
+  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
   let G = null;           // grid and geometry
   let state = null;       // textures, buffers
   let parts = [];         // particle objects for the app
   let partData = null, partBufA = null, partBufB = null, partVao = null, tf = null;
-  let frame = 0, simTau = 0, stepsDone = 0, stepCarry = 0;
+  let behind = false, frame = 0, simTau = 0, stepsDone = 0, stepCarry = 0, budget = 64;
   // Asynchronous GPU -> CPU reads (no pipeline stall): copy, fence, read when signalled.
   let readBuf = null, partFence = null, partGen = 0, readGen = -1;
   let fluxPBO = null, fluxFence = null, fluxData = null, fluxReady = null;
+  // Record fields (detectors): rec = { A, B, fboA[], fboB[], layers, flip, list: [{ slits: Set of slit ids | null, pre }] }.
+  let rec = null, uniformVersion = 0;
 
   function free() {
     if (!state) return;
@@ -320,7 +443,10 @@ export function createNumericalEngine() {
       gx: x => (x - xMin) / h, gy: y => (y + yHalf) / h, mx: i => xMin + i * h, my: j => -yHalf + j * h };
   }
 
+  // Potential and slit uniforms change only with the geometry: set once per program and version.
   function setPotentialUniforms(prog) {
+    if (prog.ver === uniformVersion) return;
+    prog.ver = uniformVersion;
     const { p, h, geom } = G;
     const k = p.k * h, v = k;     // grid wavenumber and speed (hbar = m = 1)
     gl.uniform2i(prog.u("uRes"), G.nx, G.ny);
@@ -343,17 +469,126 @@ export function createNumericalEngine() {
     gl.uniform1fv(prog.u("uWeights"), weights);
     gl.uniform1f(prog.u("uAbsPx"), G.absorber / h);
     gl.uniform1f(prog.u("uAbsW"), 1.5 * 0.5 * k * k);
+    gl.uniform1f(prog.u("uPartS"), 0.35 * geom.separation / h);
+    gl.uniform1i(prog.u("uDrive"), G.drive); gl.uniform1i(prog.u("uOff"), G.off);
+    gl.uniform1f(prog.u("uDt"), G.dt);
+  }
+
+  // ---- Records (which-slit detectors) ------------------------------------------
+  // The record structure the geometry asks for: one record per open slit with a
+  // detector, one for the open slits without (if any). Empty without detectors.
+  function wantedRecords(geom) {
+    const det = geom.detectorIds.filter(id => geom.open.ids.includes(id));
+    if (!det.length) return [];
+    const others = geom.open.ids.filter(id => !det.includes(id));
+    return [...det.map(id => [id]), ...(others.length ? [others] : [])];
+  }
+  const sameSet = (a, b) => a && b && a.length === b.length && a.every(x => b.includes(x));
+  function freeRecords() {
+    if (!rec) return;
+    gl.deleteTexture(rec.A); gl.deleteTexture(rec.B);
+    for (const f of [...rec.fboA, ...rec.fboB]) gl.deleteFramebuffer(f);
+    rec = null;
+  }
+  function allocRecords(layers, keep) {
+    const w = G.nx - G.off, mk = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D_ARRAY, t);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA32F, w, G.ny, layers); return t; };
+    const A = mk(), B = mk(), fboA = [], fboB = [];
+    for (let l = 0; l < layers; l++) for (const [t, arr] of [[A, fboA], [B, fboB]]) {
+      const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, t, 0, l);
+      gl.clearBufferfv(gl.COLOR, 0, [0, 0, 0, 0]); arr.push(f);
+    }
+    const next = { A, B, fboA, fboB, layers, w, flip: 0, list: [] };
+    if (keep) {
+      // Copy the existing layers (both time levels live in one texel, so one copy per layer).
+      const src = keep.flip ? keep.B : keep.A, dstFbo = next.fboA;
+      for (let l = 0; l < keep.list.length; l++) {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, (keep.flip ? keep.fboB : keep.fboA)[l]);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, dstFbo[l]);
+        gl.blitFramebuffer(0, 0, w, G.ny, 0, 0, w, G.ny, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+      }
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+      next.list = keep.list;
+      gl.deleteTexture(keep.A); gl.deleteTexture(keep.B); for (const f of [...keep.fboA, ...keep.fboB]) gl.deleteFramebuffer(f);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return next;
+  }
+  // Bring the records in line with the geometry. live: during a run (keep the fields);
+  // otherwise (new packet) start from the wanted records only. Returns false if the
+  // record limit would be exceeded.
+  function syncRecords(live) {
+    const want = wantedRecords(G.geom);
+    if (!live || !rec) {
+      if (!live) freeRecords();
+      if (!want.length) return true;
+      const pre = live;   // first records during a run: the wave already behind the wall is a record of its own
+      const n = want.length + (pre ? 1 : 0);
+      rec = allocRecords(n, null);
+      rec.list = want.map(slits => ({ slits }));
+      if (pre) {
+        rec.list.push({ slits: null, pre: true });
+        // Copy the total wave behind the exit face into the pre-record layer.
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, state.flip ? state.fB : state.fA);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, rec.fboA[n - 1]);
+        gl.blitFramebuffer(G.off, 0, G.nx, G.ny, 0, 0, rec.w, G.ny, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+      }
+      uniformVersion++;
+      return true;
+    }
+    // Live change with records present: records whose slit set is still wanted keep
+    // being driven; the others stop (slits = null) and evolve freely; new ones are added.
+    // Without detectors, the open slits form one coherent record from now on.
+    const target = want.length ? want : [G.geom.open.ids.slice()];
+    for (const r of rec.list) if (r.slits && !target.some(t => sameSet(t, r.slits))) r.slits = null;
+    const add = target.filter(t => !rec.list.some(r => sameSet(r.slits, t)));
+    if (rec.list.length + add.length > MAX_RECORDS) return false;
+    if (add.length) { const list = rec.list; rec = allocRecords(list.length + add.length, rec); rec.list = [...list, ...add.map(slits => ({ slits }))]; }
+    uniformVersion++;
+    return true;
+  }
+  function recordOfSlit() {
+    const out = new Float32Array(16).fill(-1);
+    if (!rec) return out;
+    G.geom.open.ids.forEach((id, j) => { const b = rec.list.findIndex(r => r.slits && r.slits.includes(id)); out[j] = b; });
+    return out;
+  }
+  function stepRecords(total) {
+    if (!rec) return;
+    const src = rec.flip ? rec.B : rec.A, dst = rec.flip ? rec.fboA : rec.fboB;
+    gl.useProgram(progBStep); setPotentialUniforms(progBStep);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, total); gl.uniform1i(progBStep.u("uTotal"), 1);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D_ARRAY, src); gl.uniform1i(progBStep.u("uSrc"), 2);
+    gl.viewport(0, 0, rec.w, G.ny);
+    const mask = new Float32Array(16);
+    rec.list.forEach((r, b) => {
+      mask.fill(0); if (r.slits) G.geom.open.ids.forEach((id, j) => { if (r.slits.includes(id)) mask[j] = 1; });
+      gl.uniform1fv(progBStep.u("uMask"), mask); gl.uniform1i(progBStep.u("uLayer"), b);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, dst[b]); gl.drawArrays(gl.TRIANGLES, 0, 3);
+    });
+    rec.flip = 1 - rec.flip;
+    gl.activeTexture(gl.TEXTURE0);
+  }
+
+  // Exit face of the wall (or of the mask layer): the records start there.
+  function setDrive() {
+    const g = G.geom, half = G.mode === "mask" ? 0.5 * g.apertureLayer : 0.5 * (G.mode === "absorbing" ? g.absorbingWallThickness : g.wallThickness);
+    G.drive = Math.ceil(G.gx(g.wall) + half / G.h + 1);
+    G.off = G.drive - 1;
   }
 
   function reset(p, view, mode) {
-    G = geometry(p, view, mode);
+    G = geometry(p, view, mode); uniformVersion++;
     if (G.tooBig) { free(); return { ok: false, reason: `The numerical grid would be ${G.nx} × ${G.ny} cells (limit ${MAX_CELLS / 1e6} million). Shorten the screen distance or the screen length.` }; }
     const k = p.k * G.h, E = 0.5 * k * k;
     G.V0 = Math.max(1, 12 * E);
     G.dt = 0.9 / (4 + G.V0);
     G.k = k;
     G.screenCol = Math.round(G.gx(G.geom.screen));
-    free();
+    setDrive();
+    free(); freeRecords();
     const A = tex(G.nx, G.ny), B = tex(G.nx, G.ny), FA = tex(1, G.ny), FB = tex(1, G.ny);
     state = { A, B, fA: fbo(A), fB: fbo(B), FA, FB, ffA: fbo(FA), ffB: fbo(FB), flip: 0, fflip: 0 };
     state.textures = [A, B, FA, FB]; state.fbos = [state.fA, state.fB, state.ffA, state.ffB];
@@ -375,6 +610,7 @@ export function createNumericalEngine() {
     for (const f of [state.fA, state.fB]) { gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.drawArrays(gl.TRIANGLES, 0, 3); }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     state.flip = 0;
+    syncRecords(false);
     // Peak density for the display: the initial packet's maximum (|psi0| <= 1 at the waist).
     const tauW = (G.x0 - G.geom.source) / p.k, s = p.sourceSigma;
     G.peak = 1 / Math.sqrt(1 + (tauW / (2 * s * s)) ** 2);
@@ -394,7 +630,7 @@ export function createNumericalEngine() {
     partBufA = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, partBufA); gl.bufferData(gl.ARRAY_BUFFER, partData, gl.DYNAMIC_COPY);
     partBufB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, partBufB); gl.bufferData(gl.ARRAY_BUFFER, partData.byteLength, gl.DYNAMIC_COPY);
     partVao = gl.createVertexArray(); tf = gl.createTransformFeedback();
-    simTau = 0; stepsDone = 0; stepCarry = 0;
+    simTau = 0; stepsDone = 0; stepCarry = 0; uniformVersion++;
     partGen++;
     if (partFence) { gl.deleteSync(partFence); partFence = null; }
     if (readBuf) gl.deleteBuffer(readBuf);
@@ -406,12 +642,26 @@ export function createNumericalEngine() {
     const src = state.flip ? state.B : state.A, dst = state.flip ? state.fA : state.fB;
     gl.bindVertexArray(vao);
     gl.useProgram(progStep); setPotentialUniforms(progStep);
-    gl.uniform1f(progStep.u("uDt"), G.dt);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src); gl.uniform1i(progStep.u("uState"), 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, dst); gl.viewport(0, 0, G.nx, G.ny); gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.flip = 1 - state.flip;
     const cur = state.flip ? state.B : state.A;
-    // flux at the screen
+    stepRecords(cur);
+    // flux at the screen: of the total wave, or with records the sum over records
+    if (rec) {
+      const rs = rec.flip ? rec.B : rec.A;
+      gl.useProgram(progBFlux);
+      gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D_ARRAY, rs); gl.uniform1i(progBFlux.u("uSrc"), 2);
+      gl.uniform1i(progBFlux.u("uCol"), G.screenCol - G.off); gl.uniform1f(progBFlux.u("uDt"), G.dt);
+      gl.viewport(0, 0, 1, G.ny);
+      for (let b = 0; b < rec.list.length; b++) {
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, state.fflip ? state.FB : state.FA); gl.uniform1i(progBFlux.u("uAcc"), 1);
+        gl.uniform1i(progBFlux.u("uLayer"), b);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, state.fflip ? state.ffA : state.ffB); gl.drawArrays(gl.TRIANGLES, 0, 3);
+        state.fflip = 1 - state.fflip;
+      }
+      gl.activeTexture(gl.TEXTURE0);
+    } else {
     gl.useProgram(progFlux);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, cur); gl.uniform1i(progFlux.u("uState"), 0);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, state.fflip ? state.FB : state.FA); gl.uniform1i(progFlux.u("uAcc"), 1);
@@ -419,9 +669,19 @@ export function createNumericalEngine() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, state.fflip ? state.ffA : state.ffB); gl.viewport(0, 0, 1, G.ny); gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.fflip = 1 - state.fflip;
     gl.activeTexture(gl.TEXTURE0);
+    }
     // particles
-    gl.useProgram(progPart); setPotentialUniforms(progPart);
-    gl.uniform1f(progPart.u("uDt"), G.dt); gl.uniform1f(progPart.u("uScreenX"), G.gx(G.geom.screen)); gl.uniform1i(progPart.u("uFrame"), frame++);
+    gl.useProgram(progPart);
+    if (progPart.ver !== uniformVersion) {
+      setPotentialUniforms(progPart);
+      gl.uniform1f(progPart.u("uScreenX"), G.gx(G.geom.screen));
+      gl.uniform1i(progPart.u("uNRec"), rec ? rec.list.length : 0);
+      gl.uniform1i(progPart.u("uPre"), rec ? Math.max(0, rec.list.findIndex(r => r.pre)) : 0);
+      gl.uniform1fv(progPart.u("uRecordOfSlit"), recordOfSlit());
+      gl.uniform1i(progPart.u("uRec"), 2);
+    }
+    gl.uniform1i(progPart.u("uFrame"), frame++);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D_ARRAY, rec ? (rec.flip ? rec.B : rec.A) : dummyArray); gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, cur); gl.uniform1i(progPart.u("uState"), 0);
     gl.bindVertexArray(partVao); gl.bindBuffer(gl.ARRAY_BUFFER, partBufA); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
     gl.enable(gl.RASTERIZER_DISCARD);
@@ -440,9 +700,14 @@ export function createNumericalEngine() {
   // so the wave advances evenly; a cap keeps a slow device from queueing work.
   function advance(modelDt, maxSteps = 400) {
     if (!state) return [];
+    // Load governor: if last frame's GPU work has not finished yet, the GPU is a frame
+    // behind; fewer steps this frame (the clock follows the steps actually done), so
+    // work never queues up and frames come at an even pace.
+    if (partFence) { const st = gl.clientWaitSync(partFence, 0, 0); behind = st !== gl.ALREADY_SIGNALED && st !== gl.CONDITION_SATISFIED; }
+    budget = behind ? Math.max(4, Math.floor(budget * 0.75)) : Math.min(maxSteps, budget + 2);
     const exact = modelDt / (G.h * G.h) / G.dt + stepCarry;
-    const n = Math.min(maxSteps, Math.max(0, Math.floor(exact)));
-    stepCarry = Math.min(1, exact - n);
+    const n = Math.min(budget, Math.max(0, Math.floor(exact)));
+    stepCarry = n < Math.floor(exact) ? 0 : Math.min(1, exact - n);
     for (let i = 0; i < n; i++) step();
     return sync();
   }
@@ -478,6 +743,7 @@ export function createNumericalEngine() {
       const x = G.mx(partData[4 * i]), y = G.my(partData[4 * i + 1]), mode = partData[4 * i + 2];
       a.x = x; a.y = y; a.path.push([x, y]);
       if (!a.passed && x >= G.geom.wall) { a.passed = true; a.wallY = y; events.push({ type: "wall", a }); }
+      if (mode >= 10) a.record = mode - 10;
       if (mode === 2) { a.done = true; a.screenDetected = true; events.push({ type: "hit", a, y }); }
       else if (mode === 3) { a.done = true; a.absorbed = true; events.push({ type: "absorbed", a }); }
       else if (mode === 4) { a.done = true; events.push({ type: "missed", a }); }
@@ -547,6 +813,9 @@ export function createNumericalEngine() {
     gl.uniform1f(progRender.u("uPeak"), G.peak); gl.uniform1f(progRender.u("uLo"), lo); gl.uniform1f(progRender.u("uInv"), inv);
     gl.uniform1f(progRender.u("uAlpha"), alpha); gl.uniform1f(progRender.u("uFieldU"), fieldU);
     gl.uniform1i(progRender.u("uShow"), show);
+    gl.uniform1i(progRender.u("uNRec"), rec ? rec.list.length : 0);
+    gl.uniform1i(progRender.u("uOff"), G.off); gl.uniform1i(progRender.u("uDrive"), G.drive);
+    gl.activeTexture(gl.TEXTURE2); if (rec) gl.bindTexture(gl.TEXTURE_2D_ARRAY, rec.flip ? rec.B : rec.A); else gl.bindTexture(gl.TEXTURE_2D_ARRAY, dummyArray); gl.uniform1i(progRender.u("uRec"), 2);
     gl.uniform1f(progRender.u("uGain"), 30.0);   // |psi|^2 display gain (the transmitted wave is weak)
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.activeTexture(gl.TEXTURE0);
@@ -554,9 +823,33 @@ export function createNumericalEngine() {
   }
 
   return {
-    available: true, reset, newPacket, advance, profile, render,
+    available: true, canvas, reset, newPacket, advance, profile, render,
     // Slits opened or closed during a run: a new geometry object, same grid.
-    setGeometry(geom) { if (G) G.geom = geom; },
+    // Returns false if the change cannot be made live (record limit); the app then restarts.
+    setGeometry(geom) {
+      if (!G) return true;
+      const old = G.geom; G.geom = geom; uniformVersion++;
+      if (!state) return true;
+      // Before the packet has moved there is nothing behind the wall: no pre-detector record.
+      if (!syncRecords(stepsDone > 0)) { G.geom = old; uniformVersion++; return false; }
+      return true;
+    },
+    // Tests: behind the exit face, |sum_b psi_b - psi| / |psi| and sum_b |psi_b|^2 / |psi|^2.
+    checkRecords() {
+      if (!rec) return null;
+      const T = new Float32Array(G.nx * G.ny * 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, state.flip ? state.fB : state.fA); gl.readPixels(0, 0, G.nx, G.ny, gl.RGBA, gl.FLOAT, T);
+      const L = rec.list.map((_, b) => { const a = new Float32Array(rec.w * G.ny * 4); gl.bindFramebuffer(gl.FRAMEBUFFER, (rec.flip ? rec.fboB : rec.fboA)[b]); gl.readPixels(0, 0, rec.w, G.ny, gl.RGBA, gl.FLOAT, a); return a; });
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      let d = 0, t = 0, rb = 0;
+      for (let j = 0; j < G.ny; j++) for (let i = G.drive + 2; i < G.nx; i++) {
+        const q = 4 * (j * G.nx + i); let sr = 0, si = 0;
+        for (const a of L) { const r = 4 * (j * rec.w + i - G.off); sr += a[r]; si += a[r + 1]; rb += a[r] ** 2 + a[r + 1] ** 2; }
+        d += (sr - T[q]) ** 2 + (si - T[q + 1]) ** 2; t += T[q] ** 2 + T[q + 1] ** 2;
+      }
+      return { mismatch: Math.sqrt(d / t), normTotal: t, normRecords: rb, records: L.length };
+    },
+    get records() { return rec ? rec.list.map(r => ({ slits: r.slits ? r.slits.slice() : null, pre: !!r.pre })) : []; },
     get particles() { return parts; },
     get grid() { return G ? { nx: G.nx, ny: G.ny, h: G.h, dt: G.dt, x0: G.x0, xMin: G.xMin, yMin: G.yMin, peak: G.peak } : null; },
     get modelTime() { return G ? simTau * G.h * G.h : 0; },
