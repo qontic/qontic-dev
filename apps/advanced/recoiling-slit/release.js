@@ -1,1 +1,0 @@
-export const APP_RELEASE={version:'0.2.0',date:'2026-11-07'};

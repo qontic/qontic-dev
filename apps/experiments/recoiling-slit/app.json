@@ -1,0 +1,28 @@
+{
+  "id": "einstein-recoiling-slit",
+  "title": "Einstein’s Recoiling Slit",
+  "type": "app",
+  "category": "experiments",
+  "module": "recoiling-slit",
+  "topics": [
+    "complementarity",
+    "entanglement",
+    "which-way-information"
+  ],
+  "level": "intermediate",
+  "description": "A single rubidium atom in an optical tweezer as Einstein’s movable slit (Zhang et al., PRL 2025). Tune the trap depth and heating, watch the single-photon fringes fade as the recoil carries path information, and read it in Orthodox, Pilot-Wave and Many-Worlds terms.",
+  "tags": [
+    "Experiments",
+    "Einstein–Bohr",
+    "Which way",
+    "Multiview",
+    "Prediction mode"
+  ],
+  "entry": "index.html",
+  "status": "review",
+  "interpretations": [
+    "orthodox",
+    "pilot-wave",
+    "many-worlds"
+  ]
+}

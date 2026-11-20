@@ -1,5 +1,9 @@
 # Einstein’s Recoiling Slit
 
+## 1.0.0 — 2026-11-20
+
+Moved to the Experiments section (module recoiling-slit). Tied to Zhang et al., PRL 135, 230202 (2025): trap-depth control (0.02–20 mK, measured range 0.60–10.49 mK marked) with Δp = 1.60 ħk·(U/10.49 mK)^¼, residual heating n̄ with V = exp(−2η²(2n̄+1)), sampled exactly as a mixture of coherent states. Momentum plots in units of ħk. New visibility-versus-depth graph with the measured n̄ band and the reported 84(4)% point. Pilot Wave view now shows the atom's actual position X, P(D₊|X) = [1 + cos(2kX + φ)]/2 and the collected positions behind each detector. Removed the free-particle phase ripple (the trap period is far longer than the event). Python reference (tests/reference.py: trap frequency, Fock-state visibility, Fock-route Monte Carlo) with JS tests against it. Physics, Views and Experiment tabs rewritten.
+
 ## 0.2.0 — 2026-11-07
 
 Add an explicit complex two-mode photon/continuous atom wave model, a four-stage packet walkthrough, real/imaginary/density views, and detector-record comparisons for Orthodox, Pilot Wave, and Many Worlds. Conditional atom waves are normalized for collapsed/record branches. Interpretation switches preserve the sampled event and counts. Pilot Wave displays retained waves and a Born-sampled definite record; it does not solve field guidance dynamics. Add unitary, normalization, and free-phase checks.

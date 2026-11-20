@@ -41,7 +41,8 @@
       "title": "Experiments",
       "description": "Recent and landmark experiments, simulated with the parameters the experimenters published. Each app shows what was measured and what it does and does not decide.",
       "items": [
-        { "type": "module", "id": "nanoparticle-interference" }
+        { "type": "module", "id": "nanoparticle-interference" },
+        { "type": "module", "id": "recoiling-slit" }
       ]
     },
     {

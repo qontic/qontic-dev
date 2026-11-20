@@ -1,0 +1,15 @@
+{
+  "id": "recoiling-slit",
+  "title": "Einstein’s Recoiling Slit",
+  "summary": "Einstein’s 1927 movable slit, realized with a single trapped atom (USTC, 2025). How path information carried by the atom’s recoil removes the interference.",
+  "topics": [
+    "complementarity",
+    "entanglement",
+    "which-way-information"
+  ],
+  "order": 81,
+  "relatedModules": [
+    "double-slit",
+    "measurement"
+  ]
+}
