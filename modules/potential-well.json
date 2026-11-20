@@ -9,6 +9,7 @@
   ],
   "order": 35,
   "resourceNotes": {
+    "hydrogen-atom-simulation": "The Coulomb potential: hydrogen eigenstates, superpositions and pilot-wave electron paths in three dimensions.",
     "classical-limit-simulation": "Optional next step: compare wave-guided and classical paths in a reflecting box, then add a diffraction barrier."
   }
 }
