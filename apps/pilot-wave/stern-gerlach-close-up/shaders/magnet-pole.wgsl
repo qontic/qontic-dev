@@ -27,6 +27,7 @@ fn fs(in: PoleOut) -> @location(0) vec4<f32> {
   let diffuse = 0.32 + 0.68 * max(dot(n, light), 0.0);
   let rim = pow(1.0 - abs(dot(n, v)), 2.0);
   let color = in.color.rgb * diffuse + vec3<f32>(0.55, 0.7, 1.0) * rim * 0.22;
-  let on = mix(0.4, 1.0, clamp(uni.sgField.y, 0.0, 1.0));
+  // Poles (alpha < 0.9) fade when the field is off; the spin arrow drawn with this shader does not.
+  let on = select(mix(0.4, 1.0, clamp(uni.sgField.y, 0.0, 1.0)), 1.0, in.color.a > 0.9);
   return vec4<f32>(color, in.color.a * on);
 }

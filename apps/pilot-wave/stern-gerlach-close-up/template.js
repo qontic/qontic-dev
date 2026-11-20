@@ -65,7 +65,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=23'));
+  ({ simulation } = await import('./main.js?v=25'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {
@@ -159,7 +159,7 @@ function drawSideView(c, { dot = false } = {}) {
   g.fillText('beam →', cx - 22, y1 + 22);
   g.fillText('z ↑', 6, y0 - 10);
   g.fillText('B up, stronger toward the top', x0 + 40, y0 - 12);
-  g.fillText('plate', x1 - 40, y1 + 22);
+  g.fillText('screen', x1 - 40, y1 + 22);
 }
 const spinAnswers = [
   { id: 'up', label: 'The whole packet moves up' },
@@ -193,13 +193,13 @@ mountQonticQuiz({
       answers: [
         { id: 'upper', label: 'In the upper branch' },
         { id: 'lower', label: 'In the lower branch' },
-        { id: 'coin', label: 'Either one, with a 50–50 chance decided at the plate' },
+        { id: 'coin', label: 'Either one, with a 50–50 chance decided at the screen' },
         { id: 'hidden', label: 'Either one, set by a hidden spin direction the particle carries' },
       ],
       prepare: prepare({ spin: 1 }), draw: c => drawSideView(c, { dot: true }),
       plain: 'In the upper branch: its starting position decides.',
       explain: 'The particle follows the velocity field of the wave, and particle paths cannot cross in this description. Particles from the upper half follow the upper branch and those from the lower half the lower one; only particles that start very near the middle can end in the other branch. The particle carries no extra spin variable: the spin is in the wave.' },
-    { question: `${PW} Same superposition, 500 dots. About how many end up on the upper half of the plate?`,
+    { question: `${PW} Same superposition, 500 dots. About how many end up on the upper half of the screen?`,
       answer: 'half', caption: 'Side view at the start.',
       answers: [
         { id: 'half', label: 'About 250, give or take about 11' },
@@ -210,7 +210,7 @@ mountQonticQuiz({
       prepare: prepare({ spin: 1 }), draw: c => drawSideView(c),
       plain: 'About 250: the starting positions are random, drawn from |Ψ|², and half the weight is in the upper part.',
       explain: 'Each dot lands in the upper half with probability ½, so the count fluctuates around 250 with a standard deviation of √(500 × ½ × ½) ≈ 11. Watch the counts in the corner over a few reruns.' },
-    { question: 'Orthodox reading. Same superposition. Where is the particle while the packet is splitting, before it reaches the plate?',
+    { question: 'Orthodox reading. Same superposition. Where is the particle while the packet is splitting, before it reaches the screen?',
       answer: 'none', caption: 'Side view at the start. The cloud is |Ψ|².',
       answers: [
         { id: 'none', label: 'The theory gives it no position; |Ψ|² gives the chances of where it will be found' },
@@ -220,8 +220,8 @@ mountQonticQuiz({
       ],
       prepare: prepare({ spin: 1, reading: 'cpn' }), draw: c => drawSideView(c),
       plain: 'The orthodox reading gives it no position until it is detected.',
-      explain: 'Only the wave is described. At the plate a single hit appears in one half, with probability ½ each. "In one branch, we do not know which" is the pilot-wave answer; the simulation shows only the cloud in this reading.' },
-    { question: `${PW} The spin term of the guidance law is switched off (Advanced: Spin term). What changes at the plate?`,
+      explain: 'Only the wave is described. At the screen a single hit appears in one half, with probability ½ each. "In one branch, we do not know which" is the pilot-wave answer; the simulation shows only the cloud in this reading.' },
+    { question: `${PW} The spin term of the guidance law is switched off (Advanced: Spin term). What changes at the screen?`,
       answer: 'paths', caption: 'Side view at the start.', watch: false,
       answers: [
         { id: 'paths', label: 'Only the individual trajectories; the counts have the same statistics' },

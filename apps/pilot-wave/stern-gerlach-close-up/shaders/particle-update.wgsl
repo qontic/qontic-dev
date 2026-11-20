@@ -1,6 +1,8 @@
 @group(0) @binding(1) var<storage, read> wave: array<WaveCell>;
 @group(0) @binding(2) var<storage, read> particlesIn: array<vec4<f32>>;
 @group(0) @binding(3) var<storage, read_write> particlesOut: array<vec4<f32>>;
+// Spin direction of the wave at each dot: Psi^dagger sigma Psi / Psi^dagger Psi (a unit vector).
+@group(0) @binding(4) var<storage, read_write> spinOut: array<vec4<f32>>;
 
 fn fetchCell(y: i32, z: i32) -> Spinor {
   if (y < 0 || z < 0 || y >= gridH() || z >= gridD()) { return spinorZero(); }
@@ -104,7 +106,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     let t = clamp((uni.detector.x - x.x) / max(1e-6, xn.x - x.x), 0.0, 1.0);
     let hit = mix(x, xn, t);
     particlesOut[id] = vec4<f32>(10000.0, hit.y, hit.z, uni.detector.x);
+    let mh = spinDensity(sampleChi(hit.y, hit.z));
+    if (length(mh) > 1e-12) { spinOut[id] = vec4<f32>(normalize(mh), 1.0); }
     return;
   }
   particlesOut[id] = vec4<f32>(xn.x, xn.y, xn.z, xn.x);
+  let m = spinDensity(sampleChi(xn.y, xn.z));
+  let len = length(m);
+  if (len > 1e-12) { spinOut[id] = vec4<f32>(m / len, 1.0); }
 }

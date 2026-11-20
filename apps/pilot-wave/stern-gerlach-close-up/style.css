@@ -33,6 +33,7 @@ body:not(.simulation-ready) #scene-legend { display: none; }
 #scene-legend .swatch { display: inline-block; width: 16px; height: 0; margin: 0 6px 3px 0; vertical-align: middle; border-top: 3px solid; }
 #scene-legend .swatch.field { border-color: #ff3b1c; }
 #scene-legend .swatch.plate { border-color: #5cc6f0; }
+#scene-legend .swatch.spin { border-color: #ffc24a; width: 12px; }
 #scene-legend .swatch.magnet { border-top: 0; height: 8px; width: 12px; margin: 0 8px 2px 2px; background: linear-gradient(180deg, #2952f2 50%, #e0242a 50%); }
 #scene-legend .swatch.cloud, #scene-legend .swatch.dots { width: 10px; height: 10px; margin: 0 9px 2px 3px; border: 0; border-radius: 50%; }
 #scene-legend .swatch.cloud { background: radial-gradient(circle, #e8fbff 0%, #4aa8ff 45%, rgba(40, 90, 220, 0) 75%); }

@@ -45,20 +45,21 @@ const WAVE_WORKGROUP_SIZE = 256;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg2d3",
-  palette: "./shaders/palette.wgsl?v=sg2d3",
-  waveInit: "./shaders/wave-init.wgsl?v=sg2d3",
-  waveStep: "./shaders/wave-step.wgsl?v=sg2d3",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d3",
-  cloud: "./shaders/cloud.wgsl?v=sg2d3",
-  particleRender: "./shaders/particle-render.wgsl?v=sg2d3",
-  density: "./shaders/density.wgsl?v=sg2d3",
-  boxShell: "./shaders/box-shell.wgsl?v=sg2d3",
-  line: "./shaders/line.wgsl?v=sg2d3",
-  fieldLine: "./shaders/field-line.wgsl?v=sg2d3",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d3",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d3",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d3",
+  common: "./shaders/common.wgsl?v=sg2d5",
+  palette: "./shaders/palette.wgsl?v=sg2d5",
+  waveInit: "./shaders/wave-init.wgsl?v=sg2d5",
+  waveStep: "./shaders/wave-step.wgsl?v=sg2d5",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d5",
+  cloud: "./shaders/cloud.wgsl?v=sg2d5",
+  particleRender: "./shaders/particle-render.wgsl?v=sg2d5",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg2d5",
+  density: "./shaders/density.wgsl?v=sg2d5",
+  boxShell: "./shaders/box-shell.wgsl?v=sg2d5",
+  line: "./shaders/line.wgsl?v=sg2d5",
+  fieldLine: "./shaders/field-line.wgsl?v=sg2d5",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d5",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d5",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d5",
 };
 
 function applyShaderConstants(source) {
@@ -84,6 +85,7 @@ async function loadShaders() {
     particleUpdate: parts.common + parts.particleUpdate,
     cloud: parts.common + parts.palette + parts.cloud,
     particleRender: parts.common + parts.particleRender,
+    spinArrow: parts.common + parts.spinArrow,
     density: parts.common + parts.density,
     boxShell: parts.common + parts.boxShell,
     magnetPole: parts.common + parts.magnetPole,
@@ -176,6 +178,8 @@ const params = {
   sgFieldOn: 1,
   showFieldArrows: 1,
   showMagnet: 1,
+  showSpin: 1,
+  screenDistance: 40,
   showAxes: 1,
 
   cloudGain: .05,
@@ -404,11 +408,16 @@ function addSectionHeader(label) {
   controls.appendChild(header);
 }
 
+// Layout along the beam, in cells (see Magnets below).
+const APPROACH_CELLS = 30;
+const MAGNET_CELLS = 50;   // the 3.5 cm magnet
+const RAMP_CELLS = 4;
+
 // ── Lab units ────────────────────────────────────────────────────────────────
 // Each axis has its own scale, matched to the 1922 experiment at the default settings
-// (64-cell grid, momentum 5.5, packet width 10 cells): the flight from the start to the
-// plate is the 3.5 cm magnet, the packet moves at 660 m/s, and the FWHM of |psi|^2 across
-// the beam is the 35 µm slit. The scales are fixed, so the sliders change lab quantities.
+// (momentum 5.5, packet width 10 cells): the magnet (MAGNET_CELLS) is 3.5 cm long, the packet
+// moves at 660 m/s, and the FWHM of |psi|^2 across the beam is the 35 µm slit. The scales are
+// fixed, so the sliders change lab quantities.
 // What cannot match is hbar/m in these units: the model's wave spreads far faster.
 const LAB = {
   magnetLength: 0.035,             // m (Friedrich & Herschbach 2003)
@@ -422,9 +431,7 @@ function gridGroupVelocity(k, hbar = 6, mass = 1) {
   return (hbar / (2 * mass)) * (32 * Math.sin(k) - 4 * Math.sin(2 * k)) / 12;
 }
 const LAB_SCALE = (() => {
-  const period = 63;
-  const flight = 2 * period - 0.25 * period;               // cells, start to plate
-  const sx = LAB.magnetLength / flight;                    // m per cell along x
+  const sx = LAB.magnetLength / MAGNET_CELLS;              // m per cell along x
   const st = sx * 5.5 / LAB.speed;                         // s per time unit (default speed 5.5 cells/unit)
   const sz = LAB.beamFWHM / (2.3548 * 10 / Math.SQRT2);    // m per cell across the beam
   return { sx, st, sz };
@@ -438,39 +445,37 @@ const labGradient = g => {
 const labFWHM = sigma => 2.3548 * sigma / Math.SQRT2 * LAB_SCALE.sz;  // m
 
 // ── Magnets ──────────────────────────────────────────────────────────────────
-// Each preset lists magnets along the flight, as fractions f of the way from the packet's
-// start to the plate: the field rises and falls with smooth ramps of width RAMP inside
-// [a, b] and is exactly zero outside, so a gap between two magnets is field-free and the
-// hand-over from one to the next is sudden. theta turns a magnet about the beam axis,
-// from +z toward +y (0: gradient along z, 90°: along y); the Magnet angle slider adds to it. b0 is the uniform part in units of g (2 keeps the
-// field from vanishing in the box; 0.3 lets it nearly vanish, so spins can flip). g and gMax
-// are the default and largest gradient that keep the branches off the walls.
+// Layout along the beam (cells): the packet starts field-free, reaches the first magnet
+// APPROACH_CELLS after its starting centre, and the screen stands params.screenDistance
+// after the end of the last magnet. Each preset lists magnets by start and length (cells,
+// from the first magnet's entrance); the field rises and falls with smooth ramps of width
+// RAMP_CELLS inside [start, start + length] and is exactly zero outside, so a gap between two
+// magnets is field-free and the hand-over is sudden. theta turns a magnet about the beam
+// axis, from +z toward +y; the Magnet angle slider adds to it. b0 is the uniform part in
+// units of g (2 keeps the field from vanishing in the box; 0.3 lets it nearly vanish).
 const MAGNET_PRESETS = [
-  { name: "Long magnet", magnets: [{ a: -1, b: 2, theta: 0 }], b0: 2, g: 3, gMax: 3.5 },
-  { name: "Short magnet, then drift", magnets: [{ a: -1, b: 0.35, theta: 0 }], b0: 2, g: 5, gMax: 6 },
-  { name: "Two magnets at 90°", magnets: [{ a: -1, b: 0.22, theta: 0 }, { a: 0.28, b: 0.95, theta: Math.PI / 2 }], b0: 2, g: 7, gMax: 7.5 },
-  { name: "Weak uniform field", magnets: [{ a: -1, b: 2, theta: 0 }], b0: 0.3, g: 3, gMax: 3.5 },
+  { name: "One magnet", magnets: [{ start: 0, length: MAGNET_CELLS, theta: 0 }], b0: 2 },
+  { name: "Two magnets at 90°", magnets: [{ start: 0, length: 20, theta: 0 }, { start: 28, length: 35, theta: Math.PI / 2 }], b0: 2 },
+  { name: "Weak field", magnets: [{ start: 0, length: MAGNET_CELLS, theta: 0 }], b0: 0.3 },
 ];
-const RAMP = 0.05;
 const magnetPreset = () => MAGNET_PRESETS[params.magnetPreset | 0] || MAGNET_PRESETS[0];
-// The preset's magnets, all turned by the Magnet angle about the beam axis.
+const packetStartX = () => params.packetX * (simW - 1);
+const magnetEntryX = () => packetStartX() + APPROACH_CELLS;
+// The preset's magnets in grid x (a = entrance, b = exit), all turned by the Magnet angle.
 function magnets() {
   const turn = params.magnetAngle * DEG;
-  return magnetPreset().magnets.map(mg => ({ ...mg, theta: mg.theta + turn }));
+  const x0 = magnetEntryX();
+  return magnetPreset().magnets.map(mg => ({ a: x0 + mg.start, b: x0 + mg.start + mg.length, theta: mg.theta + turn }));
 }
+const lastMagnetEndX = () => Math.max(...magnets().map(mg => mg.b));
 const smooth01 = t => { const u = Math.min(1, Math.max(0, t)); return u * u * (3 - 2 * u); };
-const magnetProfile = (mg, f) => smooth01((f - mg.a) / RAMP) * smooth01((mg.b - f) / RAMP);
-function flightFraction(x) {
-  const x0 = params.packetX * (simW - 1);
-  return (x - x0) / Math.max(1, detectorPlateXGrid() - x0);
-}
+const magnetProfile = (mg, x) => smooth01((x - mg.a) / RAMP_CELLS) * smooth01((mg.b - x) / RAMP_CELLS);
 function magnetsAtX(x) {
-  const f = flightFraction(x);
-  return magnets().map(mg => ({ p: magnetProfile(mg, f), theta: mg.theta }));
+  return magnets().map(mg => ({ p: magnetProfile(mg, x), theta: mg.theta }));
 }
 // The packet feels the field at its centre x_c(t).
 function magnetState(t) {
-  const segs = magnetsAtX(params.packetX * (simW - 1) + params.p0 / params.mass * t);
+  const segs = magnetsAtX(packetStartX() + params.p0 / params.mass * t);
   return { m1: segs[0], m2: segs[1] || { p: 0, theta: 0 } };
 }
 // Unit vectors (y, z) along each magnet's gradient axis: the axes measured at the plate.
@@ -504,7 +509,8 @@ function syncSlider(key) {
   refreshUnitLabels();
 }
 // Above ~3.5 the deflected branches reach the hard walls before the plate.
-addSlider("sgGradient", "Field gradient", 0.0, 3.5, 0.002, () => requestTrailClear(), g => `${labGradient(g).toFixed(1)} T/cm`);
+addSlider("sgGradient", "Field gradient", 0.0, 6.0, 0.05, () => requestTrailClear(), g => `${labGradient(g).toFixed(1)} T/cm`);
+addSlider("screenDistance", "Screen distance", 10, 60, 1, () => applyScreenDistance(), d => `${(d * LAB_SCALE.sx * 100).toFixed(1)} cm`);
 
 addSectionHeader("Wave and guidance");
 addSlider("p0", "Atom speed", 0.0, 6.0, 0.1, () => resetAll(), p => `${Math.round(labSpeed(p))} m/s`);
@@ -514,6 +520,7 @@ controls = displayControls;
 addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
 addToggleInt("showFieldArrows", "Field arrows");
 addToggleInt("showMagnet", "Magnet poles");
+addToggleInt("showSpin", "Spin arrows", () => updateStats());
 const cameraProjectionControl = addCycleButton("cameraProjection", "Camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
   syncCameraUi();
@@ -572,6 +579,7 @@ const WAVE_STEP_WGSL = SHADERS.waveStep;
 const PARTICLE_UPDATE_WGSL = SHADERS.particleUpdate;
 const CLOUD_WGSL = SHADERS.cloud;
 const PARTICLE_RENDER_WGSL = SHADERS.particleRender;
+const SPIN_ARROW_WGSL = SHADERS.spinArrow;
 const DENSITY_WGSL = SHADERS.density;
 const BOX_SHELL_WGSL = SHADERS.boxShell;
 const LINE_WGSL = SHADERS.line;
@@ -581,7 +589,10 @@ const MAGNET_POLE_WGSL = SHADERS.magnetPole;
 const WEIGHT_REDUCE_WGSL = SHADERS.weightReduce;
 let pipelineWeightReduce = null;
 let pipelineWaveInit, pipelineWaveStep, pipelineParticleUpdate;
-let pipelineCloud, pipelineBoxShell, pipelineLine, pipelineFieldLine, pipelineDetectorPlate, pipelineMagnetPole;
+let pipelineCloud, pipelineBoxShell, pipelineLine, pipelineFieldLine, pipelineDetectorPlate, pipelineMagnetPole, pipelineSpinArrow;
+let particleSpin = null, spinArrowBindGroups = [];
+let meanSpinBuffer = null, meanSpinVertexCount = 0;
+const MEAN_SPIN_MAX_VERTS = 240;
 let pipelineParticleRender, pipelineParticleStamp;
 let pipelineDensityFade, pipelineDensityRenderGlow;
 let nearestSampler = device.createSampler({ magFilter: "nearest", minFilter: "nearest" });
@@ -695,6 +706,7 @@ async function buildPipelines() {
   const particleUpdateModule = shaderModule("particle update", PARTICLE_UPDATE_WGSL);
   const cloudModule = shaderModule("cloud render", CLOUD_WGSL);
   const particleModule = shaderModule("particle render", PARTICLE_RENDER_WGSL);
+  const spinArrowModule = shaderModule("spin arrows", SPIN_ARROW_WGSL);
   const densityModule = shaderModule("density", DENSITY_WGSL);
   const boxShellModule = shaderModule("box shell", BOX_SHELL_WGSL);
   const lineModule = shaderModule("line", LINE_WGSL);
@@ -744,6 +756,18 @@ async function buildPipelines() {
       module: particleModule,
       entryPoint: "fsRender",
       // Normal alpha blending keeps the start-side colours readable over the bright cloud.
+      targets: [{ format: presentationFormat, blend: blendState("src-alpha", "one-minus-src-alpha"), writeMask: COLOR_WRITE_ALL }],
+    },
+    primitive: { topology: "triangle-list" },
+  });
+
+  const pipelineSpinArrowReady = device.createRenderPipelineAsync({
+    label: "spin arrow pipeline",
+    layout: "auto",
+    vertex: { module: spinArrowModule, entryPoint: "vs" },
+    fragment: {
+      module: spinArrowModule,
+      entryPoint: "fs",
       targets: [{ format: presentationFormat, blend: blendState("src-alpha", "one-minus-src-alpha"), writeMask: COLOR_WRITE_ALL }],
     },
     primitive: { topology: "triangle-list" },
@@ -902,6 +926,7 @@ async function buildPipelines() {
     pipelineDetectorPlate,
     pipelineWeightReduce,
     pipelineMagnetPole,
+    pipelineSpinArrow,
   ] = await Promise.all([
     pipelineWaveInitReady,
     pipelineWaveStepReady,
@@ -917,6 +942,7 @@ async function buildPipelines() {
     pipelineDetectorPlateReady,
     pipelineWeightReduceReady,
     pipelineMagnetPoleReady,
+    pipelineSpinArrowReady,
   ]);
 
   boxShellBindGroup = bindGroup(pipelineBoxShell, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
@@ -987,15 +1013,15 @@ function rebuildWaveBindGroups() {
 
 function rebuildWeightResources() {
   const groups = dispatchCount(waveCount, WAVE_WORKGROUP_SIZE);
-  if (weightPartials?.size !== groups * 16) {
+  if (weightPartials?.size !== groups * 48) {
     if (!readbackBusy) {
       destroyGpuResource(weightPartials);
       destroyGpuResource(weightReadback);
     }
-    weightPartials = makeStorageBuffer("probability weight partial sums", groups * 16, GPUBufferUsage.COPY_SRC);
+    weightPartials = makeStorageBuffer("probability weight partial sums", groups * 48, GPUBufferUsage.COPY_SRC);
     weightReadback = device.createBuffer({
       label: "probability weight readback",
-      size: groups * 16,
+      size: groups * 48,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
   }
@@ -1008,7 +1034,7 @@ function rebuildWeightResources() {
 }
 
 function rebuildParticleBindGroups() {
-  if (!waveBufferA || !waveBufferB || !particleSrc || !particleDst) return;
+  if (!waveBufferA || !waveBufferB || !particleSrc || !particleDst || !particleSpin) return;
   const waves = [waveBufferA, waveBufferB];
   const particles = [particleSrc, particleDst];
   particleUpdateBindGroups = waves.map((waveBuffer) => particles.map((src, srcIndex) => bindGroup(pipelineParticleUpdate, [
@@ -1016,7 +1042,13 @@ function rebuildParticleBindGroups() {
     { binding: 1, resource: { buffer: waveBuffer } },
     { binding: 2, resource: { buffer: src } },
     { binding: 3, resource: { buffer: particles[1 - srcIndex] } },
+    { binding: 4, resource: { buffer: particleSpin } },
   ])));
+  spinArrowBindGroups = particles.map((buffer) => bindGroup(pipelineSpinArrow, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer } },
+    { binding: 2, resource: { buffer: particleSpin } },
+  ]));
   particleRenderBindGroups = particles.map((buffer) => bindGroup(pipelineParticleRender, [
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: { buffer } },
@@ -1069,7 +1101,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   const sgStrength = params.sgFieldOn ? params.sgGradient : 0.0;
   uniformData.set([sgStrength, params.sgFieldOn ? 1.0 : 0.0, params.spinTheta * DEG, params.spinPhi * DEG], 56);
   const xc = visualPacketCenterX();
-  uniformData.set([xc, CLOUD_STRIDE, Math.floor(xc) - Math.floor(simW / 2), 0.0], 60);
+  uniformData.set([xc, CLOUD_STRIDE, Math.floor(xc) - Math.floor(simW / 2), spinArrowStride()], 60);
   const mag = magnetState(simTime);
   uniformData.set([mag.m1.p, Math.cos(mag.m1.theta), Math.sin(mag.m1.theta), magnetPreset().b0], 64);
   uniformData.set([mag.m2.p, Math.cos(mag.m2.theta), Math.sin(mag.m2.theta), 0.0], 68);
@@ -1082,6 +1114,10 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
 }
 
 // Motion along x is the exact free Gaussian (no grid), so the momentum is used as set.
+// Arrows on at most about 120 dots.
+function spinArrowStride() {
+  return Math.max(1, Math.ceil(Math.floor(params.nParticles) / 120));
+}
 function effectivePeriodicP0() {
   return params.p0;
 }
@@ -1098,8 +1134,9 @@ function tunnelStartX() {
   return params.packetX * (simW - 1) - 2.5 * params.packetSigma / Math.SQRT2;
 }
 
+// The screen: params.screenDistance cells after the end of the last magnet.
 function detectorPlateXGrid() {
-  return 2.0 * Math.max(1, simW - 1);
+  return lastMagnetEndX() + params.screenDistance;
 }
 
 function worldFromGrid(p) {
@@ -1243,9 +1280,13 @@ function clampCameraPitch(pitch) {
 }
 
 // Far enough back to show the magnet poles around the tunnel.
-const DEFAULT_CAMERA_DISTANCE = 4.0;
+const DEFAULT_CAMERA_DISTANCE = 3.0;
+// Size of the scene: the tunnel length or its cross-section, whichever is larger.
+function sceneExtent() {
+  return Math.max(detectorPlateXGrid() - tunnelStartX(), simH, simD) * params.boxScale;
+}
 function cameraDistanceBounds() {
-  const n = Math.max(simW, simH, simD) * params.boxScale;
+  const n = sceneExtent();
   return {
     n,
     min: 0.325 * n,
@@ -1468,7 +1509,7 @@ canvas.addEventListener("wheel", (e) => {
 
 function cameraFrame() {
   const target = cameraLookAtWorld();
-  const n = Math.max(simW, simH, simD) * params.boxScale;
+  const n = sceneExtent();
   cameraOrbit.distance = clampCameraDistance(cameraOrbit.distance);
   cameraTarget.distance = clampCameraDistance(cameraTarget.distance);
 
@@ -1751,6 +1792,12 @@ function rebuildParticles() {
   particleSrc = makeBuffer("particle src", data, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
   particleDst = makeStorageBuffer("particle dst", data.byteLength, GPUBufferUsage.COPY_SRC);
   particleStartSide = makeBuffer("particle start side", startSide, GPUBufferUsage.STORAGE);
+  // At the start the wave's spin direction is the prepared spin everywhere.
+  const spin0 = new Float32Array(Math.max(1, n) * 4);
+  const sv = spinVector();
+  for (let i = 0; i < n; i++) spin0.set([sv[0], sv[1], sv[2], 1], 4 * i);
+  destroyGpuResource(particleSpin);
+  particleSpin = makeBuffer("particle spin", spin0, GPUBufferUsage.STORAGE);
   if (n > 0) {
     hitReadback = device.createBuffer({
       label: "plate hit readback",
@@ -1781,7 +1828,8 @@ function updateHitDisplay() {
     hitDisplay.hidden = false;
     const vals = weightCounts.values;
     const rows = labels.map((l, k) => `${l}: ${weightCounts.valid && vals[k] !== undefined ? vals[k].toFixed(2) : "–"}`).join("<br>");
-    hitDisplay.innerHTML = `<b>Probability now</b><br>${rows}<br><span class="plate-hits-note">Weight of |Ψ|² in each region.<br>At the plate: the chance of a hit there.</span>`;
+    const sp = weightCounts.valid && weightCounts.spin ? Math.hypot(...weightCounts.spin).toFixed(2) : "–";
+    hitDisplay.innerHTML = `<b>Probability now</b><br>${rows}<br>Length of ⟨σ⟩: ${sp}<br><span class="plate-hits-note">Weight of |Ψ|² in each region.<br>At the screen: the chance of a hit there.</span>`;
     return;
   }
   hitDisplay.hidden = !dotsShown() || hitCounts.total <= 0;
@@ -1801,20 +1849,26 @@ function readWeights(now) {
   pass.setBindGroup(0, weightBindGroups[flip]);
   pass.dispatchWorkgroups(groups);
   pass.end();
-  encoder.copyBufferToBuffer(weightPartials, 0, readback, 0, groups * 16);
+  encoder.copyBufferToBuffer(weightPartials, 0, readback, 0, groups * 48);
   device.queue.submit([encoder.finish()]);
   readbackBusy = true;
   const twoAxes = measurementAxes().length > 1;
-  readback.mapAsync(GPUMapMode.READ, 0, groups * 16).then(() => {
-    const sums = new Float32Array(readback.getMappedRange(0, groups * 16));
-    let A = 0, B = 0, AB = 0, total = 0;
-    for (let i = 0; i < groups; i++) { A += sums[4 * i]; B += sums[4 * i + 1]; AB += sums[4 * i + 2]; total += sums[4 * i + 3]; }
+  readback.mapAsync(GPUMapMode.READ, 0, groups * 48).then(() => {
+    const sums = new Float32Array(readback.getMappedRange(0, groups * 48));
+    let A = 0, B = 0, AB = 0, total = 0, mx = 0, my = 0, mz = 0, ry = 0, rz = 0;
+    for (let i = 0; i < groups; i++) {
+      const k = 12 * i;
+      A += sums[k]; B += sums[k + 1]; AB += sums[k + 2]; total += sums[k + 3];
+      mx += sums[k + 4]; my += sums[k + 5]; mz += sums[k + 6];
+      ry += sums[k + 8]; rz += sums[k + 9];
+    }
     readback.unmap();
     if (readback === weightReadback && total > 0) {
       const values = twoAxes
         ? [AB / total, (A - AB) / total, (B - AB) / total, (total - A - B + AB) / total]
         : [A / total, 1 - A / total];
-      weightCounts = { values, valid: true };
+      // <sigma> of the whole state and the centre of |chi|^2 (from the box centre).
+      weightCounts = { values, valid: true, spin: [mx / total, my / total, mz / total], centre: [ry / total, rz / total] };
       updateHitDisplay();
     } else if (readback !== weightReadback) {
       readback.destroy();
@@ -2008,6 +2062,18 @@ function render(encoder, camera) {
     pass.setPipeline(pipelineParticleRender);
     pass.setBindGroup(0, particleRenderBindGroups[particleFlip]);
     pass.draw(6, Math.floor(params.nParticles));
+    if (params.showSpin && spinArrowBindGroups.length) {
+      pass.setPipeline(pipelineSpinArrow);
+      pass.setBindGroup(0, spinArrowBindGroups[particleFlip]);
+      pass.draw(9, Math.ceil(Math.floor(params.nParticles) / spinArrowStride()));
+    }
+  }
+
+  if (reading === "cpn" && params.showSpin && updateMeanSpinArrow()) {
+    pass.setPipeline(pipelineMagnetPole);
+    pass.setBindGroup(0, magnetPoleBindGroup);
+    pass.setVertexBuffer(0, meanSpinBuffer);
+    pass.draw(meanSpinVertexCount);
   }
 
   pass.end();
@@ -2022,6 +2088,8 @@ const legendCloud = document.getElementById("legend-cloud");
 const legendDots = document.getElementById("legend-dots");
 const legendCloudText = document.querySelector("#legend-cloud .legend-text");
 const legendPlateText = document.querySelector("#legend-plate .legend-text");
+const legendSpin = document.getElementById("legend-spin");
+const legendSpinText = document.querySelector("#legend-spin .legend-text");
 function updateStats() {
   if (legendField) legendField.hidden = !(params.sgFieldOn && params.sgGradient > 0);
   if (legendCloud) legendCloud.hidden = !params.showCloud;
@@ -2029,6 +2097,12 @@ function updateStats() {
   if (legendCloudText) legendCloudText.textContent = reading === "pw"
     ? "Cloud: |Ψ|²."
     : "Cloud: |Ψ|². In the orthodox reading it gives the probability of finding the particle at each place when its position is measured; the theory gives the particle no path.";
+  if (legendSpin) {
+    legendSpin.hidden = !params.showSpin;
+    legendSpinText.textContent = reading === "pw"
+      ? "Arrows on the dots: spin direction of the wave at each dot."
+      : "Arrow: the spin ⟨σ⟩ of the whole state. Full length: a definite direction; shorter: spin and position are entangled.";
+  }
   if (legendPlateText) legendPlateText.textContent = reading === "pw"
     ? "Screen: a dot stops where it reaches it."
     : "Screen: where the position is measured. The chance of a hit in each region is the weight of |Ψ|² that reaches it.";
@@ -2044,7 +2118,7 @@ function updateStats() {
   if (fieldOn) {
     const parts = expectedSplittings().map(s => {
       if (!Number.isFinite(s.cells)) return "–";
-      const near = 0.5 * s.cells > L - 12 ? " (near the walls)" : "";
+      const near = s.cells < 4 * packetStdAtScreen() ? " (spots overlap)" : "";
       const label = magnets().length > 1 ? `${s.axis} ` : "";
       return `${label}≈ ${(s.cells * LAB_SCALE.sz * 1e3).toFixed(2)} mm${near}`;
     });
@@ -2067,8 +2141,7 @@ function updateLegendField() {
   } else if (preset.b0 < 1) {
     text = `${head} Along ${p[0]}, but weak: on the ${q[0]} side it almost vanishes, and spins can flip.`;
   } else {
-    const where = ms[0].b < 1 ? " After the magnet the parts drift apart." : "";
-    text = `${head} The field points along ${p[0]} and is stronger toward ${p[0]}: the ${p[0]} spin part goes that way, the ${q[0]} part the other.${where}`;
+    text = `${head} The field points along ${p[0]} and is stronger toward ${p[0]}: the ${p[0]} spin part goes that way, the ${q[0]} part the other.`;
   }
   legendField.innerHTML = `<i class="swatch field"></i>${text}`;
 }
@@ -2158,6 +2231,53 @@ function rebuildBoxGeometry() {
   boxShellBuffer = makeBuffer("box shell vertices", new Float32Array(shellVerts), GPUBufferUsage.VERTEX);
 }
 
+// Orthodox reading: one arrow for <sigma> of the whole state, at the centre of the packet.
+// Its length is |<sigma>|: 1 when the spin has a definite direction, less when spin and
+// position are entangled (after the parts separate), 0 for an equal split.
+const MEAN_SPIN_COLOR = [1.0, 0.76, 0.29, 0.95];
+function updateMeanSpinArrow() {
+  if (!weightCounts.valid || !weightCounts.spin || !device) return false;
+  const [sx, sy, sz] = weightCounts.spin;
+  const len = Math.hypot(sx, sy, sz);
+  if (len < 0.03) return false;
+  const d = [sx / len, sy / len, sz / len];
+  const cy = 0.5 * (simH - 1) + weightCounts.centre[0], cz = 0.5 * (simD - 1) + weightCounts.centre[1];
+  const base = [Math.min(visualPacketCenterX(), detectorPlateXGrid()), cy, cz];
+  const L = 24 * len, head = Math.min(7, 0.45 * L), r0 = 1.3, r1 = 3.4;
+  // Orthonormal frame around d.
+  const a = Math.abs(d[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+  const cross = (u, v) => [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+  const norm = u => { const l = Math.hypot(...u) || 1; return u.map(c => c / l); };
+  const e1 = norm(cross(d, a)), e2 = cross(d, e1);
+  const at = (t, r, ang) => [0, 1, 2].map(i => base[i] + d[i] * t + r * (Math.cos(ang) * e1[i] + Math.sin(ang) * e2[i]));
+  const radial = ang => [0, 1, 2].map(i => Math.cos(ang) * e1[i] + Math.sin(ang) * e2[i]);
+  const verts = [];
+  const sc = params.boxScale;
+  const tri = (p, q, w, n) => {
+    const u = [q[0] - p[0], q[1] - p[1], q[2] - p[2]], v = [w[0] - p[0], w[1] - p[1], w[2] - p[2]];
+    const c = cross(u, v);
+    if (c[0] * n[0] + c[1] * n[1] + c[2] * n[2] < 0) [q, w] = [w, q];
+    for (const P of [p, q, w]) verts.push(P[0] * sc, P[1] * sc, P[2] * sc, n[0], n[1], n[2], ...MEAN_SPIN_COLOR);
+  };
+  const K = 8, neck = L - head;
+  for (let k = 0; k < K; k++) {
+    const a0 = 2 * Math.PI * k / K, a1 = 2 * Math.PI * (k + 1) / K, am = 0.5 * (a0 + a1);
+    const nr = radial(am);
+    tri(at(0, r0, a0), at(neck, r0, a0), at(neck, r0, a1), nr);
+    tri(at(0, r0, a0), at(neck, r0, a1), at(0, r0, a1), nr);
+    tri(at(0, 0, 0), at(0, r0, a0), at(0, r0, a1), d.map(c => -c));
+    const coneN = norm([0, 1, 2].map(i => nr[i] * head + d[i] * r1));
+    tri(at(neck, r1, a0), at(L, 0, 0), at(neck, r1, a1), coneN);
+    tri(at(neck, 0, 0), at(neck, r1, a0), at(neck, r1, a1), d.map(c => -c));
+  }
+  if (!meanSpinBuffer) {
+    meanSpinBuffer = device.createBuffer({ label: "mean spin arrow", size: MEAN_SPIN_MAX_VERTS * 40, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+  }
+  meanSpinVertexCount = Math.min(MEAN_SPIN_MAX_VERTS, verts.length / 10);
+  device.queue.writeBuffer(meanSpinBuffer, 0, new Float32Array(verts.slice(0, meanSpinVertexCount * 10)));
+  return true;
+}
+
 // Magnet poles, drawn outside the tunnel for each magnet over the part of the flight where it
 // is on. The field B = g(0, −y′, b0 + z′) (turned with the magnet) points along the magnet
 // axis +n and is stronger toward +n, so the pole on the +n side is the S pole, shaped as a
@@ -2173,9 +2293,6 @@ function rebuildMagnetPoles() {
   if (!device) return;
   const cy = 0.5 * (simH - 1), cz = 0.5 * (simD - 1);
   const L = Math.max(1, cz);
-  const xStart = tunnelStartX(), xPlate = detectorPlateXGrid();
-  const xPacket = params.packetX * (simW - 1);
-  const xAt = f => xPacket + f * (xPlate - xPacket);
   const verts = [];
   const sc = params.boxScale;
   const push = (p, n, col) => verts.push(p[0] * sc, p[1] * sc, p[2] * sc, n[0], n[1], n[2], col[0], col[1], col[2], col[3]);
@@ -2201,8 +2318,8 @@ function rebuildMagnetPoles() {
     }
   };
   for (const mg of magnets()) {
-    const xa = Math.max(xStart, xAt(mg.a + 0.5 * RAMP));
-    const xb = Math.min(xPlate, xAt(mg.b - 0.5 * RAMP));
+    const xa = mg.a + 0.5 * RAMP_CELLS;
+    const xb = mg.b - 0.5 * RAMP_CELLS;
     if (xb - xa < 1) continue;
     const N = [0, Math.sin(mg.theta), Math.cos(mg.theta)];
     const T = [0, Math.cos(mg.theta), -Math.sin(mg.theta)];
@@ -2327,8 +2444,9 @@ function rebuildMagneticFieldLines() {
   const step = Math.max(0.75, Math.max(simH, simD) / 112);
   const maxSteps = Math.ceil(3.2 * Math.max(simH, simD) / step);
   // Columns of field lines along the tunnel, drawn only where a magnet is on, fading with it.
-  const x0 = tunnelStartX() + 8, x1 = detectorPlateXGrid() - 4;
-  const columns = 6;
+  const ms = magnets();
+  const x0 = Math.min(...ms.map(mg => mg.a)) + 5, x1 = lastMagnetEndX() - 5;
+  const columns = Math.max(3, Math.round((x1 - x0) / 11) + 1);
   for (let k = 0; k < columns; k++) {
     const x = x0 + (x1 - x0) * k / (columns - 1);
     const segs = magnetsAtX(x);
@@ -2361,7 +2479,7 @@ function rebuildSimulation() {
   simD = GRID_YZ;
   waveCount = simH * simD;
   voxelCount = simW * Math.floor(simH / CLOUD_STRIDE) * Math.floor(simD / CLOUD_STRIDE);
-  cameraOrbit.distance = DEFAULT_CAMERA_DISTANCE * Math.max(simW, simH, simD) * params.boxScale;
+  cameraOrbit.distance = DEFAULT_CAMERA_DISTANCE * sceneExtent();
   cameraTarget.distance = cameraOrbit.distance;
 
   deleteWaveTargets();
@@ -2383,35 +2501,69 @@ function packetGroupVelocity() {
   return params.p0 / Math.max(1e-6, params.mass);
 }
 
-// Classical splitting along each magnet's axis at the plate (cells): each spin part feels
-// ±(ħ/2m)(g/L) p(f), so the separation is 2·a·T²·∫(1 − f) p(f) df with a = (ħ/2m)(g/L)/m
-// and T the flight time. For the long magnet this is a·T².
-function expectedSplittings() {
+// Classical splitting along each magnet's axis at the screen (cells): each spin part feels
+// ±a p(x(t)) with a = (ħ/2m)(g/L)/m, so the separation is 2a ∫₀ᵀ (T − t) p(x(t)) dt,
+// T being the flight time from the start to the screen.
+function flightTime() {
+  return (detectorPlateXGrid() - packetStartX()) / Math.max(packetGroupVelocity(), 1e-6);
+}
+function splittingPerGradient() {
   const v = packetGroupVelocity();
   const L = Math.max(1, 0.5 * (simD - 1));
-  const a = (params.hbar / (2 * params.mass)) * (params.sgGradient / L) / params.mass;
-  const T = (detectorPlateXGrid() - params.packetX * (simW - 1)) / Math.max(v, 1e-6);
+  const a1 = (params.hbar / (2 * params.mass)) / L / params.mass;
+  const T = flightTime();
   return magnets().map(mg => {
     if (v < 0.5) return { axis: axisName(mg.theta), cells: Infinity };
     let integral = 0;
-    const n = 400;
+    const n = 600;
     for (let k = 0; k < n; k++) {
-      const f = (k + 0.5) / n;
-      integral += (1 - f) * magnetProfile(mg, f) / n;
+      const t = (k + 0.5) / n * T;
+      integral += (T - t) * magnetProfile(mg, packetStartX() + v * t) * T / n;
     }
-    return { axis: axisName(mg.theta), cells: 2 * a * T * T * integral };
+    return { axis: axisName(mg.theta), cells: 2 * a1 * integral };
   });
+}
+function expectedSplittings() {
+  return splittingPerGradient().map(s => ({ axis: s.axis, cells: s.cells * params.sgGradient }));
+}
+// Standard deviation of |psi|^2 across the beam at the screen (free Gaussian spreading).
+function packetStdAtScreen() {
+  const s = params.packetSigma;
+  const tau = params.hbar * flightTime() / (params.mass * s * s);
+  return s / Math.SQRT2 * Math.sqrt(1 + tau * tau);
+}
+// Largest gradient that keeps each branch, out to 2.5 standard deviations, 4 cells off the walls.
+function gradientMax() {
+  const L = 0.5 * (simD - 1);
+  const room = L - 4 - 2.5 * packetStdAtScreen();
+  const per = Math.max(...splittingPerGradient().map(s => s.cells));
+  if (!(per > 0) || !Number.isFinite(per)) return 10;
+  return Math.max(0.5, Math.min(20, Math.floor(10 * room / (0.5 * per)) / 10));
 }
 function expectedSplitting() {
   return expectedSplittings()[0].cells;
 }
 
-function applyMagnetPreset() {
-  const preset = magnetPreset();
+// The gradient slider stops where the branches would reach the walls; a preset change sets
+// the gradient to 90% of that limit, a screen move only lowers it if it is above the limit.
+function updateGradientLimit(setDefault) {
   const slider = document.getElementById("sgGradient");
-  params.sgGradient = preset.g;
-  if (slider) { slider.max = String(preset.gMax); slider.value = String(preset.g); }
+  const gMax = gradientMax();
+  if (setDefault) params.sgGradient = Math.round(9 * gMax) / 10;
+  params.sgGradient = Math.min(params.sgGradient, gMax);
+  if (slider) { slider.max = String(gMax); slider.value = String(params.sgGradient); }
   refreshUnitLabels();
+}
+function applyMagnetPreset() {
+  updateGradientLimit(true);
+  rebuildBoxGeometry();
+  rebuildMagneticFieldLines();
+  resetAll();
+  updateStats();
+}
+function applyScreenDistance() {
+  updateGradientLimit(false);
+  rebuildBoxGeometry();
   rebuildMagneticFieldLines();
   resetAll();
   updateStats();
@@ -2427,7 +2579,7 @@ function updateClock() {
 }
 
 function labValues() {
-  const flight = detectorPlateXGrid() - params.packetX * (simW - 1);           // cells
+  const flight = detectorPlateXGrid() - packetStartX();                        // cells
   const v = packetGroupVelocity();
   const flightTime = flight / v * LAB_SCALE.st;                                // s
   const split = expectedSplitting() * LAB_SCALE.sz;                            // m, first magnet
@@ -2538,6 +2690,9 @@ async function main() {
   if (!simulationAvailable) return;
   statusTitle.textContent = "Preparing the wave packet…";
   rebuildSimulation();
+  updateGradientLimit(true);
+  rebuildMagneticFieldLines();
+  resetAll();
   // Present the initial packet before the first batch of simulation steps.
   const initialFrame = device.createCommandEncoder({ label: "initial frame encoder" });
   render(initialFrame, cameraFrame());
