@@ -170,7 +170,7 @@ const params = {
   sgGradient: DEFAULT_SG_GRADIENT,
   sgFieldOn: 1,
   showFieldArrows: 1,
-  labScale: 0,
+  showAxes: 1,
 
   cloudGain: .05,
   cloudGamma: 0.7,
@@ -255,7 +255,16 @@ function fmt(v) {
   return v.toFixed(3).replace(/\.?0+$/, "");
 }
 
-function addSlider(key, label, min, max, step, onChange = null) {
+// Slider value labels that show lab units; refreshed by updateStats once the grid exists.
+const unitLabels = [];
+function formatValue(key, v, format) {
+  if (!format) return fmt(v);
+  try { return format(v); } catch { return fmt(v); }
+}
+function refreshUnitLabels() {
+  for (const { key, val, format } of unitLabels) val.textContent = formatValue(key, params[key], format);
+}
+function addSlider(key, label, min, max, step, onChange = null, format = null) {
   const row = document.createElement("div");
   row.className = "row";
 
@@ -273,12 +282,13 @@ function addSlider(key, label, min, max, step, onChange = null) {
 
   const val = document.createElement("div");
   val.className = "val";
-  val.textContent = fmt(params[key]);
+  val.textContent = formatValue(key, params[key], format);
+  if (format) unitLabels.push({ key, val, format });
 
   input.addEventListener("input", () => {
     const v = parseFloat(input.value);
     params[key] = v;
-    val.textContent = fmt(v);
+    val.textContent = formatValue(key, v, format);
     requestRedraw();
   });
   input.addEventListener("change", () => {
@@ -376,19 +386,56 @@ function addSectionHeader(label) {
   controls.appendChild(header);
 }
 
+// ── Lab units ────────────────────────────────────────────────────────────────
+// Each axis has its own scale, matched to the 1922 experiment at the default settings
+// (64-cell grid, momentum 5.5, packet width 10 cells): the flight from the start to the
+// plate is the 3.5 cm magnet, the packet moves at 660 m/s, and the FWHM of |psi|^2 across
+// the beam is the 35 µm slit. The scales are fixed, so the sliders change lab quantities.
+// What cannot match is hbar/m in these units: the model's wave spreads far faster.
+const LAB = {
+  magnetLength: 0.035,             // m (Friedrich & Herschbach 2003)
+  speed: 660,                      // m/s (Stern's 1920 measurement at 1000 °C)
+  beamFWHM: 35e-6,                 // m (slit 0.03–0.04 mm, Gerlach & Stern 1922)
+  mass: 107.8682 * 1.66053907e-27, // kg, silver atom
+  muB: 9.2740100783e-24,           // J/T
+  hbar: 1.054571817e-34,           // J s
+};
+function gridGroupVelocity(k, hbar = 6, mass = 1) {
+  return (hbar / (2 * mass)) * (32 * Math.sin(k) - 4 * Math.sin(2 * k)) / 12;
+}
+const LAB_SCALE = (() => {
+  const period = 63, hbar = 6;
+  const k = Math.round((5.5 / hbar) * period / (2 * Math.PI)) * 2 * Math.PI / period;
+  const flight = 2 * period - 0.25 * period;               // cells, start to plate
+  const sx = LAB.magnetLength / flight;                    // m per cell along x
+  const st = sx * gridGroupVelocity(k) / LAB.speed;        // s per time unit
+  const sz = LAB.beamFWHM / (2.3548 * 10 / Math.SQRT2);    // m per cell across the beam
+  return { sx, st, sz };
+})();
+const labSpeed = p0 => {
+  const period = Math.max(1, simW - 1);
+  const k = Math.round((p0 / params.hbar) * period / (2 * Math.PI)) * 2 * Math.PI / period;
+  return gridGroupVelocity(k, params.hbar, params.mass) * LAB_SCALE.sx / LAB_SCALE.st;
+};
+const labGradient = g => {
+  const L = Math.max(1, 0.5 * (simD - 1));
+  const a = (params.hbar / (2 * params.mass)) * (g / L) / params.mass * LAB_SCALE.sz / LAB_SCALE.st ** 2;
+  return a * LAB.mass / LAB.muB / 100;  // T/cm
+};
+const labFWHM = sigma => 2.3548 * sigma / Math.SQRT2 * LAB_SCALE.sz;  // m
+
 const initialSpinControl = addCycleButton("initialSpin", "Initial spin", INITIAL_SPIN_NAMES, () => resetAll());
 // Above ~3.5 the deflected branches reach the hard walls before the plate.
-addSlider("sgGradient", "Gradient strength g", 0.0, 3.5, 0.002, () => requestTrailClear());
+addSlider("sgGradient", "Field gradient", 0.0, 3.5, 0.002, () => requestTrailClear(), g => `${labGradient(g).toFixed(1)} T/cm`);
 
 addSectionHeader("Wave and guidance");
-addSlider("p0", "Initial momentum", 0.0, 6.0, 0.1, () => resetAll());
-addSlider("packetSigma", "Packet width (cells)", 4.0, 14.0, 0.5, () => resetAll());
+addSlider("p0", "Atom speed", 0.0, 6.0, 0.1, () => resetAll(), p => `${Math.round(labSpeed(p))} m/s`);
+addSlider("packetSigma", "Beam width (FWHM)", 4.0, 14.0, 0.5, () => resetAll(), s => `${Math.round(labFWHM(s) * 1e6)} µm`);
 addSlider("spinS", "Spin current s", 0.0, 2.0, 0.5);
 
 controls = displayControls;
 addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
 addToggleInt("showFieldArrows", "Field arrows");
-addToggleInt("labScale", "Lab scale", () => { updateStats(); requestRedraw(); });
 const cameraProjectionControl = addCycleButton("cameraProjection", "Camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
   syncCameraUi();
@@ -402,11 +449,11 @@ addSlider("nParticles", "Particle count", 1, 5000, 1, () => rebuildParticles());
 addSlider("dotSize", "Particle size", 2.0, 26.0, 1);
 addSlider("dotGain", "Particle brightness", 0.1, 5.0, 0.1);
 addToggleInt("showTrail", "Draw trails");
-addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1);
+addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1, null, t => `${(t * LAB_SCALE.st * 1e6).toFixed(1)} µs`);
 
 controls = advancedControls;
-addSlider("simRes", "Grid x/y (cells)", 32, MAX_SIM_RES, 4, () => rebuildSimulation());
-addSlider("dt", "Time step (sim. time)", 0.002, 0.014, 0.002);
+addSlider("simRes", "Grid x/y (cells)", 32, MAX_SIM_RES, 4, () => rebuildSimulation(), n => `${n}`);
+addSlider("dt", "Time step", 0.002, 0.014, 0.002, null, d => `${Math.round(d * LAB_SCALE.st * 1e9)} ns`);
 
 window.addEventListener("keydown", event => {
   if (!simulationAvailable || event.defaultPrevented || event.target.closest?.("button, a, summary")) return;
@@ -1751,15 +1798,14 @@ function updateStats() {
   let splitText = "–";
   if (!params.sgFieldOn || params.sgGradient <= 0) splitText = "none (field off)";
   else if (Number.isFinite(split)) splitText = `≈ ${Math.round(split)} cells${0.5 * split > Math.max(1, 0.5 * (simD - 1)) - 12 ? " (near the walls)" : ""}`;
-  if (params.labScale) {
-    const lab = labValues();
-    const fieldOn = params.sgFieldOn && params.sgGradient > 0;
-    const gText = fieldOn ? `≈ ${lab.gradient.toFixed(1)} T/cm` : "field off";
-    const sText = fieldOn && Number.isFinite(lab.split) ? `≈ ${(lab.split * 1e3).toFixed(2)} mm` : "none";
-    statsEl.innerHTML = `<b>Initial spin</b>: ${spinText} &nbsp; <b>Gradient</b>: ${gText} &nbsp; <b>Splitting at the plate</b>: ${sText} &nbsp; <b>Flight to the plate</b>: ${(lab.flightTime * 1e6).toFixed(0)} µs over ${(LAB.magnetLength * 100).toFixed(1)} cm &nbsp; <b>Beam width</b>: ${(LAB.beamFWHM * 1e6).toFixed(0)} µm (FWHM)<br><span class="stat-units">Lab scale: x in cm, y and z in µm — the axes have different scales. Matched to 1922: magnet length, atom speed, beam width. The wave here spreads about ${roughPower(lab.ratio)} times faster than a real silver atom's, so that it can be seen on the grid.</span>`;
-    return;
-  }
-  statsEl.innerHTML = `<b>Initial spin</b>: ${spinText} &nbsp; <b>Gradient</b>: ${sgText} &nbsp; <b>Splitting at the plate</b>: ${splitText} &nbsp; <b>Grid</b>: ${simW}×${simH}×${simD} cells &nbsp; <b>Dots</b>: ${Math.floor(params.nParticles)} &nbsp; <b>Wavelength</b>: ${lambdaText} cells${quality}<br><span class="stat-units">Simulation units: ħ = ${fmt(params.hbar)}, m = ${fmt(params.mass)}, 1 grid cell = 1 length unit.</span>`;
+  refreshUnitLabels();
+  const lab = labValues();
+  const fieldOn = params.sgFieldOn && params.sgGradient > 0;
+  const gText = fieldOn ? `${labGradient(params.sgGradient).toFixed(1)} T/cm` : "field off";
+  let sText = "none (field off)";
+  if (fieldOn && Number.isFinite(lab.split)) sText = `≈ ${(lab.split * 1e3).toFixed(2)} mm${Number.isFinite(split) && 0.5 * split > Math.max(1, 0.5 * (simD - 1)) - 12 ? " (near the walls)" : ""}`;
+  statsEl.innerHTML = `<b>Initial spin</b>: ${spinText} &nbsp; <b>Gradient</b>: ${gText} &nbsp; <b>Splitting at the plate</b>: ${sText} &nbsp; <b>Flight to the plate</b>: ${(lab.flightTime * 1e6).toFixed(0)} µs over ${(lab.flight * 100).toFixed(1)} cm &nbsp; <b>Dots</b>: ${Math.floor(params.nParticles)}${quality ? ` &nbsp; <b>Grid wavelength</b>: ${lambdaText} cells${quality}` : ""}<br><span class="stat-units">Each axis has its own scale, matched to the 1922 experiment: x in cm, y and z in µm, time in µs. The wave here spreads about ${roughPower(lab.ratio)} times faster than a real silver atom's, so that it can be seen on the grid.</span>`;
+  return;
 }
 
 function rebuildBoxGeometry() {
@@ -2010,38 +2056,13 @@ function expectedSplitting() {
   return a * T * T;
 }
 
-// ── Lab scale ────────────────────────────────────────────────────────────────
-// Separate scales per axis, matched to the 1922 experiment: the flight from the start to
-// the plate is the 3.5 cm magnet, the packet moves at 660 m/s, and the packet's FWHM in z
-// is the 35 µm slit. The gradient and the splitting then follow. What cannot match is ħ/m
-// in transverse units: the model's wave spreads far faster than a silver atom's.
-const LAB = {
-  magnetLength: 0.035,          // m (Friedrich & Herschbach 2003)
-  speed: 660,                   // m/s (Stern's 1920 measurement at 1000 °C)
-  beamFWHM: 35e-6,              // m (slit 0.03–0.04 mm, Gerlach & Stern 1922)
-  mass: 107.8682 * 1.66053907e-27, // kg, silver atom
-  muB: 9.2740100783e-24,        // J/T
-  hbar: 1.054571817e-34,        // J s
-};
-function labScales() {
-  const flight = detectorPlateXGrid() - params.packetX * (simW - 1);  // cells
-  const v = packetGroupVelocity();                                      // cells per time unit
-  const fwhm = 2.3548 * params.packetSigma / Math.SQRT2;                // cells, of |psi|^2 in z
-  const sx = LAB.magnetLength / flight;     // m per cell along x
-  const st = sx * v / LAB.speed;            // s per time unit
-  const sz = LAB.beamFWHM / fwhm;           // m per cell along y and z
-  return { flight, v, sx, st, sz };
-}
 function labValues() {
-  const { flight, v, sx, st, sz } = labScales();
-  const L = Math.max(1, 0.5 * (simD - 1));
-  const aModel = (params.hbar / (2 * params.mass)) * (params.sgGradient / L) / params.mass;
-  const aReal = aModel * sz / (st * st);                       // m/s^2
-  const gradient = aReal * LAB.mass / LAB.muB / 100;           // T/cm
-  const split = expectedSplitting() * sz;                       // m
-  const flightTime = flight / v * st;                           // s
-  const hbarOverM = (params.hbar / params.mass) * sz * sz / st; // m^2/s
-  return { gradient, split, flightTime, ratio: hbarOverM / (LAB.hbar / LAB.mass), sx, sz };
+  const flight = detectorPlateXGrid() - params.packetX * (simW - 1);           // cells
+  const v = packetGroupVelocity();
+  const flightTime = flight / v * LAB_SCALE.st;                                // s
+  const split = expectedSplitting() * LAB_SCALE.sz;                            // m
+  const hbarOverM = (params.hbar / params.mass) * LAB_SCALE.sz ** 2 / LAB_SCALE.st;
+  return { flight: flight * LAB_SCALE.sx, flightTime, split, ratio: hbarOverM / (LAB.hbar / LAB.mass) };
 }
 function roughPower(x) {
   if (!Number.isFinite(x) || x <= 0) return "–";
@@ -2051,8 +2072,10 @@ function roughPower(x) {
   return mant === 1 ? `10<sup>${e}</sup>` : `${mant} × 10<sup>${e}</sup>`;
 }
 
-// Scale bars drawn over the canvas when Lab scale is on: 1 cm along x from the start,
-// 100 µm along z at the plate.
+// Axes with lab units, drawn over the canvas (Axes button in the toolbar):
+// x along the bottom front edge, from the start of the packet to the plate, in cm;
+// z up the front edge at the plate and y along the bottom edge at the plate, in µm,
+// measured from the middle of the box.
 const labCanvas = document.getElementById("labScaleOverlay");
 let labCanvasCleared = true;
 function projectGridToScreen(camera, p, w, h) {
@@ -2064,6 +2087,34 @@ function projectGridToScreen(camera, p, w, h) {
   if (cw <= 1e-6) return null;
   return [(cx / cw * 0.5 + 0.5) * w, (1 - (cy / cw * 0.5 + 0.5)) * h];
 }
+function niceStep(range, target = 5) {
+  const raw = range / target;
+  const p = 10 ** Math.floor(Math.log10(raw));
+  for (const f of [1, 2, 5, 10]) if (f * p >= raw) return f * p;
+  return 10 * p;
+}
+function drawAxis(g, camera, w, h, dpr, { from, to, unitScale, offset, unit, name, skipStartLabel = false }) {
+  const A = projectGridToScreen(camera, from, w, h);
+  const B = projectGridToScreen(camera, to, w, h);
+  if (!A || !B) return;
+  const dx = B[0] - A[0], dy = B[1] - A[1];
+  const len = Math.hypot(dx, dy);
+  if (len < 40 * dpr) return;  // seen end-on in this view
+  const nx = -dy / len, ny = dx / len;
+  g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke();
+  const lenCells = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
+  const v0 = (0 - offset) * unitScale, v1 = (lenCells - offset) * unitScale;
+  const step = niceStep(Math.abs(v1 - v0), 6);
+  const decimals = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+  for (let v = Math.ceil(Math.min(v0, v1) / step) * step; v <= Math.max(v0, v1) + 1e-9; v += step) {
+    const t = (v / unitScale + offset) / lenCells;
+    const px = A[0] + t * dx, py = A[1] + t * dy;
+    g.beginPath(); g.moveTo(px, py); g.lineTo(px + 6 * dpr * nx, py + 6 * dpr * ny); g.stroke();
+    if (skipStartLabel && Math.hypot(px - A[0], py - A[1]) < 18 * dpr) continue;  // corner shared with another axis
+    g.fillText(v.toFixed(decimals), px + 9 * dpr * nx - 8 * dpr, py + 9 * dpr * ny + 4 * dpr);
+  }
+  g.fillText(`${name} (${unit})`, B[0] + 22 * dpr * nx, B[1] + 22 * dpr * ny);
+}
 function drawLabScale(camera) {
   if (!labCanvas) return;
   const dpr = window.devicePixelRatio || 1;
@@ -2071,39 +2122,22 @@ function drawLabScale(camera) {
   const h = Math.max(1, Math.round(labCanvas.clientHeight * dpr));
   if (labCanvas.width !== w || labCanvas.height !== h) { labCanvas.width = w; labCanvas.height = h; }
   const g = labCanvas.getContext("2d");
-  if (!params.labScale) {
+  if (!params.showAxes) {
     if (!labCanvasCleared) { g.clearRect(0, 0, w, h); labCanvasCleared = true; }
     return;
   }
   labCanvasCleared = false;
   g.clearRect(0, 0, w, h);
-  const { sx, sz } = labScales();
+  g.lineWidth = 1.5 * dpr;
+  g.strokeStyle = "rgba(230, 240, 248, 0.85)";
+  g.fillStyle = "rgba(230, 240, 248, 0.95)";
+  g.font = `${11 * dpr}px Inter, system-ui, sans-serif`;
   const x0 = params.packetX * (simW - 1);
-  const zc = 0.5 * (simD - 1);
-  const bars = [
-    { a: [x0, 0, 0], b: [x0 + 0.01 / sx, 0, 0], label: "1 cm (x)" },
-    // At the plate, where the split arrives.
-    { a: [detectorPlateXGrid() - 1, 0, zc - 50e-6 / sz], b: [detectorPlateXGrid() - 1, 0, zc + 50e-6 / sz], label: "100 µm (z)" },
-  ];
-  g.lineWidth = 2 * dpr;
-  g.strokeStyle = "rgba(255, 255, 255, 0.9)";
-  g.fillStyle = "rgba(255, 255, 255, 0.95)";
-  g.font = `${12 * dpr}px Inter, system-ui, sans-serif`;
-  for (const bar of bars) {
-    const A = projectGridToScreen(camera, bar.a, w, h);
-    const B = projectGridToScreen(camera, bar.b, w, h);
-    if (!A || !B) continue;
-    const dx = B[0] - A[0], dy = B[1] - A[1];
-    const len = Math.hypot(dx, dy);
-    if (len < 12 * dpr) continue;
-    const nx = -dy / len * 5 * dpr, ny = dx / len * 5 * dpr;
-    g.beginPath();
-    g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]);
-    g.moveTo(A[0] - nx, A[1] - ny); g.lineTo(A[0] + nx, A[1] + ny);
-    g.moveTo(B[0] - nx, B[1] - ny); g.lineTo(B[0] + nx, B[1] + ny);
-    g.stroke();
-    g.fillText(bar.label, 0.5 * (A[0] + B[0]) + 2 * nx + 4 * dpr, 0.5 * (A[1] + B[1]) + 2 * ny + 4 * dpr);
-  }
+  const xp = detectorPlateXGrid();
+  const yMax = simH - 1, zMax = simD - 1;
+  drawAxis(g, camera, w, h, dpr, { from: [x0, 0, 0], to: [xp, 0, 0], unitScale: LAB_SCALE.sx * 100, offset: 0, unit: "cm", name: "x" });
+  drawAxis(g, camera, w, h, dpr, { from: [xp, 0, 0], to: [xp, 0, zMax], unitScale: LAB_SCALE.sz * 1e6, offset: 0.5 * zMax, unit: "µm", name: "z", skipStartLabel: true });
+  drawAxis(g, camera, w, h, dpr, { from: [xp, 0, 0], to: [xp, yMax, 0], unitScale: LAB_SCALE.sz * 1e6, offset: 0.5 * yMax, unit: "µm", name: "y", skipStartLabel: true });
 }
 
 // Time for the packet, including its tail, to pass the detector plate.
@@ -2248,6 +2282,8 @@ export const simulation = {
   reset() { if (simulationAvailable) resetAll(); },
   setAutoRun(value) { autoRun = Boolean(value); rerunHoldStart = null; },
   getReading: () => reading,
+  getAxesVisible: () => Boolean(params.showAxes),
+  setAxesVisible(value) { params.showAxes = value ? 1 : 0; requestRedraw(); },
   setReading(value) {
     reading = value === "cpn" ? "cpn" : "pw";
     lastHitReadback = 0;

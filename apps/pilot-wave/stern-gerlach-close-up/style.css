@@ -97,3 +97,6 @@ body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) 
 body:not(.simulation-ready) .lab-scale { display: none; }
 #physics .lab-table { border-collapse: collapse; margin: 8px 0; font-size: 13px; }
 #physics .lab-table th, #physics .lab-table td { padding: 3px 10px; border-bottom: 1px solid var(--border-color); text-align: left; }
+/* Slider values carry units (e.g. "8.9 T/cm"): wider value column, one line. */
+.row { grid-template-columns: 96px minmax(0, 1fr) 64px; }
+.row .val { white-space: nowrap; }

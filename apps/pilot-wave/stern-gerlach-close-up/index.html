@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=11" />
-  <link rel="modulepreload" href="./main.js?v=17" />
+  <link rel="stylesheet" href="./style.css?v=12" />
+  <link rel="modulepreload" href="./main.js?v=18" />
 </head>
 <body>
   <main class="shell">
@@ -127,7 +127,7 @@
           </math>
         </div>
         <p>With this sign the magnetic moment is parallel to the spin, μ = (ħ/2m)σ, and the +z component is pushed toward the stronger field, upward. For a silver atom the magnetic moment of the outer electron is antiparallel to its spin, so there the −z component would go up.</p>
-        <p>The equation is solved with fourth-order finite differences in space and leapfrog steps in time, periodic along x and with hard walls along y and z. The initial packet is a Gaussian of width σ (Packet width) moving along x; its wave number is rounded to the nearest value that fits the periodic box.</p>
+        <p>The equation is solved with fourth-order finite differences in space and leapfrog steps in time, periodic along x and with hard walls along y and z. The initial packet is a Gaussian (Beam width) moving along x; its wave number is rounded to the nearest value that fits the periodic box.</p>
         <h4>Guidance</h4>
         <p>The particle velocity is the Pauli current divided by the density. It has a convective part and a spin part. The convective part is</p>
         <div class="eq">
@@ -167,25 +167,23 @@
             </mrow>
           </math>
         </div>
-        <p>The coefficient s = ½ gives the Pauli current. The spin term is divergence-free, so every value of s keeps the dots distributed as |Ψ|²: the counts at the plate have the same statistics, and only the individual trajectories change. With s = ½ the trajectories of a +z packet also swirl around the beam axis; this is the spin current, not a numerical error. The controls use simulation units, described below.</p>
-        <h4>Units and scales</h4>
-        <p>The app uses simulation units: ħ = 6, m = 1, and lengths in grid cells. The packet width, the grid size and the wavelength are given in cells; the gradient strength g and the time step are in simulation units. The line under the controls gives the expected distance between the two parts when they reach the plate, from the classical estimate a·T², with a = (ħ/2m)(g/L)/m and T the time to reach the plate. It agrees with the full simulation to about one cell.</p>
-        <p>The model is not a scaled copy of the 1922 experiment, which is why no SI units are given. In the original experiment the silver beam passed a slit 0.03–0.04 mm wide, the magnet was 3.5 cm long with a field gradient of about 10 T/cm, and the splitting at the plate was about 0.2 mm. Silver atoms from the oven move at several hundred metres per second (Stern had measured about 660 m/s at 1000 °C), so their de Broglie wavelength is about 6 × 10⁻¹² m: the slit was millions of wavelengths wide and the splitting tens of millions. Here the packet is two to three wavelengths wide and the splitting about nine. A grid that resolved the real wavelength across the real beam is far out of reach, but the physics of the splitting is the same: opposite forces on the two spin components, and particles guided by the wave.</p>
-        <h4>Lab scale</h4>
-        <p>The Lab scale switch in the Display tab gives each axis its own scale, matched to the 1922 experiment. This is possible because the motion along the beam (x) separates exactly from the motion across it (y and z) in this model. The flight from the start to the plate is set to the 3.5 cm magnet, the packet's speed to 660 m/s, and the width of |Ψ|² across the beam (FWHM) to 35 µm, the width of the slit. With the default settings this gives:</p>
+        <p>The coefficient s = ½ gives the Pauli current. The spin term is divergence-free, so every value of s keeps the dots distributed as |Ψ|²: the counts at the plate have the same statistics, and only the individual trajectories change. With s = ½ the trajectories of a +z packet also swirl around the beam axis; this is the spin current, not a numerical error. The controls use the lab units described below.</p>
+        <h4>Units</h4>
+        <p>The app shows lab units by giving each axis its own scale, matched to the 1922 experiment. This is possible because in this model the motion along the beam (x) separates exactly from the motion across it (y and z). At the default settings the flight from the start to the plate is the 3.5 cm magnet, the atoms move at 660 m/s, and the width of |Ψ|² across the beam (FWHM) is 35 µm, the width of the slit. The scales are then fixed, and the sliders change lab quantities: the field gradient in T/cm, the atom speed in m/s and the beam width in µm. The Axes button at the top right of the canvas shows axes in these units: x in cm from the start of the packet to the plate, and y and z in µm from the middle of the box.</p>
         <table class="lab-table">
-          <tr><th></th><th>Model</th><th>Lab scale</th><th>Set by</th></tr>
-          <tr><td>Along the beam, x</td><td>110 cells to the plate</td><td>1 cell ≈ 0.32 mm</td><td>magnet length</td></tr>
-          <tr><td>Time</td><td>20.9 units to the plate</td><td>1 unit ≈ 2.5 µs (53 µs in all)</td><td>atom speed</td></tr>
-          <tr><td>Across the beam, y and z</td><td>FWHM ≈ 17 cells</td><td>1 cell ≈ 2.1 µm</td><td>slit width</td></tr>
-          <tr><td>Gradient</td><td>g = 3</td><td>≈ 9 T/cm</td><td>follows</td></tr>
-          <tr><td>Splitting at the plate</td><td>62 cells</td><td>≈ 0.13 mm</td><td>follows</td></tr>
+          <tr><th></th><th>Grid</th><th>Lab units</th><th>Set by</th></tr>
+          <tr><td>Along the beam, x</td><td>1 cell</td><td>0.32 mm</td><td>magnet length (110 cells to the plate)</td></tr>
+          <tr><td>Time</td><td>1 unit</td><td>2.5 µs</td><td>atom speed (53 µs to the plate)</td></tr>
+          <tr><td>Across the beam, y and z</td><td>1 cell</td><td>2.1 µm</td><td>slit width (FWHM 17 cells)</td></tr>
+          <tr><td>Gradient at the default setting</td><td>g = 3</td><td>8.9 T/cm</td><td>follows</td></tr>
+          <tr><td>Splitting at the plate</td><td>62 cells</td><td>0.13 mm</td><td>follows</td></tr>
         </table>
-        <p>The gradient and the splitting come out close to the 1922 values (about 10 T/cm and 0.2 mm). What cannot match is ħ/m in these units: here it is about 10<sup>−5</sup> m²/s, while for a silver atom ħ/m ≈ 6 × 10<sup>−10</sup> m²/s. The model's wave therefore spreads about 2 × 10<sup>4</sup> times faster across the beam than a real silver atom's. That is the price of seeing the wave on the grid. A real silver beam hardly spreads at all in the magnet, which is why the real splitting looks so clean. Along the beam the grid wavelength has no lab meaning; there the motion only sets the clock. The numbers in the line under the controls follow the current settings.</p>
+        <p>The gradient and the splitting come out close to the 1922 values: the magnet was 3.5 cm long with a field gradient of about 10 T/cm, and the splitting at the plate was about 0.2 mm. The line under the controls gives the expected splitting from the classical estimate a·T², with a = (ħ/2m)(∂B<sub>z</sub>/∂z)/m and T the flight time; it agrees with the full simulation to about one grid cell.</p>
+        <p>What cannot match is ħ/m. In these units the model has ħ/m ≈ 10<sup>−5</sup> m²/s, while for a silver atom ħ/m ≈ 6 × 10<sup>−10</sup> m²/s, so the model's wave spreads about 2 × 10<sup>4</sup> times faster across the beam than a real silver atom's. That is the price of seeing the wave on a grid: the de Broglie wavelength of a silver atom at 660 m/s is about 6 × 10<sup>−12</sup> m, so the real slit was millions of wavelengths wide, while here the packet is two to three grid wavelengths wide. A real silver beam hardly spreads at all in the magnet, which is why the real splitting looks so clean. Along the beam the grid wavelength has no lab meaning; there the motion only sets the clock. Internally the solver uses ħ = 6, m = 1 and a grid spacing of 1.</p>
         <p class="refs">Sources: W. Gerlach and O. Stern, Z. Phys. <b>9</b>, 349–352 (1922), English translation by M. Bauer, arXiv:2301.11343 (slit width); B. Friedrich and D. Herschbach, “Stern and Gerlach: How a bad cigar helped reorient atomic physics,” Phys. Today <b>56</b>(12), 53–59 (2003) (magnet length, gradient, splitting, atom speed); H. Schmidt-Böcking, “The Stern-Gerlach experiment re-examined by an experimenter,” Europhys. News <b>50</b>(3), 15 (2019).</p>
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=17"></script>
+  <script type="module" src="./template.js?v=18"></script>
 </body>
 </html>

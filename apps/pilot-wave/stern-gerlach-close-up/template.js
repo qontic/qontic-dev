@@ -65,7 +65,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=17'));
+  ({ simulation } = await import('./main.js?v=18'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {
@@ -92,6 +92,10 @@ if (simulation?.isAvailable()) {
       return wasRunning;
     },
     endRecording: setRunning,
+    axesControl: {
+      getVisible: () => simulation.getAxesVisible(),
+      setVisible: value => simulation.setAxesVisible(value),
+    },
   });
 
   mountQonticShortcuts({
