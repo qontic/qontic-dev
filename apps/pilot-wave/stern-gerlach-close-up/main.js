@@ -430,7 +430,7 @@ addSlider("sgGradient", "Field gradient", 0.0, 3.5, 0.002, () => requestTrailCle
 
 addSectionHeader("Wave and guidance");
 addSlider("p0", "Atom speed", 0.0, 6.0, 0.1, () => resetAll(), p => `${Math.round(labSpeed(p))} m/s`);
-addSlider("packetSigma", "Beam width (FWHM)", 4.0, 14.0, 0.5, () => resetAll(), s => `${Math.round(labFWHM(s) * 1e6)} µm`);
+addSlider("packetSigma", "Beam width (FWHM)", 4.0, 14.0, 0.5, () => { rebuildBoxGeometry(); rebuildMagneticFieldLines(); resetAll(); }, s => `${Math.round(labFWHM(s) * 1e6)} µm`);
 addSlider("spinS", "Spin current s", 0.0, 2.0, 0.5);
 
 controls = displayControls;
@@ -974,6 +974,12 @@ function visualPacketCenterX() {
   return x0 + (effectivePeriodicP0() / Math.max(1e-6, params.mass)) * simTime;
 }
 
+// Start of the drawn tunnel and x = 0 on the axes: just behind the tail of the starting
+// packet (2.5 standard deviations of |psi|^2), so the whole packet starts inside.
+function tunnelStartX() {
+  return params.packetX * (simW - 1) - 2.5 * params.packetSigma / Math.SQRT2;
+}
+
 function detectorPlateXGrid() {
   return 2.0 * Math.max(1, simW - 1);
 }
@@ -1071,7 +1077,7 @@ function boxCenterWorld() {
 
 function cameraLookAtWorld() {
   return worldFromGrid([
-    simW - 1,
+    0.5 * (tunnelStartX() + detectorPlateXGrid()),
     0.5 * (simH - 1),
     0.5 * (simD - 1),
   ]);
@@ -1129,7 +1135,7 @@ function cameraDistanceBounds() {
 
 function clampCameraDistance(distance) {
   const bounds = cameraDistanceBounds();
-  if (!Number.isFinite(distance) || distance <= 1) return 1.95 * bounds.n;
+  if (!Number.isFinite(distance) || distance <= 1) return 1.6 * bounds.n;
   return Math.max(bounds.min, Math.min(bounds.max, distance));
 }
 
@@ -1812,13 +1818,17 @@ function rebuildBoxGeometry() {
   destroyGpuResource(boxBuffer);
   destroyGpuResource(boxShellBuffer);
 
-  const x0 = 0, y0 = 0, z0 = 0;
-  const x1 = simW - 1, y1 = simH - 1, z1 = simD - 1;
+  // One tunnel from the packet start (x = 0 on the axes) to the plate; nothing is drawn
+  // before the start. The periodic grid still wraps underneath.
+  const x0 = tunnelStartX(), y0 = 0, z0 = 0;
+  const x1 = detectorPlateXGrid(), y1 = simH - 1, z1 = simD - 1;
   const edges = [
     0, 1, 3, 2,
     4, 5, 7, 6,
+    0, 4, 3, 7, 0, 3, 4, 7,  // start face
+    1, 5, 2, 6, 1, 2, 5, 6,  // plate face
   ];
-  const copyOffsets = [-1, 0, 1];
+  const copyOffsets = [0];
   const corridorFade = (copy) => {
     const d = Math.abs(copy);
     if (d <= 2) return 1.0;
@@ -1828,7 +1838,7 @@ function rebuildBoxGeometry() {
   const lineVerts = [];
   const shellVerts = [];
   const copyCorners = (copy) => {
-    const dx = copy * periodX;
+    const dx = 0;
     return [
       [x0 + dx, y0, z0], [x1 + dx, y0, z0], [x1 + dx, y1, z0], [x0 + dx, y1, z0],
       [x0 + dx, y0, z1], [x1 + dx, y0, z1], [x1 + dx, y1, z1], [x0 + dx, y1, z1],
@@ -1847,7 +1857,7 @@ function rebuildBoxGeometry() {
   boxBuffer = makeBuffer("box wireframe vertices", new Float32Array(lineVerts), GPUBufferUsage.VERTEX);
 
   const faceUv = (corner, normal, copy) => {
-    const localX = (corner[0] - copy * periodX) / Math.max(1, x1 - x0);
+    const localX = corner[0] / periodX;
     const cross = Math.abs(normal[1]) > Math.abs(normal[2])
       ? corner[2] / Math.max(1, z1 - z0)
       : corner[1] / Math.max(1, y1 - y0);
@@ -1987,8 +1997,10 @@ function rebuildMagneticFieldLines() {
 
   for (const copy of copyOffsets) {
     const copyFade = FIELD_LINE_STYLE.copyFade[copy + 1];
+    if (copy < 0) continue;  // nothing is drawn before the packet start
     for (const xf of xFracs) {
       const x = copy * periodX + xf * periodX;
+      if (x < tunnelStartX()) continue;
       const xFade = 1.0 - 0.18 * Math.abs(xf - 0.5) / 0.5;
       const fade = copyFade * xFade;
       for (const zf of zFracs) {
@@ -2056,6 +2068,15 @@ function expectedSplitting() {
   return a * T * T;
 }
 
+// Elapsed time since the packet started, in lab units (µs).
+const clockEl = document.getElementById("sim-clock");
+let clockText = "";
+function updateClock() {
+  if (!clockEl) return;
+  const text = `t = ${(simTime * LAB_SCALE.st * 1e6).toFixed(1)} µs`;
+  if (text !== clockText) { clockEl.textContent = text; clockText = text; }
+}
+
 function labValues() {
   const flight = detectorPlateXGrid() - params.packetX * (simW - 1);           // cells
   const v = packetGroupVelocity();
@@ -2073,7 +2094,7 @@ function roughPower(x) {
 }
 
 // Axes with lab units, drawn over the canvas (Axes button in the toolbar):
-// x along the bottom front edge, from the start of the packet to the plate, in cm;
+// x along the bottom front edge, from the tunnel start (just behind the packet) to the plate, in cm;
 // z up the front edge at the plate and y along the bottom edge at the plate, in µm,
 // measured from the middle of the box.
 const labCanvas = document.getElementById("labScaleOverlay");
@@ -2132,7 +2153,7 @@ function drawLabScale(camera) {
   g.strokeStyle = "rgba(230, 240, 248, 0.85)";
   g.fillStyle = "rgba(230, 240, 248, 0.95)";
   g.font = `${11 * dpr}px Inter, system-ui, sans-serif`;
-  const x0 = params.packetX * (simW - 1);
+  const x0 = tunnelStartX();
   const xp = detectorPlateXGrid();
   const yMax = simH - 1, zMax = simD - 1;
   drawAxis(g, camera, w, h, dpr, { from: [x0, 0, 0], to: [xp, 0, 0], unitScale: LAB_SCALE.sx * 100, offset: 0, unit: "cm", name: "x" });
@@ -2229,6 +2250,7 @@ async function main() {
     writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);
     render(encoder, camera);
     drawLabScale(camera);
+    updateClock();
     device.queue.submit([encoder.finish()]);
     if (redrawPending) { updateStats(); updateHitDisplay(); }
     redrawPending = false;

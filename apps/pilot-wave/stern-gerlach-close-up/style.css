@@ -100,3 +100,5 @@ body:not(.simulation-ready) .lab-scale { display: none; }
 /* Slider values carry units (e.g. "8.9 T/cm"): wider value column, one line. */
 .row { grid-template-columns: 96px minmax(0, 1fr) 64px; }
 .row .val { white-space: nowrap; }
+.sim-clock { position: absolute; left: 8px; top: 8px; padding: 4px 8px; font-size: 12px; font-variant-numeric: tabular-nums; color: #d7e4ee; background: rgba(3, 8, 15, 0.72); border-radius: 4px; pointer-events: none; }
+body:not(.simulation-ready) .sim-clock { display: none; }

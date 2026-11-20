@@ -1,6 +1,6 @@
 import '../../../shared/qontic-controls.js?v=4';
 import { mountQonticShell } from '../../../shared/qontic-shell.js';
-import { mountQonticMedia } from '../../../shared/qontic-media.js';
+import { mountQonticMedia } from '../../../shared/qontic-media.js?v=legend1';
 import { mountQonticShortcuts } from '../../../shared/qontic-shortcuts.js';
 import { mountQonticQuiz } from '../../../shared/qontic-quiz.js?v=8';
 
@@ -65,7 +65,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=18'));
+  ({ simulation } = await import('./main.js?v=20'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {
@@ -95,6 +95,10 @@ if (simulation?.isAvailable()) {
     axesControl: {
       getVisible: () => simulation.getAxesVisible(),
       setVisible: value => simulation.setAxesVisible(value),
+    },
+    legendControl: {
+      getVisible: () => !document.getElementById('scene-legend').hidden,
+      setVisible: value => { document.getElementById('scene-legend').hidden = !value; },
     },
   });
 

@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=12" />
-  <link rel="modulepreload" href="./main.js?v=18" />
+  <link rel="stylesheet" href="./style.css?v=13" />
+  <link rel="modulepreload" href="./main.js?v=20" />
 </head>
 <body>
   <main class="shell">
@@ -38,6 +38,7 @@
           <span id="legend-plate"><i class="swatch plate"></i><span class="legend-text">Detector plate: a dot stops when it reaches it.</span></span>
         </div>
         <div id="plate-hits" class="plate-hits" hidden></div>
+        <div id="sim-clock" class="sim-clock" aria-live="off">t = 0.0 µs</div>
         <canvas id="labScaleOverlay" class="lab-scale" aria-hidden="true"></canvas>
         <noscript><p>Enable JavaScript to run this simulation.</p></noscript>
       </div>
@@ -88,7 +89,7 @@
         <h4>Two readings</h4>
         <p>The interpretation button in the controls switches between two readings of the same wave. In the pilot-wave reading the particle has a position at all times and is guided by the wave; the dots show possible positions. In the orthodox reading only the wave is shown: the theory gives the particle no position before it is measured, and |Ψ|² gives the probabilities of where it will be found at the plate. For the equal superposition each half of the plate gets probability ½; for +z the upper half gets nearly all of it. Both readings predict the same statistics at the plate. In the orthodox reading the box in the corner shows the weight of |Ψ|² above and below the middle of the box; when the packet reaches the plate, these are the chances of a hit in each half.</p>
         <h4>Geometry</h4>
-        <p>The packet starts inside the magnetic field. There is no entrance or exit of a magnet: this is a close-up of the region inside it. The grid is periodic along x, so the box is drawn as copies placed end to end, and the cloud is shown in the copy where the packet is. The detector plate is two box lengths from the start of the first box. The grid is twice as tall along z as along x and y. Along y and z the walls are hard; with the default settings less than 2% of the density is near the top and bottom walls when the packet reaches the plate. Larger gradients push the branches into the walls, so the gradient slider stops at 3.5.</p>
+        <p>The packet starts inside the magnetic field. There is no entrance or exit of a magnet: this is a close-up of the region inside it. The grid is periodic along x; the canvas shows one tunnel from just behind the starting packet (x = 0) to the detector plate, and the cloud is drawn where the packet is. The grid is twice as tall along z as along x and y. Along y and z the walls are hard; with the default settings less than 2% of the density is near the top and bottom walls when the packet reaches the plate. Larger gradients push the branches into the walls, so the gradient slider stops at 3.5.</p>
         <h4>Magnetic field</h4>
         <p>The field has no x component and does not depend on x:</p>
         <div class="eq">
@@ -169,7 +170,7 @@
         </div>
         <p>The coefficient s = ½ gives the Pauli current. The spin term is divergence-free, so every value of s keeps the dots distributed as |Ψ|²: the counts at the plate have the same statistics, and only the individual trajectories change. With s = ½ the trajectories of a +z packet also swirl around the beam axis; this is the spin current, not a numerical error. The controls use the lab units described below.</p>
         <h4>Units</h4>
-        <p>The app shows lab units by giving each axis its own scale, matched to the 1922 experiment. This is possible because in this model the motion along the beam (x) separates exactly from the motion across it (y and z). At the default settings the flight from the start to the plate is the 3.5 cm magnet, the atoms move at 660 m/s, and the width of |Ψ|² across the beam (FWHM) is 35 µm, the width of the slit. The scales are then fixed, and the sliders change lab quantities: the field gradient in T/cm, the atom speed in m/s and the beam width in µm. The Axes button at the top right of the canvas shows axes in these units: x in cm from the start of the packet to the plate, and y and z in µm from the middle of the box.</p>
+        <p>The app shows lab units by giving each axis its own scale, matched to the 1922 experiment. This is possible because in this model the motion along the beam (x) separates exactly from the motion across it (y and z). At the default settings the flight from the start to the plate is the 3.5 cm magnet, the atoms move at 660 m/s, and the width of |Ψ|² across the beam (FWHM) is 35 µm, the width of the slit. The scales are then fixed, and the sliders change lab quantities: the field gradient in T/cm, the atom speed in m/s and the beam width in µm. The clock at the top left of the canvas gives the time since the packet started, in µs. The Axes button at the top right shows axes in these units: x in cm from the start of the tunnel, just behind the starting packet, to the plate, and y and z in µm from the middle of the box.</p>
         <table class="lab-table">
           <tr><th></th><th>Grid</th><th>Lab units</th><th>Set by</th></tr>
           <tr><td>Along the beam, x</td><td>1 cell</td><td>0.32 mm</td><td>magnet length (110 cells to the plate)</td></tr>
@@ -184,6 +185,6 @@
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=18"></script>
+  <script type="module" src="./template.js?v=20"></script>
 </body>
 </html>

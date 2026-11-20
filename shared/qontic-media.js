@@ -1,5 +1,5 @@
 // Optional shared presentation tools. Models supply canvas layers and playback hooks.
-export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = true, labelNode = null, scaleControl = null, rangeControl = null, coordinateControl = null, axesControl = null, dynamicCanvases = false}) {
+export function mountQonticMedia({stage, controls, getCanvases, beginRecording = () => {}, endRecording = () => {}, filename = 'qontic-simulation', getShareUrl = () => location.href, onRecord = null, headerTools = true, labelNode = null, scaleControl = null, rangeControl = null, coordinateControl = null, axesControl = null, legendControl = null, dynamicCanvases = false}) {
   if (!document.querySelector('link[data-qontic-media]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet'; link.href = new URL('./qontic-media.css?v=3.8', import.meta.url);
@@ -29,7 +29,8 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
     screenshot:'<path d="M8 5 10 3h4l2 2h4a1 1 0 0 1 1 1v13H3V6a1 1 0 0 1 1-1Z"/><circle cx="12" cy="12" r="4"/>',
     share:'<path d="m10 13 4-4m-5 7-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m0 10a4 4 0 0 0 6 0l4-4a4 4 0 0 0-6-6l-1 1"/>',
     check:'<path d="m5 12 4 4L19 6"/>',
-    axes:'<path d="M6 18V4M6 18h14M6 18l-4 4M6 4 4 6m2-2 2 2m12 14-2-2m2 2-2 2"/>'
+    axes:'<path d="M6 18V4M6 18h14M6 18l-4 4M6 4 4 6m2-2 2 2m12 14-2-2m2 2-2 2"/>',
+    legend:'<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.5"/><circle cx="4.5" cy="12" r="1.5"/><circle cx="4.5" cy="18" r="1.5"/>'
   };
   const setAction = (button, icon, name, description = name) => {
     button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+icons[icon]+'</svg>';
@@ -52,6 +53,10 @@ export function mountQonticMedia({stage, controls, getCanvases, beginRecording =
   let axesButton;
   const syncAxes=()=>{if(axesButton){const shown=axesControl.getVisible();axesButton.setAttribute('aria-pressed',String(shown));setAction(axesButton,'axes','Axes',shown?'Hide axes':'Show axes');}};
   if(axesControl){axesButton=action('axes','Axes','Show or hide axes');axesButton.addEventListener('click',()=>{axesControl.setVisible(!axesControl.getVisible());syncAxes();});syncAxes();}
+  // Optional: legendControl = { getVisible(), setVisible(boolean) } adds a Legend on/off button.
+  let legendButton;
+  const syncLegend=()=>{if(legendButton){const shown=legendControl.getVisible();legendButton.setAttribute('aria-pressed',String(shown));setAction(legendButton,'legend','Legend',shown?'Hide legend':'Show legend');}};
+  if(legendControl){legendButton=action('legend','Legend','Show or hide legend');legendButton.addEventListener('click',()=>{legendControl.setVisible(!legendControl.getVisible());syncLegend();});syncLegend();}
 
   let rangeButton;
   const syncRange=()=>{if(rangeButton){const shown=rangeControl.getVisible();rangeButton.setAttribute('aria-pressed',String(shown));setAction(rangeButton,'range','Wave range',shown?'Hide wave range':'Show wave range');}};
