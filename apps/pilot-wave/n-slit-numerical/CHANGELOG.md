@@ -2,6 +2,9 @@
 
 Draft copy of the published numerical double-slit app (`apps/pilot-wave/double-slit-webgl/`, unchanged).
 
+## 1.0-dev.3 — 2026-11-19
+- Text correction (three-reviewer panel on the N-Slits app): the change ahead of the cut comes from the packet's faster components and from fast waves scattered by a sudden closure; diffraction to wide angles slows the forward motion and leaves wave behind the cut (a check of the reference case put 90% of the change in components faster than the central speed). The part already past is said to change very little, not to be unchanged (0.7%). Packet sigma is the amplitude width; density widths 0.7λ and 1.7λ given.
+
 ## 1.0-dev.2 — 2026-11-19
 Pablo: slow on his desktop but faster on his phone; triangular histogram outline; glow around the wall at the end; wants a repeat button, on by default.
 - **Grid independent of the screen:** the grid was canvas pixels × sim scale, so a large high-resolution display got a physically larger domain (about 4× the cells and twice the distance to travel) than a phone. Now 1120 × sim scale steps wide (560 at the default), height from the canvas shape (0.35–1.6 of the width), picture scaled.

@@ -1,4 +1,4 @@
-import { APP_RELEASE } from "./release.js?v=nsn3";
+import { APP_RELEASE } from "./release.js?v=nsn4";
 import "../../../shared/qontic-controls.js";
 import { mountQonticShell } from "../../../shared/qontic-shell.js";
 
