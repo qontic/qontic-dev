@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=10" />
-  <link rel="modulepreload" href="./main.js?v=16" />
+  <link rel="stylesheet" href="./style.css?v=11" />
+  <link rel="modulepreload" href="./main.js?v=17" />
 </head>
 <body>
   <main class="shell">
@@ -38,6 +38,7 @@
           <span id="legend-plate"><i class="swatch plate"></i><span class="legend-text">Detector plate: a dot stops when it reaches it.</span></span>
         </div>
         <div id="plate-hits" class="plate-hits" hidden></div>
+        <canvas id="labScaleOverlay" class="lab-scale" aria-hidden="true"></canvas>
         <noscript><p>Enable JavaScript to run this simulation.</p></noscript>
       </div>
       <div id="viewtools">
@@ -170,10 +171,21 @@
         <h4>Units and scales</h4>
         <p>The app uses simulation units: ħ = 6, m = 1, and lengths in grid cells. The packet width, the grid size and the wavelength are given in cells; the gradient strength g and the time step are in simulation units. The line under the controls gives the expected distance between the two parts when they reach the plate, from the classical estimate a·T², with a = (ħ/2m)(g/L)/m and T the time to reach the plate. It agrees with the full simulation to about one cell.</p>
         <p>The model is not a scaled copy of the 1922 experiment, which is why no SI units are given. In the original experiment the silver beam passed a slit 0.03–0.04 mm wide, the magnet was 3.5 cm long with a field gradient of about 10 T/cm, and the splitting at the plate was about 0.2 mm. Silver atoms from the oven move at several hundred metres per second (Stern had measured about 660 m/s at 1000 °C), so their de Broglie wavelength is about 6 × 10⁻¹² m: the slit was millions of wavelengths wide and the splitting tens of millions. Here the packet is two to three wavelengths wide and the splitting about nine. A grid that resolved the real wavelength across the real beam is far out of reach, but the physics of the splitting is the same: opposite forces on the two spin components, and particles guided by the wave.</p>
+        <h4>Lab scale</h4>
+        <p>The Lab scale switch in the Display tab gives each axis its own scale, matched to the 1922 experiment. This is possible because the motion along the beam (x) separates exactly from the motion across it (y and z) in this model. The flight from the start to the plate is set to the 3.5 cm magnet, the packet's speed to 660 m/s, and the width of |Ψ|² across the beam (FWHM) to 35 µm, the width of the slit. With the default settings this gives:</p>
+        <table class="lab-table">
+          <tr><th></th><th>Model</th><th>Lab scale</th><th>Set by</th></tr>
+          <tr><td>Along the beam, x</td><td>110 cells to the plate</td><td>1 cell ≈ 0.32 mm</td><td>magnet length</td></tr>
+          <tr><td>Time</td><td>20.9 units to the plate</td><td>1 unit ≈ 2.5 µs (53 µs in all)</td><td>atom speed</td></tr>
+          <tr><td>Across the beam, y and z</td><td>FWHM ≈ 17 cells</td><td>1 cell ≈ 2.1 µm</td><td>slit width</td></tr>
+          <tr><td>Gradient</td><td>g = 3</td><td>≈ 9 T/cm</td><td>follows</td></tr>
+          <tr><td>Splitting at the plate</td><td>62 cells</td><td>≈ 0.13 mm</td><td>follows</td></tr>
+        </table>
+        <p>The gradient and the splitting come out close to the 1922 values (about 10 T/cm and 0.2 mm). What cannot match is ħ/m in these units: here it is about 10<sup>−5</sup> m²/s, while for a silver atom ħ/m ≈ 6 × 10<sup>−10</sup> m²/s. The model's wave therefore spreads about 2 × 10<sup>4</sup> times faster across the beam than a real silver atom's. That is the price of seeing the wave on the grid. A real silver beam hardly spreads at all in the magnet, which is why the real splitting looks so clean. Along the beam the grid wavelength has no lab meaning; there the motion only sets the clock. The numbers in the line under the controls follow the current settings.</p>
         <p class="refs">Sources: W. Gerlach and O. Stern, Z. Phys. <b>9</b>, 349–352 (1922), English translation by M. Bauer, arXiv:2301.11343 (slit width); B. Friedrich and D. Herschbach, “Stern and Gerlach: How a bad cigar helped reorient atomic physics,” Phys. Today <b>56</b>(12), 53–59 (2003) (magnet length, gradient, splitting, atom speed); H. Schmidt-Böcking, “The Stern-Gerlach experiment re-examined by an experimenter,” Europhys. News <b>50</b>(3), 15 (2019).</p>
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=16"></script>
+  <script type="module" src="./template.js?v=17"></script>
 </body>
 </html>
