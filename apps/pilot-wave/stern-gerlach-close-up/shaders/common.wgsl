@@ -17,7 +17,7 @@ struct Uniforms {
   density0: vec4<f32>,
   lineColor: vec4<f32>,
   boxCenter: vec4<f32>,
-  sgField: vec4<f32>,   // gradient g (0 when off), field on, initial spin, unused
+  sgField: vec4<f32>,   // gradient g (0 when off), field on, spin θ, spin φ (radians)
   visual2: vec4<f32>,   // packet centre x, cloud stride, cloud window start x, unused
   magnet1: vec4<f32>,   // profile, cos(theta), sin(theta), uniform-part factor
   magnet2: vec4<f32>,   // profile, cos(theta), sin(theta), unused

@@ -65,7 +65,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=21'));
+  ({ simulation } = await import('./main.js?v=22'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {
@@ -120,6 +120,7 @@ function prepare({ spin, reading = 'pw' }) {
   return () => {
     applyReading(reading);
     simulation?.setMagnetPreset(0);
+    simulation?.setMagnetAngle?.(0);
     simulation?.setInitialSpin(spin);
     setRunning(false);
   };

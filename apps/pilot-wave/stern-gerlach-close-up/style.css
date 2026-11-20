@@ -102,3 +102,8 @@ body:not(.simulation-ready) .lab-scale { display: none; }
 .row .val { white-space: nowrap; }
 .sim-clock { position: absolute; left: 8px; top: 8px; padding: 4px 8px; font-size: 12px; font-variant-numeric: tabular-nums; color: #d7e4ee; background: rgba(3, 8, 15, 0.72); border-radius: 4px; pointer-events: none; }
 body:not(.simulation-ready) .sim-clock { display: none; }
+
+.spin-sphere-row { display: grid; grid-template-columns: 124px 1fr; gap: 8px; align-items: center; margin: 2px 0 8px; }
+.spin-sphere { width: 124px; height: 124px; display: block; }
+.spin-sphere-text { font-size: 11px; line-height: 1.4; opacity: 0.9; }
+.spin-sphere-note { opacity: 0.7; }

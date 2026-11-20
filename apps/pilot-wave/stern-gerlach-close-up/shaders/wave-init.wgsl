@@ -29,14 +29,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     -initialAmp(y + 2.0, z) + 16.0 * initialAmp(y + 1.0, z) - 30.0 * a0 + 16.0 * initialAmp(y - 1.0, z) - initialAmp(y - 2.0, z)
     -initialAmp(y, z + 2.0) + 16.0 * initialAmp(y, z + 1.0) - 30.0 * a0 + 16.0 * initialAmp(y, z - 1.0) - initialAmp(y, z - 2.0)
   ) / 12.0;
-  var upScale = 1.0;
-  var downScale = 0.0;
-  if (uni.sgField.z > 0.5) {
-    upScale = 0.70710678118;
-    downScale = 0.70710678118;
-  }
-  let psi = Spinor(vec2<f32>(upScale * a0, 0.0), vec2<f32>(downScale * a0, 0.0));
-  let lapS = Spinor(vec2<f32>(upScale * lap, 0.0), vec2<f32>(downScale * lap, 0.0));
+  // Spin direction (θ, φ): spinor (cos θ/2, e^{iφ} sin θ/2).
+  let th = uni.sgField.z;
+  let ph = uni.sgField.w;
+  let up = vec2<f32>(cos(0.5 * th), 0.0);
+  let dn = sin(0.5 * th) * vec2<f32>(cos(ph), sin(ph));
+  let psi = Spinor(up * a0, dn * a0);
+  let lapS = Spinor(up * lap, dn * lap);
   let rhs = pauliRHS(psi, lapS, magneticFieldYZ(y, z));
   let dt = uni.physics.w;
   waveOut[id] = WaveCell(psi.up, psi.down, psi.up - dt * rhs.up, psi.down - dt * rhs.down);

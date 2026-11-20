@@ -45,19 +45,19 @@ const WAVE_WORKGROUP_SIZE = 256;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg2d1",
-  palette: "./shaders/palette.wgsl?v=sg2d1",
-  waveInit: "./shaders/wave-init.wgsl?v=sg2d1",
-  waveStep: "./shaders/wave-step.wgsl?v=sg2d1",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d1",
-  cloud: "./shaders/cloud.wgsl?v=sg2d1",
-  particleRender: "./shaders/particle-render.wgsl?v=sg2d1",
-  density: "./shaders/density.wgsl?v=sg2d1",
-  boxShell: "./shaders/box-shell.wgsl?v=sg2d1",
-  line: "./shaders/line.wgsl?v=sg2d1",
-  fieldLine: "./shaders/field-line.wgsl?v=sg2d1",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d1",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d1",
+  common: "./shaders/common.wgsl?v=sg2d2",
+  palette: "./shaders/palette.wgsl?v=sg2d2",
+  waveInit: "./shaders/wave-init.wgsl?v=sg2d2",
+  waveStep: "./shaders/wave-step.wgsl?v=sg2d2",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d2",
+  cloud: "./shaders/cloud.wgsl?v=sg2d2",
+  particleRender: "./shaders/particle-render.wgsl?v=sg2d2",
+  density: "./shaders/density.wgsl?v=sg2d2",
+  boxShell: "./shaders/box-shell.wgsl?v=sg2d2",
+  line: "./shaders/line.wgsl?v=sg2d2",
+  fieldLine: "./shaders/field-line.wgsl?v=sg2d2",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d2",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d2",
 };
 
 function applyShaderConstants(source) {
@@ -167,7 +167,9 @@ const params = {
   velClamp: 80.0,
   spinTerm: 1,
   magnetPreset: 0,
-  initialSpin: 1,
+  spinTheta: 90,
+  spinPhi: 0,
+  magnetAngle: 0,
   sgGradient: DEFAULT_SG_GRADIENT,
   sgFieldOn: 1,
   showFieldArrows: 1,
@@ -215,10 +217,22 @@ const GUIDING_MODE_NAMES = [
   "Pauli spinor"
 ];
 
-const INITIAL_SPIN_NAMES = [
-  "+z",
-  "Equal +z and −z"
-];
+// Initial spin direction: θ from +z, φ about z from the beam axis (+x) toward +y.
+// The spinor is (cos θ/2, e^{iφ} sin θ/2).
+const DEG = Math.PI / 180;
+function spinVector() {
+  const t = params.spinTheta * DEG, p = params.spinPhi * DEG;
+  return [Math.sin(t) * Math.cos(p), Math.sin(t) * Math.sin(p), Math.cos(t)];
+}
+function spinLabel() {
+  const v = spinVector();
+  const named = [
+    ["+z", [0, 0, 1]], ["−z", [0, 0, -1]], ["+y", [0, 1, 0]], ["−y", [0, -1, 0]],
+    ["+x (equal +z and −z)", [1, 0, 0]], ["−x", [-1, 0, 0]],
+  ];
+  for (const [name, d] of named) if (v[0] * d[0] + v[1] * d[1] + v[2] * d[2] > 1 - 1e-6) return name;
+  return `θ = ${Math.round(params.spinTheta)}°, φ = ${Math.round(params.spinPhi)}°`;
+}
 
 let paused = false;
 let autoRun = true;
@@ -424,20 +438,23 @@ const labFWHM = sigma => 2.3548 * sigma / Math.SQRT2 * LAB_SCALE.sz;  // m
 // Each preset lists magnets along the flight, as fractions f of the way from the packet's
 // start to the plate: the field rises and falls with smooth ramps of width RAMP inside
 // [a, b] and is exactly zero outside, so a gap between two magnets is field-free and the
-// hand-over from one to the next is sudden. theta turns a magnet about the beam axis
-// (0: gradient along z, 90°: along y). b0 is the uniform part in units of g (2 keeps the
+// hand-over from one to the next is sudden. theta turns a magnet about the beam axis,
+// from +z toward +y (0: gradient along z, 90°: along y); the Magnet angle slider adds to it. b0 is the uniform part in units of g (2 keeps the
 // field from vanishing in the box; 0.3 lets it nearly vanish, so spins can flip). g and gMax
 // are the default and largest gradient that keep the branches off the walls.
 const MAGNET_PRESETS = [
   { name: "Long magnet", magnets: [{ a: -1, b: 2, theta: 0 }], b0: 2, g: 3, gMax: 3.5 },
   { name: "Short magnet, then drift", magnets: [{ a: -1, b: 0.35, theta: 0 }], b0: 2, g: 5, gMax: 6 },
-  { name: "Tilted 45°", magnets: [{ a: -1, b: 2, theta: Math.PI / 4 }], b0: 2, g: 3, gMax: 3.5 },
-  { name: "Along y", magnets: [{ a: -1, b: 2, theta: Math.PI / 2 }], b0: 2, g: 3, gMax: 3.5 },
-  { name: "z magnet, then y magnet", magnets: [{ a: -1, b: 0.22, theta: 0 }, { a: 0.28, b: 0.95, theta: Math.PI / 2 }], b0: 2, g: 7, gMax: 7.5 },
+  { name: "Two magnets at 90°", magnets: [{ a: -1, b: 0.22, theta: 0 }, { a: 0.28, b: 0.95, theta: Math.PI / 2 }], b0: 2, g: 7, gMax: 7.5 },
   { name: "Weak uniform field", magnets: [{ a: -1, b: 2, theta: 0 }], b0: 0.3, g: 3, gMax: 3.5 },
 ];
 const RAMP = 0.05;
 const magnetPreset = () => MAGNET_PRESETS[params.magnetPreset | 0] || MAGNET_PRESETS[0];
+// The preset's magnets, all turned by the Magnet angle about the beam axis.
+function magnets() {
+  const turn = params.magnetAngle * DEG;
+  return magnetPreset().magnets.map(mg => ({ ...mg, theta: mg.theta + turn }));
+}
 const smooth01 = t => { const u = Math.min(1, Math.max(0, t)); return u * u * (3 - 2 * u); };
 const magnetProfile = (mg, f) => smooth01((f - mg.a) / RAMP) * smooth01((mg.b - f) / RAMP);
 function flightFraction(x) {
@@ -446,7 +463,7 @@ function flightFraction(x) {
 }
 function magnetsAtX(x) {
   const f = flightFraction(x);
-  return magnetPreset().magnets.map(mg => ({ p: magnetProfile(mg, f), theta: mg.theta }));
+  return magnets().map(mg => ({ p: magnetProfile(mg, f), theta: mg.theta }));
 }
 // The packet feels the field at its centre x_c(t).
 function magnetState(t) {
@@ -455,13 +472,34 @@ function magnetState(t) {
 }
 // Unit vectors (y, z) along each magnet's gradient axis: the axes measured at the plate.
 function measurementAxes() {
-  return magnetPreset().magnets.map(mg => [Math.sin(mg.theta), Math.cos(mg.theta)]);
+  return magnets().map(mg => [Math.sin(mg.theta), Math.cos(mg.theta)]);
 }
-const axisName = theta => Math.abs(theta) < 1e-6 ? "z" : Math.abs(theta - Math.PI / 2) < 1e-6 ? "y" : "45° axis";
+// Name of the direction at angle theta about the beam, from +z toward +y.
+function axisName(theta) {
+  const d = ((Math.round(theta / DEG) % 360) + 360) % 360;
+  return { 0: "+z", 90: "+y", 180: "−z", 270: "−y" }[d] || `${d}°`;
+}
 
-const initialSpinControl = addCycleButton("initialSpin", "Initial spin", INITIAL_SPIN_NAMES, () => resetAll());
+const restartForSpin = () => { resetAll(); updateStats(); };
+addSlider("spinTheta", "Spin θ (from +z)", 0, 180, 1, restartForSpin, v => `${Math.round(v)}°`);
+addSlider("spinPhi", "Spin φ (from +x)", 0, 360, 1, restartForSpin, v => `${Math.round(v)}°`);
+const spinSphereRow = document.createElement("div");
+spinSphereRow.className = "spin-sphere-row";
+const spinSphere = document.createElement("canvas");
+spinSphere.className = "spin-sphere";
+spinSphere.setAttribute("role", "img");
+const spinSphereText = document.createElement("div");
+spinSphereText.className = "spin-sphere-text";
+spinSphereRow.append(spinSphere, spinSphereText);
+controls.appendChild(spinSphereRow);
 const magnetPresetControl = addCycleButton("magnetPreset", "Magnets", MAGNET_PRESETS.map(p => p.name), () => applyMagnetPreset());
 const magnetPresetControlSync = () => magnetPresetControl.sync();
+addSlider("magnetAngle", "Magnet angle", 0, 360, 1, () => { rebuildMagneticFieldLines(); resetAll(); updateStats(); }, v => `${Math.round(v)}°`);
+function syncSlider(key) {
+  const input = document.getElementById(key);
+  if (input) input.value = String(params[key]);
+  refreshUnitLabels();
+}
 // Above ~3.5 the deflected branches reach the hard walls before the plate.
 addSlider("sgGradient", "Field gradient", 0.0, 3.5, 0.002, () => requestTrailClear(), g => `${labGradient(g).toFixed(1)} T/cm`);
 
@@ -995,7 +1033,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   const boxCenter = boxCenterWorld();
   uniformData.set([boxCenter[0], boxCenter[1], boxCenter[2], 0.0], 52);
   const sgStrength = params.sgFieldOn ? params.sgGradient : 0.0;
-  uniformData.set([sgStrength, params.sgFieldOn ? 1.0 : 0.0, params.initialSpin | 0, 0.0], 56);
+  uniformData.set([sgStrength, params.sgFieldOn ? 1.0 : 0.0, params.spinTheta * DEG, params.spinPhi * DEG], 56);
   const xc = visualPacketCenterX();
   uniformData.set([xc, CLOUD_STRIDE, Math.floor(xc) - Math.floor(simW / 2), 0.0], 60);
   const mag = magnetState(simTime);
@@ -1517,6 +1555,94 @@ function drawViewGizmo() {
   }
 }
 
+// Spin sphere: the initial spin (arrow) and the magnet axes (dashed), seen from the camera.
+let spinSphereKey = "";
+function drawSpinSphere() {
+  if (!spinSphere || spinSphere.closest("[hidden]")) return;
+  const rect = spinSphere.getBoundingClientRect();
+  if (rect.width < 2) return;
+  const basis = cameraBasis();
+  const key = [!!spinSphere.closest(".qontic-light"), rect.width, rect.height, params.spinTheta, params.spinPhi, params.magnetAngle, params.magnetPreset,
+    basis.right.map(v => v.toFixed(3)), basis.up.map(v => v.toFixed(3))].join();
+  if (key === spinSphereKey) return;
+  spinSphereKey = key;
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const w = Math.floor(rect.width * dpr), h = Math.floor(rect.height * dpr);
+  if (spinSphere.width !== w || spinSphere.height !== h) { spinSphere.width = w; spinSphere.height = h; }
+  const ctx = spinSphere.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  const cx = rect.width / 2, cy = rect.height / 2, R = Math.min(rect.width, rect.height) * 0.34;
+  const proj = v => [cx + R * vec3Dot(v, basis.right), cy - R * vec3Dot(v, basis.up), vec3Dot(v, basis.back)];
+  const light = !!spinSphere.closest(".qontic-light");
+  const ink = light ? "rgba(20,30,45," : "rgba(215,228,238,";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = ink + "0.35)";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+  // Equator (the x–y plane).
+  ctx.beginPath();
+  for (let k = 0; k <= 64; k++) {
+    const a = 2 * Math.PI * k / 64;
+    const [x, y] = proj([Math.cos(a), Math.sin(a), 0]);
+    if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+  }
+  ctx.strokeStyle = ink + "0.2)"; ctx.stroke();
+  // Lab axes.
+  ctx.font = "600 10px system-ui, sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (const [label, d, col] of [["x", [1, 0, 0], "#ff8a8a"], ["y", [0, 1, 0], "#7fdc8f"], ["z", [0, 0, 1], "#7fb6ff"]]) {
+    const [x, y] = proj(d), [x0, y0] = proj(d.map(c => -c));
+    ctx.strokeStyle = ink + "0.28)"; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x, y); ctx.stroke();
+    const [lx, ly] = proj(d.map(c => 1.22 * c));
+    ctx.fillStyle = col; ctx.fillText(label, lx, ly);
+  }
+  // Magnet axes: dashed through the centre, "+" at the end the + spin part is pushed to.
+  magnets().forEach((m, k) => {
+    const n = [0, Math.sin(m.theta), Math.cos(m.theta)];
+    const [x1, y1] = proj(n), [x0, y0] = proj(n.map(c => -c));
+    ctx.strokeStyle = k ? "#ff9ad5" : "#ff5b5b"; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.font = "700 11px system-ui, sans-serif";
+    const [px, py] = proj(n.map(c => 1.08 * c));
+    ctx.fillText(k ? "+₂" : "+", px + 6, py - 6);
+  });
+  // Spin arrow.
+  const s = spinVector();
+  const [sx, sy, sd] = proj(s);
+  ctx.strokeStyle = ctx.fillStyle = "#ffc24a";
+  ctx.globalAlpha = sd < 0 ? 0.6 : 1;
+  ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(sx, sy); ctx.stroke();
+  const ang = Math.atan2(sy - cy, sx - cx);
+  if (Math.hypot(sx - cx, sy - cy) > 4) {
+    ctx.beginPath(); ctx.moveTo(sx, sy);
+    ctx.lineTo(sx - 8 * Math.cos(ang - 0.5), sy - 8 * Math.sin(ang - 0.5));
+    ctx.lineTo(sx - 8 * Math.cos(ang + 0.5), sy - 8 * Math.sin(ang + 0.5));
+    ctx.closePath(); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.arc(sx, sy, 3.5, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  spinSphere.setAttribute("aria-label", `Spin direction ${spinLabel()}; magnet axis ${axisName(magnets()[0].theta)}`);
+}
+// Caption under the sphere: the angle between the spin and the first magnet axis, and the
+// orthodox prediction cos²(γ/2) for the + side.
+function updateSpinSphereText() {
+  if (!spinSphereText) return;
+  const s = spinVector();
+  const m = magnets()[0];
+  const c = Math.max(-1, Math.min(1, s[1] * Math.sin(m.theta) + s[2] * Math.cos(m.theta)));
+  const gamma = Math.acos(c) / DEG;
+  const pPlus = 0.5 * (1 + c);
+  const p = axisName(m.theta), q = axisName(m.theta + Math.PI);
+  const note = magnetPreset().b0 < 1 ? "<br>Not for the weak field: there spins can flip." : "";
+  spinSphereText.innerHTML = `<b>Spin</b> ${spinLabel()} (orange)<br><b>Magnet axis</b> ${p} (red, dashed)<br>Angle between them γ = ${Math.round(gamma)}°<br>Expected: ${(100 * pPlus).toFixed(0)}% toward ${p}, ${(100 * (1 - pPlus)).toFixed(0)}% toward ${q} (cos² γ/2)${note}<br><span class=\"spin-sphere-note\">x is the beam. Angles about the beam run from +z toward +y.</span>`;
+}
+
 function resetWave() {
   if (!waveBufferA || !waveBufferB) return;
   simTime = 0;
@@ -1605,12 +1731,11 @@ function rebuildParticles() {
 const hitDisplay = document.getElementById("plate-hits");
 // Labels of the outcome regions on the plate: two halves along one axis, or four quadrants.
 function outcomeLabels() {
-  const preset = magnetPreset();
-  if (preset.magnets.length > 1) return ["+z, +y", "+z, −y", "−z, +y", "−z, −y"];
-  const ax = axisName(preset.magnets[0].theta);
-  if (ax === "z") return ["Upper half", "Lower half"];
-  if (ax === "y") return ["+y side", "−y side"];
-  return ["+ side (45° axis)", "− side (45° axis)"];
+  const ms = magnets();
+  const p = ms.map(m => axisName(m.theta)), q = ms.map(m => axisName(m.theta + Math.PI));
+  if (ms.length > 1) return [`${p[0]}, ${p[1]}`, `${p[0]}, ${q[1]}`, `${q[0]}, ${p[1]}`, `${q[0]}, ${q[1]}`];
+  if (p[0] === "+z") return ["Upper half (+z)", "Lower half (−z)"];
+  return [`Toward ${p[0]}`, `Toward ${q[0]}`];
 }
 function updateHitDisplay() {
   if (!hitDisplay) return;
@@ -1845,7 +1970,7 @@ function render(encoder, camera) {
 }
 
 function guidingModeLabel() {
-  return `${GUIDING_MODE_NAMES[0]} ${INITIAL_SPIN_NAMES[params.initialSpin | 0] || INITIAL_SPIN_NAMES[0]}`;
+  return `${GUIDING_MODE_NAMES[0]} ${spinLabel()}`;
 }
 
 const legendField = document.getElementById("legend-field");
@@ -1863,7 +1988,8 @@ function updateStats() {
   if (legendPlateText) legendPlateText.textContent = reading === "pw"
     ? "Detector plate: a dot stops when it reaches it."
     : "Detector plate: where the position is measured. The chance of a hit in each region is the weight of |Ψ|² that reaches it.";
-  const spinText = INITIAL_SPIN_NAMES[params.initialSpin | 0] || INITIAL_SPIN_NAMES[0];
+  const spinText = spinLabel();
+  updateSpinSphereText();
   refreshUnitLabels();
   updateLegendField();
   const lab = labValues();
@@ -1875,31 +2001,30 @@ function updateStats() {
     const parts = expectedSplittings().map(s => {
       if (!Number.isFinite(s.cells)) return "–";
       const near = 0.5 * s.cells > L - 12 ? " (near the walls)" : "";
-      const label = magnetPreset().magnets.length > 1 ? `${s.axis} ` : "";
+      const label = magnets().length > 1 ? `${s.axis} ` : "";
       return `${label}≈ ${(s.cells * LAB_SCALE.sz * 1e3).toFixed(2)} mm${near}`;
     });
     sText = parts.join(", ");
   }
-  statsEl.innerHTML = `<b>Magnets</b>: ${magnetPreset().name} &nbsp; <b>Initial spin</b>: ${spinText} &nbsp; <b>Gradient</b>: ${gText} &nbsp; <b>Splitting at the plate</b>: ${sText} &nbsp; <b>Flight to the plate</b>: ${(lab.flightTime * 1e6).toFixed(0)} µs over ${(lab.flight * 100).toFixed(1)} cm &nbsp; <b>Dots</b>: ${Math.floor(params.nParticles)}<br><span class="stat-units">Each axis has its own scale, matched to the 1922 experiment: x in cm, y and z in µm, time in µs. The wave here spreads about ${roughPower(lab.ratio)} times faster than a real silver atom's, so that it can be seen on the grid.</span>`;
+  statsEl.innerHTML = `<b>Magnets</b>: ${magnetPreset().name}${params.magnetAngle ? `, turned ${Math.round(params.magnetAngle)}°` : ""} &nbsp; <b>Initial spin</b>: ${spinText} &nbsp; <b>Gradient</b>: ${gText} &nbsp; <b>Splitting at the plate</b>: ${sText} &nbsp; <b>Flight to the plate</b>: ${(lab.flightTime * 1e6).toFixed(0)} µs over ${(lab.flight * 100).toFixed(1)} cm &nbsp; <b>Dots</b>: ${Math.floor(params.nParticles)}<br><span class="stat-units">Each axis has its own scale, matched to the 1922 experiment: x in cm, y and z in µm, time in µs. The wave here spreads about ${roughPower(lab.ratio)} times faster than a real silver atom's, so that it can be seen on the grid.</span>`;
 }
 
-// Legend text for the field lines, per magnet preset.
+// Legend text for the field lines, per magnet preset and angle.
 function updateLegendField() {
   if (!legendField) return;
   const preset = magnetPreset();
+  const ms = magnets();
+  const p = ms.map(m => axisName(m.theta)), q = ms.map(m => axisName(m.theta + Math.PI));
+  const head = "Magnetic field lines; arrowheads show the direction of B.";
   let text;
-  if (preset.magnets.length > 1) {
-    text = "Magnetic field lines; arrowheads show the direction of B. First magnet: field along +z, stronger toward the top. Second magnet: field along +y, stronger toward +y. Between them there is no field.";
+  if (ms.length > 1) {
+    text = `${head} First magnet: field along ${p[0]}, stronger toward ${p[0]}. Second magnet: field along ${p[1]}, stronger toward ${p[1]}. Between them there is no field.`;
   } else if (preset.b0 < 1) {
-    text = "Magnetic field lines; arrowheads show the direction of B. The field points up and is stronger toward the top, but its uniform part is small: near the bottom it almost vanishes, and there spins can flip.";
+    text = `${head} The field points along ${p[0]} and is stronger toward ${p[0]}, but its uniform part is small: on the ${q[0]} side it almost vanishes, and there spins can flip.`;
   } else {
-    const ax = axisName(preset.magnets[0].theta);
-    const where = preset.magnets[0].b < 1 ? " The magnet ends partway; after it the parts drift apart without a field." : "";
-    text = ax === "z"
-      ? `Magnetic field lines; arrowheads show the direction of B. The field points up (+z) and is stronger toward the top; this pushes the +z spin part up and the −z part down.${where}`
-      : ax === "y"
-        ? "Magnetic field lines; arrowheads show the direction of B. The field points along +y and is stronger toward +y; this pushes the +y spin part toward +y and the −y part the other way."
-        : "Magnetic field lines; arrowheads show the direction of B. The magnet is turned 45° about the beam: the field points between +y and +z and is stronger in that direction, so it sorts spins along that axis.";
+    const where = ms[0].b < 1 ? " The magnet ends partway; after it the parts drift apart without a field." : "";
+    const turned = p[0] === "+z" ? "" : ` The magnet is turned ${Math.round(params.magnetAngle)}° about the beam, from +z toward +y.`;
+    text = `${head} The field points along ${p[0]} and is stronger toward ${p[0]}; this pushes the ${p[0]} spin part toward ${p[0]} and the ${q[0]} part the other way.${turned}${where}`;
   }
   legendField.innerHTML = `<i class="swatch field"></i>${text}`;
 }
@@ -2155,7 +2280,7 @@ function expectedSplittings() {
   const L = Math.max(1, 0.5 * (simD - 1));
   const a = (params.hbar / (2 * params.mass)) * (params.sgGradient / L) / params.mass;
   const T = (detectorPlateXGrid() - params.packetX * (simW - 1)) / Math.max(v, 1e-6);
-  return magnetPreset().magnets.map(mg => {
+  return magnets().map(mg => {
     if (v < 0.5) return { axis: axisName(mg.theta), cells: Infinity };
     let integral = 0;
     const n = 400;
@@ -2310,6 +2435,7 @@ async function main() {
   if (!simulationAvailable) return;
   drawViewGizmo();
   updateStats();
+  drawSpinSphere();
   status.hidden = true;
   simulationButtons.forEach(button => { button.disabled = false; });
 
@@ -2338,6 +2464,7 @@ async function main() {
     }
 
     drawViewGizmo();
+    drawSpinSphere();
     const camera = cameraFrame();
 
     if (trailClearPending) clearDensity();
@@ -2432,10 +2559,21 @@ export const simulation = {
     magnetPresetControlSync();
     if (simulationAvailable) applyMagnetPreset();
   },
+  // index 0: +z; 1: +x, the equal superposition of +z and −z.
   setInitialSpin(index) {
-    params.initialSpin = index ? 1 : 0;
-    initialSpinControl.sync();
-    if (simulationAvailable) resetAll();
+    simulation.setSpinDirection(index ? 90 : 0, 0);
+  },
+  setSpinDirection(thetaDeg, phiDeg) {
+    params.spinTheta = thetaDeg;
+    params.spinPhi = phiDeg;
+    syncSlider("spinTheta");
+    syncSlider("spinPhi");
+    if (simulationAvailable) { resetAll(); updateStats(); }
+  },
+  setMagnetAngle(deg) {
+    params.magnetAngle = deg;
+    syncSlider("magnetAngle");
+    if (simulationAvailable) { rebuildMagneticFieldLines(); resetAll(); updateStats(); }
   },
   redraw: requestRedraw,
 };

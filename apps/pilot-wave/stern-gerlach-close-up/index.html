@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=13" />
-  <link rel="modulepreload" href="./main.js?v=21" />
+  <link rel="stylesheet" href="./style.css?v=14" />
+  <link rel="modulepreload" href="./main.js?v=22" />
 </head>
 <body>
   <main class="shell">
@@ -61,7 +61,7 @@
         show-reset="true" show-rerun="false" show-autorun="true" auto-run="true" show-interpretation="true" interpretations="cpn,pw" interpretation="pw" disabled></qontic-controls>
       <div class="qontic-control-body" id="controls">
         <div data-control-pane="core">
-          <p class="prompt">Click XZ for the side view and 3D to come back: the beam moves to the right and z points up. With the field on, the equal superposition splits into an upper (+z) and a lower (−z) part. Set Initial spin to +z and the whole packet moves up. The Magnets control gives other fields: a short magnet, tilted magnets, two magnets in a row. Changing the initial spin restarts the packet. The run restarts by itself after the packet passes the plate; click ↻ to turn this off.</p>
+          <p class="prompt">Click XZ for the side view and 3D to come back: the beam moves to the right and z points up. The default spin points along the beam (+x), an equal superposition of +z and −z, and it splits into an upper (+z) and a lower (−z) part. Set Spin θ to 0° (+z) and the whole packet moves up. Spin θ and φ point the spin anywhere; Magnet angle turns the magnet about the beam. The sphere shows both, with the expected split. The Magnets control gives other fields: a short magnet, two magnets in a row, a weak field. Changing the spin or the magnet restarts the packet. The run restarts by itself after the packet passes the plate; click ↻ to turn this off.</p>
         </div>
         <div data-control-pane="advanced" hidden>
           <p class="prompt">The app selects a starting grid from the device’s capabilities. You can adjust it here. Changing the grid also changes the tunnel dimensions and restarts the packet.</p>
@@ -85,18 +85,17 @@
           </math>
         </div>
         <p>The dots are pilot-wave particles. They start at random positions drawn from |Ψ|² and then follow the guidance law below. Yellow dots start on the + side of the packet along the first magnet's axis (above the centre for a z magnet), green dots on the other side. A dot stops when it reaches the detector plate, and the counts in the corner are made from those dots. The wave itself passes through the plate and keeps evolving.</p>
-        <p>The default packet is an equal, in-phase superposition of +z and −z spin. In a z magnet the two spin components separate vertically. Each particle ends up in one branch, and which one is fixed by where it started: dots from the upper half of the packet go up, dots from the lower half go down. Only dots that start very near the middle can end in the other branch.</p>
+        <p>The spin can point in any direction, set by two angles: θ from +z, and φ about z from the beam axis (+x) toward +y. The spinor is (cos θ/2, e<sup>iφ</sup> sin θ/2) in the ±z basis. The default, θ = 90° and φ = 0, points along the beam: an equal, in-phase superposition of +z and −z. In a z magnet the two spin components separate vertically. Each particle ends up in one branch, and which one is fixed by where it started: dots from the upper half of the packet go up, dots from the lower half go down. Only dots that start very near the middle can end in the other branch.</p>
         <h4>Magnets</h4>
         <p>The Magnets control chooses the field along the flight:</p>
         <ul>
           <li><b>Long magnet</b>: a z magnet all the way to the plate.</li>
           <li><b>Short magnet, then drift</b>: the field acts over the first third of the flight; after it the two parts keep the sideways speed they gained and drift apart, as after the real 3.5 cm magnet.</li>
-          <li><b>Tilted 45°</b>: the magnet is turned 45° about the beam, so it measures spin along an axis between y and z. A +z packet then gives about 85% and 15% (cos² 22.5° and sin² 22.5°).</li>
-          <li><b>Along y</b>: the magnet is turned 90°, so it measures spin along y. A +z packet splits 50/50 sideways.</li>
-          <li><b>z magnet, then y magnet</b>: a short z magnet, a field-free gap, then a y magnet. A +z packet first moves up as a whole, then splits into +y and −y. The equal superposition ends in four spots.</li>
+          <li><b>Two magnets at 90°</b>: a short magnet, a field-free gap, then a second magnet turned 90° from the first (at Magnet angle 0: a z magnet, then a y magnet). A +z packet first moves up as a whole, then splits into +y and −y. The equal superposition ends in four spots.</li>
           <li><b>Weak uniform field</b>: a long z magnet whose uniform part is small, so the field nearly vanishes near the bottom of the box. There the spin cannot follow the field and flips; the lower spot is distorted and the counts are no longer 50/50.</li>
         </ul>
         <p>Each setting has its own default and largest gradient, chosen to keep the parts away from the walls of the box.</p>
+        <p>The Magnet angle turns every magnet about the beam axis, from +z toward +y: 90° measures spin along +y, 180° along −z. The magnet can only turn about the beam: the beam has to pass between the poles, and a gradient along the beam would speed the atoms up or slow them down without splitting them. A magnet whose axis makes an angle γ with the spin sends the fraction cos²(γ/2) to its + side; the sphere next to the controls shows γ and this prediction. For example, a +z spin in a magnet turned 45° gives cos² 22.5° ≈ 85% and 15%.</p>
         <h4>Two readings</h4>
         <p>The interpretation button in the controls switches between two readings of the same wave. In the pilot-wave reading the particle has a position at all times and is guided by the wave; the dots show possible positions. In the orthodox reading only the wave is shown: the theory gives the particle no position before it is measured, and |Ψ|² gives the probabilities of where it will be found at the plate. For the equal superposition each half of the plate gets probability ½; for +z the upper half gets nearly all of it. Both readings predict the same statistics at the plate. In the orthodox reading the box in the corner shows the weight of |Ψ|² in each region of the plate (two halves along the magnet's axis, or four quadrants after two magnets); when the packet reaches the plate, these are the chances of a hit there.</p>
         <h4>Geometry</h4>
@@ -197,6 +196,6 @@
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=21"></script>
+  <script type="module" src="./template.js?v=22"></script>
 </body>
 </html>
