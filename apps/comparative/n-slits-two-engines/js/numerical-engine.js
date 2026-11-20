@@ -276,7 +276,10 @@ export function createNumericalEngine() {
   let state = null;       // textures, buffers
   let parts = [];         // particle objects for the app
   let partData = null, partBufA = null, partBufB = null, partVao = null, tf = null;
-  let frame = 0, simTau = 0, stepsDone = 0;
+  let frame = 0, simTau = 0, stepsDone = 0, stepCarry = 0;
+  // Asynchronous GPU -> CPU reads (no pipeline stall): copy, fence, read when signalled.
+  let readBuf = null, partFence = null, partGen = 0, readGen = -1;
+  let fluxPBO = null, fluxFence = null, fluxData = null, fluxReady = null;
 
   function free() {
     if (!state) return;
@@ -339,6 +342,7 @@ export function createNumericalEngine() {
     state = { A, B, fA: fbo(A), fB: fbo(B), FA, FB, ffA: fbo(FA), ffB: fbo(FB), flip: 0, fflip: 0 };
     state.textures = [A, B, FA, FB]; state.fbos = [state.fA, state.fB, state.ffA, state.ffB];
     for (const f of [state.ffA, state.ffB]) { gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.clearBufferfv(gl.COLOR, 0, [0, 0, 0, 0]); }
+    fluxReady = null; if (fluxFence) { gl.deleteSync(fluxFence); fluxFence = null; }
     newPacket();
     return { ok: true, nx: G.nx, ny: G.ny, h: G.h };
   }
@@ -374,7 +378,12 @@ export function createNumericalEngine() {
     partBufA = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, partBufA); gl.bufferData(gl.ARRAY_BUFFER, partData, gl.DYNAMIC_COPY);
     partBufB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, partBufB); gl.bufferData(gl.ARRAY_BUFFER, partData.byteLength, gl.DYNAMIC_COPY);
     partVao = gl.createVertexArray(); tf = gl.createTransformFeedback();
-    simTau = 0; stepsDone = 0;
+    simTau = 0; stepsDone = 0; stepCarry = 0;
+    partGen++;
+    if (partFence) { gl.deleteSync(partFence); partFence = null; }
+    if (readBuf) gl.deleteBuffer(readBuf);
+    readBuf = gl.createBuffer(); gl.bindBuffer(gl.COPY_WRITE_BUFFER, readBuf); gl.bufferData(gl.COPY_WRITE_BUFFER, partData.byteLength, gl.STREAM_READ);
+    gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
   }
 
   function step() {
@@ -410,20 +419,44 @@ export function createNumericalEngine() {
   }
 
   // Advance by a model time interval; returns the particle events of this frame.
-  function advance(modelDt, maxMs = 14) {
+  // Advance by a model time interval; returns the particle events that became
+  // available this frame. The fractional step count is carried to the next frame,
+  // so the wave advances evenly; a cap keeps a slow device from queueing work.
+  function advance(modelDt, maxSteps = 400) {
     if (!state) return [];
-    const tau = modelDt / (G.h * G.h);
-    let n = Math.max(0, Math.round(tau / G.dt));
-    const t0 = performance.now();
-    for (let i = 0; i < n; i++) { step(); if (performance.now() - t0 > maxMs) break; }
+    const exact = modelDt / (G.h * G.h) / G.dt + stepCarry;
+    const n = Math.min(maxSteps, Math.max(0, Math.floor(exact)));
+    stepCarry = Math.min(1, exact - n);
+    for (let i = 0; i < n; i++) step();
     return sync();
   }
 
+  function requestParticleRead() {
+    gl.bindBuffer(gl.COPY_READ_BUFFER, partBufA); gl.bindBuffer(gl.COPY_WRITE_BUFFER, readBuf);
+    gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, partData.byteLength);
+    gl.bindBuffer(gl.COPY_READ_BUFFER, null); gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
+    partFence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); readGen = partGen;
+    gl.flush();
+  }
+
   function sync() {
-    gl.bindBuffer(gl.ARRAY_BUFFER, partBufA);
-    gl.getBufferSubData(gl.ARRAY_BUFFER, 0, partData);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    const events = [], p = G.p;
+    const events = [];
+    if (partFence) {
+      const st = gl.clientWaitSync(partFence, 0, 0);
+      if (st !== gl.ALREADY_SIGNALED && st !== gl.CONDITION_SATISFIED) return events;   // not ready: next frame
+      gl.deleteSync(partFence); partFence = null;
+      if (readGen === partGen) {
+        gl.bindBuffer(gl.COPY_WRITE_BUFFER, readBuf);
+        gl.getBufferSubData(gl.COPY_WRITE_BUFFER, 0, partData);
+        gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
+        collect(events);
+      }
+    }
+    requestParticleRead();
+    return events;
+  }
+
+  function collect(events) {
     for (let i = 0; i < parts.length; i++) {
       const a = parts[i]; if (a.done) continue;
       const x = G.mx(partData[4 * i]), y = G.my(partData[4 * i + 1]), mode = partData[4 * i + 2];
@@ -433,17 +466,35 @@ export function createNumericalEngine() {
       else if (mode === 3) { a.done = true; a.absorbed = true; events.push({ type: "absorbed", a }); }
       else if (mode === 4) { a.done = true; events.push({ type: "missed", a }); }
     }
-    return events;
   }
 
   // Time-integrated flux through the screen, as a profile over the app's screen
   // range [yLo, yHi] (model units), in the analytical profile's format.
   function profile(yLo, yHi, samples = 2049) {
     if (!state) return null;
-    const buf = new Float32Array(4 * G.ny);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, state.fflip ? state.ffB : state.ffA);
-    gl.readPixels(0, 0, 1, G.ny, gl.RGBA, gl.FLOAT, buf);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // Asynchronous read of the accumulated flux; returns the last completed read.
+    if (!fluxPBO || fluxData?.length !== 4 * G.ny) {
+      if (fluxPBO) gl.deleteBuffer(fluxPBO);
+      fluxPBO = gl.createBuffer(); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, fluxPBO); gl.bufferData(gl.PIXEL_PACK_BUFFER, 16 * G.ny, gl.STREAM_READ); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      fluxData = new Float32Array(4 * G.ny); fluxReady = null; if (fluxFence) { gl.deleteSync(fluxFence); fluxFence = null; }
+    }
+    if (fluxFence) {
+      const st = gl.clientWaitSync(fluxFence, 0, 0);
+      if (st === gl.ALREADY_SIGNALED || st === gl.CONDITION_SATISFIED) {
+        gl.deleteSync(fluxFence); fluxFence = null;
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, fluxPBO); gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, fluxData); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+        fluxReady = fluxData.slice();
+      }
+    }
+    if (!fluxFence) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, state.fflip ? state.ffB : state.ffA);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, fluxPBO);
+      gl.readPixels(0, 0, 1, G.ny, gl.RGBA, gl.FLOAT, 0);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      fluxFence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); gl.flush();
+    }
+    if (!fluxReady) return null;
+    const buf = fluxReady;
     const values = new Array(samples), dy = (yHi - yLo) / (samples - 1);
     let integral = 0, total = 0;
     for (let s = 0; s < samples; s++) {

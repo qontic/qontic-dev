@@ -1,14 +1,14 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te2';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te2';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te2';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te2';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te2';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te2';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te2';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te2';
-import {createNumericalEngine} from './numerical-engine.js?cache=te2';
-import {buildSlitGeometry} from './slit-geometry.js?cache=te2';
-import {classifySlitSide} from './source-packet-model.js?cache=te2';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te3';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te3';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te3';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te3';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te3';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te3';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te3';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te3';
+import {createNumericalEngine} from './numerical-engine.js?cache=te3';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te3';
+import {classifySlitSide} from './source-packet-model.js?cache=te3';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -499,7 +499,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te2').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te3').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -629,6 +629,27 @@ export function mountPacketEngine({core,advanced}){
   waveCtx.save();waveCtx.beginPath();waveCtx.rect(0,0,detectorX,canvas.height);waveCtx.clip();waveCtx.drawImage(img,0,0,canvas.width,canvas.height);waveCtx.restore();
   if(mode==='PhaseAmp')drawPhaseWheel(waveCtx,detectorX-48,canvas.height-58,20);
   drawPaletteScale(graphPalette,mode==='Phase'?2*range.min-1:range.min,mode==='Phase'?2*range.max-1:range.max);
+ }
+ // The wall the numerical engine uses, at its true thickness: reflecting (metal),
+ // absorbing (absorbing front, metal back) or the analytical mask (band shaded by 1 - T(y)).
+ function drawNumericalWall(){
+  const g=p.geometry,mode=numSlitModel,ctx=setupCtx;
+  const thick=(mode==='mask'?g.apertureLayer:mode==='absorbing'?g.absorbingWallThickness:g.wallThickness)*100*toCanvasX;
+  const w=Math.max(3,thick),x0=X(g.wall)-w/2;
+  ctx.save();ctx.globalAlpha=elementOpacity('plot_screen');
+  if(mode==='mask'){
+   const rgb=getRGBComponents(colorScreen);
+   for(let yc=0;yc<canvas.height;yc+=2){const T=maskTransmission(yc/(100*toCanvasY)-yOffset,g);ctx.fillStyle=`rgba(${rgb.red},${rgb.green},${rgb.blue},${(0.9*(1-T)).toFixed(3)})`;ctx.fillRect(x0,yc,w,2);}
+  }else{
+   const half=g.openingHalf*100*toCanvasY;
+   const openings=g.open.centers.map(c=>[Y(c)-half,Y(c)+half]).sort((a,b)=>a[0]-b[0]);
+   const solid=[];let cursor=0;for(const [top,bottom] of openings){if(top>cursor)solid.push([cursor,top]);cursor=Math.max(cursor,bottom);}if(cursor<canvas.height)solid.push([cursor,canvas.height]);
+   for(const [top,bottom] of solid){
+    if(mode==='absorbing'){ctx.fillStyle='#7a4a22';ctx.fillRect(x0,top,0.9*w,bottom-top);ctx.fillStyle=colorScreen;ctx.fillRect(x0+0.9*w,top,0.1*w+0.5,bottom-top);}
+    else{ctx.fillStyle=colorScreen;ctx.fillRect(x0,top,w,bottom-top);}
+   }
+  }
+  ctx.restore();
  }
  function drawEngineLabel(){
   const wide=detectorX>560,text=numericalActive()?(wide?'Numerical engine · Schrödinger equation on a grid':'Numerical engine'):engineWanted()?(wide?'Analytical engine (numerical not available)':'Analytical engine'):(wide?'Analytical engine · paraxial model':'Analytical engine');
@@ -882,6 +903,7 @@ export function mountPacketEngine({core,advanced}){
    // Draw the expert-selected slit cores, except that Direct PW displays its
    // fixed ±3σ preparation window. The analytical wave remains untruncated.
    const half=(slitPreviewWidth!==null&&slitPreviewWidth!==undefined?displayExtentSigma()*slitPreviewWidth:(interpretation==='bohmian'&&directed.checked?3*p.sy*100:p.geometry.openingHalf*100))*toCanvasY;
+   if(numericalActive())drawNumericalWall();else{
    const openings=displayCenters().map(center=>[Math.max(0,Y(center)-half),Math.min(canvas.height,Y(center)+half)]).filter(([a,b])=>b>a).sort((a,b)=>a[0]-b[0]);
    setupCtx.strokeStyle=colorScreen;setupCtx.lineWidth=6;setupCtx.lineCap='butt';setupCtx.beginPath();let cursor=0;
    for(const [top,bottom] of openings){if(top>cursor){setupCtx.moveTo(wallX,cursor);setupCtx.lineTo(wallX,top);}cursor=Math.max(cursor,bottom);}
@@ -889,6 +911,7 @@ export function mountPacketEngine({core,advanced}){
    setupCtx.strokeStyle='#81e7f5';setupCtx.lineWidth=1.5;
    for(const [top,bottom] of openings){setupCtx.beginPath();setupCtx.moveTo(wallX-9,top);setupCtx.lineTo(wallX+9,top);setupCtx.moveTo(wallX-9,bottom);setupCtx.lineTo(wallX+9,bottom);setupCtx.stroke();}
    openings.forEach(([top,bottom],index)=>{const transmission=p.apertureWeights?.[index]??1;if(transmission>=1)return;setupCtx.save();setupCtx.globalAlpha*=1-transmission;setupCtx.strokeStyle=colorScreen;setupCtx.lineWidth=6;setupCtx.beginPath();setupCtx.moveTo(wallX,top);setupCtx.lineTo(wallX,bottom);setupCtx.stroke();setupCtx.restore();});
+   }
    if(p.whichPath){
     for(const slot of p.detectorSlots){
      const detectorY=Y(p.centers[slot]);

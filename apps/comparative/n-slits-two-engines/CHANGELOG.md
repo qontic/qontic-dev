@@ -2,6 +2,12 @@
 
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
+
+## 1.0-dev.3 — 2026-11-20
+Pablo: the numerical animation is bumpy; mask and absorbing look the same and the absorbing wall looks thin.
+- Numerical engine runs more evenly: the fractional number of time steps is carried from frame to frame instead of rounded, and particle positions and screen flux are read back from the GPU asynchronously (copy + fence), so the page never waits for the GPU. Particles lag the wave by one frame.
+- Numerical mode draws the wall the engine uses, at true thickness: reflecting (12.5 nm, metal), absorbing (60 nm: absorbing front 90%, reflecting back), mask (100 nm band shaded by 1 − T(y)).
+
 ## 1.0-dev.2 — 2026-11-20
 Pablo: numerical engine slow with many slits (8 are enough); Nice fringes must work in the numerical engine, and a run broke (the wave did not reach the screen); the numerical engine reflected almost nothing, unlike the earlier numerical app.
 - **At most 8 slits.**
