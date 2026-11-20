@@ -2,6 +2,15 @@
 
 Draft copy of the published numerical double-slit app (`apps/pilot-wave/double-slit-webgl/`, unchanged).
 
+## 1.0-dev.6 — 2026-11-19
+Pablo: what is the blade; more absorbing wall; "Schrodinger" overflows its button; more particle colours (as in the analytical app); what are the shutter options; header hide button too large; add a quiz.
+- **Absorbing wall 30 steps** (1D test: reflection 10⁻⁴, transmission 2×10⁻⁵; was 20 steps, 0.7%).
+- **Particle colour** select (Display): Uniform, Start up/down, right/left, quadrant, radial, By slit (default; palette of the analytical app), Spectrum (wall-crossing height). The particle shader records slit and crossing level when a particle leaves the wall (state bits 9–13 and 14–19); the histogram keeps per-slit counts and the mean level per bin. Trails are one colour in the two new modes.
+- **Shutter** section has a one-line explanation (the blade acts when you click an open slit during a run). Toggle chips show ✓ when on.
+- Guiding-law buttons: "Schrödinger", "Pauli ↑", "Pauli ↓"; group buttons wrap.
+- Header buttons no longer stretched by the app's global button rule.
+- **Quiz tab** (shared quiz module, shuffled answers, score): detector on slit 2 of 2; detector on slit 1 of 3; closing slit 2 at the wall (part already past unchanged, the wave around it changes); particle heading for the reflecting wall; spectrum order on the screen; instant vs slow blade. Watch buttons set the state and, for the shutter questions, schedule the closing as an in-run event.
+
 ## 1.0-dev.5 — 2026-11-19
 Pablo: packet width should follow the number of slits; drop the video panel; compact menu; move controls from Core to Advanced; open/closed/detector slits as in the analytical app; a wall that absorbs particles.
 - **Packet width across the motion** = max(σ, (N − 1) × separation / 2), kept clear of the vertical absorbers; particles sampled with the same width. The packet-length slider is σ along the motion. Changing the separation now starts a new run.

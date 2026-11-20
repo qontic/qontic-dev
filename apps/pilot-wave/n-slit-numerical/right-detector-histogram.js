@@ -1,6 +1,15 @@
 // particle_update.vert uses mode 3 for a particle frozen by the right detector.
 export const RIGHT_DETECTED_MODE = 3;
 const COLORS = ["#ffeb14", "#26f2ff", "#ff472e", "#bd52ff"];
+// By-slit palette of the analytical N-slit app (colour-blind safe), repeated after 8.
+const SLIT_COLORS = ["#e69f00", "#33bbee", "#009988", "#f0e442", "#9a6fe0", "#ff9da7", "#d55e00", "#e78ac3"];
+function spectrumColor(t) {
+  // Same ramp as the particle shader: purple-blue at the top, teal, yellow at the bottom.
+  const mix = (a, b, f) => a.map((v, i) => v + (b[i] - v) * f);
+  let c = t < 0.5 ? mix([0.27, 0, 0.33], [0.13, 0.57, 0.55], t * 2) : mix([0.13, 0.57, 0.55], [0.99, 0.91, 0.14], t * 2 - 1);
+  c = mix(c, [0.2, 0.4, 1.0], 0.25 * (1 - t));
+  return `rgb(${c.map(v => Math.round(255 * Math.min(1, Math.max(0, v)))).join(",")})`;
+}
 export const HISTOGRAM_GAP = 13;
 export const HISTOGRAM_RIGHT_MARGIN = 24;
 export function histogramPlotWidth(width) {
@@ -34,6 +43,9 @@ export class RightDetectorHistogram {
     this.seen = new Uint8Array(particleCount);
     // Joint quadrant/radial counts allow either coloring to change after a hit.
     this.bins = new Uint32Array(this.binCount * 16);
+    this.slitBins = new Uint32Array(this.binCount * 17);
+    this.levelSum = new Float64Array(this.binCount);
+    this.levelCount = new Uint32Array(this.binCount);
     this.total = 0;
     this.version++;
     this.canvas.setAttribute("aria-label", `Right detector histogram: ${this.binCount} vertical bins, with a bin boundary at the vertical midpoint.`);
@@ -52,6 +64,7 @@ export class RightDetectorHistogram {
 
   clearCounts() {
     this.bins.fill(0);
+    this.slitBins.fill(0); this.levelSum.fill(0); this.levelCount.fill(0);
     this.total = 0;
     this.version++;
     // Keep this run's seen flags: clearing must not recount a frozen particle.
@@ -74,8 +87,12 @@ export class RightDetectorHistogram {
       // detections into the first/last displayed bin.
       if (y < this.yMin || y > this.yMin + this.simHeight) continue;
       const bin = this.binIndex(y);
-      const origin = Math.round(states[offset + 3]) & 15;
+      const code = Math.round(states[offset + 3]);
+      const origin = code & 15;
       this.bins[bin * 16 + origin]++;
+      this.slitBins[bin * 17 + ((code >> 9) & 31) % 17]++;
+      const level = (code >> 14) & 63;
+      if (level > 0) { this.levelSum[bin] += level; this.levelCount[bin]++; }
       added++;
     }
     if (added) {
@@ -161,18 +178,27 @@ export class RightDetectorHistogram {
       const yTop = toY(this.binEdge(bin + 1));
       const yBottom = toY(this.binEdge(bin));
       if (yBottom < plotTop || yTop > plotBottom) continue;
-      const grouped = [0, 0, 0, 0];
-      for (let origin = 0; origin < 16; origin++) {
-        const group = colorMask == 4 ? (origin >> 2) : (origin & colorMask);
-        grouped[group] += this.bins[bin * 16 + origin];
+      const segments = [];
+      if (colorMask === 5) {
+        for (let s = 0; s < 17; s++) segments.push([this.slitBins[bin * 17 + s], s === 0 ? "#c7d1e0" : SLIT_COLORS[(s - 1) % 8]]);
+      } else if (colorMask === 6) {
+        const n = totals[bin], c = this.levelCount[bin];
+        segments.push([n, c ? spectrumColor((this.levelSum[bin] / c - 1) / 62) : "#c7d1e0"]);
+      } else {
+        const grouped = [0, 0, 0, 0];
+        for (let origin = 0; origin < 16; origin++) {
+          const group = colorMask == 4 ? (origin >> 2) : (origin & colorMask);
+          grouped[group] += this.bins[bin * 16 + origin];
+        }
+        for (let group = 0; group < 4; group++) segments.push([grouped[group], COLORS[group]]);
       }
       let offset = 0;
-      for (let group = 0; group < 4; group++) {
-        const length = grouped[group] * scale;
+      for (const [count, color] of segments) {
+        const length = count * scale;
         if (length === 0) continue;
         const x1 = baseX + direction * offset;
         const x2 = x1 + direction * length;
-        ctx.fillStyle = COLORS[group];
+        ctx.fillStyle = color;
         ctx.globalAlpha = 0.44;
         ctx.fillRect(Math.min(x1, x2), yTop + 0.7, length, Math.max(1, yBottom - yTop - 1.4));
         ctx.globalAlpha = 0.78;

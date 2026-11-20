@@ -1,4 +1,4 @@
-import { APP_RELEASE } from "./release.js?v=nsn6";
+import { APP_RELEASE } from "./release.js?v=nsn8";
 import "../../../shared/qontic-controls.js";
 import { mountQonticShell } from "../../../shared/qontic-shell.js";
 
@@ -13,7 +13,7 @@ export function installTemplateShell() {
   const shell = document.createElement("main");
   shell.className = "shell";
   shell.innerHTML = `<header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Double Slit · N Slits — Numerical</h1></div></header>
-    <nav class="tabs" aria-label="Views"><button type="button" class="active" data-view="demo">Simulation</button><button type="button" data-view="math">Math</button></nav>`;
+    <nav class="tabs" aria-label="Views"><button type="button" class="active" data-view="demo">Simulation</button><button type="button" data-view="quiz">Quiz</button><button type="button" data-view="math">Math</button></nav>`;
 
   const workspace = document.createElement("section");
   workspace.className = "qontic-workspace";
@@ -51,7 +51,12 @@ export function installTemplateShell() {
   theory.classList.add("details-panel", "qontic-panel", "qontic-reading-panel");
   theory.dataset.panel = "math";
   theory.hidden = true;
-  shell.append(workspace, theory);
+  const quiz = document.createElement("section");
+  quiz.id = "quiz-panel";
+  quiz.dataset.panel = "quiz";
+  quiz.hidden = true;
+  quiz.setAttribute("aria-label", "Quiz");
+  shell.append(workspace, quiz, theory);
   document.body.prepend(shell);
   document.documentElement.classList.add("double-slit-template");
   mountQonticShell({ title: "Double Slit · N Slits — Numerical", purpose: "Pilot-wave trajectories and interference for 1–16 slits, with slits that close during a run.", badge: "Pilot Wave", navigation: "breadcrumbs", compactHeader: true, homeHref: "../../../index.html", version: `Double Slit · N Slits — Numerical · preview ${APP_RELEASE.version}` });
@@ -65,8 +70,9 @@ export function installTemplateShell() {
     for (const tab of shell.querySelectorAll("[data-view]")) tab.classList.toggle("active", tab === button);
     workspace.hidden = button.dataset.view !== "demo";
     theory.hidden = button.dataset.view !== "math";
+    quiz.hidden = button.dataset.view !== "quiz";
     window.dispatchEvent(new Event("qontic:view-change"));
   });
   wrap.append(document.getElementById("stats"));
-  return { commonControls, panes, stage, wrap, workspace, setActivePane };
+  return { commonControls, panes, stage, wrap, workspace, setActivePane, quiz, shell };
 }

@@ -190,7 +190,7 @@ void main() {
   vec2 x = aState.xy;
   float mode = aState.z;
   int code = int(aState.w + 0.5);
-  int branch = code >> 4;
+  int branch = (code >> 4) & 31;
   if (uHasBranches == 1 && branch != uBranchPass + 1) {
     // Not this pass's particle: unchanged.
     vState = aState;
@@ -255,12 +255,16 @@ void main() {
   }
 
   float w = aState.w;
-  if (uHasBranches == 1 && uBranchPass == -1 && xn.x > uDriveX) {
-    // Crossing the wall exit: the particle's slit fixes its detector record.
+  if (uBranchPass == -1 && xn.x > uDriveX && ((code >> 9) & 31) == 0) {
+    // Crossing the wall exit. Bits: 0-3 start group, 4-8 detector record + 1,
+    // 9-13 slit + 1, 14-19 crossing height level 1-63 (spectrum colouring).
     float y0 = 0.5 * float(uSimRes.y);
     int k = int(clamp(floor(0.5 * float(uNumSlits - 1) - (xn.y - y0) / uSlitSepPx + 0.5), 0.0, float(uNumSlits - 1)));
-    float b = uBranchOfSlit[k];
-    if (b >= 0.0) w = float((code & 15) | ((int(b) + 1) << 4));
+    float top = slitCenterY(0, y0) + 0.5 * uSlitWidthPx, bottom = slitCenterY(uNumSlits - 1, y0) - 0.5 * uSlitWidthPx;
+    int level = 1 + int(clamp((top - xn.y) / max(1.0, top - bottom), 0.0, 1.0) * 62.0 + 0.5);
+    code = code | ((k + 1) << 9) | (level << 14);
+    if (uHasBranches == 1) { float b = uBranchOfSlit[k]; if (b >= 0.0) code = code | ((int(b) + 1) << 4); }
+    w = float(code);
   }
   vState = vec4(xn, 1.0, w);
   gl_Position = vec4(-2.0);

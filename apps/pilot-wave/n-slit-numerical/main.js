@@ -1,14 +1,15 @@
-import { effectiveDt, effectiveStepsPerFrame, getSimulationSpeed, setSimulationSpeed, initSimulationSpeedControl, setSimulationFrameDuration, getFrameDurationScale } from "./simulation-speed.js?v=nsn6";
-import { RightDetectorHistogram, histogramPlotWidth, HISTOGRAM_GAP, HISTOGRAM_RIGHT_MARGIN } from "./right-detector-histogram.js?v=nsn6";
+import { effectiveDt, effectiveStepsPerFrame, getSimulationSpeed, setSimulationSpeed, initSimulationSpeedControl, setSimulationFrameDuration, getFrameDurationScale } from "./simulation-speed.js?v=nsn8";
+import { RightDetectorHistogram, histogramPlotWidth, HISTOGRAM_GAP, HISTOGRAM_RIGHT_MARGIN } from "./right-detector-histogram.js?v=nsn8";
 import { initRecorder } from "./recorder-ui.js";
 import { WhichSlitMeasurement } from "./which-slit.js";
 import { assignRadialGroups } from "./particle-colors.js";
 import { paintPhaseLegend, phaseLegendLayout } from "./phase-legend.js";
 import { sampleWhichSlitStart } from "./which-slit-launch.js";
-import { installTemplateShell } from "./template-shell.js?v=nsn6";
+import { installTemplateShell } from "./template-shell.js?v=nsn8";
 import { mountQonticMedia } from "./vendor/ui/qontic-media.js";
 import { mountDistanceScale, mountCoordinateTools } from "./vendor/ui/qontic-overlays.js";
 import { mountQonticShortcuts } from "../../../shared/qontic-shortcuts.js";
+import { mountNumericalQuiz } from "./quiz.js?v=nsn8";
 
 const template = installTemplateShell();
 
@@ -61,6 +62,7 @@ const params = {
   shutterMode: 0,
   shutterW: 5.0,
   closeAtWall: 0,
+  colorMode: 5,
   wallAbsorb: 0,
   repeat: 1,
   showChange: 0,
@@ -201,9 +203,9 @@ const GUIDING_MODE_NAMES = [
   "Pauli spin-1/2"
 ];
 const GUIDING_CHOICE_NAMES = [
-  "Schrodinger",
-  "Pauli Up",
-  "Pauli Down"
+  "Schrödinger",
+  "Pauli ↑",
+  "Pauli ↓"
 ];
 
 // ---- Slits and shutter -------------------------------------------------
@@ -248,7 +250,7 @@ function setupBranches() {
   if (others.length) branches.push(others);
   branches.forEach((b, i) => b.forEach(k => { branchOfSlit[k] = i; }));
   slitOpenForBranches.fill(0); branches.flat().forEach(k => { slitOpenForBranches[k] = 1; });
-  driveMaxX = Math.ceil(params.barrierX * simW + 0.5 * wallThick() + 1);
+  driveMaxX = wallExitColumn();
   branchOffsetX = driveMaxX - 1;
   const bw = simW - branchOffsetX;
   for (let i = 0; i < branches.length; i++) {
@@ -345,9 +347,9 @@ function repeatRun() {
   resetAll({ preserveHistogram: true, repeat: true });
 }
 
-function setSlitClosed(k, closed) {
+function setSlitClosed(k, closed, { duringRun = false } = {}) {
   slitClosed[k] = closed;
-  if (!slitRunStarted()) { applySlitStatesInstantly(); runStartSlits = slitClosed.slice(); runEvents = []; return; }
+  if (!slitRunStarted() && !duringRun) { applySlitStatesInstantly(); runStartSlits = slitClosed.slice(); runEvents = []; return; }
   if (!replaying) { runEvents.push({ k, closed, clickTime: simTime, tau: params.shutterTau, mode: params.shutterMode, atWall: params.closeAtWall }); runKey = experimentKey(); }
   const t0 = params.closeAtWall && simTime < packetAtWallTime() ? packetAtWallTime() : simTime;
   if (!refActive && !branches.length) startReference(t0);
@@ -390,9 +392,9 @@ function slitUniformLocations(prog) {
 }
 
 // The absorbing wall is thicker: an absorbing ramp over its front 90% (W up to
-// 3, quadratic) and wall behind. In a 1D test with the default packet this
-// reflects 0.7% and transmits 2e-5; a 10-step absorbing wall reflected >= 6%.
-const ABSORBING_WALL_THICKNESS = 20, WALL_ABSORB_W = 3.0;
+// 3, quadratic) and wall behind. 1D test with the default packet: 30 steps
+// reflect 1e-4 and transmit 2e-5 (20 steps: 0.7%; 10 steps: >= 6%).
+const ABSORBING_WALL_THICKNESS = 30, WALL_ABSORB_W = 3.0;
 // Width of the packet across the motion: it covers the slits,
 // max(sigma, (N - 1) * separation / 2), but stays clear of the vertical absorbers.
 function packetSigmaY() {
@@ -400,6 +402,8 @@ function packetSigmaY() {
   const room = stageH > 0 ? (0.5 * stageH + ABSORBER_GUARD_CELLS) / 2.5 : Infinity;
   return Math.min(Math.max(params.packetSigma, span), Math.max(params.packetSigma, room));
 }
+
+function wallExitColumn() { return Math.ceil(params.barrierX * simW + 0.5 * wallThick() + 1); }
 
 function wallThick() { return params.wallAbsorb ? ABSORBING_WALL_THICKNESS : params.barrierThick; }
 
@@ -460,6 +464,40 @@ function syncWhichSlitAvailability() {
     ? "Repeated single particles biased toward the slits, with gradual Gaussian localization after each exit. Two open slits only."
     : "The which-slit detector is available with exactly two open slits.";
 }
+
+// Used by the quiz: put the app in a question's configuration, paused and reset.
+function syncControlsFromParams() {
+  document.querySelectorAll("#controls input[type=range][data-param]").forEach(input => {
+    input.value = String(params[input.dataset.param]);
+    const val = input.closest(".row")?.querySelector(".val");
+    if (val) val.textContent = fmt(params[input.dataset.param]);
+  });
+  document.querySelectorAll("#controls [data-param]").forEach(el => el.syncFromParams?.());
+  document.querySelectorAll("#controls .chip-toggles button").forEach(b => b.syncFromParams?.());
+}
+function setPaused(value) {
+  paused = value;
+  const pauseButton = document.getElementById("pause");
+  if (pauseButton) pauseButton.textContent = paused ? "Resume" : "Pause";
+  template?.commonControls.setAttribute("running", String(!paused));
+  resetPlaybackClock();
+}
+window.qonticNSlitQuiz = {
+  setTo({ slits, wall = 0, blade = 0, tau = 0, closeAtWall = 0, showChange = 0, color = "slit" }) {
+    setPaused(true);
+    params.nSlits = slits.length;
+    for (let k = 0; k < MAX_SLITS; k++) { slitClosed[k] = slits[k] === "closed"; slitDetector[k] = slits[k] === "detector"; }
+    Object.assign(params, { wallAbsorb: wall, shutterMode: blade, shutterTau: tau, closeAtWall, showChange });
+    const select = document.getElementById("color-mode");
+    if (select && select.value !== color) { select.value = color; select.dispatchEvent(new Event("change")); }
+    clampSlitGeometry();
+    syncControlsFromParams();
+    buildSlitButtons();
+    resetAll();
+  },
+  start() { setPaused(false); },
+  closeSlit(k) { if (!slitClosed[k] && !slitDetector[k]) { setSlitClosed(k, true, { duringRun: true }); buildSlitButtons(); } },
+};
 
 // Read-only probe for tests.
 window.qonticNSlit = {
@@ -571,7 +609,12 @@ function particleTrailWidth() {
   return params.dotSize * 0.7;
 }
 
+// Particle colouring: 0 uniform, 1 start up/down, 2 start right/left,
+// 3 start quadrant, 4 start radial, 5 by slit, 6 spectrum (wall crossing).
+const COLOR_MODES = [["uniform", "Uniform"], ["updown", "Start: up/down"], ["rightleft", "Start: right/left"],
+  ["quadrant", "Start: quadrant"], ["radial", "Start: radial"], ["slit", "By slit"], ["spectrum", "Spectrum (wall crossing)"]];
 function pathColorMask() {
+  if (params.colorMode === 5 || params.colorMode === 6) return params.colorMode;
   if (params.colorCodeRadial) return 4;
   return (params.colorCodeUpDown ? 1 : 0) | (params.colorCodeRightLeft ? 2 : 0);
 }
@@ -699,12 +742,39 @@ function addChips(label, items) {
     const sync = () => {
       button.setAttribute("aria-pressed", String(Boolean(params[key])));
       button.classList.toggle("is-active", Boolean(params[key]));
+      button.textContent = (params[key] ? "✓ " : "") + name;
     };
     sync();
+    button.syncFromParams = sync;
     button.addEventListener("click", () => { params[key] = params[key] ? 0 : 1; sync(); onChange?.(); });
     group.appendChild(button);
   }
   row.append(lab, group);
+  controls.appendChild(row);
+}
+
+function addColorModeSelect() {
+  const row = document.createElement("div");
+  row.className = "row";
+  const lab = document.createElement("label");
+  lab.textContent = "particle colour";
+  lab.htmlFor = "color-mode";
+  const select = document.createElement("select");
+  select.id = "color-mode";
+  select.title = "Pilot-Wave particle, trail and hit colour. By slit: the slit each particle went through (one colour per slit). Spectrum: the height at which it crossed the wall, from blue (top) to yellow (bottom). Start: its place in the starting packet. Particles that have not reached the wall yet are grey in the by-slit and spectrum modes; trails are drawn in one colour there.";
+  for (const [value, name] of COLOR_MODES) { const o = document.createElement("option"); o.value = value; o.textContent = name; select.append(o); }
+  const toMode = () => {
+    const v = select.value;
+    params.colorMode = v === "slit" ? 5 : v === "spectrum" ? 6 : 0;
+    params.colorCodeUpDown = v === "updown" || v === "quadrant" ? 1 : 0;
+    params.colorCodeRightLeft = v === "rightleft" || v === "quadrant" ? 1 : 0;
+    params.colorCodeRadial = v === "radial" ? 1 : 0;
+  };
+  select.value = params.colorMode === 5 ? "slit" : params.colorMode === 6 ? "spectrum" : params.colorCodeRadial ? "radial"
+    : params.colorCodeUpDown && params.colorCodeRightLeft ? "quadrant" : params.colorCodeUpDown ? "updown" : params.colorCodeRightLeft ? "rightleft" : "uniform";
+  toMode();
+  select.addEventListener("change", toMode);
+  row.append(lab, select);
   controls.appendChild(row);
 }
 
@@ -752,6 +822,7 @@ function addChoiceButtons(key, label, values, onChange = null) {
 
   const group = document.createElement("div");
   group.className = "button-group";
+  group.dataset.param = key;
 
   const buttons = values.map((value, index) => {
     const btn = document.createElement("button");
@@ -775,6 +846,7 @@ function addChoiceButtons(key, label, values, onChange = null) {
   }
 
   sync();
+  group.syncFromParams = sync;
   row.appendChild(lab);
   row.appendChild(group);
   controls.appendChild(row);
@@ -862,6 +934,12 @@ addSlider("slitWidth", "width", 6.0, 40.0, 1.0, () => { clampSlitGeometry(); if 
 addSlider("slitSep", "separation", 18.0, 140.0, 1.0, () => { clampSlitGeometry(); resetAll(); }, "Distance between neighbouring slits. Changing it starts a new run (the packet width follows the slit span).");
 addChoiceButtons("wallAbsorb", "wall", ["Reflecting", "Absorbing"], () => resetAll());
 addSectionHeader("Shutter");
+{
+  const note = document.createElement("p");
+  note.className = "scale-note";
+  note.textContent = "Close an open slit during a run (click its button) and a blade slides across it. Blade: reflecting (wall) or absorbing. Closing time: how long the blade takes.";
+  controls.append(note);
+}
 addChoiceButtons("shutterMode", "blade", ["Reflecting", "Absorbing"]);
 addSlider("shutterTau", "closing time", 0, 200, 5, null, "Time the shutter blade takes to slide across a slit when you close or open it during a run (simulation time units; the packet moves p/m grid steps per unit, 1.5 by default). 0 = instantaneous.");
 addChips("options", [
@@ -900,7 +978,7 @@ addChips("show", [
   ["showTrail", "trails", "Draw particle trails."],
   ["showHistogram", "histogram", "Show the right detector's hit distribution. Detections keep accumulating while hidden."],
 ]);
-addPathColorControls();
+addColorModeSelect();
 addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
 addSlider("dotGain", "brightness", 0.1, 3.0, 0.1);
 addSlider("trailHalfLife", "trail half-life", 1.0, 150.0, 1.0);
@@ -1156,7 +1234,7 @@ async function loadText(url) {
 }
 
 const SH = {};
-const SHADER_CACHE = "?v=nsn6";
+const SHADER_CACHE = "?v=nsn8";
 async function loadShaders() {
   const base = "./shaders/";
   const files = [
@@ -1773,7 +1851,7 @@ function particleUpdate(branchPass = -1) {
   gl.uniform1f(U.partUpdate.uVelClamp, params.velClamp);
   gl.uniform1i(U.partUpdate.uBranchPass, branchPass);
   gl.uniform1i(U.partUpdate.uHasBranches, branchFields.length ? 1 : 0);
-  gl.uniform1f(U.partUpdate.uDriveX, driveMaxX + 0.5);
+  gl.uniform1f(U.partUpdate.uDriveX, wallExitColumn() + 0.5);
   gl.uniform1fv(U.partUpdate.uBranchOfSlit, branchOfSlit);
   gl.uniform1i(U.partUpdate.uOffsetX, field ? branchOffsetX : 0);
 
@@ -2117,7 +2195,7 @@ function render() {
 
     gl.uniform1f(U.densityRender.uGain, params.trailVisGain);
     gl.uniform1f(U.densityRender.uGamma, params.trailVisGamma);
-    gl.uniform1i(U.densityRender.uColorCodeMask, pathColorMask());
+    gl.uniform1i(U.densityRender.uColorCodeMask, pathColorMask() > 4 ? 0 : pathColorMask());
     gl.uniform1i(U.densityRender.uBlendMode, params.trailBlendMode | 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -2626,6 +2704,10 @@ async function main() {
   applyInitialViewTransform();
   updateStats();
   simulationReady = true;
+  if (template) {
+    mountNumericalQuiz({ panel: template.quiz, tab: template.shell.querySelector('[data-view="quiz"]'),
+      simulationTab: template.shell.querySelector('[data-view="demo"]') });
+  }
 
   params.trailHalfLife*=0.99;
   if (!isEmbedded) initRecorder(window.BohmianDoubleSlit);
