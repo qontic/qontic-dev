@@ -1,8 +1,11 @@
-
+// Shared declarations. The wave is solved on a 2D grid across the beam (y, z); along the
+// beam (x) it is the exact free Gaussian phi(x, t), because the transverse problem does not
+// depend on x: Psi(x, y, z, t) = phi(x, t) chi(y, z, t). Magnets are felt through the packet's
+// position x_c(t): the transverse field is B(y, z; x_c(t)).
 struct Uniforms {
-  sim: vec4<f32>,
-  physics: vec4<f32>,
-  packet: vec4<f32>,
+  sim: vec4<f32>,       // render window along x (cells), grid along y, grid along z, cloud instances
+  physics: vec4<f32>,   // hbar, mass, p0, dt
+  packet: vec4<f32>,    // start fractions (x, y, z), width sigma (cells)
   visual0: vec4<f32>,
   visual1: vec4<f32>,
   particle0: vec4<f32>,
@@ -14,8 +17,12 @@ struct Uniforms {
   density0: vec4<f32>,
   lineColor: vec4<f32>,
   boxCenter: vec4<f32>,
-  sgField: vec4<f32>,
-  visual2: vec4<f32>,
+  sgField: vec4<f32>,   // gradient g (0 when off), field on, initial spin, unused
+  visual2: vec4<f32>,   // packet centre x, cloud stride, cloud window start x, unused
+  magnet1: vec4<f32>,   // profile, cos(theta), sin(theta), uniform-part factor
+  magnet2: vec4<f32>,   // profile, cos(theta), sin(theta), unused
+  xwave: vec4<f32>,     // packet centre x, tau = hbar t / (m sigma^2), time, number of 2D cells
+  axes: vec4<f32>,      // measurement axes n1 = (y, z), n2 = (y, z)
   viewProj: mat4x4<f32>,
 };
 @group(0) @binding(0) var<uniform> uni: Uniforms;
@@ -32,86 +39,98 @@ struct Spinor {
   down: vec2<f32>,
 };
 
-fn spinorZero() -> Spinor {
-  return Spinor(vec2<f32>(0.0), vec2<f32>(0.0));
-}
-fn waveSpinor(cell: WaveCell) -> Spinor {
-  return Spinor(cell.psiUp, cell.psiDown);
-}
-fn spinorRho(spinor: Spinor) -> f32 {
-  return dot(spinor.up, spinor.up) + dot(spinor.down, spinor.down);
-}
-fn spinDensity(spinor: Spinor) -> vec3<f32> {
-  let up = spinor.up;
-  let down = spinor.down;
+fn spinorZero() -> Spinor { return Spinor(vec2<f32>(0.0), vec2<f32>(0.0)); }
+fn waveSpinor(cell: WaveCell) -> Spinor { return Spinor(cell.psiUp, cell.psiDown); }
+fn spinorRho(s: Spinor) -> f32 { return dot(s.up, s.up) + dot(s.down, s.down); }
+fn spinDensity(s: Spinor) -> vec3<f32> {
   return vec3<f32>(
-    2.0 * (up.x * down.x + up.y * down.y),
-    2.0 * (up.x * down.y - up.y * down.x),
-    dot(up, up) - dot(down, down)
+    2.0 * (s.up.x * s.down.x + s.up.y * s.down.y),
+    2.0 * (s.up.x * s.down.y - s.up.y * s.down.x),
+    dot(s.up, s.up) - dot(s.down, s.down)
   );
 }
-fn imagConjMul(a: vec2<f32>, b: vec2<f32>) -> f32 {
-  return a.x * b.y - a.y * b.x;
-}
-fn mulNegI(z: vec2<f32>) -> vec2<f32> {
-  return vec2<f32>(z.y, -z.x);
-}
-fn sgMagneticFieldAt(xPx: vec3<f32>) -> vec3<f32> {
+fn imagConjMul(a: vec2<f32>, b: vec2<f32>) -> f32 { return a.x * b.y - a.y * b.x; }
+fn mulNegI(z: vec2<f32>) -> vec2<f32> { return vec2<f32>(z.y, -z.x); }
+
+// ── 2D grid across the beam ─────────────────────────────────────────────────
+fn gridH() -> i32 { return i32(uni.sim.y); }
+fn gridD() -> i32 { return i32(uni.sim.z); }
+fn waveCountU() -> u32 { return u32(uni.xwave.w); }
+fn cellIndex(y: i32, z: i32) -> u32 { return u32(y + z * gridH()); }
+fn boxCenterYZ() -> vec2<f32> { return 0.5 * (uni.sim.yz - vec2<f32>(1.0)); }
+fn fieldScaleL() -> f32 { return max(1.0, 0.5 * (uni.sim.z - 1.0)); }
+
+// ── Magnetic field ───────────────────────────────────────────────────────────
+// One magnet in its own frame: B = g (-u, b0 + w) with (u, w) the coordinates across and
+// along its gradient axis, measured from the box centre in units of L. The frame is turned
+// by theta about the beam axis; divergence and curl are zero for any theta.
+fn magnetFieldYZ(m: vec4<f32>, b0: f32, y: f32, z: f32) -> vec2<f32> {
+  if (m.x <= 0.0) { return vec2<f32>(0.0); }
   let g = uni.sgField.x;
-  let center = 0.5 * (uni.sim.xyz - vec3<f32>(1.0));
-  let r = xPx - center;
-  let scale = max(1.0, center.z);
-  // Uniform part large enough that B never vanishes in the box (keep in step with SG_FIELD_BIAS in main.js).
-  let bias = 2.0 * g;
-  return vec3<f32>(
-    0.0,
-    -g * r.y / scale,
-    bias + g * r.z / scale
-  );
+  let c = boxCenterYZ();
+  let L = fieldScaleL();
+  let dy = y - c.x;
+  let dz = z - c.y;
+  let u = (dy * m.y - dz * m.z) / L;
+  let w = (dy * m.z + dz * m.y) / L;
+  let bu = -g * u;
+  let bv = g * (b0 + w);
+  return m.x * vec2<f32>(bu * m.y + bv * m.z, -bu * m.z + bv * m.y);
 }
-fn magneticFieldAt(xPx: vec3<f32>) -> vec3<f32> {
-  return sgMagneticFieldAt(xPx);
+fn magneticFieldYZ(y: f32, z: f32) -> vec3<f32> {
+  let b = magnetFieldYZ(uni.magnet1, uni.magnet1.w, y, z) + magnetFieldYZ(uni.magnet2, uni.magnet1.w, y, z);
+  return vec3<f32>(0.0, b.x, b.y);
 }
 
-fn simResU() -> vec3<u32> {
-  return vec3<u32>(u32(uni.sim.x), u32(uni.sim.y), u32(uni.sim.z));
+// ── Pauli equation, transverse part ──────────────────────────────────────────
+fn sigmaDotB(s: Spinor, b: vec3<f32>) -> Spinor {
+  let up = b.z * s.up + vec2<f32>(b.x * s.down.x + b.y * s.down.y, b.x * s.down.y - b.y * s.down.x);
+  let down = vec2<f32>(b.x * s.up.x - b.y * s.up.y, b.x * s.up.y + b.y * s.up.x) - b.z * s.down;
+  return Spinor(up, down);
 }
-fn simResI() -> vec3<i32> {
-  return vec3<i32>(i32(uni.sim.x), i32(uni.sim.y), i32(uni.sim.z));
+// d(chi)/dt = i (hbar/2m) lap chi + i (1/2m) sigma.B chi
+fn pauliRHS(s: Spinor, lap: Spinor, b: vec3<f32>) -> Spinor {
+  let hbar = max(uni.physics.x, 1e-6);
+  let mass = max(uni.physics.y, 1e-6);
+  let cLap = hbar / (2.0 * mass);
+  let zr = 1.0 / (2.0 * mass);
+  let sb = sigmaDotB(s, b);
+  let up = vec2<f32>(-cLap * lap.up.y, cLap * lap.up.x) - zr * mulNegI(sb.up);
+  let down = vec2<f32>(-cLap * lap.down.y, cLap * lap.down.x) - zr * mulNegI(sb.down);
+  return Spinor(up, down);
 }
-fn wrapIndex(x: i32, n: i32) -> i32 {
-  let m = x % n;
-  if (m < 0) { return m + n; }
-  return m;
+
+// ── Free Gaussian along the beam ─────────────────────────────────────────────
+fn phiWidth2() -> f32 {
+  let s = uni.packet.w;
+  let tau = uni.xwave.y;
+  return s * s * (1.0 + tau * tau);
 }
-fn xPeriodI() -> i32 {
-  return max(1, simResI().x - 1);
+fn phiRho(x: f32) -> f32 {
+  let d = x - uni.xwave.x;
+  let tau = uni.xwave.y;
+  return exp(-d * d / phiWidth2()) / sqrt(1.0 + tau * tau);
 }
-fn xPeriodF() -> f32 {
-  return max(1.0, uni.sim.x - 1.0);
+fn phiDlnRho(x: f32) -> f32 { return -2.0 * (x - uni.xwave.x) / phiWidth2(); }
+fn phiVelocity(x: f32) -> f32 {
+  let hbar = max(uni.physics.x, 1e-6);
+  let mass = max(uni.physics.y, 1e-6);
+  let s = uni.packet.w;
+  let tau = uni.xwave.y;
+  return uni.physics.z / mass + (x - uni.xwave.x) * (hbar / (mass * s * s)) * tau / (1.0 + tau * tau);
 }
-fn wrapIndexX(x: i32) -> i32 {
-  return wrapIndex(x, xPeriodI());
+fn phiPhase(x: f32) -> f32 {
+  let hbar = max(uni.physics.x, 1e-6);
+  let mass = max(uni.physics.y, 1e-6);
+  let k = uni.physics.z / hbar;
+  let s = uni.packet.w;
+  let tau = uni.xwave.y;
+  let x0 = uni.packet.x * (uni.sim.x - 1.0);
+  let d = x - uni.xwave.x;
+  return k * (x - x0) - hbar * k * k / (2.0 * mass) * uni.xwave.z - 0.5 * atan(tau)
+    + d * d * tau / (2.0 * s * s * (1.0 + tau * tau));
 }
-fn wrapCoordF(x: f32, period: f32) -> f32 {
-  return x - period * floor(x / period);
-}
-fn periodicDeltaF(x: f32, center: f32, period: f32) -> f32 {
-  let d = x - center;
-  return d - period * floor(d / period + 0.5);
-}
-fn nearestVisualX(x: f32) -> f32 {
-  let period = xPeriodF();
-  return x + period * floor((uni.visual2.x - x) / period + 0.5);
-}
-fn voxelIndexU(p: vec3<u32>) -> u32 {
-  let s = simResU();
-  return p.x + p.y * s.x + p.z * s.x * s.y;
-}
-fn voxelIndexI(p: vec3<i32>) -> u32 {
-  let s = simResI();
-  return u32(p.x + p.y * s.x + p.z * s.x * s.y);
-}
+
 fn quadCorner(v: u32) -> vec2<f32> {
   if (v == 0u) { return vec2<f32>(-0.5, -0.5); }
   if (v == 1u) { return vec2<f32>( 0.5, -0.5); }

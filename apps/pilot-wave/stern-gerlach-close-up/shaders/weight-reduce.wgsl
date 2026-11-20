@@ -1,10 +1,11 @@
 
-// Sums |Psi|^2 above the packet-centre height and in total, per workgroup.
-// The orthodox reading shows the upper/lower probability weights from these sums.
+// Orthodox reading: per workgroup, sums of |chi|^2 on the + side of axis n1, on the + side
+// of n2, on the + side of both, and in total. The x factor |phi|^2 integrates to the same
+// constant everywhere, so it cancels in the probabilities.
 @group(0) @binding(1) var<storage, read> waveIn: array<WaveCell>;
-@group(0) @binding(2) var<storage, read_write> partialSums: array<vec2<f32>>;
+@group(0) @binding(2) var<storage, read_write> partialSums: array<vec4<f32>>;
 
-var<workgroup> wgSums: array<vec2<f32>, ${WAVE_WORKGROUP_SIZE}>;
+var<workgroup> wgSums: array<vec4<f32>, ${WAVE_WORKGROUP_SIZE}>;
 
 @compute @workgroup_size(${WAVE_WORKGROUP_SIZE})
 fn main(
@@ -13,18 +14,15 @@ fn main(
   @builtin(workgroup_id) wid: vec3<u32>
 ) {
   let id = gid.x;
-  var sums = vec2<f32>(0.0);
-  if (id < u32(uni.sim.w)) {
-    let s = simResU();
-    let z = id / (s.x * s.y);
-    let rem = id - z * s.x * s.y;
-    let x = rem - (rem / s.x) * s.x;
-    // x = s.x - 1 duplicates x = 0 on the periodic grid; count each point once.
-    if (x < s.x - 1u || s.x == 1u) {
-      let rho = spinorRho(waveSpinor(waveIn[id]));
-      let zMid = uni.packet.z * (uni.sim.z - 1.0);
-      sums = vec2<f32>(select(0.0, rho, f32(z) > zMid), rho);
-    }
+  var sums = vec4<f32>(0.0);
+  if (id < waveCountU()) {
+    let H = u32(gridH());
+    let c = boxCenterYZ();
+    let r = vec2<f32>(f32(id % H), f32(id / H)) - c;
+    let rho = spinorRho(waveSpinor(waveIn[id]));
+    let a = dot(r, uni.axes.xy) > 0.0;
+    let b = dot(r, uni.axes.zw) > 0.0;
+    sums = vec4<f32>(select(0.0, rho, a), select(0.0, rho, b), select(0.0, rho, a && b), rho);
   }
   wgSums[lid] = sums;
   workgroupBarrier();

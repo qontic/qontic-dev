@@ -13,24 +13,30 @@ struct CloudOut {
 fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> CloudOut {
   var out: CloudOut;
   out.position = vec4<f32>(2.0, 2.0, 2.0, 1.0);
+  // Instances cover a window along x around the packet and the y-z grid with a stride.
   let id = instanceIndex;
-  let s = simResU();
-  let slice = s.x * s.y;
-  let z = id / slice;
-  let rem = id - z * slice;
-  let y = rem / s.x;
-  let x = rem - y * s.x;
-  if (x >= s.x - 1u) { return out; }
+  let W = u32(uni.sim.x);
+  let stride = max(1u, u32(uni.visual2.y));
+  let Hr = u32(uni.sim.y) / stride;
+  let Dr = u32(uni.sim.z) / stride;
+  let ix = id % W;
+  let rest = id / W;
+  let iy = rest % Hr;
+  let iz = rest / Hr;
+  if (iz >= Dr) { return out; }
+  let y = iy * stride;
+  let z = iz * stride;
+  let x = uni.visual2.z + f32(ix);
 
-  let spinor = waveSpinor(wave[id]);
-  let rho = spinorRho(spinor);
+  let spinor = waveSpinor(wave[cellIndex(i32(y), i32(z))]);
+  let rho = phiRho(x) * spinorRho(spinor);
   let base = 1.0 - exp(-uni.visual0.x * rho);
   if (base <= 0.0) { return out; }
   var intensity = pow(clamp(base, 0.0, 1.0), uni.visual0.y);
   intensity = mix(intensity, pow(intensity, 0.52), clamp(uni.visual0.z, 0.0, 1.0));
   if (intensity < uni.visual0.w) { return out; }
 
-  let visualX = nearestVisualX(f32(x));
+  let visualX = x;
   if (uni.detector.y > 0.5 && visualX > uni.detector.x) { return out; }
   out.intensity = intensity;
   out.alpha = 0.24 * intensity;
@@ -45,7 +51,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
       spinor.up * (upWeight / sqrt(max(upRho, 1e-30))) +
       spinor.down * (downWeight / sqrt(max(downRho, 1e-30)));
     let phasePsi = select(vec2<f32>(1.0, 0.0), phaseVec, dot(phaseVec, phaseVec) > 1e-20);
-    out.phase = atan2(phasePsi.y, phasePsi.x);
+    out.phase = atan2(phasePsi.y, phasePsi.x) + phiPhase(x);
   }
   let worldPos = vec3<f32>(visualX, f32(y), f32(z)) * uni.visual1.w;
   let clip = uni.viewProj * vec4<f32>(worldPos, 1.0);
@@ -53,7 +59,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
   if (i32(uni.viewport.z) == 1) {
     viewScale = clamp(160.0 / max(1.0, uni.camera.w), 0.35, 2.3);
   }
-  let pointSize = uni.visual1.x * viewScale * mix(0.65, 1.45, intensity);
+  let pointSize = uni.visual1.x * viewScale * mix(0.65, 1.45, intensity) * sqrt(f32(stride));
   let ndcOffset = corner * pointSize * 2.0 / max(uni.viewport.xy, vec2<f32>(1.0));
   out.position = vec4<f32>(
     clip.x + ndcOffset.x * clip.w,

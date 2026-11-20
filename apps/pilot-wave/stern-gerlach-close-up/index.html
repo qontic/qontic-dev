@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
   <link rel="stylesheet" href="./style.css?v=13" />
-  <link rel="modulepreload" href="./main.js?v=20" />
+  <link rel="modulepreload" href="./main.js?v=21" />
 </head>
 <body>
   <main class="shell">
@@ -34,7 +34,7 @@
         <div id="scene-legend" aria-label="Legend">
           <span id="legend-field"><i class="swatch field"></i>Magnetic field lines; arrowheads show the direction of B. The field points up (+z) and is stronger toward the top; this pushes the +z spin part up and the −z part down.</span>
           <span id="legend-cloud"><i class="swatch cloud"></i><span class="legend-text">Cloud: |Ψ|², where the particle can be found.</span></span>
-          <span id="legend-dots"><i class="swatch dots"></i>Dots: possible particle positions, started at random according to |Ψ|². Yellow dots start in the upper half of the packet, green dots in the lower half. Trails show their paths.</span>
+          <span id="legend-dots"><i class="swatch dots"></i>Dots: possible particle positions, started at random according to |Ψ|². Yellow dots start on the + side of the packet along the first magnet's axis (the upper half for a z magnet), green dots on the other side. Trails show their paths.</span>
           <span id="legend-plate"><i class="swatch plate"></i><span class="legend-text">Detector plate: a dot stops when it reaches it.</span></span>
         </div>
         <div id="plate-hits" class="plate-hits" hidden></div>
@@ -61,7 +61,7 @@
         show-reset="true" show-rerun="false" show-autorun="true" auto-run="true" show-interpretation="true" interpretations="cpn,pw" interpretation="pw" disabled></qontic-controls>
       <div class="qontic-control-body" id="controls">
         <div data-control-pane="core">
-          <p class="prompt">Click XZ for the side view and 3D to come back: the beam moves to the right and z points up. With the field on, the equal superposition splits into an upper (+z) and a lower (−z) part. Set Initial spin to +z and the whole packet moves up. Changing the initial spin restarts the packet. The run restarts by itself after the packet passes the plate; click ↻ to turn this off.</p>
+          <p class="prompt">Click XZ for the side view and 3D to come back: the beam moves to the right and z points up. With the field on, the equal superposition splits into an upper (+z) and a lower (−z) part. Set Initial spin to +z and the whole packet moves up. The Magnets control gives other fields: a short magnet, tilted magnets, two magnets in a row. Changing the initial spin restarts the packet. The run restarts by itself after the packet passes the plate; click ↻ to turn this off.</p>
         </div>
         <div data-control-pane="advanced" hidden>
           <p class="prompt">The app selects a starting grid from the device’s capabilities. You can adjust it here. Changing the grid also changes the tunnel dimensions and restarts the packet.</p>
@@ -84,14 +84,26 @@
             </mrow>
           </math>
         </div>
-        <p>The dots are pilot-wave particles. They start at random positions drawn from |Ψ|² and then follow the guidance law below. Yellow dots start above the packet centre, green dots below. A dot stops when it reaches the detector plate, and the counts in the corner are made from those dots. The wave itself passes through the plate and keeps evolving.</p>
-        <p>The default packet is an equal, in-phase superposition of +z and −z spin. In the field the two spin components separate vertically. Each particle ends up in one branch, and which one is fixed by where it started: dots from the upper half of the packet go up, dots from the lower half go down. Only dots that start very near the middle can end in the other branch.</p>
+        <p>The dots are pilot-wave particles. They start at random positions drawn from |Ψ|² and then follow the guidance law below. Yellow dots start on the + side of the packet along the first magnet's axis (above the centre for a z magnet), green dots on the other side. A dot stops when it reaches the detector plate, and the counts in the corner are made from those dots. The wave itself passes through the plate and keeps evolving.</p>
+        <p>The default packet is an equal, in-phase superposition of +z and −z spin. In a z magnet the two spin components separate vertically. Each particle ends up in one branch, and which one is fixed by where it started: dots from the upper half of the packet go up, dots from the lower half go down. Only dots that start very near the middle can end in the other branch.</p>
+        <h4>Magnets</h4>
+        <p>The Magnets control chooses the field along the flight:</p>
+        <ul>
+          <li><b>Long magnet</b>: a z magnet all the way to the plate.</li>
+          <li><b>Short magnet, then drift</b>: the field acts over the first third of the flight; after it the two parts keep the sideways speed they gained and drift apart, as after the real 3.5 cm magnet.</li>
+          <li><b>Tilted 45°</b>: the magnet is turned 45° about the beam, so it measures spin along an axis between y and z. A +z packet then gives about 85% and 15% (cos² 22.5° and sin² 22.5°).</li>
+          <li><b>Along y</b>: the magnet is turned 90°, so it measures spin along y. A +z packet splits 50/50 sideways.</li>
+          <li><b>z magnet, then y magnet</b>: a short z magnet, a field-free gap, then a y magnet. A +z packet first moves up as a whole, then splits into +y and −y. The equal superposition ends in four spots.</li>
+          <li><b>Weak uniform field</b>: a long z magnet whose uniform part is small, so the field nearly vanishes near the bottom of the box. There the spin cannot follow the field and flips; the lower spot is distorted and the counts are no longer 50/50.</li>
+        </ul>
+        <p>Each setting has its own default and largest gradient, chosen to keep the parts away from the walls of the box.</p>
         <h4>Two readings</h4>
-        <p>The interpretation button in the controls switches between two readings of the same wave. In the pilot-wave reading the particle has a position at all times and is guided by the wave; the dots show possible positions. In the orthodox reading only the wave is shown: the theory gives the particle no position before it is measured, and |Ψ|² gives the probabilities of where it will be found at the plate. For the equal superposition each half of the plate gets probability ½; for +z the upper half gets nearly all of it. Both readings predict the same statistics at the plate. In the orthodox reading the box in the corner shows the weight of |Ψ|² above and below the middle of the box; when the packet reaches the plate, these are the chances of a hit in each half.</p>
+        <p>The interpretation button in the controls switches between two readings of the same wave. In the pilot-wave reading the particle has a position at all times and is guided by the wave; the dots show possible positions. In the orthodox reading only the wave is shown: the theory gives the particle no position before it is measured, and |Ψ|² gives the probabilities of where it will be found at the plate. For the equal superposition each half of the plate gets probability ½; for +z the upper half gets nearly all of it. Both readings predict the same statistics at the plate. In the orthodox reading the box in the corner shows the weight of |Ψ|² in each region of the plate (two halves along the magnet's axis, or four quadrants after two magnets); when the packet reaches the plate, these are the chances of a hit there.</p>
         <h4>Geometry</h4>
-        <p>The packet starts inside the magnetic field. There is no entrance or exit of a magnet: this is a close-up of the region inside it. The grid is periodic along x; the canvas shows one tunnel from just behind the starting packet (x = 0) to the detector plate, and the cloud is drawn where the packet is. The grid is twice as tall along z as along x and y. Along y and z the walls are hard; with the default settings less than 2% of the density is near the top and bottom walls when the packet reaches the plate. Larger gradients push the branches into the walls, so the gradient slider stops at 3.5.</p>
+        <p>The canvas shows one tunnel from just behind the starting packet (x = 0) to the detector plate. The wave is computed in two parts. Along the beam it is the exact free Gaussian φ(x, t), which moves at the atom speed and spreads. Across the beam the spinor χ(y, z, t) is computed on a 128 × 128 grid with hard walls; the full wave is Ψ = φ(x, t) χ(y, z, t). The magnets act on χ through the field at the packet's centre, x<sub>c</sub>(t): a magnet turns on as the packet reaches it and off as it leaves, with smooth ramps over 5% of the flight.</p>
+        <p>This treats the field as the same over the length of the packet. At the magnet ends that is a simplification: the packet (about 0.5 cm long in lab units) is longer than the ramps (about 0.2 cm), and real fringe fields also have a component along the beam. Inside a magnet, where the field does not change along x, the factorization is exact.</p>
         <h4>Magnetic field</h4>
-        <p>The field has no x component and does not depend on x:</p>
+        <p>For a magnet with its gradient along z the field is</p>
         <div class="eq">
           <math display="block">
             <mrow>
@@ -105,7 +117,7 @@
             </mrow>
           </math>
         </div>
-        <p>Here y<sub>c</sub> and z<sub>c</sub> are the centre of the box, L is half the box height, and g is the gradient strength, so ∂B<sub>z</sub>/∂z = g/L. The uniform part, 2g, keeps the field from vanishing inside the box, so the spin components separate without spin flips. The y component is required by ∇·B = 0; it has almost no effect here. The red lines are field lines of this B: at every point the line is tangent to B, and the arrowheads (Display: Field arrows) show which way B points along it. The lines carry no strength by their colour; the strength shows in their spacing, since the lines crowd together where |B| is larger, toward the top. That crowding is across y, so it is seen in the 3D and YZ views but not in the XZ view, where every line is seen edge-on as a vertical stroke. The Magnetic field switch (Display tab) turns the whole field off, uniform part included.</p>
+        <p>Here y<sub>c</sub> and z<sub>c</sub> are the centre of the box, L is half the box height, and g is the gradient strength, so ∂B<sub>z</sub>/∂z = g/L. The uniform part, 2g, keeps the field from vanishing inside the box, so the spin components separate without spin flips (the Weak uniform field setting uses 0.3g instead). The y component is required by ∇·B = 0; it has almost no effect on the probabilities here. A tilted magnet uses the same formula turned about the beam axis, and the field is multiplied by the magnet's on/off profile along the flight. The red lines are field lines of this B: at every point the line is tangent to B, and the arrowheads (Display: Field arrows) show which way B points along it. The lines carry no strength by their colour; the strength shows in their spacing, since the lines crowd together where |B| is larger, toward the top. That crowding is across y, so it is seen in the 3D and YZ views but not in the XZ view, where every line is seen edge-on as a vertical stroke. The Magnetic field switch (Display tab) turns the whole field off, uniform part included.</p>
         <h4>Wave</h4>
         <p>The particle is neutral, so there is no vector potential. The spinor obeys the Pauli equation</p>
         <div class="eq">
@@ -128,7 +140,7 @@
           </math>
         </div>
         <p>With this sign the magnetic moment is parallel to the spin, μ = (ħ/2m)σ, and the +z component is pushed toward the stronger field, upward. For a silver atom the magnetic moment of the outer electron is antiparallel to its spin, so there the −z component would go up.</p>
-        <p>The equation is solved with fourth-order finite differences in space and leapfrog steps in time, periodic along x and with hard walls along y and z. The initial packet is a Gaussian (Beam width) moving along x; its wave number is rounded to the nearest value that fits the periodic box.</p>
+        <p>Across the beam the equation is solved with fourth-order finite differences and leapfrog steps in time. The initial packet is a Gaussian (Beam width) in all three directions, moving along x.</p>
         <h4>Guidance</h4>
         <p>The particle velocity is the Pauli current divided by the density. It has a convective part and a spin part. The convective part is</p>
         <div class="eq">
@@ -168,23 +180,23 @@
             </mrow>
           </math>
         </div>
-        <p>The coefficient s = ½ gives the Pauli current. The spin term is divergence-free, so every value of s keeps the dots distributed as |Ψ|²: the counts at the plate have the same statistics, and only the individual trajectories change. With s = ½ the trajectories of a +z packet also swirl around the beam axis; this is the spin current, not a numerical error. The controls use the lab units described below.</p>
+        <p>Here s = ½: this is the Pauli current, the one that the non-relativistic limit of the Dirac current gives for g = 2. The spin term is a curl, so it has zero divergence and does not change how the density of dots evolves: with or without it the dots stay distributed as |Ψ|². It does change the individual trajectories; for example the dots of a +z packet swirl around the beam axis. The Spin term switch in the Advanced tab turns it off (s = 0, the convective current alone) to show that the statistics do not fix the trajectories. Where two parts of the wave still overlap at the plate, the counts on each side can differ slightly between the two choices, because the spin current carries dots across the dividing line; once the parts are well apart they agree. The controls use the lab units described below.</p>
         <h4>Units</h4>
-        <p>The app shows lab units by giving each axis its own scale, matched to the 1922 experiment. This is possible because in this model the motion along the beam (x) separates exactly from the motion across it (y and z). At the default settings the flight from the start to the plate is the 3.5 cm magnet, the atoms move at 660 m/s, and the width of |Ψ|² across the beam (FWHM) is 35 µm, the width of the slit. The scales are then fixed, and the sliders change lab quantities: the field gradient in T/cm, the atom speed in m/s and the beam width in µm. The clock at the top left of the canvas gives the time since the packet started, in µs. The Axes button at the top right shows axes in these units: x in cm from the start of the tunnel, just behind the starting packet, to the plate, and y and z in µm from the middle of the box.</p>
+        <p>The app shows lab units by giving each axis its own scale, matched to the 1922 experiment. This is possible because the motion along the beam (x) is computed separately from the motion across it (y and z). At the default settings the flight from the start to the plate is the 3.5 cm magnet, the atoms move at 660 m/s, and the width of |Ψ|² across the beam (FWHM) is 35 µm, the width of the slit. The scales are then fixed, and the sliders change lab quantities: the field gradient in T/cm, the atom speed in m/s and the beam width in µm. The clock at the top left of the canvas gives the time since the packet started, in µs. The Axes button at the top right shows axes in these units: x in cm from the start of the tunnel, just behind the starting packet, to the plate, and y and z in µm from the middle of the box.</p>
         <table class="lab-table">
           <tr><th></th><th>Grid</th><th>Lab units</th><th>Set by</th></tr>
           <tr><td>Along the beam, x</td><td>1 cell</td><td>0.32 mm</td><td>magnet length (110 cells to the plate)</td></tr>
-          <tr><td>Time</td><td>1 unit</td><td>2.5 µs</td><td>atom speed (53 µs to the plate)</td></tr>
+          <tr><td>Time</td><td>1 unit</td><td>2.6 µs</td><td>atom speed (53 µs to the plate)</td></tr>
           <tr><td>Across the beam, y and z</td><td>1 cell</td><td>2.1 µm</td><td>slit width (FWHM 17 cells)</td></tr>
-          <tr><td>Gradient at the default setting</td><td>g = 3</td><td>8.9 T/cm</td><td>follows</td></tr>
-          <tr><td>Splitting at the plate</td><td>62 cells</td><td>0.13 mm</td><td>follows</td></tr>
+          <tr><td>Gradient, long magnet</td><td>g = 3</td><td>8.2 T/cm</td><td>follows</td></tr>
+          <tr><td>Splitting at the plate, long magnet</td><td>57 cells</td><td>0.12 mm</td><td>follows</td></tr>
         </table>
-        <p>The gradient and the splitting come out close to the 1922 values: the magnet was 3.5 cm long with a field gradient of about 10 T/cm, and the splitting at the plate was about 0.2 mm. The line under the controls gives the expected splitting from the classical estimate a·T², with a = (ħ/2m)(∂B<sub>z</sub>/∂z)/m and T the flight time; it agrees with the full simulation to about one grid cell.</p>
+        <p>The gradient and the splitting come out close to the 1922 values: the magnet was 3.5 cm long with a field gradient of about 10 T/cm, and the splitting at the plate was about 0.2 mm. The line under the controls gives the expected splitting from the classical estimate: each spin part is pushed with acceleration ±a·p(t), where a = (ħ/2m)(∂B/∂z)/m and p(t) is the magnet's on/off profile, so for the long magnet the splitting is a·T² with T the flight time.</p>
         <p>What cannot match is ħ/m. In these units the model has ħ/m ≈ 10<sup>−5</sup> m²/s, while for a silver atom ħ/m ≈ 6 × 10<sup>−10</sup> m²/s, so the model's wave spreads about 2 × 10<sup>4</sup> times faster across the beam than a real silver atom's. That is the price of seeing the wave on a grid: the de Broglie wavelength of a silver atom at 660 m/s is about 6 × 10<sup>−12</sup> m, so the real slit was millions of wavelengths wide, while here the packet is two to three grid wavelengths wide. A real silver beam hardly spreads at all in the magnet, which is why the real splitting looks so clean. Along the beam the grid wavelength has no lab meaning; there the motion only sets the clock. Internally the solver uses ħ = 6, m = 1 and a grid spacing of 1.</p>
         <p class="refs">Sources: W. Gerlach and O. Stern, Z. Phys. <b>9</b>, 349–352 (1922), English translation by M. Bauer, arXiv:2301.11343 (slit width); B. Friedrich and D. Herschbach, “Stern and Gerlach: How a bad cigar helped reorient atomic physics,” Phys. Today <b>56</b>(12), 53–59 (2003) (magnet length, gradient, splitting, atom speed); H. Schmidt-Böcking, “The Stern-Gerlach experiment re-examined by an experimenter,” Europhys. News <b>50</b>(3), 15 (2019).</p>
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=20"></script>
+  <script type="module" src="./template.js?v=21"></script>
 </body>
 </html>

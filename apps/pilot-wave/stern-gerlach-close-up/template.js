@@ -65,7 +65,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=20'));
+  ({ simulation } = await import('./main.js?v=21'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {
@@ -119,6 +119,7 @@ function applyReading(id) {
 function prepare({ spin, reading = 'pw' }) {
   return () => {
     applyReading(reading);
+    simulation?.setMagnetPreset(0);
     simulation?.setInitialSpin(spin);
     setRunning(false);
   };
@@ -219,7 +220,7 @@ mountQonticQuiz({
       prepare: prepare({ spin: 1, reading: 'cpn' }), draw: c => drawSideView(c),
       plain: 'The orthodox reading gives it no position until it is detected.',
       explain: 'Only the wave is described. At the plate a single hit appears in one half, with probability ½ each. "In one branch, we do not know which" is the pilot-wave answer; the simulation shows only the cloud in this reading.' },
-    { question: `${PW} The spin-current coefficient s is changed from ½ to 0. What changes at the plate?`,
+    { question: `${PW} The spin term of the guidance law is switched off (Advanced: Spin term). What changes at the plate?`,
       answer: 'paths', caption: 'Side view at the start.', watch: false,
       answers: [
         { id: 'paths', label: 'Only the individual trajectories; the counts have the same statistics' },
@@ -229,7 +230,7 @@ mountQonticQuiz({
       ],
       prepare: prepare({ spin: 1 }), draw: c => drawSideView(c),
       plain: 'Only the trajectories change; the statistics stay the same.',
-      explain: 'The spin term (sħ/mρ)∇×(Ψ†σΨ) has zero divergence, so it does not change how the dot density evolves: it stays |Ψ|² for every s. It does change which way individual dots move, and which dots near the middle cross to the other branch. Try the Spin current s slider.' },
+      explain: 'The spin term (ħ/2mρ)∇×(Ψ†σΨ) has zero divergence, so it does not change how the dot density evolves: it stays |Ψ|² with or without it. It does change which way individual dots move, and which dots near the middle cross to the other branch. Try the Spin term switch in the Advanced tab.' },
     { question: 'For a silver atom the magnetic moment is antiparallel to the spin. In this field, which spin part goes up?',
       answer: 'minus', caption: 'Side view at the start.', watch: false,
       answers: [
