@@ -29,6 +29,7 @@
     "double-slit-pilot-wave-notebook": "4. Study pilot-wave trajectories and equivariance.",
     "weak-velocity-double-slit": "Optional advanced study: weak measurement and reconstructed probability flow.",
     "n-slits-analytical": "Next step: the same model with 1 to 16 slits, detectors at any slit, and slits closed during a run.",
+    "n-slits-two-engines-preview": "Preview: N-Slits with two engines for the same geometry, the analytical paraxial model and a numerical Schrödinger solver, switchable and compared.",
     "double-slit-numerical-n-slits-preview": "Preview: the numerical app with 1–16 slits and slits that close during a run (shutter), with the change it causes."
   }
 }

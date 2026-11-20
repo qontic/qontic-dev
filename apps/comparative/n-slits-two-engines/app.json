@@ -1,0 +1,28 @@
+{
+  "id": "n-slits-two-engines-preview",
+  "title": "N-Slits · two engines (preview)",
+  "type": "app",
+  "category": "comparative",
+  "module": "double-slit",
+  "topics": [
+    "wave-mechanics",
+    "interference",
+    "measurement",
+    "trajectories"
+  ],
+  "interpretations": [
+    "orthodox",
+    "pilot-wave",
+    "many-worlds"
+  ],
+  "level": "intermediate",
+  "description": "Preview: the N-Slits app with two engines for the same geometry, the analytical paraxial model and a numerical Schrödinger solver on a grid (WebGL2), switchable one at a time, with the two screen predictions compared.",
+  "tags": [
+    "Multiview",
+    "Double slit",
+    "Many slits",
+    "Born rule"
+  ],
+  "entry": "index.html",
+  "status": "draft"
+}
