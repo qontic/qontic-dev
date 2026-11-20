@@ -3,6 +3,12 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.4 — 2026-11-20
+Pablo: switching from Orthodox to Pilot Wave in the numerical engine breaks the app; the numerical engine should use the colours and display of the old numerical app.
+- **Fix:** a change of view rebuilt the in-flight particles with the analytical sampler, which in numerical mode replaced the engine's own GPU-tracked particles. In the numerical engine the particles are tracked in every view, so nothing is rebuilt; clocks, record and particles carry through Orthodox ↔ Pilot Wave ↔ Many Worlds.
+- **Classic numerical look** (default; Advanced → Numerical look: Classic / Analytical): the wave shader of the numerical N-slit app (black field, phase blue/red with magenta seams over a purple density, I = (1 − e^(−20ρ))^0.5 with ρ relative to the starting peak), metal wall, particles By slit (slit 1 orange, slit 2 blue, then the eight-colour order; grey until they cross the wall). The Show menu and palette scale do not apply in the classic look. Each engine remembers its own particle colour (numerical default By slit, analytical default Uniform).
+- Pilot-Wave caption in the numerical engine says what the wall does to particles (reflected wave carries some back; absorbing wall removes them with the local absorption probability).
+
 ## 1.0-dev.3 — 2026-11-20
 Pablo: the numerical animation is bumpy; mask and absorbing look the same and the absorbing wall looks thin.
 - Numerical engine runs more evenly: the fractional number of time steps is carried from frame to frame instead of rounded, and particle positions and screen flux are read back from the GPU asynchronously (copy + fence), so the page never waits for the GPU. Particles lag the wave by one frame.

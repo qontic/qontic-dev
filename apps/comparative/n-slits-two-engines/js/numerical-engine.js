@@ -201,7 +201,15 @@ uniform sampler2D uState, uPalette;
 uniform ivec2 uRes;
 uniform vec4 uMap;      // grid x = uMap.x + u * uMap.y ; grid y = uMap.z + v * uMap.w  (u, v in 0..1 over the canvas)
 uniform float uPeak, uLo, uInv, uAlpha, uFieldU, uGain;
-uniform int uShow;      // 0 |psi|^2, 1 phase (cos), 2 log, 3 phase & |psi|
+uniform int uShow;      // 0 |psi|^2, 1 phase (cos), 2 log, 3 phase & |psi|, 4 classic (as the numerical N-slit app)
+// Classic look: wave_render.frag of the numerical N-slit app (phase blue/red/magenta
+// over a purple density; I = (1 - exp(-20 rho))^0.5 with rho relative to the starting peak).
+vec3 phaseColor(float ph){
+  float m = abs(ph);
+  vec3 branch = ph >= 0. ? vec3(0.08,0.25,1.0) : vec3(1.0,0.08,0.02);
+  float seam = clamp((m - 1.57079633)/1.57079633, 0., 1.), f = clamp(m/1.05, 0., 1.);
+  return mix(branch, vec3(0.72,0.04,0.88), seam) * f*f*f*(f*(f*6. - 15.) + 10.);
+}
 in vec2 vUV;
 out vec4 o;
 vec2 samp(vec2 x){
@@ -218,6 +226,14 @@ void main(){
   if (u > uFieldU) { o = vec4(0.); return; }
   vec2 psi = samp(vec2(uMap.x + u*uMap.y, uMap.z + v*uMap.w));
   float rho = dot(psi, psi), rel = rho / uPeak;
+  if (uShow == 4) {
+    float vis = smoothstep(0.001, 0.002, sqrt(rel));
+    float I = pow(clamp(1. - exp(-20.*rel), 0., 1.), 0.5);
+    float ph = rel > 0. && vis > 0. ? atan(psi.y, psi.x) : 0.;
+    vec3 dens = mix(vec3(0.26,0.13,0.49), vec3(0.72,0.50,0.99), pow(I, 0.7));
+    o = vec4(mix(dens, phaseColor(ph), 0.77905591) * I * vis * uAlpha, 1.0);
+    return;
+  }
   // Visibility on a log scale (down to 1e-4 of the incoming peak), so the much
   // weaker transmitted wave shows; colour as in the analytical engine.
   float raw = clamp((log(max(rel, 1e-12))/2.302585 + 4.)/3., 0., 1.);
