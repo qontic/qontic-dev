@@ -169,6 +169,7 @@ const params = {
   initialSpin: 1,
   sgGradient: DEFAULT_SG_GRADIENT,
   sgFieldOn: 1,
+  showFieldArrows: 1,
 
   cloudGain: .05,
   cloudGamma: 0.7,
@@ -385,6 +386,7 @@ addSlider("spinS", "Spin current s", 0.0, 2.0, 0.5);
 
 controls = displayControls;
 addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
+addToggleInt("showFieldArrows", "Field arrows");
 const cameraProjectionControl = addCycleButton("cameraProjection", "Camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
   syncCameraUi();
@@ -473,6 +475,7 @@ let weightCounts = { upper: 0.5, lower: 0.5, valid: false };
 let boxBuffer = null, boxVertexCount = 0;
 let boxShellBuffer = null, boxShellVertexCount = 0;
 let fieldLineBuffer = null, fieldLineVertexCount = 0;
+let fieldArrowBuffer = null, fieldArrowVertexCount = 0;
 
 let densW = 0, densH = 0;
 let densTexA = null, densTexB = null, densViewA = null, densViewB = null, densFlip = 0;
@@ -1701,6 +1704,10 @@ function render(encoder, camera) {
     pass.setBindGroup(0, fieldLineBindGroup);
     pass.setVertexBuffer(0, fieldLineBuffer);
     pass.draw(fieldLineVertexCount);
+    if (params.showFieldArrows && fieldArrowBuffer && fieldArrowVertexCount > 0) {
+      pass.setVertexBuffer(0, fieldArrowBuffer);
+      pass.draw(fieldArrowVertexCount);
+    }
   }
 
   if (dotsShown()) {
@@ -1856,8 +1863,24 @@ function pushFieldLineSegment(verts, a, b, fade) {
   pushVertex(1, 1);
 }
 
-function traceSgFieldLine(verts, start, sign, fade, step, maxSteps, margin) {
+// Arrowhead pointing along B at p: four short strokes from the tip, two in the
+// plane of x and B and two in the y–z plane, so it reads from any view.
+const FIELD_ARROW = { spacing: 22, length: 3.4, width: 1.8 };
+function pushFieldArrow(arrows, p, dir, fade) {
+  const L = FIELD_ARROW.length, W = FIELD_ARROW.width;
+  const tip = [p[0], p[1] + 0.5 * L * dir[1], p[2] + 0.5 * L * dir[2]];
+  const back = [p[0], p[1] - 0.5 * L * dir[1], p[2] - 0.5 * L * dir[2]];
+  const perps = [[1, 0, 0], [0, -dir[2], dir[1]]];
+  for (const n of perps) {
+    for (const s of [-1, 1]) {
+      pushFieldLineSegment(arrows, tip, [back[0] + s * W * n[0], back[1] + s * W * n[1], back[2] + s * W * n[2]], fade);
+    }
+  }
+}
+
+function traceSgFieldLine(verts, start, sign, fade, step, maxSteps, margin, arrows = null) {
   let p = start.slice();
+  let sinceArrow = 0.5 * FIELD_ARROW.spacing;
   for (let i = 0; i < maxSteps; i++) {
     const dir = sgFieldDirectionGrid(p);
     if (!dir) break;
@@ -1868,6 +1891,11 @@ function traceSgFieldLine(verts, start, sign, fade, step, maxSteps, margin) {
     ];
     if (!isInsideFieldLineBox(q, margin)) break;
     pushFieldLineSegment(verts, p, q, fade);
+    sinceArrow += step;
+    if (arrows && sinceArrow >= FIELD_ARROW.spacing) {
+      pushFieldArrow(arrows, q, dir, Math.min(1, fade * 1.25));
+      sinceArrow = 0;
+    }
     p = q;
   }
 }
@@ -1878,10 +1906,14 @@ const FIELD_LINE_STYLE = { xFracs: [0.2, 0.5, 0.8], copyFade: [0.2, 0.65, 0.65] 
 function rebuildMagneticFieldLines() {
   destroyGpuResource(fieldLineBuffer);
   fieldLineBuffer = null;
+  destroyGpuResource(fieldArrowBuffer);
+  fieldArrowBuffer = null;
+  fieldArrowVertexCount = 0;
   fieldLineVertexCount = 0;
   if (simW < 4 || simH < 4 || simD < 4) return;
 
   const verts = [];
+  const arrows = [];
   const periodX = Math.max(1, simW - 1);
   const yMax = simH - 1;
   const zMax = simD - 1;
@@ -1902,8 +1934,8 @@ function rebuildMagneticFieldLines() {
       for (const zf of zFracs) {
         for (const yf of yFracs) {
           const start = [x, yf * yMax, zf * zMax];
-          traceSgFieldLine(verts, start, 1, fade, step, maxSteps, margin);
-          traceSgFieldLine(verts, start, -1, fade, step, maxSteps, margin);
+          traceSgFieldLine(verts, start, 1, fade, step, maxSteps, margin, arrows);
+          traceSgFieldLine(verts, start, -1, fade, step, maxSteps, margin, arrows);
         }
       }
     }
@@ -1912,6 +1944,10 @@ function rebuildMagneticFieldLines() {
   fieldLineVertexCount = verts.length / 9;
   if (fieldLineVertexCount > 0) {
     fieldLineBuffer = makeBuffer("SG magnetic field line vertices", new Float32Array(verts), GPUBufferUsage.VERTEX);
+  }
+  fieldArrowVertexCount = arrows.length / 9;
+  if (fieldArrowVertexCount > 0) {
+    fieldArrowBuffer = makeBuffer("SG magnetic field arrow vertices", new Float32Array(arrows), GPUBufferUsage.VERTEX);
   }
 }
 

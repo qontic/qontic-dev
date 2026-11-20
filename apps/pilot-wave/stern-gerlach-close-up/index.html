@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
   <link rel="stylesheet" href="./style.css?v=8" />
-  <link rel="modulepreload" href="./main.js?v=14" />
+  <link rel="modulepreload" href="./main.js?v=15" />
 </head>
 <body>
   <main class="shell">
@@ -32,7 +32,7 @@
           </div>
         </div>
         <div id="scene-legend" aria-label="Legend">
-          <span id="legend-field"><i class="swatch field"></i>Magnetic field lines. The field points up (+z) and is stronger toward the top; this pushes the +z spin part up and the −z part down.</span>
+          <span id="legend-field"><i class="swatch field"></i>Magnetic field lines; arrowheads show the direction of B. The field points up (+z) and is stronger toward the top; this pushes the +z spin part up and the −z part down.</span>
           <span id="legend-cloud"><i class="swatch cloud"></i><span class="legend-text">Cloud: |Ψ|², where the particle can be found.</span></span>
           <span id="legend-dots"><i class="swatch dots"></i>Dots: possible particle positions, started at random according to |Ψ|². Yellow dots start in the upper half of the packet, green dots in the lower half. Trails show their paths.</span>
           <span id="legend-plate"><i class="swatch plate"></i><span class="legend-text">Detector plate: a dot stops when it reaches it.</span></span>
@@ -103,7 +103,7 @@
             </mrow>
           </math>
         </div>
-        <p>Here y<sub>c</sub> and z<sub>c</sub> are the centre of the box, L is half the box height, and g is the gradient strength, so ∂B<sub>z</sub>/∂z = g/L. The uniform part, 2g, keeps the field from vanishing inside the box, so the spin components separate without spin flips. The y component is required by ∇·B = 0; it has almost no effect here. The red lines are field lines of this B. The Magnetic field switch (Display tab) turns the whole field off, uniform part included.</p>
+        <p>Here y<sub>c</sub> and z<sub>c</sub> are the centre of the box, L is half the box height, and g is the gradient strength, so ∂B<sub>z</sub>/∂z = g/L. The uniform part, 2g, keeps the field from vanishing inside the box, so the spin components separate without spin flips. The y component is required by ∇·B = 0; it has almost no effect here. The red lines are field lines of this B: at every point the line is tangent to B, and the arrowheads (Display: Field arrows) show which way B points along it. The lines carry no strength by their colour; the strength shows in their spacing, since the lines crowd together where |B| is larger, toward the top. That crowding is across y, so it is seen in the 3D and YZ views but not in the XZ view, where every line is seen edge-on as a vertical stroke. The Magnetic field switch (Display tab) turns the whole field off, uniform part included.</p>
         <h4>Wave</h4>
         <p>The particle is neutral, so there is no vector potential. The spinor obeys the Pauli equation</p>
         <div class="eq">
@@ -170,6 +170,6 @@
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=14"></script>
+  <script type="module" src="./template.js?v=15"></script>
 </body>
 </html>
