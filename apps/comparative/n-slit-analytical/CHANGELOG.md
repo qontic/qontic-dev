@@ -1,3 +1,6 @@
+## 3.0-dev.25 — 2026-11-19
+- Renamed to "N-Slits" (Pablo): page title, header, breadcrumb, catalog title. No change to the simulation.
+
 ## 3.0-dev.24 — 2026-11-19
 - **Correction of dev.23:** dev.23 said that in the full Schrödinger equation closing a slit perturbs the part of the wave already past the wall. A 2D split-operator calculation (geometry of the numerical app; script in apps/pilot-wave/n-slit-numerical/tools/) splitting ψ(t_c) smoothly into the part already past and the rest shows the part already past changes by < 1%; the change of the wave ahead of the cut (52% sudden reflecting blade, 24% blade over τ = 60, 33% for a 2.4 λ packet) comes entirely from the later part, which the spread of forward speeds, wide-angle diffraction and scattering carry into that region (with a 1 λ packet it makes up 83% of the amplitude ahead of the cut even with the slit open). Q5, Physics and Views reworded; they point to the numerical N-slit preview.
 

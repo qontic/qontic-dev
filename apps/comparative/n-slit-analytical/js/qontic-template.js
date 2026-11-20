@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=nslit25';
-import { mountMWBranching } from './mw-branching.js?cache=nslit25';
-import { APP_RELEASE } from './release.js?cache=nslit25';
-import { mountNSlitQuiz } from './quiz.js?cache=nslit25';
+import { mountPacketEngine } from './packet-engine.js?cache=nslit26';
+import { mountMWBranching } from './mw-branching.js?cache=nslit26';
+import { APP_RELEASE } from './release.js?cache=nslit26';
+import { mountNSlitQuiz } from './quiz.js?cache=nslit26';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=nslit25';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=nslit26';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.1';
@@ -14,7 +14,7 @@ import '../../../../shared/qontic-controls.js?v=3.1';
 $(function () {
   const shell = document.createElement('main');
   shell.className = 'shell analytical-shell';
-  shell.innerHTML = `<header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>Double Slit · N Slits</h1></div></header>
+  shell.innerHTML = `<header><div><p class="eyebrow">Q-Ontic interactive laboratory</p><h1>N-Slits</h1></div></header>
     <nav class="tabs" aria-label="Application sections">
       <button type="button" data-page="0" data-view="simulation" class="active">Simulation</button>
       <button type="button" data-page="1" data-view="quiz">Quiz</button>
@@ -283,7 +283,7 @@ $(function () {
   sync();
 
   mountQonticShell({
-    title: 'Double Slit · N Slits', navigation: 'breadcrumbs',
+    title: 'N-Slits', navigation: 'breadcrumbs',
     version: `Analytical N-slit preview · Version ${APP_RELEASE.version} · ${APP_RELEASE.date}`,
     homeHref: '../../../index.html',
   });

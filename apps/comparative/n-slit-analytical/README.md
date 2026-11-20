@@ -1,4 +1,4 @@
-Analytical Double Slit with N Slits (preview)
+Analytical N-Slits app (preview)
 
 This simulation is part of the Q-Ontic Lab project.
 
