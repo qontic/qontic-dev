@@ -377,11 +377,11 @@ function addSectionHeader(label) {
 
 const initialSpinControl = addCycleButton("initialSpin", "Initial spin", INITIAL_SPIN_NAMES, () => resetAll());
 // Above ~3.5 the deflected branches reach the hard walls before the plate.
-addSlider("sgGradient", "Gradient strength", 0.0, 3.5, 0.002, () => requestTrailClear());
+addSlider("sgGradient", "Gradient strength g", 0.0, 3.5, 0.002, () => requestTrailClear());
 
 addSectionHeader("Wave and guidance");
 addSlider("p0", "Initial momentum", 0.0, 6.0, 0.1, () => resetAll());
-addSlider("packetSigma", "Packet width", 4.0, 14.0, 0.5, () => resetAll());
+addSlider("packetSigma", "Packet width (cells)", 4.0, 14.0, 0.5, () => resetAll());
 addSlider("spinS", "Spin current s", 0.0, 2.0, 0.5);
 
 controls = displayControls;
@@ -403,8 +403,8 @@ addToggleInt("showTrail", "Draw trails");
 addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1);
 
 controls = advancedControls;
-addSlider("simRes", "Grid x/y", 32, MAX_SIM_RES, 4, () => rebuildSimulation());
-addSlider("dt", "Time step", 0.002, 0.014, 0.002);
+addSlider("simRes", "Grid x/y (cells)", 32, MAX_SIM_RES, 4, () => rebuildSimulation());
+addSlider("dt", "Time step (sim. time)", 0.002, 0.014, 0.002);
 
 window.addEventListener("keydown", event => {
   if (!simulationAvailable || event.defaultPrevented || event.target.closest?.("button, a, summary")) return;
@@ -1745,7 +1745,11 @@ function updateStats() {
   const quality = lambda < 6 ? " (too coarse: needs at least 6)" : "";
   const sgText = params.sgFieldOn ? fmt(params.sgGradient) : "field off";
   const spinText = INITIAL_SPIN_NAMES[params.initialSpin | 0] || INITIAL_SPIN_NAMES[0];
-  statsEl.innerHTML = `<b>Initial spin</b>: ${spinText} &nbsp; <b>Gradient</b>: ${sgText} &nbsp; <b>Grid</b>: ${simW}×${simH}×${simD} &nbsp; <b>Dots</b>: ${Math.floor(params.nParticles)} &nbsp; <b>Wavelength</b>: ${lambdaText} cells${quality}`;
+  const split = expectedSplitting();
+  let splitText = "–";
+  if (!params.sgFieldOn || params.sgGradient <= 0) splitText = "none (field off)";
+  else if (Number.isFinite(split)) splitText = `≈ ${Math.round(split)} cells${0.5 * split > Math.max(1, 0.5 * (simD - 1)) - 12 ? " (near the walls)" : ""}`;
+  statsEl.innerHTML = `<b>Initial spin</b>: ${spinText} &nbsp; <b>Gradient</b>: ${sgText} &nbsp; <b>Splitting at the plate</b>: ${splitText} &nbsp; <b>Grid</b>: ${simW}×${simH}×${simD} cells &nbsp; <b>Dots</b>: ${Math.floor(params.nParticles)} &nbsp; <b>Wavelength</b>: ${lambdaText} cells${quality}<br><span class="stat-units">Simulation units: ħ = ${fmt(params.hbar)}, m = ${fmt(params.mass)}, 1 grid cell = 1 length unit.</span>`;
 }
 
 function rebuildBoxGeometry() {
@@ -1975,6 +1979,25 @@ function rebuildSimulation() {
   rebuildBoxGeometry();
   rebuildMagneticFieldLines();
   rebuildDensity();
+}
+
+// Group velocity of the packet on the grid (4th-order Laplacian), in cells per time unit.
+function packetGroupVelocity() {
+  const k = effectivePeriodicP0() / Math.max(1e-6, params.hbar);
+  return (params.hbar / (2 * params.mass)) * (32 * Math.sin(k) - 4 * Math.sin(2 * k)) / 12;
+}
+
+// Classical estimate of the distance between the +z and −z parts when they reach the plate:
+// each part feels a force ±(ħ/2m) ∂Bz/∂z with ∂Bz/∂z = g/L, so the separation is a·T² with
+// a = (ħ/2m)(g/L)/m and T the time from the start to the plate. It agrees with the full
+// simulation to about 1 cell at the default settings (61 vs 62 cells at g = 3).
+function expectedSplitting() {
+  const v = packetGroupVelocity();
+  if (v < 0.5) return Infinity;
+  const L = Math.max(1, 0.5 * (simD - 1));
+  const a = (params.hbar / (2 * params.mass)) * (params.sgGradient / L) / params.mass;
+  const T = (detectorPlateXGrid() - params.packetX * (simW - 1)) / v;
+  return a * T * T;
 }
 
 // Time for the packet, including its tail, to pass the detector plate.

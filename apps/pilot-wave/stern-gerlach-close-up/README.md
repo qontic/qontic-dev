@@ -8,7 +8,7 @@ Choose the XZ view and leave the field gradient on. The default packet is an equ
 
 The grid is twice as tall along z as along x and y. Wave propagation is periodic along x and hard-walled along y and z. The field has a uniform part along z, twice the gradient strength, so it does not vanish inside the box. A detector plate stops the dots on contact while the wave keeps evolving. The packet starts inside the field; the plate is two box lengths from the start of the first box. The field is B = g(0, −y′, 2 + z′) with y′, z′ measured from the box centre in units of half the box height; the "Magnetic field" switch turns all of it off. The magnetic moment is parallel to the spin, so +z goes toward the stronger field (for a silver atom it is the other way). Compare the early motion before reflections become important.
 
-The spin-current coefficient defaults to ½ for the Pauli current. The coefficient affects trajectories while the spinor evolves with the same Pauli equation. The app uses simulation units.
+The spin-current coefficient defaults to ½ for the Pauli current. The coefficient affects trajectories while the spinor evolves with the same Pauli equation. The app uses simulation units (ħ = 6, m = 1, lengths in grid cells); the line under the controls gives the expected splitting at the plate in cells. The Physics tab compares the model with the scales of the 1922 experiment.
 
 ## Controls
 

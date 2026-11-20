@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=9" />
-  <link rel="modulepreload" href="./main.js?v=15" />
+  <link rel="stylesheet" href="./style.css?v=10" />
+  <link rel="modulepreload" href="./main.js?v=16" />
 </head>
 <body>
   <main class="shell">
@@ -166,10 +166,14 @@
             </mrow>
           </math>
         </div>
-        <p>The coefficient s = ½ gives the Pauli current. The spin term is divergence-free, so every value of s keeps the dots distributed as |Ψ|²: the counts at the plate have the same statistics, and only the individual trajectories change. With s = ½ the trajectories of a +z packet also swirl around the beam axis; this is the spin current, not a numerical error. The controls use simulation units: ħ = 6, m = 1 and grid spacing 1.</p>
+        <p>The coefficient s = ½ gives the Pauli current. The spin term is divergence-free, so every value of s keeps the dots distributed as |Ψ|²: the counts at the plate have the same statistics, and only the individual trajectories change. With s = ½ the trajectories of a +z packet also swirl around the beam axis; this is the spin current, not a numerical error. The controls use simulation units, described below.</p>
+        <h4>Units and scales</h4>
+        <p>The app uses simulation units: ħ = 6, m = 1, and lengths in grid cells. The packet width, the grid size and the wavelength are given in cells; the gradient strength g and the time step are in simulation units. The line under the controls gives the expected distance between the two parts when they reach the plate, from the classical estimate a·T², with a = (ħ/2m)(g/L)/m and T the time to reach the plate. It agrees with the full simulation to about one cell.</p>
+        <p>The model is not a scaled copy of the 1922 experiment, which is why no SI units are given. In the original experiment the silver beam passed a slit 0.03–0.04 mm wide, the magnet was 3.5 cm long with a field gradient of about 10 T/cm, and the splitting at the plate was about 0.2 mm. Silver atoms from the oven move at several hundred metres per second (Stern had measured about 660 m/s at 1000 °C), so their de Broglie wavelength is about 6 × 10⁻¹² m: the slit was millions of wavelengths wide and the splitting tens of millions. Here the packet is two to three wavelengths wide and the splitting about nine. A grid that resolved the real wavelength across the real beam is far out of reach, but the physics of the splitting is the same: opposite forces on the two spin components, and particles guided by the wave.</p>
+        <p class="refs">Sources: W. Gerlach and O. Stern, Z. Phys. <b>9</b>, 349–352 (1922), English translation by M. Bauer, arXiv:2301.11343 (slit width); B. Friedrich and D. Herschbach, “Stern and Gerlach: How a bad cigar helped reorient atomic physics,” Phys. Today <b>56</b>(12), 53–59 (2003) (magnet length, gradient, splitting, atom speed); H. Schmidt-Böcking, “The Stern-Gerlach experiment re-examined by an experimenter,” Europhys. News <b>50</b>(3), 15 (2019).</p>
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=15"></script>
+  <script type="module" src="./template.js?v=16"></script>
 </body>
 </html>

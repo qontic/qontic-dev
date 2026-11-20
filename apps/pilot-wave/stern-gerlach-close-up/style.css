@@ -91,3 +91,5 @@ body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) 
 @media (pointer: coarse) {
   [data-control-pane="display"] .row > .qontic-app-toggle { min-height: 32px; }
 }
+.stat .stat-units { font-size: 11px; opacity: 0.8; }
+#physics .refs { font-size: 12px; color: var(--text-secondary); }
