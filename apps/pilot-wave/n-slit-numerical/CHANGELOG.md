@@ -2,6 +2,14 @@
 
 Draft copy of the published numerical double-slit app (`apps/pilot-wave/double-slit-webgl/`, unchanged).
 
+## 1.0-dev.5 — 2026-11-19
+Pablo: packet width should follow the number of slits; drop the video panel; compact menu; move controls from Core to Advanced; open/closed/detector slits as in the analytical app; a wall that absorbs particles.
+- **Packet width across the motion** = max(σ, (N − 1) × separation / 2), kept clear of the vertical absorbers; particles sampled with the same width. The packet-length slider is σ along the motion. Changing the separation now starts a new run.
+- **Detectors:** slit buttons cycle open → closed → detector. One record per detected slit plus one for "no detector fired" (undetected slits stay coherent). Each record has a field behind the wall (offset texture), driven on the wall's exit face by the total wave times a smooth partition of the face among the open slits (normalised Gaussian weights, sum 1). Checks (2 slits, detector on slit 2): branches add up to the total wave behind the wall to 1.5×10⁻⁴ (3.8% with a first, slit-band-only mask, which dropped the wave spreading along the back of the wall); the density behind the wall matches the sum of the two single-slit runs to 3.7% (both open: 50%). PW particles are guided by the total wave until they leave the wall, then by their record's wave. Show change is off with detectors. The published app's which-slit single-particle mode is not offered.
+- **Absorbing wall** (Core, wall: Reflecting/Absorbing): 20 steps thick, −iW rising quadratically to W = 3 over the front 90%, wall potential behind. 1D test with the default packet: reflection 0.7%, transmission 2×10⁻⁵ (10-step designs reflected ≥ 6%; 30 steps would give 0.01%). Particles there removed with the absorbed probability.
+- **Menu:** Core = slits (number, state buttons, width, separation, wall) and shutter (blade, closing time, wait-for-packet and show-change chips). Advanced = packet and particles (momentum, length, particles, guiding law, dt), change gain, blade W, performance. Display = view, show chips (phase, particles, trails, histogram), path colours, sizes, scale calibration. Tighter rows and section spacing.
+- **Video panel removed** from Advanced; the toolbar video button uses the shared live recorder.
+
 ## 1.0-dev.4 — 2026-11-19
 - Second panel round: the 83% later-part share is qualified (smooth split; about 65% counting only wave behind the wall exit); the paraxial limit also needs a closure that scatters little.
 

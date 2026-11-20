@@ -63,6 +63,8 @@ void main() {
   float ticks = (1.0 - smoothstep(0.12, 0.50, tickDistance)) * smoothstep(0.48, 0.62, across);
   metal *= 1.0 - 0.22 * ticks * smoothstep(1.6, 3.2, edgeY);
 
+  // Absorbing wall: a dark, warm absorber in front, metal behind.
+  if (uWallAbsorb == 1) metal = mix(metal, vec3(0.30, 0.17, 0.09) + 0.4 * grain * 0.024, (1.0 - smoothstep(0.86, 0.94, across)) * 0.85);
   float edgeDepth = min(edgeX, edgeY);
   float bevelWidth = min(1.3, halfWidth * 0.30);
   float bevel = 1.0 - smoothstep(0.0, max(bevelWidth, 0.01), edgeDepth);

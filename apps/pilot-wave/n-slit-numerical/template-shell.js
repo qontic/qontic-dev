@@ -1,4 +1,4 @@
-import { APP_RELEASE } from "./release.js?v=nsn5";
+import { APP_RELEASE } from "./release.js?v=nsn6";
 import "../../../shared/qontic-controls.js";
 import { mountQonticShell } from "../../../shared/qontic-shell.js";
 
@@ -47,7 +47,7 @@ export function installTemplateShell() {
     controlBody.append(pane);
     panes[name] = pane;
   }
-  panes.advanced.append(ui.querySelector("#export-options"));
+  ui.querySelector("#export-options")?.setAttribute("hidden", "");
   theory.classList.add("details-panel", "qontic-panel", "qontic-reading-panel");
   theory.dataset.panel = "math";
   theory.hidden = true;

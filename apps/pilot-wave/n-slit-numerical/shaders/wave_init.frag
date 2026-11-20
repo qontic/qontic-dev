@@ -10,6 +10,7 @@ uniform float uDT;
 
 uniform vec2  uPacketPosPx;
 uniform float uPacketSigmaPx;
+uniform float uPacketSigmaYPx;   // width across the motion (follows the slit span)
 uniform int uLocalizedPacket;
 uniform vec2 uLocalizedSigma;
 uniform vec2 uLocalizedMomentum;
@@ -40,18 +41,17 @@ float barrierSlab(vec2 xPx){
   return band(xPx.x, bx, 0.5*uBarrierThickPx, 1.0);
 }
 
-float barrierPotentialPx(vec2 xPx){
+vec2 barrierVW(vec2 xPx){
   float slab = barrierSlab(xPx);
-  if (slab <= 0.0) return 0.0;
-  return uV0 * wallFraction(slab, slitProfile(xPx.y, 0.5 * float(uSimRes.y)));
+  if (slab <= 0.0) return vec2(0.0);
+  float xFront = xPx.x - (uBarrierXFrac * float(uSimRes.x) - 0.5 * uBarrierThickPx);
+  return wallVW(slab, slitProfile(xPx.y, 0.5 * float(uSimRes.y)), xFront, uBarrierThickPx);
 }
 
-// Absorbing shutter inside closing slits (imaginary potential -i W).
-float shutterW(vec2 xPx){
-  float slab = barrierSlab(xPx);
-  if (slab <= 0.0 || uShutterW <= 0.0) return 0.0;
-  return uShutterW * slab * slitProfile(xPx.y, 0.5 * float(uSimRes.y)).y;
-}
+float barrierPotentialPx(vec2 xPx){ return uV0 * barrierVW(xPx).x; }
+
+// Absorbing wall and absorbing blades (imaginary potential -i W).
+float shutterW(vec2 xPx){ return barrierVW(xPx).y; }
 
 float absorberProfile(float distance, float width){
   if(width <= 0.0) return 0.0;
@@ -106,7 +106,7 @@ vec2 initialPacketAtPx(vec2 xPx, float t){
   vec2 sigma = uLocalizedPacket == 1 ? uLocalizedSigma : vec2(uPacketSigmaPx);
   vec2 momentum = uLocalizedPacket == 1 ? uLocalizedMomentum : vec2(uP0, 0.0);
   float amp = uLocalizedPacket == 1 ? exp(-0.5*dot(d/sigma,d/sigma))
-    : exp(-dot(d,d)/(2.0*sqr(uPacketSigmaPx)));
+    : exp(-0.5*(sqr(d.x/uPacketSigmaPx) + sqr(d.y/uPacketSigmaYPx)));
   if (uLocalizedPacket == 1) amp *= localizedWallEnvelope(xPx);
 
   float phaseSpace = uLocalizedPacket == 1 ? dot(momentum,d)/uHBAR : (uP0/uHBAR)*d.x;

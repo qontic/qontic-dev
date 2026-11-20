@@ -10,6 +10,10 @@ uniform float uVisGamma;
 uniform int   uShowPhase;
 
 uniform int   uPaletteId;
+// Detector branches: draw only sim-u in [uClip.x, uClip.y]; the texture covers
+// sim-u from uTexMap.x with width uTexMap.y (both 0 and 1 for the full field).
+uniform vec2 uClip;
+uniform vec2 uTexMap;
 
 in vec2 vUV;
 out vec4 fragColor;
@@ -60,8 +64,9 @@ vec3 phaseColor(float ph)
 
 void main(){
   vec2 uv = uStageUV.xy + vUV * uStageUV.zw;
+  if (uv.x < uClip.x || uv.x > uClip.y) discard;
 
-  vec2 psi = texture(uState, uv).rg;
+  vec2 psi = texture(uState, vec2((uv.x - uTexMap.x) / uTexMap.y, uv.y)).rg;
   float rho = dot(psi, psi);
   float waveVisibility = PHASE_AMPLITUDE_CUTOFF > 0.0
     ? smoothstep(PHASE_AMPLITUDE_CUTOFF, 2.0 * PHASE_AMPLITUDE_CUTOFF, sqrt(rho))

@@ -28,6 +28,14 @@ uniform int uPhysicsFrame;
 
 uniform float uRhoMin;
 uniform float uVelClamp;
+// Detector branches. uBranchPass = -1: particles not yet behind the wall,
+// guided by the total wave; they get a branch when they cross uDriveX.
+// uBranchPass = b: particles of branch b, guided by branch field b (offset texture).
+uniform int uBranchPass;
+uniform int uHasBranches;
+uniform float uDriveX;
+uniform float uBranchOfSlit[16];
+uniform int uOffsetX;
 //#include slits.glsl
 
 float random01(float seed) {
@@ -50,16 +58,17 @@ float barrierWallMaskAtPx(vec2 xPx) {
   float slab = band(xPx.x, bx, 0.5 * uBarrierThickPx, 1.0);
 
   if (slab <= 0.0) return 0.0;
-  return wallFraction(slab, slitProfile(xPx.y, 0.5 * float(uSimRes.y)));
+  float xFront = xPx.x - (bx - 0.5 * uBarrierThickPx);
+  return wallFraction(slab, slitProfile(xPx.y, 0.5 * float(uSimRes.y)), xFront, uBarrierThickPx);
 }
 
-// Rate (per unit time) at which |psi|^2 is removed by an absorbing shutter.
+// Rate (per unit time) at which |psi|^2 is removed by the absorbing wall or blades.
 float shutterRateAtPx(vec2 xPx) {
-  if (uShutterW <= 0.0) return 0.0;
   float bx = uBarrierXFrac * float(uSimRes.x);
   float slab = band(xPx.x, bx, 0.5 * uBarrierThickPx, 1.0);
   if (slab <= 0.0) return 0.0;
-  return 2.0 * uShutterW * slab * slitProfile(xPx.y, 0.5 * float(uSimRes.y)).y / uHBAR;
+  float xFront = xPx.x - (bx - 0.5 * uBarrierThickPx);
+  return 2.0 * wallVW(slab, slitProfile(xPx.y, 0.5 * float(uSimRes.y)), xFront, uBarrierThickPx).y / uHBAR;
 }
 
 struct BoundaryAction {
@@ -112,16 +121,17 @@ BoundaryAction boundaryAction(vec2 xPx) {
 
 vec2 samplePsiBilinear(vec2 xPx) {
   // Wave samples live at pixel centers (i + 0.5); positions use domain coordinates.
-  vec2 maxX = vec2(uSimRes) - vec2(1.0);
-  vec2 x = clamp(xPx - vec2(0.5), vec2(0.0), maxX);
+  ivec2 size = textureSize(uState, 0);
+  vec2 maxX = vec2(size) - vec2(1.0);
+  vec2 x = clamp(xPx - vec2(0.5) - vec2(float(uOffsetX), 0.0), vec2(0.0), maxX);
 
   vec2 x0 = floor(x);
   vec2 f = x - x0;
 
   ivec2 p00 = ivec2(x0);
-  ivec2 p10 = min(p00 + ivec2(1, 0), uSimRes - ivec2(1));
-  ivec2 p01 = min(p00 + ivec2(0, 1), uSimRes - ivec2(1));
-  ivec2 p11 = min(p00 + ivec2(1, 1), uSimRes - ivec2(1));
+  ivec2 p10 = min(p00 + ivec2(1, 0), size - ivec2(1));
+  ivec2 p01 = min(p00 + ivec2(0, 1), size - ivec2(1));
+  ivec2 p11 = min(p00 + ivec2(1, 1), size - ivec2(1));
 
   vec2 a = texelFetch(uState, p00, 0).rg;
   vec2 b = texelFetch(uState, p10, 0).rg;
@@ -179,6 +189,14 @@ vec2 guidingVelocity(vec2 xPx) {
 void main() {
   vec2 x = aState.xy;
   float mode = aState.z;
+  int code = int(aState.w + 0.5);
+  int branch = code >> 4;
+  if (uHasBranches == 1 && branch != uBranchPass + 1) {
+    // Not this pass's particle: unchanged.
+    vState = aState;
+    gl_Position = vec4(-2.0);
+    return;
+  }
 
   if (mode < 0.5) {
     vState = aState;
@@ -199,7 +217,7 @@ void main() {
     gl_Position = vec4(-2.0);
     return;
   }
-  // Effective rule for the absorbing shutter: remove the particle with the
+  // Effective rule for the absorbing wall and blades: remove the particle with the
   // probability that |psi|^2 at its position is absorbed during this step.
   float absorbRate = shutterRateAtPx(x);
   if (absorbRate > 0.0) {
@@ -236,6 +254,14 @@ void main() {
     return;
   }
 
-  vState = vec4(xn, 1.0, aState.w);
+  float w = aState.w;
+  if (uHasBranches == 1 && uBranchPass == -1 && xn.x > uDriveX) {
+    // Crossing the wall exit: the particle's slit fixes its detector record.
+    float y0 = 0.5 * float(uSimRes.y);
+    int k = int(clamp(floor(0.5 * float(uNumSlits - 1) - (xn.y - y0) / uSlitSepPx + 0.5), 0.0, float(uNumSlits - 1)));
+    float b = uBranchOfSlit[k];
+    if (b >= 0.0) w = float((code & 15) | ((int(b) + 1) << 4));
+  }
+  vState = vec4(xn, 1.0, w);
   gl_Position = vec4(-2.0);
 }

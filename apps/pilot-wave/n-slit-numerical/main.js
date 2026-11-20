@@ -1,11 +1,11 @@
-import { effectiveDt, effectiveStepsPerFrame, getSimulationSpeed, setSimulationSpeed, initSimulationSpeedControl, setSimulationFrameDuration, getFrameDurationScale } from "./simulation-speed.js?v=nsn5";
-import { RightDetectorHistogram, histogramPlotWidth, HISTOGRAM_GAP, HISTOGRAM_RIGHT_MARGIN } from "./right-detector-histogram.js?v=nsn5";
+import { effectiveDt, effectiveStepsPerFrame, getSimulationSpeed, setSimulationSpeed, initSimulationSpeedControl, setSimulationFrameDuration, getFrameDurationScale } from "./simulation-speed.js?v=nsn6";
+import { RightDetectorHistogram, histogramPlotWidth, HISTOGRAM_GAP, HISTOGRAM_RIGHT_MARGIN } from "./right-detector-histogram.js?v=nsn6";
 import { initRecorder } from "./recorder-ui.js";
 import { WhichSlitMeasurement } from "./which-slit.js";
 import { assignRadialGroups } from "./particle-colors.js";
 import { paintPhaseLegend, phaseLegendLayout } from "./phase-legend.js";
 import { sampleWhichSlitStart } from "./which-slit-launch.js";
-import { installTemplateShell } from "./template-shell.js?v=nsn5";
+import { installTemplateShell } from "./template-shell.js?v=nsn6";
 import { mountQonticMedia } from "./vendor/ui/qontic-media.js";
 import { mountDistanceScale, mountCoordinateTools } from "./vendor/ui/qontic-overlays.js";
 import { mountQonticShortcuts } from "../../../shared/qontic-shortcuts.js";
@@ -61,6 +61,7 @@ const params = {
   shutterMode: 0,
   shutterW: 5.0,
   closeAtWall: 0,
+  wallAbsorb: 0,
   repeat: 1,
   showChange: 0,
   changeGain: 1,
@@ -215,7 +216,65 @@ const slitClosed = new Array(MAX_SLITS).fill(false);
 const slitV = new Float32Array(MAX_SLITS);
 const slitW = new Float32Array(MAX_SLITS);
 let shutterRamps = [];
+const slitDetector = new Array(MAX_SLITS).fill(false);
+function detectorSlitIds() {
+  const out = [];
+  for (let k = 0; k < params.nSlits; k++) if (slitDetector[k] && !slitClosed[k]) out.push(k);
+  return out;
+}
 let simTime = 0;
+
+// ---- Detectors ------------------------------------------------------------
+// With detectors at slits D, the state behind the wall is
+//   sum_{k in D} psi_k |d_k> + (sum of the other open slits' waves) |d_0>.
+// Each record is a branch field. By linearity, the wave behind the wall is set by
+// its values on the wall's exit face; branch b is the wave radiated from the exit
+// apertures of its slits, driven by the total wave there. Branch fields only
+// cover the region behind the wall (offset textures). The branches add up to the
+// total wave behind the wall; the density shown there is the sum of |psi_b|^2.
+let branches = [], branchFields = [], branchOffsetX = 0, driveMaxX = 0, branchKey = "";
+const branchOfSlit = new Float32Array(MAX_SLITS).fill(-1);
+const slitOpenForBranches = new Float32Array(MAX_SLITS);
+
+function setupBranches() {
+  for (const f of branchFields) { gl.deleteFramebuffer(f.fboA); gl.deleteFramebuffer(f.fboB); gl.deleteTexture(f.texA); gl.deleteTexture(f.texB); }
+  branchFields = []; branches = []; branchOfSlit.fill(-1);
+  branchKey = currentBranchKey();
+  const detected = detectorSlitIds();
+  if (!detected.length || !simW) return;
+  const others = [];
+  for (let k = 0; k < params.nSlits; k++) if (!slitClosed[k] && !slitDetector[k]) others.push(k);
+  branches = detected.map(k => [k]);
+  if (others.length) branches.push(others);
+  branches.forEach((b, i) => b.forEach(k => { branchOfSlit[k] = i; }));
+  slitOpenForBranches.fill(0); branches.flat().forEach(k => { slitOpenForBranches[k] = 1; });
+  driveMaxX = Math.ceil(params.barrierX * simW + 0.5 * wallThick() + 1);
+  branchOffsetX = driveMaxX - 1;
+  const bw = simW - branchOffsetX;
+  for (let i = 0; i < branches.length; i++) {
+    const texA = makeTexFloat32(bw, simH), texB = makeTexFloat32(bw, simH);
+    branchFields.push({ texA, texB, fboA: makeFBO(texA), fboB: makeFBO(texB), flip: 0, width: bw });
+  }
+}
+
+function currentBranchKey() {
+  const detected = detectorSlitIds();
+  if (!detected.length) return "";
+  const others = [];
+  for (let k = 0; k < params.nSlits; k++) if (!slitClosed[k] && !slitDetector[k]) others.push(k);
+  return [...detected.map(k => [k]), ...(others.length ? [others] : [])].join("|") + "@" + wallThick() + "@" + simW;
+}
+
+function clearBranches() {
+  for (const f of branchFields) {
+    for (const fbo of [f.fboA, f.fboB]) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.clearBufferfv(gl.COLOR, 0, [0, 0, 0, 0]);
+    }
+    f.flip = 0;
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
 
 function smoothRamp(u) { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); }
 
@@ -250,7 +309,7 @@ let runStartSlits = new Array(MAX_SLITS).fill(false);
 let runEvents = [], pendingReplay = [], replaying = false, runKey = "";
 
 function experimentKey() {
-  return [params.nSlits, runStartSlits.slice(0, params.nSlits).join(""), JSON.stringify(runEvents),
+  return [params.nSlits, runStartSlits.slice(0, params.nSlits).join(""), slitDetector.slice(0, params.nSlits).join(""), JSON.stringify(runEvents), params.wallAbsorb,
     params.slitWidth, params.slitSep, params.p0, params.packetSigma, params.dt, params.guidingMode,
     params.spinSign, params.nParticles, stageW, stageH, params.shutterW].join("|");
 }
@@ -291,7 +350,7 @@ function setSlitClosed(k, closed) {
   if (!slitRunStarted()) { applySlitStatesInstantly(); runStartSlits = slitClosed.slice(); runEvents = []; return; }
   if (!replaying) { runEvents.push({ k, closed, clickTime: simTime, tau: params.shutterTau, mode: params.shutterMode, atWall: params.closeAtWall }); runKey = experimentKey(); }
   const t0 = params.closeAtWall && simTime < packetAtWallTime() ? packetAtWallTime() : simTime;
-  if (!refActive) startReference(t0);
+  if (!refActive && !branches.length) startReference(t0);
   shutterRamps = shutterRamps.filter(r => r.k !== k);
   const absorbing = params.shutterMode === 1;
   shutterRamps.push({ k, t0, tau: params.shutterTau, fromV: slitV[k], fromW: slitW[k],
@@ -312,6 +371,8 @@ const refV = new Float32Array(MAX_SLITS), refW = new Float32Array(MAX_SLITS);
 let refActive = false, refCutTime = 0, slitOverride = null;
 
 function setSlitUniforms(loc) {
+  gl.uniform1i(loc.uWallAbsorb, params.wallAbsorb | 0);
+  gl.uniform1f(loc.uWallW, WALL_ABSORB_W);
   gl.uniform1i(loc.uNumSlits, params.nSlits | 0);
   gl.uniform1f(loc.uSlitWidthPx, params.slitWidth);
   gl.uniform1f(loc.uSlitSepPx, params.slitSep);
@@ -322,10 +383,25 @@ function setSlitUniforms(loc) {
 
 function slitUniformLocations(prog) {
   return {
+    uWallAbsorb: u(prog, "uWallAbsorb"), uWallW: u(prog, "uWallW"),
     uNumSlits: u(prog, "uNumSlits"), uSlitWidthPx: u(prog, "uSlitWidthPx"), uSlitSepPx: u(prog, "uSlitSepPx"),
     uSlitV: u(prog, "uSlitV"), uSlitW: u(prog, "uSlitW"), uShutterW: u(prog, "uShutterW"),
   };
 }
+
+// The absorbing wall is thicker: an absorbing ramp over its front 90% (W up to
+// 3, quadratic) and wall behind. In a 1D test with the default packet this
+// reflects 0.7% and transmits 2e-5; a 10-step absorbing wall reflected >= 6%.
+const ABSORBING_WALL_THICKNESS = 20, WALL_ABSORB_W = 3.0;
+// Width of the packet across the motion: it covers the slits,
+// max(sigma, (N - 1) * separation / 2), but stays clear of the vertical absorbers.
+function packetSigmaY() {
+  const span = 0.5 * (params.nSlits - 1) * params.slitSep;
+  const room = stageH > 0 ? (0.5 * stageH + ABSORBER_GUARD_CELLS) / 2.5 : Infinity;
+  return Math.min(Math.max(params.packetSigma, span), Math.max(params.packetSigma, room));
+}
+
+function wallThick() { return params.wallAbsorb ? ABSORBING_WALL_THICKNESS : params.barrierThick; }
 
 function clampSlitGeometry() {
   const n = params.nSlits | 0;
@@ -354,20 +430,21 @@ function buildSlitButtons() {
     b.type = "button";
     b.dataset.slit = String(k);
     b.textContent = String(k + 1);
+    const where = k === 0 ? "top" : k === params.nSlits - 1 ? "bottom" : "counting from the top";
     const sync = () => {
-      const closed = slitClosed[k];
-      b.classList.toggle("is-active", !closed);
-      b.classList.toggle("slit-closed", closed);
-      b.setAttribute("aria-pressed", String(!closed));
-      b.title = `Slit ${k + 1} (${k === 0 ? "top" : k === params.nSlits - 1 ? "bottom" : "counting from the top"}): ${closed ? "closed" : "open"}. Click to ${closed ? "open" : "close"} it; during a run it moves over the shutter closing time.`;
-      b.setAttribute("aria-label", `Slit ${k + 1}, ${closed ? "closed" : "open"}`);
+      const state = slitDetector[k] ? "detector" : slitClosed[k] ? "closed" : "open";
+      b.classList.toggle("is-active", state === "open");
+      b.classList.toggle("slit-closed", state === "closed");
+      b.classList.toggle("slit-detector", state === "detector");
+      b.setAttribute("aria-label", `Slit ${k + 1}, ${state}`);
+      b.title = `Slit ${k + 1} (${where}): ${state}. Click to cycle open → closed → detector. Closing during a run moves the shutter blade; adding or removing a detector starts a new run.`;
     };
     sync();
     b.addEventListener("click", () => {
-      setSlitClosed(k, !slitClosed[k]);
+      if (slitDetector[k]) { slitDetector[k] = false; resetAll(); }
+      else if (slitClosed[k]) { slitClosed[k] = false; slitDetector[k] = true; resetAll(); }
+      else setSlitClosed(k, true);
       sync();
-      syncWhichSlitAvailability();
-      if (params.whichSlit) resetAll();
     });
     group.append(b);
   }
@@ -389,7 +466,31 @@ window.qonticNSlit = {
   get simTime() { return simTime; }, get slitV() { return Array.from(slitV); }, get slitW() { return Array.from(slitW); },
   get ramps() { return shutterRamps.map(r => ({ ...r })); }, get physicsFrame() { return physicsFrame; },
   get packetAtWall() { return packetAtWallTime(); }, readWave: () => readWaveForTests(),
-  get refActive() { return refActive; }, get changeStats() { return changeStats; },
+  get refActive() { return refActive; },
+  branchCheck: () => {
+    // Behind the wall: |sum of branches - total| / |total|, and sum |psi_b|^2 vs |total|^2.
+    const T = readFloatSurface(flip ? fboB : fboA, simW, simH);
+    const B = branchFields.map(f => readFloatSurface(f.flip ? f.fboB : f.fboA, f.width, simH));
+    let d = 0, t = 0, rhoB = 0;
+    for (let j = 0; j < simH; j++) for (let i = driveMaxX + 2; i < rightDetectorX(); i++) {
+      const o = 4 * (j * simW + i); let sr = 0, si = 0;
+      for (let b = 0; b < B.length; b++) { const q = 4 * (j * branchFields[b].width + (i - branchOffsetX)); sr += B[b][q]; si += B[b][q + 1]; rhoB += B[b][q] ** 2 + B[b][q + 1] ** 2; }
+      d += (sr - T[o]) ** 2 + (si - T[o + 1]) ** 2; t += T[o] ** 2 + T[o + 1] ** 2;
+    }
+    return { mismatch: Math.sqrt(d / t), normTotal: t, normBranches: rhoB, branches: B.length };
+  },
+  profile: (xFrac) => {
+    // Density along y at a column behind the wall (sum over branches if any).
+    const i = Math.round(xFrac * simW), out = [];
+    const T = readFloatSurface(flip ? fboB : fboA, simW, simH);
+    const B = branchFields.map(f => readFloatSurface(f.flip ? f.fboB : f.fboA, f.width, simH));
+    for (let j = paddingY; j < paddingY + stageH; j++) {
+      if (!B.length) { const o = 4 * (j * simW + i); out.push(T[o] ** 2 + T[o + 1] ** 2); continue; }
+      let r = 0; for (let b = 0; b < B.length; b++) { const q = 4 * (j * branchFields[b].width + (i - branchOffsetX)); r += B[b][q] ** 2 + B[b][q + 1] ** 2; }
+      out.push(r);
+    }
+    return out;
+  }, get changeStats() { return changeStats; },
   norms: () => {
     const sum = d => { let t = 0; for (let i = 0; i < d.length; i += 4) t += d[i] * d[i] + d[i + 1] * d[i + 1]; return t; };
     return { live: sum(readFloatSurface(flip ? fboB : fboA, simW, simH)),
@@ -579,6 +680,34 @@ function addPathColorControls() {
   controls.appendChild(row);
 }
 
+function addChips(label, items) {
+  const row = document.createElement("div");
+  row.className = "row";
+  const lab = document.createElement("label");
+  lab.textContent = label;
+  const group = document.createElement("div");
+  group.className = "button-group chip-toggles";
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", label);
+  for (const [key, name, description, onChange] of items) {
+    if (isControlFixed(key)) continue;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.id = `toggle-${key}`;
+    button.textContent = name;
+    button.title = description;
+    const sync = () => {
+      button.setAttribute("aria-pressed", String(Boolean(params[key])));
+      button.classList.toggle("is-active", Boolean(params[key]));
+    };
+    sync();
+    button.addEventListener("click", () => { params[key] = params[key] ? 0 : 1; sync(); onChange?.(); });
+    group.appendChild(button);
+  }
+  row.append(lab, group);
+  controls.appendChild(row);
+}
+
 function addCycleButton(key, label, values, onChange = null) {
   if (isControlFixed(key)) return;
 
@@ -694,61 +823,18 @@ function syncWhichSlitControls() {
     count.value = String(params.nParticles);
     count.closest('.row').querySelector('.val').textContent = fmt(params.nParticles);
   }
-  document.getElementById("which-slit-theory").hidden = !params.whichSlit;
-  document.getElementById("clear-histogram-row").hidden = !params.whichSlit;
+  const theory = document.getElementById("which-slit-theory");
+  if (theory) theory.hidden = !params.whichSlit;
+  const clearRow = document.getElementById("clear-histogram-row");
+  if (clearRow) clearRow.hidden = !params.whichSlit;
   document.getElementById("reset").textContent = params.whichSlit ? "Next particle (R)" : "Reset (R)";
 }
 
-addSectionHeader("Experiment");
-{
-  const row = document.createElement("div");
-  row.className = "row";
-  const label = document.createElement("label");
-  label.textContent = "slit detector";
-  const button = document.createElement("button");
-  button.id = "which-slit";
-  button.type = "button";
-  button.textContent = "Which slit";
-  button.title = "Repeated single particles biased toward the slits, with gradual Gaussian localization after each exit. Hits accumulate until cleared or the experiment changes.";
-  button.addEventListener("click", () => {
-    if (params.whichSlit) {
-      params.whichSlit = 0;
-      params.nParticles = ensembleParticleCount;
-    } else {
-      ensembleParticleCount = params.nParticles;
-      params.whichSlit = 1;
-      params.nParticles = 1;
-    }
-    syncWhichSlitControls();
-    resetAll();
-  });
-  row.append(label, button);
-  controls.append(row);
-}
-
-{
-  const row = document.createElement("div");
-  row.className = "row";
-  row.id = "clear-histogram-row";
-  row.hidden = !params.whichSlit;
-  const label = document.createElement("label");
-  label.textContent = "detector memory";
-  const button = document.createElement("button");
-  button.id = "clear-histogram";
-  button.type = "button";
-  button.textContent = "Clear histogram";
-  button.addEventListener("click", () => {
-    captureRightDetectorHits(true);
-    rightHistogram.clearCounts();
-    whichSlitRunStartHistogram = snapshotHistogram();
-    render();
-  });
-  row.append(label, button);
-  controls.append(row);
-}
-addSlider("nSlits", "number of slits", 1, MAX_SLITS, 1, () => {
+// The which-slit single-particle mode of the published app is replaced by the
+// detector state of the slit buttons; its code stays but is not offered here.
+addSectionHeader("Slits");
+addSlider("nSlits", "number", 1, MAX_SLITS, 1, () => {
   params.nSlits = Math.round(params.nSlits);
-  if (params.nSlits !== 2 && params.whichSlit) document.getElementById("which-slit")?.click();
   clampSlitGeometry();
   // Keep wall between the slits when many slits force a small separation.
   if (params.nSlits > 2 && params.slitWidth > 0.6 * params.slitSep) {
@@ -756,88 +842,79 @@ addSlider("nSlits", "number of slits", 1, MAX_SLITS, 1, () => {
     clampSlitGeometry();
   }
   buildSlitButtons();
-  syncWhichSlitAvailability();
   resetAll();
 }, "Number of slits in the wall (1–16). Changing it starts a new run.");
 {
   const row = document.createElement("div");
   row.className = "row slit-buttons-row";
   const label = document.createElement("label");
-  label.textContent = "slits";
+  label.textContent = "state";
+  label.title = "Click a slit to cycle open → closed → detector.";
   const group = document.createElement("div");
   group.className = "button-group slit-buttons";
   group.id = "slit-buttons";
   group.setAttribute("role", "group");
-  group.setAttribute("aria-label", "Open or close each slit");
+  group.setAttribute("aria-label", "Slits: click to cycle open, closed, detector");
   row.append(label, group);
   controls.append(row);
 }
+addSlider("slitWidth", "width", 6.0, 40.0, 1.0, () => { clampSlitGeometry(); if (detectorSlitIds().length) resetAll(); });
+addSlider("slitSep", "separation", 18.0, 140.0, 1.0, () => { clampSlitGeometry(); resetAll(); }, "Distance between neighbouring slits. Changing it starts a new run (the packet width follows the slit span).");
+addChoiceButtons("wallAbsorb", "wall", ["Reflecting", "Absorbing"], () => resetAll());
 addSectionHeader("Shutter");
-addSlider("shutterTau", "closing time", 0, 200, 5, null, "Time the shutter blade takes to slide across a slit when you click it during a run (simulation time units; the packet moves p/m grid steps per unit, 1.5 by default). 0 = instantaneous.");
 addChoiceButtons("shutterMode", "blade", ["Reflecting", "Absorbing"]);
-addToggleInt("closeAtWall", "wait for packet", "When on, a slit clicked during a run starts to close (or open) when the packet centre reaches the wall, not at the click.");
-addToggleInt("showChange", "show change", "Draw ψ − ψ_ref instead of ψ: the difference from a copy of the run that kept the slits unchanged (started at the first slit click). The stats give the relative change ahead of and behind the cut.");
-addSlider("changeGain", "change gain", 1, 50, 1, null, "Amplification of ψ − ψ_ref in the 'show change' picture. 1 = same scale as the wave.");
-if (template) controls = template.panes.advanced;
-addSectionHeader("Shutter absorber");
-addSlider("shutterW", "absorber W", 0.5, 20, 0.5, null, "Strength of the imaginary potential −iW of the absorbing blade, in the same units as the wall height V0 = 50 (packet energy ≈ 1.1 at the default momentum).");
-if (template) controls = template.panes.advanced;
-addSectionHeader("Performance");
-addSlider("simScale", "sim scale", 0.3, 1.0, 0.1, () => rebuildSimulation(), "Width of the simulated region: 1120 × sim scale grid steps (560 at 0.5), the same on every screen. Larger shows more of the pattern and costs more.");
-addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
-addSlider("edgePadding", "offscreen space", 128, 512, 32, () => rebuildSimulation(), "Space for wave absorption above and below the stage. More space reduces reflections and uses more graphics power. Changing it restarts the run.");
+addSlider("shutterTau", "closing time", 0, 200, 5, null, "Time the shutter blade takes to slide across a slit when you close or open it during a run (simulation time units; the packet moves p/m grid steps per unit, 1.5 by default). 0 = instantaneous.");
+addChips("options", [
+  ["closeAtWall", "wait for packet", "A slit clicked during a run starts to close (or open) when the packet centre reaches the wall, not at the click."],
+  ["showChange", "show change", "Draw ψ − ψ_ref instead of ψ: the difference from a copy of the run that kept the slits unchanged (started at the first slit click). The stats give the relative change ahead of and behind the cut. Not available with detectors."],
+]);
 
-if (template) controls = template.panes.core;
-addSectionHeader("Physical Parameters");
-addSlider("p0", "Momentum p", 0.5, 5.0, 0.1, () => resetAll());
-addSlider("dt", "dt", 0.01, 0.03, 0.01, () => resetAll(), "Time step. Changing it starts a new run (the leapfrog scheme needs a constant step).");
-addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
-addSlider("slitWidth", "slit width", 6.0, 40.0, 1.0, () => { clampSlitGeometry(); if (params.whichSlit) resetAll(); });
-addSlider("slitSep", "slit separation", 18.0, 140.0, 1.0, () => { clampSlitGeometry(); if (params.whichSlit) resetAll(); });
-//addSlider("absorbPx", "absorb boundary", 0.0, 60.0, 1.0);
-//addSlider("spinMagnitude", "spin |s|", 0.0, 2.0, 0.5);
+if (template) controls = template.panes.advanced;
+addSectionHeader("Packet and particles");
+addSlider("p0", "momentum p", 0.5, 5.0, 0.1, () => resetAll());
+addSlider("packetSigma", "packet length", 8.0, 80.0, 1.0, () => resetAll(), "Gaussian width σ along the motion. The width across (y) follows the slit span: max(σ, (N − 1) × separation / 2).");
+addSlider("nParticles", "particles", 1, 3000, 1, () => resetAll());
 addChoiceButtons("guidingChoice", "guiding law", GUIDING_CHOICE_NAMES, (choice) => {
   params.guidingMode = choice === 0 ? 0 : 1;
   params.spinSign = choice === 2 ? -1 : 1;
   resetAll();
 });
+addSlider("dt", "dt", 0.01, 0.03, 0.01, () => resetAll(), "Time step. Changing it starts a new run (the leapfrog scheme needs a constant step).");
+addSectionHeader("Shutter and wall");
+addSlider("changeGain", "change gain", 1, 50, 1, null, "Amplification of ψ − ψ_ref in the 'show change' picture. 1 = same scale as the wave.");
+addSlider("shutterW", "blade W", 0.5, 20, 0.5, null, "Strength of the imaginary potential −iW of the absorbing blade, in the units of the wall height V0 = 50 (packet energy ≈ 1.1 at the default momentum).");
+addSectionHeader("Performance");
+addSlider("simScale", "sim scale", 0.3, 1.0, 0.1, () => rebuildSimulation(), "Width of the simulated region: 1120 × sim scale grid steps (560 at 0.5), the same on every screen. Larger shows more of the pattern and costs more.");
+addSlider("stepsPerFrame", "steps/frame", 1, 100, 1);
+addSlider("edgePadding", "offscreen", 128, 512, 32, () => rebuildSimulation(), "Space for wave absorption above and below the stage. More space reduces reflections and uses more graphics power. Changing it restarts the run.");
 
 if (template) controls = template.panes.display;
+addSectionHeader("View");
+addChoiceButtons("stageView", "stage view", ["Close", "Wide"], () => {
+  userAdjustedView = false;
+  applyInitialViewTransform();
+});
+addChips("show", [
+  ["showPhase", "phase", "Colour the wave by its phase."],
+  ["showParticles", "particles", "Draw the Pilot-Wave particles."],
+  ["showTrail", "trails", "Draw particle trails."],
+  ["showHistogram", "histogram", "Show the right detector's hit distribution. Detections keep accumulating while hidden."],
+]);
+addPathColorControls();
+addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
+addSlider("dotGain", "brightness", 0.1, 3.0, 0.1);
+addSlider("trailHalfLife", "trail half-life", 1.0, 150.0, 1.0);
 if (template) {
   addSectionHeader("Scale calibration");
   addSlider("nmPerGridStep", "nm / grid step", 0.1, 10, 0.1, () => { overlayScale?.update(); overlayCoordinates?.update(); });
   const note = document.createElement("p");
   note.className = "scale-note";
-  note.textContent = "Chosen length calibration for the ruler and coordinates; changing it does not alter the simulation.";
+  note.textContent = "Length calibration for the ruler and coordinates only; it does not change the simulation.";
   controls.append(note);
 }
-addSectionHeader("Visual Parameters");
-addChoiceButtons("stageView", "stage view", ["Close", "Wide"], () => {
-  userAdjustedView = false;
-  applyInitialViewTransform();
-});
-addToggleInt("showPhase", "show phase");
-addToggleInt("showParticles", "show particles");
-addPathColorControls();
-if (template) controls = template.panes.core;
-addSlider("nParticles", "particle count", 1, 3000, 1, () => resetAll());
-if (template) controls = template.panes.display;
-
-addSlider("dotSize", "particle size", 2.0, 16.0, 0.5);
-addSlider("dotGain", "particle brightness", 0.1, 3.0, 0.1);
-
-addToggleInt("showTrail", "draw trails");
-addToggleInt("showHistogram", "right histogram", "Show the right detector's hit distribution. Detections keep accumulating while hidden.");
-addSlider("trailHalfLife", "trail half-life", 1.0, 150.0, 1.0);
-//addSlider("trailVisGain", "trail gain", 0.1, 1.0, 0.1);
-//addSlider("trailVisGamma", "trail gamma", 0.4, 2.0, 0.05);
-
-//addSlider("visGain", "wave gain", 0.5, 20.0, 0.5);
-//addSlider("visGamma", "wave gamma", 0.3, 2.0, 0.05);
 
 removeEmptySectionHeaders();
 buildSlitButtons();
-syncWhichSlitAvailability();
 syncWhichSlitControls();
 
 const pauseButton = document.getElementById("pause");
@@ -1079,7 +1156,7 @@ async function loadText(url) {
 }
 
 const SH = {};
-const SHADER_CACHE = "?v=nsn5";
+const SHADER_CACHE = "?v=nsn6";
 async function loadShaders() {
   const base = "./shaders/";
   const files = [
@@ -1156,6 +1233,7 @@ function buildPrograms() {
     uDT: u(progWaveInit, "uDT"),
     uPacketPosPx: u(progWaveInit, "uPacketPosPx"),
     uPacketSigmaPx: u(progWaveInit, "uPacketSigmaPx"),
+    uPacketSigmaYPx: u(progWaveInit, "uPacketSigmaYPx"),
     uLocalizedPacket: u(progWaveInit, "uLocalizedPacket"),
     uLocalizedSigma: u(progWaveInit, "uLocalizedSigma"),
     uLocalizedMomentum: u(progWaveInit, "uLocalizedMomentum"),
@@ -1186,6 +1264,8 @@ function buildPrograms() {
     uAbsorbYPx: u(progWaveStep, "uAbsorbYPx"),
     uAbsorbYStrength: u(progWaveStep, "uAbsorbYStrength"),
     uAbsorbStrength: u(progWaveStep, "uAbsorbStrength"),
+    uBranchMode: u(progWaveStep, "uBranchMode"), uOffsetX: u(progWaveStep, "uOffsetX"),
+    uDriveMaxX: u(progWaveStep, "uDriveMaxX"), uTotal: u(progWaveStep, "uTotal"), uBranchMask: u(progWaveStep, "uBranchMask"), uSlitOpen: u(progWaveStep, "uSlitOpen"),
   };
 
   U.waveRender = {
@@ -1195,6 +1275,7 @@ function buildPrograms() {
     uVisGamma: u(progWaveRender, "uVisGamma"),
     uShowPhase: u(progWaveRender, "uShowPhase"),
     uPaletteId: u(progWaveRender, "uPaletteId"),
+    uClip: u(progWaveRender, "uClip"), uTexMap: u(progWaveRender, "uTexMap"),
   };
 
   U.barrierRender = {
@@ -1227,6 +1308,8 @@ function buildPrograms() {
     uRhoMin: u(progPartUpdate, "uRhoMin"),
     uVelClamp: u(progPartUpdate, "uVelClamp"),
     uParticleKillMarginPx: u(progPartUpdate, "uParticleKillMarginPx"),
+    uBranchPass: u(progPartUpdate, "uBranchPass"), uHasBranches: u(progPartUpdate, "uHasBranches"),
+    uDriveX: u(progPartUpdate, "uDriveX"), uBranchOfSlit: u(progPartUpdate, "uBranchOfSlit"), uOffsetX: u(progPartUpdate, "uOffsetX"),
   };
 
   U.partView = {
@@ -1314,10 +1397,11 @@ function setWaveInitUniforms() {
 
   gl.uniform2f(U.waveInit.uPacketPosPx, params.packetX * stageW, paddingY + params.packetY * stageH);
   gl.uniform1f(U.waveInit.uPacketSigmaPx, params.packetSigma);
+  gl.uniform1f(U.waveInit.uPacketSigmaYPx, packetSigmaY());
   gl.uniform1i(U.waveInit.uLocalizedPacket, 0);
 
   gl.uniform1f(U.waveInit.uBarrierXFrac, params.barrierX);
-  gl.uniform1f(U.waveInit.uBarrierThickPx, params.barrierThick);
+  gl.uniform1f(U.waveInit.uBarrierThickPx, wallThick());
   setSlitUniforms(U.waveInitSlits);
   gl.uniform1f(U.waveInit.uV0, params.V0);
 
@@ -1339,7 +1423,7 @@ function setWaveStepUniforms(srcTex) {
   gl.uniform1f(U.waveStep.uDT, simulationDt());
 
   gl.uniform1f(U.waveStep.uBarrierXFrac, params.barrierX);
-  gl.uniform1f(U.waveStep.uBarrierThickPx, params.barrierThick);
+  gl.uniform1f(U.waveStep.uBarrierThickPx, wallThick());
   setSlitUniforms(U.waveStepSlits);
   gl.uniform1f(U.waveStep.uV0, params.V0);
 
@@ -1347,6 +1431,10 @@ function setWaveStepUniforms(srcTex) {
   gl.uniform1f(U.waveStep.uAbsorbYPx, verticalAbsorbWidth);
   gl.uniform1f(U.waveStep.uAbsorbYStrength, verticalAbsorbStrength());
   gl.uniform1f(U.waveStep.uAbsorbStrength, params.absorbStrength);
+  gl.uniform1i(U.waveStep.uBranchMode, 0);
+  gl.uniform1i(U.waveStep.uOffsetX, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, null); gl.uniform1i(U.waveStep.uTotal, 1);
+  gl.activeTexture(gl.TEXTURE0);
 }
 
 function resetWave() {
@@ -1389,6 +1477,30 @@ function waveStep() {
   }
 }
 
+function branchesStep() {
+  if (!branchFields.length) return;
+  const total = flip ? texB : texA;  // the total wave just advanced
+  const mask = new Float32Array(MAX_SLITS);
+  gl.useProgram(progWaveStep);
+  gl.bindVertexArray(vaoEmpty);
+  branchFields.forEach((f, i) => {
+    setWaveStepUniforms(f.flip ? f.texB : f.texA);
+    mask.fill(0); for (const k of branches[i]) mask[k] = 1;
+    gl.uniform1i(U.waveStep.uBranchMode, 1);
+    gl.uniform1i(U.waveStep.uOffsetX, branchOffsetX);
+    gl.uniform1i(U.waveStep.uDriveMaxX, driveMaxX);
+    gl.uniform1fv(U.waveStep.uBranchMask, mask);
+    gl.uniform1fv(U.waveStep.uSlitOpen, slitOpenForBranches);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, total); gl.uniform1i(U.waveStep.uTotal, 1);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, f.flip ? f.fboA : f.fboB);
+    gl.viewport(0, 0, f.width, simH);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    f.flip = 1 - f.flip;
+  });
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
 function startReference(cutTime) {
   gl.bindFramebuffer(gl.READ_FRAMEBUFFER, flip ? fboB : fboA);
   gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fboRefA);
@@ -1425,7 +1537,7 @@ function measureChange() {
   const live = readFloatSurface(flip ? fboB : fboA, simW, simH);
   const ref = readFloatSurface(refFlip ? fboRefB : fboRefA, simW, simH);
   const v = params.p0 / params.mass;
-  const exitX = params.barrierX * simW + 0.5 * params.barrierThick;
+  const exitX = params.barrierX * simW + 0.5 * wallThick();
   const cut = exitX + v * (simTime - refCutTime);
   const right = rightDetectorX();
   let dA = 0, rA = 0, dB = 0, rB = 0;
@@ -1494,7 +1606,7 @@ function randomWhichSlitLaunch() {
 function histogramExperimentKey() {
   if (!params.whichSlit) return null;
   return [simW, simH, stageH, paddingY, params.p0, params.packetSigma,
-    params.slitWidth, params.slitSep, params.nSlits, slitClosed.slice(0, params.nSlits).join(''), params.barrierX, params.barrierThick,
+    params.slitWidth, params.slitSep, params.nSlits, slitClosed.slice(0, params.nSlits).join(''), params.barrierX, wallThick(),
     params.packetX, params.packetY, params.V0, params.hbar, params.mass,
     params.guidingMode, params.spinSign, params.spinMagnitude, params.dt,
     params.absorbPx, params.absorbStrength, params.particleKillMargin].join("|");
@@ -1527,13 +1639,14 @@ function rebuildParticles(startingState = null, preserveHistogram = false) {
   const data = startingState ? new Float32Array(startingState) : new Float32Array(n * 4);
 
   const sigma1D = params.packetSigma / Math.sqrt(2);
+  const sigmaY1D = packetSigmaY() / Math.sqrt(2);
   const x0 = params.packetX * stageW;
   const y0 = paddingY + params.packetY * stageH;
 
   for (let i = 0; !startingState && i < n; i++) {
     let [x, y] = params.whichSlit
       ? sampleWhichSlitStart(params, { width: simW, height: simH, stageHeight: stageH, paddingY }, randomWhichSlitLaunch)
-      : [x0 + randn() * sigma1D, y0 + randn() * sigma1D];
+      : [x0 + randn() * sigma1D, y0 + randn() * sigmaY1D];
     x = Math.max(0, Math.min(simW - 1, x));
     y = Math.max(0, Math.min(simH - 1, y));
     data[i * 4 + 0] = x;
@@ -1627,9 +1740,10 @@ function renderPhaseLegend() {
   Object.assign(phaseLegendCanvas.style, { left: `${x}px`, top: `${y}px`, width: `${width}px`, height: `${height}px` });
 }
 
-function particleUpdate() {
+function particleUpdate(branchPass = -1) {
   const n = Math.floor(params.nParticles);
-  const waveTex = guidingWaveTexture();
+  const field = branchPass >= 0 ? branchFields[branchPass] : null;
+  const waveTex = field ? (field.flip ? field.texB : field.texA) : guidingWaveTexture();
 
   gl.useProgram(progPartUpdate);
 
@@ -1646,7 +1760,7 @@ function particleUpdate() {
   gl.uniform1f(U.partUpdate.uSpinSign, params.spinSign);
 
   gl.uniform1f(U.partUpdate.uBarrierXFrac, params.barrierX);
-  gl.uniform1f(U.partUpdate.uBarrierThickPx, params.barrierThick);
+  gl.uniform1f(U.partUpdate.uBarrierThickPx, wallThick());
   setSlitUniforms(U.partSlits);
   gl.uniform1f(U.partUpdate.uV0, params.V0);
 
@@ -1657,6 +1771,11 @@ function particleUpdate() {
   gl.uniform1f(U.partUpdate.uParticleKillMarginPx, params.particleKillMargin);
   gl.uniform1f(U.partUpdate.uRhoMin, params.rhoMin);
   gl.uniform1f(U.partUpdate.uVelClamp, params.velClamp);
+  gl.uniform1i(U.partUpdate.uBranchPass, branchPass);
+  gl.uniform1i(U.partUpdate.uHasBranches, branchFields.length ? 1 : 0);
+  gl.uniform1f(U.partUpdate.uDriveX, driveMaxX + 0.5);
+  gl.uniform1fv(U.partUpdate.uBranchOfSlit, branchOfSlit);
+  gl.uniform1i(U.partUpdate.uOffsetX, field ? branchOffsetX : 0);
 
   gl.bindVertexArray(vaoParticles);
 
@@ -1677,7 +1796,7 @@ function particleUpdate() {
   gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
   gl.bindVertexArray(null);
 
-  physicsFrame = (physicsFrame + 1) % 1000000000;
+  if (branchPass < 0) physicsFrame = (physicsFrame + 1) % 1000000000;
 }
 
 const LN2 = Math.log(2);
@@ -1784,7 +1903,7 @@ function computeBarrierOpacity() {
   if (params.V0 <= 0) return 0.0;
   if (E >= params.V0) return 0.20;
   const kappa = Math.sqrt(2 * params.mass * (params.V0 - E)) / params.hbar;
-  const T = Math.exp(-2 * kappa * params.barrierThick);
+  const T = Math.exp(-2 * kappa * wallThick());
   return Math.min(1.0, Math.max(0.20, 1.0 - T));
 }
 
@@ -1911,13 +2030,13 @@ function drawKillBoundary() {
 
 function drawBarrier() {
   const opacity = computeBarrierOpacity();
-  if (opacity <= 0 || params.barrierThick <= 0) return;
+  if (opacity <= 0 || wallThick() <= 0) return;
 
   gl.useProgram(progBarrierRender);
   gl.bindVertexArray(vaoEmpty);
   gl.uniform2i(U.barrierRender.uSimRes, stageW, stageH);
   gl.uniform1f(U.barrierRender.uBarrierXFrac, params.barrierX);
-  gl.uniform1f(U.barrierRender.uBarrierThickPx, params.barrierThick);
+  gl.uniform1f(U.barrierRender.uBarrierThickPx, wallThick());
   setSlitUniforms(U.barrierSlits);
   gl.uniform1f(U.barrierRender.uBarrierOpacity, opacity);
 
@@ -1929,7 +2048,7 @@ function drawBarrier() {
 }
 
 function render() {
-  const showingChange = Boolean(params.showChange && refActive);
+  const showingChange = Boolean(params.showChange && refActive && !branches.length);
   const waveTex = showingChange ? changeTexture() : guidingWaveTexture();
   const densTex = params.colorCodeRadial
     ? (densFlip ? radialTexB : radialTexA)
@@ -1955,8 +2074,24 @@ function render() {
   gl.uniform1i(U.waveRender.uShowPhase, params.showPhase);
 
   gl.uniform1i(U.waveRender.uPaletteId, params.paletteId | 0);
+  const driveU = (driveMaxX + 0.5) / simW;
+  const withBranches = branchFields.length > 0 && !showingChange;
+  gl.uniform2f(U.waveRender.uClip, -1, withBranches ? driveU : 2);
+  gl.uniform2f(U.waveRender.uTexMap, 0, 1);
 
   gl.drawArrays(gl.TRIANGLES, 0, 3);
+  if (withBranches) {
+    // Behind the wall: each detector record's wave, added.
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.uniform2f(U.waveRender.uClip, driveU, 2);
+    for (const f of branchFields) {
+      gl.bindTexture(gl.TEXTURE_2D, f.flip ? f.texB : f.texA);
+      gl.uniform2f(U.waveRender.uTexMap, branchOffsetX / simW, f.width / simW);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    gl.disable(gl.BLEND);
+  }
 
   if (params.showTrail) {
     gl.enable(gl.BLEND);
@@ -2051,7 +2186,12 @@ function updateStats() {
     if (simTime < r.t0) lines.push(`Slit ${r.k + 1}: ${what} when the packet reaches the wall`);
     else lines.push(`Slit ${r.k + 1}: ${what}, ${Math.round(100 * Math.min(1, r.tau > 0 ? (simTime - r.t0) / r.tau : 1))}%`);
   }
-  if (params.showChange) {
+  if (branches.length) {
+    const det = detectorSlitIds().map(k => k + 1);
+    lines.push(`Detectors at slit${det.length > 1 ? "s" : ""} ${det.join(", ")}: ${branches.length} records${branches.length > det.length ? " (one: no detector fired)" : ""}`);
+  }
+  if (params.showChange && branches.length) lines.push("Show change is off with detectors");
+  else if (params.showChange) {
     if (!refActive) lines.push("Show change: click a slit during a run");
     else {
       const now = performance.now();
@@ -2104,6 +2244,8 @@ function rebuildSimulation() {
   beginRunRecord();
   runKey = experimentKey();
   clampSlitGeometry();
+  setupBranches();
+  clearBranches();
   resetWave();
   rebuildParticles();
   rebuildDensity();
@@ -2126,6 +2268,8 @@ function resetAll({ preserveHistogram = Boolean(params.whichSlit), repeat = fals
   applySlitStatesInstantly();
   beginRunRecord({ repeat });
   runKey = experimentKey();
+  if (branchKey !== currentBranchKey()) setupBranches();
+  clearBranches();
   resetWave();
   rebuildParticles(null, keepHits);
   clearDensity();
@@ -2194,8 +2338,10 @@ function advanceSimulationFrame(presentationDt = 1 / 60) {
     if (pendingReplay.length) processReplay();
     updateSlitStates(simTime + 0.5 * simulationDt());
     waveStep();
+    branchesStep();
     whichSlit?.advance(flip ? texB : texA, simulationDt());
-    particleUpdate();
+    particleUpdate(-1);
+    for (let b = 0; b < branchFields.length; b++) particleUpdate(b);
     simTime += simulationDt();
     // Only the one-particle measurement needs these extra reads. Check near
     // the slit within a frame so fast playback cannot delay detection by an
@@ -2465,11 +2611,6 @@ if (template) {
     filename: "qontic-double-slit-2",
     scaleControl: overlayScale, coordinateControl: overlayCoordinates,
     getCanvases: captureStage,
-    onRecord: () => {
-      template.setActivePane("advanced");
-      document.getElementById("export-options").open = true;
-      document.getElementById("export-options").scrollIntoView({block:"nearest"});
-    },
   });
 }
 

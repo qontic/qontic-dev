@@ -58,7 +58,11 @@
     .slit-buttons { flex-wrap:wrap; gap:4px; }
     .slit-buttons button { flex:0 0 30px; width:30px; min-width:30px; min-height:32px; padding:4px 6px; font-size:12px; font-variant-numeric:tabular-nums; }
     .slit-buttons button.slit-closed { background:rgba(20,26,34,0.9); color:#8796a8; text-decoration:line-through; border-color:rgba(160,170,185,0.35); }
-    .shutter-status { margin-top:7px; color:#ffd59a; }
+    .shutter-status { margin-top:4px; color:#ffd59a; }
+    .slit-buttons button.slit-detector { background:rgba(230,159,0,0.30); border-color:#e69f00; color:#fff; box-shadow: inset 0 -3px 0 #e69f00; }
+    .chip-toggles { flex-wrap:wrap; gap:4px; }
+    .chip-toggles button { flex:1 1 auto; padding:5px 6px; font-size:12px; }
+    .chip-toggles button[aria-pressed="false"], .path-color-toggles button[aria-pressed="false"] { color:#9fb0c7; background:rgba(20,30,44,0.6); }
     button:disabled { opacity:.45; cursor:not-allowed; }
     #export-options { margin-top:14px; border-top:1px solid rgba(132,192,255,0.20); font-size:12px; }
     #export-options summary { cursor:pointer; padding:12px 0 6px; color:#d9e6f8; font-weight:600; }
@@ -139,7 +143,7 @@
     html.is-embedded canvas { cursor:pointer; }
     html.is-embedded #ui h3 { font-size:13px; }
   </style>
-  <link rel="stylesheet" href="./template.css?v=3" />
+  <link rel="stylesheet" href="./template.css?v=nsn6" />
 </head>
 <body>
   <div id="wrap">
@@ -184,7 +188,12 @@
       </div>
       <div id="theorybody" hidden>
         <p id="which-slit-theory" class="note" hidden><strong>Which slit:</strong> successive single particles start from positions biased toward the openings. After a particle passes a slit, detection farther downstream smoothly prepares a broad Gaussian centered on that slit. Its width allows the particle to continue more gently while keeping the new wave clear of the wall. The particle keeps its position and follows the spreading wave. Actual detector hits accumulate across particles. This is an illustrative preparation with biased launches; its histogram is not an exact Born-rule prediction.</p>
-        <p>A quantum wave packet travels according to the Schrödinger equation, solved here numerically on a grid (leapfrog in time, five-point Laplacian; units with ħ = 6, m = 1, grid step 1, so the default momentum p = 1.5 gives λ = 2πħ/p ≈ 25 grid steps). The wall splits it into coherent parts, one per open slit; after the slits those parts overlap and form interference. There are 1–16 slits, slit 1 at the top; each can be opened or closed with its button.</p>
+        <p>A quantum wave packet travels according to the Schrödinger equation, solved here numerically on a grid (leapfrog in time, five-point Laplacian; units with ħ = 6, m = 1, grid step 1, so the default momentum p = 1.5 gives λ = 2πħ/p ≈ 25 grid steps). The wall splits it into coherent parts, one per open slit; after the slits those parts overlap and form interference. There are 1–16 slits, slit 1 at the top; a click cycles a slit through open, closed and detector. The packet's width across the motion follows the slit span, max(σ, (N − 1) × separation / 2), so all slits are lit; it is kept clear of the absorbing edges.</p>
+        <h4>Detectors at the slits</h4>
+        <p>With detectors at slits D the state behind the wall is Σ<sub>k∈D</sub> ψ<sub>k</sub>|d<sub>k</sub>⟩ + (Σ<sub>j∉D</sub> ψ<sub>j</sub>)|d<sub>0</sub>⟩: one record per detected slit and one for "no detector fired", in which the undetected open slits still interfere. Records are orthogonal, so the density behind the wall is Σ<sub>k∈D</sub>|ψ<sub>k</sub>|² + |Σ<sub>j∉D</sub> ψ<sub>j</sub>|². The detectors are ideal: they record the slit and do not disturb the wave.</p>
+        <p>How it is computed: the equation is linear, and the wave behind the wall is set by its values on the wall's exit face. Each record has its own field behind the wall, driven on the exit face by the total wave times a smooth weight that shares the face among the open slits (the weights add to 1). The records' fields add up to the total wave behind the wall (checked: to 1.5×10⁻⁴), and the picture shows them added. A Pilot-Wave particle is guided by the total wave until it leaves the wall; its slit then fixes its record, and from then on it is guided by that record's wave (the other records are empty waves). In Orthodox and Many-Worlds terms the record is the measured slit or the branch; this app shows the pilot-wave account.</p>
+        <h4>Absorbing wall</h4>
+        <p>With the wall set to absorbing, particles that hit it are absorbed instead of turned back. The wall is then 20 grid steps thick: an imaginary potential −iW rising quadratically to W = 3 over its front 90%, and the wall potential behind it. A thin absorber reflects much of a wave; in a one-dimensional test with the default packet this design reflects 0.7% and transmits 2×10⁻⁵ (a 10-step absorbing wall reflected at least 6%). Pilot-Wave particles in the absorber are removed with the probability that |ψ|² is absorbed there (effective rule).</p>
         <h4>Closing a slit during a run</h4>
         <p>A slit clicked during a run is closed (or opened) by a blade that slides across it from its upper edge over the closing time τ. A <b>reflecting</b> blade is wall: the potential V₀ = 50 (the packet's energy is about 1.1) fills the covered part. An <b>absorbing</b> blade is an imaginary potential −iW in the covered part, which removes |ψ|² at the rate 2W/ħ; Pilot-Wave particles there are removed with the same probability (an effective rule, not a model of the absorber). With <i>wait for packet</i> on, the blade starts when the packet centre reaches the wall.</p>
         <p><b>Show change.</b> At the first slit click of a run the app copies the wave into a second simulation in which the slits stay as they were. The picture can then show ψ − ψ<sub>ref</sub>, the change caused by the shutter, and the stats give |δψ|/|ψ| (root-mean-square, relative) ahead of and behind the <i>cut</i>: the slice that left the wall when the blade started, moving on at v = p/m.</p>
@@ -232,7 +241,7 @@
       </div>
     </div>
   </div>
-  <script type="module" src="./main.js?v=nsn5"></script>
+  <script type="module" src="./main.js?v=nsn6"></script>
   <script>
     const catalogBack = document.getElementById("catalog-back");
     const appParams = new URLSearchParams(window.location.search);
