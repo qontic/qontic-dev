@@ -45,19 +45,20 @@ const WAVE_WORKGROUP_SIZE = 256;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg2d2",
-  palette: "./shaders/palette.wgsl?v=sg2d2",
-  waveInit: "./shaders/wave-init.wgsl?v=sg2d2",
-  waveStep: "./shaders/wave-step.wgsl?v=sg2d2",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d2",
-  cloud: "./shaders/cloud.wgsl?v=sg2d2",
-  particleRender: "./shaders/particle-render.wgsl?v=sg2d2",
-  density: "./shaders/density.wgsl?v=sg2d2",
-  boxShell: "./shaders/box-shell.wgsl?v=sg2d2",
-  line: "./shaders/line.wgsl?v=sg2d2",
-  fieldLine: "./shaders/field-line.wgsl?v=sg2d2",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d2",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d2",
+  common: "./shaders/common.wgsl?v=sg2d3",
+  palette: "./shaders/palette.wgsl?v=sg2d3",
+  waveInit: "./shaders/wave-init.wgsl?v=sg2d3",
+  waveStep: "./shaders/wave-step.wgsl?v=sg2d3",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d3",
+  cloud: "./shaders/cloud.wgsl?v=sg2d3",
+  particleRender: "./shaders/particle-render.wgsl?v=sg2d3",
+  density: "./shaders/density.wgsl?v=sg2d3",
+  boxShell: "./shaders/box-shell.wgsl?v=sg2d3",
+  line: "./shaders/line.wgsl?v=sg2d3",
+  fieldLine: "./shaders/field-line.wgsl?v=sg2d3",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d3",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d3",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d3",
 };
 
 function applyShaderConstants(source) {
@@ -85,6 +86,7 @@ async function loadShaders() {
     particleRender: parts.common + parts.particleRender,
     density: parts.common + parts.density,
     boxShell: parts.common + parts.boxShell,
+    magnetPole: parts.common + parts.magnetPole,
     line: parts.common + parts.line,
     fieldLine: parts.common + parts.fieldLine,
     detectorPlate: parts.common + parts.detectorPlate,
@@ -173,6 +175,7 @@ const params = {
   sgGradient: DEFAULT_SG_GRADIENT,
   sgFieldOn: 1,
   showFieldArrows: 1,
+  showMagnet: 1,
   showAxes: 1,
 
   cloudGain: .05,
@@ -510,6 +513,7 @@ addSlider("packetSigma", "Beam width (FWHM)", 4.0, 14.0, 0.5, () => { rebuildBox
 controls = displayControls;
 addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
 addToggleInt("showFieldArrows", "Field arrows");
+addToggleInt("showMagnet", "Magnet poles");
 const cameraProjectionControl = addCycleButton("cameraProjection", "Camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
   syncCameraUi();
@@ -573,10 +577,11 @@ const BOX_SHELL_WGSL = SHADERS.boxShell;
 const LINE_WGSL = SHADERS.line;
 const FIELD_LINE_WGSL = SHADERS.fieldLine;
 const DETECTOR_PLATE_WGSL = SHADERS.detectorPlate;
+const MAGNET_POLE_WGSL = SHADERS.magnetPole;
 const WEIGHT_REDUCE_WGSL = SHADERS.weightReduce;
 let pipelineWeightReduce = null;
 let pipelineWaveInit, pipelineWaveStep, pipelineParticleUpdate;
-let pipelineCloud, pipelineBoxShell, pipelineLine, pipelineFieldLine, pipelineDetectorPlate;
+let pipelineCloud, pipelineBoxShell, pipelineLine, pipelineFieldLine, pipelineDetectorPlate, pipelineMagnetPole;
 let pipelineParticleRender, pipelineParticleStamp;
 let pipelineDensityFade, pipelineDensityRenderGlow;
 let nearestSampler = device.createSampler({ magFilter: "nearest", minFilter: "nearest" });
@@ -620,6 +625,8 @@ let boxShellBindGroup = null;
 let lineBindGroup = null;
 let fieldLineBindGroup = null;
 let detectorPlateBindGroup = null;
+let magnetPoleBindGroup = null;
+let magnetPoleBuffer = null, magnetPoleVertexCount = 0;
 
 function shaderModule(label, code) {
   return device.createShaderModule({ label, code });
@@ -693,6 +700,7 @@ async function buildPipelines() {
   const lineModule = shaderModule("line", LINE_WGSL);
   const fieldLineModule = shaderModule("SG field lines", FIELD_LINE_WGSL);
   const detectorPlateModule = shaderModule("detector plate", DETECTOR_PLATE_WGSL);
+  const magnetPoleModule = shaderModule("magnet poles", MAGNET_POLE_WGSL);
   const weightReduceModule = shaderModule("probability weight", WEIGHT_REDUCE_WGSL);
 
   const pipelineWaveInitReady = device.createComputePipelineAsync({
@@ -844,6 +852,29 @@ async function buildPipelines() {
     primitive: { topology: "triangle-list" },
   });
 
+  const pipelineMagnetPoleReady = device.createRenderPipelineAsync({
+    label: "magnet pole pipeline",
+    layout: "auto",
+    vertex: {
+      module: magnetPoleModule,
+      entryPoint: "vs",
+      buffers: [{
+        arrayStride: 40,
+        attributes: [
+          { shaderLocation: 0, offset: 0, format: "float32x3" },
+          { shaderLocation: 1, offset: 12, format: "float32x3" },
+          { shaderLocation: 2, offset: 24, format: "float32x4" },
+        ],
+      }],
+    },
+    fragment: {
+      module: magnetPoleModule,
+      entryPoint: "fs",
+      targets: [{ format: presentationFormat, blend: blendState("src-alpha", "one-minus-src-alpha"), writeMask: COLOR_WRITE_ALL }],
+    },
+    primitive: { topology: "triangle-list", cullMode: "back", frontFace: "ccw" },
+  });
+
   const pipelineDetectorPlateReady = device.createRenderPipelineAsync({
     label: "detector plate pipeline",
     layout: "auto",
@@ -870,6 +901,7 @@ async function buildPipelines() {
     pipelineFieldLine,
     pipelineDetectorPlate,
     pipelineWeightReduce,
+    pipelineMagnetPole,
   ] = await Promise.all([
     pipelineWaveInitReady,
     pipelineWaveStepReady,
@@ -884,12 +916,14 @@ async function buildPipelines() {
     pipelineFieldLineReady,
     pipelineDetectorPlateReady,
     pipelineWeightReduceReady,
+    pipelineMagnetPoleReady,
   ]);
 
   boxShellBindGroup = bindGroup(pipelineBoxShell, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
   lineBindGroup = bindGroup(pipelineLine, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
   fieldLineBindGroup = bindGroup(pipelineFieldLine, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
   detectorPlateBindGroup = bindGroup(pipelineDetectorPlate, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
+  magnetPoleBindGroup = bindGroup(pipelineMagnetPole, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
 }
 
 function makeBuffer(label, data, usage) {
@@ -1208,6 +1242,8 @@ function clampCameraPitch(pitch) {
   return Math.max(-halfPi, Math.min(halfPi, pitch));
 }
 
+// Far enough back to show the magnet poles around the tunnel.
+const DEFAULT_CAMERA_DISTANCE = 4.0;
 function cameraDistanceBounds() {
   const n = Math.max(simW, simH, simD) * params.boxScale;
   return {
@@ -1219,7 +1255,7 @@ function cameraDistanceBounds() {
 
 function clampCameraDistance(distance) {
   const bounds = cameraDistanceBounds();
-  if (!Number.isFinite(distance) || distance <= 1) return 2.5 * bounds.n;
+  if (!Number.isFinite(distance) || distance <= 1) return DEFAULT_CAMERA_DISTANCE * bounds.n;
   return Math.max(bounds.min, Math.min(bounds.max, distance));
 }
 
@@ -1639,8 +1675,9 @@ function updateSpinSphereText() {
   const gamma = Math.acos(c) / DEG;
   const pPlus = 0.5 * (1 + c);
   const p = axisName(m.theta), q = axisName(m.theta + Math.PI);
-  const note = magnetPreset().b0 < 1 ? "<br>Not for the weak field: there spins can flip." : "";
-  spinSphereText.innerHTML = `<b>Spin</b> ${spinLabel()} (orange)<br><b>Magnet axis</b> ${p} (red, dashed)<br>Angle between them γ = ${Math.round(gamma)}°<br>Expected: ${(100 * pPlus).toFixed(0)}% toward ${p}, ${(100 * (1 - pPlus)).toFixed(0)}% toward ${q} (cos² γ/2)${note}<br><span class=\"spin-sphere-note\">x is the beam. Angles about the beam run from +z toward +y.</span>`;
+  const note = magnetPreset().b0 < 1 ? `<br><span class="spin-sphere-note">Weak field: spins can flip.</span>` : "";
+  spinSphereText.innerHTML = `Angle between <span class="c-spin">spin</span> and <span class="c-mag">magnet</span>: <b>${Math.round(gamma)}°</b><br>${(100 * pPlus).toFixed(0)}% toward ${p}<br>${(100 * (1 - pPlus)).toFixed(0)}% toward ${q}${note}`;
+  spinSphereText.title = "γ: angle between the spin (orange arrow) and the magnet axis (red dashed line). Expected fractions: cos²(γ/2) and sin²(γ/2).";
 }
 
 function resetWave() {
@@ -1749,7 +1786,7 @@ function updateHitDisplay() {
   }
   hitDisplay.hidden = !dotsShown() || hitCounts.total <= 0;
   const rows = labels.map((l, k) => `${l}: ${hitCounts.counts[k] ?? 0}`).join("<br>");
-  hitDisplay.innerHTML = `<b>Dots at the plate</b><br>${rows}<br>${hitCounts.arrived} of ${hitCounts.total} arrived`;
+  hitDisplay.innerHTML = `<b>Dots at the screen</b><br>${rows}<br>${hitCounts.arrived} of ${hitCounts.total} arrived`;
 }
 
 // Orthodox reading: sum |Psi|^2 above and below the middle on the GPU, then read the sums back.
@@ -1919,6 +1956,13 @@ function render(encoder, camera) {
     }],
   });
 
+  if (params.showMagnet && magnetPoleBuffer && magnetPoleVertexCount > 0) {
+    pass.setPipeline(pipelineMagnetPole);
+    pass.setBindGroup(0, magnetPoleBindGroup);
+    pass.setVertexBuffer(0, magnetPoleBuffer);
+    pass.draw(magnetPoleVertexCount);
+  }
+
   if (params.showCloud) {
     pass.setPipeline(pipelineCloud);
     pass.setBindGroup(0, cloudBindGroups[flip]);
@@ -1983,11 +2027,11 @@ function updateStats() {
   if (legendCloud) legendCloud.hidden = !params.showCloud;
   if (legendDots) legendDots.hidden = !dotsShown();
   if (legendCloudText) legendCloudText.textContent = reading === "pw"
-    ? "Cloud: |Ψ|², where the particle can be found."
+    ? "Cloud: |Ψ|²."
     : "Cloud: |Ψ|². In the orthodox reading it gives the probability of finding the particle at each place when its position is measured; the theory gives the particle no path.";
   if (legendPlateText) legendPlateText.textContent = reading === "pw"
-    ? "Detector plate: a dot stops when it reaches it."
-    : "Detector plate: where the position is measured. The chance of a hit in each region is the weight of |Ψ|² that reaches it.";
+    ? "Screen: a dot stops where it reaches it."
+    : "Screen: where the position is measured. The chance of a hit in each region is the weight of |Ψ|² that reaches it.";
   const spinText = spinLabel();
   updateSpinSphereText();
   refreshUnitLabels();
@@ -2006,7 +2050,8 @@ function updateStats() {
     });
     sText = parts.join(", ");
   }
-  statsEl.innerHTML = `<b>Magnets</b>: ${magnetPreset().name}${params.magnetAngle ? `, turned ${Math.round(params.magnetAngle)}°` : ""} &nbsp; <b>Initial spin</b>: ${spinText} &nbsp; <b>Gradient</b>: ${gText} &nbsp; <b>Splitting at the plate</b>: ${sText} &nbsp; <b>Flight to the plate</b>: ${(lab.flightTime * 1e6).toFixed(0)} µs over ${(lab.flight * 100).toFixed(1)} cm &nbsp; <b>Dots</b>: ${Math.floor(params.nParticles)}<br><span class="stat-units">Each axis has its own scale, matched to the 1922 experiment: x in cm, y and z in µm, time in µs. The wave here spreads about ${roughPower(lab.ratio)} times faster than a real silver atom's, so that it can be seen on the grid.</span>`;
+  statsEl.innerHTML = `<b>Splitting</b> ${sText} &nbsp; <b>Flight</b> ${(lab.flightTime * 1e6).toFixed(0)} µs over ${(lab.flight * 100).toFixed(1)} cm`;
+  statsEl.title = `Gradient ${gText}. Spin ${spinText}. The wave spreads about ${roughPower(lab.ratio)} times faster than a real silver atom's (see Physics: Units).`;
 }
 
 // Legend text for the field lines, per magnet preset and angle.
@@ -2015,16 +2060,15 @@ function updateLegendField() {
   const preset = magnetPreset();
   const ms = magnets();
   const p = ms.map(m => axisName(m.theta)), q = ms.map(m => axisName(m.theta + Math.PI));
-  const head = "Magnetic field lines; arrowheads show the direction of B.";
+  const head = "Field lines of B.";
   let text;
   if (ms.length > 1) {
-    text = `${head} First magnet: field along ${p[0]}, stronger toward ${p[0]}. Second magnet: field along ${p[1]}, stronger toward ${p[1]}. Between them there is no field.`;
+    text = `${head} First magnet along ${p[0]}, second along ${p[1]}; no field between them.`;
   } else if (preset.b0 < 1) {
-    text = `${head} The field points along ${p[0]} and is stronger toward ${p[0]}, but its uniform part is small: on the ${q[0]} side it almost vanishes, and there spins can flip.`;
+    text = `${head} Along ${p[0]}, but weak: on the ${q[0]} side it almost vanishes, and spins can flip.`;
   } else {
-    const where = ms[0].b < 1 ? " The magnet ends partway; after it the parts drift apart without a field." : "";
-    const turned = p[0] === "+z" ? "" : ` The magnet is turned ${Math.round(params.magnetAngle)}° about the beam, from +z toward +y.`;
-    text = `${head} The field points along ${p[0]} and is stronger toward ${p[0]}; this pushes the ${p[0]} spin part toward ${p[0]} and the ${q[0]} part the other way.${turned}${where}`;
+    const where = ms[0].b < 1 ? " After the magnet the parts drift apart." : "";
+    text = `${head} The field points along ${p[0]} and is stronger toward ${p[0]}: the ${p[0]} spin part goes that way, the ${q[0]} part the other.${where}`;
   }
   legendField.innerHTML = `<i class="swatch field"></i>${text}`;
 }
@@ -2114,6 +2158,72 @@ function rebuildBoxGeometry() {
   boxShellBuffer = makeBuffer("box shell vertices", new Float32Array(shellVerts), GPUBufferUsage.VERTEX);
 }
 
+// Magnet poles, drawn outside the tunnel for each magnet over the part of the flight where it
+// is on. The field B = g(0, −y′, b0 + z′) (turned with the magnet) points along the magnet
+// axis +n and is stronger toward +n, so the pole on the +n side is the S pole, shaped as a
+// knife edge (blue), and the pole on the −n side is the N pole (red), flat with a shallow
+// groove, as in the 1922 apparatus. The poles sit just outside the square tunnel, so they
+// move out a little when the magnet is turned.
+const POLE_S_COLOR = [0.16, 0.32, 0.95, 0.42];
+const POLE_N_COLOR = [0.88, 0.14, 0.16, 0.42];
+function rebuildMagnetPoles() {
+  destroyGpuResource(magnetPoleBuffer);
+  magnetPoleBuffer = null;
+  magnetPoleVertexCount = 0;
+  if (!device) return;
+  const cy = 0.5 * (simH - 1), cz = 0.5 * (simD - 1);
+  const L = Math.max(1, cz);
+  const xStart = tunnelStartX(), xPlate = detectorPlateXGrid();
+  const xPacket = params.packetX * (simW - 1);
+  const xAt = f => xPacket + f * (xPlate - xPacket);
+  const verts = [];
+  const sc = params.boxScale;
+  const push = (p, n, col) => verts.push(p[0] * sc, p[1] * sc, p[2] * sc, n[0], n[1], n[2], col[0], col[1], col[2], col[3]);
+  const tri = (a, b, c, n, col) => {
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    const cr = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    if (cr[0] * n[0] + cr[1] * n[1] + cr[2] * n[2] < 0) [b, c] = [c, b];
+    push(a, n, col); push(b, n, col); push(c, n, col);
+  };
+  // Prism of a 2D profile (t, n coordinates, counter-clockwise, star-shaped about `centre`).
+  const prism = (poly, centre, xa, xb, T, N, col) => {
+    const at = (q, x) => [x, cy + q[0] * T[1] + q[1] * N[1], cz + q[0] * T[2] + q[1] * N[2]];
+    for (let i = 0; i < poly.length; i++) {
+      const p = poly[i], q = poly[(i + 1) % poly.length];
+      const e = [q[0] - p[0], q[1] - p[1]];
+      const len = Math.hypot(e[0], e[1]) || 1;
+      const o = [e[1] / len, -e[0] / len];
+      const nrm = [0, o[0] * T[1] + o[1] * N[1], o[0] * T[2] + o[1] * N[2]];
+      tri(at(p, xa), at(q, xa), at(q, xb), nrm, col);
+      tri(at(p, xa), at(q, xb), at(p, xb), nrm, col);
+      tri(at(centre, xb), at(p, xb), at(q, xb), [1, 0, 0], col);
+      tri(at(centre, xa), at(q, xa), at(p, xa), [-1, 0, 0], col);
+    }
+  };
+  for (const mg of magnets()) {
+    const xa = Math.max(xStart, xAt(mg.a + 0.5 * RAMP));
+    const xb = Math.min(xPlate, xAt(mg.b - 0.5 * RAMP));
+    if (xb - xa < 1) continue;
+    const N = [0, Math.sin(mg.theta), Math.cos(mg.theta)];
+    const T = [0, Math.cos(mg.theta), -Math.sin(mg.theta)];
+    const h = L * (Math.abs(N[1]) + Math.abs(N[2])) + 3;   // just outside the tunnel
+    const W = 0.6 * L;
+    const wedge = [[0, h], [W, h + 0.55 * L], [-W, h + 0.55 * L]];
+    const g = 0.2 * L, gd = 0.07 * L, hb = 0.32 * L;
+    const flat = [[-W, -h], [-g, -h], [0, -h - gd], [g, -h], [W, -h], [W, -h - hb], [-W, -h - hb]];
+    const ccw = poly => {
+      let a = 0;
+      for (let i = 0; i < poly.length; i++) { const p = poly[i], q = poly[(i + 1) % poly.length]; a += p[0] * q[1] - q[0] * p[1]; }
+      return a < 0 ? poly.slice().reverse() : poly;
+    };
+    prism(ccw(wedge), [0, h + 0.38 * L], xa, xb, T, N, POLE_S_COLOR);
+    prism(ccw(flat), [0, -h - 0.22 * L], xa, xb, T, N, POLE_N_COLOR);
+  }
+  if (!verts.length) return;
+  magnetPoleVertexCount = verts.length / 10;
+  magnetPoleBuffer = makeBuffer("magnet pole vertices", new Float32Array(verts), GPUBufferUsage.VERTEX);
+}
+
 // Direction of B at grid point p from the magnets active at that x (same formula as the shader).
 function sgFieldDirectionGrid(p, segs = magnetsAtX(p[0])) {
   const cy = 0.5 * (simH - 1);
@@ -2200,6 +2310,7 @@ function traceSgFieldLine(verts, start, sign, fade, step, maxSteps, margin, arro
 // copyFade is for the box copies at x offsets -1, 0, +1 (the packet starts in copy 0).
 const FIELD_LINE_STYLE = { xFracs: [0.2, 0.5, 0.8], copyFade: [0.2, 0.65, 0.65] };
 function rebuildMagneticFieldLines() {
+  rebuildMagnetPoles();
   destroyGpuResource(fieldLineBuffer);
   fieldLineBuffer = null;
   destroyGpuResource(fieldArrowBuffer);
@@ -2250,7 +2361,7 @@ function rebuildSimulation() {
   simD = GRID_YZ;
   waveCount = simH * simD;
   voxelCount = simW * Math.floor(simH / CLOUD_STRIDE) * Math.floor(simD / CLOUD_STRIDE);
-  cameraOrbit.distance = 2.5 * Math.max(simW, simH, simD) * params.boxScale;
+  cameraOrbit.distance = DEFAULT_CAMERA_DISTANCE * Math.max(simW, simH, simD) * params.boxScale;
   cameraTarget.distance = cameraOrbit.distance;
 
   deleteWaveTargets();

@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=14" />
-  <link rel="modulepreload" href="./main.js?v=22" />
+  <link rel="stylesheet" href="./style.css?v=15" />
+  <link rel="modulepreload" href="./main.js?v=23" />
 </head>
 <body>
   <main class="shell">
@@ -34,8 +34,9 @@
         <div id="scene-legend" aria-label="Legend">
           <span id="legend-field"><i class="swatch field"></i>Magnetic field lines; arrowheads show the direction of B. The field points up (+z) and is stronger toward the top; this pushes the +z spin part up and the −z part down.</span>
           <span id="legend-cloud"><i class="swatch cloud"></i><span class="legend-text">Cloud: |Ψ|², where the particle can be found.</span></span>
-          <span id="legend-dots"><i class="swatch dots"></i>Dots: possible particle positions, started at random according to |Ψ|². Yellow dots start on the + side of the packet along the first magnet's axis (the upper half for a z magnet), green dots on the other side. Trails show their paths.</span>
-          <span id="legend-plate"><i class="swatch plate"></i><span class="legend-text">Detector plate: a dot stops when it reaches it.</span></span>
+          <span id="legend-dots"><i class="swatch dots"></i>Dots: particle positions, started at random from |Ψ|². Yellow start on the + side of the packet, green on the − side.</span>
+          <span id="legend-magnet"><i class="swatch magnet"></i>Magnet poles: N (red) and S (blue knife edge).</span>
+          <span id="legend-plate"><i class="swatch plate"></i><span class="legend-text">Detector screen: a dot stops when it reaches it.</span></span>
         </div>
         <div id="plate-hits" class="plate-hits" hidden></div>
         <div id="sim-clock" class="sim-clock" aria-live="off">t = 0.0 µs</div>
@@ -61,7 +62,7 @@
         show-reset="true" show-rerun="false" show-autorun="true" auto-run="true" show-interpretation="true" interpretations="cpn,pw" interpretation="pw" disabled></qontic-controls>
       <div class="qontic-control-body" id="controls">
         <div data-control-pane="core">
-          <p class="prompt">Click XZ for the side view and 3D to come back: the beam moves to the right and z points up. The default spin points along the beam (+x), an equal superposition of +z and −z, and it splits into an upper (+z) and a lower (−z) part. Set Spin θ to 0° (+z) and the whole packet moves up. Spin θ and φ point the spin anywhere; Magnet angle turns the magnet about the beam. The sphere shows both, with the expected split. The Magnets control gives other fields: a short magnet, two magnets in a row, a weak field. Changing the spin or the magnet restarts the packet. The run restarts by itself after the packet passes the plate; click ↻ to turn this off.</p>
+          <p class="prompt">Point the spin, turn the magnet, and compare the dots at the screen with the expected split.</p>
         </div>
         <div data-control-pane="advanced" hidden>
           <p class="prompt">The app selects a starting grid from the device’s capabilities. You can adjust it here. Changing the grid also changes the tunnel dimensions and restarts the packet.</p>
@@ -117,6 +118,7 @@
           </math>
         </div>
         <p>Here y<sub>c</sub> and z<sub>c</sub> are the centre of the box, L is half the box height, and g is the gradient strength, so ∂B<sub>z</sub>/∂z = g/L. The uniform part, 2g, keeps the field from vanishing inside the box, so the spin components separate without spin flips (the Weak uniform field setting uses 0.3g instead). The y component is required by ∇·B = 0; it has almost no effect on the probabilities here. A tilted magnet uses the same formula turned about the beam axis, and the field is multiplied by the magnet's on/off profile along the flight. The red lines are field lines of this B: at every point the line is tangent to B, and the arrowheads (Display: Field arrows) show which way B points along it. The lines carry no strength by their colour; the strength shows in their spacing, since the lines crowd together where |B| is larger, toward the top. That crowding is across y, so it is seen in the 3D and YZ views but not in the XZ view, where every line is seen edge-on as a vertical stroke. The Magnetic field switch (Display tab) turns the whole field off, uniform part included.</p>
+        <p>The poles are drawn outside the tunnel over the part of the flight where each magnet is on. The field points from the N pole (red, flat with a shallow groove) to the S pole (blue, a knife edge) and is stronger near the knife edge, as in the 1922 magnet. They are a picture of the source of the field; the computed field is the formula above, inside the tunnel. The screen at the end is the detector plate; its inner square is the tunnel's cross-section.</p>
         <h4>Wave</h4>
         <p>The particle is neutral, so there is no vector potential. The spinor obeys the Pauli equation</p>
         <div class="eq">
@@ -196,6 +198,6 @@
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=22"></script>
+  <script type="module" src="./template.js?v=23"></script>
 </body>
 </html>
