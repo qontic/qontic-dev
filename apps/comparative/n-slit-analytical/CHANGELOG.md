@@ -1,3 +1,6 @@
+## 3.0 — 2026-11-19
+- Published as a separate app, N-Slits (Pablo). Same content as 3.0-dev.28.
+
 ## 3.0-dev.28 — 2026-11-19
 Second panel round (Raj, Tomás, Hannah) on dev.27. Tomás and Hannah: ready after small fixes; Raj: one wrong number.
 - **Correction (Raj):** at the closing moment about a tenth of the packet is past the wall, not 1% (the 1% was the weight of the smoothly split part, not the probability beyond the wall exit). "Most of the wave ahead of the cut came from the later part" softened to "a large part": the 83% depends on the smooth split (about 65% counting only wave behind the wall exit).
