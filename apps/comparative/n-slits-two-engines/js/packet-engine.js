@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te8';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te8';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te8';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te8';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te8';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te8';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te8';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te8';
-import {createNumericalEngine} from './numerical-engine.js?cache=te8';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te8';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te8';
-import {classifySlitSide} from './source-packet-model.js?cache=te8';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te9';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te9';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te9';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te9';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te9';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te9';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te9';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te9';
+import {createNumericalEngine} from './numerical-engine.js?cache=te9';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te9';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te9';
+import {classifySlitSide} from './source-packet-model.js?cache=te9';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -620,7 +620,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te8').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te9').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1044,7 +1044,7 @@ export function mountPacketEngine({core,advanced}){
  }
  // Caption under the canvas: one plain sentence for the view, a histogram legend,
  // and a colour legend for slits or detector records (colour plus text, never colour alone).
- let captionKey='';
+ let captionKey='',niceInfo=null; // niceInfo: Nice-fringes explanation, shown in the caption while that geometry is unchanged
  function updateCaption(){
   let host=document.getElementById('view-caption');
   if(!host){const container=document.getElementById('canvas-container');if(!container)return;host=document.createElement('div');host.id='view-caption';host.className='view-caption';host.setAttribute('aria-live','polite');container.after(host);}
@@ -1067,6 +1067,8 @@ export function mountPacketEngine({core,advanced}){
   }else if(pwMode==='spectrum')lines.push('Particle and hit colours: position where the particle crossed the wall, blue (top) to yellow (bottom).');
   else if(START_MODES.includes(pwMode)){const L={updown:[[1,'started in the upper half'],[0,'lower half']],rightleft:[[2,'started ahead of the packet centre'],[0,'behind it']],quadrant:[[1,'upper, behind'],[3,'upper, ahead'],[0,'lower, behind'],[2,'lower, ahead']],radial:[[0,'innermost quarter'],[1,'second'],[2,'third'],[3,'outermost quarter (from the packet centre)']]}[pwMode];
    lines.push('Particle colours by starting position: '+L.map(([g,t])=>swatch(START_COLORS[g],t)).join(' · ')+'.');}
+  if(niceInfo&&niceInfo.fp===fingerprint)lines.push('<b>Nice fringes:</b> '+niceInfo.text);
+  else if(niceInfo){niceInfo=null;const el=document.getElementById('nice-fringes-status');if(el&&el.textContent.includes('details below'))el.textContent='';}
   const colours=lines.map(l=>`<p class="cap-legend">${l}</p>`).join('');
   const hitText=pwMode==='slit'?'dots = hits counted (coloured by slit), bars = ±√n':pwMode==='spectrum'?'dots = hits counted (coloured by wall position), bars = ±√n':swatch(pwMode==='uniform'?colorPart:colorHit,'dots = hits counted, bars = ±√n');
   const legend='Screen: '+swatch(colorProb,'curve = predicted distribution')+(transition&&t<transition.until?' (dashed: the earlier slit setting, for the part of the wave already past the wall)':'')+' · '+hitText+' · black strip with green bars = hits per detector pixel. One packet = '+(p?.particles??'')+' particles (set in Advanced).';
@@ -1255,7 +1257,7 @@ export function mountPacketEngine({core,advanced}){
    const hardOpenings=engineWanted()&&num.available&&numSlitModel!=='mask';
    if(hardOpenings&&+extent.value!==2.5&&+extent.max>=2.5){extent.value=2.5;syncPacketInput(extent);}
    const r=await niceFringeGeometryAsync({N:numSlits,openIds:openSlitIds(),wall:sourcePos,extentSigma:+extent.value});
-   if(!r){niceStatus.textContent=openSlitIds().length>2?'No setting within the allowed ranges gives a series of bumps with a single tallest centre for these slits. With many slits the screen (≤ 3000 nm away) is in the near field of the grating, where it shows an image of the slits rather than separated fringes (see Physics, Near and far field). Close some slits, or try fewer.':'No setting within the allowed ranges gives clean fringes for these slits.';return;}
+   if(!r){niceInfo=null;niceStatus.title=openSlitIds().length>2?'No setting within the allowed ranges gives a series of bumps with a single tallest centre for these slits. With many slits the screen (≤ 3000 nm away) is in the near field of the grating, where it shows an image of the slits rather than separated fringes (see Physics, Near and far field). Close some slits, or try fewer.':'No setting within the allowed ranges gives clean fringes for these slits.';niceStatus.textContent='No clean fringes for these slits (hover for why).';return;}
    const set=(id,v)=>document.getElementById(id+'-group').setValueInFirstUnit(v);
    set('screen-height',r.screen);set('wavelength',r.wavelength);set('detector-distance',r.D);
    width.value=r.sigma;sourceWidth.value=r.sourceSigma;syncPacketInput(width);syncPacketInput(sourceWidth);
@@ -1265,8 +1267,11 @@ export function mountPacketEngine({core,advanced}){
    set('slit-separation',r.d);
    setupGeo(false);reset=0;resetEngine();draw();
    const clamped=slitSeparation!==r.d?` (separation limited to ${slitSeparation} nm)`:'';
-   niceStatus.textContent=`λ ${r.wavelength} nm · slit σ ${r.sigma} nm · separation ${r.d} nm${clamped} · screen ${r.D} nm away, ${r.screen} nm long · source σ ${r.sourceSigma} nm: ${r.count} bumps, central tallest, spacing ${Math.round(r.spacing)} nm (λD/d = ${Math.round(r.farField)} nm)`+(openSlitIds().length===2?': double-slit fringes.':`. Near field: the screen is ${(r.D/(2*r.d*r.d/r.wavelength)).toFixed(2)} Talbot lengths (2d²/λ = ${Math.round(2*r.d*r.d/r.wavelength)} nm) from the wall, so the bumps are an image of the slits, not the textbook N-slit pattern (see Physics, Near and far field).`);
-   if(hardOpenings&&r&&+extent.value===2.5)niceStatus.textContent+=' Numerical engine: slit openings set to ± 2.5 σ, so the hard-edged slits spread the wave like the Gaussian ones.';
+   let niceText=`λ ${r.wavelength} nm · slit σ ${r.sigma} nm · separation ${r.d} nm${clamped} · screen ${r.D} nm away, ${r.screen} nm long · source σ ${r.sourceSigma} nm: ${r.count} bumps, central tallest, spacing ${Math.round(r.spacing)} nm (λD/d = ${Math.round(r.farField)} nm)`+(openSlitIds().length===2?': double-slit fringes.':`. Near field: the screen is ${(r.D/(2*r.d*r.d/r.wavelength)).toFixed(2)} Talbot lengths (2d²/λ = ${Math.round(2*r.d*r.d/r.wavelength)} nm) from the wall, so the bumps are an image of the slits, not the textbook N-slit pattern (see Physics, Near and far field).`);
+   if(hardOpenings&&r&&+extent.value===2.5)niceText+=' Numerical engine: slit openings set to ± 2.5 σ, so the hard-edged slits spread the wave like the Gaussian ones.';
+   // One line in the panel; the full explanation goes to the caption below the picture.
+   niceStatus.textContent=`${r.count} bumps, spacing ${Math.round(r.spacing)} nm (details below the picture)`;niceStatus.title='';
+   niceInfo={text:niceText,fp:fingerprint};captionKey='';updateCaption();
   }finally{delete niceButton.dataset.busy;niceButton.textContent=label;syncNiceButton();if(wasRunning&&!isAnimating)document.getElementById('startButton').click();}
  });}
  function sampleBranch(){

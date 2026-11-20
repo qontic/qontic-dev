@@ -3,6 +3,10 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.9 — 2026-11-20
+Pablo: too much text in the panel after Nice fringes.
+- The Core panel shows one line ("7 bumps, spacing 235 nm (details below the picture)"); the full explanation (parameters, near/far field, the numerical engine's ± 2.5 σ openings) is a "Nice fringes:" line in the caption below the picture, kept while that geometry is unchanged and removed with the panel line when it changes. A failure shows one line, with the reason on hover.
+
 ## 1.0-dev.8 — 2026-11-20
 Pablo: port all the features of the numerical N-slit app that this app lacked.
 - **Blade shutter** (numerical engine; Advanced → Blade, Closing time, Blade W/E): a slit closed during a run is covered by a blade coming down from its upper edge over τ (units of σₓ/v; 0 = instant), reflecting (V₀) or absorbing (−iW); opening retracts it. The potential now carries all slits with per-slit blade fills. Mask wall: changes stay instant.
