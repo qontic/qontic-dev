@@ -81,3 +81,13 @@ body[data-view="physics"] :is(.qontic-media-toolbar, .qontic-media-menu-toggle) 
   .view-buttons .qontic-app-toggle, .controls-link { padding-inline: 5px; min-height: 36px; }
 }
 .plate-hits .plate-hits-note { display: inline-block; margin-top: 3px; font-size: 10px; color: #a9bccb; }
+/* Display tab: compact rows; on/off buttons are small and sit at the right. */
+[data-control-pane="display"] .row { margin: 3px 0; gap: 6px; }
+[data-control-pane="display"] .row:has(> button) { display: flex; align-items: center; justify-content: space-between; }
+[data-control-pane="display"] .row:has(> button) > .val { display: none; }
+[data-control-pane="display"] .row > .qontic-app-toggle {
+  flex: 0 0 auto; min-width: 52px; min-height: 24px; padding: 2px 10px; font-size: 12px; line-height: 1.2;
+}
+@media (pointer: coarse) {
+  [data-control-pane="display"] .row > .qontic-app-toggle { min-height: 32px; }
+}
