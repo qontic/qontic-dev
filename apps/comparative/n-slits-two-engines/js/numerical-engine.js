@@ -446,6 +446,14 @@ export function createNumericalEngine() {
   let parts = [];         // particle objects for the app
   let partData = null, partBufA = null, partBufB = null, partVao = null, tf = null;
   let behind = false, frame = 0, simTau = 0, stepsDone = 0, stepCarry = 0, budget = 64;
+  // Step budget per frame. With a GPU timer (EXT_disjoint_timer_query_webgl2) the GPU
+  // time per step is measured and the budget set from it, smoothed, so it stays steady.
+  // Without one, the fence of the previous frame says whether the GPU is behind; the
+  // budget then changes rarely and gently (cut 15% after two late frames, then a pause;
+  // grow 5% after 30 on-time frames), avoiding the slow-down / speed-up cycles of an
+  // aggressive controller.
+  const timerExt = gl.getExtension("EXT_disjoint_timer_query_webgl2");
+  let speedRatio = 1, msPerStep = null, pendingQueries = [], lateFrames = 0, onTimeFrames = 0, cooldown = 0, lastNeed = 0;
   // Asynchronous GPU -> CPU reads (no pipeline stall): copy, fence, read when signalled.
   let readBuf = null, partFence = null, partGen = 0, readGen = -1;
   let fluxPBO = null, fluxFence = null, fluxData = null, fluxReady = null;
@@ -730,17 +738,49 @@ export function createNumericalEngine() {
   // Advance by a model time interval; returns the particle events that became
   // available this frame. The fractional step count is carried to the next frame,
   // so the wave advances evenly; a cap keeps a slow device from queueing work.
-  function advance(modelDt, maxSteps = 400) {
-    if (!state) return [];
-    // Load governor: if last frame's GPU work has not finished yet, the GPU is a frame
-    // behind; fewer steps this frame (the clock follows the steps actually done), so
-    // work never queues up and frames come at an even pace.
+  function pollTimers() {
+    while (pendingQueries.length) {
+      const { q, n } = pendingQueries[0];
+      if (!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break;
+      pendingQueries.shift();
+      const disjoint = gl.getParameter(timerExt.GPU_DISJOINT_EXT);
+      if (!disjoint && n > 0) { const ms = gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6 / n; if (ms > 0) msPerStep = msPerStep == null ? ms : 0.9 * msPerStep + 0.1 * ms; }
+      gl.deleteQuery(q);
+    }
+  }
+  function updateBudget(frameMs, maxSteps) {
     if (partFence) { const st = gl.clientWaitSync(partFence, 0, 0); behind = st !== gl.ALREADY_SIGNALED && st !== gl.CONDITION_SATISFIED; }
-    budget = behind ? Math.max(4, Math.floor(budget * 0.75)) : Math.min(maxSteps, budget + 2);
+    if (timerExt) pollTimers();
+    if (msPerStep) {
+      // Steps for about 70% of a frame of GPU time (the rest: picture, particles). A slow
+      // GPU that would get fewer than 12 steps may use a 30 fps frame instead.
+      let target = 0.7 * Math.min(17, Math.max(8, frameMs)) / msPerStep;
+      if (target < 12) target = Math.min(12, 0.7 * 33 / msPerStep);
+      target = Math.max(4, Math.min(maxSteps, target));
+      budget += 0.15 * (target - budget);
+      return;
+    }
+    if (behind) { lateFrames++; onTimeFrames = 0; } else { onTimeFrames++; lateFrames = 0; }
+    if (cooldown > 0) cooldown--;
+    if (lateFrames >= 2 && cooldown === 0) { budget = Math.max(4, budget * 0.85); cooldown = 20; lateFrames = 0; }
+    else if (onTimeFrames >= 30 && lastNeed > budget) { budget = Math.min(maxSteps, budget * 1.05 + 1); onTimeFrames = 0; }
+  }
+
+  // Advance by a model time interval; returns the particle events that became available
+  // this frame. The fractional step count is carried to the next frame, so the wave
+  // advances evenly; when the budget limits the steps the clock follows the steps done.
+  function advance(modelDt, frameMs = 16.7, maxSteps = 2000) {
+    if (!state) return [];
+    updateBudget(frameMs, maxSteps);
     const exact = modelDt / (G.h * G.h) / G.dt + stepCarry;
-    const n = Math.min(budget, Math.max(0, Math.floor(exact)));
-    stepCarry = n < Math.floor(exact) ? 0 : Math.min(1, exact - n);
+    lastNeed = Math.floor(exact);
+    const n = Math.min(Math.floor(budget), Math.max(0, lastNeed));
+    stepCarry = n < lastNeed ? 0 : Math.min(1, exact - n);
+    if (exact > 0) speedRatio = 0.97 * speedRatio + 0.03 * Math.min(1, n / exact);
+    const q = timerExt && n > 0 && pendingQueries.length < 8 ? gl.createQuery() : null;
+    if (q) gl.beginQuery(timerExt.TIME_ELAPSED_EXT, q);
     for (let i = 0; i < n; i++) step();
+    if (q) { gl.endQuery(timerExt.TIME_ELAPSED_EXT); pendingQueries.push({ q, n }); }
     return sync();
   }
 
@@ -886,6 +926,7 @@ export function createNumericalEngine() {
     get grid() { return G ? { nx: G.nx, ny: G.ny, h: G.h, dt: G.dt, x0: G.x0, xMin: G.xMin, yMin: G.yMin, peak: G.peak } : null; },
     get modelTime() { return G ? simTau * G.h * G.h : 0; },
     get steps() { return stepsDone; },
+    get governor() { return { budget: Math.floor(budget), msPerStep, timer: !!timerExt, behind, speedRatio }; },
     gridX: x => G.gx(x), gridY: y => G.gy(y),
     readField() {  // tests: current psi as Float32Array (nx * ny * 4)
       const out = new Float32Array(G.nx * G.ny * 4);

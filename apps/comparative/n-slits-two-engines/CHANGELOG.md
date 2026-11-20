@@ -3,6 +3,12 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.7 — 2026-11-20
+Pablo: the numerical run sometimes slows down and then speeds up; are there other features of the numerical app missing here?
+- **Steady step budget.** The dev.5 governor cut the steps per frame by 25% on every frame the GPU was behind and grew them by 2 per frame; a backlog of a few frames cut it several times, and the climb back took a second or more: slow-down / speed-up cycles. Now the GPU time per step is measured with the WebGL2 GPU timer (EXT_disjoint_timer_query_webgl2) and the budget is set to about 70% of a frame of GPU time (30 fps allowed when a step is very slow), smoothed. Without the timer: cut 15% after two late frames, then 20 frames' pause; grow 5% after 30 on-time frames, only while the budget limits.
+- **GPU-limited note:** the engine note says when the GPU cannot keep up: share of the requested speed, steps per frame, time per step.
+- **Phase key** of the classic look (the numerical N-slit app's phase wheel), bottom right of the field.
+
 ## 1.0-dev.6 — 2026-11-20
 Pablo: with 5 slits, separation 560 nm, screen 3000 nm away and 2570 nm long (grid 1532 × 903), the numerical engine is very slow.
 - **Fourth-order scheme at λ/8.** The cost goes as (points per wavelength)⁴ (cells and time steps per unit time each as PPW²). The fourth-order Laplacian (nine-point cross) has phase error (kh)⁴/90 = 0.4% per wavelength at 8 points, about the same as the second-order Laplacian at 16 (0.5%). Time step 0.9/(16/3 + V0). Initial previous level uses the scheme's own energy for k. Screen flux and Pilot-Wave guidance use fourth-order differences; the velocity is j/ρ with the current and density interpolated between nodes (no carrier ripple, unlike ψ). The picture interpolates |ψ|² the same way. Pablo's case: 766 × 452 grid instead of 1532 × 903; expected about 5× faster (headless: one default packet 30 s instead of ~5 min, a Nice-fringes packet 96 s instead of ~13 min).

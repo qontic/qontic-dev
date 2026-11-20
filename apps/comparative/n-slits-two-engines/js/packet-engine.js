@@ -1,14 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te6';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te6';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te6';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te6';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te6';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te6';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te6';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te6';
-import {createNumericalEngine} from './numerical-engine.js?cache=te6';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te6';
-import {classifySlitSide} from './source-packet-model.js?cache=te6';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te7';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML} from './physics-content.js?cache=te7';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te7';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te7';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te7';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te7';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te7';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te7';
+import {createNumericalEngine} from './numerical-engine.js?cache=te7';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te7';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te7';
+import {classifySlitSide} from './source-packet-model.js?cache=te7';
 export function mountPacketEngine({core,advanced}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -176,7 +177,7 @@ export function mountPacketEngine({core,advanced}){
  }
  function numFrame(motionDt,speed){
   const modelDt=motionDt*speed*p.screen/p.k/6,t0=performance.now(),before=num.modelTime;
-  numProcess(num.advance(modelDt));
+  numProcess(num.advance(modelDt,1000*(frameDtAverage||1/60)));
   // The clock follows the time the engine actually advanced (slow frames run fewer steps).
   const advanced=Math.max(0,num.modelTime-before);t+=advanced;totalTime+=advanced;nSteps++;
   particles=num.particles;
@@ -189,6 +190,9 @@ export function mountPacketEngine({core,advanced}){
   if(num.modelTime>1.6*passed||(num.modelTime>1.15*passed&&particles.every(a=>a.done))){num.newPacket();particles=num.particles;nParticles+=p.particles;}
   if(atWallQueue.length){const centre=num.grid.x0+p.k*num.modelTime;if(centre>=p.wall&&(atWallPrev??-Infinity)<p.wall){const queue=atWallQueue;atWallQueue=[];atWallPrev=null;queue.forEach(f=>f());}else atWallPrev=centre;}
   frameStats={requested:modelDt,advanced,physicsMs:performance.now()-t0,steps:num.steps};
+  // Say when the GPU cannot keep up with the requested speed (the run slows, evenly).
+  if(nSteps%30===0){const note=document.getElementById('engine-note'),g=num.governor;if(note){const base=note.dataset.base||note.textContent;note.dataset.base=base;
+   note.textContent=g.speedRatio<.9?`${base} GPU-limited: running at ${Math.round(100*g.speedRatio)}% of the requested speed (${g.budget} steps per frame${g.msPerStep?`, ${(g.msPerStep*1000).toFixed(0)} µs per step`:''}).`:base;}}
  }
  function setEngine(next){
   if(next===engine)return;
@@ -202,7 +206,7 @@ export function mountPacketEngine({core,advanced}){
  function syncEngineControls(){
   document.querySelectorAll('[data-engine]').forEach(b=>{const on=b.dataset.engine===engine;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   const note=document.getElementById('engine-note');
-  if(note){note.textContent=engineWanted()?(numericalActive()?`Schrödinger equation on a ${num.grid.nx} × ${num.grid.ny} grid, step λ/${Math.round(2*Math.PI/p.k/num.grid.h)} = ${(num.grid.h*100).toFixed(2)} nm.`:numStatus?.reason||''):'Paraxial model: closed-form wave, stretched time.';}
+  if(note){delete note.dataset.base;note.textContent=engineWanted()?(numericalActive()?`Schrödinger equation on a ${num.grid.nx} × ${num.grid.ny} grid, step λ/${Math.round(2*Math.PI/p.k/num.grid.h)} = ${(num.grid.h*100).toFixed(2)} nm.`:numStatus?.reason||''):'Paraxial model: closed-form wave, stretched time.';}
   document.querySelectorAll('[data-num-look]').forEach(b=>{const on=b.dataset.numLook===numLook;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   // Classic look: the Show menu does not apply; particles coloured by slit unless chosen otherwise.
   document.body.classList.toggle('te-classic',classicLook());
@@ -515,7 +519,7 @@ export function mountPacketEngine({core,advanced}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te6').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te7').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -636,6 +640,13 @@ export function mountPacketEngine({core,advanced}){
   context.fillText('cos θ',cx,cy-r-20);context.font='9px Inter,Arial,sans-serif';context.fillText('|Ψ| → edge',cx,cy+r+20);
   context.restore();
  }
+ // Phase key of the classic look (as in the numerical N-slit app), bottom right of the field.
+ let classicLegend=null;
+ function drawClassicLegend(){
+  if(!classicLegend)classicLegend=paintPhaseLegend(document.createElement('canvas'),2);
+  const s=Math.min(1,detectorX/900,canvas.height/600),w=168*s,h=148*s,m=12*s;
+  setupCtx.save();setupCtx.globalAlpha=1;setupCtx.drawImage(classicLegend,detectorX-w-m,canvas.height-h-m,w,h);setupCtx.restore();
+ }
  function numLayer(on){
   const el=num.canvas,waveCanvas=waveCtx?.canvas;if(!el||!waveCanvas)return;
   if(on&&!el.isConnected){el.id='numericalWaveCanvas';el.style.position='absolute';el.style.zIndex='0';el.style.pointerEvents='none';waveCanvas.after(el);}
@@ -690,7 +701,7 @@ export function mountPacketEngine({core,advanced}){
   waveCtx.clearRect(0,0,canvas.width,canvas.height);waveCtx.fillStyle='#344f63';waveCtx.fillRect(0,0,canvas.width,canvas.height);
   // Numerical engine: its WebGL canvas is shown directly as a layer above this one
   // (no copy into a 2D canvas, so the page never waits for the GPU); label on the setup layer.
-  if(numericalActive()){numLayer(waveShown());if(waveShown())drawNumericalWave();drawEngineLabel(setupCtx);return;}
+  if(numericalActive()){numLayer(waveShown());if(waveShown())drawNumericalWave();drawEngineLabel(setupCtx);if(classicLook()&&waveShown())drawClassicLegend();return;}
   numLayer(false);
   drawEngineLabel();if(!waveShown())return;
  const key=[worldCanvasDx,screenHeight,wallXWorld,p.launch].join(',');
