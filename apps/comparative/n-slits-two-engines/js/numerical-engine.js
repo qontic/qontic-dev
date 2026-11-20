@@ -10,13 +10,18 @@
 //
 // All slit and wall geometry comes from the geometry object (slit-geometry.js) that
 // the analytical engine also uses; this file holds no geometry constants. Two slit
-// models, both built from that object:
-//  - "gaussian": the analytical aperture. An absorbing layer (thickness
-//    geometry.apertureLayer) at the wall, W(x, y) = -ln T(y) * v / Lh * cos^2(pi (x - L) / 2 Lh)
-//    with Lh half the layer, so a wave crossing it at speed v keeps the amplitude
-//    factor T(y) of the analytical mask (T from geometry.open and maskBound; capped at 1e-4).
-//  - "hard": a wall of height V0 and thickness geometry.wallThickness with sharp-edged
-//    openings of half-width geometry.openingHalf.
+// wall models, all built from that object (openings of half-width geometry.openingHalf):
+//  - "reflecting" (default): a wall of height V0 and thickness geometry.wallThickness
+//    with sharp-edged openings; it reflects the wave that hits it, as in the numerical
+//    N-slit app.
+//  - "absorbing": a thicker wall (geometry.absorbingWallThickness) whose front 90% is
+//    an absorbing ramp, W rising quadratically to WALL_W_OVER_E times the packet energy,
+//    with V0 behind: most of the wave that hits it is absorbed, not all (as the 30-step
+//    absorbing wall of the numerical N-slit app).
+//  - "mask": the analytical Gaussian aperture, for comparing the engines. An absorbing
+//    layer (thickness geometry.apertureLayer), W(x, y) = -ln T(y) * v / Lh * cos^2(pi (x - L) / 2 Lh)
+//    with Lh half the layer, so a wave crossing it keeps the amplitude factor T(y) of the
+//    analytical mask (capped at 1e-4); it does not reflect.
 // What is set here are numerical-method choices, not geometry: points per wavelength,
 // the absorbing margins of the domain, and the time step.
 //
@@ -29,6 +34,7 @@
 const PPW = 16;            // numerical method: grid points per wavelength
 const RA_NU = 0.01;
 const MAX_CELLS = 2.2e6;   // grid size limit (x * y cells)
+const WALL_W_OVER_E = 2.67; // absorbing-wall material: peak W / packet energy (W = 3 at E = 1.125 in the numerical N-slit app)
 
 const VS = `#version 300 es
 out vec2 vUV;
@@ -36,7 +42,7 @@ void main(){ vec2 p = gl_VertexID == 0 ? vec2(-1.,-1.) : gl_VertexID == 1 ? vec2
 
 const COMMON = `
 uniform ivec2 uRes;
-uniform float uWallX, uWallHalf, uLayerHalf, uV0, uWmax, uWscale, uSy, uBound, uHalfOpen, uAbsPx, uAbsW, uV;
+uniform float uWallX, uWallHalf, uLayerHalf, uV0, uWmax, uWscale, uSy, uBound, uHalfOpen, uAbsPx, uAbsW, uV, uWallW;
 uniform int uMode, uNOpen;
 uniform float uCenters[16], uWeights[16];
 float sstep(float a, float b, float x){ float t = clamp((x-a)/(b-a), 0., 1.); return t*t*(3.-2.*t); }
@@ -62,7 +68,14 @@ vec2 potential(vec2 q){
     if (slab > 0.) {
       float open = 0.;
       for (int j = 0; j < 16; j++) { if (j >= uNOpen) break; open += band(q.y, uCenters[j], uHalfOpen); }
-      V = uV0 * slab * clamp(1. - open, 0., 1.);
+      float solid = slab * clamp(1. - open, 0., 1.);
+      if (uMode == 2) {
+        // absorbing wall: absorbing ramp over the front 90%, wall behind
+        float u = clamp((q.x - (uWallX - uWallHalf)) / (2.*uWallHalf), 0., 1.);
+        float front = 1. - sstep(.88, .92, u), ramp = clamp(u/.9, 0., 1.);
+        V = uV0 * solid * (1. - front);
+        W += uWallW * solid * front * ramp * ramp;
+      } else V = uV0 * solid;
     }
   }
   float d = min(min(q.x, float(uRes.x) - q.x), min(q.y, float(uRes.y) - q.y));
@@ -292,11 +305,12 @@ export function createNumericalEngine() {
     const { p, h, geom } = G;
     const k = p.k * h, v = k;     // grid wavenumber and speed (hbar = m = 1)
     gl.uniform2i(prog.u("uRes"), G.nx, G.ny);
-    gl.uniform1i(prog.u("uMode"), G.mode === "hard" ? 1 : 0);
+    gl.uniform1i(prog.u("uMode"), G.mode === "mask" ? 0 : G.mode === "absorbing" ? 2 : 1);
     gl.uniform1f(prog.u("uWallX"), G.gx(geom.wall));
     const lh = 0.5 * geom.apertureLayer / h;     // half the absorbing layer, in grid steps
     gl.uniform1f(prog.u("uLayerHalf"), lh);
-    gl.uniform1f(prog.u("uWallHalf"), Math.max(1, 0.5 * geom.wallThickness / h));
+    gl.uniform1f(prog.u("uWallHalf"), Math.max(1, 0.5 * (G.mode === "absorbing" ? geom.absorbingWallThickness : geom.wallThickness) / h));
+    gl.uniform1f(prog.u("uWallW"), WALL_W_OVER_E * 0.5 * k * k);
     gl.uniform1f(prog.u("uV0"), G.V0);
     gl.uniform1f(prog.u("uWscale"), v / lh);
     gl.uniform1f(prog.u("uWmax"), -Math.log(1e-4) * v / lh);

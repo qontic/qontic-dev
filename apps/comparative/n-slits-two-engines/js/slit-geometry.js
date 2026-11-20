@@ -10,15 +10,16 @@
 //    slitSigma, maskBound, detectors. Its wall is the thin-mask limit, so it
 //    ignores wallThickness and apertureLayer.
 //  - numerical (grid): the same, plus openingHalf (hard-edged slits), wallThickness
-//    (hard wall) and apertureLayer (thickness of the absorbing layer that carries the
-//    Gaussian mask).
+//    (reflecting wall), absorbingWallThickness (absorbing wall) and apertureLayer
+//    (thickness of the absorbing layer that carries the analytical Gaussian mask).
 
 export const MODEL_UNIT_NM = 100;
 
 // Physical thicknesses used only by the numerical engine (nm). The analytical
 // engine treats the wall as an infinitely thin mask.
-const WALL_THICKNESS_NM = 12.5;      // hard-edged wall
-const APERTURE_LAYER_NM = 100;       // absorbing layer that carries the Gaussian mask (>= 2 wavelengths for lambda <= 50 nm)
+const WALL_THICKNESS_NM = 12.5;      // reflecting wall (hard-edged openings)
+const ABSORBING_WALL_THICKNESS_NM = 60;   // absorbing wall: 1.2 wavelengths at 50 nm, as the 30-step wall of the numerical N-slit app (λ = 25 steps)
+const APERTURE_LAYER_NM = 100;       // absorbing layer that carries the analytical Gaussian mask (>= 2 wavelengths for lambda <= 50 nm)
 
 // Largest value of the summed Gaussian mask, so that T(y) <= 1 (same algorithm as the
 // analytical model before this module: closed form for two slits, scan + golden
@@ -62,6 +63,7 @@ export function buildSlitGeometry({ numSlits, states, separationNm, slitSigmaNm,
     extentSigma,
     openingHalf: extentSigma * slitSigma,
     wallThickness: WALL_THICKNESS_NM / u,
+    absorbingWallThickness: ABSORBING_WALL_THICKNESS_NM / u,
     apertureLayer: APERTURE_LAYER_NM / u,
     slits,
     open: { ids: open.map(s => s.id), centers: open.map(s => s.center), weights },

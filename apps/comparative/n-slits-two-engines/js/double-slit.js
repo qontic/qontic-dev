@@ -149,7 +149,7 @@ var shouldResetCache=false
 var slitSeparation ;
 // N-slit generalization. Slit k (0-based, k = 0 at the top) has its centre at
 // (2k - (N - 1)) · separation / 2, so neighbouring slits are one separation apart.
-const MAX_SLITS = 16;
+const MAX_SLITS = 8;   // two-engine preview: the numerical engine slows down with many slits
 let numSlits = 2;
 let slitOpen = Array(MAX_SLITS).fill(true);
 let slit1Open = true;   // legacy aliases for the first two slits
