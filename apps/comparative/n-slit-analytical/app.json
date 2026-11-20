@@ -1,6 +1,6 @@
 {
-  "id": "double-slit-n-slits-preview",
-  "title": "N-Slits — Analytical (preview)",
+  "id": "n-slits-analytical",
+  "title": "N-Slits",
   "type": "app",
   "category": "comparative",
   "module": "double-slit",
@@ -16,13 +16,12 @@
     "many-worlds"
   ],
   "level": "intermediate",
-  "description": "Preview of the analytical double-slit app with the number of slits as a parameter (1–8): the same Gaussian source-packet model, interpretations, which-slit detector, Many-Worlds branching and 3D view. In pilot-wave colour-by-slit mode the screen shows the band each slit's particles reach.",
+  "description": "Interference from 1 to 16 slits in an analytical paraxial packet model, in the Orthodox, Pilot-Wave and Many-Worlds views. Slits can be opened, closed or given ideal which-slit detectors during a run; in Pilot Wave the screen shows which band each slit's particles reach. Includes a Nice fringes search, a quiz, and a discussion of near- and far-field patterns.",
   "tags": [
     "Multiview",
     "Double slit",
     "Many slits",
-    "Born rule",
-    "Preview"
+    "Born rule"
   ],
   "entry": "index.html",
   "status": "draft"

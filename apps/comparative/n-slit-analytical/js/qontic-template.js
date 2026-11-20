@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=nslit26';
-import { mountMWBranching } from './mw-branching.js?cache=nslit26';
-import { APP_RELEASE } from './release.js?cache=nslit26';
-import { mountNSlitQuiz } from './quiz.js?cache=nslit26';
+import { mountPacketEngine } from './packet-engine.js?cache=nslit27';
+import { mountMWBranching } from './mw-branching.js?cache=nslit27';
+import { APP_RELEASE } from './release.js?cache=nslit27';
+import { mountNSlitQuiz } from './quiz.js?cache=nslit27';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=nslit26';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=nslit27';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.1';
@@ -284,7 +284,7 @@ $(function () {
 
   mountQonticShell({
     title: 'N-Slits', navigation: 'breadcrumbs',
-    version: `Analytical N-slit preview · Version ${APP_RELEASE.version} · ${APP_RELEASE.date}`,
+    version: `N-Slits · Version ${APP_RELEASE.version} · ${APP_RELEASE.date}`,
     homeHref: '../../../index.html',
   });
   document.body.classList.add('analytical-template');

@@ -28,7 +28,7 @@
     "double-slit-webgl-simulation": "3. Explore numerical wave dynamics, reflection and trajectories colored by their starting position.",
     "double-slit-pilot-wave-notebook": "4. Study pilot-wave trajectories and equivariance.",
     "weak-velocity-double-slit": "Optional advanced study: weak measurement and reconstructed probability flow.",
-    "double-slit-n-slits-preview": "Preview: the same app with the number of slits as a parameter (1–16).",
+    "n-slits-analytical": "Next step: the same model with 1 to 16 slits, detectors at any slit, and slits closed during a run.",
     "double-slit-numerical-n-slits-preview": "Preview: the numerical app with 1–16 slits and slits that close during a run (shutter), with the change it causes."
   }
 }

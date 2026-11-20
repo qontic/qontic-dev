@@ -1,4 +1,4 @@
-Analytical N-Slits app (preview)
+Analytical N-Slits app (draft, to be published as a separate app)
 
 This simulation is part of the Q-Ontic Lab project.
 

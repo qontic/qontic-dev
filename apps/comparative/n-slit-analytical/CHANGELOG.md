@@ -1,3 +1,7 @@
+## 3.0-dev.26 — 2026-11-19
+- Text checked against the code. Fixed: the closing-a-slit Views section now says the old pattern ahead of the cut holds in this model (the full equation changes that wave, in all three views alike); Physics says the earlier prediction stays dashed and describes the "Apply at the wall" option; the reference numbers state the packet and slit size, and the default packet (σₓ = 2λ) is said to be outside the long-packet limit; normalization C and the slit-limit sentences cover N slits (two-slit wording removed).
+- Catalog: to be published as a separate app (Pablo), not as a replacement for Double Slit 2.128. id n-slits-analytical, title N-Slits, description updated (it still said 1–8 slits). Still draft.
+
 ## 3.0-dev.25 — 2026-11-19
 - Renamed to "N-Slits" (Pablo): page title, header, breadcrumb, catalog title. No change to the simulation.
 
