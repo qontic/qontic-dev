@@ -39,7 +39,7 @@ Apps that do not compare interpretations may omit this selector.
 
 The particle-count slider appears in Core only while Pilot Wave is selected. The shared runtime always supplies the light/dark appearance switch under Display; apps must theme their canvas as well as their surrounding interface.
 
-Core, Advanced, and Display are attached tabs that visually open one bordered control-panel section; they must not look like independent action buttons. Results never occupy a control tab. When present, they use the draggable and collapsible floating Results panel inside the canvas. Stage indicators and scenario selectors are not part of the common template. The desktop control column is approximately 10% wider than the original 310 px panel (341 px in the canonical example), and controls use regular—not bold—13 px type.
+Core, Advanced, and Display (and, optionally, Engine — `show-engine="true"`, see `shared/QONTIC_TEMPLATE.md`, "Optional Engine tab"; demo `index.html?engine=1`) are attached tabs that visually open one bordered control-panel section; they must not look like independent action buttons. Results never occupy a control tab. When present, they use the draggable and collapsible floating Results panel inside the canvas. Stage indicators and scenario selectors are not part of the common template. The desktop control column is approximately 10% wider than the original 310 px panel (341 px in the canonical example), and controls use regular—not bold—13 px type.
 
 ## JavaScript API
 

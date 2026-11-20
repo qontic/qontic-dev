@@ -37,6 +37,8 @@ This limits the risk; a shared change can still regress multiple apps. The compa
 - `show-tabs="false"`: hide tabs and the appearance section in a compact expanded-view toolbar. Defaults to visible.
 - `show-appearance="true"`: keep the appearance switch visible when tabs are hidden, for compact single-section control panels.
 - `show-advanced="false"`: hide the Advanced tab when an app has no advanced controls. If Advanced was active, the component returns to Core.
+- `show-engine="true"`: optional **Engine** tab between Core and Advanced, for an app that computes the same experiment with more than one physics engine (for example a closed-form model and a numerical solver). It emits `qontic:tab` with `tab: "engine"` like the other tabs. Fill its pane with `shared/qontic-engine-tab.js` (below). Off by default; apps without it are unchanged.
+- `extra-tabs="id:Label,…"`: further app tabs after Core (the Engine tab is `engine:Engine`). The tab row gets one column per visible tab.
 
 Use these public attributes and the documented `qontic:*` events. New adapters must not query or modify internal shadow-DOM elements. Keep app styles scoped to an app class.
 
@@ -97,3 +99,14 @@ The distance scale uses a nearly transparent background (10% opacity) to leave t
 - `?quiz=1` opens the page on the Quiz tab and disables the Simulation tab until the first answer; `?quiz=N` starts at question N. Going to the Simulation tab removes the parameter from the address bar. Without it the app opens normally.
 - Optional: `plain` on a question (one everyday-words sentence shown before `explain`), `shuffle: true` (random answer order), `score: true` (running score and a final "k of n right" line), `shareLink: true` (a "Copy link to this question" button that copies `?quiz=N`). `intro: '…'` adds one line under the title (assumptions shared by all questions). Per question: `drawAfterAnswer: true` hides the picture until an answer (for questions the picture would answer), `watch: false` drops the Watch button.
 - Reference: `apps/pilot-wave/hydrogen-atom/hydrogen-template.js`.
+
+
+## Optional Engine tab (more than one physics engine)
+
+Use it when one app offers two models of the same experiment that students should be able to compare (reference: `apps/comparative/n-slits-two-engines`, analytical paraxial model and numerical Schrödinger solver).
+
+- Set `show-engine="true"` on `<qontic-controls>` and give the app a pane for the `engine` tab (in the template, `<div class="control-pane" data-control-pane="engine">` before the Advanced pane; `mountQonticControls` shows it like the others).
+- `mountQonticEngineTab({ panel, intro, engines: [{ id, label, title, note }], value, onChange })` renders a short introduction, the engine switch (`aria-pressed` toggles in a labelled group), a note line and one options container per engine (`tab.options(id)`, shown only while that engine is active). `tab.setNote(text)`, `tab.setValue(id)`, `tab.disable(id, reason)`.
+- Keep the choice out of Core: the app opens with one engine (usually the simpler, faster one); a one-time hint (for example in the caption after the first complete run, until the Engine tab has been opened) points to the other. Engine-specific options live in the Engine tab, model parameters shared by both engines stay in Advanced.
+- The introduction should say what each engine is, that both are models, what the second one adds and what it costs (speed). Show the active engine on the canvas as well.
+- Demo: `templates/qontic-app/index.html?engine=1`.

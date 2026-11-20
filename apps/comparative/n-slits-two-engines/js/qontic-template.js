@@ -69,7 +69,7 @@ $(function () {
   controls.setAttribute('show-reset', 'true');
   controls.setAttribute('show-autorun', 'false');
   // Engine tab (between Core and Advanced): the analytical/numerical choice and the numerical options.
-  controls.setAttribute('extra-tabs', 'engine:Engine');
+  controls.setAttribute('show-engine', 'true');
   document.getElementById('psiTabs').prepend(controls);
   const themeStyle = document.createElement('style');
   themeStyle.textContent = `:host-context(.qontic-light) .qontic-speed { color: #526a77; }

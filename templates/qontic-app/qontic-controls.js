@@ -1,4 +1,4 @@
-import "../../shared/qontic-controls.js?v=3.0";
+import "../../shared/qontic-controls.js?v=3.2";
 export function mountQonticControls(options = {}) {
   const root = options.root || document;
   const controls = root.querySelector("qontic-controls");

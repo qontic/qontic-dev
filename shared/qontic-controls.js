@@ -22,7 +22,7 @@ const boolAttr = (element, name, fallback = false) => {
 };
 
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "interpretations", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-rerun", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-advanced", "show-expert", "extra-tabs"];
+  static observedAttributes = ["interpretation", "interpretations", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-rerun", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-advanced", "show-expert", "extra-tabs", "show-engine"];
 
   constructor() {
     super();
@@ -161,16 +161,21 @@ class QonticControls extends HTMLElement {
     const showExpert = this.getAttribute("show-expert") === "true";
     const expertButton = root.querySelector('[data-tab="expert"]');
     expertButton.hidden = !showExpert;
-    // Optional app tabs after Core: extra-tabs="id:Label,id2:Label2" (additive; apps without
-    // the attribute are unchanged). The grid then has one column per visible tab.
+    // Optional app tabs after Core (additive; apps without these attributes are unchanged):
+    // show-engine="true" adds an Engine tab (an app with more than one physics engine; see
+    // shared/qontic-engine-tab.js), extra-tabs="id:Label,id2:Label2" adds others. The grid
+    // then has one column per visible tab.
     const nav = root.querySelector(".qontic-control-tabs");
     const extra = (this.getAttribute("extra-tabs") || "").split(",").map(t => t.trim()).filter(Boolean).map(t => t.split(":"));
+    if (this.getAttribute("show-engine") === "true" && !extra.some(([id]) => id === "engine")) extra.unshift(["engine", "Engine"]);
     let anchor = nav.querySelector('[data-tab="core"]');
     for (const [id, label] of extra) {
       let b = nav.querySelector(`[data-tab="${id}"]`);
-      if (!b) { b = document.createElement("button"); b.type = "button"; b.dataset.tab = id; b.setAttribute("role", "tab"); b.textContent = label || id; anchor.after(b); }
-      anchor = b;
+      if (!b) { b = document.createElement("button"); b.type = "button"; b.dataset.tab = id; b.dataset.extraTab = "1"; b.setAttribute("role", "tab"); b.textContent = label || id; anchor.after(b); }
+      b.hidden = false; anchor = b;
     }
+    nav.querySelectorAll("[data-extra-tab]").forEach(b => { if (!extra.some(([id]) => id === b.dataset.tab)) b.hidden = true; });
+    if (nav.querySelector(`[data-extra-tab][data-tab="${this.getAttribute("active-tab")}"]`)?.hidden) this.setAttribute("active-tab", "core");
     let tab = this.getAttribute("active-tab") || "core";
     if ((tab === "advanced" && !showAdvanced) || (tab === "expert" && !showExpert)) {
       tab = "core";
@@ -187,7 +192,7 @@ class QonticControls extends HTMLElement {
       button.classList.toggle("active", active);
       button.setAttribute("aria-selected", String(active));
     });
-    if (extra.length) nav.style.gridTemplateColumns = `repeat(${[...nav.querySelectorAll("[data-tab]")].filter(b => !b.hidden).length},minmax(0,1fr))`;
+    if (extra.length || nav.querySelector("[data-extra-tab]")) nav.style.gridTemplateColumns = `repeat(${[...nav.querySelectorAll("[data-tab]")].filter(b => !b.hidden).length},minmax(0,1fr))`;
 
     const theme = this.getAttribute("theme") || "dark";
     const light = theme === "light";
