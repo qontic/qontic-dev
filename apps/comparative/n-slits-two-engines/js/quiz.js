@@ -88,16 +88,22 @@ function closeSlit2AtWall() {
   setTimeout(() => document.querySelector('#slit-open-buttons [data-slit="1"]')?.click(), 150);
 }
 
+// Quiz state is not saved as the user's settings; leaving the quiz for the Simulation tab
+// (not through "Watch it") puts back the engine and options the user had before.
+let quizSaved = null, quizWatching = false;
+
 function isRunning() { return typeof isAnimating !== 'undefined' && isAnimating; }
 
 // Put the app in the question's configuration, paused and reset.
 function setTo({ view, slits, color = null, engine = 'analytical', num = null }) {
   if (isRunning()) $('#startButton').trigger('click');
   const pe = window.qonticPacketEngine;
+  // Remember the user's engine and numerical options the first time the quiz changes them.
+  if (pe && !quizSaved) quizSaved = { engine: pe.engine, num: pe.numOptions };
   if (pe?.setEngine && pe.engine !== engine) pe.setEngine(engine);
   // Numerical questions set the wall, blade, closing time, Show change and guiding law;
   // the others put back the defaults.
-  pe?.setNumOptions?.(num || { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: true });
+  pe?.setNumOptions?.(num || { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: true }, { persist: false });
   // Q5's Watch ticks this; every question starts with it off.
   const atWall = document.getElementById('slit-at-wall'); if (atWall && atWall.checked) { atWall.checked = false; atWall.dispatchEvent(new Event('change', { bubbles: true })); }
   if (view && interpretation !== view) changeInterpretation(view);
@@ -113,14 +119,21 @@ function setTo({ view, slits, color = null, engine = 'analytical', num = null })
 }
 
 export function mountNSlitQuiz({ panel, tab, simulationTab }) {
+  panel?.addEventListener('click', e => { if (e.target.closest('[data-quiz="watch"]')) quizWatching = true; }, true);
+  simulationTab?.addEventListener('click', () => {
+    const pe = window.qonticPacketEngine;
+    if (quizSaved && !quizWatching && pe) { if (pe.engine !== quizSaved.engine) pe.setEngine(quizSaved.engine); pe.setNumOptions(quizSaved.num, { persist: false }); }
+    if (!quizWatching) quizSaved = null;
+    quizWatching = false;
+  });
   const questions = [
     {
       question: 'Pilot Wave, three equal slits open. A particle lands near the top of the screen. Which slit did it go through?',
       caption: 'Three open slits; the dot is where the particle landed.',
-      plain: 'Slit 1: in pilot-wave theory paths never cross, so the top slit feeds the top of the screen.',
+      plain: 'Slit 1: in this model of pilot-wave motion paths never cross, so the top slit feeds the top of the screen.',
       answers: [{ id: 's1', label: 'Slit 1' }, { id: 's2', label: 'Slit 2' }, { id: 's3', label: 'Slit 3' }, { id: 'any', label: 'Any of them: the waves overlap there' }],
       answer: 's1',
-      explain: 'In pilot-wave theory each particle passes one slit, and trajectories never cross, so the slits map onto bands of the screen in order: slit 1 to the top band, slit 3 to the bottom one. The band edges follow from the guidance law itself; how many particles land in each band comes from the theory’s assumption that starting positions are distributed as |ψ|². In the simulation, Color: By slit colours each particle by its slit, and dashed lines on the histogram mark the bands. The Orthodox view gives no slit at all (question 4).',
+      explain: 'In pilot-wave theory each particle passes one slit, and in this model, where every particle moves forward at the same speed, trajectories never cross, so the slits map onto bands of the screen in order: slit 1 to the top band, slit 3 to the bottom one. The band edges follow from the guidance law itself; how many particles land in each band comes from the theory’s assumption that starting positions are distributed as |ψ|². In the simulation, Color: By slit colours each particle by its slit, and dashed lines on the histogram mark the bands. The Orthodox view gives no slit at all (question 4).',
       prepare: () => setTo({ view: 'bohmian', slits: ['open', 'open', 'open'], color: 'slit' }),
       draw: c => drawSetup(c, ['open', 'open', 'open'], { hitY: .1 }),
     },
@@ -172,7 +185,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
     {
       question: 'Pilot Wave, two slits. The packet centre is reaching the wall when you close the lower slit. In this app\u2019s model, what do the particles already past the wall do?',
       caption: 'The packet centre is reaching the wall; slit 2 is being closed.',
-      plain: 'In the app\u2019s model they keep the two-slit pattern, because the wave from slit 2 is already past the wall. In the full Schr\u00f6dinger equation the later, changed part of the wave also reaches them, so the wave guiding them changes substantially (by tens of per cent of its amplitude in the numerical preview).',
+      plain: 'In the app\u2019s model they keep the two-slit pattern, because the wave from slit 2 is already past the wall. In the full Schr\u00f6dinger equation the later, changed part of the wave also reaches them, so the wave guiding them changes substantially (by 31% of its amplitude in this app\u2019s numerical engine, Show change).',
       answers: [
         { id: 'keep', label: 'Keep moving in the two-slit pattern' },
         { id: 'switch', label: 'Switch at once to a one-slit pattern' },
@@ -206,7 +219,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       plain: 'That part itself is unchanged, but the wave in the region it occupies changes: later parts, changed by the closing, move into it.',
       answers: [{ id: 'same', label: 'Unchanged, and so is the wave in that region' }, { id: 'spread', label: 'Unchanged, but the wave in that region changes' }, { id: 'instant', label: 'It is changed at once by the closing' }],
       answer: 'spread',
-      explain: 'The Schrödinger equation is local and linear: the part that has already left the slits does not come back to them, so closing slit 2 does not touch it. But the parts still in front of the wall or inside the slit are changed, and they do not stay behind: the spread of speeds in the packet, diffraction to wide angles and the waves scattered by a sudden closure carry them forward. Measured in this app (default geometry), when the cut reaches the screen the wave ahead of it differs by 31% from the wave with slit 2 left open, and by 59% behind it. Watch with Show change on: the picture shows ψ − ψ(slit left open), and the dashed line is the cut.',
+      explain: 'The Schrödinger equation is local and linear: the part that has already left the slits does not come back to them, so closing slit 2 does not touch it. But the parts still in front of the wall or inside the slit are changed, and they do not stay behind: the faster components of the packet and the fast waves scattered by a sudden closure carry them forward (diffraction to wide angles does the opposite: it slows the forward motion). Measured in this app (default geometry), when the cut reaches the screen the wave ahead of it differs by 31% from the wave with slit 2 left open, and by 59% behind it. Watch with Show change on: the picture shows ψ − ψ(slit left open), and the dashed line is the cut.',
       prepare: () => setTo({ engine: 'numerical', view: 'copenhagen', slits: ['open', 'open'], num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: true, guide: 'schrodinger', replay: false } }),
       draw: c => drawSetup(c, ['open', 'open'], { shutter: 1, packet: true, label: 'numerical engine' }),
       afterWatch: closeSlit2AtWall,
@@ -235,10 +248,10 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
     {
       question: 'Numerical engine, Pilot Wave. The guiding law is switched from Schrödinger to Pauli ↑ (a spin-½ particle with spin along z). What changes?',
       caption: 'Same wave; two guiding laws for the particles.',
-      plain: 'The trajectories change; the screen pattern does not.',
-      answers: [{ id: 'paths', label: 'The trajectories, but not the screen pattern' }, { id: 'both', label: 'Both the trajectories and the screen pattern' }, { id: 'nothing', label: 'Nothing' }],
+      plain: 'The trajectories change; the pattern of hits changes only very slightly.',
+      answers: [{ id: 'paths', label: 'The trajectories, and the pattern of hits only very slightly' }, { id: 'both', label: 'The trajectories and the fringes: different bands and spacing' }, { id: 'nothing', label: 'Nothing: the wave is the same' }],
       answer: 'paths',
-      explain: 'The Pauli velocity adds (ħ/2m) ∇×(ρ ẑ)/ρ to the Schrödinger one. The extra current has zero divergence, so |ψ|² still moves with the particles (equivariance) and the distribution of hits is the same. The individual paths differ, most visibly where ρ changes quickly, near the wall and the slits. Which velocity is the right one is a question the screen statistics cannot settle.',
+      explain: 'The Pauli velocity adds (ħ/2m) ∇×(ρ ẑ)/ρ to the Schrödinger one. The extra current has zero divergence, so |ψ|² at each time still moves with the particles (equivariance). The paths differ, most visibly where ρ changes quickly, near the wall and the slits. The hits are crossings of the screen line, and the spin current adds (ħ/2m) ∂ρ/∂y to the flux through it, so the pattern shifts by a few nanometres here: far below the fringe spacing, and the green curve follows the chosen law. Whether such spin-dependent arrival statistics could be measured is debated (Das and Dürr, Sci. Rep. 9, 2242 (2019); Goldstein, Tumulka and Zanghì, Sci. Rep. 14, 3775 (2024)).',
       prepare: () => setTo({ engine: 'numerical', view: 'bohmian', slits: ['open', 'open'], color: 'slit', num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'up', replay: true } }),
       draw: c => drawSetup(c, ['open', 'open'], { packet: true, label: 'numerical engine · Pauli ↑' }),
     },
@@ -248,7 +261,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       plain: 'About three quarters.',
       answers: [{ id: 'none', label: 'Almost none, as in the analytical engine' }, { id: 'quarter', label: 'About a quarter' }, { id: 'most', label: 'About three quarters' }],
       answer: 'most',
-      explain: 'The slits are narrow, so most of the packet hits the wall: in this app the reflecting wall sends back 76% of it and lets 19% past (the rest is absorbed at the edges of the grid). The analytical engine’s mask, and the numerical Mask and Absorbing walls, reflect less than 0.3%. The screen pattern depends on what passes, so the engines can agree on the fringes while disagreeing about the wave in front of the wall.',
+      explain: 'The slits are narrow, so most of the packet hits the wall: in this app the reflecting wall sends back 78% of the packet and lets 20% past (the rest leaves through the side edges of the grid). The analytical engine’s mask reflects nothing; the numerical Mask and Absorbing walls reflect 0.3% or less. The screen pattern depends on what passes, so the engines can agree on the fringes while disagreeing about the wave in front of the wall.',
       prepare: () => setTo({ engine: 'numerical', view: 'copenhagen', slits: ['open', 'open'], num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: true } }),
       draw: c => drawSetup(c, ['open', 'open'], { reflected: true, label: 'numerical engine · reflecting wall' }),
     },

@@ -213,10 +213,10 @@ var yToBinCanvas;
 
 const c = 299792458; // Speed of light in nm/ns
 //const hbar = 1.054e-25; // Reduced Planck constant in mm^2*kg/ns
-const hbar = 1.054e-25; // Reduced Planck constant in nm^2*kg/ns (1.054e-34 J*s converted to nm^2*kg/ns)
+const hbar = 1.054571817e-25; // Reduced Planck constant in nm^2*kg/ns (CODATA 1.054571817e-34 J*s)
 //const hbar = 6.582119e-13; // MeV*s
 //const m = 9.109e-31; // Electron mass in kg (SI-compatible for hbar/m)
-const mElectron = 9.109e-31; // Electron mass in kg (SI-compatible for hbar/m)
+const mElectron = 9.1093837e-31; // Electron mass in kg (CODATA) (SI-compatible for hbar/m)
 const mNeutron=1.67492749804e-27;
 const epsilon = 1; // Small step to avoid division by zero
 var   k ;

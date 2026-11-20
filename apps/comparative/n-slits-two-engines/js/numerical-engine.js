@@ -51,7 +51,7 @@
 // (the second-order five-point Laplacian needs PPW = 16 for 0.5%). The cost goes as PPW^4
 // (cells and time steps per unit time each as PPW^2), so this is about 5x faster.
 const PPW = 8;             // numerical method: grid points per wavelength
-const RA_NU = 0.01;
+const RA_NU = 0.002;   // weak Robert–Asselin filter: 0.01 lost ~3% of the norm per packet (dev.11)
 const MAX_CELLS = 2.2e6;   // grid size limit (x * y cells)
 const MAX_RECORDS = 12;     // record fields (texture-array layers); beyond this a detector change restarts the packet
 const WALL_W_OVER_E = 2.67; // absorbing-wall material: peak W / packet energy (W = 3 at E = 1.125 in the numerical N-slit app)
@@ -185,12 +185,13 @@ vec2 f(ivec2 q, int w){ if (q.x < 0 || q.y < 0 || q.x >= w || q.y >= uRes.y) ret
 void main(){
   ivec2 p = ivec2(gl_FragCoord.xy), q = p + ivec2(uOff, 0);
   if (q.x <= uDrive) {
-    // Smooth partition of the exit face among the open slits (Gaussian weights around
-    // the slit centres, normalised so they add to 1 over the records).
-    float y = gl_FragCoord.y, emax = -1e30, num = 0., den = 0.;
-    for (int j = 0; j < 16; j++) { if (j >= uNOpen) break; float d = (y - uCenters[j]) / uPartS; emax = max(emax, -.5*d*d); }
-    for (int j = 0; j < 16; j++) { if (j >= uNOpen) break; float d = (y - uCenters[j]) / uPartS; float w = exp(-.5*d*d - emax); den += w; num += uMask[j]*w; }
-    o = (den > 0. ? num/den : 0.) * texelFetch(uTotal, q, 0);
+    // Sharp partition of the exit face: each point belongs to its nearest open slit (the
+    // boundaries are midway between slits, behind solid wall, where the field is ~0).
+    // A smooth Gaussian split (dev.5-dev.10) leaked ~2.4% of each slit's wave into the
+    // other records and left ~4.6% of the probability as interference between records.
+    float y = gl_FragCoord.y, bd = 1e30; int best = 0;
+    for (int j = 0; j < 16; j++) { if (j >= uNOpen) break; float d = abs(y - uCenters[j]); if (d < bd) { bd = d; best = j; } }
+    o = (uNOpen > 0 ? uMask[best] : 0.) * texelFetch(uTotal, q, 0);
     return;
   }
   int w = uRes.x - uOff;
@@ -212,14 +213,16 @@ precision highp sampler2DArray;
 uniform sampler2DArray uSrc;
 uniform sampler2D uAcc;
 uniform int uCol, uLayer;
-uniform float uDt;
+uniform float uDt, uSpin;
 out vec4 o;
 void main(){
   int j = int(gl_FragCoord.y);
   vec2 c = texelFetch(uSrc, ivec3(uCol, j, uLayer), 0).rg;
+  vec2 cn = texelFetch(uSrc, ivec3(uCol, j+1, uLayer), 0).rg, cs = texelFetch(uSrc, ivec3(uCol, max(j-1,0), uLayer), 0).rg;
   vec2 d = (8.*(texelFetch(uSrc, ivec3(uCol+1, j, uLayer), 0).rg - texelFetch(uSrc, ivec3(uCol-1, j, uLayer), 0).rg)
           - (texelFetch(uSrc, ivec3(uCol+2, j, uLayer), 0).rg - texelFetch(uSrc, ivec3(uCol-2, j, uLayer), 0).rg)) / 12.;
-  float jx = c.x*d.y - c.y*d.x;
+  // Pauli guidance: the spin current adds -s d(rho)/dy to j_x (grid y points down).
+  float jx = c.x*d.y - c.y*d.x - uSpin * .5 * (dot(cn,cn) - dot(cs,cs));
   vec4 acc = texelFetch(uAcc, ivec2(0, j), 0);
   o = vec4(acc.x + max(jx, 0.)*uDt, acc.y + jx*uDt, 0., 0.);
 }`;
@@ -246,7 +249,7 @@ const FLUX = `#version 300 es
 precision highp float;
 uniform sampler2D uState, uAcc;
 uniform int uCol;
-uniform float uDt;
+uniform float uDt, uSpin;
 out vec4 o;
 void main(){
   int j = int(gl_FragCoord.y);
@@ -254,7 +257,8 @@ void main(){
   vec2 e = texelFetch(uState, ivec2(uCol+1, j), 0).rg, w = texelFetch(uState, ivec2(uCol-1, j), 0).rg;
   vec2 e2 = texelFetch(uState, ivec2(uCol+2, j), 0).rg, w2 = texelFetch(uState, ivec2(uCol-2, j), 0).rg;
   vec2 d = (8.*(e - w) - (e2 - w2)) / 12.;   // fourth-order derivative
-  float jx = c.x*d.y - c.y*d.x;
+  vec2 cn = texelFetch(uState, ivec2(uCol, j+1), 0).rg, cs = texelFetch(uState, ivec2(uCol, max(j-1,0)), 0).rg;
+  float jx = c.x*d.y - c.y*d.x - uSpin * .5 * (dot(cn,cn) - dot(cs,cs));
   vec4 acc = texelFetch(uAcc, ivec2(0, j), 0);
   o = vec4(acc.x + max(jx, 0.)*uDt, acc.y + jx*uDt, 0., 0.);
 }`;
@@ -317,7 +321,11 @@ vec2 vel(vec2 x){
   float s = length(v); if (s > 4.) v *= 4./s;
   return v;
 }
-float rnd(float s){ return fract(sin(s)*43758.5453123); }
+// Integer hash (per particle and step): uniform on [0, 1). The earlier fract(sin(s) * 43758)
+// lost precision for large seeds on GPUs and removed far too many particles where the
+// removal probability per step is small (the Mask layer: 87 hits for 134 expected).
+uint hashu(uint x){ x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; x ^= x >> 16; return x; }
+float rnd01(){ uint h = hashu(uint(gl_VertexID) * 0x9e3779b1u ^ hashu(uint(uFrame) + 0x632be5abu)); return float(h >> 8) * (1. / 16777216.); }
 void main(){
   vState = aState;
   gl_Position = vec4(-2.);
@@ -344,7 +352,7 @@ void main(){
   float d = min(min(xn.x, float(uRes.x) - xn.x), min(xn.y, float(uRes.y) - xn.y));
   if (xn.x >= uScreenX) { vState = vec4(uScreenX, xn.y, 2., aState.w); return; }
   if (VW.x > .5*uV0) { vState = vec4(xn, 3., aState.w); return; }
-  if (VW.y > 0. && rnd(seed) < 1. - exp(-2.*VW.y*uDt)) { vState = vec4(xn, d < uAbsPx ? 4. : 3., aState.w); return; }
+  if (VW.y > 0. && rnd01() < 1. - exp(-2.*VW.y*uDt)) { vState = vec4(xn, d < uAbsPx ? 4. : 3., aState.w); return; }
   vState = vec4(xn, mode, aState.w);
 }`;
 const PARTICLE_FS = `#version 300 es
@@ -503,7 +511,7 @@ export function createNumericalEngine() {
   let state = null;       // textures, buffers
   let parts = [];         // particle objects for the app
   let partData = null, partBufA = null, partBufB = null, partVao = null, tf = null;
-  let behind = false, frame = 0, simTau = 0, stepsDone = 0, stepCarry = 0, budget = 64;
+  let behind = false, frame = 0, simTau = 0, stepsDone = 0, stepCarry = 0, budget = 8;
   // Step budget per frame. With a GPU timer (EXT_disjoint_timer_query_webgl2) the GPU
   // time per step is measured and the budget set from it, smoothed, so it stays steady.
   // Without one, the fence of the previous frame says whether the GPU is behind; the
@@ -646,7 +654,7 @@ export function createNumericalEngine() {
   // |delta psi| / |psi_ref| behind the wall, ahead of and behind the cut: the slice that
   // left the wall's exit face when the slit change started, moving at v (read asynchronously).
   function updateChangeStats() {
-    if (!ref) return;
+    if (!ref || changeStats?.final) return;   // frozen once the cut has reached the screen
     if (!colTex || colTex.w !== G.nx) {
       if (colTex) { gl.deleteTexture(colTex.t); gl.deleteFramebuffer(colFbo); }
       colTex = { t: tex(G.nx, 1), w: G.nx }; colFbo = fbo(colTex.t);
@@ -662,7 +670,7 @@ export function createNumericalEngine() {
       const cut = G.drive + G.k * (simTau - ref.t0);
       let dA = 0, rA = 0, dB = 0, rB = 0;
       for (let i = G.drive + 2; i < G.nx; i++) { if (i > cut) { dA += buf[4 * i]; rA += buf[4 * i + 1]; } else { dB += buf[4 * i]; rB += buf[4 * i + 1]; } }
-      changeStats = { ahead: rA > 0 ? Math.sqrt(dA / rA) : null, behind: rB > 0 ? Math.sqrt(dB / rB) : null, cutX: G.mx(cut), aheadNorm: rA / G.norm0, behindNorm: rB / G.norm0 };
+      changeStats = { final: cut >= G.screenCol, ahead: rA > 0 ? Math.sqrt(dA / rA) : null, behind: rB > 0 ? Math.sqrt(dB / rB) : null, cutX: G.mx(cut), aheadNorm: rA / G.norm0, behindNorm: rB / G.norm0 };
     }
     gl.useProgram(progColSum); gl.bindVertexArray(vao);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, state.flip ? state.B : state.A); gl.uniform1i(progColSum.u("uState"), 0);
@@ -677,11 +685,14 @@ export function createNumericalEngine() {
   // ---- Records (which-slit detectors) ------------------------------------------
   // The record structure the geometry asks for: one record per open slit with a
   // detector, one for the open slits without (if any). Empty without detectors.
+  // Records are labelled by the detectors' state: "k<id>" = the detector at slit id fired,
+  // "d0" = no detector fired (all detectors still in their ready state). Wave through an
+  // open slit with a detector drives that slit's record; wave through the other open slits
+  // drives d0. Empty without detectors.
   function wantedRecords(geom) {
     const det = geom.detectorIds.filter(id => geom.open.ids.includes(id));
     if (!det.length) return [];
-    const others = geom.open.ids.filter(id => !det.includes(id));
-    return [...det.map(id => [id]), ...(others.length ? [others] : [])];
+    return [...det.map(id => ({ key: "k" + id, slits: [id] })), { key: "d0", slits: geom.open.ids.filter(id => !det.includes(id)) }];
   }
   const sameSet = (a, b) => a && b && a.length === b.length && a.every(x => b.includes(x));
   function freeRecords() {
@@ -719,33 +730,35 @@ export function createNumericalEngine() {
   // otherwise (new packet) start from the wanted records only. Returns false if the
   // record limit would be exceeded.
   function syncRecords(live) {
-    const want = wantedRecords(G.geom);
+    let want = wantedRecords(G.geom);
     if (!live || !rec) {
       if (!live) freeRecords();
       if (!want.length) return true;
-      const pre = live;   // first records during a run: the wave already behind the wall is a record of its own
-      const n = want.length + (pre ? 1 : 0);
-      rec = allocRecords(n, null);
-      rec.list = want.map(slits => ({ slits }));
-      if (pre) {
-        rec.list.push({ slits: null, pre: true });
-        // Copy the total wave behind the exit face into the pre-record layer.
+      // Before the run d0 is needed only if some open slit has no detector.
+      if (!live) want = want.filter(w => w.key !== "d0" || w.slits.length);
+      rec = allocRecords(want.length, null);
+      rec.list = want.map(w => ({ key: w.key, slits: w.slits }));
+      if (live) {
+        // First detector during a run: the wave already behind the exit face passed while
+        // the detector was ready, so it belongs to "no detector fired" (d0), coherently with
+        // the wave that will come through the undetected slits.
+        const d0 = rec.list.findIndex(r => r.key === "d0");
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, state.flip ? state.fB : state.fA);
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, rec.fboA[n - 1]);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, rec.fboA[d0]);
         gl.blitFramebuffer(G.off, 0, G.nx, G.ny, 0, 0, rec.w, G.ny, gl.COLOR_BUFFER_BIT, gl.NEAREST);
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
       }
       uniformVersion++;
       return true;
     }
-    // Live change with records present: records whose slit set is still wanted keep
-    // being driven; the others stop (slits = null) and evolve freely; new ones are added.
-    // Without detectors, the open slits form one coherent record from now on.
-    const target = want.length ? want : [G.geom.open.ids.slice()];
-    for (const r of rec.list) if (r.slits && !target.some(t => sameSet(t, r.slits))) r.slits = null;
-    const add = target.filter(t => !rec.list.some(r => sameSet(r.slits, t)));
+    // Live change with records present: each record keeps its field. A record whose detector
+    // is removed (or whose slit closes) is no longer driven; the wave through that slit goes
+    // to d0 from now on. With no detectors left, all open slits drive d0.
+    if (!want.length) want = [{ key: "d0", slits: G.geom.open.ids.slice() }];
+    for (const r of rec.list) { const w = want.find(x => x.key === r.key); r.slits = w ? w.slits : null; }
+    const add = want.filter(w => !rec.list.some(r => r.key === w.key));
     if (rec.list.length + add.length > MAX_RECORDS) return false;
-    if (add.length) { const list = rec.list; rec = allocRecords(list.length + add.length, rec); rec.list = [...list, ...add.map(slits => ({ slits }))]; }
+    if (add.length) { const list = rec.list; rec = allocRecords(list.length + add.length, rec); rec.list = [...list, ...add.map(w => ({ key: w.key, slits: w.slits }))]; }
     uniformVersion++;
     return true;
   }
@@ -781,7 +794,7 @@ export function createNumericalEngine() {
 
   function reset(p, view, mode) {
     G = geometry(p, view, mode); uniformVersion++;
-    if (G.tooBig) { free(); return { ok: false, reason: `The numerical grid would be ${G.nx} × ${G.ny} cells (limit ${MAX_CELLS / 1e6} million). Shorten the screen distance or the screen length.` }; }
+    if (G.tooBig) { free(); return { ok: false, reason: `The numerical grid would be ${G.nx} × ${G.ny} cells (limit ${MAX_CELLS / 1e6} million). Shorten the screen distance or the screen length, or use a longer wavelength.` }; }
     const k = p.k * G.h, E = 0.5 * k * k;
     G.V0 = Math.max(1, 12 * E);
     G.dt = 0.9 / (16 / 3 + G.V0);   // leapfrog limit: dt * (max eigenvalue 16/3 of -lap/2, plus V0) < 1
@@ -856,7 +869,7 @@ export function createNumericalEngine() {
       const rs = rec.flip ? rec.B : rec.A;
       gl.useProgram(progBFlux);
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D_ARRAY, rs); gl.uniform1i(progBFlux.u("uSrc"), 2);
-      gl.uniform1i(progBFlux.u("uCol"), G.screenCol - G.off); gl.uniform1f(progBFlux.u("uDt"), G.dt);
+      gl.uniform1i(progBFlux.u("uCol"), G.screenCol - G.off); gl.uniform1f(progBFlux.u("uDt"), G.dt); gl.uniform1f(progBFlux.u("uSpin"), spin);
       gl.viewport(0, 0, 1, G.ny);
       for (let b = 0; b < rec.list.length; b++) {
         gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, state.fflip ? state.FB : state.FA); gl.uniform1i(progBFlux.u("uAcc"), 1);
@@ -869,7 +882,7 @@ export function createNumericalEngine() {
     gl.useProgram(progFlux);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, cur); gl.uniform1i(progFlux.u("uState"), 0);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, state.fflip ? state.FB : state.FA); gl.uniform1i(progFlux.u("uAcc"), 1);
-    gl.uniform1i(progFlux.u("uCol"), G.screenCol); gl.uniform1f(progFlux.u("uDt"), G.dt);
+    gl.uniform1i(progFlux.u("uCol"), G.screenCol); gl.uniform1f(progFlux.u("uDt"), G.dt); gl.uniform1f(progFlux.u("uSpin"), spin);
     gl.bindFramebuffer(gl.FRAMEBUFFER, state.fflip ? state.ffA : state.ffB); gl.viewport(0, 0, 1, G.ny); gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.fflip = 1 - state.fflip;
     gl.activeTexture(gl.TEXTURE0);
@@ -880,7 +893,7 @@ export function createNumericalEngine() {
       setPotentialUniforms(progPart);
       gl.uniform1f(progPart.u("uScreenX"), G.gx(G.geom.screen));
       gl.uniform1i(progPart.u("uNRec"), rec ? rec.list.length : 0);
-      gl.uniform1i(progPart.u("uPre"), rec ? Math.max(0, rec.list.findIndex(r => r.pre)) : 0);
+      gl.uniform1i(progPart.u("uPre"), rec ? Math.max(0, rec.list.findIndex(r => r.key === "d0")) : 0);
       gl.uniform1fv(progPart.u("uRecordOfSlit"), recordOfSlit());
       gl.uniform1i(progPart.u("uRec"), 2);
       gl.uniform1f(progPart.u("uSpin"), spin);
@@ -922,7 +935,9 @@ export function createNumericalEngine() {
       let target = 0.7 * Math.min(17, Math.max(8, frameMs)) / msPerStep;
       if (target < 12) target = Math.min(12, 0.7 * 33 / msPerStep);
       target = Math.max(4, Math.min(maxSteps, target));
-      budget += 0.15 * (target - budget);
+      // Approach the target in wall-clock time (~0.3 s), not per frame: with slow frames a
+      // per-frame factor took ~90 s to settle (dev.10).
+      budget += (1 - Math.exp(-Math.min(17, Math.max(8, frameMs)) * Math.max(1, frameMs / 17) / 300)) * (target - budget);
       return;
     }
     if (behind) { lateFrames++; onTimeFrames = 0; } else { onTimeFrames++; lateFrames = 0; }
@@ -1098,7 +1113,7 @@ export function createNumericalEngine() {
     get changeStats() { return changeStats; },
     updateChangeStats,
     get slitFills() { return G ? G.geom.slits.map(sl => ({ id: sl.id, center: sl.center, state: sl.state, ...(fill[sl.id] || { v: 0, w: 0 }) })) : []; },
-    get records() { return rec ? rec.list.map(r => ({ slits: r.slits ? r.slits.slice() : null, pre: !!r.pre })) : []; },
+    get records() { return rec ? rec.list.map(r => ({ key: r.key, slits: r.slits ? r.slits.slice() : null })) : []; },
     get particles() { return parts; },
     get grid() { return G ? { nx: G.nx, ny: G.ny, h: G.h, dt: G.dt, x0: G.x0, xMin: G.xMin, yMin: G.yMin, peak: G.peak } : null; },
     get modelTime() { return G ? simTau * G.h * G.h : 0; },

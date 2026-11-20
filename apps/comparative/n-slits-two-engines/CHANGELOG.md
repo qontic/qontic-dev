@@ -3,6 +3,29 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.11 — 2026-11-20
+Fixes from a review by ten simulated students (all ten found the Engine tab the right place).
+Physics and numerics
+- Particle absorption in the numerical engine used a `fract(sin)` random number, which loses precision on GPUs: with Wall: Mask the absorbing particles fell short of the wave (87 hits where 134 were expected). Now an integer hash: 135 vs 134.
+- Detector records: each grid point behind the wall is assigned to the nearest open slit (sharp partition). The wave before the first detector goes to a record of its own (d0); removing a detector merges its slit back into d0 without restarting. Records sum to the total wave to 1e-6.
+- Pauli guidance: the spin term now also enters the flux used for the screen curve, and applies only in the Pilot Wave view.
+- Robert–Asselin filter ν reduced from 0.01 to 0.002; the fourth-order scheme's phase error is 0.4% per packet length (1.3% before).
+- Show change: statistics freeze when the cut reaches the screen, marked "(when the cut reached the screen)".
+- Governor: starting budget 8 steps per frame, smoothed in wall time; the note says "GPU-limited" when the run falls below 90% of the requested speed.
+- ħ and mₑ: CODATA values (ħ was 1.054e-34 J s).
+Text
+- "Two engines" now sits in the Physics tab (dev.10 put it in Views by mistake), rewritten with re-measured numbers: Mask vs analytical, fraction 0.138 vs 0.139, L1 8%; reflecting wall 78/20; 1-particle and detector results; cost.
+- Quiz: Q1, Q5, Q7, Q10, Q11 corrected to these numbers; Q10 explanation with references. Quiz presets no longer overwrite saved numerical options, and leaving the quiz restores the engine.
+- Engine intro rewritten (same slits, two models, cost, use Mask to compare). Analytical note: "closed-form wave (fast)".
+- Stats: "reflected or lost at the edges" in the numerical engine; spacing written λ(D−L)/d; caption says "hits" for Orthodox/Many Worlds analytical.
+- Grid-too-big message also suggests a longer wavelength.
+Interface
+- Zoom bar moved to the left middle (it covered the palette slider); 44 px buttons on touch screens.
+- Pilot-Wave-only options (Guiding law, Trails, half-life, size, One particle) grouped under "Pilot Wave view", hidden in other views. Absorber W/E shown only for the absorbing blade, step 0.1. Look renamed Colours (Classic / App colours). Show row hidden in classic colours. Many-Worlds branch buttons hidden in the numerical engine.
+- Grey "not through a slit yet" particles darker (#8b939c) and in the legend; particle cores tinted instead of white.
+- Accessibility: labelled button groups, labels for checkboxes, names for number inputs.
+- Phone: short Show-change line; phase key kept at a readable size or hidden.
+
 ## 1.0-dev.10 — 2026-11-20
 Pablo: the engine choice should not be the first thing a student meets; suggest a solution. Agreed: an Engine tab between Core and Advanced.
 - **Engine tab** (shared controls: optional `extra-tabs` attribute, here `engine:Engine`; other apps unchanged). It holds a two-sentence introduction, the Analytical/Numerical switch with its note, and, with the numerical engine, all its options (Wall, Look, Guiding law, Blade, Closing time, Blade W/E, Replay clicks, Show change, Trails, half-life, particle size, One-particle preset). Core no longer shows the engine row; Advanced holds the model parameters only. The app opens with the analytical engine.
