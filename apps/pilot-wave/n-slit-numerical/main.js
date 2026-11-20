@@ -1,11 +1,11 @@
-import { effectiveDt, effectiveStepsPerFrame, getSimulationSpeed, setSimulationSpeed, initSimulationSpeedControl, setSimulationFrameDuration, getFrameDurationScale } from "./simulation-speed.js?v=nsn4";
-import { RightDetectorHistogram, histogramPlotWidth, HISTOGRAM_GAP, HISTOGRAM_RIGHT_MARGIN } from "./right-detector-histogram.js?v=nsn4";
+import { effectiveDt, effectiveStepsPerFrame, getSimulationSpeed, setSimulationSpeed, initSimulationSpeedControl, setSimulationFrameDuration, getFrameDurationScale } from "./simulation-speed.js?v=nsn5";
+import { RightDetectorHistogram, histogramPlotWidth, HISTOGRAM_GAP, HISTOGRAM_RIGHT_MARGIN } from "./right-detector-histogram.js?v=nsn5";
 import { initRecorder } from "./recorder-ui.js";
 import { WhichSlitMeasurement } from "./which-slit.js";
 import { assignRadialGroups } from "./particle-colors.js";
 import { paintPhaseLegend, phaseLegendLayout } from "./phase-legend.js";
 import { sampleWhichSlitStart } from "./which-slit-launch.js";
-import { installTemplateShell } from "./template-shell.js?v=nsn4";
+import { installTemplateShell } from "./template-shell.js?v=nsn5";
 import { mountQonticMedia } from "./vendor/ui/qontic-media.js";
 import { mountDistanceScale, mountCoordinateTools } from "./vendor/ui/qontic-overlays.js";
 import { mountQonticShortcuts } from "../../../shared/qontic-shortcuts.js";
@@ -1079,7 +1079,7 @@ async function loadText(url) {
 }
 
 const SH = {};
-const SHADER_CACHE = "?v=nsn4";
+const SHADER_CACHE = "?v=nsn5";
 async function loadShaders() {
   const base = "./shaders/";
   const files = [

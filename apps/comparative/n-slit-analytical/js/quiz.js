@@ -148,8 +148,8 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
     },
     {
       question: 'Pilot Wave, two slits. The packet centre is reaching the wall when you close the lower slit. In this app\u2019s model, what do the particles already past the wall do?',
-      caption: 'Half the packet is past the wall; slit 2 is being closed.',
-      plain: 'In the app\u2019s model they keep the two-slit pattern, because the wave from slit 2 is already past the wall. In the full Schr\u00f6dinger equation the later, changed part of the wave also reaches them, so at this app\u2019s packet length their guidance changes substantially (tens of per cent).',
+      caption: 'The packet centre is reaching the wall; slit 2 is being closed.',
+      plain: 'In the app\u2019s model they keep the two-slit pattern, because the wave from slit 2 is already past the wall. In the full Schr\u00f6dinger equation the later, changed part of the wave also reaches them, so the wave guiding them changes substantially (by tens of per cent of its amplitude in the numerical preview).',
       answers: [
         { id: 'keep', label: 'Keep moving in the two-slit pattern' },
         { id: 'switch', label: 'Switch at once to a one-slit pattern' },

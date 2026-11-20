@@ -1,3 +1,9 @@
+## 3.0-dev.28 — 2026-11-19
+Second panel round (Raj, Tomás, Hannah) on dev.27. Tomás and Hannah: ready after small fixes; Raj: one wrong number.
+- **Correction (Raj):** at the closing moment about a tenth of the packet is past the wall, not 1% (the 1% was the weight of the smoothly split part, not the probability beyond the wall exit). "Most of the wave ahead of the cut came from the later part" softened to "a large part": the 83% depends on the smooth split (about 65% counting only wave behind the wall exit).
+- Q5 caption "The packet centre is reaching the wall"; short answer: the wave guiding them changes by tens of per cent of its amplitude in the numerical preview (not "guidance"; Tomás, Raj).
+- Cut defined as the slice crossing the wall at the click, moving on at v (Hannah, Raj); limit: small angles (little wave lingers behind the cut) and a closure gentle enough to scatter little (Tomás); Orthodox: nothing settled before detection, Many Worlds: every outcome in some branch (Hannah); Orthodox "the wave gives probabilities only" (Tomás).
+
 ## 3.0-dev.27 — 2026-11-19
 Fixes from a three-reviewer panel (Raj, Tomás, Hannah) on the closing-a-slit text.
 - **Correction (Raj):** the reference packet σ is an amplitude width; as density widths (this app's convention) the packets are 0.7λ and 1.7λ, not 1λ and 2.4λ. The app default (2λ) is slightly longer than the 33% case, not shorter. Blade closes while the packet moves 3.6λ (not 3.6σ).

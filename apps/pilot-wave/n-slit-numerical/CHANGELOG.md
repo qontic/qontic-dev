@@ -2,6 +2,9 @@
 
 Draft copy of the published numerical double-slit app (`apps/pilot-wave/double-slit-webgl/`, unchanged).
 
+## 1.0-dev.4 — 2026-11-19
+- Second panel round: the 83% later-part share is qualified (smooth split; about 65% counting only wave behind the wall exit); the paraxial limit also needs a closure that scatters little.
+
 ## 1.0-dev.3 — 2026-11-19
 - Text correction (three-reviewer panel on the N-Slits app): the change ahead of the cut comes from the packet's faster components and from fast waves scattered by a sudden closure; diffraction to wide angles slows the forward motion and leaves wave behind the cut (a check of the reference case put 90% of the change in components faster than the central speed). The part already past is said to change very little, not to be unchanged (0.7%). Packet sigma is the amplitude width; density widths 0.7λ and 1.7λ given.
 
