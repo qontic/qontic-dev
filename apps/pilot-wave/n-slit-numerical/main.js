@@ -1,11 +1,11 @@
-import { effectiveDt, effectiveStepsPerFrame, getSimulationSpeed, setSimulationSpeed, initSimulationSpeedControl, setSimulationFrameDuration } from "./simulation-speed.js";
-import { RightDetectorHistogram, histogramPlotWidth, HISTOGRAM_GAP, HISTOGRAM_RIGHT_MARGIN } from "./right-detector-histogram.js";
+import { effectiveDt, effectiveStepsPerFrame, getSimulationSpeed, setSimulationSpeed, initSimulationSpeedControl, setSimulationFrameDuration, getFrameDurationScale } from "./simulation-speed.js?v=nsn3";
+import { RightDetectorHistogram, histogramPlotWidth, HISTOGRAM_GAP, HISTOGRAM_RIGHT_MARGIN } from "./right-detector-histogram.js?v=nsn3";
 import { initRecorder } from "./recorder-ui.js";
 import { WhichSlitMeasurement } from "./which-slit.js";
 import { assignRadialGroups } from "./particle-colors.js";
 import { paintPhaseLegend, phaseLegendLayout } from "./phase-legend.js";
 import { sampleWhichSlitStart } from "./which-slit-launch.js";
-import { installTemplateShell } from "./template-shell.js?v=nsn1";
+import { installTemplateShell } from "./template-shell.js?v=nsn3";
 import { mountQonticMedia } from "./vendor/ui/qontic-media.js";
 import { mountDistanceScale, mountCoordinateTools } from "./vendor/ui/qontic-overlays.js";
 import { mountQonticShortcuts } from "../../../shared/qontic-shortcuts.js";
@@ -61,6 +61,7 @@ const params = {
   shutterMode: 0,
   shutterW: 5.0,
   closeAtWall: 0,
+  repeat: 1,
   showChange: 0,
   changeGain: 1,
 
@@ -243,9 +244,52 @@ function packetAtWallTime() {
 
 function slitRunStarted() { return physicsFrame > 0 || simTime > 0; }
 
+// Repeat: each run starts from the slits as they were at its start and replays
+// the slit clicks made during the first run at the same simulation times.
+let runStartSlits = new Array(MAX_SLITS).fill(false);
+let runEvents = [], pendingReplay = [], replaying = false, runKey = "";
+
+function experimentKey() {
+  return [params.nSlits, runStartSlits.slice(0, params.nSlits).join(""), JSON.stringify(runEvents),
+    params.slitWidth, params.slitSep, params.p0, params.packetSigma, params.dt, params.guidingMode,
+    params.spinSign, params.nParticles, stageW, stageH, params.shutterW].join("|");
+}
+
+function beginRunRecord({ repeat = false } = {}) {
+  if (!repeat) { runStartSlits = slitClosed.slice(); runEvents = []; }
+  pendingReplay = runEvents.slice();
+}
+
+function processReplay() {
+  while (pendingReplay.length && simTime + 1e-9 >= pendingReplay[0].clickTime) {
+    const e = pendingReplay.shift();
+    const saved = [params.shutterTau, params.shutterMode, params.closeAtWall];
+    [params.shutterTau, params.shutterMode, params.closeAtWall] = [e.tau, e.mode, e.atWall];
+    replaying = true;
+    setSlitClosed(e.k, e.closed);
+    replaying = false;
+    [params.shutterTau, params.shutterMode, params.closeAtWall] = saved;
+    buildSlitButtons();
+  }
+}
+
+function runEndTime() {
+  // The packet centre reaches the right detector at d/v; allow for waves
+  // diffracted to wide angles, which travel farther.
+  const v = Math.max(1e-6, params.p0 / params.mass);
+  return 1.6 * (rightDetectorX() - params.packetX * stageW) / v;
+}
+
+function repeatRun() {
+  for (let k = 0; k < MAX_SLITS; k++) slitClosed[k] = runStartSlits[k];
+  buildSlitButtons();
+  resetAll({ preserveHistogram: true, repeat: true });
+}
+
 function setSlitClosed(k, closed) {
   slitClosed[k] = closed;
-  if (!slitRunStarted()) { applySlitStatesInstantly(); return; }
+  if (!slitRunStarted()) { applySlitStatesInstantly(); runStartSlits = slitClosed.slice(); runEvents = []; return; }
+  if (!replaying) { runEvents.push({ k, closed, clickTime: simTime, tau: params.shutterTau, mode: params.shutterMode, atWall: params.closeAtWall }); runKey = experimentKey(); }
   const t0 = params.closeAtWall && simTime < packetAtWallTime() ? packetAtWallTime() : simTime;
   if (!refActive) startReference(t0);
   shutterRamps = shutterRamps.filter(r => r.k !== k);
@@ -401,12 +445,21 @@ function stableDtLimit() {
   return 0.9 / (4 * params.hbar / params.mass + params.V0 / params.hbar);
 }
 
+// Leapfrog needs a constant time step: changing dt between steps excites its
+// spurious alternating mode, which shows as a glow where V is large (the wall).
+// So the speed control changes the number of steps per frame, never dt.
 function simulationDt() {
-  return Math.min(effectiveDt(params.dt), stableDtLimit());
+  return Math.min(params.dt, stableDtLimit());
 }
 
+let stepAccumulator = 0;
 function simulationStepsPerFrame() {
-  return effectiveStepsPerFrame(params.stepsPerFrame);
+  const speed = getSimulationSpeed();
+  const rate = params.stepsPerFrame * speed * (speed > 1 ? getFrameDurationScale() : 1);
+  stepAccumulator += rate;
+  const steps = Math.floor(stepAccumulator);
+  stepAccumulator -= steps;
+  return Math.min(steps, Math.ceil(3 * 5 * params.stepsPerFrame));
 }
 
 function trailFadeFrameDt() {
@@ -730,14 +783,14 @@ addSectionHeader("Shutter absorber");
 addSlider("shutterW", "absorber W", 0.5, 20, 0.5, null, "Strength of the imaginary potential −iW of the absorbing blade, in the same units as the wall height V0 = 50 (packet energy ≈ 1.1 at the default momentum).");
 if (template) controls = template.panes.advanced;
 addSectionHeader("Performance");
-addSlider("simScale", "sim scale", 0.3, 1.0, 0.1, () => rebuildSimulation());
+addSlider("simScale", "sim scale", 0.3, 1.0, 0.1, () => rebuildSimulation(), "Width of the simulated region: 1120 × sim scale grid steps (560 at 0.5), the same on every screen. Larger shows more of the pattern and costs more.");
 addSlider("stepsPerFrame", "Steps/frame", 1, 100, 1);
 addSlider("edgePadding", "offscreen space", 128, 512, 32, () => rebuildSimulation(), "Space for wave absorption above and below the stage. More space reduces reflections and uses more graphics power. Changing it restarts the run.");
 
 if (template) controls = template.panes.core;
 addSectionHeader("Physical Parameters");
 addSlider("p0", "Momentum p", 0.5, 5.0, 0.1, () => resetAll());
-addSlider("dt", "dt", 0.01, 0.03, 0.01);
+addSlider("dt", "dt", 0.01, 0.03, 0.01, () => resetAll(), "Time step. Changing it starts a new run (the leapfrog scheme needs a constant step).");
 addSlider("packetSigma", "packet sigma", 8.0, 80.0, 1.0, () => resetAll());
 addSlider("slitWidth", "slit width", 6.0, 40.0, 1.0, () => { clampSlitGeometry(); if (params.whichSlit) resetAll(); });
 addSlider("slitSep", "slit separation", 18.0, 140.0, 1.0, () => { clampSlitGeometry(); if (params.whichSlit) resetAll(); });
@@ -804,6 +857,7 @@ if (template) {
   common.addEventListener("qontic:start", () => { paused = false; pauseButton.textContent = "Pause"; resetPlaybackClock(); });
   common.addEventListener("qontic:stop", () => { paused = true; pauseButton.textContent = "Resume"; resetPlaybackClock(); });
   common.addEventListener("qontic:reset", () => resetAll());
+  common.addEventListener("qontic:autorun", ({detail}) => { params.repeat = detail.autoRun ? 1 : 0; });
   common.addEventListener("qontic:speed", ({detail}) => setSimulationSpeed(detail.speed));
   common.addEventListener("qontic:theme", ({detail}) => {
     document.documentElement.classList.toggle("qontic-light", detail.theme === "light");
@@ -1025,7 +1079,7 @@ async function loadText(url) {
 }
 
 const SH = {};
-const SHADER_CACHE = "?v=nsn1";
+const SHADER_CACHE = "?v=nsn3";
 async function loadShaders() {
   const base = "./shaders/";
   const files = [
@@ -1229,6 +1283,7 @@ let simW = 0, simH = 0;
 let stageW = 0, stageH = 0, paddingY = 0;
 let verticalAbsorbWidth = 0;
 const ABSORBER_GUARD_CELLS = 24;
+const GRID_WIDTH_PER_SCALE = 1120;  // grid width = 1120 × sim scale (560 steps at the default 0.5)
 const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
 let texA = null, texB = null, fboA = null, fboB = null, flip = 0;
 let texRefA = null, texRefB = null, fboRefA = null, fboRefB = null, refFlip = 0, texDiff = null, fboDiff = null;
@@ -2018,8 +2073,11 @@ function readWaveForTests() {
 function rebuildSimulation() {
   resizeCanvas();
 
-  stageW = Math.max(64, Math.floor(canvas.width * params.simScale));
-  stageH = Math.max(64, Math.floor(canvas.height * params.simScale));
+  // The grid (the physical domain) has the same width on every device; the
+  // picture is scaled to the canvas. Its height follows the canvas shape.
+  const aspect = canvas.height / Math.max(1, canvas.width);
+  stageW = Math.max(64, Math.round(GRID_WIDTH_PER_SCALE * params.simScale));
+  stageH = Math.max(64, Math.round(stageW * Math.min(1.6, Math.max(0.35, aspect))));
   paddingY = Math.max(0, Math.min(Math.round(params.edgePadding), Math.floor((maxTextureSize - stageH) / 2)));
   simW = stageW;
   simH = stageH + 2 * paddingY;
@@ -2043,6 +2101,8 @@ function rebuildSimulation() {
 
   simTime = 0;
   applySlitStatesInstantly();
+  beginRunRecord();
+  runKey = experimentKey();
   clampSlitGeometry();
   resetWave();
   rebuildParticles();
@@ -2054,14 +2114,18 @@ function rebuildSimulation() {
   overlayCoordinates?.update();
 }
 
-function resetAll({ preserveHistogram = Boolean(params.whichSlit) } = {}) {
-  const keepHits = preserveHistogram && params.whichSlit
-    && whichSlitHistogramKey === histogramExperimentKey();
+function resetAll({ preserveHistogram = Boolean(params.whichSlit), repeat = false } = {}) {
+  const keepHits = preserveHistogram && (params.whichSlit
+    ? whichSlitHistogramKey === histogramExperimentKey()
+    : repeat && runKey === experimentKey());
   if (keepHits) captureRightDetectorHits(true);
   simTime = 0;
   refActive = false;
   changeStats = null;
+  stepAccumulator = 0;
   applySlitStatesInstantly();
+  beginRunRecord({ repeat });
+  runKey = experimentKey();
   resetWave();
   rebuildParticles(null, keepHits);
   clearDensity();
@@ -2127,6 +2191,7 @@ function advanceSimulationFrame(presentationDt = 1 / 60) {
   const steps = simulationStepsPerFrame();
   const detectorLookAhead = 2 * steps * simulationDt() * params.p0 / params.mass;
   for (let i = 0; i < steps; i++) {
+    if (pendingReplay.length) processReplay();
     updateSlitStates(simTime + 0.5 * simulationDt());
     waveStep();
     whichSlit?.advance(flip ? texB : texA, simulationDt());
@@ -2150,6 +2215,7 @@ function advanceSimulationFrame(presentationDt = 1 / 60) {
     }
   }
   densityStepAndStamp();
+  if (params.repeat && !params.whichSlit && !isEmbedded && simTime > runEndTime()) repeatRun();
 }
 
 function shouldAdvancePhysics(frameSeconds) {

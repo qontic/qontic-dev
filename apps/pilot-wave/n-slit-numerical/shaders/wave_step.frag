@@ -100,5 +100,11 @@ void main() {
   // even when the absorbing potential is strong.
   vec2 psiNext = ((1.0 - absorbA) * psiPrev + 2.0 * uDT * rhs) / (1.0 + absorbA);
 
-  fragColor = vec4(psiNext, psi);
+  // Robert–Asselin time filter (nu = 0.01). Leapfrog carries a spurious mode
+  // that alternates sign every step and evolves roughly under -H, so the high
+  // wall traps it and it shows as a glow there. The filter damps that mode;
+  // for travelling waves its damping is ~ nu (omega dt)^2 ~ 1e-7 per step.
+  const float RA_NU = 0.01;
+  vec2 psiFiltered = psi + RA_NU * (psiNext - 2.0 * psi + psiPrev);
+  fragColor = vec4(psiNext, psiFiltered);
 }

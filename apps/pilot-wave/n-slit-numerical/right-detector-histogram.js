@@ -179,7 +179,9 @@ export class RightDetectorHistogram {
         ctx.fillRect(Math.min(x1, x2), yTop + 0.7, length, 1);
         offset += length;
       }
-      contour.push({x:baseX + direction * totals[bin] * scale, y:(yTop + yBottom) * 0.5});
+      // Step outline: one vertical segment per bin, so bins read as rectangles.
+      const xEnd = baseX + direction * totals[bin] * scale;
+      contour.push({x:xEnd, y:yTop}, {x:xEnd, y:yBottom});
     }
     ctx.globalAlpha = 1;
     // A subtle divider makes the exact upper/lower bin boundary visible.

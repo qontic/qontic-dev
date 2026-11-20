@@ -1,4 +1,4 @@
-import { APP_RELEASE } from "./release.js";
+import { APP_RELEASE } from "./release.js?v=nsn3";
 import "../../../shared/qontic-controls.js";
 import { mountQonticShell } from "../../../shared/qontic-shell.js";
 
@@ -25,7 +25,8 @@ export function installTemplateShell() {
   const commonControls = document.createElement("qontic-controls");
   commonControls.setAttribute("show-interpretation", "false");
   commonControls.setAttribute("show-reset", "true");
-  commonControls.setAttribute("show-autorun", "false");
+  commonControls.setAttribute("show-autorun", "true");
+  commonControls.setAttribute("auto-run", "true");
   commonControls.setAttribute("show-speed", "true");
   commonControls.setAttribute("speed-min", "0.1");
   commonControls.setAttribute("speed-max", "5");

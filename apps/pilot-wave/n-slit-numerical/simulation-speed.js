@@ -44,6 +44,10 @@ export function setSimulationFrameDuration(seconds) {
   );
 }
 
+export function getFrameDurationScale() {
+  return currentFrameDurationScale;
+}
+
 export function effectiveDt(baseDt) {
   const base = Number(baseDt);
   if (!Number.isFinite(base)) return baseDt;
