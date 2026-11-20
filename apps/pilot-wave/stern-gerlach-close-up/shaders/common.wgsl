@@ -127,9 +127,14 @@ fn phiPhase(x: f32) -> f32 {
   let tau = uni.xwave.y;
   let x0 = uni.packet.x * (uni.sim.x - 1.0);
   let d = x - uni.xwave.x;
-  return k * (x - x0) - hbar * k * k / (2.0 * mass) * uni.xwave.z - 0.5 * atan(tau)
-    + d * d * tau / (2.0 * s * s * (1.0 + tau * tau));
+  // The carrier k(x - x0) - ħk²t/2m is left out: at the beam speed it oscillates faster than
+  // the cloud's sampling along x, so the phase is shown relative to the beam's plane wave.
+  return -0.5 * atan(tau) + d * d * tau / (2.0 * s * s * (1.0 + tau * tau));
 }
+// Drawing scale: lengths along the beam are drawn X_VIS times shorter than across it, so the
+// long flight fits the view (the grid itself is unchanged).
+const X_VIS: f32 = ${X_VIS};
+fn worldScale() -> vec3<f32> { return vec3<f32>(X_VIS, 1.0, 1.0) * uni.visual1.w; }
 
 fn quadCorner(v: u32) -> vec2<f32> {
   if (v == 0u) { return vec2<f32>(-0.5, -0.5); }

@@ -42,30 +42,42 @@ async function getGpuDevice() {
 }
 
 const WAVE_WORKGROUP_SIZE = 256;
+// Beam scale: the beam moves BEAM_SCALE times faster in grid units than in the first version
+// (5.5·BEAM_SCALE cells per time unit) and every length along the beam is BEAM_SCALE times
+// longer, so the flight time, the splitting and the lab units are unchanged. The atom's magnetic
+// energy (ħ/2m)|B| ≈ 35 at the default gradient is then about 4% of its kinetic energy along the
+// beam (it was 2.3 times the kinetic energy at BEAM_SCALE = 1; for silver it is ~10⁻⁴), and the
+// packet's spread of speeds is 1.4% (it was 11%). Lengths along the beam are drawn shorter by
+// the factor X_VIS, so the long flight fits the view.
+const BEAM_SCALE = 8;
+const BEAM_SPEED = 5.5 * BEAM_SCALE;
+// Drawing compression along the beam (milder than BEAM_SCALE, so the short packet stays visible).
+const X_VIS = 1 / 5;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg2d5",
-  palette: "./shaders/palette.wgsl?v=sg2d5",
-  waveInit: "./shaders/wave-init.wgsl?v=sg2d5",
-  waveStep: "./shaders/wave-step.wgsl?v=sg2d5",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d5",
-  cloud: "./shaders/cloud.wgsl?v=sg2d5",
-  particleRender: "./shaders/particle-render.wgsl?v=sg2d5",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg2d5",
-  density: "./shaders/density.wgsl?v=sg2d5",
-  boxShell: "./shaders/box-shell.wgsl?v=sg2d5",
-  line: "./shaders/line.wgsl?v=sg2d5",
-  fieldLine: "./shaders/field-line.wgsl?v=sg2d5",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d5",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d5",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d5",
+  common: "./shaders/common.wgsl?v=sg2d7",
+  palette: "./shaders/palette.wgsl?v=sg2d7",
+  waveInit: "./shaders/wave-init.wgsl?v=sg2d7",
+  waveStep: "./shaders/wave-step.wgsl?v=sg2d7",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d7",
+  cloud: "./shaders/cloud.wgsl?v=sg2d7",
+  particleRender: "./shaders/particle-render.wgsl?v=sg2d7",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg2d7",
+  density: "./shaders/density.wgsl?v=sg2d7",
+  boxShell: "./shaders/box-shell.wgsl?v=sg2d7",
+  line: "./shaders/line.wgsl?v=sg2d7",
+  fieldLine: "./shaders/field-line.wgsl?v=sg2d7",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d7",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d7",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d7",
 };
 
 function applyShaderConstants(source) {
   return source
     .replaceAll("${WAVE_WORKGROUP_SIZE}", String(WAVE_WORKGROUP_SIZE))
-    .replaceAll("${PARTICLE_WORKGROUP_SIZE}", String(PARTICLE_WORKGROUP_SIZE));
+    .replaceAll("${PARTICLE_WORKGROUP_SIZE}", String(PARTICLE_WORKGROUP_SIZE))
+    .replaceAll("${X_VIS}", X_VIS.toFixed(6));
 }
 
 async function fetchShader(path) {
@@ -158,7 +170,7 @@ const params = {
 
   hbar: 6.0,
   mass: 1.0,
-  p0: 5.5,
+  p0: BEAM_SPEED,
   dt: 0.01,
 
   packetX: 0.25,
@@ -179,7 +191,7 @@ const params = {
   showFieldArrows: 1,
   showMagnet: 1,
   showSpin: 1,
-  screenDistance: 40,
+  screenDistance: 40 * BEAM_SCALE,
   showAxes: 1,
 
   cloudGain: .05,
@@ -409,13 +421,13 @@ function addSectionHeader(label) {
 }
 
 // Layout along the beam, in cells (see Magnets below).
-const APPROACH_CELLS = 30;
-const MAGNET_CELLS = 50;   // the 3.5 cm magnet
-const RAMP_CELLS = 4;
+const APPROACH_CELLS = 30 * BEAM_SCALE;
+const MAGNET_CELLS = 50 * BEAM_SCALE;   // the 3.5 cm magnet
+const RAMP_CELLS = 4 * BEAM_SCALE;
 
 // ── Lab units ────────────────────────────────────────────────────────────────
 // Each axis has its own scale, matched to the 1922 experiment at the default settings
-// (momentum 5.5, packet width 10 cells): the magnet (MAGNET_CELLS) is 3.5 cm long, the packet
+// (momentum BEAM_SPEED, packet width 10 cells): the magnet (MAGNET_CELLS) is 3.5 cm long, the packet
 // moves at 660 m/s, and the FWHM of |psi|^2 across the beam is the 35 µm slit. The scales are
 // fixed, so the sliders change lab quantities.
 // What cannot match is hbar/m in these units: the model's wave spreads far faster.
@@ -432,7 +444,7 @@ function gridGroupVelocity(k, hbar = 6, mass = 1) {
 }
 const LAB_SCALE = (() => {
   const sx = LAB.magnetLength / MAGNET_CELLS;              // m per cell along x
-  const st = sx * 5.5 / LAB.speed;                         // s per time unit (default speed 5.5 cells/unit)
+  const st = sx * BEAM_SPEED / LAB.speed;                  // s per time unit (default speed BEAM_SPEED cells/unit)
   const sz = LAB.beamFWHM / (2.3548 * 10 / Math.SQRT2);    // m per cell across the beam
   return { sx, st, sz };
 })();
@@ -510,10 +522,10 @@ function syncSlider(key) {
 }
 // Above ~3.5 the deflected branches reach the hard walls before the plate.
 addSlider("sgGradient", "Field gradient", 0.0, 6.0, 0.05, () => requestTrailClear(), g => `${labGradient(g).toFixed(1)} T/cm`);
-addSlider("screenDistance", "Screen distance", 10, 60, 1, () => applyScreenDistance(), d => `${(d * LAB_SCALE.sx * 100).toFixed(1)} cm`);
+addSlider("screenDistance", "Screen distance", 10 * BEAM_SCALE, 60 * BEAM_SCALE, BEAM_SCALE, () => applyScreenDistance(), d => `${(d * LAB_SCALE.sx * 100).toFixed(1)} cm`);
 
 addSectionHeader("Wave and guidance");
-addSlider("p0", "Atom speed", 0.0, 6.0, 0.1, () => resetAll(), p => `${Math.round(labSpeed(p))} m/s`);
+addSlider("p0", "Atom speed", 0.0, 1.09 * BEAM_SPEED, 0.02 * BEAM_SPEED, () => resetAll(), p => `${Math.round(labSpeed(p))} m/s`);
 addSlider("packetSigma", "Beam width (FWHM)", 4.0, 14.0, 0.5, () => { rebuildBoxGeometry(); rebuildMagneticFieldLines(); resetAll(); }, s => `${Math.round(labFWHM(s) * 1e6)} µm`);
 
 controls = displayControls;
@@ -1141,7 +1153,7 @@ function detectorPlateXGrid() {
 
 function worldFromGrid(p) {
   return [
-    p[0] * params.boxScale,
+    p[0] * X_VIS * params.boxScale,
     p[1] * params.boxScale,
     p[2] * params.boxScale,
   ];
@@ -1283,7 +1295,7 @@ function clampCameraPitch(pitch) {
 const DEFAULT_CAMERA_DISTANCE = 3.0;
 // Size of the scene: the tunnel length or its cross-section, whichever is larger.
 function sceneExtent() {
-  return Math.max(detectorPlateXGrid() - tunnelStartX(), simH, simD) * params.boxScale;
+  return Math.max((detectorPlateXGrid() - tunnelStartX()) * X_VIS, simH, simD) * params.boxScale;
 }
 function cameraDistanceBounds() {
   const n = sceneExtent();
@@ -2181,7 +2193,7 @@ function rebuildBoxGeometry() {
     const corners = copyCorners(copy);
     for (let i = 0; i < edges.length; i++) {
       const p = corners[edges[i]];
-      lineVerts.push(p[0] * params.boxScale, p[1] * params.boxScale, p[2] * params.boxScale, fade);
+      lineVerts.push(p[0] * X_VIS * params.boxScale, p[1] * params.boxScale, p[2] * params.boxScale, fade);
     }
   }
 
@@ -2198,7 +2210,7 @@ function rebuildBoxGeometry() {
   const pushShellVertex = (corner, normal, fade, copy) => {
     const uv = faceUv(corner, normal, copy);
     shellVerts.push(
-      corner[0] * params.boxScale,
+      corner[0] * X_VIS * params.boxScale,
       corner[1] * params.boxScale,
       corner[2] * params.boxScale,
       normal[0],
@@ -2249,7 +2261,9 @@ function updateMeanSpinArrow() {
   const cross = (u, v) => [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
   const norm = u => { const l = Math.hypot(...u) || 1; return u.map(c => c / l); };
   const e1 = norm(cross(d, a)), e2 = cross(d, e1);
-  const at = (t, r, ang) => [0, 1, 2].map(i => base[i] + d[i] * t + r * (Math.cos(ang) * e1[i] + Math.sin(ang) * e2[i]));
+  // Built in world units: the base is drawn compressed along the beam, the arrow keeps its true direction.
+  const baseW = [base[0] * X_VIS, base[1], base[2]];
+  const at = (t, r, ang) => [0, 1, 2].map(i => baseW[i] + d[i] * t + r * (Math.cos(ang) * e1[i] + Math.sin(ang) * e2[i]));
   const radial = ang => [0, 1, 2].map(i => Math.cos(ang) * e1[i] + Math.sin(ang) * e2[i]);
   const verts = [];
   const sc = params.boxScale;
@@ -2295,7 +2309,7 @@ function rebuildMagnetPoles() {
   const L = Math.max(1, cz);
   const verts = [];
   const sc = params.boxScale;
-  const push = (p, n, col) => verts.push(p[0] * sc, p[1] * sc, p[2] * sc, n[0], n[1], n[2], col[0], col[1], col[2], col[3]);
+  const push = (p, n, col) => verts.push(p[0] * X_VIS * sc, p[1] * sc, p[2] * sc, n[0], n[1], n[2], col[0], col[1], col[2], col[3]);
   const tri = (a, b, c, n, col) => {
     const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
     const cr = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
@@ -2369,10 +2383,10 @@ function isInsideFieldLineBox(p, margin) {
 }
 
 function pushFieldLineSegment(verts, a, b, fade) {
-  const ax = a[0] * params.boxScale;
+  const ax = a[0] * X_VIS * params.boxScale;
   const ay = a[1] * params.boxScale;
   const az = a[2] * params.boxScale;
-  const bx = b[0] * params.boxScale;
+  const bx = b[0] * X_VIS * params.boxScale;
   const by = b[1] * params.boxScale;
   const bz = b[2] * params.boxScale;
   const pushVertex = (side, along) => {
@@ -2446,7 +2460,7 @@ function rebuildMagneticFieldLines() {
   // Columns of field lines along the tunnel, drawn only where a magnet is on, fading with it.
   const ms = magnets();
   const x0 = Math.min(...ms.map(mg => mg.a)) + 5, x1 = lastMagnetEndX() - 5;
-  const columns = Math.max(3, Math.round((x1 - x0) / 11) + 1);
+  const columns = Math.max(3, Math.round((x1 - x0) / (11 * BEAM_SCALE)) + 1);
   for (let k = 0; k < columns; k++) {
     const x = x0 + (x1 - x0) * k / (columns - 1);
     const segs = magnetsAtX(x);
@@ -2602,7 +2616,7 @@ const labCanvas = document.getElementById("labScaleOverlay");
 let labCanvasCleared = true;
 function projectGridToScreen(camera, p, w, h) {
   const m = camera.viewProj;
-  const x = p[0] * params.boxScale, y = p[1] * params.boxScale, z = p[2] * params.boxScale;
+  const x = p[0] * X_VIS * params.boxScale, y = p[1] * params.boxScale, z = p[2] * params.boxScale;
   const cx = m[0] * x + m[4] * y + m[8] * z + m[12];
   const cy = m[1] * x + m[5] * y + m[9] * z + m[13];
   const cw = m[3] * x + m[7] * y + m[11] * z + m[15];

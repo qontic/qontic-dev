@@ -111,3 +111,5 @@ body:not(.simulation-ready) .sim-clock { display: none; }
 .spin-sphere-note { opacity: 0.7; }
 .spin-sphere-text .c-spin { color: #ffc24a; font-weight: 600; }
 .spin-sphere-text .c-mag { color: #ff5b5b; font-weight: 600; }
+.engine-badge { position: absolute; left: 8px; top: 36px; padding: 2px 8px; font-size: 11px; color: #9fd8ea; background: rgba(3, 8, 15, 0.6); border-radius: 4px; pointer-events: none; }
+body:not(.simulation-ready) .engine-badge { display: none; }

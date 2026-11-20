@@ -27,14 +27,14 @@ fn particleVertex(vertexIndex: u32, instanceIndex: u32, stamp: bool) -> Particle
   let p = clamp(state.xyz, vec3<f32>(0.0), maxP);
   var worldGrid = p;
   worldGrid.x = state.w;
-  let worldPos = worldGrid * uni.visual1.w;
+  let worldPos = worldGrid * worldScale();
   let clip = uni.viewProj * vec4<f32>(worldPos, 1.0);
   if (clip.w <= 0.0 || abs(clip.x) > 1.2 * clip.w || abs(clip.y) > 1.2 * clip.w) {
     out.alive = 0.0;
     out.position = vec4<f32>(2.0, 2.0, 2.0, 1.0);
     return out;
   }
-  let sceneRadius = 0.5 * length(maxP * uni.visual1.w);
+  let sceneRadius = 0.5 * length(maxP * worldScale());
   let distToCamera = distance(worldPos, uni.camera.xyz);
   let depthSpan = max(1.0, sceneRadius * 0.72);
   let depthT = smoothstep(uni.camera.w - depthSpan, uni.camera.w + depthSpan, distToCamera);

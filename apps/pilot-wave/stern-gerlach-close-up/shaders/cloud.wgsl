@@ -39,7 +39,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
   let visualX = x;
   if (uni.detector.y > 0.5 && visualX > uni.detector.x) { return out; }
   out.intensity = intensity;
-  out.alpha = 0.24 * intensity;
+  out.alpha = 0.24 * intensity * min(1.0, 3.0 * X_VIS);
   let corner = quadCorner(vertexIndex);
   out.local = corner + vec2<f32>(0.5);
   if (i32(uni.visual1.y) == 1) {
@@ -53,7 +53,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
     let phasePsi = select(vec2<f32>(1.0, 0.0), phaseVec, dot(phaseVec, phaseVec) > 1e-20);
     out.phase = atan2(phasePsi.y, phasePsi.x) + phiPhase(x);
   }
-  let worldPos = vec3<f32>(visualX, f32(y), f32(z)) * uni.visual1.w;
+  let worldPos = vec3<f32>(visualX, f32(y), f32(z)) * worldScale();
   let clip = uni.viewProj * vec4<f32>(worldPos, 1.0);
   var viewScale = clamp(160.0 / max(1.0, clip.w), 0.35, 2.3);
   if (i32(uni.viewport.z) == 1) {

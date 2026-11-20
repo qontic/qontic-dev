@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=17" />
-  <link rel="modulepreload" href="./main.js?v=25" />
+  <link rel="stylesheet" href="./style.css?v=18" />
+  <link rel="modulepreload" href="./main.js?v=26" />
 </head>
 <body>
   <main class="shell">
@@ -41,6 +41,7 @@
         </div>
         <div id="plate-hits" class="plate-hits" hidden></div>
         <div id="sim-clock" class="sim-clock" aria-live="off">t = 0.0 µs</div>
+        <div id="engine-badge" class="engine-badge">Engine: Fast (2D)</div>
         <canvas id="labScaleOverlay" class="lab-scale" aria-hidden="true"></canvas>
         <noscript><p>Enable JavaScript to run this simulation.</p></noscript>
       </div>
@@ -60,11 +61,12 @@
     </section>
     <aside class="qontic-sidebar qontic-panel qontic-control-panel" id="ui" tabindex="-1" aria-label="Simulation controls">
       <qontic-controls running="false" speed="1" speed-min="0.1" speed-max="3.8" speed-step="0.1"
-        show-reset="true" show-rerun="false" show-autorun="true" auto-run="true" show-interpretation="true" interpretations="cpn,pw" interpretation="pw" disabled></qontic-controls>
+        show-reset="true" show-rerun="false" show-autorun="true" auto-run="true" show-engine="true" show-interpretation="true" interpretations="cpn,pw" interpretation="pw" disabled></qontic-controls>
       <div class="qontic-control-body" id="controls">
         <div data-control-pane="core">
           <p class="prompt">Point the spin, turn the magnet, and compare the dots at the screen with the expected split.</p>
         </div>
+        <div data-control-pane="engine" hidden></div>
         <div data-control-pane="advanced" hidden>
           <p class="prompt">The app selects a starting grid from the device’s capabilities. You can adjust it here. Changing the grid also changes the tunnel dimensions and restarts the packet.</p>
         </div>
@@ -88,6 +90,7 @@
         </div>
         <p>The dots are pilot-wave particles. They start at random positions drawn from |Ψ|² and then follow the guidance law below. Yellow dots start on the + side of the packet along the first magnet's axis (above the centre for a z magnet), green dots on the other side. A dot stops when it reaches the screen, and the counts in the corner are made from those dots. The wave itself passes through the screen and keeps evolving.</p>
         <p>The spin can point in any direction, set by two angles: θ from +z, and φ about z from the beam axis (+x) toward +y. The spinor is (cos θ/2, e<sup>iφ</sup> sin θ/2) in the ±z basis. The default, θ = 90° and φ = 0, points along the beam: an equal, in-phase superposition of +z and −z. In a z magnet the two spin components separate vertically. Each particle ends up in one branch, and which one is fixed by where it started: dots from the upper half of the packet go up, dots from the lower half go down. Only dots that start very near the middle can end in the other branch.</p>
+        <p>Display: Show phase colours the cloud by the phase of the wave. The fast oscillation along the beam, e<sup>i(kx − ωt)</sup>, is left out, because it is shorter than the spacing of the drawn points; what is shown is the phase relative to the beam's plane wave.</p>
         <h4>Magnets</h4>
         <p>The packet starts in a field-free region, 2.1 cm before the magnet, passes the 3.5 cm magnet, and drifts to the screen. Screen distance sets how far the screen stands after the end of the last magnet (0.7 to 4.2 cm); after the magnet the two parts keep the sideways speed they gained, so a farther screen shows a larger splitting. The Magnets control chooses the field:</p>
         <ul>
@@ -104,8 +107,9 @@
         <h4>Two readings</h4>
         <p>The interpretation button in the controls switches between two readings of the same wave. In the pilot-wave reading the particle has a position at all times and is guided by the wave; the dots show possible positions. In the orthodox reading only the wave is shown: the theory gives the particle no position before it is measured, and |Ψ|² gives the probabilities of where it will be found at the screen. For the equal superposition each half of the screen gets probability ½; for +z the upper half gets nearly all of it. Both readings predict the same statistics at the screen. In the orthodox reading the box in the corner shows the weight of |Ψ|² in each region of the screen (two halves along the magnet's axis, or four quadrants after two magnets); when the packet reaches the screen, these are the chances of a hit there.</p>
         <h4>Geometry</h4>
-        <p>The canvas shows one tunnel from just behind the starting packet (x = 0) to the screen. The wave is computed in two parts. Along the beam it is the exact free Gaussian φ(x, t), which moves at the atom speed and spreads. Across the beam the spinor χ(y, z, t) is computed on a 128 × 128 grid with hard walls; the full wave is Ψ = φ(x, t) χ(y, z, t). The magnets act on χ through the field at the packet's centre, x<sub>c</sub>(t): a magnet turns on as the packet reaches it and off as it leaves, with smooth ramps 4 cells (0.3 cm) long.</p>
-        <p>This treats the field as the same over the length of the packet. While the whole packet is inside a magnet, or outside every magnet, that is exact: the field does not change along x there, and the factorized wave is an exact solution. While the packet crosses a magnet's entrance or exit it is an approximation: the packet (about 1 cm long in lab units, with the scaled ħ/m) is longer than the ramps, so its front and back should feel different fields, and real fringe fields also have a component along the beam, which this field lacks. For a real silver atom, whose wave packet is far shorter than the magnet's ends, the same approximation is very good; it is the one used in textbook treatments, where the atom's motion along the beam is classical.</p>
+        <p>The canvas shows one tunnel from just behind the starting packet (x = 0) to the screen. The wave is computed in two parts. Along the beam it is the exact free Gaussian φ(x, t), which moves at the atom speed and spreads. Across the beam the spinor χ(y, z, t) is computed on a 128 × 128 grid with hard walls; the full wave is Ψ = φ(x, t) χ(y, z, t). The magnets act on χ through the field at the packet's centre, x<sub>c</sub>(t): a magnet turns on as the packet reaches it and off as it leaves, with smooth ramps 32 cells (0.3 cm) long. Lengths along the beam are drawn five times shorter than lengths across it, so the whole flight fits the view.</p>
+        <p>This treats the field as the same over the length of the packet. While the whole packet is inside a magnet, or outside every magnet, that is exact: the field does not change along x there, and the factorized wave is an exact solution. While the packet crosses a magnet's entrance or exit it is an approximation, for two reasons. Different parts of the packet move at slightly different speeds (a spread of about 1.4% here, set by the packet's length), so they spend slightly different times in the field; the factorized wave gives them all the same time. And the atom's magnetic energy changes as it enters the field; in a full calculation that energy would come from the motion along the beam and change the atom's speed, while here the speed stays fixed. The model atom's magnetic energy, (ħ/2m)|B|, is about 4% of its kinetic energy along the beam, so a full calculation would change its speed in the magnet by about 2%. For a silver atom in a 1 T field the magnetic energy is about 0.02% of the kinetic energy, and the packet is far shorter than the magnet's ends, so the same approximation is very good there: it is the one used in textbook treatments, where the atom's motion along the beam is classical. A separate full 3D calculation of the Pauli equation (one magnet, +z atom, screen at 2.8 cm) gives a deflection 2.3% smaller than this engine and a spot of the same width; the two spots differ by 2% of their weight. For an equal superposition the 3D upper and lower spots are deflected by amounts that differ by about 5%, because the atom gains speed in the field when its spin is along it and loses speed when it is against it. The Engine tab will offer the full 3D calculation in the app.</p>
+        <p>To keep these effects small the beam moves fast in grid units (44 cells per time unit) and the lengths along the beam are long in grid cells (the magnet is 400 cells). An earlier version used a speed eight times smaller, where the magnetic energy was 2.3 times the kinetic energy; a separate full 3D calculation then gave half the deflection for a +z atom. The flight time, the splitting and the lab units do not depend on this choice.</p>
         <h4>Magnetic field</h4>
         <p>For a magnet with its gradient along z the field is</p>
         <div class="eq">
@@ -190,7 +194,7 @@
         <p>The app shows lab units by giving each axis its own scale, matched to the 1922 experiment. This is possible because the motion along the beam (x) is computed separately from the motion across it (y and z). At the default settings the magnet is 3.5 cm long, the atoms move at 660 m/s, and the width of |Ψ|² across the beam (FWHM) is 35 µm, the width of the slit. The scales are then fixed, and the sliders change lab quantities: the field gradient in T/cm, the atom speed in m/s and the beam width in µm. The clock at the top left of the canvas gives the time since the packet started, in µs. The Axes button at the top right shows axes in these units: x in cm from the start of the tunnel, just behind the starting packet, to the screen, and y and z in µm from the middle of the box.</p>
         <table class="lab-table">
           <tr><th></th><th>Grid</th><th>Lab units</th><th>Set by</th></tr>
-          <tr><td>Along the beam, x</td><td>1 cell</td><td>0.70 mm</td><td>magnet length (50 cells)</td></tr>
+          <tr><td>Along the beam, x</td><td>1 cell</td><td>0.088 mm</td><td>magnet length (400 cells)</td></tr>
           <tr><td>Time</td><td>1 unit</td><td>5.8 µs</td><td>atom speed (127 µs from the start to the screen at 2.8 cm)</td></tr>
           <tr><td>Across the beam, y and z</td><td>1 cell</td><td>2.1 µm</td><td>slit width (FWHM 17 cells)</td></tr>
           <tr><td>Gradient, one magnet, screen at 2.8 cm</td><td>g = 5.8</td><td>3.3 T/cm</td><td>follows</td></tr>
@@ -202,6 +206,6 @@
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=25"></script>
+  <script type="module" src="./template.js?v=26"></script>
 </body>
 </html>

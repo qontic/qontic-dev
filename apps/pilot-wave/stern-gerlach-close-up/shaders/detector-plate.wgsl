@@ -20,7 +20,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32) -> DetectorOut {
   let inner = mix(vec2<f32>(-SCREEN_MARGIN), vec2<f32>(1.0 + SCREEN_MARGIN), yz);
   let gridPos = vec3<f32>(uni.detector.x, inner.x * maxP.y, inner.y * maxP.z);
   out.uv = inner;
-  out.position = uni.viewProj * vec4<f32>(gridPos * uni.visual1.w, 1.0);
+  out.position = uni.viewProj * vec4<f32>(gridPos * worldScale(), 1.0);
   return out;
 }
 

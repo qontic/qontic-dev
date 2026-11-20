@@ -20,3 +20,8 @@ The Spin term switch (Advanced) turns the spin part of the Pauli current on (def
 ## License and credit
 
 MIT License. Copyright (c) 2026 anssiZander. See [LICENSE](LICENSE).
+
+
+## Engines and beam scale
+
+The Engine tab (shared `qontic-engine-tab.js`, `show-engine="true"`) lists the engines: Fast (2D), in use, and Full 3D (in preparation). The beam moves at 44 cells per time unit and all lengths along the beam are 8 times longer than in the first version (BEAM_SCALE = 8, drawn 5 times shorter), so the atom's magnetic energy is about 4% of its kinetic energy along the beam and the packet's speed spread 1.4%. A separate full 3D numpy calculation (`sg3dcmp.py`, not in the repo) then agrees with the fast engine to 2.3% in deflection and 2% in spot shape.
