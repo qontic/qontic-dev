@@ -1,5 +1,11 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.5.8 — 2026-11-21
+Prompted by X. Oriols's question whether the lines are detections at one position or measurements of position.
+- Points beside the planes are drawn in a narrow band just beside each line (they were spread across the gap, which suggested an uncertainty along x); the caption says only transverse positions are recorded.
+- Physics: new section "A plane or an instant?": each line is a detector across the whole transverse range at a fixed distance, as in Kocsis et al.; Wiseman's protocol is at fixed times; the two agree when the longitudinal position is recorded or the packet is short; with the 50 nm packet, using only the transverse position at a fixed time changes slopes by up to about 5–9% (25–35% for 150 nm).
+- Display option "Fixed-time measurement, transverse position only": a dotted prediction curve (weak limit) in the velocity and shift plots; link parameter ft=1. Model function packetAveragedVelocity with a test (18 tests).
+
 ## 0.5.7 — 2026-11-07
 - Conditional pointer grids follow the Gaussian envelopes at each detected position, including valid readings outside the detector window. Output resolution and strip count adapt to pointer spread and screen size.
 - Field maps use fine detected-position histograms for starts and compare against exact flow lines from those same coordinates. Captions count completed lines; open endpoints mark missing data.

@@ -220,4 +220,16 @@ test('twelve-plane reconstruction uses fine starts and references the same accep
   }
 });
 
+test('fixed-time, transverse-only: reduces to the plane result for a short packet, differs for a long one', () => {
+  const xc = p.wall + 5.5, ys = Array.from({length: 81}, (_, i) => -4 + i * 0.1);
+  const tc = M.propagate(t0, (xc - p.wall) / p.k);
+  const short = M.packetAveragedVelocity(t0, p.k, p.wall, xc, ys, 1e-4);
+  ys.forEach((y, i) => assert.ok(Math.abs(short[i] - M.currentVelocity(tc, y)) < 1e-6));
+  // A 50 nm packet changes the slope by a few percent of its maximum, mostly near dark fringes.
+  const long = M.packetAveragedVelocity(t0, p.k, p.wall, xc, ys, 0.5);
+  let maxd = 0, maxv = 0;
+  ys.forEach((y, i) => { const v = M.currentVelocity(tc, y); maxd = Math.max(maxd, Math.abs(long[i] - v)); maxv = Math.max(maxv, Math.abs(v)); });
+  assert.ok(maxd / maxv > 0.01 && maxd / maxv < 0.2, `relative change ${maxd / maxv}`);
+});
+
 console.log(`${passed} tests passed`);

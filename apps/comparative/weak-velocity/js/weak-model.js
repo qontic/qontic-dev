@@ -369,3 +369,26 @@ export function ensembleDensity(terms1, sw, tau, ys, n = 41) {
   }
   return out;
 }
+
+// ------------------------------------------------------------ fixed-time measurement
+// Wiseman's protocol measures at two times. At a fixed time the particle can be
+// anywhere along the longitudinal packet F (density standard deviation sigmaX),
+// so if only the transverse position is recorded, the post-selected mean mixes
+// the planes the packet spans. In the weak limit the result at transverse
+// position y is the density-weighted average of j/|psi|^2 over those planes:
+//   v_t(y) = sum_x |F(x - xc)|^2 rho(y; x) v(y; x) / sum_x |F(x - xc)|^2 rho(y; x).
+// Only planes behind the slit wall contribute. With sigmaX -> 0 this is the
+// plane result v(y; xc).
+export function packetAveragedVelocity(terms0, k, wallX, xCenter, ys, sigmaX, n = 41) {
+  const slices = [];
+  for (let i = 0; i < n; i++) {
+    const dx = sigmaX * (-3 + 6 * i / (n - 1)), x = xCenter + dx;
+    if (x <= wallX) continue;
+    slices.push({w: Math.exp(-dx * dx / (2 * sigmaX * sigmaX)), t: propagate(terms0, (x - wallX) / k)});
+  }
+  return ys.map((y) => {
+    let s = 0, sv = 0;
+    for (const {w, t} of slices) { const r = w * density(t, y); s += r; sv += r * currentVelocity(t, y); }
+    return s > 0 ? sv / s : null;
+  });
+}
