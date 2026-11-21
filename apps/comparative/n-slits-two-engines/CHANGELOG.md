@@ -3,6 +3,13 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.15 — 2026-11-21
+Pablo: two green curves (solid and dotted) in the numerical engine are unclear; is the Mask wall needed (it looks like Absorbing); the brown engine label on the canvas is too loud.
+- Screen curves in the numerical engine: the comparison curve (analytical prediction) is now dashed purple (was dark brown, read as green) and is drawn only once the numerical curve exists; before the first numerical packet reaches the screen the single curve is the analytical one, and the caption says so. The caption names both lines with swatches: "solid curve = numerical prediction (computed flux) · dashed = analytical prediction, for comparison".
+- Mask vs Absorbing, measured (one packet each, default geometry): Absorbing lets 15.2% reach the screen, 5 bright fringes, L1 27% from the analytical curve; Mask 13.8%, 3 fringes, L1 8%; Absorbing vs Mask L1 31%. Not the same: Absorbing has sharp-edged openings in a thick wall (more diffraction); Mask has the analytical engine's Gaussian openings and is the like-with-like check of the two engines. Mask is now an Expert option (below Expert a Mask choice falls back to Reflecting and comes back at Expert). Physics text gives the numbers.
+- Engine label on the canvas: short ("Analytical" / "Numerical"), small, translucent rounded tag in the corner, theme-aware (was a brown/blue box with long white text).
+Checked: numerical run at Standard (curves and caption before and after the first packet), Mask hidden at Standard and restored at Expert, screenshots; no page errors.
+
 ## 1.0-dev.14 — 2026-11-21
 Pablo: at Basic the dots without error bars look poor, use a histogram; and why does the wave change colour when a detector is added?
 - Basic draws the screen hits as a histogram: one bar per screen pixel growing from the screen, in the hit colour (slit colours in Pilot Wave, By slit). Curve and bars share a scale with a 15% margin, so the tallest bars stay inside. Caption: "bars = hits so far at each place". Standard and Expert keep dots with ±√n.
