@@ -40,7 +40,7 @@ export const basicPhysicsHTML=`<div data-level-max="basic">
 <h2>What you see</h2>
 <p>A source on the left sends electrons towards a wall with narrow slits. Each electron is described by a wave: the coloured pattern moving across the picture. Each packet you see stands for many electrons sent separately, one after another, each with the same wave; here one packet gives 30 hits. One electron alone gives one dot.</p>
 <p>The wave goes through every open slit. Behind the wall the parts coming from different slits overlap. Where crest meets crest the wave is strong; where crest meets trough it cancels. This makes the bright and dark bands, the <b>fringes</b>.</p>
-<p>The screen on the right records each electron as one dot, a <b>hit</b>. A single hit lands at a random place, most likely where the wave is strong. Hit after hit, the dots build up the fringes. The curve shows where hits are expected.</p>
+<p>The screen on the right records each electron as one dot, a <b>hit</b>. A single hit lands at a random place, most likely where the wave is strong. Hit after hit, they build up the fringes: the bars on the right count the hits at each place on the screen, and the curve shows where hits are expected.</p>
 <p><b>Fringe spacing.</b> Slits closer together, or a longer wavelength λ, give wider fringes. The panel shows the spacing for the current settings.</p>
 <p><b>Slit buttons.</b> Click a slit number to open or close that slit. Click the small <b>D</b> under an open slit to put a which-slit detector on it: the detector records which slit the electron went through. The fringes that slit made with the others disappear. <b>Add detectors</b> puts one on every open slit.</p>
 <h2>The three views</h2>

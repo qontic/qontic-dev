@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te13';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML} from './physics-content.js?cache=te13';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te13';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te13';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te13';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te13';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te13';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te13';
-import {createNumericalEngine} from './numerical-engine.js?cache=te13';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te13';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te13';
-import {classifySlitSide} from './source-packet-model.js?cache=te13';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te14';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML} from './physics-content.js?cache=te14';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te14';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te14';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te14';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te14';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te14';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te14';
+import {createNumericalEngine} from './numerical-engine.js?cache=te14';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te14';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te14';
+import {classifySlitSide} from './source-packet-model.js?cache=te14';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -705,7 +705,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te13').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te14').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -740,6 +740,8 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  // filled a few milliseconds per frame, so the animation does not pause.
  // Display colour of each which-slit branch: the colour of its first slit (for two
  // slits cyan and orange, as before).
+ // Label of one record in the caption: "slit 1 (detector)" or "slits 2, 3 (no detector)".
+ function detectedSlotsLabel(p,slitNumbers){const det=new Set((p.detectorSlots||[]).map(slot=>p.slitIds[slot]+1));const isDet=slitNumbers.some(k=>det.has(k));return (slitNumbers.length>1?'slits ':'slit ')+slitNumbers.join(', ')+(isDet?' (detector fired)':' (no detector fired)');}
  function branchColorsOf(p){
   if(!p.whichPath)return [];const map=branchOf(p),out=[];
   map.forEach((b,slot)=>{if(!out[b]){const hex=slitColorOf('k'+p.slitIds[slot]);out[b]=[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}});
@@ -1070,7 +1072,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   const context=options.context||setupCtx,record=options.hits||hits,maxRecord=Math.max(1,...record),histo=detectorX+sensorWidth,widthPx=canvas.width-histo;
   const numPrediction=!options.profile&&context===setupCtx&&numericalActive()&&numProfile&&numProfile.fraction>0.002?numProfile:null;
   const prediction=options.profile||numPrediction||profile;
-  const {curve:predictionDensity,predictionScale,hitScale}=histogramLayout(record,prediction,options.screenHeight??screenHeight/100,widthPx);
+  const {curve:predictionDensity,predictionScale,hitScale}=histogramLayout(record,prediction,options.screenHeight??screenHeight/100,level==='basic'?widthPx*.85:widthPx);
   context.save();context.globalAlpha=1;context.fillStyle='#fff';context.fillRect(histo,0,widthPx,canvas.height);context.fillStyle='#000';context.fillRect(detectorX,0,sensorWidth,canvas.height);
   if((geometryEditing||shown('hit_prob'))&&!p.focused){
    // After a live slit change, the previous prediction stays (dashed) while hits from
@@ -1088,7 +1090,16 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    }
    context.globalAlpha=geometryEditing?1:elementOpacity('hit_prob');context.strokeStyle=colorProb;context.beginPath();predictionDensity.forEach((q,i)=>{const x=histo+q*predictionScale,y=i*canvas.height/(predictionDensity.length-1);i?context.lineTo(x,y):context.moveTo(x,y);});context.stroke();}
   const rgb=getRGBComponents(colorSensor);
-  record.forEach((n,i)=>{if(!n)return;const y=(i+.5)*canvas.height/p.bins,x=histo+n*hitScale,error=level==='basic'?0:Math.sqrt(n)*hitScale;
+  // Basic: a histogram (a bar per screen pixel, growing from the screen); above Basic: a dot
+  // per pixel at the count, with a ±√n bar.
+  const binH=canvas.height/p.bins;
+  const mark=(color,x,y,error,i,n,edge)=>{
+   context.strokeStyle=context.fillStyle=color;
+   if(level==='basic'){const top=i*binH+Math.min(.5,binH*.1),h=Math.max(1,binH-2*Math.min(.5,binH*.1));context.fillRect(histo,top,n*hitScale,h);if(edge){context.save();context.lineWidth=.6;context.strokeStyle='rgba(20,30,40,.45)';context.strokeRect(histo,top,n*hitScale,h);context.restore();}return;}
+   context.beginPath();context.moveTo(x-error,y);context.lineTo(x+error,y);context.stroke();context.beginPath();context.arc(x,y,3,0,2*Math.PI);context.fill();
+   if(edge){context.save();context.lineWidth=.8;context.strokeStyle='rgba(20,30,40,.6)';context.stroke();context.restore();}
+  };
+  record.forEach((n,i)=>{if(!n)return;const y=(i+.5)*canvas.height/p.bins,x=histo+n*hitScale,error=Math.sqrt(n)*hitScale;
    if(shown('plot_sensor')&&level!=='basic'){context.globalAlpha=elementOpacity('plot_sensor');const intensity=n/maxRecord;context.fillStyle=`rgb(${rgb.red*intensity},${rgb.green*intensity},${rgb.blue*intensity})`;context.fillRect(detectorX,i*canvas.height/p.bins,sensorWidth,canvas.height/p.bins);}
    if(shown('plot_hits')){
     context.globalAlpha=elementOpacity('plot_hits');
@@ -1100,10 +1111,9 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
      // band when the user returns to the By-slit view. Draw one marker for the
      // complete retained count so mixed histories never produce black overlays.
      const markerColor=slitColorOf(binSlitGroup(i,n));
-     context.strokeStyle=context.fillStyle=markerColor;context.beginPath();context.moveTo(x-error,y);context.lineTo(x+error,y);context.stroke();context.beginPath();context.arc(x,y,3,0,2*Math.PI);context.fill();
      // Dark edge so pale slit colours (yellow, pink) stay visible on the white histogram.
-     context.save();context.lineWidth=.8;context.strokeStyle='rgba(20,30,40,.6)';context.stroke();context.restore();
-    }else{let markerColor=colorHit;if(pwColors&&particleColorMode.value==='uniform')markerColor=colorPart;else if(pwColors&&particleColorMode.value==='spectrum'){const spectrum=spectrumHitCounts[i]?Math.round(spectrumHitSums[i]/spectrumHitCounts[i]):Math.round((i+.5)/p.bins*(spectrumSteps-1));markerColor=spectrumColor(spectrum);}context.strokeStyle=context.fillStyle=markerColor;context.beginPath();context.moveTo(x-error,y);context.lineTo(x+error,y);context.stroke();context.beginPath();context.arc(x,y,3,0,2*Math.PI);context.fill();}
+     mark(markerColor,x,y,error,i,n,true);
+    }else{let markerColor=colorHit;if(pwColors&&particleColorMode.value==='uniform')markerColor=colorPart;else if(pwColors&&particleColorMode.value==='spectrum'){const spectrum=spectrumHitCounts[i]?Math.round(spectrumHitSums[i]/spectrumHitCounts[i]):Math.round((i+.5)/p.bins*(spectrumSteps-1));markerColor=spectrumColor(spectrum);}mark(markerColor,x,y,error,i,n,false);}
    }
   });
   if(interpretation==='bohmian'&&context===setupCtx&&particleColorMode.value==='slit'&&screenBands&&!options.hits){
@@ -1160,10 +1170,6 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   const engineLine=numericalActive()?`Numerical engine (Schrödinger equation on a grid, ${numSlitModel==='mask'?'analytical Gaussian mask':numSlitModel+' wall'}): ${interpretation==='bohmian'?'particles are guided by the computed wave.':'the hits are the simulated particles that reach the screen, sampled from the computed flux.'} Green curve: numerical prediction; dashed: analytical. `:engineWanted()?'Numerical engine not available here; showing the analytical engine. ':'';
   const swatch=(color,label)=>`<span class="cap-swatch" style="background:${color}"></span>${label}`;
   const lines=[];
-  if(p?.whichPath){
-   const map=branchOf(p),groups=[];map.forEach((b,slot)=>{(groups[b]||=[]).push(p.slitIds[slot]+1);});
-   if(!numericalActive())lines.push('Wave colours, one per detector record: '+groups.map((slits,b)=>swatch(slitColorOf('k'+(slits[0]-1)),(p.detectorSlots.some(s=>p.slitIds[s]+1===slits[0])?`slit ${slits[0]} (its detector fired)`:`slit${slits.length>1?'s':''} ${slits.join(', ')} (no detector fired)`))).join(' · ')+'.');
-  }
   const pwMode=interpretation==='bohmian'?particleColorMode.value:'';
   const greyNote=numericalActive()&&classicLook()&&pwMode&&pwMode!=='uniform'&&!START_MODES.includes(pwMode)?' '+swatch('#8b939c','grey: not through a slit yet (or turned back by the wall)'):'';
   if(pwMode==='slit'){
@@ -1177,11 +1183,18 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   // After the first complete analytical packet, point once to the other engine (until the Engine tab is opened).
   let engineSeen=false;try{engineSeen=localStorage.getItem('qontic-te-engine-tab-seen')==='1';}catch(_){}
   if(level!=='basic'&&!engineSeen&&!engineWanted()&&(pulse>=2||nHits>=(p?.particles||1e9)))lines.push('Same experiment with the full Schrödinger equation: <b>Engine</b> tab.');
+  // With which-slit detectors the wave behind the wall is no longer one wave: one part per
+  // detector record, drawn in the colour of its slit (no single phase colour exists for it).
+  if(p?.whichPath&&waveShown()&&!numericalActive()){
+   const map=branchOf(p),groups=[];map.forEach((b,slot)=>{(groups[b]=groups[b]||[]).push(p.slitIds[slot]+1);});
+   const parts=groups.map((g,b)=>swatch(slitColorOf('k'+(g[0]-1)),detectedSlotsLabel(p,g))).join(' · ');
+   lines.push((level==='basic'?'Wave colours: with a detector the wave behind the wall splits into parts that no longer interfere; each colour is one part: ':'Wave colours with detectors: one part of the wave per detector record, drawn separately because the parts no longer interfere (no common phase to colour): ')+parts+'.');
+  }
   if(niceInfo&&niceInfo.fp===fingerprint)lines.push('<b>Nice fringes:</b> '+niceInfo.text);
   else if(niceInfo){niceInfo=null;const el=document.getElementById('nice-fringes-status');if(el&&el.textContent.includes('details below'))el.textContent='';}
   const colours=lines.map(l=>`<p class="cap-legend">${l}</p>`).join('');
   const hitText=pwMode==='slit'?'dots = hits counted (coloured by slit), bars = ±√n':pwMode==='spectrum'?'dots = hits counted (coloured by wall position), bars = ±√n':swatch(pwMode==='uniform'?colorPart:colorHit,'dots = hits counted, bars = ±√n');
-  const legend=level==='basic'?'Screen: '+swatch(colorProb,'curve = where hits are expected')+' · '+swatch(interpretation==='bohmian'&&pwMode==='uniform'?colorPart:colorHit,'dots = hits so far')+' · '+swatch(colorSensor,'flash on the screen = an electron arriving')+'.':'Screen: '+swatch(colorProb,'curve = predicted distribution')+(transition&&t<transition.until?' (dashed: the earlier slit setting, for the part of the wave already past the wall)':'')+' · '+hitText+' · black strip with green bars = hits per detector pixel. One packet = '+(p?.particles??'')+(interpretation!=='bohmian'&&!numericalActive()?((p?.particles===1?' hit':' hits')+(level==='basic'?'.':' (Hits / packet, Advanced).')):((p?.particles===1?' particle':' particles')+(level==='basic'?'.':' (Part./packet, Advanced).')));
+  const legend=level==='basic'?'Screen: '+swatch(colorProb,'curve = where hits are expected')+' · '+swatch(interpretation==='bohmian'&&pwMode==='uniform'?colorPart:colorHit,'bars = hits so far at each place')+' · '+swatch(colorSensor,'flash on the screen = an electron arriving')+'.':'Screen: '+swatch(colorProb,'curve = predicted distribution')+(transition&&t<transition.until?' (dashed: the earlier slit setting, for the part of the wave already past the wall)':'')+' · '+hitText+' · black strip with green bars = hits per detector pixel. One packet = '+(p?.particles??'')+(interpretation!=='bohmian'&&!numericalActive()?((p?.particles===1?' hit':' hits')+(level==='basic'?'.':' (Hits / packet, Advanced).')):((p?.particles===1?' particle':' particles')+(level==='basic'?'.':' (Part./packet, Advanced).')));
   const key=engineLine+view+colours+legend;if(key===captionKey)return;captionKey=key;
   host.innerHTML=`<p>${engineLine?`<b>${engineLine}</b>`:''}${view}</p><p class="cap-legend">${legend}</p>${colours}`;
  }

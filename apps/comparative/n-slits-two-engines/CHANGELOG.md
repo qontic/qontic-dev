@@ -3,6 +3,12 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.14 — 2026-11-21
+Pablo: at Basic the dots without error bars look poor, use a histogram; and why does the wave change colour when a detector is added?
+- Basic draws the screen hits as a histogram: one bar per screen pixel growing from the screen, in the hit colour (slit colours in Pilot Wave, By slit). Curve and bars share a scale with a 15% margin, so the tallest bars stay inside. Caption: "bars = hits so far at each place". Standard and Expert keep dots with ±√n.
+- Detector colours explained. With a which-slit detector the state behind the wall is a sum of parts tied to different detector records; they no longer interfere and have no common phase, so each part is drawn in its slit's colour instead of the phase palette. The caption now says so in plain words at Basic ("with a detector the wave behind the wall splits into parts that no longer interfere; each colour is one part: slit 1 (detector fired) · slit 2 (no detector fired)") and more technically above Basic; it replaces the old one-line legend.
+Checked: Basic run in Orthodox and Pilot Wave (histogram), detector captions at Basic (2 slits) and Standard (3 slits, detector on slit 2), screenshots; no page errors.
+
 ## 1.0-dev.13 — 2026-11-20
 Fixes from a three-reviewer review of dev.12 (QA tester, introductory-physics teacher, quantum-foundations physicist; context/2026-11-20-n-slits-two-engines-three-reviewer-review.md) and Pablo's four decisions.
 - **Blocker:** in the analytical engine, opening or closing a slit during a run restarted the run and wiped the hits (since dev.1: the comparison of old and new settings included the geometry object, which holds the slit states). The run now continues, the earlier prediction shows dashed until the change reaches the screen, and "Apply slit changes when the packet reaches the wall" and quiz Watch for the closing question work again.
