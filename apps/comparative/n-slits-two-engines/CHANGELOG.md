@@ -3,6 +3,11 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.16 — 2026-11-21
+Pablo: the 1×/2×/4× zoom buttons on the canvas are not useful; remove them.
+- Zoom bar removed (it came with the dev.8 port of the numerical app). The view stays at 1×; the distance scale and grid code still accept a zoom factor of 1.
+Checked: no zoom bar at any level, run starts, no page errors.
+
 ## 1.0-dev.15 — 2026-11-21
 Pablo: two green curves (solid and dotted) in the numerical engine are unclear; is the Mask wall needed (it looks like Absorbing); the brown engine label on the canvas is too loud.
 - Screen curves in the numerical engine: the comparison curve (analytical prediction) is now dashed purple (was dark brown, read as green) and is drawn only once the numerical curve exists; before the first numerical packet reaches the screen the single curve is the analytical one, and the caption says so. The caption names both lines with swatches: "solid curve = numerical prediction (computed flux) · dashed = analytical prediction, for comparison".
