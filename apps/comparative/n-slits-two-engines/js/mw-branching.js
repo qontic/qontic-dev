@@ -1,4 +1,4 @@
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te18';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te19';
 // Count active branch-view time only; pausing does not consume the interval.
 export function createBranchDwellClock(now=()=>performance.now()) {
   let elapsed=0,last=null;

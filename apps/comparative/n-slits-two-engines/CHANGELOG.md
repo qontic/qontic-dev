@@ -3,6 +3,11 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.19 — 2026-11-21
+Pablo: make the phase key resizable.
+- Phase key resizable from its top-left corner (the bottom-right corner stays put), 120–320 px wide; the size is remembered with the position. Smaller fold button.
+Checked: resize from 168 to 120 px keeps the bottom-right corner, size saved; no page errors.
+
 ## 1.0-dev.18 — 2026-11-21
 Pablo: make the wave phase key floating and foldable to an icon, placed by the hit histogram and probability curve.
 - The Classic phase key is now a floating panel over the canvas (was painted on the field): it starts at the bottom right, over the screen histogram and curve; drag it anywhere; the "–" button folds it to a round phase-colour icon, and a tap on the icon opens it again (Enter/Space too). Position and folded state are remembered. On narrow screens it starts as the icon. Shown only with the Classic palette and while Show change is off.
