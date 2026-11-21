@@ -59,24 +59,24 @@ const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg3d4",
-  palette: "./shaders/palette.wgsl?v=sg3d4",
-  waveInit: "./shaders/wave-init.wgsl?v=sg3d4",
-  waveStep: "./shaders/wave-step.wgsl?v=sg3d4",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d4",
-  cloud: "./shaders/cloud.wgsl?v=sg3d4",
-  particleRender: "./shaders/particle-render.wgsl?v=sg3d4",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d4",
-  density: "./shaders/density.wgsl?v=sg3d4",
-  boxShell: "./shaders/box-shell.wgsl?v=sg3d4",
-  line: "./shaders/line.wgsl?v=sg3d4",
-  fieldLine: "./shaders/field-line.wgsl?v=sg3d4",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d4",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d4",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d4",
-  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d4",
-  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d4",
-  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d4",
+  common: "./shaders/common.wgsl?v=sg3d6",
+  palette: "./shaders/palette.wgsl?v=sg3d6",
+  waveInit: "./shaders/wave-init.wgsl?v=sg3d6",
+  waveStep: "./shaders/wave-step.wgsl?v=sg3d6",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d6",
+  cloud: "./shaders/cloud.wgsl?v=sg3d6",
+  particleRender: "./shaders/particle-render.wgsl?v=sg3d6",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d6",
+  density: "./shaders/density.wgsl?v=sg3d6",
+  boxShell: "./shaders/box-shell.wgsl?v=sg3d6",
+  line: "./shaders/line.wgsl?v=sg3d6",
+  fieldLine: "./shaders/field-line.wgsl?v=sg3d6",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d6",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d6",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d6",
+  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d6",
+  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d6",
+  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d6",
 };
 
 function applyShaderConstants(source) {
@@ -322,6 +322,7 @@ function formatValue(key, v, format) {
 function refreshUnitLabels() {
   for (const { key, val, format } of unitLabels) val.textContent = formatValue(key, params[key], format);
 }
+const controlSyncs = {};
 function addSlider(key, label, min, max, step, onChange = null, format = null) {
   const row = document.createElement("div");
   row.className = "row";
@@ -364,6 +365,7 @@ function addSlider(key, label, min, max, step, onChange = null, format = null) {
 function addChips(key, values, onSet, format = v => `${v}°`) {
   const row = document.createElement("div");
   row.className = "row chip-row";
+  row.dataset.chipsFor = key;
   const spacer = document.createElement("span");
   row.appendChild(spacer);
   const box = document.createElement("div");
@@ -403,6 +405,7 @@ function addToggleInt(key, label, onChange = null) {
     btn.setAttribute("aria-pressed", String(Boolean(params[key])));
   };
   sync();
+  controlSyncs[key] = sync;
   btn.addEventListener("click", () => {
     params[key] = params[key] ? 0 : 1;
     sync();
@@ -439,6 +442,7 @@ function addCycleButton(key, label, values, onChange = null) {
   };
 
   sync();
+  controlSyncs[key] = sync;
   btn.addEventListener("click", () => {
     params[key] = (params[key] + 1) % values.length;
     sync();
@@ -468,6 +472,7 @@ function addSectionHeader(label) {
   header.style.letterSpacing = "1px";
   header.textContent = label;
   controls.appendChild(header);
+  return header;
 }
 
 // Layout along the beam, in cells (see Magnets below).
@@ -606,7 +611,7 @@ function syncSlider(key) {
 addSlider("sgGradient", "Field gradient", 0.0, 6.0, 0.05, () => requestTrailClear(), g => `${labGradient(g).toFixed(1)} T/cm`);
 addSlider("screenDistance", "Screen distance", 10 * BEAM_SCALE, 60 * BEAM_SCALE, BEAM_SCALE, () => applyScreenDistance(), d => `${(d * LAB_SCALE.sx * 100).toFixed(1)} cm`);
 
-addSectionHeader("Wave and guidance");
+addSectionHeader("Wave and guidance").dataset.levelMin = "standard";
 addSlider("p0", "Atom speed", 0.0, 1.09 * BEAM_SPEED, 0.02 * BEAM_SPEED, () => resetAll(), p => `${Math.round(labSpeed(p))} m/s`);
 addCycleButton("beamShape", "Beam", ["Round", "Ribbon (1922 slit)"], () => resetAll());
 addSlider("packetSigma", "Beam width (FWHM)", 4.0, 14.0, 0.5, () => { rebuildBoxGeometry(); rebuildMagneticFieldLines(); resetAll(); }, s => `${Math.round(labFWHM(s) * 1e6)} µm`);
@@ -639,6 +644,55 @@ addToggleInt("spinTerm", "Spin term (Pauli)", () => requestRedraw());
 // 2D leapfrog: stable below ~0.022 at the largest gradient (z-then-y magnets, g = 7.5).
 addSlider("dt", "Time step", 0.002, 0.016, 0.002, null, d => `${Math.round(d * LAB_SCALE.st * 1e9)} ns`);
 
+// ── Level of detail (Basic · Standard · Expert), as in the N-slit app ─────────
+// A control hidden below a level takes its default there, so a hidden control never changes
+// the physics; the user's value is kept and comes back at that level (also across reloads).
+let appStarted = false;
+const LEVEL_RANK = { basic: 0, standard: 1, expert: 2 };
+const LEVEL_CONTROLS = {
+  spinPhi: "standard", magnetPreset: "standard", fieldShape: "standard", screenDistance: "standard",
+  p0: "standard", beamShape: "standard", packetSigma: "standard",
+  fieldLineDensity: "standard", fieldArrowSpacing: "standard", cameraProjection: "standard",
+  cloudGain: "standard", dotSize: "standard", dotGain: "standard", trailHalfLife: "standard",
+  nParticles: "standard",
+  showPhase: "expert", spinTerm: "expert", dt: "expert",
+};
+const LEVEL_DEFAULTS = Object.fromEntries(Object.keys(LEVEL_CONTROLS).map(k => [k, params[k]]));
+for (const [key, min] of Object.entries(LEVEL_CONTROLS)) {
+  const row = document.getElementById(key)?.closest(".row");
+  if (row) row.dataset.levelMin = min;
+  document.querySelectorAll(`[data-chips-for="${key}"]`).forEach(r => { r.dataset.levelMin = min; });
+}
+const LEVEL_SAVED_KEY = "qontic-sg-level-saved";
+let levelSaved = {};
+try { levelSaved = JSON.parse(localStorage.getItem(LEVEL_SAVED_KEY) || "{}"); } catch { levelSaved = {}; }
+function applyLevelDefaults(level) {
+  const rank = LEVEL_RANK[level] ?? 0;
+  const changed = new Set();
+  for (const [key, min] of Object.entries(LEVEL_CONTROLS)) {
+    if (LEVEL_RANK[min] > rank) {
+      if (!(key in levelSaved)) levelSaved[key] = params[key];
+      if (params[key] !== LEVEL_DEFAULTS[key]) { params[key] = LEVEL_DEFAULTS[key]; changed.add(key); }
+    } else if (key in levelSaved) {
+      const v = levelSaved[key];
+      delete levelSaved[key];
+      if (params[key] !== v) { params[key] = v; changed.add(key); }
+    }
+  }
+  try { localStorage.setItem(LEVEL_SAVED_KEY, JSON.stringify(levelSaved)); } catch { /* private mode */ }
+  if (!changed.size) return false;
+  for (const key of changed) { syncSlider(key); controlSyncs[key]?.(); }
+  if (!simulationAvailable || !appStarted) return true;
+  if (changed.has("cameraProjection")) { activeOrthoView = null; syncCameraUi(); }
+  updateGradientLimit(changed.has("magnetPreset") || changed.has("fieldShape"));
+  rebuildBoxGeometry();
+  rebuildMagneticFieldLines();
+  if (changed.has("nParticles")) rebuildParticles();
+  resetAll();
+  updateStats();
+  return true;
+}
+
 window.addEventListener("keydown", event => {
   if (!simulationAvailable || event.defaultPrevented || event.target.closest?.("button, a, summary")) return;
   handleCameraKey(event);
@@ -659,6 +713,8 @@ const uniformBuffer = device.createBuffer({
   size: UNIFORM_BYTES,
   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
+// Placeholder for the wave binding an engine does not use (cloud and probability shaders).
+const dummyStorage = device.createBuffer({ label: "unused wave binding", size: 32, usage: GPUBufferUsage.STORAGE });
 const trailUniformBuffer = device.createBuffer({
   label: "trail uniforms",
   size: UNIFORM_BYTES,
@@ -692,7 +748,7 @@ const PARTICLE_UPDATE3D_WGSL = SHADERS.particleUpdate3d;
 let pipelineWeightReduce = null;
 let pipelineWaveInit, pipelineWaveStep, pipelineParticleUpdate;
 let pipelineCloud, pipelineBoxShell, pipelineLine, pipelineFieldLine, pipelineDetectorPlate, pipelineMagnetPole, pipelineSpinArrow;
-let particleSpin = null, spinArrowBindGroups = [];
+let particleSpin = null, particleRk = null, spinArrowBindGroups = [];
 let meanSpinBuffer = null, meanSpinVertexCount = 0;
 const MEAN_SPIN_MAX_VERTS = 240;
 let pipelineParticleRender, pipelineParticleStamp;
@@ -1110,16 +1166,11 @@ function rebuildWaveBindGroups() {
       { binding: 2, resource: { buffer: waveBufferA } },
     ]),
   ];
-  cloudBindGroups = [
-    bindGroup(pipelineCloud, [
-      { binding: 0, resource: { buffer: uniformBuffer } },
-      { binding: 1, resource: { buffer: waveBufferA } },
-    ]),
-    bindGroup(pipelineCloud, [
-      { binding: 0, resource: { buffer: uniformBuffer } },
-      { binding: 1, resource: { buffer: waveBufferB } },
-    ]),
-  ];
+  cloudBindGroups = [waveBufferA, waveBufferB].map(buffer => bindGroup(pipelineCloud, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer } },
+    { binding: 2, resource: { buffer: dummyStorage } },
+  ]));
   rebuildWeightResources();
   rebuildParticleBindGroups();
 }
@@ -1140,13 +1191,15 @@ function rebuildWeightResources() {
   }
   weight3BindGroups = wave3A ? [wave3A, wave3B].map(buffer => bindGroup(pipelineWeightReduce, [
     { binding: 0, resource: { buffer: uniformBuffer } },
-    { binding: 1, resource: { buffer } },
+    { binding: 1, resource: { buffer: dummyStorage } },
     { binding: 2, resource: { buffer: weightPartials } },
+    { binding: 3, resource: { buffer } },
   ])) : [];
   weightBindGroups = [waveBufferA, waveBufferB].map(buffer => bindGroup(pipelineWeightReduce, [
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: { buffer } },
     { binding: 2, resource: { buffer: weightPartials } },
+    { binding: 3, resource: { buffer: dummyStorage } },
   ]));
   weightCounts = { values: [0.5, 0.5], valid: false };
 }
@@ -1161,6 +1214,7 @@ function rebuildParticleBindGroups() {
     { binding: 2, resource: { buffer: src } },
     { binding: 3, resource: { buffer: particles[1 - srcIndex] } },
     { binding: 4, resource: { buffer: particleSpin } },
+    { binding: 5, resource: { buffer: particleRk } },
   ]))) : [];
   particleUpdateBindGroups = waves.map((waveBuffer) => particles.map((src, srcIndex) => bindGroup(pipelineParticleUpdate, [
     { binding: 0, resource: { buffer: uniformBuffer } },
@@ -1168,6 +1222,7 @@ function rebuildParticleBindGroups() {
     { binding: 2, resource: { buffer: src } },
     { binding: 3, resource: { buffer: particles[1 - srcIndex] } },
     { binding: 4, resource: { buffer: particleSpin } },
+    { binding: 5, resource: { buffer: particleRk } },
   ])));
   spinArrowBindGroups = particles.map((buffer) => bindGroup(pipelineSpinArrow, [
     { binding: 0, resource: { buffer: uniformBuffer } },
@@ -1952,6 +2007,8 @@ function rebuildParticles() {
   for (let i = 0; i < n; i++) spin0.set([sv[0], sv[1], sv[2], 1], 4 * i);
   destroyGpuResource(particleSpin);
   particleSpin = makeBuffer("particle spin", spin0, GPUBufferUsage.STORAGE);
+  destroyGpuResource(particleRk);
+  particleRk = makeStorageBuffer("particle RK4 stages", Math.max(1, n) * 32);
   if (n > 0) {
     hitReadback = device.createBuffer({
       label: "plate hit readback",
@@ -2083,7 +2140,8 @@ function particleUpdate(pass) {
   if (n <= 0) return;
   pass.setPipeline(is3D() ? pipelineParticleUpdate3 : pipelineParticleUpdate);
   pass.setBindGroup(0, (is3D() ? particle3BindGroups : particleUpdateBindGroups)[flip][particleFlip]);
-  pass.dispatchWorkgroups(dispatchCount(n, PARTICLE_WORKGROUP_SIZE));
+  // Four RK4 stages; the number of workgroup rows tells the shader which stage it is.
+  for (let stage = 0; stage < 4; stage++) pass.dispatchWorkgroups(dispatchCount(n, PARTICLE_WORKGROUP_SIZE), stage + 1);
   particleFlip = 1 - particleFlip;
 }
 
@@ -2871,7 +2929,8 @@ function rerunTime() {
 }
 
 // Full 3D engine: allocate the moving window (two buffers of WIN_NX × H × D cells) on first use.
-function engine3Bytes() { return WIN_NX * simH * simD * WAVE_CELL_BYTES; }
+const WAVE3_CELL_BYTES = 16;   // one spinor per cell (psi(t) and psi(t - dt) in two buffers)
+function engine3Bytes() { return WIN_NX * simH * simD * WAVE3_CELL_BYTES; }
 // The 3D shaders compile only when Full 3D is first chosen (several seconds on some GPUs),
 // so the app opens on the fast engine without waiting for them.
 let pipelines3Promise = null;
@@ -2900,11 +2959,13 @@ function engine3Available() {
 function ensure3DResources() {
   if (wave3A) return;
   waveCount3 = WIN_NX * simH * simD;
-  wave3A = makeStorageBuffer("3D wave A", waveCount3 * WAVE_CELL_BYTES);
-  wave3B = makeStorageBuffer("3D wave B", waveCount3 * WAVE_CELL_BYTES);
+  wave3A = makeStorageBuffer("3D wave A", waveCount3 * WAVE3_CELL_BYTES);
+  wave3B = makeStorageBuffer("3D wave B", waveCount3 * WAVE3_CELL_BYTES);
+  // After a reset flip = 0: psi(0) in A, psi(-dt) in B.
   wave3InitBindGroup = bindGroup(pipelineWave3Init, [
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: { buffer: wave3A } },
+    { binding: 2, resource: { buffer: wave3B } },
   ]);
   wave3StepBindGroups = [[wave3A, wave3B], [wave3B, wave3A]].map(([a, b]) => bindGroup(pipelineWave3Step, [
     { binding: 0, resource: { buffer: uniformBuffer } },
@@ -2913,7 +2974,8 @@ function ensure3DResources() {
   ]));
   cloud3BindGroups = [wave3A, wave3B].map(buffer => bindGroup(pipelineCloud, [
     { binding: 0, resource: { buffer: uniformBuffer } },
-    { binding: 1, resource: { buffer } },
+    { binding: 1, resource: { buffer: dummyStorage } },
+    { binding: 2, resource: { buffer } },
   ]));
 }
 async function setEngine(id) {
@@ -3119,7 +3181,11 @@ function setEditing(on) {
   requestRedraw();
 }
 window.addEventListener("keydown", e => { if (e.key === "Escape" && editing) setEditing(false); });
-canvas.addEventListener("contextmenu", e => { e.preventDefault(); setEditing(!editing); });
+canvas.addEventListener("contextmenu", e => {
+  e.preventDefault();
+  if (document.body.dataset.qonticLevel === "basic" && !editing) return;   // Edit geometry from Standard
+  setEditing(!editing);
+});
 
 // Drag on the spin sphere to point the spin (front hemisphere; turn the view for the back).
 spinSphere.style.cursor = "grab";
@@ -3141,6 +3207,12 @@ function spinFromSphere(e) {
   for (const t of [0, 90, 180]) if (Math.abs(theta - t) <= 6) theta = t;
   for (const p of [0, 90, 180, 270, 360]) if (Math.abs(phi - p) <= 6) phi = p % 360;
   if (theta === 0 || theta === 180) phi = 0;
+  // Basic level: φ is hidden and stays 0, so the drag moves the spin in the z–x half plane.
+  if (document.body.dataset.qonticLevel === "basic") {
+    theta = Math.atan2(Math.max(l[0], 0), l[2]) / DEG;
+    for (const t of [0, 90, 180]) if (Math.abs(theta - t) <= 6) theta = t;
+    phi = 0;
+  }
   params.spinTheta = Math.round(theta);
   params.spinPhi = Math.round(phi);
   syncSlider("spinTheta");
@@ -3170,6 +3242,7 @@ async function main() {
   updateGradientLimit(true);
   rebuildMagneticFieldLines();
   resetAll();
+  appStarted = true;
   mark("reset");
   // Present the initial packet before the first batch of simulation steps.
   const initialFrame = device.createCommandEncoder({ label: "initial frame encoder" });
@@ -3319,6 +3392,20 @@ export const simulation = {
   moments: () => (weightCounts.valid ? { spin: weightCounts.spin, centre: weightCounts.centre, beam: weightCounts.beam, time: weightCounts.time, values: weightCounts.values } : null),
   setGeometry(g) { Object.assign(params, g); syncSlider('screenDistance'); finishGeometryChange(); },
   timing: () => ({ ...TIMING }),
+  applyLevel: level => applyLevelDefaults(level),
+  // Compile the 3D shaders in the background (Standard and Expert, where the Engine tab shows).
+  prewarm3D: () => { build3DPipelines(); },
+  async particles() {
+    const src = [particleSrc, particleDst][particleFlip];
+    const rb = device.createBuffer({ size: src.size, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+    const enc = device.createCommandEncoder();
+    enc.copyBufferToBuffer(src, 0, rb, 0, src.size);
+    device.queue.submit([enc.finish()]);
+    await rb.mapAsync(GPUMapMode.READ);
+    const out = Array.from(new Float32Array(rb.getMappedRange()));
+    rb.unmap(); rb.destroy();
+    return out;
+  },
   async benchmark(steps = 200) {
     await device.queue.onSubmittedWorkDone();
     const t0 = performance.now();

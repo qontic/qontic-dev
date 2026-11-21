@@ -1,6 +1,7 @@
 // Full 3D engine: initial packet in the moving window, a Gaussian in x', y, z with the chosen
 // spin, and prev = psi - dt * rhs for the first leapfrog step.
-@group(0) @binding(1) var<storage, read_write> waveOut: array<WaveCell>;
+@group(0) @binding(1) var<storage, read_write> waveCur: array<vec4<f32>>;
+@group(0) @binding(2) var<storage, read_write> wavePrev: array<vec4<f32>>;
 
 fn amp3(xp: f32, y: f32, z: f32) -> f32 {
   let H = uni.sim.y;
@@ -38,5 +39,6 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let lapS = Spinor(up * lap, dn * lap);
   let rhs = pauliRHS(psi, lapS, magneticField3(uni.win.x + xp, y, z));
   let dt = uni.physics.w;
-  waveOut[id] = WaveCell(psi.up, psi.down, psi.up - dt * rhs.up, psi.down - dt * rhs.down);
+  waveCur[id] = vec4<f32>(psi.up, psi.down);
+  wavePrev[id] = vec4<f32>(psi.up - dt * rhs.up, psi.down - dt * rhs.down);
 }

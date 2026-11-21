@@ -5,6 +5,7 @@
 // everywhere, so it cancels in the probabilities and in <sigma>.
 @group(0) @binding(1) var<storage, read> waveIn: array<WaveCell>;
 @group(0) @binding(2) var<storage, read_write> partialSums: array<vec4<f32>>;
+@group(0) @binding(3) var<storage, read> waveIn3: array<vec4<f32>>;   // Full 3D window (dummy for the fast engine)
 
 var<workgroup> wgSums: array<vec4<f32>, ${WAVE_WORKGROUP_SIZE}>;
 var<workgroup> wgSpin: array<vec4<f32>, ${WAVE_WORKGROUP_SIZE}>;
@@ -24,7 +25,8 @@ fn main(
     let H = u32(gridH());
     let c = boxCenterYZ();
     let r = vec2<f32>(f32(id % H), f32((id / H) % u32(gridD()))) - c;   // 2D grid or 3D window
-    let chi = waveSpinor(waveIn[id]);
+    var chi: Spinor;
+    if (engine3D()) { chi = spinor4(waveIn3[id]); } else { chi = waveSpinor(waveIn[id]); }
     let rho = spinorRho(chi);
     spin = vec4<f32>(spinDensity(chi), 0.0);
     // Third slot: first moment along the beam in the 3D window (x' from the window centre).

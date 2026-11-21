@@ -60,13 +60,12 @@ for (const button of viewButtons) button.addEventListener('click', () => {
 });
 
 // Engine tab (shared template): Fast (2D) and Full 3D, two models of the same Pauli equation.
-const FAST_NOTE = 'Exact free motion along the beam; the spin wave across it feels the field at the packet centre (approximate while the packet crosses a magnet end; see Physics: Geometry).';
 const engineTab = mountQonticEngineTab({
   panel: document.querySelector('[data-control-pane="engine"]'),
-  intro: 'The same experiment, computed two ways; both are models of the Pauli equation for the atom in the magnet. <b>Fast (2D)</b>: the motion along the beam is the exact free packet, and the spin wave across the beam feels the field at the packet\'s centre. <b>Full 3D</b>: the whole wave on a 128 × 128 × 128 grid that moves with the packet; each part of the packet feels the field where it is. It runs much slower. Switching restarts the packet.',
+  intro: 'Two ways to solve the same Pauli equation. Switching restarts the packet.',
   engines: [
-    { id: 'fast', label: 'Fast (2D)', title: 'Exact free motion along the beam; spinor on a 128 × 128 grid across it, with the field at the packet centre.', note: FAST_NOTE },
-    { id: '3d', label: 'Full 3D', title: 'Full 3D Pauli equation on the GPU, on a grid moving with the packet.', note: 'Full 3D: 128 × 128 × 128 cells moving with the packet (about 130 MB of GPU memory). Each part of the packet feels the field where it is; the atom speeds up slightly when its spin is along the field and slows down when it is against it.' },
+    { id: 'fast', label: 'Fast (2D)', title: 'Exact free motion along the beam; spinor on a 128 × 128 grid across it, with the field at the packet centre.', note: 'Field taken at the packet centre. Fast.' },
+    { id: '3d', label: 'Full 3D', title: 'Full 3D Pauli equation on a 128 × 128 × 128 grid moving with the packet.', note: 'Each part of the packet feels the field where it is. Slower.' },
   ],
   value: 'fast',
   onChange: async id => {
@@ -85,7 +84,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=33'));
+  ({ simulation } = await import('./main.js?v=35'));
   if (new URLSearchParams(location.search).has('debug')) window.qonticSG = simulation;
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
@@ -130,6 +129,7 @@ if (simulation?.isAvailable()) {
     editButton.type = 'button';
     editButton.className = toolbar.querySelector('button')?.className || '';
     editButton.setAttribute('aria-label', 'Edit geometry');
+    editButton.dataset.levelMin = 'standard';
     editButton.setAttribute('aria-pressed', 'false');
     editButton.title = 'Edit geometry · right-click the canvas. Drag the magnet start, magnet end, screen or the turn handle; Escape exits.';
     editButton.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 5l4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg>';
@@ -144,6 +144,31 @@ if (simulation?.isAvailable()) {
     reset: () => simulation.reset(),
     // S remains the existing camera-orbit shortcut in this app.
   });
+}
+
+// ── Level of detail: Basic (first visit) · Standard · Expert ───────────────
+// ?level= sets it; the choice is remembered. Below a level, its controls are hidden and take
+// their defaults (main.js applyLevel); Basic uses the fast engine and has no Engine or Advanced tab.
+const LEVELS = ['basic', 'standard', 'expert'];
+function applyLevel(level) {
+  if (!LEVELS.includes(level)) level = 'basic';
+  if (controls.getAttribute('level') !== level) controls.setAttribute('level', level);
+  document.body.dataset.qonticLevel = level;
+  try { localStorage.setItem('qontic-sg-level', level); } catch (_) {}
+  if (level === 'basic') {
+    if (simulation?.getEditing?.()) simulation.setEditing(false);
+    if (engineTab?.value === '3d') { engineTab.setValue('fast'); simulation?.setEngine('fast'); }
+  }
+  simulation?.applyLevel?.(level);
+  if (level !== 'basic') setTimeout(() => simulation?.prewarm3D?.(), 3000);
+}
+controls.setAttribute('levels', 'basic:Basic,standard:Standard,expert:Expert');
+controls.setAttribute('tab-levels', 'engine:standard,advanced:standard');
+controls.addEventListener('qontic:level', event => applyLevel(event.detail.level));
+{
+  const fromUrl = new URLSearchParams(location.search).get('level');
+  let saved = null; try { saved = localStorage.getItem('qontic-sg-level'); } catch (_) {}
+  applyLevel(LEVELS.includes(fromUrl) ? fromUrl : LEVELS.includes(saved) ? saved : 'basic');
 }
 
 

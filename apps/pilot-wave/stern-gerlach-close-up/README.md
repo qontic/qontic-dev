@@ -24,7 +24,7 @@ MIT License. Copyright (c) 2026 anssiZander. See [LICENSE](LICENSE).
 
 ## Engines and beam scale
 
-The Engine tab (shared `qontic-engine-tab.js`, `show-engine="true"`) lists the engines: Fast (2D), in use, and Full 3D (in preparation). The beam moves at 44 cells per time unit and all lengths along the beam are 8 times longer than in the first version (BEAM_SCALE = 8, drawn 5 times shorter), so the atom's magnetic energy is about 4% of its kinetic energy along the beam and the packet's speed spread 1.4%. A separate full 3D numpy calculation (`sg3dcmp.py`, not in the repo) then agrees with the fast engine to 2.3% in deflection and 2% in spot shape.
+The Engine tab (shared `qontic-engine-tab.js`, `show-engine="true"`) lists the engines: Fast (2D) and Full 3D. Full 3D keeps ψ′(t) and ψ′(t − dt) in two spinor arrays (16 bytes a cell, 64 MB) and writes ψ′(t + dt) over ψ′(t − dt) in place. Its shaders compile only when it is first chosen, or in the background a few seconds after the page opens at Standard or Expert. The beam moves at 44 cells per time unit and all lengths along the beam are 8 times longer than in the first version (BEAM_SCALE = 8, drawn 5 times shorter), so the atom's magnetic energy is about 4% of its kinetic energy along the beam and the packet's speed spread 1.4%. A separate full 3D numpy calculation (`sg3dcmp.py`, not in the repo) then agrees with the fast engine to 2.3% in deflection and 2% in spot shape.
 
 
 ## Axes and editing
@@ -35,3 +35,9 @@ Lab axes follow the textbook field B = −αx x̂ + (B0 + αz) ẑ (Griffiths an
 ## Field shapes and beam
 
 Core: Field = Textbook (linear gradient) or Knife edge (line pole along the beam at 1.5 L, K = g hp², same centre gradient). Pole faces are drawn on equipotentials of the chosen field. Wave: Beam = Round or Ribbon (2.5 times wider along x). Knife edge + ribbon gives the 1922 lips; checked with numpy (`lips2.py`).
+
+## Levels and performance
+
+Basic · Standard · Expert, as in the N-slit app (`levels` / `tab-levels` on `qontic-controls`; `?level=`; remembered in `localStorage`). Controls above the current level are hidden and take their defaults (`LEVEL_CONTROLS` in `main.js`); the user's values come back at the higher level. Basic has no Engine or Advanced tab, no Edit geometry, and the spin sphere moves the spin in the z–x half plane (φ = 0).
+
+The particle update runs RK4 as four dispatches, one per stage (the dispatch's workgroup rows give the stage), so each shader holds the guidance code once: the written-out step took 24 s to compile on an Intel GPU under Windows. Trajectories are bit-for-bit the same as before. `?debug=1` exposes `qonticSG.timing()`, `qonticSG.benchmark(steps)` and `qonticSG.particles()`.

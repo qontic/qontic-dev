@@ -1,13 +1,15 @@
 // Full 3D engine version of particle-update.wgsl (same bindings and plate handling).
-@group(0) @binding(1) var<storage, read> wave: array<WaveCell>;
+@group(0) @binding(1) var<storage, read> wave: array<vec4<f32>>;
 @group(0) @binding(2) var<storage, read> particlesIn: array<vec4<f32>>;
 @group(0) @binding(3) var<storage, read_write> particlesOut: array<vec4<f32>>;
 // Spin direction of the wave at each dot: Psi^dagger sigma Psi / Psi^dagger Psi (a unit vector).
 @group(0) @binding(4) var<storage, read_write> spinOut: array<vec4<f32>>;
+// RK4 scratch per dot: [2i] = position of the next stage, [2i + 1] = running sum of weighted velocities.
+@group(0) @binding(5) var<storage, read_write> rk: array<vec4<f32>>;
 
 fn fetchCell3(ix: i32, y: i32, z: i32) -> Spinor {
   if (ix < 0 || y < 0 || z < 0 || ix >= win3NX() || y >= gridH() || z >= gridD()) { return spinorZero(); }
-  return waveSpinor(wave[cell3(ix, y, z)]);
+  return spinor4(wave[cell3(ix, y, z)]);
 }
 fn mixSpinor(a: Spinor, b: Spinor, t: f32) -> Spinor {
   return Spinor(mix(a.up, b.up, t), mix(a.down, b.down, t));
@@ -100,22 +102,35 @@ fn detectorFlashBrightness(currentBrightness: f32) -> f32 {
   return max(targetBrightness, targetBrightness + (currentBrightness - targetBrightness) * decay);
 }
 
+// RK4 in four dispatches, one per stage (the dispatch has stage + 1 workgroup rows; only the
+// last row works), so the shader holds the velocity code once instead of four times: the fully
+// written-out step took tens of seconds to compile on some Windows drivers. Same arithmetic:
+// stages at x, x + dt/2 v1, x + dt/2 v2, x + dt v3; x_new = x + dt/6 (v1 + 2 v2 + 2 v3 + v4).
 @compute @workgroup_size(${PARTICLE_WORKGROUP_SIZE})
-fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
+fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(num_workgroups) groups: vec3<u32>) {
+  let stage = groups.y - 1u;
+  if (gid.y != stage) { return; }
   let id = gid.x;
   if (id >= u32(uni.particle1.z)) { return; }
   let state = particlesIn[id];
-  if (particleIsFrozen(state)) {
+  let frozen = particleIsFrozen(state);
+  let dt = uni.physics.w;
+  let x = vec3<f32>(state.w, state.y, state.z);
+  if (stage < 3u) {
+    if (frozen) { return; }
+    let at = select(rk[2u * id].xyz, x, stage == 0u);
+    let v = guidingVelocity(at);
+    let acc = select(rk[2u * id + 1u].xyz, vec3<f32>(0.0), stage == 0u) + select(2.0, 1.0, stage == 0u) * v;
+    rk[2u * id] = vec4<f32>(reflectIntoBox(x + select(0.5, 1.0, stage == 2u) * dt * v), 0.0);
+    rk[2u * id + 1u] = vec4<f32>(acc, 0.0);
+    return;
+  }
+  if (frozen) {
     particlesOut[id] = vec4<f32>(detectorFlashBrightness(state.x), state.y, state.z, state.w);
     return;
   }
-  let dt = uni.physics.w;
-  let x = vec3<f32>(state.w, state.y, state.z);
-  let v1 = guidingVelocity(x);
-  let v2 = guidingVelocity(reflectIntoBox(x + 0.5 * dt * v1));
-  let v3 = guidingVelocity(reflectIntoBox(x + 0.5 * dt * v2));
-  let v4 = guidingVelocity(reflectIntoBox(x + dt * v3));
-  let xn = reflectIntoBox(x + (dt / 6.0) * (v1 + 2.0 * v2 + 2.0 * v3 + v4));
+  let acc = rk[2u * id + 1u].xyz + guidingVelocity(rk[2u * id].xyz);
+  let xn = reflectIntoBox(x + (dt / 6.0) * acc);
   if (uni.detector.y > 0.5 && x.x < uni.detector.x && xn.x >= uni.detector.x) {
     let t = clamp((uni.detector.x - x.x) / max(1e-6, xn.x - x.x), 0.0, 1.0);
     let hit = mix(x, xn, t);

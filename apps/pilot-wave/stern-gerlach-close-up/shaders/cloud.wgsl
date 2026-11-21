@@ -1,5 +1,6 @@
 
 @group(0) @binding(1) var<storage, read> wave: array<WaveCell>;
+@group(0) @binding(2) var<storage, read> wave3: array<vec4<f32>>;   // Full 3D window (dummy for the fast engine)
 
 struct CloudOut {
   @builtin(position) position: vec4<f32>,
@@ -37,7 +38,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
     let ixw = i32(2u * ix);
     if (ixw >= win3NX()) { return out; }
     xd = uni.win.x + f32(ixw) - winX0();
-    spinor = waveSpinor(wave[cell3(ixw, i32(y), i32(z))]);
+    spinor = spinor4(wave3[cell3(ixw, i32(y), i32(z))]);
     rho = spinorRho(spinor);
   } else {
     spinor = waveSpinor(wave[cellIndex(i32(y), i32(z))]);

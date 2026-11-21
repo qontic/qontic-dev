@@ -164,6 +164,9 @@ fn quadCorner(v: u32) -> vec2<f32> {
 // Cell order: y fastest, then z, then x' (index = (ix * D + z) * H + y). The wave in the
 // window is psi'(x', y, z) = exp(-i(p0 x - E0 t)/hbar) psi(Xc + x', y, z): the carrier is removed
 // exactly (Galilean boost), so the grid only resolves the envelope.
+// 3D window cells hold one spinor each (up.xy, down.xy): the leapfrog keeps psi(t) and
+// psi(t - dt) in two such arrays and writes psi(t + dt) over psi(t - dt) in place.
+fn spinor4(c: vec4<f32>) -> Spinor { return Spinor(c.xy, c.zw); }
 fn win3NX() -> i32 { return i32(uni.win.y); }
 fn engine3D() -> bool { return uni.win.z > 0.5; }
 fn cell3(ix: i32, y: i32, z: i32) -> u32 { return u32((ix * gridD() + z) * gridH() + y); }
