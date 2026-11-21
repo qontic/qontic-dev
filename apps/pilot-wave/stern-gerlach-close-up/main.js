@@ -59,24 +59,24 @@ const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg3d7",
-  palette: "./shaders/palette.wgsl?v=sg3d7",
-  waveInit: "./shaders/wave-init.wgsl?v=sg3d7",
-  waveStep: "./shaders/wave-step.wgsl?v=sg3d7",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d7",
-  cloud: "./shaders/cloud.wgsl?v=sg3d7",
-  particleRender: "./shaders/particle-render.wgsl?v=sg3d7",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d7",
-  density: "./shaders/density.wgsl?v=sg3d7",
-  boxShell: "./shaders/box-shell.wgsl?v=sg3d7",
-  line: "./shaders/line.wgsl?v=sg3d7",
-  fieldLine: "./shaders/field-line.wgsl?v=sg3d7",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d7",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d7",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d7",
-  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d7",
-  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d7",
-  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d7",
+  common: "./shaders/common.wgsl?v=sg3d8",
+  palette: "./shaders/palette.wgsl?v=sg3d8",
+  waveInit: "./shaders/wave-init.wgsl?v=sg3d8",
+  waveStep: "./shaders/wave-step.wgsl?v=sg3d8",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d8",
+  cloud: "./shaders/cloud.wgsl?v=sg3d8",
+  particleRender: "./shaders/particle-render.wgsl?v=sg3d8",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d8",
+  density: "./shaders/density.wgsl?v=sg3d8",
+  boxShell: "./shaders/box-shell.wgsl?v=sg3d8",
+  line: "./shaders/line.wgsl?v=sg3d8",
+  fieldLine: "./shaders/field-line.wgsl?v=sg3d8",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d8",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d8",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d8",
+  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d8",
+  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d8",
+  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d8",
 };
 
 function applyShaderConstants(source) {
@@ -758,6 +758,13 @@ const linearSampler = device.createSampler({ magFilter: "linear", minFilter: "li
 // Wave cloud at half the canvas resolution (see density.wgsl fsComposite).
 const CLOUD_RESOLUTION = 0.5;
 let pipelineCloudComposite = null, cloudTex = null, cloudView = null, cloudCompositeBindGroup = null;
+// Kept cloud points (2 vec4 each) and the indirect draw arguments [6, count, 0, 0].
+let pipelineCloudPrep = null, cloudDrawBindGroup = null;
+const CLOUD_POINTS_MAX = 64 * 64 * 64;
+const cloudPoints = device.createBuffer({ label: "cloud points", size: CLOUD_POINTS_MAX * 32, usage: GPUBufferUsage.STORAGE });
+const cloudArgs = device.createBuffer({ label: "cloud draw args", size: 16, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.INDIRECT | GPUBufferUsage.COPY_DST, mappedAtCreation: true });
+new Uint32Array(cloudArgs.getMappedRange()).set([6, 0, 0, 0]);
+cloudArgs.unmap();
 
 let simW = 0, simH = 0, simD = 0;
 let voxelCount = 0;   // cloud point instances (x window × y × z, with stride)
@@ -918,6 +925,11 @@ async function buildPipelines() {
       targets: [{ format: DENSITY_FORMAT, blend: blendState("one", "one"), writeMask: COLOR_WRITE_ALL }],
     },
     primitive: { topology: "triangle-list" },
+  });
+  const pipelineCloudPrepReady = device.createComputePipelineAsync({
+    label: "cloud prep pipeline",
+    layout: "auto",
+    compute: { module: cloudModule, entryPoint: "prep" },
   });
   const pipelineCloudCompositeReady = device.createRenderPipelineAsync({
     label: "cloud composite pipeline",
@@ -1128,6 +1140,11 @@ async function buildPipelines() {
     pipelineSpinArrowReady,
   ]);
   pipelineCloudComposite = await pipelineCloudCompositeReady;
+  pipelineCloudPrep = await pipelineCloudPrepReady;
+  cloudDrawBindGroup = bindGroup(pipelineCloud, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 5, resource: { buffer: cloudPoints } },
+  ]);
   mark("pipelines");
 
   boxShellBindGroup = bindGroup(pipelineBoxShell, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
@@ -1182,10 +1199,12 @@ function rebuildWaveBindGroups() {
       { binding: 2, resource: { buffer: waveBufferA } },
     ]),
   ];
-  cloudBindGroups = [waveBufferA, waveBufferB].map(buffer => bindGroup(pipelineCloud, [
+  cloudBindGroups = [waveBufferA, waveBufferB].map(buffer => bindGroup(pipelineCloudPrep, [
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: { buffer } },
     { binding: 2, resource: { buffer: dummyStorage } },
+    { binding: 3, resource: { buffer: cloudPoints } },
+    { binding: 4, resource: { buffer: cloudArgs } },
   ]));
   rebuildWeightResources();
   rebuildParticleBindGroups();
@@ -2241,15 +2260,21 @@ function densityStepAndStamp(encoder, camera) {
 }
 
 function render(encoder, camera) {
-  const drawCloud = params.showCloud && cloudView && cloudCompositeBindGroup;
+  const drawCloud = params.showCloud && cloudView && cloudCompositeBindGroup && cloudDrawBindGroup && voxelCount <= CLOUD_POINTS_MAX;
   if (drawCloud) {
+    encoder.clearBuffer(cloudArgs, 4, 4);
+    const prep = encoder.beginComputePass({ label: "wave cloud prep" });
+    prep.setPipeline(pipelineCloudPrep);
+    prep.setBindGroup(0, (is3D() ? cloud3BindGroups : cloudBindGroups)[flip]);
+    prep.dispatchWorkgroups(Math.ceil(voxelCount / 256));
+    prep.end();
     const cloudPass = encoder.beginRenderPass({
       label: "wave cloud pass",
       colorAttachments: [{ view: cloudView, clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
     });
     cloudPass.setPipeline(pipelineCloud);
-    cloudPass.setBindGroup(0, (is3D() ? cloud3BindGroups : cloudBindGroups)[flip]);
-    cloudPass.draw(6, voxelCount);
+    cloudPass.setBindGroup(0, cloudDrawBindGroup);
+    cloudPass.drawIndirect(cloudArgs, 0);
     cloudPass.end();
   }
   const currentTexture = gpuContext.getCurrentTexture();
@@ -3006,10 +3031,12 @@ function ensure3DResources() {
     { binding: 1, resource: { buffer: a } },
     { binding: 2, resource: { buffer: b } },
   ]));
-  cloud3BindGroups = [wave3A, wave3B].map(buffer => bindGroup(pipelineCloud, [
+  cloud3BindGroups = [wave3A, wave3B].map(buffer => bindGroup(pipelineCloudPrep, [
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: { buffer: dummyStorage } },
     { binding: 2, resource: { buffer } },
+    { binding: 3, resource: { buffer: cloudPoints } },
+    { binding: 4, resource: { buffer: cloudArgs } },
   ]));
 }
 async function setEngine(id) {

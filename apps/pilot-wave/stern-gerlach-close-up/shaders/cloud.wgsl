@@ -1,6 +1,70 @@
-
+// Wave cloud in two passes. prep (compute, one thread per cloud cell): sample the wave once,
+// keep only the cells above the cutoff, and append them to `points` with the draw count in
+// `args` (indirect draw). vs then expands each kept point into a quad. Before, each of a quad's
+// six vertices redid the whole lookup for every cell, visible or not.
 @group(0) @binding(1) var<storage, read> wave: array<WaveCell>;
 @group(0) @binding(2) var<storage, read> wave3: array<vec4<f32>>;   // Full 3D window (dummy for the fast engine)
+@group(0) @binding(3) var<storage, read_write> pointsOut: array<vec4<f32>>;   // 2 per point
+struct DrawArgs { vertexCount: u32, instanceCount: atomic<u32>, firstVertex: u32, firstInstance: u32 };
+@group(0) @binding(4) var<storage, read_write> args: DrawArgs;
+@group(0) @binding(5) var<storage, read> points: array<vec4<f32>>;
+
+@compute @workgroup_size(256)
+fn prep(@builtin(global_invocation_id) gid: vec3<u32>) {
+  let id = gid.x;
+  if (id >= u32(uni.sim.w)) { return; }
+  // Instances cover a window along x around the packet and the y-z grid with a stride.
+  let W = u32(uni.sim.x);
+  let stride = max(1u, u32(uni.visual2.y));
+  let Hr = u32(uni.sim.y) / stride;
+  let Dr = u32(uni.sim.z) / stride;
+  let ix = id % W;
+  let rest = id / W;
+  let iy = rest % Hr;
+  let iz = rest / Hr;
+  if (iz >= Dr) { return; }
+  let y = iy * stride;
+  let z = iz * stride;
+  let x = uni.visual2.z + f32(ix);
+
+  var spinor: Spinor;
+  var rho: f32;
+  var xd = x;
+  if (engine3D()) {
+    // 3D engine: the instances cover the moving window with a stride of 2 cells along x'.
+    let ixw = i32(2u * ix);
+    if (ixw >= win3NX()) { return; }
+    xd = uni.win.x + f32(ixw) - winX0();
+    spinor = spinor4(wave3[cell3(ixw, i32(y), i32(z))]);
+    rho = spinorRho(spinor);
+  } else {
+    spinor = waveSpinor(wave[cellIndex(i32(y), i32(z))]);
+    rho = phiRho(x) * spinorRho(spinor);
+  }
+  let base = 1.0 - exp(-uni.visual0.x * rho);
+  if (base <= 0.0) { return; }
+  var intensity = pow(clamp(base, 0.0, 1.0), uni.visual0.y);
+  intensity = mix(intensity, pow(intensity, 0.52), clamp(uni.visual0.z, 0.0, 1.0));
+  if (intensity < uni.visual0.w) { return; }
+  if (uni.detector.y > 0.5 && xd > uni.detector.x) { return; }
+  let branch = branchSpin(spinDensity(spinor) / max(spinorRho(spinor), 1e-30));
+  let alpha = 0.24 * intensity * min(1.0, 2.5 * X_VIS);
+  var phase = 0.0;
+  if (i32(uni.visual1.y) == 1) {
+    let upRho = dot(spinor.up, spinor.up);
+    let downRho = dot(spinor.down, spinor.down);
+    let upWeight = upRho * upRho;
+    let downWeight = downRho * downRho;
+    let phaseVec =
+      spinor.up * (upWeight / sqrt(max(upRho, 1e-30))) +
+      spinor.down * (downWeight / sqrt(max(downRho, 1e-30)));
+    let phasePsi = select(vec2<f32>(1.0, 0.0), phaseVec, dot(phaseVec, phaseVec) > 1e-20);
+    phase = atan2(phasePsi.y, phasePsi.x) + select(phiPhase(x), 0.0, engine3D());
+  }
+  let k = atomicAdd(&args.instanceCount, 1u);
+  pointsOut[2u * k] = vec4<f32>(xd, f32(y), f32(z), intensity);
+  pointsOut[2u * k + 1u] = vec4<f32>(alpha, branch, phase, 0.0);
+}
 
 struct CloudOut {
   @builtin(position) position: vec4<f32>,
@@ -14,74 +78,25 @@ struct CloudOut {
 @vertex
 fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> CloudOut {
   var out: CloudOut;
-  out.position = vec4<f32>(2.0, 2.0, 2.0, 1.0);
-  // Instances cover a window along x around the packet and the y-z grid with a stride.
-  let id = instanceIndex;
-  let W = u32(uni.sim.x);
-  let stride = max(1u, u32(uni.visual2.y));
-  let Hr = u32(uni.sim.y) / stride;
-  let Dr = u32(uni.sim.z) / stride;
-  let ix = id % W;
-  let rest = id / W;
-  let iy = rest % Hr;
-  let iz = rest / Hr;
-  if (iz >= Dr) { return out; }
-  let y = iy * stride;
-  let z = iz * stride;
-  let x = uni.visual2.z + f32(ix);
-
-  var spinor: Spinor;
-  var rho: f32;
-  var xd = x;
-  if (engine3D()) {
-    // 3D engine: the instances cover the moving window with a stride of 2 cells along x'.
-    let ixw = i32(2u * ix);
-    if (ixw >= win3NX()) { return out; }
-    xd = uni.win.x + f32(ixw) - winX0();
-    spinor = spinor4(wave3[cell3(ixw, i32(y), i32(z))]);
-    rho = spinorRho(spinor);
-  } else {
-    spinor = waveSpinor(wave[cellIndex(i32(y), i32(z))]);
-    rho = phiRho(x) * spinorRho(spinor);
-  }
-  let base = 1.0 - exp(-uni.visual0.x * rho);
-  if (base <= 0.0) { return out; }
-  var intensity = pow(clamp(base, 0.0, 1.0), uni.visual0.y);
-  intensity = mix(intensity, pow(intensity, 0.52), clamp(uni.visual0.z, 0.0, 1.0));
-  if (intensity < uni.visual0.w) { return out; }
-
-  let visualX = xd;
-  if (uni.detector.y > 0.5 && visualX > uni.detector.x) { return out; }
+  let a = points[2u * instanceIndex];
+  let b = points[2u * instanceIndex + 1u];
+  let intensity = a.w;
   out.intensity = intensity;
-  out.branch = branchSpin(spinDensity(spinor) / max(spinorRho(spinor), 1e-30));
-  out.alpha = 0.24 * intensity * min(1.0, 2.5 * X_VIS);
+  out.alpha = b.x;
+  out.branch = b.y;
+  out.phase = b.z;
   let corner = quadCorner(vertexIndex);
   out.local = corner + vec2<f32>(0.5);
-  if (i32(uni.visual1.y) == 1) {
-    let upRho = dot(spinor.up, spinor.up);
-    let downRho = dot(spinor.down, spinor.down);
-    let upWeight = upRho * upRho;
-    let downWeight = downRho * downRho;
-    let phaseVec =
-      spinor.up * (upWeight / sqrt(max(upRho, 1e-30))) +
-      spinor.down * (downWeight / sqrt(max(downRho, 1e-30)));
-    let phasePsi = select(vec2<f32>(1.0, 0.0), phaseVec, dot(phaseVec, phaseVec) > 1e-20);
-    out.phase = atan2(phasePsi.y, phasePsi.x) + select(phiPhase(x), 0.0, engine3D());
-  }
-  let worldPos = vec3<f32>(visualX, f32(y), f32(z)) * worldScale();
+  let stride = max(1.0, uni.visual2.y);
+  let worldPos = a.xyz * worldScale();
   let clip = uni.viewProj * vec4<f32>(worldPos, 1.0);
   var viewScale = clamp(160.0 / max(1.0, clip.w), 0.35, 2.3);
   if (i32(uni.viewport.z) == 1) {
     viewScale = clamp(160.0 / max(1.0, uni.camera.w), 0.35, 2.3);
   }
-  let pointSize = uni.visual1.x * viewScale * mix(0.65, 1.45, intensity) * sqrt(f32(stride));
+  let pointSize = uni.visual1.x * viewScale * mix(0.65, 1.45, intensity) * sqrt(stride);
   let ndcOffset = corner * pointSize * 2.0 / max(uni.viewport.xy, vec2<f32>(1.0));
-  out.position = vec4<f32>(
-    clip.x + ndcOffset.x * clip.w,
-    clip.y + ndcOffset.y * clip.w,
-    clip.z,
-    clip.w
-  );
+  out.position = vec4<f32>(clip.x + ndcOffset.x * clip.w, clip.y + ndcOffset.y * clip.w, clip.z, clip.w);
   return out;
 }
 
