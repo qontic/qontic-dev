@@ -12,8 +12,8 @@ struct Uniforms {
   particle1: vec4<f32>,
   camera: vec4<f32>,
   viewport: vec4<f32>,
-  detector: vec4<f32>,
-  trail0: vec4<f32>,
+  detector: vec4<f32>,  // plate x, plate on, colour axis (grid y, z) of the magnet the packet has reached
+  trail0: vec4<f32>,    // x: branch-colour strength (0 before the first magnet, 1 inside it), w: trail gain
   density0: vec4<f32>,
   lineColor: vec4<f32>,
   boxCenter: vec4<f32>,
@@ -183,4 +183,17 @@ fn magneticField3(xLab: f32, y: f32, z: f32) -> vec3<f32> {
     b = b + magnetFieldYZ(vec4<f32>(profile3(xLab, uni.mag3a.z, uni.mag3a.w), cos(t2), sin(t2), 0.0), b0, y, z);
   }
   return vec3<f32>(0.0, b.x, b.y);
+}
+
+// Branch colours, as in the comparative Stern–Gerlach app: neutral pale blue while the spin
+// along the magnet axis is undecided, green toward + and red toward − once the field acts.
+// c = spin component along the axis (−1 … 1), times the colour strength.
+fn branchTint(c: f32) -> vec3<f32> {
+  let neutral = vec3<f32>(0.67, 0.80, 1.0);
+  let plus = vec3<f32>(0.27, 0.93, 0.40);
+  let minus = vec3<f32>(1.0, 0.33, 0.20);
+  return mix(neutral, select(minus, plus, c > 0.0), clamp(abs(c), 0.0, 1.0));
+}
+fn branchSpin(s: vec3<f32>) -> f32 {
+  return (s.y * uni.detector.z + s.z * uni.detector.w) * clamp(uni.trail0.x, 0.0, 1.0);
 }

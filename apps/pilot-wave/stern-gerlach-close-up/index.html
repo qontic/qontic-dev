@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=20" />
-  <link rel="modulepreload" href="./main.js?v=31" />
+  <link rel="stylesheet" href="./style.css?v=21" />
+  <link rel="modulepreload" href="./main.js?v=32" />
 </head>
 <body>
   <main class="shell">
@@ -34,7 +34,7 @@
         <div id="scene-legend" aria-label="Legend" hidden>
           <span id="legend-field"><i class="swatch field"></i>Magnetic field lines; arrowheads show the direction of B. The field points up (+z) and is stronger toward the top; this pushes the +z spin part up and the −z part down.</span>
           <span id="legend-cloud"><i class="swatch cloud"></i><span class="legend-text">Cloud: |Ψ|², where the particle can be found.</span></span>
-          <span id="legend-dots"><i class="swatch dots"></i>Dots: particle positions, started at random from |Ψ|². Yellow start on the + side of the packet, green on the − side.</span>
+          <span id="legend-dots"><i class="swatch dots"></i>Dots: particle positions, started at random from |Ψ|². Colour: the spin of the wave at the dot along the magnet axis, pale blue while undecided, green for +, red for −.</span>
           <span id="legend-spin"><i class="swatch spin"></i><span class="legend-text">Arrows on the dots: spin direction of the wave at each dot.</span></span>
           <span id="legend-magnet"><i class="swatch magnet"></i>Magnet poles: N (red) and S (blue knife edge).</span>
           <span id="legend-plate"><i class="swatch plate"></i><span class="legend-text">Detector screen: a dot stops when it reaches it.</span></span>
@@ -88,7 +88,7 @@
             </mrow>
           </math>
         </div>
-        <p>The dots are pilot-wave particles. They start at random positions drawn from |Ψ|² and then follow the guidance law below. Yellow dots start on the + side of the packet along the first magnet's axis (above the centre for a z magnet), green dots on the other side. A dot stops when it reaches the screen, and the counts in the corner are made from those dots. The wave itself passes through the screen and keeps evolving.</p>
+        <p>The dots are pilot-wave particles. They start at random positions drawn from |Ψ|² and then follow the guidance law below. The dots and the cloud are coloured by the spin of the wave along the axis of the magnet the packet has reached, (Ψ<sup>†</sup>σΨ)·n/Ψ<sup>†</sup>Ψ, as in the comparative Stern–Gerlach app: pale blue before the first magnet and wherever that spin is undecided, green where it points along +n and red along −n. For the default +x spin the whole packet stays pale blue in the magnet (its spin turns about z, at right angles to n) until the two parts separate and turn green and red. A +z packet turns green as soon as it enters a z magnet. A dot stops when it reaches the screen, and the counts in the corner are made from those dots. The wave itself passes through the screen and keeps evolving.</p>
         <p>The spin can point in any direction, set by two angles: θ from +z, and φ about z from +x toward +y (the beam). The spinor is (cos θ/2, e<sup>iφ</sup> sin θ/2) in the ±z basis. The default, θ = 90° and φ = 0, points along +x, across the beam: an equal, in-phase superposition of +z and −z. In a z magnet the two spin components separate vertically. Each particle ends up in one branch, and which one is fixed by where it started: dots from the upper half of the packet go up, dots from the lower half go down. Only dots that start very near the middle can end in the other branch.</p>
         <p>Display: Show phase colours the cloud by the phase of the wave. The fast oscillation along the beam, e<sup>i(kx − ωt)</sup>, is left out, because it is shorter than the spacing of the drawn points; what is shown is the phase relative to the beam's plane wave.</p>
         <h4>Magnets</h4>
@@ -212,6 +212,6 @@
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=31"></script>
+  <script type="module" src="./template.js?v=32"></script>
 </body>
 </html>

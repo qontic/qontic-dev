@@ -7,6 +7,7 @@ struct CloudOut {
   @location(1) phase: f32,
   @location(2) intensity: f32,
   @location(3) local: vec2<f32>,
+  @location(4) branch: f32,
 };
 
 @vertex
@@ -51,6 +52,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
   let visualX = xd;
   if (uni.detector.y > 0.5 && visualX > uni.detector.x) { return out; }
   out.intensity = intensity;
+  out.branch = branchSpin(spinDensity(spinor) / max(spinorRho(spinor), 1e-30));
   out.alpha = 0.24 * intensity * min(1.0, 2.5 * X_VIS);
   let corner = quadCorner(vertexIndex);
   out.local = corner + vec2<f32>(0.5);
@@ -91,7 +93,8 @@ fn fs(in: CloudOut) -> @location(0) vec4<f32> {
   let edge = smoothstep(0.5, 0.18, r);
   let blur = exp(-16.0 * r * r);
   let a = in.alpha * edge * blur;
-  var col = mix(vec3<f32>(0.05, 0.22, 0.46), vec3<f32>(0.58, 0.95, 1.00), smoothstep(0.08, 0.95, in.intensity));
+  let tint = branchTint(in.branch);
+  var col = mix(0.1 * tint, tint, smoothstep(0.08, 0.95, in.intensity));
   var alpha = a;
   if (i32(uni.visual1.y) == 1) {
     let params = getPaletteParams(i32(uni.visual1.z));

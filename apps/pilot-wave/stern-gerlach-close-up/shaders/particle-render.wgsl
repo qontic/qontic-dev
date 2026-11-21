@@ -2,6 +2,8 @@
 @group(0) @binding(1) var<storage, read> particles: array<vec4<f32>>;
 // 1 = started above the packet centre, 0 = below.
 @group(0) @binding(2) var<storage, read> startSide: array<f32>;
+// Spin direction of the wave at each dot (written by the particle update); colours the dots.
+@group(0) @binding(3) var<storage, read> spins: array<vec4<f32>>;
 
 struct ParticleOut {
   @builtin(position) position: vec4<f32>,
@@ -60,11 +62,15 @@ fn particleVertex(vertexIndex: u32, instanceIndex: u32, stamp: bool) -> Particle
 
 @vertex
 fn vsRender(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> ParticleOut {
-  return particleVertex(vertexIndex, instanceIndex, false);
+  var out = particleVertex(vertexIndex, instanceIndex, false);
+  out.upperStart = branchSpin(spins[instanceIndex].xyz);
+  return out;
 }
 @vertex
 fn vsStamp(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> ParticleOut {
-  return particleVertex(vertexIndex, instanceIndex, true);
+  var out = particleVertex(vertexIndex, instanceIndex, true);
+  out.upperStart = branchSpin(spins[instanceIndex].xyz);
+  return out;
 }
 
 @fragment
@@ -77,8 +83,8 @@ fn fsRender(in: ParticleOut) -> @location(0) vec4<f32> {
   let blur = exp(-(r * r) / max(uni.particle0.y, 1e-4));
   let a = clamp(uni.particle0.z * in.depthFade * blur * edge, 0.0, 0.85);
   let flashT = smoothstep(2.0, 10.0, in.brightness);
-  // Yellow: started in the upper half of the packet. Green: lower half.
-  let base = select(vec3<f32>(0.22, 0.95, 0.32), vec3<f32>(1.0, 0.86, 0.08), in.upperStart > 0.5);
+  // Neutral until the field sorts the spin; then green (+ along the magnet axis) or red (−).
+  let base = branchTint(in.upperStart);
   let col = mix(base, vec3<f32>(1.0), 0.6 * flashT);
   let a2 = clamp(a * 1.6 + 0.4 * flashT, 0.0, 1.0);
   return vec4<f32>(col, a2);
@@ -93,5 +99,6 @@ fn fsStamp(in: ParticleOut) -> @location(0) vec4<f32> {
   let edge = smoothstep(0.5, 0.42, r);
   let blur = exp(-(r * r) / max(uni.particle0.y, 1e-4));
   let a = clamp(uni.particle0.z * uni.viewport.w * in.depthFade * blur * edge, 0.0, 1.0);
-  return vec4<f32>(1.0, 1.0, 0.0, a);
+  // Premultiplied: rgb carries the dot's colour, alpha the trail weight.
+  return vec4<f32>(branchTint(in.upperStart) * a, a);
 }

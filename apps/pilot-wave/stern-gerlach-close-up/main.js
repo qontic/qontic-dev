@@ -56,24 +56,24 @@ const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg3d2",
-  palette: "./shaders/palette.wgsl?v=sg3d2",
-  waveInit: "./shaders/wave-init.wgsl?v=sg3d2",
-  waveStep: "./shaders/wave-step.wgsl?v=sg3d2",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d2",
-  cloud: "./shaders/cloud.wgsl?v=sg3d2",
-  particleRender: "./shaders/particle-render.wgsl?v=sg3d2",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d2",
-  density: "./shaders/density.wgsl?v=sg3d2",
-  boxShell: "./shaders/box-shell.wgsl?v=sg3d2",
-  line: "./shaders/line.wgsl?v=sg3d2",
-  fieldLine: "./shaders/field-line.wgsl?v=sg3d2",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d2",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d2",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d2",
-  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d2",
-  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d2",
-  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d2",
+  common: "./shaders/common.wgsl?v=sg3d4",
+  palette: "./shaders/palette.wgsl?v=sg3d4",
+  waveInit: "./shaders/wave-init.wgsl?v=sg3d4",
+  waveStep: "./shaders/wave-step.wgsl?v=sg3d4",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d4",
+  cloud: "./shaders/cloud.wgsl?v=sg3d4",
+  particleRender: "./shaders/particle-render.wgsl?v=sg3d4",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d4",
+  density: "./shaders/density.wgsl?v=sg3d4",
+  boxShell: "./shaders/box-shell.wgsl?v=sg3d4",
+  line: "./shaders/line.wgsl?v=sg3d4",
+  fieldLine: "./shaders/field-line.wgsl?v=sg3d4",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d4",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d4",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d4",
+  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d4",
+  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d4",
+  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d4",
 };
 
 function applyShaderConstants(source) {
@@ -896,7 +896,7 @@ async function buildPipelines() {
     fragment: {
       module: particleModule,
       entryPoint: "fsStamp",
-      targets: [{ format: DENSITY_FORMAT, blend: blendState("src-alpha", "one"), writeMask: COLOR_WRITE_RED }],
+      targets: [{ format: DENSITY_FORMAT, blend: blendState("one", "one"), writeMask: COLOR_WRITE_ALL }],
     },
     primitive: { topology: "triangle-list" },
   });
@@ -1182,11 +1182,13 @@ function rebuildParticleBindGroups() {
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: { buffer } },
     { binding: 2, resource: { buffer: particleStartSide } },
+    { binding: 3, resource: { buffer: particleSpin } },
   ]));
   particleStampBindGroups = particles.map((buffer) => bindGroup(pipelineParticleStamp, [
     { binding: 0, resource: { buffer: trailUniformBuffer } },
     { binding: 1, resource: { buffer } },
     { binding: 2, resource: { buffer: particleStartSide } },
+    { binding: 3, resource: { buffer: particleSpin } },
   ]));
 }
 
@@ -1220,8 +1222,9 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([params.rhoMin, params.velClamp, Math.floor(params.nParticles), params.trailWidth], 24);
   uniformData.set([camera.eye[0], camera.eye[1], camera.eye[2], camera.distance], 28);
   uniformData.set([viewportW, viewportH, params.cameraProjection | 0, params.trailStampGain], 32);
-  uniformData.set([detectorPlateXGrid(), 1.0, 0.0, 0.0], 36);
-  uniformData.set([0.0, 0.0, 0.0, params.trailVisGain], 40);
+  const branch = branchColour();
+  uniformData.set([detectorPlateXGrid(), 1.0, branch.axis[0], branch.axis[1]], 36);
+  uniformData.set([branch.strength, 0.0, 0.0, params.trailVisGain], 40);
   uniformData.set([params.trailVisGamma, 2, densityFade, densitySizeScale], 44);
   const sgTint = params.sgFieldOn && params.sgGradient > 0 ? 1 : 0;
   uniformData.set(sgTint ? [0.82, 0.34, 0.28, 0.30] : [0.38, 0.72, 0.68, 0.22], 48);
@@ -1246,6 +1249,16 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   device.queue.writeBuffer(buffer, 0, uniformData);
 }
 
+// Branch colours: the axis of the last magnet the packet centre has reached, and a strength that
+// rises from 0 to 1 as the packet enters the first magnet (neutral colours before any field).
+function branchColour() {
+  const ms = magnets();
+  const xc = visualPacketCenterX();
+  let k = 0;
+  for (let i = 0; i < ms.length; i++) if (xc >= ms[i].a) k = i;
+  const strength = params.sgFieldOn ? smooth01((xc - ms[0].a) / RAMP_CELLS) : 0;
+  return { axis: [Math.sin(ms[k].theta), Math.cos(ms[k].theta)], strength };
+}
 // Motion along x is the exact free Gaussian (no grid), so the momentum is used as set.
 // Arrows on at most about 120 dots.
 function spinArrowStride() {
@@ -1966,19 +1979,24 @@ function outcomeLabels() {
   if (p[0] === "+z") return ["Upper half (+z)", "Lower half (−z)"];
   return [`Toward ${p[0]}`, `Toward ${q[0]}`];
 }
+// Colour the outcome labels like the branches: green for + along the (last) magnet axis, red for −.
+function colourLabel(label, k, n) {
+  const plus = n > 2 ? k % 2 === 0 : k === 0;
+  return `<span style="color:${plus ? "#45ee66" : "#ff5533"}">${label}</span>`;
+}
 function updateHitDisplay() {
   if (!hitDisplay) return;
   const labels = outcomeLabels();
   if (reading === "cpn") {
     hitDisplay.hidden = false;
     const vals = weightCounts.values;
-    const rows = labels.map((l, k) => `${l}: ${weightCounts.valid && vals[k] !== undefined ? vals[k].toFixed(2) : "–"}`).join("<br>");
+    const rows = labels.map((l, k) => `${colourLabel(l, k, labels.length)}: ${weightCounts.valid && vals[k] !== undefined ? vals[k].toFixed(2) : "–"}`).join("<br>");
     const sp = weightCounts.valid && weightCounts.spin ? Math.hypot(...weightCounts.spin).toFixed(2) : "–";
     hitDisplay.innerHTML = `<b>Probability now</b><br>${rows}<br>Length of ⟨σ⟩: ${sp}<br><span class="plate-hits-note">Weight of |Ψ|² in each region.<br>At the screen: the chance of a hit there.</span>`;
     return;
   }
   hitDisplay.hidden = !dotsShown() || hitCounts.total <= 0;
-  const rows = labels.map((l, k) => `${l}: ${hitCounts.counts[k] ?? 0}`).join("<br>");
+  const rows = labels.map((l, k) => `${colourLabel(l, k, labels.length)}: ${hitCounts.counts[k] ?? 0}`).join("<br>");
   hitDisplay.innerHTML = `<b>Dots at the screen</b><br>${rows}<br>${hitCounts.arrived} of ${hitCounts.total} arrived`;
 }
 
