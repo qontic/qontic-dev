@@ -3292,7 +3292,9 @@ window.addEventListener("resize", () => {
   requestRedraw();
 });
 
-const FRAME_BUDGET_MS = 28;
+// Frame budget: 28 ms (~35 fps) up to 1x speed, growing to 50 ms (20 fps) at the top of the
+// speed slider, so a higher speed still runs faster on a GPU that cannot keep 1x at 35 fps.
+const frameBudgetMs = () => 28 + 22 * Math.min(1, Math.max(0, (params.stepsPerFrame / 8 - 1) / 2.8));
 let frameCostPerStep = 0.5, frameStepsSubmitted = 0, frameSubmitStart = 0, lastFrameSteps = 0;
 let speedLimited = 0;   // time since the step count has been capped (0 = not capped)
 let engineBadgeText = "";
@@ -3302,7 +3304,7 @@ function updateEngineBadge() {
   let text = `Engine: ${is3D() ? "Full 3D" : "Fast (2D)"}`;
   // After a second of capped frames, say how fast the simulation actually runs.
   if (speedLimited && performance.now() - speedLimited > 1000 && !paused) {
-    const steps = Math.max(1, Math.floor(FRAME_BUDGET_MS / Math.max(frameCostPerStep, 1e-3)));
+    const steps = Math.max(1, Math.floor(frameBudgetMs() / Math.max(frameCostPerStep, 1e-3)));
     text += ` · GPU-limited to ${(Math.min(steps, params.stepsPerFrame) / 8).toFixed(1)}× speed`;
   }
   if (text !== engineBadgeText) { badge.textContent = text; engineBadgeText = text; }
@@ -3370,10 +3372,10 @@ async function main() {
     if (!paused) {
       // One submission per step, each with its own uniforms, so the field the packet feels
       // (and the 3D window position) follow the time step by step, not frame by frame.
-      // Frame budget: at most as many steps as fit in FRAME_BUDGET_MS on this GPU (measured), so a
+      // Frame budget: at most as many steps as fit in frameBudgetMs() on this GPU (measured), so a
       // high speed on a slow GPU gives a steady frame rate at a lower speed, not a stutter.
       const requested = Math.floor(params.stepsPerFrame);
-      const steps = Math.max(1, Math.min(requested, Math.floor(FRAME_BUDGET_MS / Math.max(frameCostPerStep, 1e-3))));
+      const steps = Math.max(1, Math.min(requested, Math.floor(frameBudgetMs() / Math.max(frameCostPerStep, 1e-3))));
       if (steps < requested) { if (!speedLimited) speedLimited = performance.now(); } else speedLimited = 0;
       lastFrameSteps = steps;
       frameStepsSubmitted = steps;
