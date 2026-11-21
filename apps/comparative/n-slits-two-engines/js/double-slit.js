@@ -937,6 +937,8 @@ function restoreSimulationState() {
   $('#particleType').val(state.particleType).trigger('change');
   $('#waveFunctionOption').val(state.waveFunctionOption).trigger('change');
 
+  // dev.17: Classic became the default; a saved palette equal to the old default (Blue) moves to it once.
+  try { if (state.paletteName === 'Blue' && !localStorage.getItem('qontic-te-palette-v2')) state.paletteName = 'Classic'; localStorage.setItem('qontic-te-palette-v2', '1'); } catch (_) {}
   if (state.paletteName && window.paletteModule.setPaletteByName) {
     window.paletteModule.setPaletteByName(state.paletteName);
       // Ensure the GPU palette texture matches the restored palette
@@ -1792,9 +1794,8 @@ $(document).ready(function() {
       $('#psi-color').css('background-color', colorPsi);
 
 
-      const paletteEntries = Object.entries(window.paletteModule.palettes);
-      const paletteIndex = 2; // Gray 
-      const [paletteName, hexPalette] = paletteEntries[paletteIndex];
+      // Default wave palette: Classic (the numerical N-slit app's colours, for both engines).
+      const paletteName = 'Classic', hexPalette = window.paletteModule.palettes.Classic;
       graphPalette = window.paletteModule.prepareRgbPalette(hexPalette);
       // 2.128: the Display-tab swatch was drawn before this default existed, so it
       // stayed blank until the palette changed. Record the name and redraw it now.

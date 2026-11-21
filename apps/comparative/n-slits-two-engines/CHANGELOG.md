@@ -3,6 +3,14 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.17 — 2026-11-21
+Pablo: unify the colours of the two engines; make the numerical look the default and put it in the wave palette list; add a heat palette (cold blue, hot red).
+- Wave palette list (Display → Wave): new first entry **Classic**, the default for both engines: phase in blue/red over a purple density on a black background, the phase key in the corner, a grey metal wall (the numerical N-slit app's look). The analytical engine now draws it with the same formula as the numerical shader (I = (1 − e^(−20ρ))^½, same phase colours and mix). The Show menu is hidden with Classic (it shows phase and density together).
+- New palette **Heat**: cold blue to hot red through a light middle (diverging; suits cos θ and densities).
+- The Engine tab's "Colours: Classic / App colours" row is gone: the palette decides in both engines. A saved palette equal to the old default (Blue) moves to Classic once; any other saved choice is kept.
+- With which-slit detectors the analytical engine keeps drawing each record in its slit colour (on black with Classic), as the caption explains.
+Checked: fresh page opens with Classic; analytical and numerical runs side by side (same colours); Heat in the analytical engine; detector records on black; regression (view/colour switching, live detectors, quiz walk); no page errors.
+
 ## 1.0-dev.16 — 2026-11-21
 Pablo: the 1×/2×/4× zoom buttons on the canvas are not useful; remove them.
 - Zoom bar removed (it came with the dev.8 port of the numerical app). The view stays at 1×; the distance scale and grid code still accept a zoom factor of 1.

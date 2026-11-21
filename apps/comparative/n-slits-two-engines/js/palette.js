@@ -1,6 +1,11 @@
 // palette.js
 window.paletteModule = (function () {
+  // Classic (first, the default): the colours of the numerical N-slit app, phase in blue/red
+  // over a purple density on black; the swatch only sketches it, packet-engine.js draws it.
+  // Heat: cold blue to hot red (diverging, light in the middle).
   const palettes = {
+    Classic: ['#000000', '#43207d', '#1440ff', '#b80be0', '#ff1405'],
+    Heat: ['#053061', '#2166ac', '#4393c3', '#92c5de', '#f7f7f7', '#fddbc7', '#f4a582', '#d6604d', '#b2182b', '#67001f'],
     Gray:   [ '#717171', '#8D8D8D', '#AAAAAA', '#C6C6C6', '#E2E2E2' ],
     Green: ['#5aa664', '#a6dba0', '#d9f0d3'],
     Blue:  ['#4292c6', '#6baed6', '#c6dbef'],
