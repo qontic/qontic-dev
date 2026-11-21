@@ -3,6 +3,18 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.12 — 2026-11-20
+Pablo: the Engine tab text is far too long, the app is too complicated for beginners, and the blade is not explained; proposed a level switch. Agreed: Basic · Standard · Expert, Basic for first-time visitors.
+- **Level switch** (shared controls, optional `levels` / `level` / `tab-levels` attributes; `data-level-min` / `data-level-max` on any element). Remembered; `?level=basic|standard|expert` sets it. Changing level shows or hides controls; it does not reset the run.
+  - **Basic:** Core and Display tabs only; analytical engine; up to 4 slits; Nice fringes, detectors, slit buttons, λ, slit separation; Display: wave, curve, hits, wall, detector; stats: fringe spacing and hits; short caption; Physics shows a one-page "What you see" (no equations, explains the slit-button cycle open → closed → detector); quiz has the 5 first-look questions.
+  - **Standard:** adds the Engine tab (switch, Wall, Colours, One particle), Advanced (particle, source width, packet length, slit width, hits per packet), screen distance and length, Show options, colour scale, sensor band, scales, all stats, full Physics, 8 quiz questions.
+  - **Expert:** everything, including the new "Closing a slit during a run" box (one line of explanation; a "Try it" preset that closes slit 2 as the packet reaches the wall with Show change on; Blade, Closing time, Absorber W/E, Replay clicks, Show change), guiding law, trails, slit extent/balance, tail length, packet interval, source position, detector pixels, flow arrows; all 11 questions.
+  - Below Expert, the expert numerical options take their defaults (not saved), so a hidden control never changes the physics.
+- Engine tab introduction cut to one line with a link to Physics → "Two engines".
+- **Slit seemed to cycle in the numerical engine:** "Replay clicks" was on by default, so each new packet reopened the slit and closed it again at the time of the click. Now off by default (old saved settings drop it), Expert only. Quiz presets no longer turn it on.
+- Shared quiz: `reset(prepare)` for an app that changes its question list.
+Checked: headless runs at Expert (view/colour switching, live detectors, Show change, quiz, record partition, Engine tab) and at each level (visible controls, tabs, quiz length, preset closes slit 2 at the wall, Basic returns to the analytical engine and keeps saved expert options); screenshots 1440×1000 and 390×844. `tests/source-packet.mjs` fails one assertion; it fails identically in N-Slits 3.0 (pre-existing).
+
 ## 1.0-dev.11 — 2026-11-20
 Fixes from a review by ten simulated students (all ten found the Engine tab the right place).
 Physics and numerics

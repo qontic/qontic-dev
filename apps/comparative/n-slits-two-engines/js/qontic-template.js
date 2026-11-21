@@ -1,14 +1,14 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te11';
-import { mountMWBranching } from './mw-branching.js?cache=te11';
-import { APP_RELEASE } from './release.js?cache=te11';
-import { mountNSlitQuiz } from './quiz.js?cache=te11';
+import { mountPacketEngine } from './packet-engine.js?cache=te12';
+import { mountMWBranching } from './mw-branching.js?cache=te12';
+import { APP_RELEASE } from './release.js?cache=te12';
+import { mountNSlitQuiz } from './quiz.js?cache=te12';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te11';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te12';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
-import '../../../../shared/qontic-controls.js?v=3.2';
+import '../../../../shared/qontic-controls.js?v=3.4';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
 $(function () {
@@ -454,7 +454,47 @@ $(function () {
   renderSetupFlag=1;window.qonticScaleOverlay.update();if(!isAnimating)drawSystem(currentCycleIndex);
   window.qonticPacketEngine=mountPacketEngine({core,advanced,engine:enginePanel});
   // Quiz after the engine exists: with ?quiz=1 the first question is prepared at once.
-  mountNSlitQuiz({ panel: quizPanel, tab: shell.querySelector('[data-view="quiz"]'), simulationTab: shell.querySelector('[data-view="simulation"]') });
+  const quizApi = mountNSlitQuiz({ panel: quizPanel, tab: shell.querySelector('[data-view="quiz"]'), simulationTab: shell.querySelector('[data-view="simulation"]') });
+  // Level of detail: Basic (first visit) · Standard · Expert. ?level= sets it; the choice is
+  // remembered. Changing level only shows or hides controls (hidden expert options of the
+  // numerical engine take their defaults; Basic uses the analytical engine).
+  const LEVELS = ['basic', 'standard', 'expert'];
+  const levelRow = (id, sel = '.input-group, tr, .analytical-layer, label, .slit-count-row') => { const el = document.getElementById(id); return el ? (el.closest(sel) || el) : null; };
+  const tag = (ids, level) => ids.forEach(id => { const row = levelRow(id); if (row) row.dataset.levelMin = level; });
+  tag(['slit-at-wall', 'basicsWaveFunctionOption', 'detector-distance-group', 'screen-height-group', 'systemTime', 'realTime', 'waveSpeed', 'particleEnergy', 'noHitCount', 'waveFunctionOption', 'plot_palette-opacity', 'plot_sensor-opacity', 'plot_scales-opacity'], 'standard');
+  for (const [id, lvl] of [['packet-directed-slits', 'expert'], ['shownParticles', 'standard']]) { const el = document.getElementById(id); const row = el?.closest('label, tr'); if (row) row.dataset.levelMin = lvl; }
+  { const c = document.getElementById('packet-particle-color'); const row = c?.closest('label'); if (row) row.dataset.levelMin = 'standard'; }
+  tag(['packet-slit-extent', 'packet-slit-balance', 'packet-tail-length', 'packet-interval', 'source-position-group', 'det-pixels-group', 'nSteps', 'flow-arrows', 'flow-lines'], 'expert');
+  for (const id of ['flow-arrows', 'flow-lines']) { const el = document.getElementById(id); const box = el?.closest('.flow-overlay-controls, .input-group, div'); if (box) box.dataset.levelMin = 'expert'; }
+  for (const id of ['paletteRangeSlider', 'waveRangeLabel']) { const el = document.getElementById(id); if (el) el.dataset.levelMin = 'standard'; }
+  const slitRange = document.getElementById('slit-count');
+  const applyLevel = level => {
+    if (!LEVELS.includes(level)) level = 'basic';
+    if (controls.getAttribute('level') !== level) controls.setAttribute('level', level);
+    document.body.dataset.qonticLevel = level;
+    try { localStorage.setItem('qontic-te-level', level); } catch (_) {}
+    window.qonticPacketEngine?.setLevel?.(level);
+    quizApi?.setLevel?.(level);
+    // Basic: at most four slits.
+    slitRange.max = level === 'basic' ? '4' : '8';
+    if (level === 'basic' && +slitRange.value > 4) { slitRange.value = '4'; slitRange.dispatchEvent(new Event('input', { bubbles: true })); slitRange.dispatchEvent(new Event('change', { bubbles: true })); }
+  };
+  controls.setAttribute('levels', 'basic:Basic,standard:Standard,expert:Expert');
+  controls.setAttribute('tab-levels', 'engine:standard,advanced:standard');
+  controls.addEventListener('qontic:level', event => applyLevel(event.detail.level));
+  {
+    const fromUrl = new URLSearchParams(location.search).get('level');
+    let saved = null; try { saved = localStorage.getItem('qontic-te-level'); } catch (_) {}
+    applyLevel(LEVELS.includes(fromUrl) ? fromUrl : LEVELS.includes(saved) ? saved : 'basic');
+  }
+  // "What is the difference?" in the Engine tab: Physics tab, section on the two engines.
+  document.addEventListener('click', event => {
+    const link = event.target.closest('.te-engines-link');
+    if (!link) return;
+    event.preventDefault();
+    showPage(2);
+    setTimeout(() => document.getElementById('te-engines')?.scrollIntoView({ block: 'start' }), 50);
+  });
   mountQonticShortcuts({
     togglePlayback:()=>document.getElementById('startButton').click(),
     reset:()=>document.getElementById('resetButton').click(),

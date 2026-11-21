@@ -21,15 +21,34 @@ const boolAttr = (element, name, fallback = false) => {
   return value == null ? fallback : value !== "false";
 };
 
+const parseLevels = value => (value || "").split(",").map(t => t.trim()).filter(Boolean).map(t => { const [id, label] = t.split(":"); return [id, label || id[0].toUpperCase() + id.slice(1)]; });
+// One page-wide rule set for data-level-min / data-level-max (light DOM).
+const installLevelStyle = order => {
+  const key = order.join(",");
+  let style = document.getElementById("qontic-level-style");
+  if (style?.dataset.key === key) return;
+  if (!style) { style = document.createElement("style"); style.id = "qontic-level-style"; document.head.append(style); }
+  style.dataset.key = key;
+  const rules = [];
+  order.forEach((current, i) => {
+    // :is(..., #_#_#_) lifts the specificity to three ids, so app rules that set display
+    // on the same rows (often through an id) do not win over the level.
+    order.slice(i + 1).forEach(higher => rules.push(`body[data-qontic-level="${current}"] :is([data-level-min="${higher}"],#_#_#_)`));
+    order.slice(0, i).forEach(lower => rules.push(`body[data-qontic-level="${current}"] :is([data-level-max="${lower}"],#_#_#_)`));
+  });
+  style.textContent = rules.length ? `${rules.join(",")}{display:none!important}` : "";
+};
+
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "interpretations", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-rerun", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-advanced", "show-expert", "extra-tabs", "show-engine"];
+  static observedAttributes = ["interpretation", "interpretations", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-rerun", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-advanced", "show-expert", "extra-tabs", "show-engine", "levels", "level", "tab-levels"];
 
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
-      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=5", import.meta.url).href}">
+      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=6", import.meta.url).href}">
       <section class="qontic-common-controls" aria-label="Simulation controls">
+        <div class="qontic-level" role="radiogroup" aria-label="Level of detail" hidden></div>
         <button class="qontic-interpretation" type="button"></button>
         <div class="qontic-run-row" role="group" aria-label="Run controls">
           <button class="qontic-main-run" type="button"></button>
@@ -54,6 +73,12 @@ class QonticControls extends HTMLElement {
     if (this._connected) return;
     this._connected = true;
     const root = this.shadowRoot;
+    root.querySelector(".qontic-level").addEventListener("click", event => {
+      const button = event.target.closest("[data-level]");
+      if (!button || button.dataset.level === this.getAttribute("level")) return;
+      this.setAttribute("level", button.dataset.level);
+      this.dispatch("level", { level: button.dataset.level });
+    });
     root.querySelector(".qontic-interpretation").addEventListener("click", () => {
       const list = interpretationList(this);
       const current = this.getAttribute("interpretation") || list[0][0];
@@ -155,7 +180,29 @@ class QonticControls extends HTMLElement {
     speedInput.setAttribute("aria-label", "Simulation speed");
     root.querySelector(".qontic-speed output").value = `${speed.toFixed(1)}×`;
 
-    const showAdvanced = this.getAttribute("show-advanced") !== "false";
+    // Optional level switch (additive): levels="basic:Basic,standard:Standard,expert:Expert",
+    // level="basic", tab-levels="advanced:standard,engine:standard" (lowest level that shows
+    // a tab). The level is mirrored on <body data-qontic-level>; any element in the page with
+    // data-level-min="standard" (or "expert") is hidden below that level, and one with
+    // data-level-max="basic" only shows at that level or below.
+    const levels = parseLevels(this.getAttribute("levels"));
+    const levelBox = root.querySelector(".qontic-level");
+    levelBox.hidden = !levels.length;
+    let level = null, rank = () => Infinity;
+    if (levels.length) {
+      level = levels.some(([id]) => id === this.getAttribute("level")) ? this.getAttribute("level") : levels[0][0];
+      const html = levels.map(([id, label]) => `<button type="button" role="radio" data-level="${id}">${label}</button>`).join("");
+      if (levelBox.dataset.html !== html) { levelBox.innerHTML = `<span>Level</span>${html}`; levelBox.dataset.html = html; }
+      levelBox.querySelectorAll("[data-level]").forEach(b => { const on = b.dataset.level === level; b.classList.toggle("active", on); b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; });
+      const order = levels.map(([id]) => id);
+      rank = id => (order.includes(id) ? order.indexOf(id) : 0);
+      installLevelStyle(order);
+      if (document.body && document.body.dataset.qonticLevel !== level) document.body.dataset.qonticLevel = level;
+    }
+    const tabMin = Object.fromEntries((this.getAttribute("tab-levels") || "").split(",").map(t => t.trim().split(":")).filter(t => t[0] && t[1]));
+    const levelHides = id => level != null && tabMin[id] != null && rank(tabMin[id]) > rank(level);
+
+    const showAdvanced = this.getAttribute("show-advanced") !== "false" && !levelHides("advanced");
     const advancedButton = root.querySelector('[data-tab="advanced"]');
     advancedButton.hidden = !showAdvanced;
     const showExpert = this.getAttribute("show-expert") === "true";
@@ -172,10 +219,10 @@ class QonticControls extends HTMLElement {
     for (const [id, label] of extra) {
       let b = nav.querySelector(`[data-tab="${id}"]`);
       if (!b) { b = document.createElement("button"); b.type = "button"; b.dataset.tab = id; b.dataset.extraTab = "1"; b.setAttribute("role", "tab"); b.textContent = label || id; anchor.after(b); }
-      b.hidden = false; anchor = b;
+      b.hidden = levelHides(id); anchor = b;
     }
     nav.querySelectorAll("[data-extra-tab]").forEach(b => { if (!extra.some(([id]) => id === b.dataset.tab)) b.hidden = true; });
-    if (nav.querySelector(`[data-extra-tab][data-tab="${this.getAttribute("active-tab")}"]`)?.hidden) this.setAttribute("active-tab", "core");
+    if (nav.querySelector(`[data-tab="${this.getAttribute("active-tab")}"]`)?.hidden) { this.setAttribute("active-tab", "core"); this.dispatch("tab", { tab: "core" }); }
     let tab = this.getAttribute("active-tab") || "core";
     if ((tab === "advanced" && !showAdvanced) || (tab === "expert" && !showExpert)) {
       tab = "core";
@@ -192,7 +239,7 @@ class QonticControls extends HTMLElement {
       button.classList.toggle("active", active);
       button.setAttribute("aria-selected", String(active));
     });
-    if (extra.length || nav.querySelector("[data-extra-tab]")) nav.style.gridTemplateColumns = `repeat(${[...nav.querySelectorAll("[data-tab]")].filter(b => !b.hidden).length},minmax(0,1fr))`;
+    if (extra.length || levels.length || nav.querySelector("[data-extra-tab]")) nav.style.gridTemplateColumns = `repeat(${[...nav.querySelectorAll("[data-tab]")].filter(b => !b.hidden).length},minmax(0,1fr))`;
 
     const theme = this.getAttribute("theme") || "dark";
     const light = theme === "light";

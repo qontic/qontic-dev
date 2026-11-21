@@ -3,7 +3,7 @@
 // apparatus (slits, detectors, screen), drawn here, so that the running simulation
 // cannot give the answer away. Uses the app's classic-script globals (numSlits,
 // slitOpen, slitDetector, interpretation, …) from double-slit.js.
-import { mountQonticQuiz } from '../../../../shared/qontic-quiz.js?v=9';
+import { mountQonticQuiz } from '../../../../shared/qontic-quiz.js?v=11';
 
 const light = () => document.body.classList.contains('qontic-light');
 
@@ -103,7 +103,7 @@ function setTo({ view, slits, color = null, engine = 'analytical', num = null })
   if (pe?.setEngine && pe.engine !== engine) pe.setEngine(engine);
   // Numerical questions set the wall, blade, closing time, Show change and guiding law;
   // the others put back the defaults.
-  pe?.setNumOptions?.(num || { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: true }, { persist: false });
+  pe?.setNumOptions?.(num || { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: false }, { persist: false });
   // Q5's Watch ticks this; every question starts with it off.
   const atWall = document.getElementById('slit-at-wall'); if (atWall && atWall.checked) { atWall.checked = false; atWall.dispatchEvent(new Event('change', { bubbles: true })); }
   if (view && interpretation !== view) changeInterpretation(view);
@@ -231,7 +231,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       answers: [{ id: 'turned', label: 'It is turned away before it reaches the wall' }, { id: 'through', label: 'It goes through the wall' }, { id: 'stops', label: 'It stops at the wall' }],
       answer: 'turned',
       explain: 'The particle moves with the velocity given by the wave, (ħ/m) Im(∇ψ/ψ). In front of the reflecting wall the incident and reflected waves overlap, and the guidance turns the particle back or sideways; it never enters the wall, where ψ is almost zero. With the Absorbing wall, particles that reach it are removed instead (an effective rule, with the probability that |ψ|² is absorbed there). The analytical engine has no reflected wave: its mask only absorbs.',
-      prepare: () => setTo({ engine: 'numerical', view: 'bohmian', slits: ['open', 'open'], color: 'updown', num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: true } }),
+      prepare: () => setTo({ engine: 'numerical', view: 'bohmian', slits: ['open', 'open'], color: 'updown', num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: false } }),
       draw: c => drawSetup(c, ['open', 'open'], { arrow: true, label: 'numerical engine' }),
     },
     {
@@ -252,7 +252,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       answers: [{ id: 'paths', label: 'The trajectories, and the pattern of hits only very slightly' }, { id: 'both', label: 'The trajectories and the fringes: different bands and spacing' }, { id: 'nothing', label: 'Nothing: the wave is the same' }],
       answer: 'paths',
       explain: 'The Pauli velocity adds (ħ/2m) ∇×(ρ ẑ)/ρ to the Schrödinger one. The extra current has zero divergence, so |ψ|² at each time still moves with the particles (equivariance). The paths differ, most visibly where ρ changes quickly, near the wall and the slits. The hits are crossings of the screen line, and the spin current adds (ħ/2m) ∂ρ/∂y to the flux through it, so the pattern shifts by a few nanometres here: far below the fringe spacing, and the green curve follows the chosen law. Whether such spin-dependent arrival statistics could be measured is debated (Das and Dürr, Sci. Rep. 9, 2242 (2019); Goldstein, Tumulka and Zanghì, Sci. Rep. 14, 3775 (2024)).',
-      prepare: () => setTo({ engine: 'numerical', view: 'bohmian', slits: ['open', 'open'], color: 'slit', num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'up', replay: true } }),
+      prepare: () => setTo({ engine: 'numerical', view: 'bohmian', slits: ['open', 'open'], color: 'slit', num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'up', replay: false } }),
       draw: c => drawSetup(c, ['open', 'open'], { packet: true, label: 'numerical engine · Pauli ↑' }),
     },
     {
@@ -262,13 +262,29 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       answers: [{ id: 'none', label: 'Almost none, as in the analytical engine' }, { id: 'quarter', label: 'About a quarter' }, { id: 'most', label: 'About three quarters' }],
       answer: 'most',
       explain: 'The slits are narrow, so most of the packet hits the wall: in this app the reflecting wall sends back 78% of the packet and lets 20% past (the rest leaves through the side edges of the grid). The analytical engine’s mask reflects nothing; the numerical Mask and Absorbing walls reflect 0.3% or less. The screen pattern depends on what passes, so the engines can agree on the fringes while disagreeing about the wave in front of the wall.',
-      prepare: () => setTo({ engine: 'numerical', view: 'copenhagen', slits: ['open', 'open'], num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: true } }),
+      prepare: () => setTo({ engine: 'numerical', view: 'copenhagen', slits: ['open', 'open'], num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: false } }),
       draw: c => drawSetup(c, ['open', 'open'], { reflected: true, label: 'numerical engine · reflecting wall' }),
     },
   ];
-  return mountQonticQuiz({
+  // Level of each question (shared level switch): Basic shows the first-look questions,
+  // Standard adds the wall and closing-at-the-wall ones, Expert the numerical details.
+  const LEVEL = ['basic', 'basic', 'basic', 'basic', 'standard', 'basic', 'expert', 'standard', 'expert', 'expert', 'standard'];
+  const all = questions.map((q, i) => Object.assign(q, { level: LEVEL[i] || 'expert' }));
+  const rank = { basic: 0, standard: 1, expert: 2 };
+  let current = 'expert';
+  const quiz = mountQonticQuiz({
     panel, tab, simulationTab, questions, shuffle: true, score: true,
     title: 'Quiz · predict before you watch',
     onWatch: q => { if (!isRunning()) $('#startButton').trigger('click'); q?.afterWatch?.(); },
   });
+  return {
+    quiz,
+    setLevel(level) {
+      if (level === current || !(level in rank)) return;
+      current = level;
+      questions.splice(0, questions.length, ...all.filter(q => rank[q.level] <= rank[level]));
+      // Prepare a question (which changes the app's settings) only if the quiz is open.
+      quiz.reset(document.body.dataset.view === 'quiz');
+    },
+  };
 }

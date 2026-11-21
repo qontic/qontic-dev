@@ -3,6 +3,17 @@
 .qontic-common-controls { display:flex; flex-direction:column; gap:7px; }
 button { font:inherit; }
 .qontic-interpretation { width:100%; min-width:0; padding:7px 9px; overflow:hidden; border:1px solid var(--qontic-control-accent,#55d8e6); border-radius:999px; background:#111b2a; color:var(--qontic-control-accent,#55d8e6); text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+.qontic-level { display:grid; grid-template-columns:auto repeat(3,minmax(0,1fr)); align-items:center; gap:0; }
+.qontic-level span { padding-right:8px; color:#9fb6c3; font-size:12px; }
+.qontic-level button { min-width:0; padding:4px 4px; border:1px solid #294b60; background:#0b1924; color:#9fb6c3; cursor:pointer; font-size:12px; white-space:nowrap; }
+.qontic-level button + button { border-left-width:0; }
+.qontic-level button:first-of-type { border-radius:6px 0 0 6px; }
+.qontic-level button:last-of-type { border-radius:0 6px 6px 0; }
+.qontic-level button.active { border-color:#55d8e6; background:#12394b; color:#7cecff; font-weight:600; }
+.qontic-level button:focus-visible { outline:2px solid #7cecff; outline-offset:1px; }
+:host-context(.qontic-light) .qontic-level button { background:#e8f0f3; color:#405866; border-color:#9fb6c3; }
+:host-context(.qontic-light) .qontic-level button.active { background:#d4eef3; color:#075c69; border-color:#087487; }
+:host-context(.qontic-light) .qontic-level span { color:#405866; }
 .qontic-run-row { display:grid; grid-template-columns:54px 48px 30px minmax(0,1fr); align-items:center; gap:6px; }
 .qontic-run-row button { min-width:0; padding:6px 5px; border:1px solid #294b60; border-radius:6px; background:#162d3d; color:#d9edf7; cursor:pointer; white-space:nowrap; }
 .qontic-main-run {

@@ -166,5 +166,6 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
     simulationTab.title = 'Answer the quiz question first';
     tab.click();
   }
-  return { show, get index() { return index; } };
+  // reset(prepare): after the app changes the questions array in place (e.g. a level switch).
+  return { show, reset(prepare = true) { results.clear(); if (prepare) show(0); else { index = 0; answered = false; } }, get index() { return index; } };
 }
