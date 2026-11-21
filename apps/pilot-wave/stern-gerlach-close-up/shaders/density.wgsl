@@ -42,3 +42,11 @@ fn fsRender(in: FullOut) -> @location(0) vec4<f32> {
   }
   return vec4<f32>(col * v, 1.0);
 }
+
+// The wave cloud is drawn additively into a half-resolution float target (a quarter of the pixel
+// work) and added onto the frame here; additive blending makes the order irrelevant.
+@fragment
+fn fsComposite(in: FullOut) -> @location(0) vec4<f32> {
+  let uv = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
+  return max(textureSample(prevTex, prevSampler, uv), vec4<f32>(0.0));
+}

@@ -59,24 +59,24 @@ const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg3d6",
-  palette: "./shaders/palette.wgsl?v=sg3d6",
-  waveInit: "./shaders/wave-init.wgsl?v=sg3d6",
-  waveStep: "./shaders/wave-step.wgsl?v=sg3d6",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d6",
-  cloud: "./shaders/cloud.wgsl?v=sg3d6",
-  particleRender: "./shaders/particle-render.wgsl?v=sg3d6",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d6",
-  density: "./shaders/density.wgsl?v=sg3d6",
-  boxShell: "./shaders/box-shell.wgsl?v=sg3d6",
-  line: "./shaders/line.wgsl?v=sg3d6",
-  fieldLine: "./shaders/field-line.wgsl?v=sg3d6",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d6",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d6",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d6",
-  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d6",
-  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d6",
-  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d6",
+  common: "./shaders/common.wgsl?v=sg3d7",
+  palette: "./shaders/palette.wgsl?v=sg3d7",
+  waveInit: "./shaders/wave-init.wgsl?v=sg3d7",
+  waveStep: "./shaders/wave-step.wgsl?v=sg3d7",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d7",
+  cloud: "./shaders/cloud.wgsl?v=sg3d7",
+  particleRender: "./shaders/particle-render.wgsl?v=sg3d7",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d7",
+  density: "./shaders/density.wgsl?v=sg3d7",
+  boxShell: "./shaders/box-shell.wgsl?v=sg3d7",
+  line: "./shaders/line.wgsl?v=sg3d7",
+  fieldLine: "./shaders/field-line.wgsl?v=sg3d7",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d7",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d7",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d7",
+  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d7",
+  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d7",
+  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d7",
 };
 
 function applyShaderConstants(source) {
@@ -754,6 +754,10 @@ const MEAN_SPIN_MAX_VERTS = 240;
 let pipelineParticleRender, pipelineParticleStamp;
 let pipelineDensityFade, pipelineDensityRenderGlow;
 let nearestSampler = device.createSampler({ magFilter: "nearest", minFilter: "nearest" });
+const linearSampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
+// Wave cloud at half the canvas resolution (see density.wgsl fsComposite).
+const CLOUD_RESOLUTION = 0.5;
+let pipelineCloudComposite = null, cloudTex = null, cloudView = null, cloudCompositeBindGroup = null;
 
 let simW = 0, simH = 0, simD = 0;
 let voxelCount = 0;   // cloud point instances (x window × y × z, with stride)
@@ -911,6 +915,17 @@ async function buildPipelines() {
     fragment: {
       module: cloudModule,
       entryPoint: "fs",
+      targets: [{ format: DENSITY_FORMAT, blend: blendState("one", "one"), writeMask: COLOR_WRITE_ALL }],
+    },
+    primitive: { topology: "triangle-list" },
+  });
+  const pipelineCloudCompositeReady = device.createRenderPipelineAsync({
+    label: "cloud composite pipeline",
+    layout: "auto",
+    vertex: { module: densityModule, entryPoint: "vsFull" },
+    fragment: {
+      module: densityModule,
+      entryPoint: "fsComposite",
       targets: [{ format: presentationFormat, blend: blendState("one", "one"), writeMask: COLOR_WRITE_ALL }],
     },
     primitive: { topology: "triangle-list" },
@@ -1112,6 +1127,7 @@ async function buildPipelines() {
     pipelineMagnetPoleReady,
     pipelineSpinArrowReady,
   ]);
+  pipelineCloudComposite = await pipelineCloudCompositeReady;
   mark("pipelines");
 
   boxShellBindGroup = bindGroup(pipelineBoxShell, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
@@ -2163,6 +2179,13 @@ function rebuildDensity() {
   densViewB = densTexB.createView();
   densFlip = 0;
   rebuildDensityBindGroups();
+  destroyGpuResource(cloudTex);
+  cloudTex = makeDensityTexture("wave cloud", Math.max(16, Math.floor(canvas.width * CLOUD_RESOLUTION)), Math.max(16, Math.floor(canvas.height * CLOUD_RESOLUTION)));
+  cloudView = cloudTex.createView();
+  cloudCompositeBindGroup = bindGroup(pipelineCloudComposite, [
+    { binding: 1, resource: cloudView },
+    { binding: 2, resource: linearSampler },
+  ]);
 
   clearDensity();
 }
@@ -2218,6 +2241,17 @@ function densityStepAndStamp(encoder, camera) {
 }
 
 function render(encoder, camera) {
+  const drawCloud = params.showCloud && cloudView && cloudCompositeBindGroup;
+  if (drawCloud) {
+    const cloudPass = encoder.beginRenderPass({
+      label: "wave cloud pass",
+      colorAttachments: [{ view: cloudView, clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+    });
+    cloudPass.setPipeline(pipelineCloud);
+    cloudPass.setBindGroup(0, (is3D() ? cloud3BindGroups : cloudBindGroups)[flip]);
+    cloudPass.draw(6, voxelCount);
+    cloudPass.end();
+  }
   const currentTexture = gpuContext.getCurrentTexture();
   const pass = encoder.beginRenderPass({
     label: "main render pass",
@@ -2236,10 +2270,10 @@ function render(encoder, camera) {
     pass.draw(magnetPoleVertexCount);
   }
 
-  if (params.showCloud) {
-    pass.setPipeline(pipelineCloud);
-    pass.setBindGroup(0, (is3D() ? cloud3BindGroups : cloudBindGroups)[flip]);
-    pass.draw(6, voxelCount);
+  if (drawCloud) {
+    pass.setPipeline(pipelineCloudComposite);
+    pass.setBindGroup(0, cloudCompositeBindGroup);
+    pass.draw(3);
   }
 
   if (trailsShown() && densityRenderBindGroups.length) {
