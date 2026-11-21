@@ -52,25 +52,25 @@ const WAVE_WORKGROUP_SIZE = 256;
 const BEAM_SCALE = 8;
 const BEAM_SPEED = 5.5 * BEAM_SCALE;
 // Drawing compression along the beam (milder than BEAM_SCALE, so the short packet stays visible).
-const X_VIS = 1 / 5;
+const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg2d7",
-  palette: "./shaders/palette.wgsl?v=sg2d7",
-  waveInit: "./shaders/wave-init.wgsl?v=sg2d7",
-  waveStep: "./shaders/wave-step.wgsl?v=sg2d7",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d7",
-  cloud: "./shaders/cloud.wgsl?v=sg2d7",
-  particleRender: "./shaders/particle-render.wgsl?v=sg2d7",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg2d7",
-  density: "./shaders/density.wgsl?v=sg2d7",
-  boxShell: "./shaders/box-shell.wgsl?v=sg2d7",
-  line: "./shaders/line.wgsl?v=sg2d7",
-  fieldLine: "./shaders/field-line.wgsl?v=sg2d7",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d7",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d7",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d7",
+  common: "./shaders/common.wgsl?v=sg2d8",
+  palette: "./shaders/palette.wgsl?v=sg2d8",
+  waveInit: "./shaders/wave-init.wgsl?v=sg2d8",
+  waveStep: "./shaders/wave-step.wgsl?v=sg2d8",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d8",
+  cloud: "./shaders/cloud.wgsl?v=sg2d8",
+  particleRender: "./shaders/particle-render.wgsl?v=sg2d8",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg2d8",
+  density: "./shaders/density.wgsl?v=sg2d8",
+  boxShell: "./shaders/box-shell.wgsl?v=sg2d8",
+  line: "./shaders/line.wgsl?v=sg2d8",
+  fieldLine: "./shaders/field-line.wgsl?v=sg2d8",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d8",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d8",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d8",
 };
 
 function applyShaderConstants(source) {
@@ -191,6 +191,7 @@ const params = {
   showFieldArrows: 1,
   showMagnet: 1,
   showSpin: 1,
+  showDotSpin: 0,
   screenDistance: 40 * BEAM_SCALE,
   showAxes: 1,
 
@@ -532,7 +533,8 @@ controls = displayControls;
 addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
 addToggleInt("showFieldArrows", "Field arrows");
 addToggleInt("showMagnet", "Magnet poles");
-addToggleInt("showSpin", "Spin arrows", () => updateStats());
+addToggleInt("showSpin", "Spin arrow", () => updateStats());
+addToggleInt("showDotSpin", "Spin on dots", () => updateStats());
 const cameraProjectionControl = addCycleButton("cameraProjection", "Camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
   syncCameraUi();
@@ -624,6 +626,7 @@ let particleStartSide = null;
 let hitReadback = null, readbackBusy = false, lastHitReadback = 0;
 let hitCounts = { counts: [0, 0], arrived: 0, total: 0 };
 const HIT_READBACK_MS = 250;
+let readbackToggle = false;
 // Orthodox reading: |Psi|^2 weight above and below the packet-centre height.
 let weightPartials = null, weightReadback = null, weightBindGroups = [];
 let weightCounts = { values: [0.5, 0.5], valid: false };
@@ -1292,7 +1295,7 @@ function clampCameraPitch(pitch) {
 }
 
 // Far enough back to show the magnet poles around the tunnel.
-const DEFAULT_CAMERA_DISTANCE = 3.0;
+const DEFAULT_CAMERA_DISTANCE = 1.4;
 // Size of the scene: the tunnel length or its cross-section, whichever is larger.
 function sceneExtent() {
   return Math.max((detectorPlateXGrid() - tunnelStartX()) * X_VIS, simH, simD) * params.boxScale;
@@ -2074,14 +2077,14 @@ function render(encoder, camera) {
     pass.setPipeline(pipelineParticleRender);
     pass.setBindGroup(0, particleRenderBindGroups[particleFlip]);
     pass.draw(6, Math.floor(params.nParticles));
-    if (params.showSpin && spinArrowBindGroups.length) {
+    if (params.showDotSpin && spinArrowBindGroups.length) {
       pass.setPipeline(pipelineSpinArrow);
       pass.setBindGroup(0, spinArrowBindGroups[particleFlip]);
       pass.draw(9, Math.ceil(Math.floor(params.nParticles) / spinArrowStride()));
     }
   }
 
-  if (reading === "cpn" && params.showSpin && updateMeanSpinArrow()) {
+  if (params.showSpin && updateMeanSpinArrow()) {
     pass.setPipeline(pipelineMagnetPole);
     pass.setBindGroup(0, magnetPoleBindGroup);
     pass.setVertexBuffer(0, meanSpinBuffer);
@@ -2110,10 +2113,10 @@ function updateStats() {
     ? "Cloud: |Ψ|²."
     : "Cloud: |Ψ|². In the orthodox reading it gives the probability of finding the particle at each place when its position is measured; the theory gives the particle no path.";
   if (legendSpin) {
-    legendSpin.hidden = !params.showSpin;
-    legendSpinText.textContent = reading === "pw"
-      ? "Arrows on the dots: spin direction of the wave at each dot."
-      : "Arrow: the spin ⟨σ⟩ of the whole state. Full length: a definite direction; shorter: spin and position are entangled.";
+    legendSpin.hidden = !(params.showSpin || (params.showDotSpin && dotsShown()));
+    const packet = "Arrow at the packet: the spin ⟨σ⟩ of the whole state. Full length: a definite direction; shorter: spin and position are entangled.";
+    const dots = " Small arrows on the dots: spin direction of the wave at each dot.";
+    legendSpinText.textContent = (params.showSpin ? packet : "") + (params.showDotSpin && dotsShown() ? dots : "");
   }
   if (legendPlateText) legendPlateText.textContent = reading === "pw"
     ? "Screen: a dot stops where it reaches it."
@@ -2255,7 +2258,7 @@ function updateMeanSpinArrow() {
   const d = [sx / len, sy / len, sz / len];
   const cy = 0.5 * (simH - 1) + weightCounts.centre[0], cz = 0.5 * (simD - 1) + weightCounts.centre[1];
   const base = [Math.min(visualPacketCenterX(), detectorPlateXGrid()), cy, cz];
-  const L = 24 * len, head = Math.min(7, 0.45 * L), r0 = 1.3, r1 = 3.4;
+  const L = 34 * len, head = Math.min(10, 0.45 * L), r0 = 1.9, r1 = 4.8;
   // Orthonormal frame around d.
   const a = Math.abs(d[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
   const cross = (u, v) => [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
@@ -2776,6 +2779,7 @@ async function main() {
     redrawPending = false;
     if (!paused) {
       if (reading === "cpn") readWeights(now);
+      else if (params.showSpin && (readbackToggle = !readbackToggle)) readWeights(now);
       else readHitCounts(now);
     }
 

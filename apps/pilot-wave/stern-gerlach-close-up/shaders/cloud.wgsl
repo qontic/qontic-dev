@@ -39,7 +39,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
   let visualX = x;
   if (uni.detector.y > 0.5 && visualX > uni.detector.x) { return out; }
   out.intensity = intensity;
-  out.alpha = 0.24 * intensity * min(1.0, 3.0 * X_VIS);
+  out.alpha = 0.24 * intensity * min(1.0, 2.5 * X_VIS);
   let corner = quadCorner(vertexIndex);
   out.local = corner + vec2<f32>(0.5);
   if (i32(uni.visual1.y) == 1) {

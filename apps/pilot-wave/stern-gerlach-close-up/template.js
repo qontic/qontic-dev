@@ -65,11 +65,16 @@ const engineTab = mountQonticEngineTab({
   intro: 'The same experiment can be computed in more than one way. Both are models of the Pauli equation for the atom in the magnet. <b>Fast (2D)</b>: the motion along the beam is the exact free packet, and the spin wave across the beam is computed with the field at the packet\'s centre. <b>Full 3D</b>: the whole wave on a 3D grid, with the field felt where each part of the packet is; slower.',
   engines: [
     { id: 'fast', label: 'Fast (2D)', title: 'Exact free motion along the beam; spinor on a 128 × 128 grid across it, with the field at the packet centre.', note: 'Approximate while the packet crosses a magnet\'s entrance or exit: all of it feels the field at its centre (see Physics: Geometry).' },
-    { id: '3d', label: 'Full 3D', title: 'Full 3D Pauli equation on the GPU (in preparation).', note: '' },
+    { id: '3d', label: 'Full 3D (soon)', title: 'Full 3D Pauli equation on the GPU (being built).', note: '' },
   ],
   value: 'fast',
+  onChange: id => {
+    if (id !== '3d') return;
+    engineTab.setValue('fast');
+    engineTab.setNote('The Full 3D engine is still being built; the app stays on Fast (2D) for now.');
+  },
 });
-engineTab?.disable('3d', 'Full 3D engine: in preparation.');
+// The full 3D engine is not built yet: clicking it says so and stays on the fast engine.
 
 canvas.addEventListener('stern-gerlach:unavailable', () => {
   controls.setAttribute('disabled', '');
@@ -78,7 +83,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=26'));
+  ({ simulation } = await import('./main.js?v=27'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {
