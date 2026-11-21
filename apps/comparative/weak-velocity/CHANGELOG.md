@@ -1,5 +1,13 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.6.0 — 2026-11-21
+New mode: Measure at planes or at instants (Wiseman's timing).
+- Core: "Measure at: Planes / Instants". At instants each run is one packet; the particle's longitudinal offset is drawn from |F|², and since F only translates the run is a run at a shifted plane pair. Exact predictions are mixtures over thirteen offset cells across ±3σ (model: packetSlices, mixtureTable, sampleMixtureRun, expectedMixtureBinVelocities, mixtureCurves; test: central cell = planes, short packet = planes, weak limit = packet-averaged j/|ψ|², sampled strip means χ²/n < 1.5; 19 tests).
+- Drawing at instants: bands (±2σ) around the packet centre at t₁ and t₂; detections drawn where the particle was along its packet; in stage 1 the packet moves through and slows between the two measurements.
+- "Post-select on longitudinal position too": only runs within ±3σ/13 of the packet centre enter the averages; the result returns to that of the planes, and about 80% of runs are discarded (for any σ).
+- Advanced: Packet length σ, 50–300 nm (also sets the fixed-time curve). Link parameters timing=instant, packet, recx=1.
+- Physics: the mode described in "A plane or an instant?"; Wiseman's definition stated (weak at t, strong a short time τ later, τ → 0; checked against arXiv:0706.2522).
+
 ## 0.5.8 — 2026-11-21
 Prompted by X. Oriols's question whether the lines are detections at one position or measurements of position.
 - Points beside the planes are drawn in a narrow band just beside each line (they were spread across the gap, which suggested an uncertainty along x); the caption says only transverse positions are recorded.

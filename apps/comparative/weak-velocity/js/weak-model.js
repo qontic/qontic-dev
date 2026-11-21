@@ -392,3 +392,90 @@ export function packetAveragedVelocity(terms0, k, wallX, xCenter, ys, sigmaX, n 
     return s > 0 ? sv / s : null;
   });
 }
+
+// ------------------------------------------------------------ measurement at instants
+// Time version of the protocol (Wiseman): weak measurement at t1, strong at
+// t2 = t1 + dtau. In this model the longitudinal envelope F only translates, so
+// a particle at longitudinal offset dx from the packet centre meets the weak
+// coupling at x1c + dx and the strong measurement at x2c + dx: each offset is
+// one plane pair, and the joint distribution is a mixture over offsets weighted
+// by |F|^2 (density standard deviation sigmaX). The offset is discretized into
+// nSlices equal cells over ±3 sigmaX; offsets behind the slit wall only.
+export function packetSlices(sigmaX, nSlices = 13) {
+  const width = 6 * sigmaX / nSlices, out = [];
+  for (let j = 0; j < nSlices; j++) {
+    const dx = -3 * sigmaX + (j + 0.5) * width;
+    out.push({dx, w: Math.exp(-dx * dx / (2 * sigmaX * sigmaX))});
+  }
+  return {slices: out, width};
+}
+
+export function mixtureTable({terms0, k, wallX, x1c, dtau, sw, yfMin, yfMax, nYf, sigmaX, nSlices = 13}) {
+  const {slices, width} = packetSlices(sigmaX, nSlices);
+  const parts = [];
+  for (const s of slices) {
+    const x1 = x1c + s.dx;
+    if (x1 <= wallX) continue;
+    const terms1 = propagate(terms0, (x1 - wallX) / k);
+    const table = jointTable({terms1, dtau, sw, yfMin, yfMax, nYf});
+    // Probability of the offset, times the probability of a detection inside
+    // the window (each table is conditioned on the window).
+    parts.push({dx: s.dx, table, W: s.w * table.total});
+  }
+  const sum = parts.reduce((a, q) => a + q.W, 0);
+  let acc = 0;
+  for (const q of parts) {q.W /= sum; acc += q.W; q.cdf = acc;}
+  // Central cell: |dx| < width/2, i.e. within about ±sigmaX/4 of the centre.
+  const central = parts.findIndex(q => Math.abs(q.dx) < width / 2 + 1e-12);
+  return {parts, width, central, dtau, nYf, yf: parts[0].table.yf, dYf: parts[0].table.dYf};
+}
+
+// One run: the longitudinal offset (cell index and a display position inside
+// the cell), the pointer reading Y and the transverse result yf.
+export function sampleMixtureRun(mix, random = Math.random) {
+  const u = random();
+  let j = 0;
+  while (j < mix.parts.length - 1 && mix.parts[j].cdf <= u) j++;
+  const run = sampleRun(mix.parts[j].table, random);
+  run.slice = j;
+  run.dx = mix.parts[j].dx + (random() - 0.5) * mix.width;
+  return run;
+}
+
+// Exact strip means for the mixture; only = optional cell index to keep (the
+// runs whose longitudinal position is recorded near the packet centre).
+export function expectedMixtureBinVelocities(mix, bins, only = null) {
+  const out = [];
+  for (let b = 0; b < bins.n; b++) {
+    let s = 0, sY = 0, sYf = 0;
+    mix.parts.forEach((q, j) => {
+      if (only !== null && j !== only) return;
+      const t = q.table;
+      for (let i = 0; i < t.nYf; i++) {
+        const y = t.yf[i];
+        if (y < bins.yMin + b * bins.w || y >= bins.yMin + (b + 1) * bins.w) continue;
+        const w = q.W * t.marginal[i];
+        if (!(w > 0) || !Number.isFinite(t.meanY[i])) continue;
+        s += w; sY += w * t.meanY[i]; sYf += w * y;
+      }
+    });
+    out.push(s > 0 ? {y: sYf / s, v: (sYf - sY) / s / mix.dtau, weight: s} : null);
+  }
+  return out;
+}
+
+// Fine curves for the mixture: marginal density and conditional mean pointer
+// reading at each yf cell (same grid in every part).
+export function mixtureCurves(mix, only = null) {
+  const n = mix.nYf, marginal = new Float64Array(n), meanY = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    let s = 0, sY = 0;
+    mix.parts.forEach((q, j) => {
+      if (only !== null && j !== only) return;
+      const m = q.W * q.table.marginal[i];
+      if (m > 0 && Number.isFinite(q.table.meanY[i])) {s += m; sY += m * q.table.meanY[i];}
+    });
+    marginal[i] = s; meanY[i] = s > 0 ? sY / s : NaN;
+  }
+  return {yf: mix.yf, marginal, meanY};
+}

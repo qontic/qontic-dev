@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.5.8';
-import * as M from './weak-model.js?v=0.5.8';
+import { APP_RELEASE } from './release.js?v=0.6.0';
+import * as M from './weak-model.js?v=0.6.0';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -36,7 +36,11 @@ const RUNS = [1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6, 5e6, 1e7];   // runs per p
 const fmtRuns = (n) => (n >= 1e6 ? `${n / 1e6}M` : `${n / 1e3}k`);
 let N_BINS = 40;             // geometry-adapted strips, at most 20 nm wide
 const N_PLANES = 12;
-const PACKET_SIGMA = 0.5;    // longitudinal packet density sd (50 nm), as in the double-slit app
+// Longitudinal packet: density standard deviation, state.packet in nm (50 nm
+// by default, as in the double-slit app). Used by the Instants mode and the
+// fixed-time curve.
+const packetSigma = () => state.packet / 100;
+const instant = () => state.timing === 'instant';
 const SCATTER_N = 4000;
 const PLANE_POINTS = 6000; // runs kept as points beside the planes
 const MANY_SECONDS = 6;     // stage 2 collection time at speed 1
@@ -56,6 +60,7 @@ const state = {
   waveMode: 'density', arrowEvery: 1, nLines: 20,
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, fixedTime: false, bohm: false, scatter: true, planeRuns: true },
   selected: null, shiftView: false,
+  timing: 'plane', packet: 50, recx: false,   // measure at planes or at instants (Wiseman)
 };
 let exp = null;              // current pair of planes
 let map = null;              // stage 3 state
@@ -75,24 +80,33 @@ function makeExperiment(x1nm) {
   const x1 = p.wall + x1nm / 100, dtau = state.gap / 100 / p.k;
   const terms1 = M.propagate(T0, (x1 - p.wall) / p.k);
   const terms2 = M.propagate(terms1, dtau);
-  const table = M.jointTable({ terms1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf: M.measurementLayout(geo.screen, state.sw).nYf });
+  const nYf = M.measurementLayout(geo.screen, state.sw).nYf;
+  // Instants: a mixture over the particle's longitudinal offset within its
+  // packet (each offset is a shifted plane pair). Planes: one table.
+  let mix = null, table;
+  if (instant()) {
+    mix = M.mixtureTable({ terms0: T0, k: p.k, wallX: p.wall, x1c: x1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf, sigmaX: packetSigma() });
+    table = mix.parts[mix.central].table;
+  } else table = M.jointTable({ terms1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf });
+  const only = mix && state.recx ? mix.central : null;
   const bins = M.makeBins(-Y_HALF, Y_HALF, N_BINS);
-  const expected = M.expectedBinVelocities(table, bins);
+  const expected = mix ? M.expectedMixtureBinVelocities(mix, bins, only) : M.expectedBinVelocities(table, bins);
+  const pred = mix ? M.mixtureCurves(mix, only) : { marginal: table.marginal, meanY: table.meanY };
   // Fine curves (slopes v_y / v_x) for the velocity plot.
-  const rhoMax = Math.max(...Array.from(table.marginal));
+  const rhoMax = Math.max(...Array.from(pred.marginal));
   const expCurve = [], curCurve = [], rho = [];
   for (let i = 0; i < table.nYf; i++) {
     const y = table.yf[i], r = M.density(terms2, y);
     rho.push([y, r]);
     curCurve.push([y, M.currentVelocity(terms2, y) / p.k]);
-    if (table.marginal[i] > 0.02 * rhoMax) expCurve.push([y, (y - table.meanY[i]) / dtau / p.k]);
+    if (pred.marginal[i] > 0.02 * rhoMax) expCurve.push([y, (y - pred.meanY[i]) / dtau / p.k]);
     else expCurve.push([y, null]);
   }
   // Fixed-time measurement recording only the transverse position (Wiseman's
   // timing, weak limit): j/|psi|^2 averaged over the planes the longitudinal
   // packet spans around the strong plane (see weak-model.js).
-  const ftV = M.packetAveragedVelocity(T0, p.k, p.wall, x1 + state.gap / 100, Array.from(table.yf), PACKET_SIGMA);
-  const ftCurve = ftV.map((v, i) => [table.yf[i], v === null || !(table.marginal[i] > 0.02 * rhoMax) ? null : v / p.k]);
+  const ftV = M.packetAveragedVelocity(T0, p.k, p.wall, x1 + state.gap / 100, Array.from(table.yf), packetSigma());
+  const ftCurve = ftV.map((v, i) => [table.yf[i], v === null || !(pred.marginal[i] > 0.02 * rhoMax) ? null : v / p.k]);
   const rMax = Math.max(...rho.map((a) => a[1]));
   // Plot range from the current velocity where the wave is not negligible.
   let vmax = 0.05;
@@ -108,25 +122,37 @@ function makeExperiment(x1nm) {
     binCur.push(s > 0 ? sv / s : null);
   }
   return {
-    x1, x2: x1 + state.gap / 100, dtau, terms1, terms2, table, bins, expected, expCurve, curCurve, ftCurve, rho, rMax,
-    vmax: vmax * 1.25, binCur, runs: 0, detectedCounts: new Float64Array(table.nYf),
+    x1, x2: x1 + state.gap / 100, dtau, terms1, terms2, table, mix, bins, expected, expCurve, curCurve, ftCurve, rho, rMax,
+    vmax: vmax * 1.25, binCur, runs: 0, used: 0, detectedCounts: new Float64Array(table.nYf),
     scatter: new Float32Array(SCATTER_N * 2), scatterN: 0, scatterHead: 0,
-    ptsY: new Float32Array(PLANE_POINTS), ptsYf: new Float32Array(PLANE_POINTS), ptsU: new Float32Array(PLANE_POINTS), ptsN: 0,
+    ptsY: new Float32Array(PLANE_POINTS), ptsYf: new Float32Array(PLANE_POINTS), ptsU: new Float32Array(PLANE_POINTS),
+    ptsX: new Float32Array(PLANE_POINTS), ptsK: new Uint8Array(PLANE_POINTS), ptsN: 0,
   };
 }
+// One run: at planes from the single table; at instants from the mixture
+// (the run then also carries its longitudinal offset dx and cell index).
+function sampleOne(e) { return e.mix ? M.sampleMixtureRun(e.mix) : M.sampleRun(e.table); }
+// With "post-select on longitudinal position", only runs in the central cell
+// (within about ±σ/4 of the packet centre) enter the strip averages.
+const keptRun = (e, run) => !(e.mix && state.recx && run.slice !== e.mix.central);
 
 // Stage 1 keeps every run as a point; later stages keep one run in `stride`.
 const pointStride = () => (state.stage === 'one' ? 1 : Math.max(1, Math.floor(state.perPlane / PLANE_POINTS)));
 function addRun(e, run) {
   hadRun = true;
-  M.addToBins(e.bins, run);
-  const cell = Math.min(e.table.nYf - 1, Math.max(0, Math.floor((run.yf + Y_HALF) / e.table.dYf)));
-  e.detectedCounts[cell]++;
+  const kept = keptRun(e, run);
+  if (kept) {
+    M.addToBins(e.bins, run);
+    const cell = Math.min(e.table.nYf - 1, Math.max(0, Math.floor((run.yf + Y_HALF) / e.table.dYf)));
+    e.detectedCounts[cell]++;
+    e.used++;
+  }
   // Points beside the planes: one run in every `stride`, so they fill in over the
   // whole collection and finish with it (6 000 points at the end).
   const stride = pointStride();
-  if (e.runs % stride === 0 && e.ptsN < PLANE_POINTS) { e.ptsY[e.ptsN] = run.Y; e.ptsYf[e.ptsN] = run.yf; e.ptsU[e.ptsN] = Math.random(); e.ptsN++; }
+  if (e.runs % stride === 0 && e.ptsN < PLANE_POINTS) { e.ptsY[e.ptsN] = run.Y; e.ptsYf[e.ptsN] = run.yf; e.ptsU[e.ptsN] = Math.random(); e.ptsX[e.ptsN] = run.dx ?? 0; e.ptsK[e.ptsN] = kept ? 1 : 0; e.ptsN++; }
   e.runs++;
+  if (!kept) return;
   e.scatter[e.scatterHead * 2] = run.yf; e.scatter[e.scatterHead * 2 + 1] = run.Y;
   e.scatterHead = (e.scatterHead + 1) % SCATTER_N; e.scatterN = Math.min(SCATTER_N, e.scatterN + 1);
 }
@@ -191,6 +217,11 @@ function updateText() {
   document.querySelectorAll('[data-strip-width]').forEach((el) => { el.textContent = `${Number((geo.screen / N_BINS).toPrecision(3))} nm`; });
   document.querySelectorAll('[data-screen-half]').forEach((el) => { el.textContent = `${geo.screen / 2}`; });
   $('#x1Row').style.display = state.stage === 'map' ? 'none' : '';
+  document.querySelectorAll('[data-timing]').forEach((b) => { const on = b.dataset.timing === state.timing; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
+  $('#recxRow').hidden = !instant();
+  $('#recx').setAttribute('aria-pressed', String(state.recx));
+  $('#packet').value = state.packet; $('#packetOut').value = `${state.packet} nm`;
+  $('#packet').setAttribute('aria-valuetext', `${state.packet} nanometres`);
   $('#runsRow').style.display = state.stage === 'one' ? 'none' : '';
   document.querySelectorAll('[data-stage]').forEach((b) => {
     const on = b.dataset.stage === state.stage;
@@ -212,25 +243,29 @@ function liveBody() {
   const N = exp.runs.toLocaleString('en-US');
   if (state.stage === 'one') {
     if (exp.runs === 0) return 'Press <b>Start</b>. Watch the pointer move, then the screen click. One run gives two numbers.';
-    return `${plural(exp.runs, 'run', 'runs')}. The amber marker is the recorded pointer coordinate Y. The pointer's initial preparation spread is σ = ${state.sw} nm. A wider pointer gives less information in one run and disturbs the wave less. One run does not establish a particle's path.`;
+    const timing = instant() ? ` Measured at instants: each run is one packet. The pointer is coupled at t₁ and the transverse position measured at t₂, wherever the particle is along its packet (shaded bands, ±2σ = ±${2 * state.packet} nm).` : '';
+    return `${plural(exp.runs, 'run', 'runs')}.${timing} The amber marker is the recorded pointer coordinate Y. The pointer's initial preparation spread is σ = ${state.sw} nm. A wider pointer gives less information in one run and disturbs the wave less. One run does not establish a particle's path.`;
   }
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const bw = 2 * Y_HALF / N_BINS, strip = `${nm(-Y_HALF + state.selected * bw).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * bw).toFixed(0)} nm`;
-    const head = `${N} of ${state.perPlane.toLocaleString('en-US')} runs.`;
+    const kept = instant() && state.recx ? ` ${exp.used.toLocaleString('en-US')} post-selected: only runs within ±${Math.round(3 * state.packet / 13)} nm of the packet centre (bright band).` : '';
+    const at = instant() ? ' Measured at instants: each detection is drawn where the particle was along its packet at t₂.' : '';
+    const head = `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${kept}${at}`;
     if (!b) return `${head} ${exp.runs ? 'Too few runs in the selected strip yet.' : 'Press <b>Start</b>.'} ${SELECT_HINT}`;
     // Neutral wording: two averages over the same post-selected runs, not a path.
     const shift = nm(b.v * exp.dtau), err = nm(b.err * exp.dtau), mY = nm(b.y - b.v * exp.dtau);
     const done = exp.runs >= state.perPlane ? ' Error bars are one standard deviation: about one strip in three should miss the prediction by more than its bar.' : '';
-    return `${head} Beside the planes: a sample of the pointer readings (amber) and detections (cyan), drawn just beside each line for visibility; only transverse positions are recorded. ${SELECT_HINT} For the runs detected in the strip ${strip} (mean ${nm(b.y).toFixed(1)} nm), the mean pointer reading is <b>${mY.toFixed(1)} nm</b>. Detection minus pointer mean, ${shift >= 0 ? '+' : '−'}${Math.abs(shift).toFixed(1)} ± ${err.toFixed(1)} nm, divided by the ${state.gap} nm gap gives the slope v<sub>y</sub>/v<sub>x</sub>. It is a difference of two averages over the same selected runs, not the path of any particle.${done}`;
+    return `${head} Beside the planes: a sample of the pointer readings (amber) and detections (cyan), drawn just beside each line for visibility${instant() ? '' : '; only transverse positions are recorded'}. ${SELECT_HINT} For the runs detected in the strip ${strip} (mean ${nm(b.y).toFixed(1)} nm), the mean pointer reading is <b>${mY.toFixed(1)} nm</b>. Detection minus pointer mean, ${shift >= 0 ? '+' : '−'}${Math.abs(shift).toFixed(1)} ± ${err.toFixed(1)} nm, divided by the ${state.gap} nm gap gives the slope v<sub>y</sub>/v<sub>x</sub>. It is a difference of two averages over the same selected runs, not the path of any particle.${done}`;
   }
   if (map && !map.done && !state.running && map.index === 0 && exp.runs === 0) return 'Press <b>Start</b> to map the field: twelve pairs of planes, each a separate experiment. (Changing a setting clears the map.)';
   if (map && !map.done) return `Plane pair ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
   if (map && map.done) {
     const lastX = nm(exp.x2 - p.wall).toFixed(0);
+    const atInstants = instant() ? (state.recx ? ' Measured at instants, post-selected near the packet centre: the arrows return to those of the planes.' : ` Measured at instants with a ${state.packet} nm packet: each arrow averages the field over the planes the packet spans, so the lines need not follow the flow of j/|ψ|²; post-selecting on the longitudinal position recovers it.`) : '';
     const plots = ` The plots and Results show the last pair (strong plane ${lastX} nm behind the slits); click a plot to choose a strip.`;
     const off = map.endOffset === null ? '' : ` Their endpoint difference is ${map.endOffset.toFixed(1)} nm (rms). Sampling noise, pointer disturbance, strip averaging and interpolation can all contribute; more runs reduce only the sampling noise.`;
-    return `All ${N_PLANES} plane pairs mapped with fresh particles. The amber lines join the measured arrows. ${map.completedLines} of ${map.intendedLines} requested lines reached the screen; unfinished lines end with an open circle. Grey ticks show where the flow of j/|ψ|² from each actual starting point reaches the screen.${off} Agreement checks the reconstruction, not an interpretation.${plots} ${RATIONALE_LINK}`;
+    return `All ${N_PLANES} plane pairs mapped with fresh particles. The amber lines join the measured arrows. ${map.completedLines} of ${map.intendedLines} requested lines reached the screen; unfinished lines end with an open circle. Grey ticks show where the flow of j/|ψ|² from each actual starting point reaches the screen.${off}${atInstants} Agreement checks the reconstruction, not an interpretation.${plots} ${RATIONALE_LINK}`;
   }
   return '';
 }
@@ -268,6 +303,9 @@ function toggle(key) {
 }
 
 document.querySelectorAll('[data-stage]').forEach((b) => b.addEventListener('click', () => setStage(b.dataset.stage)));
+document.querySelectorAll('[data-timing]').forEach((b) => b.addEventListener('click', () => { state.timing = b.dataset.timing; stop(); pending = true; updateText(); }));
+$('#recx').addEventListener('click', () => { state.recx = !state.recx; stop(); pending = true; updateText(); });
+$('#packet').addEventListener('input', (e) => { state.packet = +e.target.value; stop(); pending = true; updateText(); });
 document.querySelectorAll('[data-wavemode]').forEach((b) => b.addEventListener('click', () => {
   state.waveMode = b.dataset.wavemode;
   document.querySelectorAll('[data-wavemode]').forEach((o) => { const on = o === b; o.classList.toggle('active', on); o.setAttribute('aria-pressed', String(on)); });
@@ -490,6 +528,9 @@ function readUrl() {
   if (['density', 'crests', 'phase'].includes(q.get('show'))) state.waveMode = q.get('show');
   for (const key of ['expected', 'current']) if (q.get(key) === '0') state.show[key] = false;
   if (q.get('ft') === '1') state.show.fixedTime = true;
+  if (q.get('timing') === 'instant') state.timing = 'instant';
+  if (q.get('recx') === '1') state.recx = true;
+  { const v = parseFloat(q.get('packet')); if (Number.isFinite(v)) { state.packet = Math.min(300, Math.max(50, Math.round(v / 10) * 10)); urlAsked.packet = v; } }
   if (q.get('bohm') === '1') state.show.bohm = true;
   for (const key of ['expected', 'current', 'fixedTime']) document.querySelector(`[data-toggle="${key}"]`).setAttribute('aria-pressed', String(state.show[key]));
   $('#sw').value = state.sw; $('#x1').value = state.x1; $('#gap').value = state.gap;
@@ -498,7 +539,7 @@ function readUrl() {
 function shareUrl() {
   const u = new URL(location.href);
   const g = {}; for (const k of Object.keys(GEO_DEFAULT)) if (geo[k] !== GEO_DEFAULT[k]) g[k] = geo[k];
-  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}) }).toString();
+  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(state.recx ? {recx: 1} : {}), ...(state.packet !== 50 ? {packet: state.packet} : {}) }).toString();
   return u.toString();
 }
 
@@ -654,7 +695,35 @@ const RUN_SECONDS = 1.8;
 const RUN_TW = 0.15, RUN_TS = 0.55;   // pointer moves, then detection, within a run
 let waveGrid = null, waveLayer = null, phaseClock = 0, lastRun = null;
 const HUE = (() => { const t = new Uint8Array(256 * 3); for (let i = 0; i < 256; i++) { const h = i / 256 * 6, c = 1, x = 1 - Math.abs(h % 2 - 1); const [r, g, b] = h < 1 ? [c, x, 0] : h < 2 ? [x, c, 0] : h < 3 ? [0, c, x] : h < 4 ? [0, x, c] : h < 5 ? [x, 0, c] : [c, 0, x]; t[3 * i] = 70 + 185 * r; t[3 * i + 1] = 70 + 185 * g; t[3 * i + 2] = 70 + 185 * b; } return t; })();
-function makeRunAnim(run) { lastRun = run; if (waveGrid) waveGrid.overKey = null; return { t: 0, run, tW: RUN_TW, tS: RUN_TS }; }
+const RUN_SECONDS_INSTANT = 3.0;
+// At instants the packet travels through the drawing; it slows down between
+// the two measurements (t1 when its centre is at the weak position, t2 at the
+// strong one) so both events can be seen.
+const PACKET_A = 0.3, PACKET_B = 0.72;
+function packetCentre(a) {
+  const m = 2 * packetSigma(), x1c = exp.x1, x2c = exp.x2, xa = p.wall - 0.6, xb = p.screen;
+  if (a.t < PACKET_A) return xa + (x1c - m - xa) * a.t / PACKET_A;
+  if (a.t < PACKET_B) return x1c - m + (x2c - x1c + 2 * m) * (a.t - PACKET_A) / (PACKET_B - PACKET_A);
+  return x2c + m + (xb - x2c - m) * Math.min(1, (a.t - PACKET_B) / (1 - PACKET_B));
+}
+function makeRunAnim(run) {
+  lastRun = run; if (waveGrid) waveGrid.overKey = null;
+  if (!instant()) return { t: 0, run, tW: RUN_TW, tS: RUN_TS };
+  const m = 2 * packetSigma(), g = exp.x2 - exp.x1, f = (d) => PACKET_A + (PACKET_B - PACKET_A) * d / (g + 2 * m);
+  return { t: 0, run, tW: f(m), tS: f(m + g), packet: true };
+}
+// Stage 1 at instants: dim the wave outside the packet, |F(x - xc)|^2.
+function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function drawPacketMask(P, X, Yp, xc, xLeft) {
+  const s = packetSigma(), [r, g, b] = hexRgb(P.panel), dim = 0.82, top = Yp(Y_HALF), h = Yp(-Y_HALF) - top;
+  const xa = X(xc - 4 * s), xb = X(xc + 4 * s), left = X(xLeft), right = X(p.screen);
+  ctx.fillStyle = `rgba(${r},${g},${b},${dim})`;
+  if (xa > left) ctx.fillRect(left, top, xa - left, h);
+  if (right > xb) ctx.fillRect(xb, top, right - xb, h);
+  const grad = ctx.createLinearGradient(xa, 0, xb, 0);
+  for (let k = 0; k <= 16; k++) { const u = -4 + k / 2; grad.addColorStop(k / 16, `rgba(${r},${g},${b},${dim * (1 - Math.exp(-u * u / 2))})`); }
+  ctx.fillStyle = grad; ctx.fillRect(xa, top, xb - xa, h);
+}
 const waveKey = (xa, xb, nx) => [xa, xb, nx, p.k, p.sy, p.centers, p.wall, p.sourceSigma, Y_HALF].join('|');
 // Base grid: ψ at every column (density and phase angle kx + arg φ).
 function baseGrid(xa, xb, nx) {
@@ -763,6 +832,7 @@ function drawApparatus(P, box) {
       lines.forEach((ln, i) => backedText(P, ln, X(exp ? exp.x2 : w.mixedFrom) + 10, Yp(-Y_HALF) - 22 + 12 * i, { color: P.muted, size: 10 }));
     }
     if (state.waveMode !== 'density' && !w.canCrest) text('wavelength too short to draw crests here: density shown', X(p.wall) + 8, box.y + box.h - 18, { color: P.muted, size: 10 });
+    if (instant() && state.stage === 'one' && exp && anim?.packet) drawPacketMask(P, X, Yp, packetCentre(anim), x0);
   }
   // wall with two slits (±1.5 sigma openings)
   ctx.strokeStyle = P.wall; ctx.lineWidth = 4;
@@ -855,13 +925,23 @@ function drawApparatus(P, box) {
     pr.forEach(([y, r], i) => { const xx = X(p.screen) + 28 + w * r / mx; i ? ctx.lineTo(xx, Yp(y)) : ctx.moveTo(xx, Yp(y)); }); ctx.stroke();
   }
 
-  // the current pair of planes
+  // At instants: shaded bands (±2σ of the packet) around the packet centre at
+  // t1 (weak) and t2 (strong); the particle can be anywhere in them.
+  if (exp && !(map?.done) && instant()) {
+    const s = packetSigma(), top = Yp(Y_HALF), h = Yp(-Y_HALF) - top;
+    ctx.globalAlpha = 0.13;
+    ctx.fillStyle = P.weak; ctx.fillRect(X(exp.x1 - 2 * s), top, X(exp.x1 + 2 * s) - X(exp.x1 - 2 * s), h);
+    ctx.fillStyle = P.strong; ctx.fillRect(X(exp.x2 - 2 * s), top, X(exp.x2 + 2 * s) - X(exp.x2 - 2 * s), h);
+    if (state.recx && exp.mix) { const w = exp.mix.width / 2; ctx.globalAlpha = 0.3; ctx.fillRect(X(exp.x2 - w), top, X(exp.x2 + w) - X(exp.x2 - w), h); }
+    ctx.globalAlpha = 1;
+  }
+  // the current pair of planes (at instants: the packet centre at t1 and t2)
   if (exp && !(map?.done)) {
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = instant() ? 1 : 1.5;
     ctx.strokeStyle = P.weak; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(exp.x1), Yp(Y_HALF)); ctx.lineTo(X(exp.x1), Yp(-Y_HALF)); ctx.stroke(); ctx.setLineDash([]);
     ctx.strokeStyle = P.strong; ctx.beginPath(); ctx.moveTo(X(exp.x2), Yp(Y_HALF)); ctx.lineTo(X(exp.x2), Yp(-Y_HALF)); ctx.stroke();
-    text('weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
-    text('strong', X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
+    text(instant() ? 'weak · t₁' : 'weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
+    text(instant() ? 'strong · t₂' : 'strong', X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
   }
   // Accumulated runs as points: pointer readings beside the weak plane,
   // detections between the planes. The first PLANE_POINTS runs are kept as
@@ -876,7 +956,13 @@ function drawApparatus(P, box) {
     ctx.fillStyle = P.strong;
     // Narrow bands just beside each line: only the transverse position is
     // recorded; the sideways spread is for visibility, not a position along x.
-    for (let i = 0; i < n; i++) ctx.fillRect(xs - 2 - exp.ptsU[i] * Math.min(6, gapW - 2) - sz / 2, Yp(exp.ptsYf[i]) - sz / 2, sz, sz);
+    if (instant()) {
+      // At instants each detection is drawn where the particle was along its
+      // packet at t2; with longitudinal post-selection, runs outside the kept
+      // cell are drawn faint.
+      const a0 = ctx.globalAlpha;
+      for (let i = 0; i < n; i++) { ctx.globalAlpha = state.recx && !exp.ptsK[i] ? a0 * 0.25 : a0; ctx.fillRect(X(exp.x2 + exp.ptsX[i]) - sz / 2, Yp(exp.ptsYf[i]) - sz / 2, sz, sz); }
+    } else for (let i = 0; i < n; i++) ctx.fillRect(xs - 2 - exp.ptsU[i] * Math.min(6, gapW - 2) - sz / 2, Yp(exp.ptsYf[i]) - sz / 2, sz, sz);
     ctx.globalAlpha = 1;
     const stride = pointStride();
     if (stride > 1) text(`points: one run in ${stride.toLocaleString('en-US')}`, xw - 6, bot + 13, { color: P.muted, size: 10, align: 'right' });
@@ -945,8 +1031,9 @@ function drawPointerGauge(P, box, X, Yp) {
   }
   if (t > tS) {
     const r = t < tS + 0.1 ? 4 + 20 * (t - tS) : 6;
-    ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(X(exp.x2), Yp(anim.run.yf), r, 0, Math.PI * 2); ctx.fill();
-    text(`detected at ${nm(anim.run.yf).toFixed(0)} nm`, X(exp.x2) + 10, Yp(anim.run.yf) + 4, { color: P.strong, size: 11 });
+    const xd = X(exp.x2 + (anim.packet ? anim.run.dx : 0));
+    ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(xd, Yp(anim.run.yf), r, 0, Math.PI * 2); ctx.fill();
+    text(`detected at ${nm(anim.run.yf).toFixed(0)} nm`, xd + 10, Yp(anim.run.yf) + 4, { color: P.strong, size: 11 });
   }
 }
 
@@ -1091,7 +1178,7 @@ function drawVelocity(P, box) {
 function updateResults() {
   const set = (k, v) => { const o = document.querySelector(`[data-result="${k}"]`); if (o) o.value = v; };
   if (!exp) return;
-  set('runs', exp.runs.toLocaleString('en-US'));
+  set('runs', exp.runs.toLocaleString('en-US') + (instant() && state.recx ? ` (${exp.used.toLocaleString('en-US')} kept)` : ''));
   set('planes', !map ? '—' : map.done ? `${N_PLANES} of ${N_PLANES}` : `${map.planes.length} of ${N_PLANES}${state.running ? ` (pair ${map.index + 1} running)` : ''}`);
   set('pair', `${nm(exp.x1 - p.wall).toFixed(0)} → ${nm(exp.x2 - p.wall).toFixed(0)} nm`);
   // Stage 1 has no post-selection: show only the rows that mean something.
@@ -1165,8 +1252,8 @@ function frame(now) {
   if (state.waveMode !== 'density' && (state.running || (state.stage === 'one' && !exp?.runs))) phaseClock = (phaseClock + dt * state.speed * 2 * Math.PI / 0.8) % (2 * Math.PI);
   if (state.running && exp) {
     if (state.stage === 'one') {
-      if (!anim) anim = makeRunAnim(M.sampleRun(exp.table));
-      anim.t += dt * state.speed / RUN_SECONDS;
+      if (!anim) anim = makeRunAnim(sampleOne(exp));
+      anim.t += dt * state.speed / (instant() ? RUN_SECONDS_INSTANT : RUN_SECONDS);
       if (anim.t >= 1) { addRun(exp, anim.run); anim = null; }
     } else if (state.stage === 'many') {
       // One schedule for the drawing and the plots: the collection takes about
@@ -1175,11 +1262,11 @@ function frame(now) {
       exp.clock = Math.min(1, (exp.clock || 0) + dt * state.speed / MANY_SECONDS);
       const want = Math.ceil(state.perPlane * exp.clock ** 3);
       const n = Math.min(150000, Math.max(0, want - exp.runs));
-      for (let i = 0; i < n && exp.runs < state.perPlane; i++) addRun(exp, M.sampleRun(exp.table));
+      for (let i = 0; i < n && exp.runs < state.perPlane; i++) addRun(exp, sampleOne(exp));
       if (exp.runs >= state.perPlane) { stop(); showNext(); }
     } else if (map && !map.done) {
       const n = Math.min(state.perPlane - exp.runs, Math.round(60000 * state.speed));
-      for (let i = 0; i < n; i++) addRun(exp, M.sampleRun(exp.table));
+      for (let i = 0; i < n; i++) addRun(exp, sampleOne(exp));
       if (exp.runs >= state.perPlane) finishPlane();
     }
   }
@@ -1277,7 +1364,7 @@ syncGeometryInputs();
   } else {
     const cur = (k) => (k in geo ? geo[k] : k === 'runs' ? state.perPlane : state[k]);
     const changed = Object.keys(urlAsked).filter((k) => cur(k) !== urlAsked[k]);
-    const name = (k) => (DRAG_LABEL[k] || GEO_LABEL[k] || { sw: 'Pointer spread', runs: 'Runs per pair of planes' }[k] || k).toLowerCase();
+    const name = (k) => (DRAG_LABEL[k] || GEO_LABEL[k] || { sw: 'Pointer spread', runs: 'Runs per pair of planes', packet: 'Packet length' }[k] || k).toLowerCase();
     if (changed.length) urlNote = `The link's ${changed.map((k) => `${name(k)} (${urlAsked[k]} → ${cur(k)})`).join(', ')} ${changed.length > 1 ? 'were' : 'was'} adjusted to the allowed range.`;
   }
   if (urlBadStage) urlNote = `${urlNote} The link's stage "${urlBadStage}" is unknown; stage 1 is shown.`.trim();

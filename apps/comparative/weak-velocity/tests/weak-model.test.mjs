@@ -232,4 +232,41 @@ test('fixed-time, transverse-only: reduces to the plane result for a short packe
   assert.ok(maxd / maxv > 0.01 && maxd / maxv < 0.2, `relative change ${maxd / maxv}`);
 });
 
+test('instants: mixture over packet offsets — short packet, central cell, weak limit, sampling', () => {
+  const x1c = p.wall + 5, dtau = 0.5 / p.k, base = {terms0: t0, k: p.k, wallX: p.wall, x1c, dtau, yfMin: -4, yfMax: 4, nYf: 480};
+  const bins = M.makeBins(-4, 4, 40);
+  const plane = M.jointTable({terms1: M.propagate(t0, 5 / p.k), dtau, sw: 2, yfMin: -4, yfMax: 4, nYf: 480});
+  const planeEx = M.expectedBinVelocities(plane, bins);
+  // (a) the central cell is the plane pair itself
+  const mix = M.mixtureTable({...base, sw: 2, sigmaX: 0.5});
+  assert.ok(Math.abs(mix.parts[mix.central].dx) < 1e-12);
+  const cen = M.expectedMixtureBinVelocities(mix, bins, mix.central);
+  planeEx.forEach((e, b) => { if (e && cen[b]) assert.ok(Math.abs(e.v - cen[b].v) < 1e-9); });
+  // (b) a very short packet gives the plane result
+  const tiny = M.expectedMixtureBinVelocities(M.mixtureTable({...base, sw: 2, sigmaX: 1e-4}), bins);
+  planeEx.forEach((e, b) => { if (e && tiny[b]) assert.ok(Math.abs(e.v - tiny[b].v) < 1e-3 * p.k); });
+  // (c) weak pointer: the mixture follows the packet-averaged j/|psi|^2 at the strong plane
+  const all = M.expectedMixtureBinVelocities(mix, bins);
+  const x2c = x1c + 0.5, ysAll = [], wsAll = [];
+  let worst = 0, scale = 0;
+  for (let b = 0; b < 40; b++) {
+    if (!all[b] || all[b].weight < 0.02 * Math.max(...all.map(e => e ? e.weight : 0))) continue;
+    const ys = Array.from({length: 10}, (_, j) => -4 + (b + (j + 0.5) / 10) * 0.2);
+    // strip-average of the packet-averaged velocity, weighted by the packet-averaged density
+    const { slices } = M.packetSlices(0.5, 13);
+    let s = 0, sv = 0;
+    for (const sl of slices) { const t = M.propagate(t0, (x2c + sl.dx - p.wall) / p.k); for (const y of ys) { const r = sl.w * M.density(t, y); s += r; sv += r * M.currentVelocity(t, y); } }
+    worst = Math.max(worst, Math.abs(sv / s - all[b].v)); scale = Math.max(scale, Math.abs(sv / s));
+  }
+  assert.ok(worst / scale < 0.03, `weak-limit mixture vs packet average: ${worst / scale}`);
+  // (d) sampled runs reproduce the mixture strip means
+  let seed = 5; const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const sb = M.makeBins(-4, 4, 40);
+  for (let i = 0; i < 1000000; i++) M.addToBins(sb, M.sampleMixtureRun(mix, rnd));
+  const got = M.binVelocities(sb, dtau, 200);
+  let chi = 0, n = 0;
+  got.forEach((g, b) => { if (!g || !all[b]) return; chi += ((g.v - all[b].v) / g.err) ** 2; n++; });
+  assert.ok(n >= 30 && chi / n < 1.5, `chi2/n ${chi / n} over ${n}`);
+});
+
 console.log(`${passed} tests passed`);
