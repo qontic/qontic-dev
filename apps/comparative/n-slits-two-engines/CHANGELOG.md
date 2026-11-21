@@ -3,6 +3,11 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.20 — 2026-11-21
+Pablo: no good place for the phase key on the canvas; agreed to put it under the picture.
+- The phase key is docked by default at the left of the caption under the picture (112 px), where it covers nothing. Its ⇱ button floats it over the canvas (drag, resize, fold to an icon, as in dev.18–19); ⇲ puts it back. The choice is remembered.
+Checked: docked on desktop and phone (390 px), float → fold → unfold → dock, saved mode; no page errors.
+
 ## 1.0-dev.19 — 2026-11-21
 Pablo: make the phase key resizable.
 - Phase key resizable from its top-left corner (the bottom-right corner stays put), 120–320 px wide; the size is remembered with the position. Smaller fold button.

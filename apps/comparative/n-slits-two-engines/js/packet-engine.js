@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te19';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML} from './physics-content.js?cache=te19';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te19';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te19';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te19';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te19';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te19';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te19';
-import {createNumericalEngine} from './numerical-engine.js?cache=te19';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te19';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te19';
-import {classifySlitSide} from './source-packet-model.js?cache=te19';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te20';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML} from './physics-content.js?cache=te20';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te20';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te20';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te20';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te20';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te20';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te20';
+import {createNumericalEngine} from './numerical-engine.js?cache=te20';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te20';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te20';
+import {classifySlitSide} from './source-packet-model.js?cache=te20';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -723,7 +723,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te19').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te20').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -880,34 +880,41 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   const host=document.getElementById('canvas-container');if(!host)return null;
   const K='qontic-te-phase-key';let st={};try{st=JSON.parse(localStorage.getItem(K)||'{}');}catch(_){}
   const el=document.createElement('div');el.className='te-phase-key';el.setAttribute('role','group');el.setAttribute('aria-label','Wave phase key');
-  el.innerHTML='<div class="te-pk-panel"><button type="button" class="te-pk-fold" title="Fold the phase key to an icon" aria-label="Fold the phase key">–</button><span class="te-pk-resize" title="Drag to resize" aria-hidden="true"></span></div><button type="button" class="te-pk-icon" title="Show the wave phase key" aria-label="Show the wave phase key"></button>';
+  el.innerHTML='<div class="te-pk-panel"><button type="button" class="te-pk-fold" title="Fold the phase key to an icon" aria-label="Fold the phase key">–</button><button type="button" class="te-pk-dock" title="Put the key back under the picture" aria-label="Put the phase key back under the picture">⇲</button><button type="button" class="te-pk-pop" title="Float the key over the picture (drag, resize, fold)" aria-label="Float the phase key over the picture">⇱</button><span class="te-pk-resize" title="Drag to resize" aria-hidden="true"></span></div><button type="button" class="te-pk-icon" title="Show the wave phase key" aria-label="Show the wave phase key"></button>';
   const panel=el.querySelector('.te-pk-panel'),cv=paintPhaseLegend(document.createElement('canvas'),2);cv.className='te-pk-canvas';panel.prepend(cv);
-  host.append(el);
-  const css=document.createElement('style');css.textContent='.te-phase-key{position:absolute;z-index:9;touch-action:none;user-select:none}.te-phase-key[hidden]{display:none!important}.te-pk-panel{position:relative;cursor:grab;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.35)}.te-phase-key .te-pk-canvas{display:block;position:static!important;left:auto!important;top:auto!important;width:var(--pk-w,168px)!important;height:calc(var(--pk-w,168px)*148/168)!important;transform:none!important}.te-pk-resize{position:absolute;left:0;top:0;width:16px;height:16px;cursor:nwse-resize;border-top-left-radius:10px;background:linear-gradient(135deg,rgba(216,234,245,.7) 0 2px,transparent 2px 5px,rgba(216,234,245,.5) 5px 7px,transparent 7px)}@media (pointer:coarse){.te-pk-resize{width:28px;height:28px}}.te-pk-fold{position:absolute;top:3px;right:3px;width:18px;height:18px;padding:0;border:1px solid rgba(160,190,210,.45);border-radius:6px;background:rgba(10,20,30,.7);color:#d8eaf5;font:600 12px Inter,Arial,sans-serif;line-height:14px;cursor:pointer}.te-pk-icon{display:none;width:30px;height:30px;padding:0;border-radius:50%;border:2px solid rgba(216,234,245,.8);cursor:pointer;background:radial-gradient(circle,#0b0f16 34%,transparent 36%),conic-gradient(#1440ff,#1440ff 18%,#b80be0 50%,#ff1405 82%,#ff1405);box-shadow:0 1px 6px rgba(0,0,0,.4)}.te-phase-key.folded .te-pk-panel{display:none}.te-phase-key.folded .te-pk-icon{display:block}@media (pointer:coarse){.te-pk-fold{width:34px;height:34px}.te-pk-icon{width:44px;height:44px}}';
+  // Docked (default): left of the caption under the picture; floating: over the canvas.
+  const cap=document.getElementById('view-caption');let slot=null;
+  if(cap){const row=document.createElement('div');row.className='te-cap-row';cap.before(row);slot=document.createElement('div');slot.className='te-pk-slot';row.append(slot,cap);}
+  let docked=st.mode!=='float'&&!!slot;
+  (docked?slot:host).append(el);el.classList.toggle('docked',docked);
+  const css=document.createElement('style');css.textContent='.te-phase-key{position:absolute;z-index:9;touch-action:none;user-select:none}.te-phase-key[hidden]{display:none!important}.te-pk-panel{position:relative;cursor:grab;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.35)}.te-phase-key .te-pk-canvas{display:block;position:static!important;left:auto!important;top:auto!important;width:var(--pk-w,168px)!important;height:calc(var(--pk-w,168px)*148/168)!important;transform:none!important}.te-pk-resize{position:absolute;left:0;top:0;width:16px;height:16px;cursor:nwse-resize;border-top-left-radius:10px;background:linear-gradient(135deg,rgba(216,234,245,.7) 0 2px,transparent 2px 5px,rgba(216,234,245,.5) 5px 7px,transparent 7px)}@media (pointer:coarse){.te-pk-resize{width:28px;height:28px}}.te-pk-dock,.te-pk-pop{position:absolute;top:3px;width:18px;height:18px;padding:0;border:1px solid rgba(160,190,210,.45);border-radius:5px;background:rgba(10,20,30,.7);color:#d8eaf5;font:600 11px Inter,Arial,sans-serif;line-height:14px;cursor:pointer}.te-pk-dock{right:24px}.te-pk-pop{right:3px;display:none}.te-cap-row{display:flex;align-items:flex-start;gap:10px}.te-cap-row>.view-caption{flex:1;min-width:0}.te-pk-slot{flex:0 0 auto;margin-top:8px}.te-pk-slot:empty{display:none}.te-phase-key.docked{position:relative!important;left:auto!important;top:auto!important;--pk-w:112px!important}.te-phase-key.docked .te-pk-panel{cursor:default;box-shadow:none}.te-phase-key.docked .te-pk-fold,.te-phase-key.docked .te-pk-dock,.te-phase-key.docked .te-pk-resize,.te-phase-key.docked .te-pk-icon{display:none!important}.te-phase-key.docked .te-pk-panel{display:block!important}.te-phase-key.docked .te-pk-pop{display:block}.te-pk-fold{position:absolute;top:3px;right:3px;width:18px;height:18px;padding:0;border:1px solid rgba(160,190,210,.45);border-radius:6px;background:rgba(10,20,30,.7);color:#d8eaf5;font:600 12px Inter,Arial,sans-serif;line-height:14px;cursor:pointer}.te-pk-icon{display:none;width:30px;height:30px;padding:0;border-radius:50%;border:2px solid rgba(216,234,245,.8);cursor:pointer;background:radial-gradient(circle,#0b0f16 34%,transparent 36%),conic-gradient(#1440ff,#1440ff 18%,#b80be0 50%,#ff1405 82%,#ff1405);box-shadow:0 1px 6px rgba(0,0,0,.4)}.te-phase-key.folded .te-pk-panel{display:none}.te-phase-key.folded .te-pk-icon{display:block}@media (pointer:coarse){.te-pk-fold{width:34px;height:34px}.te-pk-icon{width:44px;height:44px}}';
   document.head.append(css);
   let pos=Number.isFinite(st.x)&&Number.isFinite(st.y)?{x:st.x,y:st.y}:null,folded=!!st.folded,drag=null,size=Number.isFinite(st.w)?Math.max(120,Math.min(320,st.w)):168,resize=null;
   el.style.setProperty('--pk-w',size+'px');
   if(!('folded' in st)&&host.clientWidth<520)folded=true; // phones: start as the icon
-  const save=()=>{try{localStorage.setItem(K,JSON.stringify({...(pos||{}),folded,w:size}));}catch(_){}};
-  const place=()=>{if(el.hidden)return;const w=el.offsetWidth,h=el.offsetHeight,W=host.clientWidth,H=host.clientHeight;const p0=pos||{x:W-w-10,y:H-h-10};const x=Math.max(0,Math.min(W-w,p0.x)),y=Math.max(0,Math.min(H-h,p0.y));el.style.left=x+'px';el.style.top=y+'px';};
+  const save=()=>{try{localStorage.setItem(K,JSON.stringify({...(pos||{}),folded,w:size,mode:docked?'dock':'float'}));}catch(_){}};
+  const place=()=>{if(el.hidden||docked)return;const w=el.offsetWidth,h=el.offsetHeight,W=host.clientWidth,H=host.clientHeight;const p0=pos||{x:W-w-10,y:H-h-10};const x=Math.max(0,Math.min(W-w,p0.x)),y=Math.max(0,Math.min(H-h,p0.y));el.style.left=x+'px';el.style.top=y+'px';};
   const setFolded=f=>{const r=el.getBoundingClientRect();folded=f;el.classList.toggle('folded',f);
    // fold/unfold about the right/bottom edge, so the icon stays where the panel's corner was
    if(pos){const r2=el.getBoundingClientRect();pos={x:pos.x+(r.width-r2.width),y:pos.y+(r.height-r2.height)};}
    place();save();};
   el.querySelector('.te-pk-fold').addEventListener('click',e=>{e.stopPropagation();setFolded(true);});
+  const setDocked=d=>{if(!slot)return;docked=d;el.classList.toggle('docked',d);if(d){slot.append(el);el.style.left=el.style.top='';}else{host.append(el);folded=false;el.classList.remove('folded');place();}save();};
+  el.querySelector('.te-pk-dock').addEventListener('click',e=>{e.stopPropagation();setDocked(true);});
+  el.querySelector('.te-pk-pop').addEventListener('click',e=>{e.stopPropagation();setDocked(false);});
   el.querySelector('.te-pk-icon').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setFolded(false);}});
   // Resize from the top-left corner: the bottom-right corner stays put.
   const rh=el.querySelector('.te-pk-resize');
   rh.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();const r=el.getBoundingClientRect();resize={x:e.clientX,w:size,right:el.offsetLeft+r.width,bottom:el.offsetTop+r.height};rh.setPointerCapture(e.pointerId);});
   rh.addEventListener('pointermove',e=>{if(!resize)return;size=Math.max(120,Math.min(320,Math.min(host.clientWidth-8,resize.w-(e.clientX-resize.x))));el.style.setProperty('--pk-w',size+'px');pos={x:resize.right-size,y:resize.bottom-size*148/168};place();});
   const rend=()=>{if(resize){resize=null;save();}};rh.addEventListener('pointerup',rend);rh.addEventListener('pointercancel',rend);
-  el.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('.te-pk-fold,.te-pk-resize'))return;e.preventDefault();e.stopPropagation();drag={x:e.clientX,y:e.clientY,px:el.offsetLeft,py:el.offsetTop,moved:false};el.setPointerCapture(e.pointerId);});
+  el.addEventListener('pointerdown',e=>{if(docked||e.button!==0||e.target.closest('button:not(.te-pk-icon),.te-pk-resize'))return;e.preventDefault();e.stopPropagation();drag={x:e.clientX,y:e.clientY,px:el.offsetLeft,py:el.offsetTop,moved:false};el.setPointerCapture(e.pointerId);});
   el.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;pos={x:drag.px+dx,y:drag.py+dy};place();});
   // A press on the icon without moving unfolds it (the pointer capture keeps the click on the panel).
   const end=()=>{if(!drag)return;const moved=drag.moved;drag=null;if(moved)save();else if(folded)setFolded(false);};
   el.addEventListener('pointerup',end);el.addEventListener('pointercancel',()=>{drag=null;});
   new ResizeObserver(place).observe(host);
-  el.classList.toggle('folded',folded);
+  el.classList.toggle('folded',folded&&!docked);
   phaseKey={el,place};return phaseKey;
  }
  function syncPhaseKey(show){
