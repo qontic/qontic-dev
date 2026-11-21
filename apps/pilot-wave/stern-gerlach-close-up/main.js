@@ -220,7 +220,7 @@ const params = {
   showCloud: 1,
 
   showParticles: 1,
-  dotSize: 10.0,
+  dotSize: 14.0,   // screen points (CSS pixels), scaled by devicePixelRatio for the canvas
   dotSigma: 0.28,
   dotGain: 2.0,
 
@@ -633,7 +633,7 @@ addToggleInt("showCloud", "Density cloud");
 addSlider("cloudGain", "Cloud brightness", 0.05, 2.0, 0.05);
 addToggleInt("showPhase", "Show phase");
 addToggleInt("showParticles", "Show particles");
-addSlider("dotSize", "Particle size", 2.0, 26.0, 1);
+addSlider("dotSize", "Particle size", 2.0, 40.0, 1);
 addSlider("dotGain", "Particle brightness", 0.1, 5.0, 0.1);
 addToggleInt("showTrail", "Draw trails");
 addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1, null, t => `${(t * LAB_SCALE.st * 1e6).toFixed(1)} µs`);
@@ -653,7 +653,7 @@ const LEVEL_CONTROLS = {
   spinPhi: "standard", magnetPreset: "standard", fieldShape: "standard", screenDistance: "standard",
   p0: "standard", beamShape: "standard", packetSigma: "standard",
   fieldLineDensity: "standard", fieldArrowSpacing: "standard", cameraProjection: "standard",
-  cloudGain: "standard", dotSize: "standard", dotGain: "standard", trailHalfLife: "standard",
+  cloudGain: "standard", dotGain: "standard", trailHalfLife: "standard",
   nParticles: "standard",
   showPhase: "expert", spinTerm: "expert", dt: "expert",
 };
@@ -1269,7 +1269,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([params.packetX, params.packetY, params.packetZ, params.packetSigma], 8);
   uniformData.set([params.cloudGain, params.cloudGamma, params.cloudLowBoost, params.cloudCutoff], 12);
   uniformData.set([params.cloudPointSize, params.showPhase, params.paletteId | 0, params.boxScale], 16);
-  uniformData.set([params.dotSize, params.dotSigma, params.dotGain, params.spinTerm ? 0.5 : 0.0], 20);
+  uniformData.set([params.dotSize * (window.devicePixelRatio || 1), params.dotSigma, params.dotGain, params.spinTerm ? 0.5 : 0.0], 20);
   uniformData.set([params.rhoMin, params.velClamp, Math.floor(params.nParticles), params.trailWidth], 24);
   uniformData.set([camera.eye[0], camera.eye[1], camera.eye[2], camera.distance], 28);
   uniformData.set([viewportW, viewportH, params.cameraProjection | 0, params.trailStampGain], 32);
@@ -2996,8 +2996,9 @@ async function setEngine(id) {
   rebuildParticleBindGroups();
   resetAll();
   updateStats();
-  const badge = document.getElementById("engine-badge");
-  if (badge) badge.textContent = `Engine: ${is3D() ? "Full 3D" : "Fast (2D)"}`;
+  frameCostPerStep = is3D() ? 5 : 0.5;
+  speedLimited = 0;
+  updateEngineBadge();
   return { ok: true, reason: "" };
 }
 
@@ -3230,6 +3231,22 @@ window.addEventListener("resize", () => {
   requestRedraw();
 });
 
+const FRAME_BUDGET_MS = 28;
+let frameCostPerStep = 0.5, frameStepsSubmitted = 0, frameSubmitStart = 0, lastFrameSteps = 0;
+let speedLimited = 0;   // time since the step count has been capped (0 = not capped)
+let engineBadgeText = "";
+function updateEngineBadge() {
+  const badge = document.getElementById("engine-badge");
+  if (!badge) return;
+  let text = `Engine: ${is3D() ? "Full 3D" : "Fast (2D)"}`;
+  // After a second of capped frames, say how fast the simulation actually runs.
+  if (speedLimited && performance.now() - speedLimited > 1000 && !paused) {
+    const steps = Math.max(1, Math.floor(FRAME_BUDGET_MS / Math.max(frameCostPerStep, 1e-3)));
+    text += ` · GPU-limited to ${(Math.min(steps, params.stepsPerFrame) / 8).toFixed(1)}× speed`;
+  }
+  if (text !== engineBadgeText) { badge.textContent = text; engineBadgeText = text; }
+}
+
 async function main() {
   configureCanvas();
   statusTitle.textContent = "Preparing the graphics…";
@@ -3292,7 +3309,14 @@ async function main() {
     if (!paused) {
       // One submission per step, each with its own uniforms, so the field the packet feels
       // (and the 3D window position) follow the time step by step, not frame by frame.
-      const steps = Math.floor(params.stepsPerFrame);
+      // Frame budget: at most as many steps as fit in FRAME_BUDGET_MS on this GPU (measured), so a
+      // high speed on a slow GPU gives a steady frame rate at a lower speed, not a stutter.
+      const requested = Math.floor(params.stepsPerFrame);
+      const steps = Math.max(1, Math.min(requested, Math.floor(FRAME_BUDGET_MS / Math.max(frameCostPerStep, 1e-3))));
+      if (steps < requested) { if (!speedLimited) speedLimited = performance.now(); } else speedLimited = 0;
+      lastFrameSteps = steps;
+      frameStepsSubmitted = steps;
+      frameSubmitStart = performance.now();
       for (let i = 0; i < steps; i++) {
         writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);
         const stepEncoder = device.createCommandEncoder({ label: "step encoder" });
@@ -3327,6 +3351,14 @@ async function main() {
     // Wait for the current frame so a slow GPU cannot build a render backlog.
     try {
       await device.queue.onSubmittedWorkDone();
+      if (frameStepsSubmitted > 0) {
+        // Cost per step including this frame's share of drawing; its fixed point is the step
+        // count that fills the budget.
+        const perStep = (performance.now() - frameSubmitStart) / frameStepsSubmitted;
+        frameCostPerStep += 0.2 * (perStep - frameCostPerStep);
+        frameStepsSubmitted = 0;
+        updateEngineBadge();
+      }
     } catch (error) {
       if (simulationAvailable) {
         simulationAvailable = false;
@@ -3392,6 +3424,8 @@ export const simulation = {
   moments: () => (weightCounts.valid ? { spin: weightCounts.spin, centre: weightCounts.centre, beam: weightCounts.beam, time: weightCounts.time, values: weightCounts.values } : null),
   setGeometry(g) { Object.assign(params, g); syncSlider('screenDistance'); finishGeometryChange(); },
   timing: () => ({ ...TIMING }),
+  separation: () => ({ flightTime: flightTime(), std: packetStdAtScreen(), gMax: gradientMax(), g: params.sgGradient, split: expectedSplitting(), L: 0.5 * (simD - 1), screen: params.screenDistance }),
+  frameStats: () => ({ frameCostPerStep, lastFrameSteps, requested: params.stepsPerFrame, limitedFor: speedLimited ? Math.round(performance.now() - speedLimited) : 0 }),
   applyLevel: level => applyLevelDefaults(level),
   // Compile the 3D shaders in the background (Standard and Expert, where the Engine tab shows).
   prewarm3D: () => { build3DPipelines(); },
