@@ -85,7 +85,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=30'));
+  ({ simulation } = await import('./main.js?v=31'));
   if (new URLSearchParams(location.search).has('debug')) window.qonticSG = simulation;
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.

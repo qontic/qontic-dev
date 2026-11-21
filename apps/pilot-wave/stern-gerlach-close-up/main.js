@@ -56,24 +56,24 @@ const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg3d1",
-  palette: "./shaders/palette.wgsl?v=sg3d1",
-  waveInit: "./shaders/wave-init.wgsl?v=sg3d1",
-  waveStep: "./shaders/wave-step.wgsl?v=sg3d1",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d1",
-  cloud: "./shaders/cloud.wgsl?v=sg3d1",
-  particleRender: "./shaders/particle-render.wgsl?v=sg3d1",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d1",
-  density: "./shaders/density.wgsl?v=sg3d1",
-  boxShell: "./shaders/box-shell.wgsl?v=sg3d1",
-  line: "./shaders/line.wgsl?v=sg3d1",
-  fieldLine: "./shaders/field-line.wgsl?v=sg3d1",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d1",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d1",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d1",
-  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d1",
-  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d1",
-  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d1",
+  common: "./shaders/common.wgsl?v=sg3d2",
+  palette: "./shaders/palette.wgsl?v=sg3d2",
+  waveInit: "./shaders/wave-init.wgsl?v=sg3d2",
+  waveStep: "./shaders/wave-step.wgsl?v=sg3d2",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d2",
+  cloud: "./shaders/cloud.wgsl?v=sg3d2",
+  particleRender: "./shaders/particle-render.wgsl?v=sg3d2",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d2",
+  density: "./shaders/density.wgsl?v=sg3d2",
+  boxShell: "./shaders/box-shell.wgsl?v=sg3d2",
+  line: "./shaders/line.wgsl?v=sg3d2",
+  fieldLine: "./shaders/field-line.wgsl?v=sg3d2",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d2",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d2",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d2",
+  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d2",
+  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d2",
+  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d2",
 };
 
 function applyShaderConstants(source) {
@@ -198,6 +198,8 @@ const params = {
   fieldLineDensity: 2,   // n × n field lines per slice across the beam
   fieldArrowSpacing: 22, // cells along a field line between arrowheads
   showMagnet: 1,
+  fieldShape: 0,   // 0 textbook (linear gradient), 1 knife edge (line pole)
+  beamShape: 0,    // 0 round, 1 ribbon (wide across the beam, as the 1922 slit)
   showSpin: 1,
   showDotSpin: 0,
   screenDistance: 40 * BEAM_SCALE,
@@ -468,6 +470,8 @@ function addSectionHeader(label) {
 const APPROACH_CELLS = 30 * BEAM_SCALE;
 const MAGNET_CELLS = 50 * BEAM_SCALE;   // the 3.5 cm magnet
 const RAMP_CELLS = 4 * BEAM_SCALE;
+const RIBBON_FACTOR = 2.5;
+const KNIFE_HP = 1.5;   // knife-edge line pole at 1.5 L above the centre (field there g·1.5 L, gradient g)
 
 // ── Lab units ────────────────────────────────────────────────────────────────
 // Each axis has its own scale, matched to the 1922 experiment at the default settings
@@ -517,6 +521,21 @@ const MAGNET_PRESETS = [
   { name: "Weak field", magnets: [{ start: 0, length: 1, theta: 0 }], b0: 0.3 },
 ];
 const magnetPreset = () => MAGNET_PRESETS[params.magnetPreset | 0] || MAGNET_PRESETS[0];
+// The knife-edge field is for the strong-field settings; the weak field keeps the textbook field.
+const fieldShape = () => (params.fieldShape && magnetPreset().b0 >= 1 ? 1 : 0);
+const ribbonFactor = () => (params.beamShape ? RIBBON_FACTOR : 1);
+// Field of one magnet in its own frame (u across, w along the axis, in units of L), per unit g.
+function magnetFieldUW(u, w, b0) {
+  if (!fieldShape()) return [-u, b0 + w];
+  const hp = KNIFE_HP, d2 = u * u + (hp - w) ** 2;
+  return [-hp * hp * u / d2, hp * hp * (hp - w) / d2];
+}
+// Magnetic scalar potential (per unit g, B = −∇Φ) in the magnet frame; pole faces follow its
+// level curves.
+function magnetPotentialUW(u, w, b0) {
+  if (!fieldShape()) return 0.5 * u * u - b0 * w - 0.5 * w * w;
+  return 0.5 * KNIFE_HP * KNIFE_HP * Math.log(u * u + (w - KNIFE_HP) ** 2);
+}
 const packetStartX = () => params.packetX * (simW - 1);
 const magnetEntryX = () => packetStartX() + params.approachCells;
 // The preset's magnets in grid x (a = entrance, b = exit), all turned by the Magnet angle.
@@ -564,6 +583,7 @@ spinSphereRow.append(spinSphere, spinSphereText);
 controls.appendChild(spinSphereRow);
 const magnetPresetControl = addCycleButton("magnetPreset", "Magnets", MAGNET_PRESETS.map(p => p.name), () => applyMagnetPreset());
 const magnetPresetControlSync = () => magnetPresetControl.sync();
+const fieldShapeControl = addCycleButton("fieldShape", "Field", ["Textbook", "Knife edge (1922-like)"], () => { updateGradientLimit(true); rebuildMagneticFieldLines(); resetAll(); updateStats(); });
 const applyMagnetAngle = () => { rebuildMagneticFieldLines(); resetAll(); updateStats(); };
 addSlider("magnetAngle", "Magnet angle", 0, 360, 1, applyMagnetAngle, v => `${Math.round(v)}°`);
 addChips("magnetAngle", [0, 45, 90, 180, 270], applyMagnetAngle);
@@ -584,6 +604,7 @@ addSlider("screenDistance", "Screen distance", 10 * BEAM_SCALE, 60 * BEAM_SCALE,
 
 addSectionHeader("Wave and guidance");
 addSlider("p0", "Atom speed", 0.0, 1.09 * BEAM_SPEED, 0.02 * BEAM_SPEED, () => resetAll(), p => `${Math.round(labSpeed(p))} m/s`);
+addCycleButton("beamShape", "Beam", ["Round", "Ribbon (1922 slit)"], () => resetAll());
 addSlider("packetSigma", "Beam width (FWHM)", 4.0, 14.0, 0.5, () => { rebuildBoxGeometry(); rebuildMagneticFieldLines(); resetAll(); }, s => `${Math.round(labFWHM(s) * 1e6)} µm`);
 
 controls = displayControls;
@@ -1212,14 +1233,14 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([xc, CLOUD_STRIDE, Math.floor(xc) - Math.floor(simW / 2), spinArrowStride()], 60);
   const mag = magnetState(simTime);
   uniformData.set([mag.m1.p, Math.cos(mag.m1.theta), Math.sin(mag.m1.theta), magnetPreset().b0], 64);
-  uniformData.set([mag.m2.p, Math.cos(mag.m2.theta), Math.sin(mag.m2.theta), 0.0], 68);
+  uniformData.set([mag.m2.p, Math.cos(mag.m2.theta), Math.sin(mag.m2.theta), fieldShape()], 68);
   const tau = params.hbar * simTime / (params.mass * params.packetSigma * params.packetSigma);
   uniformData.set([xc, tau, simTime, activeWaveCount()], 72);
   const ax = measurementAxes();
   uniformData.set([ax[0][0], ax[0][1], ax[ax.length - 1][0], ax[ax.length - 1][1]], 76);
   uniformData.set(camera.viewProj, 80);
   const ms3 = magnets();
-  uniformData.set([xc, WIN_NX, is3D() ? 1 : 0, 0], 96);
+  uniformData.set([xc, WIN_NX, is3D() ? 1 : 0, ribbonFactor()], 96);
   uniformData.set([ms3[0].a, ms3[0].b, ms3[1] ? ms3[1].a : 0, ms3[1] ? ms3[1].b : 0], 100);
   uniformData.set([ms3[0].theta, ms3[1] ? ms3[1].theta : 0, RAMP_CELLS, ms3.length], 104);
   device.queue.writeBuffer(buffer, 0, uniformData);
@@ -1895,10 +1916,10 @@ function rebuildParticles() {
   const inside = (y, z) => y >= 1 && y <= simH - 2 && z >= 1 && z <= simD - 2;
   for (let i = 0; i < n; i++) {
     let x = x0 + randn() * sigma1D;
-    let y = y0 + randn() * sigma1D;
+    let y = y0 + randn() * sigma1D * ribbonFactor();
     let z = z0 + randn() * sigma1D;
     for (let tries = 0; !inside(y, z) && tries < 1000; tries++) {
-      y = y0 + randn() * sigma1D;
+      y = y0 + randn() * sigma1D * ribbonFactor();
       z = z0 + randn() * sigma1D;
     }
     const xVisual = x;  // no wrap: x is the free coordinate along the beam
@@ -2267,7 +2288,7 @@ function updateLegendField() {
   } else if (preset.b0 < 1) {
     text = `${head} Along ${p[0]}, but weak: on the ${q[0]} side it almost vanishes, and spins can flip.`;
   } else {
-    text = `${head} The field points along ${p[0]} and is stronger toward ${p[0]}: the ${p[0]} spin part goes that way, the ${q[0]} part the other.`;
+    text = `${head} The field points along ${p[0]} and is stronger toward ${p[0]}: the ${p[0]} spin part goes that way, the ${q[0]} part the other.${fieldShape() ? " Knife-edge field: the gradient is largest near the edge and falls off to the sides." : ""}`;
   }
   legendField.innerHTML = `<i class="swatch field"></i>${text}`;
 }
@@ -2452,17 +2473,49 @@ function rebuildMagnetPoles() {
     const N = [0, Math.sin(mg.theta), Math.cos(mg.theta)];
     const T = [0, Math.cos(mg.theta), -Math.sin(mg.theta)];
     const h = L * (Math.abs(N[1]) + Math.abs(N[2])) + 3;   // just outside the tunnel
-    const W = 0.6 * L;
-    const wedge = [[0, h], [W, h + 0.55 * L], [-W, h + 0.55 * L]];
-    const g = 0.2 * L, gd = 0.07 * L, hb = 0.32 * L;
-    const flat = [[-W, -h], [-g, -h], [0, -h - gd], [g, -h], [W, -h], [W, -h - hb], [-W, -h - hb]];
+    // Pole faces follow level curves of the magnetic potential of the chosen field (iron pole
+    // faces are equipotentials): the S pole face just outside the tunnel at its middle, the N
+    // pole face just outside it at its edges. Textbook field: gently curved (hyperbolic) faces;
+    // knife-edge field: circles about the line pole, a rounded edge (S) and a groove (N).
+    const W = 0.75 * L;
+    const b0 = magnetPreset().b0;
+    const hL = h / L, WL = W / L;
+    const phi = (u, w) => magnetPotentialUW(u, w, b0);
+    const solveW = (u, target, lo, hi) => {        // Φ decreases with w along the axis direction
+      // Textbook field: Φ = u²/2 − b0 w − w²/2, solved exactly (the root on the near side of
+      // w = −b0, where the field along the axis vanishes).
+      if (!fieldShape()) return -b0 + Math.sqrt(Math.max(0, b0 * b0 - 2 * target + u * u));
+      let fLo = phi(u, lo) - target;
+      for (let k = 0; k < 50; k++) {
+        const mid = 0.5 * (lo + hi), f = phi(u, mid) - target;
+        if ((f > 0) === (fLo > 0)) { lo = mid; fLo = f; } else hi = mid;
+      }
+      return 0.5 * (lo + hi);
+    };
+    const nSeg = 16;
+    const capS = 0.45, capN = 0.3;
+    const wTop = fieldShape() ? KNIFE_HP - 0.02 : hL + 3;   // below the line pole
+    // Knife edge: the S face must stay below the line pole; for a tilted magnet it may then cut
+    // the corners of the square tunnel drawing.
+    const hS = fieldShape() ? Math.min(hL, KNIFE_HP - 0.12) : hL;
+    const targetS = phi(0, hS), targetN = phi(WL, -hL);
+    const faceS = [], faceN = [];
+    for (let k = 0; k <= nSeg; k++) {
+      const u = -WL + 2 * WL * k / nSeg;
+      faceS.push([u * L, solveW(u, targetS, 0.5 * hS, wTop) * L]);
+      faceN.push([u * L, solveW(u, targetN, -hL - 3, -0.5 * hL) * L]);
+    }
+    const sTop = Math.max(...faceS.map(p => p[1])) + capS * L;
+    const nBot = Math.min(...faceN.map(p => p[1])) - capN * L;
+    const wedge = [...faceS, [W, sTop], [-W, sTop]];
+    const flat = [...faceN, [W, nBot], [-W, nBot]];
     const ccw = poly => {
       let a = 0;
       for (let i = 0; i < poly.length; i++) { const p = poly[i], q = poly[(i + 1) % poly.length]; a += p[0] * q[1] - q[0] * p[1]; }
       return a < 0 ? poly.slice().reverse() : poly;
     };
-    prism(ccw(wedge), [0, h + 0.38 * L], xa, xb, T, N, POLE_S_COLOR);
-    prism(ccw(flat), [0, -h - 0.22 * L], xa, xb, T, N, POLE_N_COLOR);
+    prism(ccw(wedge), [0, 0.5 * (faceS[nSeg >> 1][1] + sTop)], xa, xb, T, N, POLE_S_COLOR);
+    prism(ccw(flat), [0, 0.5 * (faceN[nSeg >> 1][1] + nBot)], xa, xb, T, N, POLE_N_COLOR);
   }
   if (!verts.length) return;
   magnetPoleVertexCount = verts.length / 10;
@@ -2482,7 +2535,7 @@ function sgFieldDirectionGrid(p, segs = magnetsAtX(p[0])) {
     const dy = p[1] - cy, dz = p[2] - cz;
     const u = (dy * c - dz * sn) / L;
     const w = (dy * sn + dz * c) / L;
-    const bu = -u, bv = b0 + w;
+    const [bu, bv] = magnetFieldUW(u, w, b0);
     by += s.p * (bu * c + bv * sn);
     bz += s.p * (-bu * sn + bv * c);
   }
@@ -2666,7 +2719,9 @@ function packetStdAtScreen() {
 function gradientMax() {
   const L = 0.5 * (simD - 1);
   const room = L - 4 - 2.5 * packetStdAtScreen();
-  const per = Math.max(...splittingPerGradient().map(s => s.cells));
+  // The knife-edge gradient grows toward the edge, so the part deflected that way goes farther:
+  // 1.15 keeps it as far from the walls as the textbook default (numpy: 0.9% within 6 cells).
+  const per = Math.max(...splittingPerGradient().map(s => s.cells)) * (fieldShape() ? 1.15 : 1);
   if (!(per > 0) || !Number.isFinite(per)) return 10;
   return Math.max(0.5, Math.min(20, Math.floor(10 * room / (0.5 * per)) / 10));
 }

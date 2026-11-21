@@ -30,3 +30,8 @@ The Engine tab (shared `qontic-engine-tab.js`, `show-engine="true"`) lists the e
 ## Axes and editing
 
 Lab axes follow the textbook field B = −αx x̂ + (B0 + αz) ẑ (Griffiths and Schroeter): the beam travels along y, z is up, x across the beam. The grid keeps its own order (grid x = beam); lab x = −grid y (labFromGrid / gridFromLab in main.js). Edit geometry (toolbar pencil, right-click; Escape exits): handles for magnet start, magnet end (length, params.magnetScale), screen, and magnet angle; drag on the spin sphere to point the spin.
+
+
+## Field shapes and beam
+
+Core: Field = Textbook (linear gradient) or Knife edge (line pole along the beam at 1.5 L, K = g hp², same centre gradient). Pole faces are drawn on equipotentials of the chosen field. Wave: Beam = Round or Ribbon (2.5 times wider along x). Knife edge + ribbon gives the 1922 lips; checked with numpy (`lips2.py`).

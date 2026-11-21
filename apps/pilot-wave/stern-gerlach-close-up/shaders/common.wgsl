@@ -20,12 +20,12 @@ struct Uniforms {
   sgField: vec4<f32>,   // gradient g (0 when off), field on, spin θ, spin φ (radians)
   visual2: vec4<f32>,   // packet centre x, cloud stride, cloud window start x, unused
   magnet1: vec4<f32>,   // profile, cos(theta), sin(theta), uniform-part factor
-  magnet2: vec4<f32>,   // profile, cos(theta), sin(theta), unused
+  magnet2: vec4<f32>,   // profile, cos(theta), sin(theta), field shape (0 textbook, 1 knife edge)
   xwave: vec4<f32>,     // packet centre x, tau = hbar t / (m sigma^2), time, number of 2D cells
   axes: vec4<f32>,      // measurement axes n1 = (y, z), n2 = (y, z)
   viewProj: mat4x4<f32>,
   // Full 3D engine: the grid moves with the packet (Galilean frame); grid x' = x - Xc.
-  win: vec4<f32>,       // window centre Xc (grid x), cells along x', 1 when the 3D engine is on, unused
+  win: vec4<f32>,       // window centre Xc (grid x), cells along x', 1 when the 3D engine is on, ribbon factor (width across / width)
   mag3a: vec4<f32>,     // magnet 1 entrance, exit; magnet 2 entrance, exit (grid x)
   mag3b: vec4<f32>,     // magnet 1 theta, magnet 2 theta, ramp length, number of magnets
 };
@@ -77,8 +77,19 @@ fn magnetFieldYZ(m: vec4<f32>, b0: f32, y: f32, z: f32) -> vec2<f32> {
   let dz = z - c.y;
   let u = (dy * m.y - dz * m.z) / L;
   let w = (dy * m.z + dz * m.y) / L;
-  let bu = -g * u;
-  let bv = g * (b0 + w);
+  var bu = -g * u;
+  var bv = g * (b0 + w);
+  if (uni.magnet2.w > 0.5) {
+    // Knife-edge field: the field of the knife edge taken as a line pole along the beam at
+    // (u, w) = (0, hp): B = K (−u, hp − w) / (u² + (hp − w)²), divergence- and curl-free outside the
+    // line. K = g hp² gives the textbook gradient g per L at the centre; the field there is g hp.
+    // The gradient grows toward the edge and falls off to the sides, as under a knife edge.
+    let hp = 1.5;
+    let d = vec2<f32>(-u, hp - w);
+    let f = g * hp * hp * d / max(dot(d, d), 1e-6);
+    bu = f.x;
+    bv = f.y;
+  }
   return m.x * vec2<f32>(bu * m.y + bv * m.z, -bu * m.z + bv * m.y);
 }
 fn magneticFieldYZ(y: f32, z: f32) -> vec3<f32> {

@@ -10,7 +10,8 @@ fn amp3(xp: f32, y: f32, z: f32) -> f32 {
   let y0 = uni.packet.y * (H - 1.0);
   let z0 = uni.packet.z * (D - 1.0);
   let s = uni.packet.w;
-  return exp(-(xp * xp + (y - y0) * (y - y0) + (z - z0) * (z - z0)) / (2.0 * s * s));
+  let sy = s * max(uni.win.w, 1.0);
+  return exp(-(xp * xp + (z - z0) * (z - z0)) / (2.0 * s * s) - (y - y0) * (y - y0) / (2.0 * sy * sy));
 }
 
 @compute @workgroup_size(${WAVE_WORKGROUP_SIZE})
