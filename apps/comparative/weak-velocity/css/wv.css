@@ -231,3 +231,13 @@ body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
 .wv-app .strip-row output { grid-column: 2; text-align: left; font-size: 12px; }
 .wv-app .student-tryout, .wv-app .instructor-notes { margin: 12px 0; }
 .wv-app .student-tryout summary, .wv-app .instructor-notes > summary { cursor: pointer; font-weight: 600; }
+
+/* 0.6.1: hidden rows stay hidden; touch-friendly sliders; phone bar out of the way of the panel; Physics summary */
+.wv-app .toggle-row[hidden], .wv-app .control-row[hidden] { display: none; }
+.wv-app input[type=range] { touch-action: pan-y; }
+@media (pointer: coarse) { .wv-app .control-row input[type=range] { min-height: 30px; } }
+.wv-app .mobile-run.panel-visible { opacity: 0; pointer-events: none; transform: translate(-50%, 120%); transition: opacity .15s, transform .15s; }
+.wv-app .in-brief { border: 1px solid #2b4e63; border-radius: 8px; padding: 2px 14px 6px; margin-bottom: 8px; }
+.wv-app .in-brief h2 { margin-top: 10px !important; }
+.wv-app .in-brief ul { margin: 4px 0; padding-left: 20px; }
+.qontic-light.wv-app .in-brief { border-color: #c9d9e0; }

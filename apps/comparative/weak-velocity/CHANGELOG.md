@@ -1,5 +1,18 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.6.1 — 2026-11-21
+Fixes from the ten-student review (context/2026-11-21-weak-velocity-ten-student-review.md).
+- Model: the Instants mixture and the fixed-time curve use the same rule — an offset counts only if its weak position is behind the slit wall and its strong position is not past the screen (they disagreed by 22% at the first map pair, and runs could be measured beyond the screen). New test (20 tests); weak-limit tolerance tightened to 1%.
+- Instants framing: recording the position along the beam too is Wiseman's protocol and gives the planes' field; transverse-only drops a coordinate. Toggle renamed "Record the position along the beam too (Wiseman)". Without it, detections are drawn at positions sampled from the packet for display, and the captions say they are not recorded.
+- Instants labels: "Packet centre at t₁", "Travel from t₁ to t₂", "Runs (one packet each)", "Packet centre at t₁ → t₂", "Prediction, pointer + packet"; caption divides by v_xΔt; σₚ (pointer) and σₓ (packet).
+- Instants defaults: Packet length σₓ under the switch, default 150 nm; the dotted fixed-time curve turns on with Instants; one caption sentence says the prediction changed and why. New Results row "Fixed time, transverse only".
+- Physics: "In brief" summary at the top; corrected planes-vs-instants numbers (default planes 5% / 26%; middle ten map pairs 2–9% / 9–40%; up to 32% / 55% at the two ends); the central cell treated as zero offset (a real cut would differ by 0.1–2%).
+- Default strip 40–60 nm (slope −0.34 ± 0.035 at 1M runs, inward); instructor question moved there with expected ranges; new Instants question; link parameters timing, packet, recx, ft.
+- Bugs: the longitudinal toggle no longer shows in Planes mode; the stage-1 caption no longer says "Press Start" during the first run; the status line moved above the key.
+- Colours: the prediction curve is blue (amber and green merged under deuteranopia); legends name the marks; short legends on small plots.
+- Accessibility: caption and Results silent during runs, announced at the end; focus moves to the reopen button when a plot is closed and back when reopened; sliders announce units; the canvas label points to the keyboard alternatives.
+- Phones: the bottom run bar hides while the control panel is on screen; vertical swipes over sliders scroll the page; taller sliders on touch screens.
+
 ## 0.6.0 — 2026-11-21
 New mode: Measure at planes or at instants (Wiseman's timing).
 - Core: "Measure at: Planes / Instants". At instants each run is one packet; the particle's longitudinal offset is drawn from |F|², and since F only translates the run is a run at a shifted plane pair. Exact predictions are mixtures over thirteen offset cells across ±3σ (model: packetSlices, mixtureTable, sampleMixtureRun, expectedMixtureBinVelocities, mixtureCurves; test: central cell = planes, short packet = planes, weak limit = packet-averaged j/|ψ|², sampled strip means χ²/n < 1.5; 19 tests).

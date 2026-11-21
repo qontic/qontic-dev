@@ -258,7 +258,7 @@ test('instants: mixture over packet offsets — short packet, central cell, weak
     for (const sl of slices) { const t = M.propagate(t0, (x2c + sl.dx - p.wall) / p.k); for (const y of ys) { const r = sl.w * M.density(t, y); s += r; sv += r * M.currentVelocity(t, y); } }
     worst = Math.max(worst, Math.abs(sv / s - all[b].v)); scale = Math.max(scale, Math.abs(sv / s));
   }
-  assert.ok(worst / scale < 0.03, `weak-limit mixture vs packet average: ${worst / scale}`);
+  assert.ok(worst / scale < 0.01, `weak-limit mixture vs packet average: ${worst / scale}`);
   // (d) sampled runs reproduce the mixture strip means
   let seed = 5; const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
   const sb = M.makeBins(-4, 4, 40);
@@ -267,6 +267,27 @@ test('instants: mixture over packet offsets — short packet, central cell, weak
   let chi = 0, n = 0;
   got.forEach((g, b) => { if (!g || !all[b]) return; chi += ((g.v - all[b].v) / g.err) ** 2; n++; });
   assert.ok(n >= 30 && chi / n < 1.5, `chi2/n ${chi / n} over ${n}`);
+});
+
+test('instants: wall and screen cut-offs are the same for the mixture and the fixed-time curve', () => {
+  // First map pair: weak plane 20 nm behind the slits, 150 nm packet, so many offsets fall behind the wall.
+  const x1c = p.wall + 0.2, gap = 0.5, dtau = gap / p.k, sx = 1.5, ys = Array.from({length: 61}, (_, i) => -3 + i * 0.1);
+  const mix = M.mixtureTable({terms0: t0, k: p.k, wallX: p.wall, x1c, dtau, sw: 20, yfMin: -4, yfMax: 4, nYf: 480, sigmaX: sx, xMax: p.screen});
+  mix.parts.forEach(q => { assert.ok(x1c + q.dx > p.wall); assert.ok(x1c + q.dx + gap <= p.screen + 1e-9); });
+  // Very wide pointer: the mixture's conditional means approach the fixed-time curve built with the same rule.
+  const cur = M.mixtureCurves(mix);
+  const ft = M.packetAveragedVelocity(t0, p.k, p.wall, x1c + gap, Array.from(mix.yf), sx, 401, {gapX: gap, xMax: p.screen});
+  let worst = 0, scale = 0, mx = Math.max(...cur.marginal);
+  for (let i = 0; i < mix.nYf; i++) {
+    if (!(cur.marginal[i] > 0.05 * mx) || ft[i] === null) continue;
+    const v = (mix.yf[i] - cur.meanY[i]) / dtau;
+    worst = Math.max(worst, Math.abs(v - ft[i])); scale = Math.max(scale, Math.abs(ft[i]));
+  }
+  assert.ok(worst / scale < 0.05, `first pair: mixture vs fixed-time curve ${worst / scale}`);
+  // Last map pair: strong position at the screen; no offset past it.
+  const mixLast = M.mixtureTable({terms0: t0, k: p.k, wallX: p.wall, x1c: p.screen - gap, dtau, sw: 2, yfMin: -4, yfMax: 4, nYf: 240, sigmaX: sx, xMax: p.screen});
+  mixLast.parts.forEach(q => assert.ok(p.screen - gap + q.dx + gap <= p.screen + 1e-9));
+  assert.ok(Math.abs(mixLast.parts[mixLast.central].dx) < 1e-12);
 });
 
 console.log(`${passed} tests passed`);

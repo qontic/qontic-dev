@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.6.0';
-import * as M from './weak-model.js?v=0.6.0';
+import { APP_RELEASE } from './release.js?v=0.6.1';
+import * as M from './weak-model.js?v=0.6.1';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -60,7 +60,7 @@ const state = {
   waveMode: 'density', arrowEvery: 1, nLines: 20,
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, fixedTime: false, bohm: false, scatter: true, planeRuns: true },
   selected: null, shiftView: false,
-  timing: 'plane', packet: 50, recx: false,   // measure at planes or at instants (Wiseman)
+  timing: 'plane', packet: 150, recx: false,   // measure at planes or at instants; packet length in nm
 };
 let exp = null;              // current pair of planes
 let map = null;              // stage 3 state
@@ -85,7 +85,7 @@ function makeExperiment(x1nm) {
   // packet (each offset is a shifted plane pair). Planes: one table.
   let mix = null, table;
   if (instant()) {
-    mix = M.mixtureTable({ terms0: T0, k: p.k, wallX: p.wall, x1c: x1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf, sigmaX: packetSigma() });
+    mix = M.mixtureTable({ terms0: T0, k: p.k, wallX: p.wall, x1c: x1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf, sigmaX: packetSigma(), xMax: p.screen });
     table = mix.parts[mix.central].table;
   } else table = M.jointTable({ terms1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf });
   const only = mix && state.recx ? mix.central : null;
@@ -105,8 +105,15 @@ function makeExperiment(x1nm) {
   // Fixed-time measurement recording only the transverse position (Wiseman's
   // timing, weak limit): j/|psi|^2 averaged over the planes the longitudinal
   // packet spans around the strong plane (see weak-model.js).
-  const ftV = M.packetAveragedVelocity(T0, p.k, p.wall, x1 + state.gap / 100, Array.from(table.yf), packetSigma());
+  const ftV = M.packetAveragedVelocity(T0, p.k, p.wall, x1 + state.gap / 100, Array.from(table.yf), packetSigma(), 41, { gapX: state.gap / 100, xMax: p.screen });
   const ftCurve = ftV.map((v, i) => [table.yf[i], v === null || !(pred.marginal[i] > 0.02 * rhoMax) ? null : v / p.k]);
+  // Strip averages of the fixed-time curve (Results), weighted like the data.
+  const binFt = [];
+  for (let b = 0; b < N_BINS; b++) {
+    let sw = 0, sv = 0;
+    for (let i = 0; i < table.nYf; i++) { const y = table.yf[i]; if (y < -Y_HALF + b * bins.w || y >= -Y_HALF + (b + 1) * bins.w || ftV[i] === null) continue; sw += pred.marginal[i]; sv += pred.marginal[i] * ftV[i] / p.k; }
+    binFt.push(sw > 0 ? sv / sw : null);
+  }
   const rMax = Math.max(...rho.map((a) => a[1]));
   // Plot range from the current velocity where the wave is not negligible.
   let vmax = 0.05;
@@ -123,7 +130,7 @@ function makeExperiment(x1nm) {
   }
   return {
     x1, x2: x1 + state.gap / 100, dtau, terms1, terms2, table, mix, bins, expected, expCurve, curCurve, ftCurve, rho, rMax,
-    vmax: vmax * 1.25, binCur, runs: 0, used: 0, detectedCounts: new Float64Array(table.nYf),
+    vmax: vmax * 1.25, binCur, binFt, runs: 0, used: 0, detectedCounts: new Float64Array(table.nYf),
     scatter: new Float32Array(SCATTER_N * 2), scatterN: 0, scatterHead: 0,
     ptsY: new Float32Array(PLANE_POINTS), ptsYf: new Float32Array(PLANE_POINTS), ptsU: new Float32Array(PLANE_POINTS),
     ptsX: new Float32Array(PLANE_POINTS), ptsK: new Uint8Array(PLANE_POINTS), ptsN: 0,
@@ -169,8 +176,8 @@ function rebuild() {
     map = null;
     exp = makeExperiment(state.x1);
   }
-  // Default strip: one where the signal is well above the noise (300–320 nm by default).
-  if (state.selected === null) state.selected = binOf(Math.min(3.05, Y_HALF * 0.76));
+  // Default strip 40–60 nm: an inward slope well above the noise (about −0.34 ± 0.035 at 1M runs), next to the centre.
+  if (state.selected === null) state.selected = binOf(0.5);
   updateText();
 }
 const binOf = (y) => Math.max(0, Math.min(N_BINS - 1, Math.floor((y + Y_HALF) / (2 * Y_HALF / N_BINS))));
@@ -219,6 +226,14 @@ function updateText() {
   $('#x1Row').style.display = state.stage === 'map' ? 'none' : '';
   document.querySelectorAll('[data-timing]').forEach((b) => { const on = b.dataset.timing === state.timing; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
   $('#recxRow').hidden = !instant();
+  $('#packetRow').hidden = !(instant() || state.show.fixedTime);
+  // Words that change with the timing: planes vs instants.
+  $('#x1Label').textContent = instant() ? 'Packet centre at t₁' : 'Weak plane';
+  $('#gapLabel').textContent = instant() ? 'Travel from t₁ to t₂' : 'Gap to strong plane';
+  $('#expLabel').textContent = instant() ? (state.recx ? 'Prediction, pointer + recorded position' : 'Prediction, pointer + packet') : 'Prediction for this pointer';
+  $('#runsLabel').textContent = instant() ? 'Runs (one packet each)' : 'Runs at these planes';
+  $('#pairLabel').textContent = instant() ? 'Packet centre at t₁ → t₂' : 'Plane pair';
+  for (const [id, unit] of [['sw', state.sw], ['x1', state.x1], ['gap', state.gap]]) $(`#${id}`).setAttribute('aria-valuetext', `${unit} nanometres`);
   $('#recx').setAttribute('aria-pressed', String(state.recx));
   $('#packet').value = state.packet; $('#packetOut').value = `${state.packet} nm`;
   $('#packet').setAttribute('aria-valuetext', `${state.packet} nanometres`);
@@ -230,7 +245,7 @@ function updateText() {
 }
 
 const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
-const SELECT_HINT = 'Choose a detected-position strip with the Selected strip control, the strong plane, or either plot.';
+const SELECT_HINT_TEXT = () => `Choose a detected-position strip with the Selected strip control, the strong ${instant() ? 'band' : 'plane'}, or either plot.`;
 const RATIONALE_LINK = '<button type="button" class="link-button" data-goto="rationale">Same lines, three readings: see Rationale</button>';
 function liveText() {
   if (!exp) return '';
@@ -242,21 +257,21 @@ let hadRun = false;
 function liveBody() {
   const N = exp.runs.toLocaleString('en-US');
   if (state.stage === 'one') {
-    if (exp.runs === 0) return 'Press <b>Start</b>. Watch the pointer move, then the screen click. One run gives two numbers.';
-    const timing = instant() ? ` Measured at instants: each run is one packet. The pointer is coupled at t₁ and the transverse position measured at t₂, wherever the particle is along its packet (shaded bands, ±2σ = ±${2 * state.packet} nm).` : '';
-    return `${plural(exp.runs, 'run', 'runs')}.${timing} The amber marker is the recorded pointer coordinate Y. The pointer's initial preparation spread is σ = ${state.sw} nm. A wider pointer gives less information in one run and disturbs the wave less. One run does not establish a particle's path.`;
+    const timing = instant() ? ` Measured at instants: each run is one packet. The pointer is coupled at t₁ and the transverse position measured at t₂ (shaded bands: the packet, ±2σₓ = ±${2 * state.packet} nm). ${state.recx ? 'The position along the beam is recorded too, as in Wiseman\'s protocol.' : 'The position along the beam is not recorded; the detection is drawn at a position sampled from the packet, for display only.'}` : '';
+    if (exp.runs === 0) return state.running ? `The first run is under way: watch the pointer move, then the screen click.${timing}` : 'Press <b>Start</b>. Watch the pointer move, then the screen click. One run gives two numbers.';
+    return `${plural(exp.runs, 'run', 'runs')}.${timing} The amber marker is the recorded pointer coordinate Y. The pointer's initial preparation spread is σₚ = ${state.sw} nm. A wider pointer gives less information in one run and disturbs the wave less. One run does not establish a particle's path.`;
   }
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const bw = 2 * Y_HALF / N_BINS, strip = `${nm(-Y_HALF + state.selected * bw).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * bw).toFixed(0)} nm`;
-    const kept = instant() && state.recx ? ` ${exp.used.toLocaleString('en-US')} post-selected: only runs within ±${Math.round(3 * state.packet / 13)} nm of the packet centre (bright band).` : '';
-    const at = instant() ? ' Measured at instants: each detection is drawn where the particle was along its packet at t₂.' : '';
+    const kept = instant() && state.recx ? ` ${exp.used.toLocaleString('en-US')} used: the position along the beam is recorded too (Wiseman's protocol), and only runs within ±${Math.round(3 * state.packet / 13)} nm of the packet centre are kept (bright band). This returns the result at planes.` : '';
+    const at = instant() ? (state.recx ? '' : ` Measured at instants, transverse position only: with a ${state.packet} nm packet the arrows average the field over the planes the packet spans, so the prediction (blue) and the dotted fixed-time curve differ from j/|ψ|² (dashed). Detections are drawn at positions along the beam sampled from the packet, for display only; they are not recorded.`) : '';
     const head = `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${kept}${at}`;
-    if (!b) return `${head} ${exp.runs ? 'Too few runs in the selected strip yet.' : 'Press <b>Start</b>.'} ${SELECT_HINT}`;
+    if (!b) return `${head} ${exp.runs ? 'Too few runs in the selected strip yet.' : 'Press <b>Start</b>.'} ${SELECT_HINT_TEXT()}`;
     // Neutral wording: two averages over the same post-selected runs, not a path.
     const shift = nm(b.v * exp.dtau), err = nm(b.err * exp.dtau), mY = nm(b.y - b.v * exp.dtau);
     const done = exp.runs >= state.perPlane ? ' Error bars are one standard deviation: about one strip in three should miss the prediction by more than its bar.' : '';
-    return `${head} Beside the planes: a sample of the pointer readings (amber) and detections (cyan), drawn just beside each line for visibility${instant() ? '' : '; only transverse positions are recorded'}. ${SELECT_HINT} For the runs detected in the strip ${strip} (mean ${nm(b.y).toFixed(1)} nm), the mean pointer reading is <b>${mY.toFixed(1)} nm</b>. Detection minus pointer mean, ${shift >= 0 ? '+' : '−'}${Math.abs(shift).toFixed(1)} ± ${err.toFixed(1)} nm, divided by the ${state.gap} nm gap gives the slope v<sub>y</sub>/v<sub>x</sub>. It is a difference of two averages over the same selected runs, not the path of any particle.${done}`;
+    return `${head} Beside the planes: a sample of the pointer readings (amber) and detections (cyan), drawn just beside each line for visibility; only transverse positions are recorded${instant() && state.recx ? ', plus the position along the beam at t₂' : ''}. ${SELECT_HINT_TEXT()} For the runs detected in the strip ${strip} (mean ${nm(b.y).toFixed(1)} nm), the mean pointer reading is <b>${mY.toFixed(1)} nm</b>. Detection minus pointer mean, ${shift >= 0 ? '+' : '−'}${Math.abs(shift).toFixed(1)} ± ${err.toFixed(1)} nm, divided by ${instant() ? `v<sub>x</sub>Δt = ${state.gap} nm (the packet's travel from t₁ to t₂)` : `the ${state.gap} nm gap`} gives the slope v<sub>y</sub>/v<sub>x</sub>. It is a difference of two averages over the same selected runs, not the path of any particle.${done}`;
   }
   if (map && !map.done && !state.running && map.index === 0 && exp.runs === 0) return 'Press <b>Start</b> to map the field: twelve pairs of planes, each a separate experiment. (Changing a setting clears the map.)';
   if (map && !map.done) return `Plane pair ${map.index + 1} of ${N_PLANES}: ${N} of ${state.perPlane.toLocaleString('en-US')} runs. Each pair of planes is a separate experiment with fresh particles.`;
@@ -303,14 +318,19 @@ function toggle(key) {
 }
 
 document.querySelectorAll('[data-stage]').forEach((b) => b.addEventListener('click', () => setStage(b.dataset.stage)));
-document.querySelectorAll('[data-timing]').forEach((b) => b.addEventListener('click', () => { state.timing = b.dataset.timing; stop(); pending = true; updateText(); }));
+document.querySelectorAll('[data-timing]').forEach((b) => b.addEventListener('click', () => {
+  state.timing = b.dataset.timing;
+  // At instants the fixed-time curve (transverse position only) is the relevant comparison.
+  if (instant() && !state.show.fixedTime) toggle('fixedTime');
+  stop(); pending = true; updateText();
+}));
 $('#recx').addEventListener('click', () => { state.recx = !state.recx; stop(); pending = true; updateText(); });
 $('#packet').addEventListener('input', (e) => { state.packet = +e.target.value; stop(); pending = true; updateText(); });
 document.querySelectorAll('[data-wavemode]').forEach((b) => b.addEventListener('click', () => {
   state.waveMode = b.dataset.wavemode;
   document.querySelectorAll('[data-wavemode]').forEach((o) => { const on = o === b; o.classList.toggle('active', on); o.setAttribute('aria-pressed', String(on)); });
 }));
-document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', () => { toggle(b.dataset.toggle); if (state.stage === 'map') showNext(); }));
+document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', () => { toggle(b.dataset.toggle); if (state.stage === 'map') showNext(); updateText(); }));
 $('#sw').addEventListener('input', (e) => { state.sw = +e.target.value; pending = true; updateText(); });
 $('#x1').addEventListener('input', (e) => { state.x1 = +e.target.value; if (state.stage !== 'map') pending = true; updateText(); });
 $('#gap').addEventListener('input', (e) => { state.gap = +e.target.value; clampGeometry(); pending = true; updateText(); });
@@ -329,13 +349,19 @@ $('#setupGo').addEventListener('click', () => setStage('one', true));
 // Phones: a small bar fixed at the bottom of the window, so Start is always in reach.
 const mobileRun = $('#mobileRun');
 function syncMobileRun() { mobileRun.textContent = state.running ? '❚❚ Stop' : '▶ Start'; mobileRun.setAttribute('aria-pressed', String(state.running)); }
-function stop() { state.running = false; controlsEl.setAttribute('running', 'false'); syncMobileRun(); }
+// Screen readers: the caption and Results change every frame during a run, so
+// they are silent while running and announced once when the run stops.
+function setLive(on) { $('#story').setAttribute('aria-live', on ? 'polite' : 'off'); document.querySelectorAll('[data-result]').forEach((o) => o.setAttribute('aria-live', on ? 'polite' : 'off')); }
+function stop() { state.running = false; controlsEl.setAttribute('running', 'false'); syncMobileRun(); setLive(true); }
 function start() {
   if (map?.done) pending = true;
   if (state.stage === 'many' && exp && exp.runs >= state.perPlane) pending = true;
-  state.running = true; controlsEl.setAttribute('running', 'true'); showStep('live'); syncMobileRun();
+  state.running = true; controlsEl.setAttribute('running', 'true'); showStep('live'); syncMobileRun(); setLive(false);
 }
 mobileRun.addEventListener('click', () => (state.running ? stop() : start()));
+if ('IntersectionObserver' in window) new IntersectionObserver((entries) => {
+  for (const en of entries) $('.mobile-run').classList.toggle('panel-visible', en.isIntersecting);
+}, { threshold: 0.05 }).observe(document.querySelector('.always-controls'));
 $('#mobileReset').addEventListener('click', () => { stop(); pending = true; });
 $('#mobileControls').addEventListener('click', () => $('.qontic-sidebar').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 controlsEl.addEventListener('qontic:start', () => start());
@@ -421,7 +447,7 @@ function applyPanelState(k) {
 }
 function setPanelOpen(k, open) { panels[k].open = open; applyPanelState(k); savePanels(); }
 for (const [k, pn] of Object.entries(panels)) {
-  pn.el.querySelector('[data-fp-act="close"]').addEventListener('click', () => setPanelOpen(k, false));
+  pn.el.querySelector('[data-fp-act="close"]').addEventListener('click', () => { setPanelOpen(k, false); document.querySelector(`[data-fp-open="${k}"]`).focus(); });
   pn.el.querySelector('[data-fp-act="min"]').addEventListener('click', () => { pn.min = !pn.min; applyPanelState(k); savePanels(); });
   pn.el.querySelector('[data-fp-act="shift"]')?.addEventListener('click', (e) => { state.shiftView = !state.shiftView; e.currentTarget.setAttribute('aria-pressed', String(state.shiftView)); updateTitles(); });
   // Click a strip in the plot to post-select on it.
@@ -431,7 +457,7 @@ for (const [k, pn] of Object.entries(panels)) {
     // Selects the strip (used from stage 2 on); never changes the stage.
     state.selected = binOf(-Y_HALF + (x - box.x) / box.w * 2 * Y_HALF);
   });
-  document.querySelector(`[data-fp-open="${k}"]`).addEventListener('click', () => setPanelOpen(k, true));
+  document.querySelector(`[data-fp-open="${k}"]`).addEventListener('click', () => { setPanelOpen(k, true); pn.el.querySelector('[data-fp-act="close"]').focus(); });
   document.querySelector(`[data-panel-toggle="${k}"]`).addEventListener('click', () => setPanelOpen(k, !pn.open));
 }
 split.addEventListener('pointerdown', (e) => {
@@ -492,7 +518,7 @@ function syncGeometryInputs() {
     const r = document.getElementById(`geo-${k}`), n = document.getElementById(`geo-${k}-n`);
     if (!r) continue;
     r.min = n.min = lim[k].min; r.max = n.max = lim[k].max; r.step = n.step = lim[k].step;
-    r.value = n.value = geo[k];
+    r.value = n.value = geo[k]; r.setAttribute('aria-valuetext', `${geo[k]} nanometres`);
   }
   $('#geoNote').textContent = `Slit width up to ${lim.slitWidth.max} nm and separation up to ${lim.separation.max} nm for this screen, as in the double-slit app. Changing the geometry starts the experiment again.`;
 }
@@ -539,7 +565,7 @@ function readUrl() {
 function shareUrl() {
   const u = new URL(location.href);
   const g = {}; for (const k of Object.keys(GEO_DEFAULT)) if (geo[k] !== GEO_DEFAULT[k]) g[k] = geo[k];
-  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(state.recx ? {recx: 1} : {}), ...(state.packet !== 50 ? {packet: state.packet} : {}) }).toString();
+  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(state.recx ? {recx: 1} : {}), ...(state.packet !== 150 ? {packet: state.packet} : {}) }).toString();
   return u.toString();
 }
 
@@ -549,11 +575,11 @@ function palette() {
   return light ? {
     light, bg: '#fbfdfe', panel: '#f1f6f8', grid: '#d6e2e8', text: '#183747', muted: '#5f7684',
     wave: [12, 90, 140], wall: '#36505f', weak: '#a36400', strong: '#087788', arrow: '#b35c00', line: '#b35c00',
-    bohm: '#8a2bbd', ft: '#c2334f', exp: '#16803c', cur: '#183747', dots: 'rgba(24,55,71,0.22)', strip: 'rgba(8,119,136,0.13)',
+    bohm: '#8a2bbd', ft: '#c2334f', exp: '#1f5fbf', cur: '#183747', dots: 'rgba(24,55,71,0.22)', strip: 'rgba(8,119,136,0.13)',
   } : {
     light, bg: '#07131d', panel: '#0b1c29', grid: '#1d3546', text: '#d9edf7', muted: '#8299aa',
     wave: [95, 210, 235], wall: '#9fb3c1', weak: '#f0b341', strong: '#5fe0f0', arrow: '#f6b54a', line: '#f6b54a',
-    bohm: '#e07bff', ft: '#ff7f9c', exp: '#6ee58f', cur: '#d9edf7', dots: 'rgba(200,225,240,0.20)', strip: 'rgba(95,224,240,0.13)',
+    bohm: '#e07bff', ft: '#ff7f9c', exp: '#62a8ff', cur: '#d9edf7', dots: 'rgba(200,225,240,0.20)', strip: 'rgba(95,224,240,0.13)',
   };
 }
 
@@ -872,6 +898,7 @@ function drawApparatus(P, box) {
   }
   ctx.globalAlpha = 1;
 
+  let keyTop = Yp(-Y_HALF);   // the status line sits above the key, if any
   // lines from the measured field, and pilot-wave trajectories
   const path = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Yp(y)) : ctx.moveTo(X(x), Yp(y)))); ctx.stroke(); };
   if (map?.done) {
@@ -897,6 +924,7 @@ function drawApparatus(P, box) {
       if (40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width)) > box.w - 40) keys.forEach((k) => { k[3] = k[0] === P.line ? 'measured lines' : 'j/|ψ|² flow lines (trajectories in pilot-wave)'; });
       const kw = 40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width));
       ctx.fillStyle = P.light ? 'rgba(241,246,248,0.88)' : 'rgba(11,28,41,0.88)'; ctx.fillRect(kx - 6, ky - 15 * keys.length, kw, 6 + 15 * keys.length);
+      keyTop = ky - 15 * keys.length;
       keys.forEach(([col, dash, lw, label], i) => {
         const yy = ky - 15 * (keys.length - 1 - i);
         ctx.lineWidth = lw; ctx.strokeStyle = col; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(kx, yy - 4); ctx.lineTo(kx + 22, yy - 4); ctx.stroke(); ctx.setLineDash([]);
@@ -999,7 +1027,7 @@ function drawApparatus(P, box) {
   ctx.restore();
   appMap = { X, Yp, box, x0, x1, Yh: YH };
   drawGrips(P);
-  text(`${state.stage === 'one' ? 'One run' : state.stage === 'many' ? 'Many runs' : 'Field map'} · σ ${state.sw} nm · gap ${state.gap} nm${map ? ` · pair ${Math.min(map.index + 1, N_PLANES)}/${N_PLANES}` : ''}`, X(p.wall) + 8, box.y + box.h - 20, {color: P.muted, size: 10});
+  backedText(P, `${state.stage === 'one' ? 'One run' : state.stage === 'many' ? 'Many runs' : 'Field map'} · σₚ ${state.sw} nm · gap ${state.gap} nm${instant() ? ` · instants, σₓ ${state.packet} nm` : ''}${map ? ` · pair ${Math.min(map.index + 1, N_PLANES)}/${N_PLANES}` : ''}`, X(p.wall) + 10, keyTop - 8, {color: P.muted, size: 10});
   return { X, Yp };
 }
 
@@ -1023,11 +1051,11 @@ function drawPointerGauge(P, box, X, Yp) {
   if (yc >= top && yc <= bot) {
     ctx.beginPath(); ctx.moveTo(xw - 13, yc); ctx.lineTo(xw - 3, yc); ctx.stroke();
     ctx.beginPath(); ctx.arc(xw, yc, 5.5, 0, Math.PI * 2); ctx.stroke();
-    if (settled) text(`Y = ${nm(anim.run.Y).toFixed(0)} nm; initial σ = ${state.sw} nm`, xw - 16, yc + 4, { color: P.weak, size: 11, align: 'right' });
+    if (settled) text(`Y = ${nm(anim.run.Y).toFixed(0)} nm; initial σₚ = ${state.sw} nm`, xw - 16, yc + 4, { color: P.weak, size: 11, align: 'right' });
   } else {
     const up = yc < top, ya = up ? top + 2 : bot - 2, d = up ? 1 : -1;
     ctx.beginPath(); ctx.moveTo(xw, ya); ctx.lineTo(xw - 5, ya + 8 * d); ctx.lineTo(xw + 5, ya + 8 * d); ctx.closePath(); ctx.fill();
-    if (settled) text(`Y = ${nm(anim.run.Y).toFixed(0)} nm (off scale); initial σ = ${state.sw} nm`, xw - 10, ya + 12 * d + 4, { color: P.weak, size: 11, align: 'right' });
+    if (settled) text(`Y = ${nm(anim.run.Y).toFixed(0)} nm (off scale); initial σₚ = ${state.sw} nm`, xw - 10, ya + 12 * d + 4, { color: P.weak, size: 11, align: 'right' });
   }
   if (t > tS) {
     const r = t < tS + 0.1 ? 4 + 20 * (t - tS) : 6;
@@ -1140,7 +1168,7 @@ function drawShift(P, box) {
     });
   }
   ctx.restore();
-  legend(P, box, `amber: measured · green: prediction, this pointer · dashed: ideal weak pointer${state.show.fixedTime ? ' · dotted: fixed time, y only' : ''} · scale ±${range.toFixed(1)} nm`);
+  legend(P, box, box.h < 190 ? `points: measured · blue: prediction · dashed: ideal${state.show.fixedTime ? ' · dotted: fixed time' : ''}` : `amber points: measured · blue line: prediction, this pointer${instant() ? ' and timing' : ''} · dashed: ideal weak pointer${state.show.fixedTime ? ' · dotted: fixed time, y only' : ''} · scale ±${range.toFixed(1)} nm`);
 }
 
 function drawVelocity(P, box) {
@@ -1172,7 +1200,7 @@ function drawVelocity(P, box) {
     });
   }
   ctx.restore();
-  legend(P, box, `amber: measured · green: prediction, this pointer · dashed: j/|ψ|² (ideal weak pointer)${state.show.fixedTime ? ' · dotted: fixed time, y only' : ''}`);
+  legend(P, box, box.h < 190 ? `points: measured · blue: prediction · dashed: j/|ψ|²${state.show.fixedTime ? ' · dotted: fixed time' : ''}` : `amber points: measured · blue line: prediction, this pointer${instant() ? ' and timing' : ''} · dashed: j/|ψ|² (ideal weak pointer)${state.show.fixedTime ? ' · dotted: fixed time, y only' : ''}`);
 }
 
 function updateResults() {
@@ -1198,6 +1226,7 @@ function updateResults() {
   set('vMeas', b ? `${fmtS(b.v / p.k)} ± ${(b.err / p.k).toFixed(3)}` : '—');
   set('vExp', exp.expected[i] ? fmtS(exp.expected[i].v / p.k) : '—');
   set('vCur', fmtS(exp.binCur[i]));
+  set('vFt', fmtS(exp.binFt[i]));
 }
 
 // Plot titles name the pair of planes in stage 3.

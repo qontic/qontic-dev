@@ -377,13 +377,14 @@ export function ensembleDensity(terms1, sw, tau, ys, n = 41) {
 // the planes the packet spans. In the weak limit the result at transverse
 // position y is the density-weighted average of j/|psi|^2 over those planes:
 //   v_t(y) = sum_x |F(x - xc)|^2 rho(y; x) v(y; x) / sum_x |F(x - xc)|^2 rho(y; x).
-// Only planes behind the slit wall contribute. With sigmaX -> 0 this is the
-// plane result v(y; xc).
-export function packetAveragedVelocity(terms0, k, wallX, xCenter, ys, sigmaX, n = 41) {
+// An offset counts only if its weak position (x - gapX) is behind the slit
+// wall and its strong position x is not past the screen (xMax): the same rule
+// as mixtureTable. With sigmaX -> 0 this is the plane result v(y; xc).
+export function packetAveragedVelocity(terms0, k, wallX, xCenter, ys, sigmaX, n = 41, {gapX = 0, xMax = Infinity} = {}) {
   const slices = [];
   for (let i = 0; i < n; i++) {
     const dx = sigmaX * (-3 + 6 * i / (n - 1)), x = xCenter + dx;
-    if (x <= wallX) continue;
+    if (x - gapX <= wallX || x > xMax + 1e-12) continue;
     slices.push({w: Math.exp(-dx * dx / (2 * sigmaX * sigmaX)), t: propagate(terms0, (x - wallX) / k)});
   }
   return ys.map((y) => {
@@ -400,7 +401,9 @@ export function packetAveragedVelocity(terms0, k, wallX, xCenter, ys, sigmaX, n 
 // coupling at x1c + dx and the strong measurement at x2c + dx: each offset is
 // one plane pair, and the joint distribution is a mixture over offsets weighted
 // by |F|^2 (density standard deviation sigmaX). The offset is discretized into
-// nSlices equal cells over ±3 sigmaX; offsets behind the slit wall only.
+// nSlices equal cells over ±3 sigmaX. An offset counts only if its weak
+// position is behind the slit wall and its strong position is not past the
+// screen (xMax): a particle there would already have reached the screen.
 export function packetSlices(sigmaX, nSlices = 13) {
   const width = 6 * sigmaX / nSlices, out = [];
   for (let j = 0; j < nSlices; j++) {
@@ -410,12 +413,12 @@ export function packetSlices(sigmaX, nSlices = 13) {
   return {slices: out, width};
 }
 
-export function mixtureTable({terms0, k, wallX, x1c, dtau, sw, yfMin, yfMax, nYf, sigmaX, nSlices = 13}) {
+export function mixtureTable({terms0, k, wallX, x1c, dtau, sw, yfMin, yfMax, nYf, sigmaX, nSlices = 13, xMax = Infinity}) {
   const {slices, width} = packetSlices(sigmaX, nSlices);
   const parts = [];
   for (const s of slices) {
     const x1 = x1c + s.dx;
-    if (x1 <= wallX) continue;
+    if (x1 <= wallX || x1 + dtau * k > xMax + 1e-12) continue;
     const terms1 = propagate(terms0, (x1 - wallX) / k);
     const table = jointTable({terms1, dtau, sw, yfMin, yfMax, nYf});
     // Probability of the offset, times the probability of a detection inside
