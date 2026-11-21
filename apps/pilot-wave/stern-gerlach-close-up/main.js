@@ -56,21 +56,21 @@ const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg2d8",
-  palette: "./shaders/palette.wgsl?v=sg2d8",
-  waveInit: "./shaders/wave-init.wgsl?v=sg2d8",
-  waveStep: "./shaders/wave-step.wgsl?v=sg2d8",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d8",
-  cloud: "./shaders/cloud.wgsl?v=sg2d8",
-  particleRender: "./shaders/particle-render.wgsl?v=sg2d8",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg2d8",
-  density: "./shaders/density.wgsl?v=sg2d8",
-  boxShell: "./shaders/box-shell.wgsl?v=sg2d8",
-  line: "./shaders/line.wgsl?v=sg2d8",
-  fieldLine: "./shaders/field-line.wgsl?v=sg2d8",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d8",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d8",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d8",
+  common: "./shaders/common.wgsl?v=sg2d9",
+  palette: "./shaders/palette.wgsl?v=sg2d9",
+  waveInit: "./shaders/wave-init.wgsl?v=sg2d9",
+  waveStep: "./shaders/wave-step.wgsl?v=sg2d9",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d9",
+  cloud: "./shaders/cloud.wgsl?v=sg2d9",
+  particleRender: "./shaders/particle-render.wgsl?v=sg2d9",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg2d9",
+  density: "./shaders/density.wgsl?v=sg2d9",
+  boxShell: "./shaders/box-shell.wgsl?v=sg2d9",
+  line: "./shaders/line.wgsl?v=sg2d9",
+  fieldLine: "./shaders/field-line.wgsl?v=sg2d9",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d9",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d9",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d9",
 };
 
 function applyShaderConstants(source) {
@@ -184,7 +184,7 @@ const params = {
   spinTerm: 1,
   magnetPreset: 0,
   spinTheta: 90,
-  spinPhi: 0,
+  spinPhi: 0,          // lab +x: the equal superposition of +z and −z
   magnetAngle: 0,
   sgGradient: DEFAULT_SG_GRADIENT,
   sgFieldOn: 1,
@@ -193,6 +193,8 @@ const params = {
   showSpin: 1,
   showDotSpin: 0,
   screenDistance: 40 * BEAM_SCALE,
+  approachCells: 30 * BEAM_SCALE,   // = APPROACH_CELLS
+  magnetScale: 1,
   showAxes: 1,
 
   cloudGain: .05,
@@ -237,18 +239,25 @@ const GUIDING_MODE_NAMES = [
   "Pauli spinor"
 ];
 
-// Initial spin direction: θ from +z, φ about z from the beam axis (+x) toward +y.
-// The spinor is (cos θ/2, e^{iφ} sin θ/2).
+// Lab axes (as in Griffiths): the beam travels along +y, z is up, x = y × z points across the
+// beam. The grid keeps its own order (grid x = beam, grid y, grid z), so lab x = −grid y,
+// lab y = grid x, lab z = grid z: a rotation by 90° about z, so all formulas keep their form.
 const DEG = Math.PI / 180;
-function spinVector() {
+const labFromGrid = v => [-v[1], v[0], v[2]];
+const gridFromLab = v => [v[1], -v[0], v[2]];
+// Initial spin direction in lab axes: θ from +z, φ about z from +x toward +y (the beam).
+// The spinor is (cos θ/2, e^{iφ} sin θ/2) in the lab ±z basis; on the grid φ is φ − 90°.
+function spinVectorLab() {
   const t = params.spinTheta * DEG, p = params.spinPhi * DEG;
   return [Math.sin(t) * Math.cos(p), Math.sin(t) * Math.sin(p), Math.cos(t)];
 }
+// The same direction in grid axes (used for drawing, the dots and the prediction).
+const spinVector = () => gridFromLab(spinVectorLab());
 function spinLabel() {
-  const v = spinVector();
+  const v = spinVectorLab();
   const named = [
-    ["+z", [0, 0, 1]], ["−z", [0, 0, -1]], ["+y", [0, 1, 0]], ["−y", [0, -1, 0]],
-    ["+x (equal +z and −z)", [1, 0, 0]], ["−x", [-1, 0, 0]],
+    ["+z", [0, 0, 1]], ["−z", [0, 0, -1]], ["+x (equal +z and −z)", [1, 0, 0]], ["−x", [-1, 0, 0]],
+    ["+y (along the beam)", [0, 1, 0]], ["−y", [0, -1, 0]],
   ];
   for (const [name, d] of named) if (v[0] * d[0] + v[1] * d[1] + v[2] * d[2] > 1 - 1e-6) return name;
   return `θ = ${Math.round(params.spinTheta)}°, φ = ${Math.round(params.spinPhi)}°`;
@@ -458,27 +467,30 @@ const labGradient = g => {
 const labFWHM = sigma => 2.3548 * sigma / Math.SQRT2 * LAB_SCALE.sz;  // m
 
 // ── Magnets ──────────────────────────────────────────────────────────────────
-// Layout along the beam (cells): the packet starts field-free, reaches the first magnet
-// APPROACH_CELLS after its starting centre, and the screen stands params.screenDistance
-// after the end of the last magnet. Each preset lists magnets by start and length (cells,
-// from the first magnet's entrance); the field rises and falls with smooth ramps of width
-// RAMP_CELLS inside [start, start + length] and is exactly zero outside, so a gap between two
-// magnets is field-free and the hand-over is sudden. theta turns a magnet about the beam
-// axis, from +z toward +y; the Magnet angle slider adds to it. b0 is the uniform part in
-// units of g (2 keeps the field from vanishing in the box; 0.3 lets it nearly vanish).
+// Layout along the beam (grid cells): the packet starts field-free, reaches the first magnet
+// params.approachCells after its starting centre, and the screen stands params.screenDistance
+// after the end of the last magnet. Each preset lists magnets by start and length (in units of
+// the 3.5 cm magnet, from the first magnet's entrance), all scaled by params.magnetScale (Edit
+// geometry). The field rises and falls with smooth ramps of width RAMP_CELLS inside
+// [start, start + length] and is exactly zero outside, so a gap between two magnets is
+// field-free and the hand-over is sudden. theta is the grid angle of a magnet's axis (from +z
+// toward grid +y, which is lab −x); the Magnet angle (lab, from +z toward +x) is subtracted.
+// b0 is the uniform part in units of g (2 keeps the field from vanishing in the box; 0.3 lets
+// it nearly vanish).
 const MAGNET_PRESETS = [
-  { name: "One magnet", magnets: [{ start: 0, length: MAGNET_CELLS, theta: 0 }], b0: 2 },
-  { name: "Two magnets at 90°", magnets: [{ start: 0, length: 20, theta: 0 }, { start: 28, length: 35, theta: Math.PI / 2 }], b0: 2 },
-  { name: "Weak field", magnets: [{ start: 0, length: MAGNET_CELLS, theta: 0 }], b0: 0.3 },
+  { name: "One magnet", magnets: [{ start: 0, length: 1, theta: 0 }], b0: 2 },
+  { name: "Two magnets at 90°", magnets: [{ start: 0, length: 0.4, theta: 0 }, { start: 0.56, length: 0.7, theta: -Math.PI / 2 }], b0: 2 },
+  { name: "Weak field", magnets: [{ start: 0, length: 1, theta: 0 }], b0: 0.3 },
 ];
 const magnetPreset = () => MAGNET_PRESETS[params.magnetPreset | 0] || MAGNET_PRESETS[0];
 const packetStartX = () => params.packetX * (simW - 1);
-const magnetEntryX = () => packetStartX() + APPROACH_CELLS;
+const magnetEntryX = () => packetStartX() + params.approachCells;
 // The preset's magnets in grid x (a = entrance, b = exit), all turned by the Magnet angle.
 function magnets() {
   const turn = params.magnetAngle * DEG;
   const x0 = magnetEntryX();
-  return magnetPreset().magnets.map(mg => ({ a: x0 + mg.start, b: x0 + mg.start + mg.length, theta: mg.theta + turn }));
+  const u = MAGNET_CELLS * params.magnetScale;
+  return magnetPreset().magnets.map(mg => ({ a: x0 + mg.start * u, b: x0 + (mg.start + mg.length) * u, theta: mg.theta - turn }));
 }
 const lastMagnetEndX = () => Math.max(...magnets().map(mg => mg.b));
 const smooth01 = t => { const u = Math.min(1, Math.max(0, t)); return u * u * (3 - 2 * u); };
@@ -495,10 +507,11 @@ function magnetState(t) {
 function measurementAxes() {
   return magnets().map(mg => [Math.sin(mg.theta), Math.cos(mg.theta)]);
 }
-// Name of the direction at angle theta about the beam, from +z toward +y.
+// Name of the direction of grid angle theta, in lab terms: the lab angle (from +z toward +x)
+// is −theta.
 function axisName(theta) {
-  const d = ((Math.round(theta / DEG) % 360) + 360) % 360;
-  return { 0: "+z", 90: "+y", 180: "−z", 270: "−y" }[d] || `${d}°`;
+  const d = ((Math.round(-theta / DEG) % 360) + 360) % 360;
+  return { 0: "+z", 90: "+x", 180: "−z", 270: "−x" }[d] || `${d}°`;
 }
 
 const restartForSpin = () => { resetAll(); updateStats(); };
@@ -1114,7 +1127,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   const boxCenter = boxCenterWorld();
   uniformData.set([boxCenter[0], boxCenter[1], boxCenter[2], 0.0], 52);
   const sgStrength = params.sgFieldOn ? params.sgGradient : 0.0;
-  uniformData.set([sgStrength, params.sgFieldOn ? 1.0 : 0.0, params.spinTheta * DEG, params.spinPhi * DEG], 56);
+  uniformData.set([sgStrength, params.sgFieldOn ? 1.0 : 0.0, params.spinTheta * DEG, (params.spinPhi - 90) * DEG], 56);
   const xc = visualPacketCenterX();
   uniformData.set([xc, CLOUD_STRIDE, Math.floor(xc) - Math.floor(simW / 2), spinArrowStride()], 60);
   const mag = magnetState(simTime);
@@ -1598,8 +1611,8 @@ function drawViewGizmo() {
   const origin = [rect.width * 0.46, rect.height * 0.58];
   const len = Math.min(rect.width, rect.height) * 0.33;
   const axes = [
-    { label: "X", color: "#ff5b5b", dir: [1, 0, 0] },
-    { label: "Y", color: "#58d26f", dir: [0, 1, 0] },
+    { label: "X", color: "#ff5b5b", dir: [0, -1, 0] },
+    { label: "Y", color: "#58d26f", dir: [1, 0, 0] },
     { label: "Z", color: "#58a6ff", dir: [0, 0, 1] },
   ].map((axis) => {
     const sx = vec3Dot(axis.dir, basis.right);
@@ -1683,7 +1696,7 @@ function drawSpinSphere() {
   // Lab axes.
   ctx.font = "600 10px system-ui, sans-serif";
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  for (const [label, d, col] of [["x", [1, 0, 0], "#ff8a8a"], ["y", [0, 1, 0], "#7fdc8f"], ["z", [0, 0, 1], "#7fb6ff"]]) {
+  for (const [label, d, col] of [["x", [0, -1, 0], "#ff8a8a"], ["y", [1, 0, 0], "#7fdc8f"], ["z", [0, 0, 1], "#7fb6ff"]]) {
     const [x, y] = proj(d), [x0, y0] = proj(d.map(c => -c));
     ctx.strokeStyle = ink + "0.28)"; ctx.setLineDash([]);
     ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x, y); ctx.stroke();
@@ -2139,7 +2152,7 @@ function updateStats() {
     });
     sText = parts.join(", ");
   }
-  statsEl.innerHTML = `<b>Splitting</b> ${sText} &nbsp; <b>Flight</b> ${(lab.flightTime * 1e6).toFixed(0)} µs over ${(lab.flight * 100).toFixed(1)} cm`;
+  statsEl.innerHTML = `<b>Magnet</b> ${magnetLengthCm().toFixed(1)} cm &nbsp; <b>Splitting</b> ${sText} &nbsp; <b>Flight</b> ${(lab.flightTime * 1e6).toFixed(0)} µs over ${(lab.flight * 100).toFixed(1)} cm`;
   statsEl.title = `Gradient ${gText}. Spin ${spinText}. The wave spreads about ${roughPower(lab.ratio)} times faster than a real silver atom's (see Physics: Units).`;
 }
 
@@ -2674,9 +2687,10 @@ function drawLabScale(camera) {
   const x0 = tunnelStartX();
   const xp = detectorPlateXGrid();
   const yMax = simH - 1, zMax = simD - 1;
-  drawAxis(g, camera, w, h, dpr, { from: [x0, 0, 0], to: [xp, 0, 0], unitScale: LAB_SCALE.sx * 100, offset: 0, unit: "cm", name: "x" });
+  drawAxis(g, camera, w, h, dpr, { from: [x0, 0, 0], to: [xp, 0, 0], unitScale: LAB_SCALE.sx * 100, offset: 0, unit: "cm", name: "y" });
   drawAxis(g, camera, w, h, dpr, { from: [xp, 0, 0], to: [xp, 0, zMax], unitScale: LAB_SCALE.sz * 1e6, offset: 0.5 * zMax, unit: "µm", name: "z", skipStartLabel: true });
-  drawAxis(g, camera, w, h, dpr, { from: [xp, 0, 0], to: [xp, yMax, 0], unitScale: LAB_SCALE.sz * 1e6, offset: 0.5 * yMax, unit: "µm", name: "y", skipStartLabel: true });
+  // Lab x = −grid y: drawn from grid y = yMax toward 0, so the labels increase toward lab +x.
+  drawAxis(g, camera, w, h, dpr, { from: [xp, yMax, 0], to: [xp, 0, 0], unitScale: LAB_SCALE.sz * 1e6, offset: 0.5 * yMax, unit: "µm", name: "x", skipStartLabel: true });
 }
 
 // Time for the packet, including its tail, to pass the detector plate.
@@ -2695,6 +2709,212 @@ function resetAll() {
   clearDensity();
   requestRedraw();
 }
+
+// ── Edit geometry on the canvas ──────────────────────────────────────────────
+// Toolbar button (or right-click on the canvas); Escape exits. Handles on the near bottom edge
+// of the tunnel move the magnet's start, its end (its length) and the screen along the beam; a
+// handle on the S pole turns the magnet about the beam. A drag changes the geometry at once;
+// releasing restarts the packet and updates the gradient limit.
+const magnetLengthCm = () => magnetPreset().magnets.reduce((m, mg) => Math.max(m, mg.start + mg.length), 0)
+  * MAGNET_CELLS * params.magnetScale * LAB_SCALE.sx * 100;
+let editing = false;
+const editLayer = document.createElement("div");
+editLayer.className = "sg-edit-layer";
+editLayer.hidden = true;
+canvas.parentElement.append(editLayer);
+const editReadout = document.createElement("div");
+editReadout.className = "sg-edit-readout";
+editLayer.append(editReadout);
+const editHandles = {};
+function makeEditHandle(key, label, title, cursor) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "sg-edit-handle";
+  b.dataset.handle = key;
+  b.textContent = label;
+  b.title = title;
+  b.style.cursor = cursor;
+  b.addEventListener("pointerdown", e => startEditDrag(e, key));
+  editLayer.append(b);
+  editHandles[key] = b;
+}
+makeEditHandle("approach", "◂ magnet start ▸", "Drag along the beam: where the magnet starts (the field-free approach).", "ew-resize");
+makeEditHandle("magnetEnd", "◂ magnet end ▸", "Drag along the beam: the magnet's length.", "ew-resize");
+makeEditHandle("screen", "◂ screen ▸", "Drag along the beam: the screen's distance after the magnet.", "ew-resize");
+makeEditHandle("angle", "↻ turn", "Drag around the beam: the magnet angle (from +z toward +x).", "grab");
+const editReset = document.createElement("button");
+editReset.type = "button";
+editReset.className = "sg-edit-reset";
+editReset.textContent = "Reset geometry";
+editReset.addEventListener("click", () => {
+  params.approachCells = APPROACH_CELLS;
+  params.magnetScale = 1;
+  params.screenDistance = 40 * BEAM_SCALE;
+  params.magnetAngle = 0;
+  syncSlider("screenDistance");
+  syncSlider("magnetAngle");
+  finishGeometryChange();
+});
+editLayer.append(editReset);
+
+function editReadoutText(key) {
+  const cm = cells => (cells * LAB_SCALE.sx * 100).toFixed(1);
+  if (key === "approach") return `Magnet starts ${cm(params.approachCells)} cm after the source`;
+  if (key === "magnetEnd") return `Magnet ${magnetLengthCm().toFixed(1)} cm long`;
+  if (key === "screen") return `Screen ${cm(params.screenDistance)} cm after the magnet`;
+  if (key === "angle") return `Magnet angle ${Math.round(params.magnetAngle)}° (axis ${axisName(magnets()[0].theta)})`;
+  return "Drag a handle. The XZ view (along the beam) is best for turning the magnet. Escape ends editing.";
+}
+function editAnchors() {
+  const ms = magnets();
+  const L = 0.5 * (simD - 1), cy = 0.5 * (simH - 1), cz = 0.5 * (simD - 1);
+  const m0 = ms[0];
+  const N = [Math.sin(m0.theta), Math.cos(m0.theta)];
+  const r = L * (Math.abs(N[0]) + Math.abs(N[1])) + 3 + 0.4 * L;
+  return {
+    approach: [Math.min(...ms.map(m => m.a)), 0, 0],
+    magnetEnd: [lastMagnetEndX(), 0, 0],
+    screen: [detectorPlateXGrid(), 0, 0],
+    angle: [0.5 * (m0.a + m0.b), cy + N[0] * r, cz + N[1] * r],
+  };
+}
+function cssProject(camera, p) {
+  return projectGridToScreen(camera, p, canvas.clientWidth, canvas.clientHeight);
+}
+function positionEditHandles(camera) {
+  const anchors = editAnchors();
+  for (const [key, b] of Object.entries(editHandles)) {
+    const q = cssProject(camera, anchors[key]);
+    b.hidden = !q;
+    if (!q) continue;
+    b.style.left = `${q[0]}px`;
+    b.style.top = `${q[1] + (key === "angle" ? 0 : 18)}px`;
+  }
+}
+let editDrag = null;
+function startEditDrag(e, key) {
+  e.preventDefault();
+  editHandles[key].setPointerCapture(e.pointerId);
+  // Keep the grab point: the pointer's offset from the handle's anchor stays fixed while dragging.
+  const rect = canvas.getBoundingClientRect();
+  const q = cssProject(cameraFrame(), editAnchors()[key]);
+  const off = q ? [e.clientX - rect.left - q[0], e.clientY - rect.top - q[1]] : [0, 0];
+  editDrag = { key, id: e.pointerId, off };
+  editReadout.textContent = editReadoutText(key);
+  editHandles[key].addEventListener("pointermove", onEditMove);
+  editHandles[key].addEventListener("pointerup", endEditDrag, { once: true });
+  editHandles[key].addEventListener("pointercancel", endEditDrag, { once: true });
+}
+// Beam coordinate (grid x) of the point on the near bottom edge of the tunnel that is drawn
+// nearest the pointer (searched, since the perspective makes the drawn edge non-uniform).
+function beamXAtPointer(camera, mx, my) {
+  const xa = tunnelStartX() - 100, xb = detectorPlateXGrid() + 600;
+  const dist = x => { const q = cssProject(camera, [x, 0, 0]); return q ? Math.hypot(q[0] - mx, q[1] - my) : Infinity; };
+  let best = xa, bestD = Infinity;
+  for (let k = 0; k <= 400; k++) { const x = xa + (xb - xa) * k / 400; const d = dist(x); if (d < bestD) { bestD = d; best = x; } }
+  let lo = best - (xb - xa) / 400, hi = best + (xb - xa) / 400;
+  for (let k = 0; k < 30; k++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; if (dist(m1) < dist(m2)) hi = m2; else lo = m1; }
+  return Number.isFinite(bestD) ? 0.5 * (lo + hi) : null;
+}
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+function onEditMove(e) {
+  if (!editDrag) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left - editDrag.off[0], my = e.clientY - rect.top - editDrag.off[1];
+  const camera = cameraFrame();
+  const key = editDrag.key;
+  if (key === "angle") {
+    const m0 = magnetPreset().magnets[0];
+    const xm = 0.5 * (magnets()[0].a + magnets()[0].b);
+    const L = 0.5 * (simD - 1), cy = 0.5 * (simH - 1), cz = 0.5 * (simD - 1);
+    let best = params.magnetAngle, bestD = Infinity;
+    for (let beta = 0; beta < 360; beta += 1) {
+      const th = m0.theta - beta * DEG;
+      const r = L * (Math.abs(Math.sin(th)) + Math.abs(Math.cos(th))) + 3 + 0.4 * L;
+      const q = cssProject(camera, [xm, cy + Math.sin(th) * r, cz + Math.cos(th) * r]);
+      if (!q) continue;
+      const d = Math.hypot(q[0] - mx, q[1] - my);
+      if (d < bestD) { bestD = d; best = beta; }
+    }
+    for (const snap of [0, 90, 180, 270, 360]) if (Math.abs(best - snap) <= 5) best = snap % 360;
+    params.magnetAngle = best;
+    syncSlider("magnetAngle");
+  } else {
+    const x = beamXAtPointer(camera, mx, my);
+    if (x == null) return;
+    const step = BEAM_SCALE;
+    if (key === "approach") {
+      params.approachCells = Math.round(clamp(x - packetStartX(), 8 * BEAM_SCALE, 60 * BEAM_SCALE) / step) * step;
+    } else if (key === "magnetEnd") {
+      const span = magnetPreset().magnets.reduce((m, mg) => Math.max(m, mg.start + mg.length), 0) * MAGNET_CELLS;
+      params.magnetScale = Math.round(100 * clamp((x - magnetEntryX()) / span, 0.25, 2.5)) / 100;
+    } else if (key === "screen") {
+      params.screenDistance = Math.round(clamp(x - lastMagnetEndX(), 10 * BEAM_SCALE, 60 * BEAM_SCALE) / step) * step;
+      syncSlider("screenDistance");
+    }
+  }
+  editReadout.textContent = editReadoutText(key);
+  rebuildBoxGeometry();
+  rebuildMagneticFieldLines();
+  updateStats();
+  requestRedraw();
+}
+function endEditDrag() {
+  if (!editDrag) return;
+  const b = editHandles[editDrag.key];
+  b.removeEventListener("pointermove", onEditMove);
+  editDrag = null;
+  finishGeometryChange();
+}
+function finishGeometryChange() {
+  updateGradientLimit(false);
+  rebuildBoxGeometry();
+  rebuildMagneticFieldLines();
+  resetAll();
+  updateStats();
+}
+function setEditing(on) {
+  editing = !!on;
+  editLayer.hidden = !editing;
+  editReadout.textContent = editReadoutText(null);
+  canvas.dispatchEvent(new CustomEvent("stern-gerlach:editing", { detail: { editing } }));
+  requestRedraw();
+}
+window.addEventListener("keydown", e => { if (e.key === "Escape" && editing) setEditing(false); });
+canvas.addEventListener("contextmenu", e => { e.preventDefault(); setEditing(!editing); });
+
+// Drag on the spin sphere to point the spin (front hemisphere; turn the view for the back).
+spinSphere.style.cursor = "grab";
+spinSphere.title = "Drag to point the spin. The sphere turns with the 3D view.";
+let sphereDrag = false;
+function spinFromSphere(e) {
+  const rect = spinSphere.getBoundingClientRect();
+  const R = Math.min(rect.width, rect.height) * 0.34;
+  let u = (e.clientX - rect.left - rect.width / 2) / R, v = (rect.top + rect.height / 2 - e.clientY) / R;
+  const rr = Math.hypot(u, v);
+  if (rr > 1) { u /= rr; v /= rr; }
+  const w = Math.sqrt(Math.max(0, 1 - u * u - v * v));
+  const b = cameraBasis();
+  const g = [0, 1, 2].map(i => u * b.right[i] + v * b.up[i] + w * b.back[i]);
+  const l = labFromGrid(g);
+  const n = Math.hypot(...l) || 1;
+  let theta = Math.acos(clamp(l[2] / n, -1, 1)) / DEG;
+  let phi = ((Math.atan2(l[1], l[0]) / DEG) + 360) % 360;
+  for (const t of [0, 90, 180]) if (Math.abs(theta - t) <= 6) theta = t;
+  for (const p of [0, 90, 180, 270, 360]) if (Math.abs(phi - p) <= 6) phi = p % 360;
+  if (theta === 0 || theta === 180) phi = 0;
+  params.spinTheta = Math.round(theta);
+  params.spinPhi = Math.round(phi);
+  syncSlider("spinTheta");
+  syncSlider("spinPhi");
+  updateStats();
+  drawSpinSphere();
+}
+spinSphere.addEventListener("pointerdown", e => { sphereDrag = true; spinSphere.setPointerCapture(e.pointerId); spinFromSphere(e); });
+spinSphere.addEventListener("pointermove", e => { if (sphereDrag) spinFromSphere(e); });
+const endSphereDrag = () => { if (!sphereDrag) return; sphereDrag = false; resetAll(); updateStats(); };
+spinSphere.addEventListener("pointerup", endSphereDrag);
+spinSphere.addEventListener("pointercancel", endSphereDrag);
 
 window.addEventListener("resize", () => {
   requestRedraw();
@@ -2773,6 +2993,7 @@ async function main() {
     writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);
     render(encoder, camera);
     drawLabScale(camera);
+    if (editing) positionEditHandles(camera);
     updateClock();
     device.queue.submit([encoder.finish()]);
     if (redrawPending) { updateStats(); updateHitDisplay(); }
@@ -2844,6 +3065,8 @@ export const simulation = {
     if (simulationAvailable) applyMagnetPreset();
   },
   // index 0: +z; 1: +x, the equal superposition of +z and −z.
+  setEditing,
+  getEditing: () => editing,
   setInitialSpin(index) {
     simulation.setSpinDirection(index ? 90 : 0, 0);
   },

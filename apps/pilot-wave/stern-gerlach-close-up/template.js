@@ -83,7 +83,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=27'));
+  ({ simulation } = await import('./main.js?v=28'));
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {
@@ -119,6 +119,21 @@ if (simulation?.isAvailable()) {
       setVisible: value => { document.getElementById('scene-legend').hidden = !value; },
     },
   });
+
+  // Edit geometry (as in the slit apps): toolbar pencil or right-click on the canvas; Escape exits.
+  const toolbar = document.querySelector('.qontic-media-toolbar');
+  if (toolbar) {
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.className = toolbar.querySelector('button')?.className || '';
+    editButton.setAttribute('aria-label', 'Edit geometry');
+    editButton.setAttribute('aria-pressed', 'false');
+    editButton.title = 'Edit geometry · right-click the canvas. Drag the magnet start, magnet end, screen or the turn handle; Escape exits.';
+    editButton.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 5l4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg>';
+    toolbar.insertBefore(editButton, toolbar.querySelector('[role=status]'));
+    editButton.addEventListener('click', () => simulation.setEditing(!simulation.getEditing()));
+    canvas.addEventListener('stern-gerlach:editing', ({ detail }) => editButton.setAttribute('aria-pressed', String(detail.editing)));
+  }
 
   mountQonticShortcuts({
     target: canvas,
