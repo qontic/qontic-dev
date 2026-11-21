@@ -121,3 +121,6 @@ body:not(.simulation-ready) .engine-badge { display: none; }
 .sg-edit-readout { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 5px 10px; font-size: 12px; color: #fff; background: rgba(18, 46, 64, 0.9); border-radius: 4px; }
 .sg-edit-reset { position: absolute; right: 10px; bottom: 10px; pointer-events: auto; padding: 4px 10px; font-size: 12px; color: #d9f8ff; background: rgba(25, 76, 90, 0.8); border: 1px solid rgba(126, 233, 251, 0.6); border-radius: 4px; }
 .qontic-media-toolbar button[aria-label="Edit geometry"][aria-pressed="true"] { background: #286078; outline: 2px solid #7ee9fb; }
+.chip-row { margin-top: -4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 3px; grid-column: 2 / -1; }
+.chips .chip { padding: 1px 6px; min-width: 0; font-size: 11px; line-height: 1.5; }

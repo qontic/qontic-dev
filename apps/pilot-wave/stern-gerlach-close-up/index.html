@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=19" />
-  <link rel="modulepreload" href="./main.js?v=28" />
+  <link rel="stylesheet" href="./style.css?v=20" />
+  <link rel="modulepreload" href="./main.js?v=29" />
 </head>
 <body>
   <main class="shell">
@@ -105,6 +105,7 @@
         <p>Display: Spin arrow draws the spin ⟨<b>σ</b>⟩ of the whole state at the packet (described below), in both readings; Spin on dots adds, in the pilot-wave reading, a small arrow on each dot. Each small arrow sits on a dot and points along the spin direction of the wave at the dot's position, Ψ<sup>†</sup><b>σ</b>Ψ/Ψ<sup>†</sup>Ψ. For a single particle this is a unit vector at every point, so the arrows always have full length. Before the magnet all arrows point along the prepared spin; once the parts separate, the arrows in each part point along + or − the magnet axis, and dots in the region where the parts still overlap show intermediate directions. In the minimal version of pilot-wave theory, presented for example by Norsen, only the position is a property of the particle, so the arrow is a property of the wave at the particle; Dewdney, Holland and Kyprianidis instead treat it as the particle's spin, carried along its trajectory.</p>
         <p class="refs">T. Norsen, “The pilot-wave perspective on spin,” Am. J. Phys. <b>82</b>, 337–348 (2014), arXiv:1305.1280; C. Dewdney, P. R. Holland and A. Kyprianidis, “What happens in a spin measurement?,” Phys. Lett. A <b>119</b>, 259–267 (1986).</p>
         <p>In the orthodox reading there is one arrow, at the centre of |Ψ|²: the expectation value ⟨<b>σ</b>⟩ of the whole state. Its length is 1 while the spin has a definite direction, that is, while the state is an eigenstate of some spin component. As the two parts separate, spin and position become entangled and the arrow shrinks; for an equal split it goes to zero: the spin alone then has no definite direction, only the probabilities of the two outcomes. Each part on its own has a definite spin along the magnet axis.</p>
+        <p>Inside the magnet the arrow turns about the field direction: the part of the spin across B precesses at the Larmor frequency, while the part along B stays fixed. For the default +x spin in a z magnet the arrow therefore spins around the z axis in the x–y plane, and shrinks as the parts separate. In the model one turn takes about 3 µs on the clock (much faster for a real silver atom: about 0.4 ns in a 0.1 T field). The arrow is redrawn a few times per second, so its direction appears to jump. A spin along the magnet axis does not precess.</p>
         <h4>Two readings</h4>
         <p>The interpretation button in the controls switches between two readings of the same wave. In the pilot-wave reading the particle has a position at all times and is guided by the wave; the dots show possible positions. In the orthodox reading only the wave is shown: the theory gives the particle no position before it is measured, and |Ψ|² gives the probabilities of where it will be found at the screen. For the equal superposition each half of the screen gets probability ½; for +z the upper half gets nearly all of it. Both readings predict the same statistics at the screen. In the orthodox reading the box in the corner shows the weight of |Ψ|² in each region of the screen (two halves along the magnet's axis, or four quadrants after two magnets); when the packet reaches the screen, these are the chances of a hit there.</p>
         <h4>Geometry</h4>
@@ -207,6 +208,6 @@
     </section>
     <section id="quiz" hidden aria-label="Quiz"></section>
   </main>
-  <script type="module" src="./template.js?v=28"></script>
+  <script type="module" src="./template.js?v=29"></script>
 </body>
 </html>

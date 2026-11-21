@@ -189,6 +189,8 @@ const params = {
   sgGradient: DEFAULT_SG_GRADIENT,
   sgFieldOn: 1,
   showFieldArrows: 1,
+  fieldLineDensity: 2,   // n × n field lines per slice across the beam
+  fieldArrowSpacing: 22, // cells along a field line between arrowheads
   showMagnet: 1,
   showSpin: 1,
   showDotSpin: 0,
@@ -343,6 +345,32 @@ function addSlider(key, label, min, max, step, onChange = null, format = null) {
   row.appendChild(lab);
   row.appendChild(input);
   row.appendChild(val);
+  controls.appendChild(row);
+}
+
+// A row of small buttons under a slider that set round values.
+function addChips(key, values, onSet, format = v => `${v}°`) {
+  const row = document.createElement("div");
+  row.className = "row chip-row";
+  const spacer = document.createElement("span");
+  row.appendChild(spacer);
+  const box = document.createElement("div");
+  box.className = "chips";
+  for (const v of values) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "qontic-app-toggle chip";
+    b.textContent = format(v);
+    b.title = `Set to ${format(v)}`;
+    b.addEventListener("click", () => {
+      params[key] = v;
+      syncSlider(key);
+      onSet(v);
+      requestRedraw();
+    });
+    box.appendChild(b);
+  }
+  row.appendChild(box);
   controls.appendChild(row);
 }
 
@@ -516,7 +544,9 @@ function axisName(theta) {
 
 const restartForSpin = () => { resetAll(); updateStats(); };
 addSlider("spinTheta", "Spin θ (from +z)", 0, 180, 1, restartForSpin, v => `${Math.round(v)}°`);
+addChips("spinTheta", [0, 45, 90, 135, 180], restartForSpin);
 addSlider("spinPhi", "Spin φ (from +x)", 0, 360, 1, restartForSpin, v => `${Math.round(v)}°`);
+addChips("spinPhi", [0, 90, 180, 270], restartForSpin);
 const spinSphereRow = document.createElement("div");
 spinSphereRow.className = "spin-sphere-row";
 const spinSphere = document.createElement("canvas");
@@ -528,7 +558,15 @@ spinSphereRow.append(spinSphere, spinSphereText);
 controls.appendChild(spinSphereRow);
 const magnetPresetControl = addCycleButton("magnetPreset", "Magnets", MAGNET_PRESETS.map(p => p.name), () => applyMagnetPreset());
 const magnetPresetControlSync = () => magnetPresetControl.sync();
-addSlider("magnetAngle", "Magnet angle", 0, 360, 1, () => { rebuildMagneticFieldLines(); resetAll(); updateStats(); }, v => `${Math.round(v)}°`);
+const applyMagnetAngle = () => { rebuildMagneticFieldLines(); resetAll(); updateStats(); };
+addSlider("magnetAngle", "Magnet angle", 0, 360, 1, applyMagnetAngle, v => `${Math.round(v)}°`);
+addChips("magnetAngle", [0, 45, 90, 180, 270], applyMagnetAngle);
+// While the slider moves, turn the drawn magnet and its field lines at once; the packet restarts on release.
+document.getElementById("magnetAngle").addEventListener("input", () => {
+  if (!simulationAvailable) return;
+  rebuildMagneticFieldLines();
+  updateStats();
+});
 function syncSlider(key) {
   const input = document.getElementById(key);
   if (input) input.value = String(params[key]);
@@ -545,6 +583,8 @@ addSlider("packetSigma", "Beam width (FWHM)", 4.0, 14.0, 0.5, () => { rebuildBox
 controls = displayControls;
 addToggleInt("sgFieldOn", "Magnetic field", () => requestTrailClear());
 addToggleInt("showFieldArrows", "Field arrows");
+addSlider("fieldLineDensity", "Field lines", 1, 5, 1, () => rebuildMagneticFieldLines(), n => `${n * n} per slice`);
+addSlider("fieldArrowSpacing", "Arrow spacing", 8, 60, 2, () => rebuildMagneticFieldLines(), d => `${Math.round(d * LAB_SCALE.sz * 1e6)} µm`);
 addToggleInt("showMagnet", "Magnet poles");
 addToggleInt("showSpin", "Spin arrow", () => updateStats());
 addToggleInt("showDotSpin", "Spin on dots", () => updateStats());
@@ -557,13 +597,13 @@ addToggleInt("showCloud", "Density cloud");
 addSlider("cloudGain", "Cloud brightness", 0.05, 2.0, 0.05);
 addToggleInt("showPhase", "Show phase");
 addToggleInt("showParticles", "Show particles");
-addSlider("nParticles", "Particle count", 1, 5000, 1, () => rebuildParticles());
 addSlider("dotSize", "Particle size", 2.0, 26.0, 1);
 addSlider("dotGain", "Particle brightness", 0.1, 5.0, 0.1);
 addToggleInt("showTrail", "Draw trails");
 addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1, null, t => `${(t * LAB_SCALE.st * 1e6).toFixed(1)} µs`);
 
 controls = advancedControls;
+addSlider("nParticles", "Particle count", 1, 5000, 1, () => rebuildParticles());
 addToggleInt("spinTerm", "Spin term (Pauli)", () => requestRedraw());
 // 2D leapfrog: stable below ~0.022 at the largest gradient (z-then-y magnets, g = 7.5).
 addSlider("dt", "Time step", 0.002, 0.016, 0.002, null, d => `${Math.round(d * LAB_SCALE.st * 1e9)} ns`);
@@ -2433,7 +2473,7 @@ function pushFieldArrow(arrows, p, dir, fade) {
 
 function traceSgFieldLine(verts, start, sign, fade, step, maxSteps, margin, arrows = null, segs = null) {
   let p = start.slice();
-  let sinceArrow = 0.5 * FIELD_ARROW.spacing;
+  let sinceArrow = 0.5 * params.fieldArrowSpacing;
   for (let i = 0; i < maxSteps; i++) {
     const dir = sgFieldDirectionGrid(p, segs || magnetsAtX(p[0]));
     if (!dir) break;
@@ -2445,7 +2485,7 @@ function traceSgFieldLine(verts, start, sign, fade, step, maxSteps, margin, arro
     if (!isInsideFieldLineBox(q, margin)) break;
     pushFieldLineSegment(verts, p, q, fade);
     sinceArrow += step;
-    if (arrows && sinceArrow >= FIELD_ARROW.spacing) {
+    if (arrows && sinceArrow >= params.fieldArrowSpacing) {
       pushFieldArrow(arrows, q, dir, Math.min(1, fade * 1.25));
       sinceArrow = 0;
     }
@@ -2476,14 +2516,16 @@ function rebuildMagneticFieldLines() {
   // Columns of field lines along the tunnel, drawn only where a magnet is on, fading with it.
   const ms = magnets();
   const x0 = Math.min(...ms.map(mg => mg.a)) + 5, x1 = lastMagnetEndX() - 5;
-  const columns = Math.max(3, Math.round((x1 - x0) / (11 * BEAM_SCALE)) + 1);
+  const n = Math.max(1, Math.round(params.fieldLineDensity));
+  const columns = Math.max(2, Math.round((x1 - x0) * n / (22 * BEAM_SCALE)) + 1);
   for (let k = 0; k < columns; k++) {
     const x = x0 + (x1 - x0) * k / (columns - 1);
     const segs = magnetsAtX(x);
     const strength = Math.min(1, segs.reduce((s, g) => s + g.p, 0));
     if (strength < 0.05) continue;
     const fade = 0.65 * strength;
-    const seeds = [[0.25, 0.30], [0.75, 0.30], [0.25, 0.70], [0.75, 0.70]];
+    const seeds = [];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) seeds.push([0.1 + 0.8 * (i + 0.5) / n, 0.1 + 0.8 * (j + 0.5) / n]);
     for (const [yf, zf] of seeds) {
       const start = [x, yf * yMax, zf * zMax];
       traceSgFieldLine(verts, start, 1, fade, step, maxSteps, margin, arrows, segs);
