@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Einstein’s Recoiling Slit — Q-Ontic Lab</title>
 <meta name="description" content="A single trapped atom as Einstein's movable slit (Zhang et al., PRL 2025). Tune the trap depth, watch the fringes fade, and compare orthodox, pilot-wave and many-worlds accounts.">
-<link rel="icon" href="../../../shared/favicon.svg"><link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7"><link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5"><link rel="stylesheet" href="style.css?v=1.1.0"></head>
+<link rel="icon" href="../../../shared/favicon.svg"><link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7"><link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5"><link rel="stylesheet" href="style.css?v=1.2.0"></head>
 <body class="recoil-app"><main class="shell">
 <header><div><p class="eyebrow">Q-Ontic · Experiments</p><h1>Einstein’s Recoiling Slit</h1></div></header>
 <nav class="tabs" aria-label="App sections"><button class="active" data-view="sim">Simulation</button><button data-view="physics">Physics</button><button data-view="views">Views</button><button data-view="experiment">Experiment</button></nav>
@@ -16,30 +16,25 @@
 <p class="hint" id="depthHelp">A deeper trap holds the atom more tightly. The paper used 0.60–10.49 mK.</p>
 <p class="hint" id="rangeNote"></p>
 <section class="results" aria-label="Results"><h2>Results</h2><dl><dt>Visibility, predicted</dt><dd id="visibility">—</dd><dt>Visibility, measured</dt><dd id="measured">—</dd><dt>Atom momentum spread Δp</dt><dd id="spread">—</dd><dt>Atom position spread Δx</dt><dd id="dx">—</dd></dl></section>
-<h2 class="side-head">Part 2 · One photon</h2>
+<h2 class="side-head">One photon</h2>
 <label class="row" for="phase">Path phase φ <output id="phaseOut">0°</output></label><input id="phase" type="range" min="0" max="330" step="30" value="0" aria-describedby="phaseHelp">
 <p class="hint" id="phaseHelp">The phase also picks which measured column the pilot-wave position bars come from.</p>
-<div class="run-extras"><button id="one">Send one photon</button></div>
 <details class="more"><summary>Advanced</summary>
 <label class="row" for="nbar">Residual heating n̄ <output id="nbarOut">0.00</output></label><input id="nbar" type="range" min="0" max="1" step="0.01" value="0" aria-describedby="nbarHelp">
 <p class="hint" id="nbarHelp">Thermal phonons; the experiment measured n̄ = 0.08–0.37. Heating spreads the atom over more of the 390 nm stripe pattern, so the fringe fades, even though the momentum spread grows too (see Physics).</p>
 <label class="row" for="waveQuantity">Wave display</label><select id="waveQuantity"><option value="density">Probability density</option><option value="re">Real part</option><option value="im">Imaginary part</option></select>
-<label class="check"><input id="readout" type="checkbox"> Read the atom’s momentum after each photon</label><p class="hint">Not done in the experiment. Shown as a dashed line and a value in Part 2; it does not change the photon statistics.</p>
+<label class="check"><input id="readout" type="checkbox"> Read the atom’s momentum after each photon</label><p class="hint">Not done in the experiment. Shown as a dashed line and a value in the one-photon panel; it does not change the photon statistics.</p>
 <p class="hint">η = ħk / 2Δp = <output id="eta">—</output>; the visibility is e<sup>−2η²</sup>.</p>
 </details>
 </div>
 <div class="qontic-control-body" data-control-pane="display" hidden><label class="check"><input id="theory" type="checkbox" checked> Show predictions</label><p class="hint">Hides the predicted curves, leaving the measured points.</p></div>
 </aside>
 <div class="visualization qontic-stage qontic-panel">
-<section class="part" aria-labelledby="part1"><div class="part-head"><h2 id="part1">Part 1 · Measure the fringe</h2>
-<p class="mapping"><strong>Einstein’s 1927 picture → this experiment:</strong> movable slit → <em>the trapped atom</em> · two slits → <em>light paths A (up) and B (down)</em> · screen → <em>beam splitter and detectors D₊, D₋</em> · position on the screen → <em>path phase φ</em> · recoil of the slit → <em>atom kicked by −ħk or +ħk</em>.</p>
-<div class="toolbar"><button id="measure" class="primary">Measure the fringe</button><span class="hint">4,800 photons at 12 phases</span><span class="presets" role="group" aria-label="Trap depth presets"><button data-depth="10.49">Deepest (paper)</button><button data-depth="0.60">Shallowest (paper)</button><button data-depth="0.05">Very shallow</button></span></div>
+<section class="part" aria-labelledby="part1"><div class="part-head"><h2 id="part1">Einstein’s movable slit, with one atom</h2>
+<div class="toolbar"><button id="measure" class="primary" title="4,800 photons at 12 phases">Measure the fringe</button><button id="one" title="Follow one photon through the four stages; switch views at Detect">Send one photon</button><span class="presets" role="group" aria-label="Trap depth presets"><button data-depth="10.49">Deepest (paper)</button><button data-depth="0.60">Shallowest (paper)</button><button data-depth="0.05">Very shallow</button></span></div>
+<div class="walkthrough"><div class="stage-buttons" role="group" aria-label="One-photon stages"><button data-step="0">1 · Prepare</button><button data-step="1">2 · Scatter</button><button data-step="2">3 · Recombine</button><button data-step="3">4 · Detect</button></div><p id="stageText" aria-live="polite"></p><p class="view-note"><strong id="viewName">Orthodox</strong><span id="viewText"></span></p></div>
 <p id="takeaway" class="takeaway"></p></div>
-<canvas id="main" aria-label="Measured and predicted fringe, visibility against trap depth, the atom's two recoil waves and their overlap, and the atom's position spread against the stripe pattern"></canvas>
-</section>
-<section class="part" aria-labelledby="part2"><div class="part-head"><h2 id="part2">Part 2 · One photon, three views</h2>
-<div class="walkthrough"><div class="stage-buttons" role="group" aria-label="Experiment stages"><button data-step="0">1 · Prepare</button><button data-step="1">2 · Scatter</button><button data-step="2">3 · Recombine</button><button data-step="3">4 · Detect</button></div><p id="stageText" aria-live="polite"></p><p class="view-note"><strong id="viewName">Orthodox</strong><span id="viewText"></span></p></div></div>
-<canvas id="stage" aria-label="Photon wave packet, correlated atom waves, and detector records for one photon"></canvas>
+<canvas id="main" aria-label="The experiment: laser, trapped atom, two light paths, beam splitter and detectors with counts; below, the fringe, visibility against trap depth, one photon's atom waves and detector records, the recoil-wave overlap, and the atom's position spread against the stripe pattern"></canvas>
 <div class="branch-actions" id="branchActions" hidden><span>Follow a detector branch:</span><button data-follow="1">D₊</button><button data-follow="-1">D₋</button><span class="hint">Changes the highlighted branch only.</span></div>
 <p id="summary" class="accessible-summary" aria-live="polite"></p>
 </section>
@@ -79,5 +74,5 @@
 <p>Changing the tweezer’s trap depth from 0.60 mK to 10.49 mK tuned the atom’s momentum spread from 0.78 ħk to 1.60 ħk. A shallower trap, a more “movable” slit, gave lower visibility. Measuring the residual phonon number separated this quantum effect from classical heating.</p>
 <p><a href="https://doi.org/10.1103/93zb-lws3" target="_blank" rel="noopener">Y.-C. Zhang, H.-W. Cheng, Z.-Q. Zengxu, Z. Wu, R. Lin, Y.-C. Duan, J. Rui, M.-C. Chen, C.-Y. Lu and J.-W. Pan, “Tunable Einstein–Bohr recoiling-slit gedankenexperiment at the quantum limit,” Phys. Rev. Lett. 135, 230202 (2025).</a> Preprint: <a href="https://arxiv.org/abs/2410.10664" target="_blank" rel="noopener">arXiv:2410.10664</a>.</p>
 <h2>What it shows, and what it does not</h2><p>The loss of visibility follows from the overlap of the atom’s two recoil states, at the quantum limit, without noise from the environment. Bohr’s conclusion holds. The authors stress that the loss of interference comes from entanglement between the photon and the atom’s motion, not from classical noise. The experiment confirms the standard quantum prediction; all three views on the Views tab agree with it.</p>
-<h2>Try this sequence</h2><ol><li>Make a prediction in the sidebar.</li><li>Choose <em>Deepest (paper)</em> and press <em>Measure the fringe</em>. Note the visibility.</li><li>Choose <em>Shallowest (paper)</em> and measure again. Both fringes stay on the plot; compare them.</li><li>Look at the shaded overlap of the two recoil waves, and at the atom’s spread against the 390 nm stripes. Both explain the drop.</li><li>Part 2: send one photon through the four stages and switch views at Detect.</li><li>Advanced: set n̄ = 0.37, measure, and compare with the band on the visibility plot.</li></ol>
-</section></main><script type="module" src="app.js?v=1.1.0"></script></body></html>
+<h2>Try this sequence</h2><ol><li>Make a prediction in the sidebar.</li><li>Choose <em>Deepest (paper)</em> and press <em>Measure the fringe</em>. Note the visibility.</li><li>Choose <em>Shallowest (paper)</em> and measure again. Both fringes stay on the plot; compare them.</li><li>Look at the shaded overlap of the two recoil waves, and at the atom’s spread against the 390 nm stripes. Both explain the drop.</li><li>Send one photon through the four stages and switch views at Detect.</li><li>Advanced: set n̄ = 0.37, measure, and compare with the band on the visibility plot.</li></ol>
+</section></main><script type="module" src="app.js?v=1.2.0"></script></body></html>
