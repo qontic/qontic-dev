@@ -46,7 +46,7 @@ class QonticControls extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
-      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=6", import.meta.url).href}">
+      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=7", import.meta.url).href}">
       <section class="qontic-common-controls" aria-label="Simulation controls">
         <div class="qontic-level" role="radiogroup" aria-label="Level of detail" hidden></div>
         <button class="qontic-interpretation" type="button"></button>

@@ -34,7 +34,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="js/palette.js"></script>
     <script>window.qonticTemplateLayout = true;</script>
-    <script src="js/double-slit.js?cache=te12"></script>
+    <script src="js/double-slit.js?cache=te13"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
     <style>
@@ -57,11 +57,11 @@
     </style>
     <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
     <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-    <link rel="stylesheet" href="css/qontic-template.css?cache=te12">
+    <link rel="stylesheet" href="css/qontic-template.css?cache=te13">
     <script type="importmap">
       {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
     </script>
-    <script type="module" src="js/qontic-template.js?cache=te12"></script>
+    <script type="module" src="js/qontic-template.js?cache=te13"></script>
 </head>
 <body>
   <!-- Loading overlay — visible until JS init completes -->
@@ -107,7 +107,7 @@
         </div>
         <div id="slit-count-bar" class="slit-count-bar">
             <div class="slit-count-row" title="Number of slits, one slit separation apart. Two reproduces the double slit."><label for="slit-count">Number of slits</label><input id="slit-count" type="range" min="1" max="8" step="1" value="2" aria-label="Number of slits"><output id="slit-count-output">2</output></div>
-            <div id="slit-open-row" class="slit-open-row" title="Click a slit to cycle: open → closed → open with a which-slit detector (D) → open."><span>Slits</span><div id="slit-open-buttons" class="slit-open-buttons" role="group" aria-label="Open, close or put a detector on each slit"></div></div>
+            <div id="slit-open-row" class="slit-open-row" title="Click a slit number to open or close it; click the D under an open slit to put a which-slit detector on it."><span>Slits</span><div id="slit-open-buttons" class="slit-open-buttons" role="group" aria-label="Open, close or put a detector on each slit"></div></div>
             <label class="slit-at-wall" title="When ticked, opening or closing a slit during a run waits until the packet centre reaches the wall: the front of the packet then passes the old slits and the back the new ones. While ticked, a closed slit reopens without a detector."><input type="checkbox" id="slit-at-wall"> Apply slit changes when the packet reaches the wall</label>
             <p id="nice-fringes-status" class="nice-fringes-status" aria-live="polite"></p>
         </div>
@@ -324,7 +324,7 @@
                <td class="label">Energy:</td>
 	       <td align=right class="value" id="particleEnergy">0</td><td> 
              </tr>
-              <tr data-tip="Fringe scale. Two slits: the double-slit spacing λD/d (D = wall-to-screen distance). Three or more: the textbook N-slit pattern (spacing λD/d, narrow principal maxima, weak maxima between) needs the screen much farther than W²/λ, with W the width of the open slit array; closer, the screen is in the near field (see Physics, Near and far field).">
+              <tr data-tip="Distance between neighbouring bright fringes, measured on the predicted pattern; “no fringes” when the waves from the slits do not overlap. Two slits (Standard and Expert): also the textbook value λ(D−L)/d, with D the screen position, L the wall position (D−L = wall-to-screen distance) and d the slit separation. Three or more: the textbook N-slit pattern (spacing λD/d, narrow principal maxima, weak maxima between) needs the screen much farther than W²/λ, with W the width of the open slit array; closer, the screen is in the near field (see Physics, Near and far field).">
                <td class="label">Fringes:</td>
 	       <td align=right class="value" id="fringeScale">–</td><td> 
              </tr>
@@ -383,7 +383,7 @@
            <canvas id="paletteScaleCanvas2" width="40" height="100" data-tip="Wave 2 (slit 2) color palette scale" style="position: absolute; left: 0px; bottom: 50px; z-index: 10; display: none;"></canvas>
            <canvas id="paletteScaleCanvas1" width="40" height="100" data-tip="Wave 1 (slit 1) color palette scale" style="position: absolute; left: 0px; bottom: 150px; z-index: 10; display: none;"></canvas>
              </div>
-             <div id="shortcut-hint">Space: play/pause · R: reset · S: screenshot · V: cycle view · W: cycle wave display</div>
+             <div id="shortcut-hint">Space: play/pause · R: reset · S: screenshot · V: cycle view<span data-level-min="standard"> · W: cycle wave display</span></div>
              </div>
 <!--
     <div id="histo-info">

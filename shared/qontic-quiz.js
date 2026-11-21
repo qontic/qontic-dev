@@ -34,7 +34,7 @@
 
 export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · predict before you watch',
   answers: defaultAnswers = [], questions, onWatch = () => {}, param = 'quiz', shuffle = false, score = false,
-  shareLink = false, intro = '' }) {
+  shareLink = false, intro = '', linkParams = null }) {
   panel.classList.add('qontic-panel', 'qontic-quiz');
   panel.innerHTML = `
     <div class="qontic-quiz-layout">
@@ -153,7 +153,7 @@ export function mountQonticQuiz({ panel, tab, simulationTab, title = 'Quiz · pr
   tab.addEventListener('click', () => { if (!answered) show(index); });
   link.addEventListener('click', async () => {
     const url = new URL(location.href);
-    url.search = `?${param}=${index + 1}`;
+    url.search = '?' + new URLSearchParams({ ...(linkParams ? linkParams() : {}), [param]: index + 1 }).toString();
     try { await navigator.clipboard.writeText(url.href); link.textContent = 'Link copied'; }
     catch { link.textContent = url.href; }
     setTimeout(() => { link.textContent = 'Copy link to this question'; }, 2500);

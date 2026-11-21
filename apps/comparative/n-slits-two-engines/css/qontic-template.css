@@ -439,6 +439,15 @@ body.analytical-template { --font-size-base:13px; --font-size-sm:13px; --font-si
 .analytical-template .slit-open-buttons .slit-open-button.slit-closed { opacity: 1; text-decoration: line-through; border-style: dashed; }
 .analytical-template .slit-open-buttons .slit-open-button.slit-detector { background: #ffd54a; border-color: #ffd54a; color: #3b2d00; font-weight: 700; }
 .analytical-template .slit-open-buttons .slit-open-button.slit-detector::after { content: "D"; font-size: 9px; margin-left: 2px; vertical-align: super; }
+.analytical-template .slit-open-buttons { align-items: flex-start; }
+.analytical-template .slit-pair { display: inline-flex; flex-direction: column; align-items: stretch; gap: 3px; }
+.analytical-template .slit-open-buttons .slit-det-toggle { width: auto; min-width: 28px; height: 20px; padding: 0 5px; font-size: 10px; font-weight: 700; opacity: .75; }
+.analytical-template .slit-open-buttons .slit-det-toggle.active { background: #ffd54a; border-color: #ffd54a; color: #3b2d00; opacity: 1; }
+.analytical-template .slit-open-buttons .slit-det-toggle:disabled { opacity: .25; cursor: default; }
+.analytical-template .slit-open-buttons .slit-refused { animation: slitRefused .3s ease-in-out 2; }
+@keyframes slitRefused { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.analytical-template .slit-det-key { align-self: flex-end; font-size: 11px; opacity: .7; margin-left: 4px; }
+@media (pointer: coarse) { .analytical-template .slit-open-buttons .slit-open-button { min-width: 44px; height: 40px; } .analytical-template .slit-open-buttons .slit-det-toggle { min-width: 44px; height: 32px; } }
 .analytical-template #experiment-bar #niceFringesButton { width: auto; }
 .analytical-template #niceFringesButton { width: 100%; }
 .analytical-template .nice-fringes-status { margin: 0; font-size: 12px; line-height: 1.4; opacity: .85; }

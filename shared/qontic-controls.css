@@ -91,3 +91,4 @@ button:disabled, input:disabled { opacity:.5; cursor:default; }
 .qontic-speed { flex:1 1 90px; max-width:140px; grid-template-columns:minmax(32px,1fr) 35px; gap:2px 5px; }
 .qontic-speed > span { grid-column:1 / -1; font-size:11px; }
 .qontic-speed input { margin:0; }
+@media (pointer:coarse) { .qontic-level button { min-height:40px; } }

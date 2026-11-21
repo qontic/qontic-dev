@@ -3,7 +3,7 @@
 // apparatus (slits, detectors, screen), drawn here, so that the running simulation
 // cannot give the answer away. Uses the app's classic-script globals (numSlits,
 // slitOpen, slitDetector, interpretation, …) from double-slit.js.
-import { mountQonticQuiz } from '../../../../shared/qontic-quiz.js?v=11';
+import { mountQonticQuiz } from '../../../../shared/qontic-quiz.js?v=12';
 
 const light = () => document.body.classList.contains('qontic-light');
 
@@ -99,7 +99,11 @@ function setTo({ view, slits, color = null, engine = 'analytical', num = null })
   if (isRunning()) $('#startButton').trigger('click');
   const pe = window.qonticPacketEngine;
   // Remember the user's engine and numerical options the first time the quiz changes them.
-  if (pe && !quizSaved) quizSaved = { engine: pe.engine, num: pe.numOptions };
+  if (pe && !quizSaved) {
+    const color = document.getElementById('packet-particle-color');
+    quizSaved = { engine: pe.engine, num: pe.numOptions, view: interpretation, numSlits, open: slitOpen.slice(), det: slitDetector.slice(),
+      color: color ? color.value : null, atWall: !!document.getElementById('slit-at-wall')?.checked };
+  }
   if (pe?.setEngine && pe.engine !== engine) pe.setEngine(engine);
   // Numerical questions set the wall, blade, closing time, Show change and guiding law;
   // the others put back the defaults.
@@ -118,15 +122,82 @@ function setTo({ view, slits, color = null, engine = 'analytical', num = null })
   window.qonticPacketEngine?.setWhichPath?.(whichPathDetector);
 }
 
+// Leaving the quiz (not through "Watch it"): the engine, numerical options, view, slits,
+// detectors, particle colour and "Apply at the wall" the user had before the quiz.
+function restoreSaved(pe) {
+  const q = quizSaved;
+  if (isRunning()) $('#startButton').trigger('click');
+  if (pe.engine !== q.engine) pe.setEngine(q.engine);
+  pe.setNumOptions(q.num, { persist: false });
+  if (interpretation !== q.view) changeInterpretation(q.view);
+  numSlits = q.numSlits;
+  for (let k = 0; k < MAX_SLITS; k++) { slitOpen[k] = q.open[k]; slitDetector[k] = q.det[k]; }
+  if (q.color) setColor(q.color);
+  const atWall = document.getElementById('slit-at-wall'); if (atWall && atWall.checked !== q.atWall) { atWall.checked = q.atWall; atWall.dispatchEvent(new Event('change', { bubbles: true })); }
+  slitConfigurationChanged();
+  pe.setWhichPath?.(whichPathDetector);
+}
+
 export function mountNSlitQuiz({ panel, tab, simulationTab }) {
   panel?.addEventListener('click', e => { if (e.target.closest('[data-quiz="watch"]')) quizWatching = true; }, true);
   simulationTab?.addEventListener('click', () => {
     const pe = window.qonticPacketEngine;
-    if (quizSaved && !quizWatching && pe) { if (pe.engine !== quizSaved.engine) pe.setEngine(quizSaved.engine); pe.setNumOptions(quizSaved.num, { persist: false }); }
+    if (quizSaved && !quizWatching && pe) restoreSaved(pe);
     if (!quizWatching) quizSaved = null;
     quizWatching = false;
   });
   const questions = [
+    // Basic (first look): five questions that need no equations.
+    {
+      question: 'Two slits are open and fringes build up on the screen. You close one slit. What happens to the fringes?',
+      caption: 'Slit 2 closed; slit 1 still open.',
+      plain: 'The fringes disappear: one broad bump is left.',
+      answers: [{ id: 'gone', label: 'They disappear: one broad bump is left' }, { id: 'half', label: 'The same fringes, half as bright' }, { id: 'shift', label: 'The fringes move towards the open slit' }],
+      answer: 'gone',
+      explain: 'Fringes come from the waves of the two slits adding up (bright) or cancelling (dark). With one slit there is nothing to add or cancel with, so the hits form one broad bump: the wave spreading out from a single slit.',
+      prepare: () => setTo({ view: 'copenhagen', slits: ['open', 'closed'] }),
+      draw: c => drawSetup(c, ['open', 'closed']),
+    },
+    {
+      question: 'Two open slits. You move them closer together. What happens to the fringes?',
+      caption: 'Two open slits, moved closer together.',
+      plain: 'They get wider apart.',
+      answers: [{ id: 'wider', label: 'They get wider apart' }, { id: 'narrower', label: 'They get closer together' }, { id: 'same', label: 'Nothing changes' }],
+      answer: 'wider',
+      explain: 'The distance between bright fringes is about λ × (distance to the screen) ÷ (distance between the slits). Halve the distance between the slits and the fringes are twice as far apart. Try it with the Slit Sep. slider.',
+      prepare: () => setTo({ view: 'copenhagen', slits: ['open', 'open'] }),
+      draw: c => drawSetup(c, ['open', 'open'], { packet: true }),
+    },
+    {
+      question: 'A single electron is sent towards two open slits. What appears on the screen?',
+      caption: 'Two open slits; one electron.',
+      plain: 'One dot, at a place that cannot be predicted.',
+      answers: [{ id: 'dot', label: 'One dot, at a place that cannot be predicted' }, { id: 'faint', label: 'A faint copy of the whole fringe pattern' }, { id: 'two', label: 'Two dots, one behind each slit' }, { id: 'centre', label: 'One dot, always in the centre' }],
+      answer: 'dot',
+      explain: 'Each electron makes one dot. Where it lands is random: the wave gives the probability, highest in the bright fringes and zero in the dark ones. The fringes appear only after many electrons, one dot at a time.',
+      prepare: () => setTo({ view: 'copenhagen', slits: ['open', 'open'] }),
+      draw: c => drawSetup(c, ['open', 'open'], { hitY: .38 }),
+    },
+    {
+      question: 'Two open slits, with a which-slit detector on slit 1. What does the screen show after many hits?',
+      caption: 'Two open slits; D marks the detector on slit 1.',
+      plain: 'No fringes: a smooth bump.',
+      answers: [{ id: 'smooth', label: 'No fringes: a smooth bump' }, { id: 'same', label: 'The same fringes as without the detector' }, { id: 'one', label: 'Fringes only behind slit 2' }, { id: 'none', label: 'Nothing: the detector stops the electrons' }],
+      answer: 'smooth',
+      explain: 'Once it is recorded which slit each electron went through, the waves from the two slits no longer add up and cancel, so the fringes go. What is left is the sum of the two single-slit bumps, which overlap here into one smooth bump. The Views tab says how each view describes this.',
+      prepare: () => setTo({ view: 'copenhagen', slits: ['detector', 'open'] }),
+      draw: c => drawSetup(c, ['detector', 'open']),
+    },
+    {
+      question: 'In which view does the app draw a path for each electron between the source and the screen?',
+      caption: 'Same slits, same hits; three views.',
+      plain: 'Pilot Wave.',
+      answers: [{ id: 'pw', label: 'Pilot Wave' }, { id: 'orth', label: 'Orthodox' }, { id: 'mw', label: 'Many Worlds' }, { id: 'all', label: 'All three' }],
+      answer: 'pw',
+      explain: 'In Pilot Wave each electron is a particle with a position at all times, steered by the wave, so its path can be drawn. Orthodox says nothing about where the electron is before it is detected. In Many Worlds the wave is all there is, and every result happens in some branch. All three predict the same hits.',
+      prepare: () => setTo({ view: 'bohmian', slits: ['open', 'open'] }),
+      draw: c => drawSetup(c, ['open', 'open'], { packet: true }),
+    },
     {
       question: 'Pilot Wave, three equal slits open. A particle lands near the top of the screen. Which slit did it go through?',
       caption: 'Three open slits; the dot is where the particle landed.',
@@ -246,12 +317,12 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       afterWatch: closeSlit2AtWall,
     },
     {
-      question: 'Numerical engine, Pilot Wave. The guiding law is switched from Schrödinger to Pauli ↑ (a spin-½ particle with spin along z). What changes?',
-      caption: 'Same wave; two guiding laws for the particles.',
+      question: 'Numerical engine, Pilot Wave. The current is switched from Schrödinger to Pauli ↑ (a spin-½ particle with spin along z). What changes?',
+      caption: 'Same wave; two currents for the particles.',
       plain: 'The trajectories change; the pattern of hits changes only very slightly.',
       answers: [{ id: 'paths', label: 'The trajectories, and the pattern of hits only very slightly' }, { id: 'both', label: 'The trajectories and the fringes: different bands and spacing' }, { id: 'nothing', label: 'Nothing: the wave is the same' }],
       answer: 'paths',
-      explain: 'The Pauli velocity adds (ħ/2m) ∇×(ρ ẑ)/ρ to the Schrödinger one. The extra current has zero divergence, so |ψ|² at each time still moves with the particles (equivariance). The paths differ, most visibly where ρ changes quickly, near the wall and the slits. The hits are crossings of the screen line, and the spin current adds (ħ/2m) ∂ρ/∂y to the flux through it, so the pattern shifts by a few nanometres here: far below the fringe spacing, and the green curve follows the chosen law. Whether such spin-dependent arrival statistics could be measured is debated (Das and Dürr, Sci. Rep. 9, 2242 (2019); Goldstein, Tumulka and Zanghì, Sci. Rep. 14, 3775 (2024)).',
+      explain: 'The Pauli velocity adds (ħ/2m) ∇×(ρ ẑ)/ρ to the Schrödinger one. The extra current has zero divergence, so |ψ|² at each time still moves with the particles (equivariance). The paths differ, most visibly where ρ changes quickly, near the wall and the slits. The hits are crossings of the screen line, and the spin current adds (ħ/2m) ∂ρ/∂y to the flux through it, so the pattern shifts by a few nanometres here: far below the fringe spacing. The green curve and the hits follow the chosen current in every view. Whether such spin-dependent arrival statistics could be measured is debated (Das and Dürr, Sci. Rep. 9, 2242 (2019); Goldstein, Tumulka and Zanghì, Sci. Rep. 14, 3775 (2024)).',
       prepare: () => setTo({ engine: 'numerical', view: 'bohmian', slits: ['open', 'open'], color: 'slit', num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'up', replay: false } }),
       draw: c => drawSetup(c, ['open', 'open'], { packet: true, label: 'numerical engine · Pauli ↑' }),
     },
@@ -266,14 +337,15 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       draw: c => drawSetup(c, ['open', 'open'], { reflected: true, label: 'numerical engine · reflecting wall' }),
     },
   ];
-  // Level of each question (shared level switch): Basic shows the first-look questions,
-  // Standard adds the wall and closing-at-the-wall ones, Expert the numerical details.
-  const LEVEL = ['basic', 'basic', 'basic', 'basic', 'standard', 'basic', 'expert', 'standard', 'expert', 'expert', 'standard'];
+  // Level of each question (shared level switch): Basic shows the five first-look questions,
+  // Standard adds the detector, view and wall questions, Expert the numerical details.
+  const LEVEL = ['basic', 'basic', 'basic', 'basic', 'basic', 'standard', 'standard', 'standard', 'standard', 'standard', 'standard', 'expert', 'standard', 'expert', 'expert', 'standard'];
   const all = questions.map((q, i) => Object.assign(q, { level: LEVEL[i] || 'expert' }));
   const rank = { basic: 0, standard: 1, expert: 2 };
-  let current = 'expert';
+  let current = null;
   const quiz = mountQonticQuiz({
-    panel, tab, simulationTab, questions, shuffle: true, score: true,
+    panel, tab, simulationTab, questions, shuffle: true, score: true, shareLink: true,
+    linkParams: () => ({ level: document.body.dataset.qonticLevel || 'basic' }),
     title: 'Quiz · predict before you watch',
     onWatch: q => { if (!isRunning()) $('#startButton').trigger('click'); q?.afterWatch?.(); },
   });
@@ -281,8 +353,12 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
     quiz,
     setLevel(level) {
       if (level === current || !(level in rank)) return;
+      const first = current === null;
       current = level;
       questions.splice(0, questions.length, ...all.filter(q => rank[q.level] <= rank[level]));
+      // A link to a question (?quiz=N&level=…): N counts the questions of that level.
+      const start = first ? parseInt(new URLSearchParams(location.search).get('quiz'), 10) : NaN;
+      if (start >= 1) { quiz.reset(false); quiz.show(Math.min(start, questions.length) - 1); return; }
       // Prepare a question (which changes the app's settings) only if the quiz is open.
       quiz.reset(document.body.dataset.view === 'quiz');
     },

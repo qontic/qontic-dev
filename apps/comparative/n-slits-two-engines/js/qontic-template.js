@@ -1,14 +1,14 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te12';
-import { mountMWBranching } from './mw-branching.js?cache=te12';
-import { APP_RELEASE } from './release.js?cache=te12';
-import { mountNSlitQuiz } from './quiz.js?cache=te12';
+import { mountPacketEngine } from './packet-engine.js?cache=te13';
+import { mountMWBranching } from './mw-branching.js?cache=te13';
+import { APP_RELEASE } from './release.js?cache=te13';
+import { mountNSlitQuiz } from './quiz.js?cache=te13';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te12';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te13';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
-import '../../../../shared/qontic-controls.js?v=3.4';
+import '../../../../shared/qontic-controls.js?v=3.5';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
 $(function () {
@@ -156,7 +156,7 @@ $(function () {
     ['plot_trajectories', 'Trajectories', 'traj-color'],
     ['plot_particles', 'Particles', 'part-color'],
     ['plot_screen', 'Slit wall', 'screen-color'],
-    ['plot_detector', 'Detector', 'detector-color'],
+    ['plot_detector', 'Screen', 'detector-color'],
     ['plot_scales', 'Distance scales', 'scale-color'],
   ]) {
     const input = document.getElementById(id);
@@ -364,16 +364,22 @@ $(function () {
   let previewScreenHeight=null;
   const scale = mountDistanceScale({
     host:container,storageKey:'qontic-double-slit-scale-position',
-    getUnitsPerPixel:()=>({x:worldCanvasDx/Math.max(1,container.clientWidth),y:(previewScreenHeight??screenHeight)/Math.max(1,container.clientHeight)}),
+    getUnitsPerPixel:()=>{const z=window.qonticPacketEngine?.zoom?.z||1;return {x:worldCanvasDx/Math.max(1,container.clientWidth)/z,y:(previewScreenHeight??screenHeight)/Math.max(1,container.clientHeight)/z};},
     format:value=>value>=1e6?(value/1e6).toPrecision(3)+' mm':value>=1e3?(value/1e3).toPrecision(3)+' µm':Number(value.toPrecision(3))+' nm'
   });
   const formatDistance=value=>Math.abs(value)>=1e6?Number((value/1e6).toPrecision(4))+' mm':Math.abs(value)>=1e3?Number((value/1e3).toPrecision(4))+' µm':Number(value.toPrecision(4))+' nm';
   const coordinates=mountCoordinateTools({
     host:container,storageKey:'qontic-double-slit-grid-visible',formatValue:formatDistance,
-    getBounds:()=>({xMin:-wallXWorld,xMax:worldCanvasDx-wallXWorld,yMin:-(previewScreenHeight??screenHeight)/2,yMax:(previewScreenHeight??screenHeight)/2})
+    getBounds:()=>{
+      // Visible region: with the canvas zoomed (z) and panned (tx, ty), the grid and readouts follow.
+      const H=previewScreenHeight??screenHeight,b={xMin:-wallXWorld,xMax:worldCanvasDx-wallXWorld,yMin:-H/2,yMax:H/2},zm=window.qonticPacketEngine?.zoom;
+      if(!zm||zm.z===1)return b;
+      const W=Math.max(1,container.clientWidth),Hp=Math.max(1,container.clientHeight),ux=(b.xMax-b.xMin)/W,uy=(b.yMax-b.yMin)/Hp;
+      const x0=b.xMin+(-zm.tx/zm.z)*ux,y0=b.yMin+(-zm.ty/zm.z)*uy;
+      return {xMin:x0,xMax:x0+W/zm.z*ux,yMin:y0,yMax:y0+Hp/zm.z*uy};}
   });
   let lastScaleOpacity=elementOpacity('plot_scales')||1;
-  window.qonticScaleOverlay={previewHeight:height=>{previewScreenHeight=height;scale.update();coordinates.update();},update:()=>{scale.setOpacity(elementOpacity('plot_scales'));coordinates.update();media?.syncScale();}};
+  window.qonticScaleOverlay={zoomed:()=>{scale.update();coordinates.update();},previewHeight:height=>{previewScreenHeight=height;scale.update();coordinates.update();},update:()=>{scale.setOpacity(elementOpacity('plot_scales'));coordinates.update();media?.syncScale();}};
   const rangeHost=document.getElementById('paletteRangeSlider');
   const rangePanel=document.createElement('div');rangePanel.className='qontic-range-panel';
   rangePanel.style.left='0px';rangePanel.style.bottom='0px';container.append(rangePanel);
@@ -467,7 +473,73 @@ $(function () {
   tag(['packet-slit-extent', 'packet-slit-balance', 'packet-tail-length', 'packet-interval', 'source-position-group', 'det-pixels-group', 'nSteps', 'flow-arrows', 'flow-lines'], 'expert');
   for (const id of ['flow-arrows', 'flow-lines']) { const el = document.getElementById(id); const box = el?.closest('.flow-overlay-controls, .input-group, div'); if (box) box.dataset.levelMin = 'expert'; }
   for (const id of ['paletteRangeSlider', 'waveRangeLabel']) { const el = document.getElementById(id); if (el) el.dataset.levelMin = 'standard'; }
+  // Basic: no power tools in the toolbar, no range panel over the source, no flow or
+  // slow-motion branching boxes, no Branch records row.
+  const levelTag = (sel, level) => document.querySelectorAll(sel).forEach(el => { el.dataset.levelMin = level; });
+  levelTag('.qontic-range-panel, .mw-branch-settings', 'standard');
+  levelTag('.flow-settings', 'expert');
+  for (const label of ['Wave range', 'Grid', 'Coordinates and measure', '3D wave surface', 'Edit geometry']) levelTag(`.qontic-media-toolbar button[aria-label="${label}"]`, 'standard');
+  document.querySelectorAll('.info-box.manyworlds-only td.label').forEach(td => { if (/Branch records/.test(td.textContent)) td.closest('tr').dataset.levelMin = 'standard'; });
+  // The Pilot-Wave field button only in the Pilot Wave view.
+  const pwFieldButton = document.querySelector('.qontic-media-toolbar button[aria-label="Pilot-Wave field"]');
+  const syncPwField = () => { if (pwFieldButton) { pwFieldButton.hidden = interpretation !== 'bohmian'; pwFieldButton.style.setProperty('display', interpretation !== 'bohmian' ? 'none' : '', interpretation !== 'bohmian' ? 'important' : ''); } };
+  controls.addEventListener('qontic:interpretation', () => setTimeout(syncPwField, 0));
+  new MutationObserver(syncPwField).observe(controls, { attributes: true, attributeFilter: ['interpretation'] });
+  syncPwField();
   const slitRange = document.getElementById('slit-count');
+  // Controls hidden below a level take their default there (so a hidden control never changes
+  // the physics); the user's value is kept and comes back at that level (also across reloads).
+  // kind: group (unit-converted parameter), range, check, select. basicDef: value used at Basic
+  // when it differs from the fresh-page default.
+  const LEVEL_DEFAULTS = [
+    ['slit-at-wall', 'standard', 'check', false],
+    ['basicsWaveFunctionOption', 'standard', 'select', 'Phase'],
+    ['detector-distance-group', 'standard', 'group', 1000],
+    ['screen-height-group', 'standard', 'group', 1200],
+    ['particleType', 'standard', 'select', 'electron'],
+    ['packet-source-width', 'standard', 'range', 400],
+    ['packet-length', 'standard', 'range', 100],
+    ['packet-slit-width', 'standard', 'range', 30],
+    ['packet-particle-color', 'standard', 'select', 'uniform', 'slit'],
+    ['packet-directed-slits', 'expert', 'check', false],
+    ['packet-slit-extent', 'expert', 'range', 1.5],
+    ['packet-slit-balance', 'expert', 'range', 0],
+    ['packet-tail-length', 'expert', 'range', 250],
+    ['packet-interval', 'expert', 'range', 0],
+    ['source-position-group', 'expert', 'group', 225],
+    ['det-pixels-group', 'expert', 'group', 100],
+    ['flow-arrows', 'expert', 'check', false],
+    ['mw-branch-tour', 'standard', 'check', false],
+    ['flow-lines', 'expert', 'check', false],
+  ];
+  const RANK = { basic: 0, standard: 1, expert: 2 };
+  const SAVED_KEY = 'qontic-te-level-saved';
+  let levelSaved = {}; try { levelSaved = JSON.parse(localStorage.getItem(SAVED_KEY) || '{}'); } catch (_) {}
+  const ctlGet = (el, kind) => kind === 'group' ? el.getValueInFirstUnit() : kind === 'check' ? el.checked : kind === 'range' ? +el.value : el.value;
+  const ctlSet = (el, kind, v) => {
+    if (kind === 'group') { el.setValueInFirstUnit(v); return; }
+    if (kind === 'check') el.checked = !!v; else el.value = String(v);
+    for (const type of (kind === 'range' ? ['input', 'change'] : ['change'])) el.dispatchEvent(new Event(type, { bubbles: true }));
+  };
+  const same = (a, b) => (typeof a === 'number' || typeof b === 'number') ? Math.abs(+a - +b) < 1e-9 : a === b;
+  const levelDefaults = level => {
+    let changed = false;
+    for (const [id, min, kind, def, basicDef] of LEVEL_DEFAULTS) {
+      const el = document.getElementById(id); if (!el) continue;
+      const target = level === 'basic' && basicDef !== undefined ? basicDef : def;
+      if (RANK[min] > RANK[level]) {
+        const cur = ctlGet(el, kind);
+        if (!(id in levelSaved)) levelSaved[id] = cur;
+        if (!same(cur, target)) { ctlSet(el, kind, target); changed = true; }
+      } else if (id in levelSaved) {
+        const v = levelSaved[id]; delete levelSaved[id];
+        if (!same(ctlGet(el, kind), v)) { ctlSet(el, kind, v); changed = true; }
+      }
+    }
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(levelSaved)); } catch (_) {}
+    return changed;
+  };
+  { const r = document.getElementById('wavelength'); if (r) r.dataset.minAll = r.min; }
   const applyLevel = level => {
     if (!LEVELS.includes(level)) level = 'basic';
     if (controls.getAttribute('level') !== level) controls.setAttribute('level', level);
@@ -475,17 +547,28 @@ $(function () {
     try { localStorage.setItem('qontic-te-level', level); } catch (_) {}
     window.qonticPacketEngine?.setLevel?.(level);
     quizApi?.setLevel?.(level);
-    // Basic: at most four slits.
+    levelDefaults(level);
+    // Basic: at most four slits (the slider and the model), λ from 30 to 50 nm (below 30 nm the
+    // slit beams barely overlap at the default geometry and the fringes go).
     slitRange.max = level === 'basic' ? '4' : '8';
-    if (level === 'basic' && +slitRange.value > 4) { slitRange.value = '4'; slitRange.dispatchEvent(new Event('input', { bubbles: true })); slitRange.dispatchEvent(new Event('change', { bubbles: true })); }
+    if (level === 'basic' && numSlits > 4) { slitRange.value = '4'; $(slitRange).trigger('input'); }
+    const lam = document.getElementById('wavelength-group'), lamRange = document.getElementById('wavelength');
+    if (lamRange) lamRange.min = level === 'basic' ? '30' : lamRange.dataset.minAll;
+    if (lam && level === 'basic' && lam.getValueInFirstUnit() < 30) lam.setValueInFirstUnit(30);
   };
   controls.setAttribute('levels', 'basic:Basic,standard:Standard,expert:Expert');
   controls.setAttribute('tab-levels', 'engine:standard,advanced:standard');
   controls.addEventListener('qontic:level', event => applyLevel(event.detail.level));
   {
-    const fromUrl = new URLSearchParams(location.search).get('level');
+    const fromUrl = new URLSearchParams(location.search).get('level') || new URLSearchParams(location.hash.slice(1)).get('level');
     let saved = null; try { saved = localStorage.getItem('qontic-te-level'); } catch (_) {}
+    // A first visit (nothing saved) starts at λ = 40 nm, mid-range, so a longer λ can be tried.
+    let fresh = false; try { fresh = !saved && !localStorage.getItem('nSlitTwoEnginesState'); } catch (_) {}
     applyLevel(LEVELS.includes(fromUrl) ? fromUrl : LEVELS.includes(saved) ? saved : 'basic');
+    if (fresh && document.body.dataset.qonticLevel === 'basic') document.getElementById('wavelength-group')?.setValueInFirstUnit(40);
+    // The Pilot-Wave colour menu and Direct PW are attached a little later: a second pass for them.
+    const again = (tries = 40) => { if (document.getElementById('packet-particle-color') && document.getElementById('packet-directed-slits')) levelDefaults(document.body.dataset.qonticLevel); else if (tries > 0) setTimeout(() => again(tries - 1), 100); };
+    setTimeout(again, 0);
   }
   // "What is the difference?" in the Engine tab: Physics tab, section on the two engines.
   document.addEventListener('click', event => {
@@ -501,7 +584,7 @@ $(function () {
     screenshot:()=>document.querySelector('.qontic-media-toolbar button[aria-label="Screenshot"]')?.click(),
     additional:{
       KeyV:()=>{if(!viewLocked)document.getElementById('toggleView').click();},
-      KeyW:()=>{const select=document.getElementById('waveFunctionOption');select.selectedIndex=(select.selectedIndex+1)%select.options.length;$(select).trigger('change');},
+      KeyW:()=>{if(document.body.dataset.qonticLevel==='basic')return;const select=document.getElementById('waveFunctionOption');select.selectedIndex=(select.selectedIndex+1)%select.options.length;$(select).trigger('change');},
     },
   });
 });

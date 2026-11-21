@@ -1220,13 +1220,19 @@ function updateSlitCountControls() {
    const range = document.getElementById('slit-count'), out = document.getElementById('slit-count-output'), host = document.getElementById('slit-open-buttons');
    if (!range || !host) return;
    range.value = numSlits; out.textContent = String(numSlits);
-   // Each slit cycles open → closed → detector → open.
+   // Each slit: a button that opens or closes it, and under it a small "D" toggle for a
+   // which-slit detector on that slit (only on an open slit).
+   const atWall = document.getElementById('slit-at-wall')?.checked;
+   const nOpen = slitOpen.slice(0, numSlits).filter(Boolean).length;
    const html = Array.from({ length: numSlits }, (_, k) => {
-      const state = !slitOpen[k] ? 'closed' : slitDetector[k] ? 'detector' : 'open';
-      const atWall = document.getElementById('slit-at-wall')?.checked;
-      const next = state === 'open' ? 'close it' : state === 'closed' ? (atWall ? 'open it (no detector while “Apply at the wall” is ticked)' : 'open it with a which-slit detector') : 'remove the detector';
-      return '<button type="button" class="qontic-app-toggle slit-open-button slit-' + state + (state !== 'closed' ? ' active' : '') + '" data-slit="' + k + '" data-state="' + state + '" aria-label="Slit ' + (k + 1) + ', ' + state + '" title="Slit ' + (k + 1) + ' ' + (state === 'detector' ? 'open, with a which-slit detector' : state) + ': click to ' + next + '">' + (k + 1) + '</button>';
-   }).join('');
+      const open = !!slitOpen[k], det = open && !!slitDetector[k], last = open && nOpen === 1;
+      const slitTip = 'Slit ' + (k + 1) + ' ' + (open ? 'open' : 'closed') + ': ' + (last ? 'at least one slit stays open' : 'click to ' + (open ? 'close' : 'open') + ' it');
+      const detTip = !open ? 'Slit ' + (k + 1) + ' is closed: no detector' : (det ? 'Which-slit detector on slit ' + (k + 1) + ': click to remove it' : 'Click to put a which-slit detector on slit ' + (k + 1));
+      return '<span class="slit-pair">'
+         + '<button type="button" class="qontic-app-toggle slit-open-button ' + (open ? 'slit-open active' : 'slit-closed') + (last ? ' slit-last' : '') + '" data-slit="' + k + '" data-state="' + (open ? 'open' : 'closed') + '" aria-pressed="' + open + '" aria-label="Slit ' + (k + 1) + (open ? ' open' : ' closed') + '" title="' + slitTip + '">' + (k + 1) + '</button>'
+         + '<button type="button" class="qontic-app-toggle slit-det-toggle' + (det ? ' active' : '') + '" data-det="' + k + '"' + (open ? '' : ' disabled') + ' aria-pressed="' + det + '" aria-label="Which-slit detector on slit ' + (k + 1) + '" title="' + detTip + '">D</button>'
+         + '</span>';
+   }).join('') + '<span class="slit-det-key">D = which-slit detector</span>';
    if (host.dataset.html !== html) {
       // Rebuilding the buttons would drop keyboard focus: restore it to the same slit.
       const focused = host.contains(document.activeElement) ? document.activeElement.dataset.slit : null;
@@ -1298,12 +1304,11 @@ function updateWhichPathButton() {
    let label;
    $('#detectorWaveControls').hide();
    const ids = whichPathDetector === 'none' ? [] : detectorSlitIds(), open = openSlitIds();
-   if (!ids.length) label = 'No Detectors';
-   else if (numSlits === 2 && ids.length === 1) label = 'Detector @ ' + (ids[0] + 1) + ' (' + slitName(ids[0]).toLowerCase() + ')';
-   else if (ids.length === open.length) label = 'Detectors @ all open';
-   else label = (ids.length === 1 ? 'Detector @ ' : 'Detectors @ ') + ids.map(k => k + 1).join(', ');
+   // The button says what clicking does; the state is shown by the D toggles under the slits.
+   if (!ids.length) label = 'Add detectors';
+   else label = 'Remove detectors';
    $('#toggleWhichPath').text(label).attr('aria-pressed', ids.length > 0)
-      .attr('data-tip', ids.length ? 'Remove all which-slit detectors. Each slit button cycles open → closed → detector.' : 'Put an ideal which-slit detector at every open slit (no interference left). Each slit button cycles open → closed → detector, for any other choice.');
+      .attr('data-tip', ids.length ? 'Remove the which-slit detectors (now on slit' + (ids.length > 1 ? 's ' : ' ') + ids.map(k => k + 1).join(', ') + ').' : 'Put a which-slit detector on every open slit. To put one on a single slit, click the D under it.');
 }
 //==================================================================================================================
 //
@@ -1357,7 +1362,7 @@ function changeInterpretation(mode) {
 }
 
 function updateViewButton() {
-   const labels = { copenhagen: 'Orthodox', bohmian: 'Pilot-Wave', manyworlds: 'Many-Worlds' };
+   const labels = { copenhagen: 'Orthodox', bohmian: 'Pilot Wave', manyworlds: 'Many Worlds' };
    var label = labels[interpretation] || 'Orthodox';
    $('#toggleView').text(label);
    $('#view-label').text(label);
@@ -1633,7 +1638,7 @@ $(document).ready(function() {
          { value: 'mm', text: 'mm', scale:1.e6 }
          ], true);
 
-      createParameterInput('detector', 'source-position', 'Src. Pos.', 50, 1000, 1, 225, [
+      createParameterInput('detector', 'source-position', 'Source to wall', 50, 1000, 1, 225, [
          { value: 'nm', text: 'nm', scale:1 },
          { value: 'um', text: 'µm', scale:1.e3 },
          { value: 'mm', text: 'mm', scale:1.e6 }
@@ -1657,7 +1662,7 @@ $(document).ready(function() {
             { value: 'mm', text: 'mm', scale:1.e6 }
             ], true);
 
-      createParameterInput('detector', 'det-pixels', 'Det. Pixels', 10, 500, 1., 100., [
+      createParameterInput('detector', 'det-pixels', 'Screen pixels', 10, 500, 1., 100., [
             { value: '', text: '', scale:1 },
             ], false);
 
@@ -1699,8 +1704,8 @@ $(document).ready(function() {
       // Add Reset Defaults button
       var resetDefaultsBtn = $('<button>', { 
          id: 'resetDefaultsButton', 
-         text: 'Reset Defaults',
-         title: 'Reset all settings (canvas size, colors, fonts) to defaults'
+         text: 'Reset all settings',
+         title: 'Put every setting of this app back to its default: slits, physics, display and the numerical engine options. The level stays.'
       });
       resetDefaultsBtn.css({ marginTop: '10px', width: '100%' });
       $('#graphics-parameter-container').append(resetDefaultsBtn);
@@ -1711,7 +1716,8 @@ $(document).ready(function() {
          // Clear only this app's saved settings; other Q-Ontic apps share the origin.
          try {
             const own = ['nSlitTwoEnginesState', 'showAdvanced', 'leftPanelWidth', 'canvasWidth', 'canvasHeight',
-                         'theme', 'controlsFontSize', 'infoFontSize'];
+                         'theme', 'controlsFontSize', 'infoFontSize', 'qontic-te-num-opts', 'qontic-te-num-wall', 'qontic-te-num-look',
+                         'qontic-te-level-saved', 'qontic-te-hits-before-basic'];
             const keys = [];
             for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
             keys.filter(k => own.includes(k) || /^qontic-(double-slit|pw)-/.test(k))
@@ -2335,7 +2341,7 @@ $(document).ready(function() {
       // adding or removing a detector keeps it in the numerical engine and restarts
       // it in the analytical engine.
       $('#slit-open-buttons').on('click', '[data-slit]', function () {
-         const k = +this.dataset.slit, state = this.dataset.state;
+         const k = +this.dataset.slit, open = this.dataset.state === 'open';
          // "Apply at wall": during a run, an open/close waits until the packet centre
          // reaches the wall (the front of the packet then sees the old slits, the back the new).
          const atWall = document.getElementById('slit-at-wall')?.checked && isAnimating && window.qonticPacketEngine?.whenPacketAtWall;
@@ -2344,20 +2350,25 @@ $(document).ready(function() {
             this.classList.add('slit-pending'); this.title = 'Waiting for the packet to reach the wall';
             window.qonticPacketEngine.whenPacketAtWall(apply);
          };
-         if (state === 'open') {
-            if (openSlitIds().length === 1) return; // keep one slit open
-            live(() => { slitOpen[k] = false; slitConfigurationChanged(true); });
-         } else if (state === 'closed') {
-            // Another slit is always open, so reopening gives at least two: open it with a
-            // detector. With "Apply at wall" during a run it reopens without one (adding a
-            // detector restarts the run, which the demonstration should not do).
-            if (atWall) live(() => { slitOpen[k] = true; slitConfigurationChanged(true); });
-            // Live where the engine can (numerical engine); the analytical engine restarts.
-            else { slitOpen[k] = true; slitDetector[k] = true; slitConfigurationChanged(true); }
+         if (open) {
+            if (openSlitIds().length === 1) { // keep one slit open: say so
+               this.classList.add('slit-refused'); setTimeout(() => this.classList.remove('slit-refused'), 600); return;
+            }
+            // Closing a slit also removes its detector.
+            const hadDet = slitDetector[k];
+            if (hadDet && !atWall) { slitOpen[k] = false; slitDetector[k] = false; slitConfigurationChanged(true); return; }
+            live(() => { slitOpen[k] = false; slitDetector[k] = false; slitConfigurationChanged(true); });
          } else {
-            slitDetector[k] = false;
-            detectorsChanged();
+            live(() => { slitOpen[k] = true; slitDetector[k] = false; slitConfigurationChanged(true); });
          }
+      });
+      // Detector toggle under each open slit. The numerical engine keeps the run; the
+      // analytical engine restarts it (a detector changes the model).
+      $('#slit-open-buttons').on('click', '[data-det]', function () {
+         const k = +this.dataset.det;
+         if (!slitOpen[k]) return;
+         slitDetector[k] = !slitDetector[k];
+         detectorsChanged();
       });
       window.addEventListener('qontic-atwall-cancel', () => updateSlitCountControls());
       $(document).on('change', '#slit-at-wall', () => updateSlitCountControls());
