@@ -59,22 +59,24 @@ for (const button of viewButtons) button.addEventListener('click', () => {
   else simulation?.redraw();
 });
 
-// Engine tab (shared template). The fast engine is the one in use; the full 3D engine is in preparation.
+// Engine tab (shared template): Fast (2D) and Full 3D, two models of the same Pauli equation.
+const FAST_NOTE = 'Exact free motion along the beam; the spin wave across it feels the field at the packet centre (approximate while the packet crosses a magnet end; see Physics: Geometry).';
 const engineTab = mountQonticEngineTab({
   panel: document.querySelector('[data-control-pane="engine"]'),
-  intro: 'The same experiment can be computed in more than one way. Both are models of the Pauli equation for the atom in the magnet. <b>Fast (2D)</b>: the motion along the beam is the exact free packet, and the spin wave across the beam is computed with the field at the packet\'s centre. <b>Full 3D</b>: the whole wave on a 3D grid, with the field felt where each part of the packet is; slower.',
+  intro: 'The same experiment, computed two ways; both are models of the Pauli equation for the atom in the magnet. <b>Fast (2D)</b>: the motion along the beam is the exact free packet, and the spin wave across the beam feels the field at the packet\'s centre. <b>Full 3D</b>: the whole wave on a 128 × 128 × 128 grid that moves with the packet; each part of the packet feels the field where it is. It runs much slower. Switching restarts the packet.',
   engines: [
-    { id: 'fast', label: 'Fast (2D)', title: 'Exact free motion along the beam; spinor on a 128 × 128 grid across it, with the field at the packet centre.', note: 'Approximate while the packet crosses a magnet\'s entrance or exit: all of it feels the field at its centre (see Physics: Geometry).' },
-    { id: '3d', label: 'Full 3D (soon)', title: 'Full 3D Pauli equation on the GPU (being built).', note: '' },
+    { id: 'fast', label: 'Fast (2D)', title: 'Exact free motion along the beam; spinor on a 128 × 128 grid across it, with the field at the packet centre.', note: FAST_NOTE },
+    { id: '3d', label: 'Full 3D', title: 'Full 3D Pauli equation on the GPU, on a grid moving with the packet.', note: 'Full 3D: 128 × 128 × 128 cells moving with the packet (about 130 MB of GPU memory). Each part of the packet feels the field where it is; the atom speeds up slightly when its spin is along the field and slows down when it is against it.' },
   ],
   value: 'fast',
   onChange: id => {
-    if (id !== '3d') return;
-    engineTab.setValue('fast');
-    engineTab.setNote('The Full 3D engine is still being built; the app stays on Fast (2D) for now.');
+    const result = simulation?.setEngine(id);
+    if (result && !result.ok) {
+      engineTab.setValue('fast');
+      engineTab.setNote(`Full 3D is not available here: ${result.reason}. The app stays on Fast (2D).`);
+    }
   },
 });
-// The full 3D engine is not built yet: clicking it says so and stays on the fast engine.
 
 canvas.addEventListener('stern-gerlach:unavailable', () => {
   controls.setAttribute('disabled', '');
@@ -83,7 +85,8 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=29'));
+  ({ simulation } = await import('./main.js?v=30'));
+  if (new URLSearchParams(location.search).has('debug')) window.qonticSG = simulation;
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
   if (document.getElementById('gpu-help').hidden) {

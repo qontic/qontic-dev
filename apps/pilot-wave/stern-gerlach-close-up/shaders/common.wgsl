@@ -24,6 +24,10 @@ struct Uniforms {
   xwave: vec4<f32>,     // packet centre x, tau = hbar t / (m sigma^2), time, number of 2D cells
   axes: vec4<f32>,      // measurement axes n1 = (y, z), n2 = (y, z)
   viewProj: mat4x4<f32>,
+  // Full 3D engine: the grid moves with the packet (Galilean frame); grid x' = x - Xc.
+  win: vec4<f32>,       // window centre Xc (grid x), cells along x', 1 when the 3D engine is on, unused
+  mag3a: vec4<f32>,     // magnet 1 entrance, exit; magnet 2 entrance, exit (grid x)
+  mag3b: vec4<f32>,     // magnet 1 theta, magnet 2 theta, ramp length, number of magnets
 };
 @group(0) @binding(0) var<uniform> uni: Uniforms;
 
@@ -55,7 +59,7 @@ fn mulNegI(z: vec2<f32>) -> vec2<f32> { return vec2<f32>(z.y, -z.x); }
 // ── 2D grid across the beam ─────────────────────────────────────────────────
 fn gridH() -> i32 { return i32(uni.sim.y); }
 fn gridD() -> i32 { return i32(uni.sim.z); }
-fn waveCountU() -> u32 { return u32(uni.xwave.w); }
+fn waveCountU() -> u32 { return u32(uni.xwave.w); }   // active wave cells (2D, or 3D window)
 fn cellIndex(y: i32, z: i32) -> u32 { return u32(y + z * gridH()); }
 fn boxCenterYZ() -> vec2<f32> { return 0.5 * (uni.sim.yz - vec2<f32>(1.0)); }
 fn fieldScaleL() -> f32 { return max(1.0, 0.5 * (uni.sim.z - 1.0)); }
@@ -143,4 +147,29 @@ fn quadCorner(v: u32) -> vec2<f32> {
   if (v == 3u) { return vec2<f32>(-0.5,  0.5); }
   if (v == 4u) { return vec2<f32>( 0.5, -0.5); }
   return vec2<f32>(0.5, 0.5);
+}
+
+// ── Full 3D engine (window moving with the packet) ───────────────────────────
+// Cell order: y fastest, then z, then x' (index = (ix * D + z) * H + y). The wave in the
+// window is psi'(x', y, z) = exp(-i(p0 x - E0 t)/hbar) psi(Xc + x', y, z): the carrier is removed
+// exactly (Galilean boost), so the grid only resolves the envelope.
+fn win3NX() -> i32 { return i32(uni.win.y); }
+fn engine3D() -> bool { return uni.win.z > 0.5; }
+fn cell3(ix: i32, y: i32, z: i32) -> u32 { return u32((ix * gridD() + z) * gridH() + y); }
+fn winX0() -> f32 { return 0.5 * f32(win3NX() - 1); }           // x' = ix - winX0
+fn smooth01w(t: f32) -> f32 { let u = clamp(t, 0.0, 1.0); return u * u * (3.0 - 2.0 * u); }
+fn profile3(x: f32, a: f32, b: f32) -> f32 {
+  let r = max(uni.mag3b.z, 1e-3);
+  return smooth01w((x - a) / r) * smooth01w((b - x) / r);
+}
+// The field where this part of the packet is: B(x, y, z) = sum of p_k(x) B_k(y, z).
+fn magneticField3(xLab: f32, y: f32, z: f32) -> vec3<f32> {
+  let b0 = uni.magnet1.w;
+  let t1 = uni.mag3b.x;
+  var b = magnetFieldYZ(vec4<f32>(profile3(xLab, uni.mag3a.x, uni.mag3a.y), cos(t1), sin(t1), 0.0), b0, y, z);
+  if (uni.mag3b.w > 1.5) {
+    let t2 = uni.mag3b.y;
+    b = b + magnetFieldYZ(vec4<f32>(profile3(xLab, uni.mag3a.z, uni.mag3a.w), cos(t2), sin(t2), 0.0), b0, y, z);
+  }
+  return vec3<f32>(0.0, b.x, b.y);
 }

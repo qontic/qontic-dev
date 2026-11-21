@@ -23,11 +23,13 @@ fn main(
   if (id < waveCountU()) {
     let H = u32(gridH());
     let c = boxCenterYZ();
-    let r = vec2<f32>(f32(id % H), f32(id / H)) - c;
+    let r = vec2<f32>(f32(id % H), f32((id / H) % u32(gridD()))) - c;   // 2D grid or 3D window
     let chi = waveSpinor(waveIn[id]);
     let rho = spinorRho(chi);
     spin = vec4<f32>(spinDensity(chi), 0.0);
-    moment = vec4<f32>(rho * r.x, rho * r.y, 0.0, 0.0);
+    // Third slot: first moment along the beam in the 3D window (x' from the window centre).
+    let xp = select(0.0, f32(id / (H * u32(gridD()))) - winX0(), engine3D());
+    moment = vec4<f32>(rho * r.x, rho * r.y, rho * xp, 0.0);
     let a = dot(r, uni.axes.xy) > 0.0;
     let b = dot(r, uni.axes.zw) > 0.0;
     sums = vec4<f32>(select(0.0, rho, a), select(0.0, rho, b), select(0.0, rho, a && b), rho);

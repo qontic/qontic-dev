@@ -56,21 +56,24 @@ const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg2d9",
-  palette: "./shaders/palette.wgsl?v=sg2d9",
-  waveInit: "./shaders/wave-init.wgsl?v=sg2d9",
-  waveStep: "./shaders/wave-step.wgsl?v=sg2d9",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg2d9",
-  cloud: "./shaders/cloud.wgsl?v=sg2d9",
-  particleRender: "./shaders/particle-render.wgsl?v=sg2d9",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg2d9",
-  density: "./shaders/density.wgsl?v=sg2d9",
-  boxShell: "./shaders/box-shell.wgsl?v=sg2d9",
-  line: "./shaders/line.wgsl?v=sg2d9",
-  fieldLine: "./shaders/field-line.wgsl?v=sg2d9",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg2d9",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg2d9",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg2d9",
+  common: "./shaders/common.wgsl?v=sg3d1",
+  palette: "./shaders/palette.wgsl?v=sg3d1",
+  waveInit: "./shaders/wave-init.wgsl?v=sg3d1",
+  waveStep: "./shaders/wave-step.wgsl?v=sg3d1",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d1",
+  cloud: "./shaders/cloud.wgsl?v=sg3d1",
+  particleRender: "./shaders/particle-render.wgsl?v=sg3d1",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d1",
+  density: "./shaders/density.wgsl?v=sg3d1",
+  boxShell: "./shaders/box-shell.wgsl?v=sg3d1",
+  line: "./shaders/line.wgsl?v=sg3d1",
+  fieldLine: "./shaders/field-line.wgsl?v=sg3d1",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d1",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d1",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d1",
+  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d1",
+  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d1",
+  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d1",
 };
 
 function applyShaderConstants(source) {
@@ -105,6 +108,9 @@ async function loadShaders() {
     fieldLine: parts.common + parts.fieldLine,
     detectorPlate: parts.common + parts.detectorPlate,
     weightReduce: parts.common + parts.weightReduce,
+    wave3dInit: parts.common + parts.wave3dInit,
+    wave3dStep: parts.common + parts.wave3dStep,
+    particleUpdate3d: parts.common + parts.particleUpdate3d,
   };
 }
 
@@ -619,7 +625,7 @@ window.addEventListener("keyup", (e) => {
 
 const COLOR_WRITE_RED = 0x1;
 const COLOR_WRITE_ALL = 0xf;
-const UNIFORM_FLOATS = 96;
+const UNIFORM_FLOATS = 108;   // viewProj at 80, then win, mag3a, mag3b
 const UNIFORM_BYTES = UNIFORM_FLOATS * 4;
 const DENSITY_FORMAT = "rgba16float";
 const uniformData = new Float32Array(UNIFORM_FLOATS);
@@ -654,6 +660,9 @@ const FIELD_LINE_WGSL = SHADERS.fieldLine;
 const DETECTOR_PLATE_WGSL = SHADERS.detectorPlate;
 const MAGNET_POLE_WGSL = SHADERS.magnetPole;
 const WEIGHT_REDUCE_WGSL = SHADERS.weightReduce;
+const WAVE3D_INIT_WGSL = SHADERS.wave3dInit;
+const WAVE3D_STEP_WGSL = SHADERS.wave3dStep;
+const PARTICLE_UPDATE3D_WGSL = SHADERS.particleUpdate3d;
 let pipelineWeightReduce = null;
 let pipelineWaveInit, pipelineWaveStep, pipelineParticleUpdate;
 let pipelineCloud, pipelineBoxShell, pipelineLine, pipelineFieldLine, pipelineDetectorPlate, pipelineMagnetPole, pipelineSpinArrow;
@@ -667,6 +676,15 @@ let nearestSampler = device.createSampler({ magFilter: "nearest", minFilter: "ne
 let simW = 0, simH = 0, simD = 0;
 let voxelCount = 0;   // cloud point instances (x window × y × z, with stride)
 let waveCount = 0;    // cells of the 2D wave grid across the beam
+// ── Full 3D engine: a window of WIN_NX cells along the beam that moves with the packet ──
+const WIN_NX = 128;
+let engine = "fast";
+let waveCount3 = 0;
+let wave3A = null, wave3B = null;
+let pipelineWave3Init = null, pipelineWave3Step = null, pipelineParticleUpdate3 = null;
+let wave3InitBindGroup = null, wave3StepBindGroups = [], cloud3BindGroups = [], particle3BindGroups = [], weight3BindGroups = [];
+const is3D = () => engine === "3d";
+const activeWaveCount = () => (is3D() ? waveCount3 : waveCount);
 // Along x only a window for drawing the cloud; across the beam the 2D wave grid.
 const GRID_X = 64, GRID_YZ = 128, CLOUD_STRIDE = 2;
 let waveBufferA = null, waveBufferB = null, flip = 0;
@@ -770,6 +788,9 @@ function blendState(srcFactor, dstFactor) {
 
 async function buildPipelines() {
   const waveInitModule = shaderModule("wave init", WAVE_INIT_WGSL);
+  const wave3InitModule = shaderModule("3D wave init", WAVE3D_INIT_WGSL);
+  const wave3StepModule = shaderModule("3D wave step", WAVE3D_STEP_WGSL);
+  const particle3Module = shaderModule("3D particle update", PARTICLE_UPDATE3D_WGSL);
   const waveStepModule = shaderModule("wave step", WAVE_STEP_WGSL);
   const particleUpdateModule = shaderModule("particle update", PARTICLE_UPDATE_WGSL);
   const cloudModule = shaderModule("cloud render", CLOUD_WGSL);
@@ -793,6 +814,12 @@ async function buildPipelines() {
     layout: "auto",
     compute: { module: waveStepModule, entryPoint: "main" },
   });
+  const pipelines3Ready = Promise.all([
+    device.createComputePipelineAsync({ label: "3D wave init pipeline", layout: "auto", compute: { module: wave3InitModule, entryPoint: "main" } }),
+    device.createComputePipelineAsync({ label: "3D wave step pipeline", layout: "auto", compute: { module: wave3StepModule, entryPoint: "main" } }),
+    device.createComputePipelineAsync({ label: "3D particle update pipeline", layout: "auto", compute: { module: particle3Module, entryPoint: "main" } }),
+  ]).then(([a, b, c]) => { pipelineWave3Init = a; pipelineWave3Step = b; pipelineParticleUpdate3 = c; })
+    .catch(error => { console.warn("3D engine pipelines unavailable", error); });
   const pipelineWeightReduceReady = device.createComputePipelineAsync({
     label: "probability weight pipeline",
     layout: "auto",
@@ -1012,6 +1039,7 @@ async function buildPipelines() {
     pipelineMagnetPoleReady,
     pipelineSpinArrowReady,
   ]);
+  await pipelines3Ready;
 
   boxShellBindGroup = bindGroup(pipelineBoxShell, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
   lineBindGroup = bindGroup(pipelineLine, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
@@ -1080,7 +1108,7 @@ function rebuildWaveBindGroups() {
 }
 
 function rebuildWeightResources() {
-  const groups = dispatchCount(waveCount, WAVE_WORKGROUP_SIZE);
+  const groups = dispatchCount(activeWaveCount(), WAVE_WORKGROUP_SIZE);
   if (weightPartials?.size !== groups * 48) {
     if (!readbackBusy) {
       destroyGpuResource(weightPartials);
@@ -1093,6 +1121,11 @@ function rebuildWeightResources() {
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
   }
+  weight3BindGroups = wave3A ? [wave3A, wave3B].map(buffer => bindGroup(pipelineWeightReduce, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer } },
+    { binding: 2, resource: { buffer: weightPartials } },
+  ])) : [];
   weightBindGroups = [waveBufferA, waveBufferB].map(buffer => bindGroup(pipelineWeightReduce, [
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: { buffer } },
@@ -1105,6 +1138,13 @@ function rebuildParticleBindGroups() {
   if (!waveBufferA || !waveBufferB || !particleSrc || !particleDst || !particleSpin) return;
   const waves = [waveBufferA, waveBufferB];
   const particles = [particleSrc, particleDst];
+  particle3BindGroups = wave3A && pipelineParticleUpdate3 ? [wave3A, wave3B].map(waveBuffer => particles.map((src, srcIndex) => bindGroup(pipelineParticleUpdate3, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer: waveBuffer } },
+    { binding: 2, resource: { buffer: src } },
+    { binding: 3, resource: { buffer: particles[1 - srcIndex] } },
+    { binding: 4, resource: { buffer: particleSpin } },
+  ]))) : [];
   particleUpdateBindGroups = waves.map((waveBuffer) => particles.map((src, srcIndex) => bindGroup(pipelineParticleUpdate, [
     { binding: 0, resource: { buffer: uniformBuffer } },
     { binding: 1, resource: { buffer: waveBuffer } },
@@ -1174,10 +1214,14 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([mag.m1.p, Math.cos(mag.m1.theta), Math.sin(mag.m1.theta), magnetPreset().b0], 64);
   uniformData.set([mag.m2.p, Math.cos(mag.m2.theta), Math.sin(mag.m2.theta), 0.0], 68);
   const tau = params.hbar * simTime / (params.mass * params.packetSigma * params.packetSigma);
-  uniformData.set([xc, tau, simTime, waveCount], 72);
+  uniformData.set([xc, tau, simTime, activeWaveCount()], 72);
   const ax = measurementAxes();
   uniformData.set([ax[0][0], ax[0][1], ax[ax.length - 1][0], ax[ax.length - 1][1]], 76);
   uniformData.set(camera.viewProj, 80);
+  const ms3 = magnets();
+  uniformData.set([xc, WIN_NX, is3D() ? 1 : 0, 0], 96);
+  uniformData.set([ms3[0].a, ms3[0].b, ms3[1] ? ms3[1].a : 0, ms3[1] ? ms3[1].b : 0], 100);
+  uniformData.set([ms3[0].theta, ms3[1] ? ms3[1].theta : 0, RAMP_CELLS, ms3.length], 104);
   device.queue.writeBuffer(buffer, 0, uniformData);
 }
 
@@ -1795,18 +1839,30 @@ function resetWave() {
   writeUniforms(uniformBuffer, cameraFrame(), canvas.width, canvas.height);
   const encoder = device.createCommandEncoder({ label: "reset wave encoder" });
   const pass = encoder.beginComputePass({ label: "reset wave pass" });
-  pass.setPipeline(pipelineWaveInit);
-  pass.setBindGroup(0, waveInitBindGroup);
-  pass.dispatchWorkgroups(dispatchCount(waveCount, WAVE_WORKGROUP_SIZE));
+  if (is3D()) {
+    pass.setPipeline(pipelineWave3Init);
+    pass.setBindGroup(0, wave3InitBindGroup);
+    pass.dispatchWorkgroups(dispatchCount(waveCount3, WAVE_WORKGROUP_SIZE));
+  } else {
+    pass.setPipeline(pipelineWaveInit);
+    pass.setBindGroup(0, waveInitBindGroup);
+    pass.dispatchWorkgroups(dispatchCount(waveCount, WAVE_WORKGROUP_SIZE));
+  }
   pass.end();
   device.queue.submit([encoder.finish()]);
   flip = 0;
 }
 
 function waveStep(pass) {
-  pass.setPipeline(pipelineWaveStep);
-  pass.setBindGroup(0, waveStepBindGroups[flip]);
-  pass.dispatchWorkgroups(dispatchCount(waveCount, WAVE_WORKGROUP_SIZE));
+  if (is3D()) {
+    pass.setPipeline(pipelineWave3Step);
+    pass.setBindGroup(0, wave3StepBindGroups[flip]);
+    pass.dispatchWorkgroups(dispatchCount(waveCount3, WAVE_WORKGROUP_SIZE));
+  } else {
+    pass.setPipeline(pipelineWaveStep);
+    pass.setBindGroup(0, waveStepBindGroups[flip]);
+    pass.dispatchWorkgroups(dispatchCount(waveCount, WAVE_WORKGROUP_SIZE));
+  }
   flip = 1 - flip;
 }
 
@@ -1907,28 +1963,30 @@ function updateHitDisplay() {
 
 // Orthodox reading: sum |Psi|^2 above and below the middle on the GPU, then read the sums back.
 function readWeights(now) {
-  if (readbackBusy || !weightReadback || !weightBindGroups.length || now - lastHitReadback < HIT_READBACK_MS) return;
+  const wbg = is3D() ? weight3BindGroups : weightBindGroups;
+  if (readbackBusy || !weightReadback || !wbg.length || now - lastHitReadback < HIT_READBACK_MS) return;
   lastHitReadback = now;
-  const groups = dispatchCount(waveCount, WAVE_WORKGROUP_SIZE);
+  const groups = dispatchCount(activeWaveCount(), WAVE_WORKGROUP_SIZE);
   const readback = weightReadback;
   const encoder = device.createCommandEncoder({ label: "probability weight" });
   const pass = encoder.beginComputePass({ label: "probability weight pass" });
   pass.setPipeline(pipelineWeightReduce);
-  pass.setBindGroup(0, weightBindGroups[flip]);
+  pass.setBindGroup(0, wbg[flip]);
   pass.dispatchWorkgroups(groups);
   pass.end();
   encoder.copyBufferToBuffer(weightPartials, 0, readback, 0, groups * 48);
   device.queue.submit([encoder.finish()]);
   readbackBusy = true;
   const twoAxes = measurementAxes().length > 1;
+  const tRead = simTime;
   readback.mapAsync(GPUMapMode.READ, 0, groups * 48).then(() => {
     const sums = new Float32Array(readback.getMappedRange(0, groups * 48));
-    let A = 0, B = 0, AB = 0, total = 0, mx = 0, my = 0, mz = 0, ry = 0, rz = 0;
+    let A = 0, B = 0, AB = 0, total = 0, mx = 0, my = 0, mz = 0, ry = 0, rz = 0, rx = 0;
     for (let i = 0; i < groups; i++) {
       const k = 12 * i;
       A += sums[k]; B += sums[k + 1]; AB += sums[k + 2]; total += sums[k + 3];
       mx += sums[k + 4]; my += sums[k + 5]; mz += sums[k + 6];
-      ry += sums[k + 8]; rz += sums[k + 9];
+      ry += sums[k + 8]; rz += sums[k + 9]; rx += sums[k + 10];
     }
     readback.unmap();
     if (readback === weightReadback && total > 0) {
@@ -1936,7 +1994,7 @@ function readWeights(now) {
         ? [AB / total, (A - AB) / total, (B - AB) / total, (total - A - B + AB) / total]
         : [A / total, 1 - A / total];
       // <sigma> of the whole state and the centre of |chi|^2 (from the box centre).
-      weightCounts = { values, valid: true, spin: [mx / total, my / total, mz / total], centre: [ry / total, rz / total] };
+      weightCounts = { values, valid: true, spin: [mx / total, my / total, mz / total], centre: [ry / total, rz / total], beam: rx / total, time: tRead };
       updateHitDisplay();
     } else if (readback !== weightReadback) {
       readback.destroy();
@@ -1988,8 +2046,8 @@ function readHitCounts(now) {
 function particleUpdate(pass) {
   const n = Math.floor(params.nParticles);
   if (n <= 0) return;
-  pass.setPipeline(pipelineParticleUpdate);
-  pass.setBindGroup(0, particleUpdateBindGroups[flip][particleFlip]);
+  pass.setPipeline(is3D() ? pipelineParticleUpdate3 : pipelineParticleUpdate);
+  pass.setBindGroup(0, (is3D() ? particle3BindGroups : particleUpdateBindGroups)[flip][particleFlip]);
   pass.dispatchWorkgroups(dispatchCount(n, PARTICLE_WORKGROUP_SIZE));
   particleFlip = 1 - particleFlip;
 }
@@ -2087,7 +2145,7 @@ function render(encoder, camera) {
 
   if (params.showCloud) {
     pass.setPipeline(pipelineCloud);
-    pass.setBindGroup(0, cloudBindGroups[flip]);
+    pass.setBindGroup(0, (is3D() ? cloud3BindGroups : cloudBindGroups)[flip]);
     pass.draw(6, voxelCount);
   }
 
@@ -2743,6 +2801,52 @@ function rerunTime() {
   return (detectorPlateXGrid() - x0 + 2.5 * params.packetSigma) / v;
 }
 
+// Full 3D engine: allocate the moving window (two buffers of WIN_NX × H × D cells) on first use.
+function engine3Bytes() { return WIN_NX * simH * simD * WAVE_CELL_BYTES; }
+function engine3Available() {
+  const bytes = engine3Bytes();
+  if (!pipelineWave3Init || !pipelineWave3Step || !pipelineParticleUpdate3) return { ok: false, reason: "the 3D shaders did not compile on this device" };
+  if (device.limits.maxStorageBufferBindingSize < bytes || device.limits.maxBufferSize < bytes) {
+    return { ok: false, reason: `the device allows ${Math.floor(device.limits.maxStorageBufferBindingSize / 2 ** 20)} MB per buffer; the 3D window needs ${Math.ceil(bytes / 2 ** 20)} MB` };
+  }
+  return { ok: true, reason: "" };
+}
+function ensure3DResources() {
+  if (wave3A) return;
+  waveCount3 = WIN_NX * simH * simD;
+  wave3A = makeStorageBuffer("3D wave A", waveCount3 * WAVE_CELL_BYTES);
+  wave3B = makeStorageBuffer("3D wave B", waveCount3 * WAVE_CELL_BYTES);
+  wave3InitBindGroup = bindGroup(pipelineWave3Init, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer: wave3A } },
+  ]);
+  wave3StepBindGroups = [[wave3A, wave3B], [wave3B, wave3A]].map(([a, b]) => bindGroup(pipelineWave3Step, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer: a } },
+    { binding: 2, resource: { buffer: b } },
+  ]));
+  cloud3BindGroups = [wave3A, wave3B].map(buffer => bindGroup(pipelineCloud, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer } },
+  ]));
+}
+function setEngine(id) {
+  const next = id === "3d" ? "3d" : "fast";
+  if (next === "3d") {
+    const avail = engine3Available();
+    if (!avail.ok) return avail;
+    ensure3DResources();
+  }
+  engine = next;
+  rebuildWeightResources();
+  rebuildParticleBindGroups();
+  resetAll();
+  updateStats();
+  const badge = document.getElementById("engine-badge");
+  if (badge) badge.textContent = `Engine: ${is3D() ? "Full 3D" : "Fast (2D)"}`;
+  return { ok: true, reason: "" };
+}
+
 function resetAll() {
   rerunHoldStart = null;
   rerunPending = false;
@@ -3017,14 +3121,19 @@ async function main() {
     const encoder = device.createCommandEncoder({ label: "frame encoder" });
 
     if (!paused) {
+      // One submission per step, each with its own uniforms, so the field the packet feels
+      // (and the 3D window position) follow the time step by step, not frame by frame.
       const steps = Math.floor(params.stepsPerFrame);
-      const compute = encoder.beginComputePass({ label: "simulation compute pass" });
       for (let i = 0; i < steps; i++) {
+        writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);
+        const stepEncoder = device.createCommandEncoder({ label: "step encoder" });
+        const compute = stepEncoder.beginComputePass({ label: "simulation compute pass" });
         waveStep(compute);
         particleUpdate(compute);
+        compute.end();
+        device.queue.submit([stepEncoder.finish()]);
         simTime += params.dt;
       }
-      compute.end();
       if (trailsShown()) densityStepAndStamp(encoder, camera);
       if (autoRun && simTime >= rerunTime()) {
         if (rerunHoldStart === null) rerunHoldStart = now;
@@ -3109,6 +3218,11 @@ export const simulation = {
   // index 0: +z; 1: +x, the equal superposition of +z and −z.
   setEditing,
   getEditing: () => editing,
+  setEngine,
+  getEngine: () => engine,
+  moments: () => (weightCounts.valid ? { spin: weightCounts.spin, centre: weightCounts.centre, beam: weightCounts.beam, time: weightCounts.time, values: weightCounts.values } : null),
+  setGeometry(g) { Object.assign(params, g); syncSlider('screenDistance'); finishGeometryChange(); },
+  engine3Info: () => ({ ...engine3Available(), megabytes: Math.ceil(engine3Bytes() * 2 / 2 ** 20) }),
   setInitialSpin(index) {
     simulation.setSpinDirection(index ? 90 : 0, 0);
   },

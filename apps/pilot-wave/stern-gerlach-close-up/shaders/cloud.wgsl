@@ -28,15 +28,27 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
   let z = iz * stride;
   let x = uni.visual2.z + f32(ix);
 
-  let spinor = waveSpinor(wave[cellIndex(i32(y), i32(z))]);
-  let rho = phiRho(x) * spinorRho(spinor);
+  var spinor: Spinor;
+  var rho: f32;
+  var xd = x;
+  if (engine3D()) {
+    // 3D engine: the instances cover the moving window with a stride of 2 cells along x'.
+    let ixw = i32(2u * ix);
+    if (ixw >= win3NX()) { return out; }
+    xd = uni.win.x + f32(ixw) - winX0();
+    spinor = waveSpinor(wave[cell3(ixw, i32(y), i32(z))]);
+    rho = spinorRho(spinor);
+  } else {
+    spinor = waveSpinor(wave[cellIndex(i32(y), i32(z))]);
+    rho = phiRho(x) * spinorRho(spinor);
+  }
   let base = 1.0 - exp(-uni.visual0.x * rho);
   if (base <= 0.0) { return out; }
   var intensity = pow(clamp(base, 0.0, 1.0), uni.visual0.y);
   intensity = mix(intensity, pow(intensity, 0.52), clamp(uni.visual0.z, 0.0, 1.0));
   if (intensity < uni.visual0.w) { return out; }
 
-  let visualX = x;
+  let visualX = xd;
   if (uni.detector.y > 0.5 && visualX > uni.detector.x) { return out; }
   out.intensity = intensity;
   out.alpha = 0.24 * intensity * min(1.0, 2.5 * X_VIS);
@@ -51,7 +63,7 @@ fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance
       spinor.up * (upWeight / sqrt(max(upRho, 1e-30))) +
       spinor.down * (downWeight / sqrt(max(downRho, 1e-30)));
     let phasePsi = select(vec2<f32>(1.0, 0.0), phaseVec, dot(phaseVec, phaseVec) > 1e-20);
-    out.phase = atan2(phasePsi.y, phasePsi.x) + phiPhase(x);
+    out.phase = atan2(phasePsi.y, phasePsi.x) + select(phiPhase(x), 0.0, engine3D());
   }
   let worldPos = vec3<f32>(visualX, f32(y), f32(z)) * worldScale();
   let clip = uni.viewProj * vec4<f32>(worldPos, 1.0);
