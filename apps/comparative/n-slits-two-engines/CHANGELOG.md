@@ -3,6 +3,11 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.18 — 2026-11-21
+Pablo: make the wave phase key floating and foldable to an icon, placed by the hit histogram and probability curve.
+- The Classic phase key is now a floating panel over the canvas (was painted on the field): it starts at the bottom right, over the screen histogram and curve; drag it anywhere; the "–" button folds it to a round phase-colour icon, and a tap on the icon opens it again (Enter/Space too). Position and folded state are remembered. On narrow screens it starts as the icon. Shown only with the Classic palette and while Show change is off.
+Checked: default position over the histogram, fold, drag the icon, unfold, remembered state, hidden with Heat; no page errors.
+
 ## 1.0-dev.17 — 2026-11-21
 Pablo: unify the colours of the two engines; make the numerical look the default and put it in the wave palette list; add a heat palette (cold blue, hot red).
 - Wave palette list (Display → Wave): new first entry **Classic**, the default for both engines: phase in blue/red over a purple density on a black background, the phase key in the corner, a grey metal wall (the numerical N-slit app's look). The analytical engine now draws it with the same formula as the numerical shader (I = (1 − e^(−20ρ))^½, same phase colours and mix). The Show menu is hidden with Classic (it shows phase and density together).
