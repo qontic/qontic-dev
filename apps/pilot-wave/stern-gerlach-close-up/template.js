@@ -69,8 +69,8 @@ const engineTab = mountQonticEngineTab({
     { id: '3d', label: 'Full 3D', title: 'Full 3D Pauli equation on the GPU, on a grid moving with the packet.', note: 'Full 3D: 128 × 128 × 128 cells moving with the packet (about 130 MB of GPU memory). Each part of the packet feels the field where it is; the atom speeds up slightly when its spin is along the field and slows down when it is against it.' },
   ],
   value: 'fast',
-  onChange: id => {
-    const result = simulation?.setEngine(id);
+  onChange: async id => {
+    const result = await simulation?.setEngine(id);
     if (result && !result.ok) {
       engineTab.setValue('fast');
       engineTab.setNote(`Full 3D is not available here: ${result.reason}. The app stays on Fast (2D).`);
@@ -85,7 +85,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=32'));
+  ({ simulation } = await import('./main.js?v=33'));
   if (new URLSearchParams(location.search).has('debug')) window.qonticSG = simulation;
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.

@@ -17,6 +17,9 @@ function showSimulationError(title, error) {
   console.error(title, error);
 }
 
+const TIMING = { start: performance.now() };
+const mark = (name) => { TIMING[name] = Math.round(performance.now() - TIMING.start); };
+
 async function getGpuDevice() {
   if (!navigator.gpu) throw new Error("WebGPU API unavailable");
   const options = [
@@ -123,6 +126,7 @@ const shaderLoad = loadShaders().then(
 let device, gpuContext, adapterInfo;
 try {
   ({ device, adapterInfo } = await getGpuDevice());
+  mark("device");
   gpuContext = canvas.getContext("webgpu");
   if (!gpuContext) throw new Error("WebGPU canvas context unavailable");
 } catch (error) {
@@ -662,6 +666,7 @@ const trailUniformBuffer = device.createBuffer({
 });
 
 const shaderResult = await shaderLoad;
+mark("shaders");
 if (shaderResult.error) {
   simulationAvailable = false;
   showSimulationError("The simulation could not load its shaders", shaderResult.error);
@@ -809,9 +814,6 @@ function blendState(srcFactor, dstFactor) {
 
 async function buildPipelines() {
   const waveInitModule = shaderModule("wave init", WAVE_INIT_WGSL);
-  const wave3InitModule = shaderModule("3D wave init", WAVE3D_INIT_WGSL);
-  const wave3StepModule = shaderModule("3D wave step", WAVE3D_STEP_WGSL);
-  const particle3Module = shaderModule("3D particle update", PARTICLE_UPDATE3D_WGSL);
   const waveStepModule = shaderModule("wave step", WAVE_STEP_WGSL);
   const particleUpdateModule = shaderModule("particle update", PARTICLE_UPDATE_WGSL);
   const cloudModule = shaderModule("cloud render", CLOUD_WGSL);
@@ -835,12 +837,6 @@ async function buildPipelines() {
     layout: "auto",
     compute: { module: waveStepModule, entryPoint: "main" },
   });
-  const pipelines3Ready = Promise.all([
-    device.createComputePipelineAsync({ label: "3D wave init pipeline", layout: "auto", compute: { module: wave3InitModule, entryPoint: "main" } }),
-    device.createComputePipelineAsync({ label: "3D wave step pipeline", layout: "auto", compute: { module: wave3StepModule, entryPoint: "main" } }),
-    device.createComputePipelineAsync({ label: "3D particle update pipeline", layout: "auto", compute: { module: particle3Module, entryPoint: "main" } }),
-  ]).then(([a, b, c]) => { pipelineWave3Init = a; pipelineWave3Step = b; pipelineParticleUpdate3 = c; })
-    .catch(error => { console.warn("3D engine pipelines unavailable", error); });
   const pipelineWeightReduceReady = device.createComputePipelineAsync({
     label: "probability weight pipeline",
     layout: "auto",
@@ -1060,7 +1056,7 @@ async function buildPipelines() {
     pipelineMagnetPoleReady,
     pipelineSpinArrowReady,
   ]);
-  await pipelines3Ready;
+  mark("pipelines");
 
   boxShellBindGroup = bindGroup(pipelineBoxShell, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
   lineBindGroup = bindGroup(pipelineLine, [{ binding: 0, resource: { buffer: uniformBuffer } }]);
@@ -2876,6 +2872,23 @@ function rerunTime() {
 
 // Full 3D engine: allocate the moving window (two buffers of WIN_NX × H × D cells) on first use.
 function engine3Bytes() { return WIN_NX * simH * simD * WAVE_CELL_BYTES; }
+// The 3D shaders compile only when Full 3D is first chosen (several seconds on some GPUs),
+// so the app opens on the fast engine without waiting for them.
+let pipelines3Promise = null;
+function build3DPipelines() {
+  if (!pipelines3Promise) {
+    const t0 = performance.now();
+    const module = (label, code) => shaderModule(label, code);
+    pipelines3Promise = Promise.all([
+      device.createComputePipelineAsync({ label: "3D wave init pipeline", layout: "auto", compute: { module: module("3D wave init", WAVE3D_INIT_WGSL), entryPoint: "main" } }),
+      device.createComputePipelineAsync({ label: "3D wave step pipeline", layout: "auto", compute: { module: module("3D wave step", WAVE3D_STEP_WGSL), entryPoint: "main" } }),
+      device.createComputePipelineAsync({ label: "3D particle update pipeline", layout: "auto", compute: { module: module("3D particle update", PARTICLE_UPDATE3D_WGSL), entryPoint: "main" } }),
+    ]).then(([a, b, c]) => { pipelineWave3Init = a; pipelineWave3Step = b; pipelineParticleUpdate3 = c; TIMING.pipelines3d = Math.round(performance.now() - t0); })
+      .catch(error => { console.warn("3D engine pipelines unavailable", error); });
+  }
+  return pipelines3Promise;
+}
+
 function engine3Available() {
   const bytes = engine3Bytes();
   if (!pipelineWave3Init || !pipelineWave3Step || !pipelineParticleUpdate3) return { ok: false, reason: "the 3D shaders did not compile on this device" };
@@ -2903,9 +2916,15 @@ function ensure3DResources() {
     { binding: 1, resource: { buffer } },
   ]));
 }
-function setEngine(id) {
+async function setEngine(id) {
   const next = id === "3d" ? "3d" : "fast";
   if (next === "3d") {
+    if (!pipelineWave3Step) {
+      status.hidden = false;
+      statusTitle.textContent = "Preparing the 3D engine…";
+      await build3DPipelines();
+      status.hidden = true;
+    }
     const avail = engine3Available();
     if (!avail.ok) return avail;
     ensure3DResources();
@@ -3145,15 +3164,19 @@ async function main() {
   await buildPipelines();
   if (!simulationAvailable) return;
   statusTitle.textContent = "Preparing the wave packet…";
+  mark("buildStart");
   rebuildSimulation();
+  mark("rebuilt");
   updateGradientLimit(true);
   rebuildMagneticFieldLines();
   resetAll();
+  mark("reset");
   // Present the initial packet before the first batch of simulation steps.
   const initialFrame = device.createCommandEncoder({ label: "initial frame encoder" });
   render(initialFrame, cameraFrame());
   device.queue.submit([initialFrame.finish()]);
   await device.queue.onSubmittedWorkDone();
+  mark("firstFrame");
   if (!simulationAvailable) return;
   drawViewGizmo();
   updateStats();
@@ -3295,6 +3318,31 @@ export const simulation = {
   getEngine: () => engine,
   moments: () => (weightCounts.valid ? { spin: weightCounts.spin, centre: weightCounts.centre, beam: weightCounts.beam, time: weightCounts.time, values: weightCounts.values } : null),
   setGeometry(g) { Object.assign(params, g); syncSlider('screenDistance'); finishGeometryChange(); },
+  timing: () => ({ ...TIMING }),
+  async benchmark(steps = 200) {
+    await device.queue.onSubmittedWorkDone();
+    const t0 = performance.now();
+    for (let i = 0; i < steps; i++) {
+      writeUniforms(uniformBuffer, cameraFrame(), canvas.width, canvas.height);
+      const enc = device.createCommandEncoder({ label: "benchmark step" });
+      const pass = enc.beginComputePass();
+      waveStep(pass);
+      particleUpdate(pass);
+      pass.end();
+      device.queue.submit([enc.finish()]);
+      simTime += params.dt;
+    }
+    await device.queue.onSubmittedWorkDone();
+    const stepMs = (performance.now() - t0) / steps;
+    const t1 = performance.now();
+    for (let i = 0; i < 20; i++) {
+      const enc = device.createCommandEncoder({ label: "benchmark frame" });
+      render(enc, cameraFrame());
+      device.queue.submit([enc.finish()]);
+    }
+    await device.queue.onSubmittedWorkDone();
+    return { engine, stepMs: +stepMs.toFixed(3), renderMs: +((performance.now() - t1) / 20).toFixed(3), stepsPerFrame: params.stepsPerFrame };
+  },
   engine3Info: () => ({ ...engine3Available(), megabytes: Math.ceil(engine3Bytes() * 2 / 2 ** 20) }),
   setInitialSpin(index) {
     simulation.setSpinDirection(index ? 90 : 0, 0);
