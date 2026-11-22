@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.6.2';
-import * as M from './weak-model.js?v=0.6.2';
+import { APP_RELEASE } from './release.js?v=0.6.3';
+import * as M from './weak-model.js?v=0.6.3';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -60,7 +60,7 @@ const state = {
   waveMode: 'density', arrowEvery: 1, nLines: 20,
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, fixedTime: false, bohm: false, scatter: true, planeRuns: true },
   selected: null, shiftView: false,
-  timing: 'plane', packet: 150, recx: false,   // measure at planes or at instants; packet length in nm
+  timing: 'plane', packet: 150, recx: false, cell: null,   // measure at planes or at instants; packet length in nm
 };
 let exp = null;              // current pair of planes
 let map = null;              // stage 3 state
@@ -88,7 +88,10 @@ function makeExperiment(x1nm) {
     mix = M.mixtureTable({ terms0: T0, k: p.k, wallX: p.wall, x1c: x1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf, sigmaX: packetSigma(), xMax: p.screen });
     table = mix.parts[mix.central].table;
   } else table = M.jointTable({ terms1, dtau, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf });
-  const only = mix && state.recx ? mix.central : null;
+  // With the position along the beam recorded, runs are sorted by packet cell:
+  // each cell is its own pair of planes (weak at x1c+Δ, strong at x2c+Δ).
+  if (mix && (state.cell === null || state.cell >= mix.parts.length)) state.cell = mix.central;
+  const only = mix && state.recx ? state.cell : null;
   const bins = M.makeBins(-Y_HALF, Y_HALF, N_BINS);
   const expected = mix ? M.expectedMixtureBinVelocities(mix, bins, only) : M.expectedBinVelocities(table, bins);
   const pred = mix ? M.mixtureCurves(mix, only) : { marginal: table.marginal, meanY: table.meanY };
@@ -133,23 +136,45 @@ function makeExperiment(x1nm) {
     vmax: vmax * 1.25, binCur, binFt, runs: 0, used: 0, detectedCounts: new Float64Array(table.nYf),
     scatter: new Float32Array(SCATTER_N * 2), scatterN: 0, scatterHead: 0,
     ptsY: new Float32Array(PLANE_POINTS), ptsYf: new Float32Array(PLANE_POINTS), ptsU: new Float32Array(PLANE_POINTS),
-    ptsX: new Float32Array(PLANE_POINTS), ptsK: new Uint8Array(PLANE_POINTS), ptsN: 0,
+    ptsX: new Float32Array(PLANE_POINTS), ptsK: new Uint8Array(PLANE_POINTS), ptsS: new Uint8Array(PLANE_POINTS), ptsN: 0,
+    cellBins: mix && state.recx ? mix.parts.map(() => M.makeBins(-Y_HALF, Y_HALF, N_BINS)) : null,
+    cellCache: {},
   };
 }
+// Choose the packet cell (position along the beam) whose runs feed the strip
+// averages, plots and Results; recompute its exact prediction curves.
+function selectCell(j) {
+  state.cell = j;
+  if (!exp?.mix || !state.recx || !exp.cellBins) return;
+  exp.bins = exp.cellBins[j];
+  const c = exp.cellCache[j] || (exp.cellCache[j] = (() => {
+    const expected = M.expectedMixtureBinVelocities(exp.mix, exp.bins, j), pred = M.mixtureCurves(exp.mix, j);
+    const mx = Math.max(...Array.from(pred.marginal));
+    const expCurve = Array.from(pred.yf, (y, i) => [y, pred.marginal[i] > 0.02 * mx ? (y - pred.meanY[i]) / exp.dtau / p.k : null]);
+    // j/|psi|^2 at this cell's strong position, strip-averaged (ideal weak pointer)
+    const t2 = M.propagate(T0, (exp.x2 + exp.mix.parts[j].dx - p.wall) / p.k), binCur = [];
+    for (let b = 0; b < N_BINS; b++) { let s0 = 0, sv = 0; for (let q = 0; q < 20; q++) { const y = -Y_HALF + (b + (q + 0.5) / 20) * exp.bins.w, r = M.density(t2, y); s0 += r; sv += r * M.currentVelocity(t2, y) / p.k; } binCur.push(s0 > 0 ? sv / s0 : null); }
+    const curCurve = Array.from(pred.yf, (y) => [y, M.currentVelocity(t2, y) / p.k]);
+    return { expected, expCurve, binCur, curCurve };
+  })());
+  exp.expected = c.expected; exp.expCurve = c.expCurve; exp.binCur = c.binCur; exp.curCurve = c.curCurve;
+}
+const cellDx = () => (exp?.mix && state.recx ? exp.mix.parts[state.cell].dx : 0);
 // One run: at planes from the single table; at instants from the mixture
 // (the run then also carries its longitudinal offset dx and cell index).
 function sampleOne(e) { return e.mix ? M.sampleMixtureRun(e.mix) : M.sampleRun(e.table); }
 // With "post-select on longitudinal position", only runs in the central cell
 // (within about ±σ/4 of the packet centre) enter the strip averages.
-const keptRun = (e, run) => !(e.mix && state.recx && run.slice !== e.mix.central);
+const keptRun = (e, run) => !(e.mix && state.recx && run.slice !== state.cell);
 
 // Stage 1 keeps every run as a point; later stages keep one run in `stride`.
 const pointStride = () => (state.stage === 'one' ? 1 : Math.max(1, Math.floor(state.perPlane / PLANE_POINTS)));
 function addRun(e, run) {
   hadRun = true;
   const kept = keptRun(e, run);
+  if (e.cellBins) M.addToBins(e.cellBins[run.slice], run);   // every run, in its cell
   if (kept) {
-    M.addToBins(e.bins, run);
+    if (!e.cellBins) M.addToBins(e.bins, run);
     const cell = Math.min(e.table.nYf - 1, Math.max(0, Math.floor((run.yf + Y_HALF) / e.table.dYf)));
     e.detectedCounts[cell]++;
     e.used++;
@@ -157,7 +182,7 @@ function addRun(e, run) {
   // Points beside the planes: one run in every `stride`, so they fill in over the
   // whole collection and finish with it (6 000 points at the end).
   const stride = pointStride();
-  if (e.runs % stride === 0 && e.ptsN < PLANE_POINTS) { e.ptsY[e.ptsN] = run.Y; e.ptsYf[e.ptsN] = run.yf; e.ptsU[e.ptsN] = Math.random(); e.ptsX[e.ptsN] = run.dx ?? 0; e.ptsK[e.ptsN] = kept ? 1 : 0; e.ptsN++; }
+  if (e.runs % stride === 0 && e.ptsN < PLANE_POINTS) { e.ptsY[e.ptsN] = run.Y; e.ptsYf[e.ptsN] = run.yf; e.ptsU[e.ptsN] = Math.random(); e.ptsX[e.ptsN] = run.dx ?? 0; e.ptsK[e.ptsN] = kept ? 1 : 0; e.ptsS[e.ptsN] = run.slice ?? 0; e.ptsN++; }
   e.runs++;
   if (!kept) return;
   e.scatter[e.scatterHead * 2] = run.yf; e.scatter[e.scatterHead * 2 + 1] = run.Y;
@@ -176,6 +201,7 @@ function rebuild() {
     map = null;
     exp = makeExperiment(state.x1);
   }
+  if (exp?.cellBins) selectCell(state.stage === 'map' ? exp.mix.central : state.cell);
   // Default strip 40–60 nm: an inward slope well above the noise (about −0.34 ± 0.035 at 1M runs), next to the centre.
   if (state.selected === null) state.selected = binOf(0.5);
   updateText();
@@ -188,7 +214,7 @@ function finishPlane() {
   if (map.index === 0) map.startCounts = exp.detectedCounts;
   map.planes.push({ x2: exp.x2, est });
   map.index++;
-  if (map.index < N_PLANES) { exp = makeExperiment(planeX1(map.index)); return; }
+  if (map.index < N_PLANES) { exp = makeExperiment(planeX1(map.index)); if (exp.cellBins) selectCell(exp.mix.central); return; }
   map.done = true;
   buildLines();
   stop();
@@ -226,6 +252,7 @@ function updateText() {
   $('#x1Row').style.display = state.stage === 'map' ? 'none' : '';
   document.querySelectorAll('[data-timing]').forEach((b) => { const on = b.dataset.timing === state.timing; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
   $('#recxRow').hidden = !instant();
+  $('#cellRow').hidden = !(instant() && state.recx);
   $('#packetRow').hidden = !(instant() || state.show.fixedTime);
   // Words that change with the timing: planes vs instants.
   $('#x1Label').textContent = instant() ? 'Packet centre at t₁' : 'Weak plane';
@@ -264,7 +291,7 @@ function liveBody() {
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const bw = 2 * Y_HALF / N_BINS, strip = `${nm(-Y_HALF + state.selected * bw).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * bw).toFixed(0)} nm`;
-    const kept = instant() && state.recx ? ` ${exp.used.toLocaleString('en-US')} used: the position along the beam is recorded too (Wiseman's protocol), and only runs within ±${Math.round(3 * state.packet / 13)} nm of the packet centre are kept (bright band). This returns the result at planes.` : '';
+    const kept = instant() && state.recx ? ` The position along the beam is recorded too (Wiseman's protocol), so each run is sorted by where the particle was along its packet: thirteen positions Δ, each its own pair of weak and strong positions, a gap apart. Arrows are drawn at every position (faint) and the selected one (bright bands, Δ = ${cellDx() >= 0 ? '+' : '−'}${Math.abs(nm(cellDx())).toFixed(0)} nm). Point inside the strong frame, or use Position along the beam, to choose it; at Δ = 0 the result is that of the planes.` : '';
     const at = instant() ? (state.recx ? '' : ` Measured at instants, transverse position only: with a ${state.packet} nm packet the arrows average the field over the planes the packet spans, so the prediction (blue) and the dotted fixed-time curve differ from j/|ψ|² (dashed). Detections are drawn at positions along the beam sampled from the packet, for display only; they are not recorded.`) + ' While running, the moving packets show the timing, slowed down: one packet is drawn for many runs.' : '';
     const head = `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${kept}${at}`;
     if (!b) return `${head} ${exp.runs ? 'Too few runs in the selected strip yet.' : 'Press <b>Start</b>.'} ${SELECT_HINT_TEXT()}`;
@@ -324,7 +351,8 @@ document.querySelectorAll('[data-timing]').forEach((b) => b.addEventListener('cl
   if (instant() && !state.show.fixedTime) toggle('fixedTime');
   stop(); pending = true; updateText();
 }));
-$('#recx').addEventListener('click', () => { state.recx = !state.recx; stop(); pending = true; updateText(); });
+$('#recx').addEventListener('click', () => { state.recx = !state.recx; state.cell = null; stop(); pending = true; updateText(); });
+$('#cellSel').addEventListener('input', (e) => { selectCell(+e.target.value); });
 $('#packet').addEventListener('input', (e) => { state.packet = +e.target.value; stop(); pending = true; updateText(); });
 document.querySelectorAll('[data-wavemode]').forEach((b) => b.addEventListener('click', () => {
   state.waveMode = b.dataset.wavemode;
@@ -657,8 +685,17 @@ function pointerPos(e) { const r = canvas.getBoundingClientRect(); return [e.cli
 let hoverStrip = null;
 function stripAt(px, py) {
   if (!appMap || !exp || editing || state.stage === 'one' || map?.done) return null;
-  const m = appMap, xw = m.X(exp.x1), xs = m.X(exp.x2), top = m.Yp(Y_HALF), bot = m.Yp(-Y_HALF);
+  const m = appMap, s = instant() ? 3 * packetSigma() : 0;
+  const xw = m.X(exp.x1 - s), xs = m.X(exp.x2 + s), top = m.Yp(Y_HALF), bot = m.Yp(-Y_HALF);
   if (px < xw - 30 || px > xs + 40 || py < top || py > bot) return null;
+  // With the position along the beam recorded, the pointer's position along x
+  // inside the strong frame chooses the packet cell too.
+  if (exp.cellBins && state.stage === 'many') {
+    const x = m.x0 + (px - m.box.x) / m.box.w * (m.x1 - m.x0), d = x - exp.x2;
+    let best = state.cell, bd = Infinity;
+    exp.mix.parts.forEach((q, j) => { const dd = Math.abs(q.dx - d); if (dd < bd) { bd = dd; best = j; } });
+    if (bd <= exp.mix.width && best !== state.cell) selectCell(best);
+  }
   return binOf(m.Yh - (py - m.box.y - 26) / (m.box.h - 44) * 2 * m.Yh);
 }
 canvas.addEventListener('pointermove', (e) => {
@@ -900,8 +937,11 @@ function drawApparatus(P, box) {
   // Stage 2 shows the arrows building up; stage 3 draws a plane pair's arrows
   // only once all its runs are in (finished pairs are in map.planes).
   if (exp && state.stage === 'many') {
-    const est = M.binVelocities(exp.bins, exp.dtau, 200).map((b) => (b ? { y: b.y, s: b.v / p.k, err: b.err / p.k } : null));
-    arrowsFrom.push({ x: exp.x2, est, live: true });
+    const toEst = (bins) => M.binVelocities(bins, exp.dtau, 200).map((b) => (b ? { y: b.y, s: b.v / p.k, err: b.err / p.k } : null));
+    // With the position along the beam recorded, every packet cell is its own
+    // plane pair: arrows at each cell's strong position, the selected one bright.
+    if (exp.cellBins) exp.cellBins.forEach((cb, j) => arrowsFrom.push({ x: exp.x2 + exp.mix.parts[j].dx, est: toEst(cb), live: true, faint: j !== state.cell }));
+    else arrowsFrom.push({ x: exp.x2, est: toEst(exp.bins), live: true });
   }
   const L = Math.max(14, Math.min(26, box.w / 32));
   if (state.show.arrows) for (const a of arrowsFrom) for (const [ei, e] of a.est.entries()) {
@@ -909,8 +949,9 @@ function drawApparatus(P, box) {
     // Opacity shows the precision: noisy arrows are drawn faint, never hidden.
     const rel = Math.max(0.15, Math.min(1, 0.04 / Math.max(1e-6, e.err)));
     const ang = Math.atan2(-(Yp(e.y + e.s) - Yp(e.y)), X(a.x + 1) - X(a.x));
-    const sx = X(a.x), sy = Yp(e.y), ex = sx + L * Math.cos(ang), ey = sy - L * Math.sin(ang);
-    ctx.globalAlpha = 0.35 + 0.65 * rel;
+    const La = a.faint ? 0.7 * L : L;
+    const sx = X(a.x), sy = Yp(e.y), ex = sx + La * Math.cos(ang), ey = sy - La * Math.sin(ang);
+    ctx.globalAlpha = (0.35 + 0.65 * rel) * (a.faint ? 0.4 : 1);
     ctx.strokeStyle = P.arrow; ctx.fillStyle = P.arrow; ctx.lineWidth = 1.6;
     ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(ex, ey);
@@ -995,7 +1036,7 @@ function drawApparatus(P, box) {
     frame(exp.x2, P.strong, [], 3);
     backedText(P, 'packet at t₁ (±2σₓ)', X(exp.x1 - 2 * s) + 5, Yp(Y_HALF) + 14, { color: P.weak, size: 10 });
     backedText(P, 'packet at t₂', X(exp.x2 + 2 * s) - 6, Yp(Y_HALF) + 28, { color: P.strong, size: 10, align: 'right' });
-    if (state.recx && exp.mix) { const w = exp.mix.width / 2; ctx.globalAlpha = 0.28; ctx.fillStyle = P.strong; ctx.fillRect(X(exp.x2 - w), top, X(exp.x2 + w) - X(exp.x2 - w), h); ctx.globalAlpha = 1; }
+    if (state.recx && exp.mix) { const w = exp.mix.width / 2, d = cellDx(); ctx.globalAlpha = 0.25; ctx.fillStyle = P.strong; ctx.fillRect(X(exp.x2 + d - w), top, X(exp.x2 + d + w) - X(exp.x2 + d - w), h); ctx.fillStyle = P.weak; ctx.fillRect(X(exp.x1 + d - w), top, X(exp.x1 + d + w) - X(exp.x1 + d - w), h); ctx.globalAlpha = 1; }
   }
   // the current pair of planes (at instants: the packet centre at t1 and t2)
   if (exp && !(map?.done)) {
@@ -1023,7 +1064,7 @@ function drawApparatus(P, box) {
       // packet at t2; with longitudinal post-selection, runs outside the kept
       // cell are drawn faint.
       const a0 = ctx.globalAlpha;
-      for (let i = 0; i < n; i++) { ctx.globalAlpha = state.recx && !exp.ptsK[i] ? a0 * 0.25 : a0; ctx.fillRect(X(exp.x2 + exp.ptsX[i]) - sz / 2, Yp(exp.ptsYf[i]) - sz / 2, sz, sz); }
+      for (let i = 0; i < n; i++) { ctx.globalAlpha = state.recx && exp.ptsS[i] !== state.cell ? a0 * 0.3 : a0; ctx.fillRect(X(exp.x2 + exp.ptsX[i]) - sz / 2, Yp(exp.ptsYf[i]) - sz / 2, sz, sz); }
     } else for (let i = 0; i < n; i++) ctx.fillRect(xs - 2 - exp.ptsU[i] * Math.min(6, gapW - 2) - sz / 2, Yp(exp.ptsYf[i]) - sz / 2, sz, sz);
     ctx.globalAlpha = 1;
     const stride = pointStride();
@@ -1033,21 +1074,38 @@ function drawApparatus(P, box) {
   // detected position on the strong plane. The slope of this step is the arrow.
   if (exp && state.stage !== 'one' && !(map?.done) && hoverStrip !== null) {
     const i = hoverStrip, n = exp.bins.count[i];
-    // the strip on the strong plane
+    // Weak and strong positions of the selected runs: the planes; at instants
+    // with the position along the beam recorded, the selected cell's pair;
+    // otherwise the whole packet frames (the position along the beam is unknown).
+    const sP = packetSigma(), unknownX = instant() && !state.recx, d = cellDx();
     const bw = 2 * Y_HALF / N_BINS, a = -Y_HALF + i * bw;
-    ctx.fillStyle = P.strip; ctx.fillRect(X(exp.x1) - 4, Yp(a + bw), X(exp.x2) - X(exp.x1) + 30, Yp(a) - Yp(a + bw));
+    ctx.fillStyle = P.strip;
+    if (unknownX) ctx.fillRect(X(exp.x1 - 2 * sP), Yp(a + bw), X(exp.x2 + 2 * sP) - X(exp.x1 - 2 * sP), Yp(a) - Yp(a + bw));
+    else ctx.fillRect(X(exp.x1 + d) - 4, Yp(a + bw), X(exp.x2 + d) - X(exp.x1 + d) + 30, Yp(a) - Yp(a + bw));
     if (n >= 200) {
       const mY = exp.bins.sumY[i] / n, mYf = exp.bins.sumYf[i] / n;
       const err = Math.sqrt(Math.max(0, exp.bins.sumY2[i] / n - mY * mY) / n);
-      const xw = X(exp.x1), xs = X(exp.x2);
+      const xw = X(exp.x1 + d), xs = X(exp.x2 + d);
+      if (unknownX) {
+        // Bars across the frames: the weak reading belongs somewhere in the dashed frame.
+        ctx.lineWidth = 3; ctx.strokeStyle = P.weak; ctx.beginPath(); ctx.moveTo(X(exp.x1 - 2 * sP), Yp(mY)); ctx.lineTo(X(exp.x1 + 2 * sP), Yp(mY)); ctx.stroke();
+        ctx.strokeStyle = P.strong; ctx.beginPath(); ctx.moveTo(X(exp.x2 - 2 * sP), Yp(mYf)); ctx.lineTo(X(exp.x2 + 2 * sP), Yp(mYf)); ctx.stroke();
+        const lx = X(exp.x1 - 2 * sP) + 8, up2 = mY >= mYf;   // inside the dashed frame: always room
+        backedText(P, `mean pointer reading ${nm(mY).toFixed(1)} nm`, lx, Yp(mY) + (up2 ? -10 : 18), { color: P.weak, size: 11, weight: 600 });
+        backedText(P, '(weak position not recorded:', lx, Yp(mY) + (up2 ? 5 : 33), { color: P.weak, size: 10 });
+        backedText(P, 'anywhere in the dashed frame)', lx, Yp(mY) + (up2 ? 18 : 46), { color: P.weak, size: 10 });
+        backedText(P, `mean detected ${nm(mYf).toFixed(1)} nm`, lx, Yp(mYf) + (up2 ? 34 : -10), { color: P.strong, size: 11, weight: 600 });
+      } else {
       ctx.strokeStyle = P.weak; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(xw, Yp(mY + err)); ctx.lineTo(xw, Yp(mY - err)); ctx.stroke();
       ctx.fillStyle = P.weak; ctx.beginPath(); ctx.arc(xw, Yp(mY), 4.5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(xs, Yp(mYf), 4.5, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = P.text; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(xw, Yp(mY)); ctx.lineTo(xs, Yp(mYf)); ctx.stroke();
       const up = mY >= mYf;   // keep the two labels apart
-      backedText(P, `mean pointer reading ${nm(mY).toFixed(1)} nm`, xw - 12, Yp(mY) + (up ? -10 : 18), { color: P.weak, size: 11, align: 'right', weight: 600 });
+      const where = instant() ? ` (runs at Δ = ${d >= 0 ? '+' : '−'}${Math.abs(nm(d)).toFixed(0)} nm)` : '';
+      backedText(P, `mean pointer reading ${nm(mY).toFixed(1)} nm${where}`, xw - 12, Yp(mY) + (up ? -10 : 18), { color: P.weak, size: 11, align: 'right', weight: 600 });
       backedText(P, `mean detected ${nm(mYf).toFixed(1)} nm`, xw - 12, Yp(mYf) + (up ? 18 : -10), { color: P.strong, size: 11, align: 'right', weight: 600 });
+      }
     } else text('too few runs in this strip yet', X(exp.x2) + 34, Yp(a + bw / 2) + 4, { color: P.muted, size: 11 });
   }
   // stage 1: pointer gauge and detection flash
@@ -1240,7 +1298,12 @@ function drawVelocity(P, box) {
 function updateResults() {
   const set = (k, v) => { const o = document.querySelector(`[data-result="${k}"]`); if (o) o.value = v; };
   if (!exp) return;
-  set('runs', exp.runs.toLocaleString('en-US') + (instant() && state.recx ? ` (${exp.used.toLocaleString('en-US')} kept)` : ''));
+  const cellRuns = exp.cellBins ? exp.bins.count.reduce((x, y) => x + y, 0) : exp.used;
+  set('runs', exp.runs.toLocaleString('en-US'));
+  set('cellRuns', cellRuns.toLocaleString('en-US'));
+  document.querySelectorAll('[data-recx-row]').forEach((el) => { el.hidden = !(instant() && state.recx && exp.cellBins); });
+  $('#cellRunsLabel').textContent = `Runs at Δ = ${cellDx() >= 0 ? '+' : '−'}${Math.abs(nm(cellDx())).toFixed(0)} nm`;
+  if (exp.cellBins) { const cs = $('#cellSel'); cs.max = exp.mix.parts.length - 1; cs.value = state.cell; $('#cellOut').value = `${cellDx() >= 0 ? '+' : '−'}${Math.abs(nm(cellDx())).toFixed(0)} nm`; cs.setAttribute('aria-valuetext', `${nm(cellDx()).toFixed(0)} nanometres from the packet centre`); }
   set('planes', !map ? '—' : map.done ? `${N_PLANES} of ${N_PLANES}` : `${map.planes.length} of ${N_PLANES}${state.running ? ` (pair ${map.index + 1} running)` : ''}`);
   set('pair', `${nm(exp.x1 - p.wall).toFixed(0)} → ${nm(exp.x2 - p.wall).toFixed(0)} nm`);
   // Stage 1 has no post-selection: show only the rows that mean something.

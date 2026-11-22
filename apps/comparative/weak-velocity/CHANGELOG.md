@@ -1,5 +1,9 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.6.3 — 2026-11-21
+- Instants with the position along the beam recorded: runs are sorted by their position Δ in the packet (thirteen cells). Each cell is its own pair of weak and strong positions, a gap apart, so one fixed-time experiment gives arrows at thirteen positions along the beam (faint), with the selected one bright. Pointing inside the strong frame chooses Δ and the strip; a "Position along the beam Δ" slider does the same from the keyboard. The selection draws the mean pointer reading at that cell's weak position joined to the mean detection at its strong position; plots, Results and predictions follow the cell (Δ = 0 gives the planes). New Results row "Runs at Δ".
+- Instants, transverse position only: the selected strip's mean pointer reading is drawn as a bar across the dashed frame (the weak position is not recorded), and the arrow is said to be placed at the packet centre by convention.
+
 ## 0.6.2 — 2026-11-21
 - Instants: the packet's extent at t₁ and t₂ (±2σₓ) is drawn as outlined frames (dashed amber, solid cyan) with labels, instead of filled bands whose overlap read as a third, green region.
 - Instants, stages 2–3: while running, a slowed, representative train of packets moves through; each flashes amber as its centre passes the weak position (t₁) and cyan at the strong one (t₂), and the train slows near the measurements. Shown for timing only; the caption says one packet is drawn for many runs.
