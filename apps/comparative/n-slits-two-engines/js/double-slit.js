@@ -1718,7 +1718,7 @@ $(document).ready(function() {
          // Clear only this app's saved settings; other Q-Ontic apps share the origin.
          try {
             const own = ['nSlitTwoEnginesState', 'showAdvanced', 'leftPanelWidth', 'canvasWidth', 'canvasHeight',
-                         'theme', 'controlsFontSize', 'infoFontSize', 'qontic-te-num-opts', 'qontic-te-num-wall', 'qontic-te-bg', 'qontic-te-num-look',
+                         'theme', 'controlsFontSize', 'infoFontSize', 'qontic-te-num-opts', 'qontic-te-num-wall', 'qontic-te-bg', 'qontic-te-basic-hits', 'qontic-te-num-look',
                          'qontic-te-level-saved', 'qontic-te-hits-before-basic'];
             const keys = [];
             for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));

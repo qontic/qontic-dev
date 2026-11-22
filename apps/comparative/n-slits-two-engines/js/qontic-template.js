@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te26';
-import { mountMWBranching } from './mw-branching.js?cache=te26';
-import { APP_RELEASE } from './release.js?cache=te26';
-import { mountNSlitQuiz } from './quiz.js?cache=te26';
+import { mountPacketEngine } from './packet-engine.js?cache=te27';
+import { mountMWBranching } from './mw-branching.js?cache=te27';
+import { APP_RELEASE } from './release.js?cache=te27';
+import { mountNSlitQuiz } from './quiz.js?cache=te27';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te26';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te27';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';

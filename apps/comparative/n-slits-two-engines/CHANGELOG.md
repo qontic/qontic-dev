@@ -3,6 +3,10 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.27 — 2026-11-22
+- Basic Core: "Electrons per wave" slider (1–100, default 30), the number of electrons each drawn wave stands for. Stored separately for Basic; the Standard/Expert hits-per-packet value is kept and comes back. Locked to 1 while Many Worlds slow motion is on. Cleared by Reset all settings. Quiz explanation updated.
+- Checked: slider at Basic only, value carried to the run (caption "one electron" at 1), level round trip, MW lock, reload; te69, te12x, te27x; no console errors.
+
 ## 1.0-dev.26 — 2026-11-21
 - Many Worlds slow-motion splitting works in the numerical engine: numerical hits go through the same branch split, with weights from the computed screen flux.
 - Numerical hits are conditioned on passing a slit in every view (Orthodox and Many Worlds too, as the analytical engine counts only screen detections); Pilot Wave follows the Direct PW setting.

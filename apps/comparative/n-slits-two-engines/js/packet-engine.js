@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te26';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te26';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te26';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te26';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te26';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te26';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te26';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te26';
-import {createNumericalEngine} from './numerical-engine.js?cache=te26';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te26';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te26';
-import {classifySlitSide} from './source-packet-model.js?cache=te26';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te27';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te27';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te27';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te27';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te27';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te27';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te27';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te27';
+import {createNumericalEngine} from './numerical-engine.js?cache=te27';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te27';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te27';
+import {classifySlitSide} from './source-packet-model.js?cache=te27';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -145,6 +145,21 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  try{if(!localStorage.getItem('qontic-te-trails-v25')){localStorage.setItem('qontic-te-trails-v25','1');if(numOpt.trails==='glow'&&!numOpt.onePreset){numOpt.trails='lines';const o=JSON.parse(localStorage.getItem('qontic-te-num-opts')||'{}');o.trails='lines';localStorage.setItem('qontic-te-num-opts',JSON.stringify(o));}}}catch(_){}
  let numCurveShown=false,maskSaved=false;const ANA_COMPARE='#9b4fd0';
  let level='expert',expertSaved=null,basicHitsSaved=null;const BASIC_HITS=30;
+ const basicHits=()=>{let v=30;try{v=+(localStorage.getItem('qontic-te-basic-hits')||30);}catch(_){}return Math.max(1,Math.min(100,Math.round(v)||30));};
+ // Basic Core: "Electrons per wave" (1–100), the number of electrons each drawn wave stands for.
+ let basicHitsRow=null;
+ function syncBasicHits(){
+  if(!basicHitsRow){const host=document.getElementById('slit-separation-group');if(!host)return;
+   basicHitsRow=document.createElement('div');basicHitsRow.className='input-group te-basic-hits';basicHitsRow.style.cssText='display:grid;grid-template-columns:max-content minmax(60px,1fr) 2.2em;gap:10px;align-items:center';basicHitsRow.dataset.levelMax='basic';
+   basicHitsRow.innerHTML='<label for="te-basic-hits" title="How many electrons each wave on the picture stands for. They are sent one at a time; each makes one dot. 1: watch the pattern build dot by dot." style="width:auto;min-width:0;white-space:nowrap">Electrons per wave:</label><input id="te-basic-hits" type="range" min="1" max="100" step="1" style="width:100%;min-width:60px"><output style="text-align:right"></output>';
+   host.after(basicHitsRow);
+   const r=basicHitsRow.querySelector('input');
+   r.addEventListener('input',()=>{basicHitsRow.querySelector('output').textContent=r.value;});
+   r.addEventListener('change',()=>{try{localStorage.setItem('qontic-te-basic-hits',r.value);}catch(_){}if(level==='basic'&&!window.qonticMWBranches?.enabled)document.getElementById('MaxPart-group')?.setValueInFirstUnit(+r.value);syncBasicHits();});}
+  const r=basicHitsRow.querySelector('input'),slow=!!window.qonticMWBranches?.enabled&&interpretation==='manyworlds';
+  r.value=basicHits();basicHitsRow.querySelector('output').textContent=slow?'1':r.value;r.disabled=slow;
+  r.title=slow?'Many Worlds slow motion sends one electron per wave.':'';
+ }
  const saveNumOpt=()=>{const out={...numOpt,rv:1};if(expertSaved)Object.assign(out,expertSaved);localStorage.setItem('qontic-te-num-opts',JSON.stringify(out));};
  // Repeat with replay (numerical engine): each packet starts from the slits as they were
  // at the start of the recorded packet and replays the slit and detector changes made
@@ -196,9 +211,11 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   if(level==='basic'){if(onePreset)toggleOneParticle(false);if(engine==='numerical')setEngine('analytical');}
   // Basic: 30 hits per packet (dots arrive one by one); the user's number comes back above Basic.
   {const g=document.getElementById('MaxPart-group'),inp=document.getElementById('MaxPart-input');
+   // Basic: its own "Electrons per wave" value (default 30); the Standard/Expert value is kept and comes back.
    const K='qontic-te-hits-before-basic';let saved=null;try{saved=localStorage.getItem(K);}catch(_){}
-   if(g&&inp){if(level==='basic'){if(+inp.value!==BASIC_HITS){try{localStorage.setItem(K,String(+inp.value));}catch(_){}g.setValueInFirstUnit(BASIC_HITS);}}
-   else if(saved!=null){if(+inp.value===BASIC_HITS)g.setValueInFirstUnit(+saved);try{localStorage.removeItem(K);}catch(_){}}}}
+   if(g&&inp&&!window.qonticMWBranches?.enabled){const want=basicHits();if(level==='basic'){if(+inp.value!==want){if(saved==null){try{localStorage.setItem(K,String(+inp.value));}catch(_){}}g.setValueInFirstUnit(want);}}
+   else if(saved!=null){g.setValueInFirstUnit(+saved);try{localStorage.removeItem(K);}catch(_){}}}
+   syncBasicHits();}
   // Basic caps the slit separation (slits stay on the picture); leaving Basic brings the user's value back.
   {const before=slitSeparation;try{applyPacketLimits();}catch(_){}if(slitSeparation!==before){setupGeo(false);reset=0;resetEngine();}}
   syncShutterUI();pushShutter();if(!isAnimating)draw();
@@ -590,7 +607,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   const group=document.getElementById('MaxPart-group');
   if(next){savedPacketCount=+document.getElementById('MaxPart-input').value;group.setValueInFirstUnit(1);}else if(savedPacketCount!==null){group.setValueInFirstUnit(savedPacketCount);savedPacketCount=null;}
   slowPacketMode=next;
-  for(const id of ['MaxPart','MaxPart-input','MaxPart-units'])document.getElementById(id).disabled=next;
+  for(const id of ['MaxPart','MaxPart-input','MaxPart-units'])document.getElementById(id).disabled=next;try{syncBasicHits();}catch(_){}
   interval.disabled=next;interval.parentElement.querySelector('input[type=number]').disabled=next;
   window.qonticMWBranches?.cancel();pending=[];particles=[];pulses=[];detectorFlashes.clear();flash=null;last=null;lastMode=interpretation;
   if(p){p.particles=next?1:+document.getElementById('MaxPart-input').value;prepare();}
@@ -614,7 +631,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   slitWidthHelp(interpretation==='bohmian'&&directed.checked);
   syncPwWaveButton();
   syncWhichPathButton();syncNiceButton();
-  const countLabel=document.querySelector('#MaxPart-group label');if(countLabel)countLabel.textContent=interpretation==='bohmian'||numericalActive()?'Part./packet:':'Hits / packet:';
+  const countLabel=document.querySelector('#MaxPart-group label');if(countLabel)countLabel.textContent=interpretation==='bohmian'||numericalActive()?'Part./packet:':'Hits / packet:';try{syncBasicHits();}catch(_){}
   const countInput=document.getElementById('MaxPart-input');countInput.title=interpretation==='bohmian'?(directed.checked?'Particles per packet, conditioned on transmission through an open slit.':'Incident particles per packet; some are absorbed.'):'Screen registrations per new packet, conditioned on reaching the screen.';
   if(lastMode===interpretation)return;
   // The Pauli term is a pilot-wave guidance law: it applies in the Pilot-Wave view only.
@@ -759,7 +776,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te26').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te27').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
