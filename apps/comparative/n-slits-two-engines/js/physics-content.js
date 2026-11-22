@@ -65,7 +65,7 @@ export const basicViewsHTML=`<div data-level-max="basic">
 <p><b>Try this:</b> switch to Pilot Wave and watch the paths bend into the bright fringes. With two slits, particles from the upper slit land on the upper half of the screen.</p>
 <h2>Many Worlds</h2>
 <p>The wave is all there is, and it never collapses. When the screen records an electron, every possible result happens, each in its own branch of the world. The record you see is the one in our branch; the stronger the wave at a place, the more likely that result.</p>
-<p><b>Try this:</b> switch to Many Worlds during a run. The screen keeps filling exactly as before: in this view each dot is the result in our branch, and every other result happened in another branch.</p>
+<p><b>Try this:</b> switch to Many Worlds and press Start. At each hit the picture splits into many small pictures, one for each place the dot could land: these are the branches. The app then follows one of them, and the others continue. The screen fills exactly as in the other views.</p>
 <p>This experiment cannot show which view is right: they agree on every recorded result. For more, including the equations, choose <b>Standard</b>.</p>
 </div>`;
 

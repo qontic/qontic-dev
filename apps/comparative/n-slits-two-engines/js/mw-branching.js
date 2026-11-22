@@ -1,4 +1,4 @@
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te21';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te22';
 // Count active branch-view time only; pausing does not consume the interval.
 export function createBranchDwellClock(now=()=>performance.now()) {
   let elapsed=0,last=null;
@@ -12,7 +12,7 @@ export function createBranchDwellClock(now=()=>performance.now()) {
 export function mountMWBranching({host,controls,isMW,isRunning}) {
   const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=85',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
-  settings.innerHTML=`<label><input type="checkbox" id="mw-branch-tour"> Slow-motion branching</label><div class="mw-follow mw-choice-row" hidden><select aria-label="Branch selection" title="Random follows Born probabilities; Manual lets you choose."><option value="auto">Random</option><option value="manual">Manual</option></select><label class="mw-probability" title="Show branch probabilities"><input type="checkbox" id="mw-show-probabilities"> Prob.</label></div><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><small class="mw-follow" hidden>One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small>`;
+  settings.innerHTML=`<label title="At each hit the picture splits into one small picture per screen pixel: one branch for each possible place of the dot. One branch is followed; the others continue."><input type="checkbox" id="mw-branch-tour"> Slow motion: the world splits at each hit</label><div class="mw-follow mw-choice-row" hidden><select aria-label="Branch selection" title="Random follows Born probabilities; Manual lets you choose."><option value="auto">Random</option><option value="manual">Manual</option></select><label class="mw-probability" title="Show branch probabilities"><input type="checkbox" id="mw-show-probabilities"> Prob.</label></div><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><small class="mw-follow" hidden data-level-min="expert">One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small><small class="mw-follow" hidden data-level-max="standard">Each small picture is one branch: the dot landed at a different place in each. The app follows one of them; the others continue.</small>`;
   controls.append(settings);
   const enabled=settings.querySelector('input'),mode=settings.querySelector('select');
   const overlay=document.createElement('div');overlay.className='mw-branch-overlay';overlay.hidden=true;
@@ -245,7 +245,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
           }
         }else if(session.selected===null){
           session.elapsed+=dt;
-          status.textContent=mode.value==='manual'?`${count} outcome branches · choose a pixel to follow`:`${count} outcome branches · following one by Born weight…`;
+          status.textContent=mode.value==='manual'?`${count} outcome branches · choose a pixel to follow`:(document.body.dataset.qonticLevel==='basic'?`${count} branches · following one, chosen by its probability…`:`${count} outcome branches · following one by Born weight…`);
           if(mode.value==='auto'&&session.elapsed>=1000)choose(selected);
         }else{
           session.zoomTime+=dt;

@@ -3,6 +3,12 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.22 — 2026-11-21
+- Many Worlds at Basic now shows the world splitting at each hit. The slow-motion branching option is visible at Basic and on by default there (remembered if the user switches it off). Plain label "Slow motion: the world splits at each hit", a one-line hint on what each small picture is, and a Basic status line without "Born weight".
+- Basic caption reads "one electron" when a wave stands for one electron.
+- Basic Views "Try this" for Many Worlds describes the splitting.
+- Checked: headless run at Basic (100 branches shown, one followed), Standard unchanged, regression scripts with no console errors.
+
 ## 1.0-dev.21 — 2026-11-21
 Fixes and changes from the ten-student review of dev.20 (context/2026-11-21-n-slits-two-engines-ten-student-review.md); Pablo approved all recommendations.
 Bugs

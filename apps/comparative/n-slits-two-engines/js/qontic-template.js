@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te21';
-import { mountMWBranching } from './mw-branching.js?cache=te21';
-import { APP_RELEASE } from './release.js?cache=te21';
-import { mountNSlitQuiz } from './quiz.js?cache=te21';
+import { mountPacketEngine } from './packet-engine.js?cache=te22';
+import { mountMWBranching } from './mw-branching.js?cache=te22';
+import { APP_RELEASE } from './release.js?cache=te22';
+import { mountNSlitQuiz } from './quiz.js?cache=te22';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te21';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te22';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -478,7 +478,7 @@ $(function () {
   // Basic: no power tools in the toolbar, no range panel over the source, no flow or
   // slow-motion branching boxes, no Branch records row.
   const levelTag = (sel, level) => document.querySelectorAll(sel).forEach(el => { el.dataset.levelMin = level; });
-  levelTag('.qontic-range-panel, .mw-branch-settings', 'standard');
+  levelTag('.qontic-range-panel', 'standard');
   levelTag('.flow-settings', 'expert');
   for (const label of ['Wave range', 'Grid', 'Coordinates and measure', '3D wave surface', 'Edit geometry']) levelTag(`.qontic-media-toolbar button[aria-label="${label}"]`, 'standard');
   document.querySelectorAll('.info-box.manyworlds-only td.label').forEach(td => { if (/Branch records/.test(td.textContent)) td.closest('tr').dataset.levelMin = 'standard'; });
@@ -511,7 +511,6 @@ $(function () {
     ['source-position-group', 'expert', 'group', 225],
     ['det-pixels-group', 'expert', 'group', 100],
     ['flow-arrows', 'expert', 'check', false],
-    ['mw-branch-tour', 'standard', 'check', false],
     ['flow-lines', 'expert', 'check', false],
   ];
   const RANK = { basic: 0, standard: 1, expert: 2 };
@@ -550,6 +549,12 @@ $(function () {
     window.qonticPacketEngine?.setLevel?.(level);
     quizApi?.setLevel?.(level);
     levelDefaults(level);
+    // Many Worlds at Basic shows the world splitting at each hit (slow-motion branching) unless
+    // the user has switched it off there.
+    { const tour = document.getElementById('mw-branch-tour'), K = 'qontic-te-mw-tour-basic';
+      let pref = null; try { pref = localStorage.getItem(K); } catch (_) {}
+      if (tour && level === 'basic' && pref !== 'off' && !tour.checked) { tour.checked = true; tour.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (tour && !tour.dataset.basicPref) { tour.dataset.basicPref = '1'; tour.addEventListener('change', event => { if (event.isTrusted && document.body.dataset.qonticLevel === 'basic') { try { localStorage.setItem(K, tour.checked ? 'on' : 'off'); } catch (_) {} } }); } }
     // Basic runs at 3× by default (beginners waited 10–15 s for the first hit at 1×); the speed
     // chosen before comes back above Basic.
     { const sp = document.getElementById('animationStep'), K = 'qontic-te-speed-before-basic';

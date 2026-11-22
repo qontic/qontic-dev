@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te21';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te21';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te21';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te21';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te21';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te21';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te21';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te21';
-import {createNumericalEngine} from './numerical-engine.js?cache=te21';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te21';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te21';
-import {classifySlitSide} from './source-packet-model.js?cache=te21';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te22';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te22';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te22';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te22';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te22';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te22';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te22';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te22';
+import {createNumericalEngine} from './numerical-engine.js?cache=te22';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te22';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te22';
+import {classifySlitSide} from './source-packet-model.js?cache=te22';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -752,7 +752,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te21').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te22').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1308,7 +1308,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   else if(niceInfo){niceInfo=null;const el=document.getElementById('nice-fringes-status');if(el&&el.textContent.includes('details below'))el.textContent='';}
   const colours=lines.map(l=>`<p class="cap-legend">${l}</p>`).join('');
   const hitText=pwMode==='slit'?'dots = hits counted (coloured by slit), bars = ±√n':pwMode==='spectrum'?'dots = hits counted (coloured by wall position), bars = ±√n':swatch(pwMode==='uniform'?colorPart:colorHit,'dots = hits counted, bars = ±√n');
-  const legend=level==='basic'?'Screen: '+swatch(colorProb,'curve = where hits are expected')+' · '+swatch(interpretation==='bohmian'&&pwMode==='uniform'?colorPart:colorHit,'bars = hits so far at each place')+' · '+swatch(colorSensor,'flash on the screen = an electron arriving')+'. Each wave you see stands for '+(p?.particles||30)+' electrons sent one at a time; each electron makes one dot.':'Screen: '+(numericalActive()?(numCurveShown?swatch(colorProb,'solid curve = numerical prediction (computed flux)')+' · '+swatch(ANA_COMPARE,'dashed = analytical prediction, for comparison'):swatch(colorProb,'curve = analytical prediction until the first numerical packet reaches the screen')):swatch(colorProb,'curve = predicted distribution'))+(transition&&t<transition.until?' (dashed: the earlier slit setting, for the part of the wave already past the wall)':'')+' · '+hitText+' · black strip with green bars = hits per detector pixel. One packet = '+(p?.particles??'')+(interpretation!=='bohmian'&&!numericalActive()?((p?.particles===1?' hit':' hits')+(level==='basic'?'.':' (Hits / packet, Advanced).')):((p?.particles===1?' particle':' particles')+(level==='basic'?'.':' (Part./packet, Advanced).')));
+  const legend=level==='basic'?'Screen: '+swatch(colorProb,'curve = where hits are expected')+' · '+swatch(interpretation==='bohmian'&&pwMode==='uniform'?colorPart:colorHit,'bars = hits so far at each place')+' · '+swatch(colorSensor,'flash on the screen = an electron arriving')+((p?.particles||30)===1?'. Each wave you see stands for one electron; it makes one dot.':'. Each wave you see stands for '+(p?.particles||30)+' electrons sent one at a time; each electron makes one dot.'):'Screen: '+(numericalActive()?(numCurveShown?swatch(colorProb,'solid curve = numerical prediction (computed flux)')+' · '+swatch(ANA_COMPARE,'dashed = analytical prediction, for comparison'):swatch(colorProb,'curve = analytical prediction until the first numerical packet reaches the screen')):swatch(colorProb,'curve = predicted distribution'))+(transition&&t<transition.until?' (dashed: the earlier slit setting, for the part of the wave already past the wall)':'')+' · '+hitText+' · black strip with green bars = hits per detector pixel. One packet = '+(p?.particles??'')+(interpretation!=='bohmian'&&!numericalActive()?((p?.particles===1?' hit':' hits')+(level==='basic'?'.':' (Hits / packet, Advanced).')):((p?.particles===1?' particle':' particles')+(level==='basic'?'.':' (Part./packet, Advanced).')));
   const key=engineLine+view+colours+legend;if(key===captionKey)return;captionKey=key;
   host.innerHTML=`<p>${engineLine?`<b>${engineLine}</b>`:''}${view}</p><p class="cap-legend">${legend}</p>${colours}`;
  }
