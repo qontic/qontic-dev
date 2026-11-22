@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.8.0';
-import * as M from './weak-model.js?v=0.8.0';
+import { APP_RELEASE } from './release.js?v=0.8.1';
+import * as M from './weak-model.js?v=0.8.1';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -62,6 +62,7 @@ const state = {
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, fixedTime: false, bohm: false, scatter: true, planeRuns: true },
   selected: null, shiftView: false,
   labels: (() => { try { return localStorage.getItem('qontic-weak-velocity-labels') !== 'false'; } catch (e) { return true; } })(),   // explanatory labels in the drawing (Legend button)
+  movingWave: false,   // crests travel all the time (the density of a steady beam does not move)
   panelKey: (() => { try { return JSON.parse(localStorage.getItem('qontic-weak-velocity-panel-keys')) || { scatter: true, vel: true }; } catch (e) { return { scatter: true, vel: true }; } })(),   // legends of the two plots
   win: { len: 100, wid: 10, x: 550, y: 50, pinned: false, trace: false },   // stage 4: window centre (nm behind the slits); full length along the beam and width across (nm)
   timing: 'plane', packet: 150, recx: false, cell: null,
@@ -483,6 +484,15 @@ document.querySelectorAll('[data-timing]').forEach((b) => b.addEventListener('cl
   if (instant() && !state.show.fixedTime) toggle('fixedTime');
   stop(); pending = true; updateText();
 }));
+// Moving wave: show travelling crests and keep them moving, also between runs.
+let modeBeforeMoving = null;
+$('#movingWave').addEventListener('click', () => {
+  state.movingWave = !state.movingWave;
+  $('#movingWave').setAttribute('aria-pressed', String(state.movingWave));
+  const setMode = (m) => { state.waveMode = m; document.querySelectorAll('[data-wavemode]').forEach((o) => { const on = o.dataset.wavemode === m; o.classList.toggle('active', on); o.setAttribute('aria-pressed', String(on)); }); };
+  if (state.movingWave && state.waveMode === 'density') { modeBeforeMoving = 'density'; setMode('crests'); }
+  else if (!state.movingWave && modeBeforeMoving) { setMode(modeBeforeMoving); modeBeforeMoving = null; }
+});
 $('#pauseEach').addEventListener('click', () => { state.pauseEach = !state.pauseEach; $('#pauseEach').setAttribute('aria-pressed', String(state.pauseEach)); });
 $('#recx').addEventListener('click', () => {
   state.recx = !state.recx; state.cell = null;
@@ -500,6 +510,21 @@ document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('cl
 $('#sw').addEventListener('input', (e) => { state.sw = +e.target.value; pending = true; updateText(); });
 $('#x1').addEventListener('input', (e) => { state.x1 = +e.target.value; if (state.stage !== 'map') pending = true; updateText(); });
 $('#gap').addEventListener('input', (e) => { state.gap = +e.target.value; clampGeometry(); pending = true; updateText(); });
+// A setting that clears the results (a new experiment) starts the new runs when the
+// slider is released, if there were results to replace; stage 1 stays manual.
+let hadResults = null;
+const resultsShown = () => (state.stage === 'window' ? !!wf?.runs : state.stage === 'map' ? !!(map && (map.planes.length || exp?.runs)) : state.stage === 'many' && !!exp?.runs);
+for (const id of ['sw', 'x1', 'gap', 'packet']) {
+  const el = $(`#${id}`);
+  el.addEventListener('pointerdown', () => { hadResults = resultsShown(); });
+  el.addEventListener('keydown', () => { if (hadResults === null) hadResults = resultsShown(); });
+  el.addEventListener('input', () => { if (hadResults === null) hadResults = resultsShown(); }, { capture: true });
+  el.addEventListener('change', () => {
+    const go = hadResults && state.stage !== 'one' && !(id === 'x1' && state.stage === 'map');
+    hadResults = null;
+    if (go) start();
+  });
+}
 $('#perPlane').addEventListener('input', (e) => {
   state.perPlane = RUNS[+e.target.value]; $('#perPlaneOut').value = fmtRuns(state.perPlane); updateText();
 });
@@ -1099,7 +1124,7 @@ function drawApparatus(P, box) {
     if (w.mixedFrom !== null && w.want !== 'density') {
       // Below the pattern, between the weak plane and the screen; wrapped if needed.
       const lines = ['beyond the weak plane: density averaged over pointer readings', '(a single run keeps its fringes: see stage 1)'];
-      lines.forEach((ln, i) => backedText(P, ln, X(exp ? exp.x2 : w.mixedFrom) + 10, Yp(-Y_HALF) - 22 + 12 * i, { color: P.muted, size: 10 }));
+      lines.forEach((ln, i) => backedText(P, ln, X(exp ? exp.x2 : w.mixedFrom) + 10, Yp(-Y_HALF) - 50 + 12 * i, { color: P.muted, size: 10 }));
     }
     if (state.waveMode !== 'density' && !w.canCrest) text('wavelength too short to draw crests here: density shown', X(p.wall) + 8, box.y + box.h - 18, { color: P.muted, size: 10 });
     if (instant() && state.stage === 'one' && exp && anim?.packet) drawPacketMask(P, X, Yp, [packetCentre(anim)], x0);
@@ -1818,7 +1843,7 @@ let lastT = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   if (pending && !drag) rebuild();
-  if (state.waveMode !== 'density' && (state.running || (state.stage === 'one' && !exp?.runs))) phaseClock = (phaseClock + dt * state.speed * 2 * Math.PI / 0.8) % (2 * Math.PI);
+  if (state.waveMode !== 'density' && (state.movingWave || state.running || (state.stage === 'one' && !exp?.runs))) phaseClock = (phaseClock + dt * state.speed * 2 * Math.PI / 0.8) % (2 * Math.PI);
   if (state.running && exp && instant() && state.stage !== 'one') advanceTrain(dt);
   if (state.running && state.stage === 'window' && wf) {
     // About 20 ms of sampling per frame; 20 million runs take ten to twenty seconds.

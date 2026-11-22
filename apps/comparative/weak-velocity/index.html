@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.8.0">
+<link rel="stylesheet" href="css/wv.css?v=0.8.1">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -106,6 +106,7 @@
             <button class="qontic-app-toggle" type="button" data-wavemode="phase" aria-pressed="false" title="Phase kx − ωt + arg φ as colour, brightness from |ψ|.">Phase</button>
           </div>
         </div>
+        <div class="toggle-row" title="Travelling crests that keep moving, also between runs. The density |ψ|² of a steady beam does not change in time; what moves are the crests (the phase), at the phase velocity."><span>Moving wave (travelling crests)</span><button class="toggle" type="button" id="movingWave" aria-pressed="false" aria-label="Moving wave: travelling crests"></button></div>
         <div class="toggle-row"><span>Wave (density, crests or phase)</span><button class="toggle" type="button" data-toggle="wave" aria-pressed="true" aria-label="Show the wave"></button></div>
         <div class="toggle-row"><span>Measured arrows</span><button class="toggle" type="button" data-toggle="arrows" aria-pressed="true" aria-label="Show the measured velocity arrows"></button></div>
         <div class="toggle-row"><span>j/|ψ|²: prediction for an ideal weak pointer</span><button class="toggle" type="button" data-toggle="current" aria-pressed="true" aria-label="Show the current velocity curve"></button></div>
@@ -337,6 +338,6 @@
   <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and many runs per pair of planes, with only a fraction contributing to each arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.8.0"></script>
+<script type="module" src="js/app.js?v=0.8.1"></script>
 </body>
 </html>

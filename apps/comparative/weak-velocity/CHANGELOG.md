@@ -1,5 +1,10 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.8.1 — 2026-11-22
+- Changing the pointer spread (or the weak plane, gap or packet length) after a run cleared the arrows. That was by design: a new setting is a new experiment. But it was easy to miss that Start was needed again. Now the new runs start when the slider is released, if there were results to replace (stages 2–4; stage 1 stays manual).
+- Display: "Moving wave (travelling crests)", at every level. Crests keep moving between runs. The density of a steady beam does not move; the crests (the phase) do. Turning it on from the density view switches to crests; turning it off switches back.
+- The "density averaged over pointer readings" note moved up so it no longer overlaps the off-scale count.
+
 ## 0.8.0 — 2026-11-22
 - Levels: Basic · Standard · Expert (switch above Start). First-time visitors start at Basic.
   - Basic: stages 1–3, pointer spread, pause after each run, the two predictions and both plots. Tabs Core and Display; five Results rows.
