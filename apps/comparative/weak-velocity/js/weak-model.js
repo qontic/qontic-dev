@@ -529,16 +529,25 @@ export function addWindowRun(acc, field, run) {
   acc.sX[c] += run.X; acc.sY[c] += run.Y; acc.sx2[c] += run.x2; acc.syf[c] += run.yf;
 }
 
-// Cells whose centre (strong position) lies in the ellipse centred at (xc, yc)
-// with half-length rx along the beam and half-width ry across (a disc if equal).
+// Cells of strong positions inside the ellipse centred at (xc, yc), with
+// half-length rx along the beam and half-width ry across (a disc if equal).
+// Each cell is weighted by the fraction of it inside: along the beam, the part of
+// the plane's slab (width dx) within ±rx; across, the part of the cell within the
+// ellipse's chord at that plane. So the window's area does not jump as it moves.
 function windowCells(field, xc, yc, rx, ry, fn) {
-  const {x1s, gapX, nYf, yfMin, dYf} = field;
+  const {x1s, gapX, nYf, yfMin, dYf, dx} = field;
   for (let j = 0; j < x1s.length; j++) {
-    const ddx = x1s[j] + gapX - xc;
-    if (Math.abs(ddx) > rx) continue;
-    const h = ry * Math.sqrt(1 - (ddx / rx) ** 2);
-    const i0 = Math.max(0, Math.ceil((yc - h - yfMin) / dYf - 0.5)), i1 = Math.min(nYf - 1, Math.floor((yc + h - yfMin) / dYf - 0.5));
-    for (let i = i0; i <= i1; i++) fn(j, i, j * nYf + i);
+    const x2 = x1s[j] + gapX, ddx = x2 - xc;
+    const wx = (Math.min(x2 + dx / 2, xc + rx) - Math.max(x2 - dx / 2, xc - rx)) / dx;
+    if (!(wx > 0)) continue;
+    const u = Math.min(1, Math.abs(ddx) / rx), h = ry * Math.sqrt(1 - u * u);
+    if (!(h > 0)) continue;
+    const lo = yc - h, hi = yc + h;
+    const i0 = Math.max(0, Math.floor((lo - yfMin) / dYf)), i1 = Math.min(nYf - 1, Math.floor((hi - yfMin) / dYf));
+    for (let i = i0; i <= i1; i++) {
+      const a = yfMin + i * dYf, wy = (Math.min(a + dYf, hi) - Math.max(a, lo)) / dYf;
+      if (wy > 0) fn(j, i, j * nYf + i, Math.min(1, wx) * Math.min(1, wy));
+    }
   }
 }
 
@@ -548,17 +557,17 @@ function windowCells(field, xc, yc, rx, ry, fn) {
 export function windowQuery(field, acc, xc, yc, rx, ry = rx) {
   let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sX = 0, sY = 0, sx2 = 0, syf = 0;
   let w = 0, wX = 0, wY = 0, wx2 = 0, wyf = 0;
-  windowCells(field, xc, yc, rx, ry, (j, i, c) => {
-    n += acc.n[c]; sx += acc.sx[c]; sy += acc.sy[c]; sxx += acc.sxx[c]; syy += acc.syy[c]; sxy += acc.sxy[c];
-    sX += acc.sX[c]; sY += acc.sY[c]; sx2 += acc.sx2[c]; syf += acc.syf[c];
-    const t = field.tables[j], q = t.marginal[i] * t.dYf;
+  windowCells(field, xc, yc, rx, ry, (j, i, c, f) => {
+    n += f * acc.n[c]; sx += f * acc.sx[c]; sy += f * acc.sy[c]; sxx += f * acc.sxx[c]; syy += f * acc.syy[c]; sxy += f * acc.sxy[c];
+    sX += f * acc.sX[c]; sY += f * acc.sY[c]; sx2 += f * acc.sx2[c]; syf += f * acc.syf[c];
+    const t = field.tables[j], q = f * t.marginal[i] * t.dYf;
     if (q > 0 && Number.isFinite(t.meanY[i])) { w += q; wX += q * field.x1s[j]; wY += q * t.meanY[i]; wx2 += q * (field.x1s[j] + field.gapX); wyf += q * t.yf[i]; }
   });
   const expected = w > 0 ? {weight: w / field.x1s.length, Xm: wX / w, Ym: wY / w, x2m: wx2 / w, yfm: wyf / w, slope: (wyf - wY) / w / field.gapX} : null;
-  if (n < 2) return {n, expected};
+  if (n < 2) return {n: Math.round(n), expected};
   const mx = sx / n, my = sy / n;
   const vx = (sxx / n - mx * mx) * n / (n - 1), vy = (syy / n - my * my) * n / (n - 1), cxy = (sxy / n - mx * my) * n / (n - 1);
   const slope = my / mx;
   const err = Math.sqrt(Math.max(0, (vy - 2 * slope * cxy + slope * slope * vx) / (mx * mx * n)));
-  return {n, Xm: sX / n, Ym: sY / n, x2m: sx2 / n, yfm: syf / n, slope, err, expected};
+  return {n: Math.round(n), Xm: sX / n, Ym: sY / n, x2m: sx2 / n, yfm: syf / n, slope, err, expected};
 }

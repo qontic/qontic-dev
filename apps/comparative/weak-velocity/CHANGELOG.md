@@ -1,5 +1,22 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.1 — 2026-11-22 (ten-student review of 0.9.0)
+- Bug: at Basic, "Next: windows over the field" opened stage 4 while the level stayed Basic (no stage button lit). It now reads "(opens Standard)" and switches the level. Next-step buttons are rebuilt with each run, so a finished run's buttons no longer stay up after a restart.
+- Bug: the window's effective area jumped by up to 19% when it moved by 1 nm. Cells were counted by their centres on a 2 nm grid. Edge cells now count by the fraction inside, across the beam and along it. The default window's prediction at (550, 50) nm is −0.360 (was −0.362).
+- Bug: moving the window announced the caption at every step to screen readers. It is now silent while moving and announced once when it stops. The canvas has role="img" and a stage-aware label. The plot Key buttons are named "Legend of the data/velocity plot". The runs slider's text follows the stage.
+- Speed: a 20M Windows run took about 54 s (since 0.7.3); it now takes about 20 s. Redraws are about 6 per second during the run and sampling gets 40 ms per frame. The status line shows the % of runs done.
+- Wording:
+  - Window sliders: "Window centre, along / across" and "Window size, length / width". The size sliders are now at Standard, since the text there explains why the shape matters.
+  - "Circle" became "window" or "outline".
+  - The trace is "a chain of windows, not a path: each dot uses different runs and no particle is followed", both on the drawing and at the start of its caption sentence; steps are "about one gap".
+  - Instants: "detector click at t₂"; the dotted curve is mentioned only when shown.
+  - Pointer hint: the predictions separate below about 50 nm.
+- Text:
+  - Rationale: Wiseman's own position (the operational velocity as the natural definition, giving the standard guidance law for deterministic motion), before the Dürr–Goldstein–Zanghì reply.
+  - Physics: j in Griffiths' notation; stage 4's reading along the beam is modelled as noise with no back-action; why the wave is drawn beyond the strong plane.
+  - Instructor sequence says which level each step needs.
+- Layout: the Results columns no longer squeeze labels to one word per line. The window has a dark casing. On phones the arrow is thicker and the "mean weak" label is left out. The off-scale label sits below the map switches.
+
 ## 0.9.0 — 2026-11-22
 - N slits: Advanced → Number of slits, 1–8 (Standard level and up; default 2). They are equal Gaussian slits, equally spaced, the same model as the analytical N-slit app. The Gaussian-sum model already took any number of apertures, so it stays exact. The separation limit keeps the outermost slits on the screen. Dragging an outer slit sets the spacing (slit i sits at (i − (N−1)/2) × separation); a middle slit has no handle. Link parameter `slits`.
 - Checked:
