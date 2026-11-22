@@ -32,9 +32,9 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="js/palette.js?cache=te27"></script>
+    <script src="js/palette.js?cache=te28"></script>
     <script>window.qonticTemplateLayout = true;</script>
-    <script src="js/double-slit.js?cache=te27"></script>
+    <script src="js/double-slit.js?cache=te28"></script>
     <link rel="stylesheet" href="css/qsf-style.css?v=20260908-layout3">
     <script defer src="../../../shared/back-home.js"></script>
     <style>
@@ -57,11 +57,11 @@
     </style>
     <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
     <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-    <link rel="stylesheet" href="css/qontic-template.css?cache=te27">
+    <link rel="stylesheet" href="css/qontic-template.css?cache=te28">
     <script type="importmap">
       {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
     </script>
-    <script type="module" src="js/qontic-template.js?cache=te27"></script>
+    <script type="module" src="js/qontic-template.js?cache=te28"></script>
 </head>
 <body>
   <!-- Loading overlay — visible until JS init completes -->
@@ -324,7 +324,7 @@
                <td class="label">Energy:</td>
 	       <td align=right class="value" id="particleEnergy">0</td><td> 
              </tr>
-              <tr data-tip="Distance between neighbouring bright fringes, measured on the predicted pattern; “no fringes” when the waves from the slits do not overlap. Two slits (Standard and Expert): also the textbook value λ(D−L)/d, with D the screen position, L the wall position (D−L = wall-to-screen distance) and d the slit separation. The two can differ by several per cent when only a few fringes fit under the single-slit envelope (the screen is then not in the far field). Three or more: the textbook N-slit pattern (spacing λD/d, narrow principal maxima, weak maxima between) needs the screen much farther than W²/λ, with W the width of the open slit array; closer, the screen is in the near field (see Physics, Near and far field).">
+              <tr data-tip="Distance between neighbouring bright fringes, measured on the predicted pattern (in the numerical engine on the analytical curve); “no fringes” when the waves from the slits do not overlap. Two slits (Standard and Expert): also the textbook value λ(D−L)/d, with D the screen position, L the wall position (D−L = wall-to-screen distance) and d the slit separation. The two can differ by up to about 15% when only a few fringes fit under the single-slit envelope (the screen is then not in the far field). Three or more: the textbook N-slit pattern (spacing λ(D−L)/d, narrow principal maxima, weak maxima between) needs the screen much farther than W²/λ, with W the width of the open slit array; closer, the screen is in the near field (see Physics, Near and far field).">
                <td class="label">Fringes:</td>
 	       <td align=right class="value" id="fringeScale">–</td><td> 
              </tr>
@@ -332,7 +332,7 @@
                <td class="label">Hits:</td>
                <td align=right class="value"><span id="nhits">0</span></td> 
            </tr>
-           <tr class="info-box bohmian-only" data-tip="Pilot-Wave trials that gave no screen hit: absorbed at the slit wall, or passing outside the displayed screen. Orthodox and Many-Worlds count screen registrations only, so the same per-packet setting gives more hits there.">
+           <tr class="info-box bohmian-only" data-tip="Particles that gave no screen hit: absorbed at the slit wall, or passing outside the displayed screen. With Direct PW on (the default) only particles that get through are shown, so none are absorbed and hits per packet match the other views (numerical engine: from the second packet on).">
                <td class="label">No hit:</td>
                <td align=right class="value"><span id="noHitCount">0 absorbed · 0 missed</span></td>
            </tr>
@@ -383,7 +383,7 @@
            <canvas id="paletteScaleCanvas2" width="40" height="100" data-tip="Wave 2 (slit 2) color palette scale" style="position: absolute; left: 0px; bottom: 50px; z-index: 10; display: none;"></canvas>
            <canvas id="paletteScaleCanvas1" width="40" height="100" data-tip="Wave 1 (slit 1) color palette scale" style="position: absolute; left: 0px; bottom: 150px; z-index: 10; display: none;"></canvas>
              </div>
-             <div id="shortcut-hint">Space: play/pause · R: reset · S: screenshot · V: cycle view<span data-level-min="standard"> · W: cycle wave display</span></div>
+             <div id="shortcut-hint">Space: play/pause · R: reset · S: screenshot · V: cycle view<span class="te-w-hint" data-level-min="standard"> · W: cycle wave display</span></div>
              </div>
 <!--
     <div id="histo-info">

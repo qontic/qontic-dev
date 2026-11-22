@@ -169,6 +169,8 @@ let whichPathDetector = 'none';
 function detectorSlitIds() { return openSlitIds().filter(k => slitDetector[k]); }
 function syncWhichPathDetector() {
    for (let k = 0; k < MAX_SLITS; k++) if (k >= numSlits || !slitOpen[k]) slitDetector[k] = false;
+   // A which-slit detector needs at least two open slits; with one left it is removed (and shown removed).
+   if (openSlitIds().length < 2) slitDetector.fill(false);
    const ids = detectorSlitIds();
    whichPathDetector = ids.length && openSlitIds().length >= 2 ? 'slits:' + ids.map(k => k + 1).join(',') : 'none';
 }
@@ -486,7 +488,7 @@ function createParameterInput(containerId, id, label, min, max, step, value, uni
       'slit-separation' : 'Slit Separation',
       'source-position' : 'Source Position',
       'detector-distance' : 'Wall-to-screen Distance',
-      'screen-height' : 'Screen Length',
+      'screen-height' : 'Screen length',
       'det-pixels' : 'Detector Pixels',
       'wavelength' : 'Wavelength',
       'particleRate' : 'Number of particles injected per second in real time (your clock, not simulation time)',
@@ -870,6 +872,7 @@ function getSimulationState() {
     },
     numSlits,
     slitOpen: slitOpen.slice(),
+    slitDetector: slitDetector.slice(),
     slit1Open,
     slit2Open,
     displayOpacities: {...displayOpacities},
@@ -963,6 +966,7 @@ function restoreSimulationState() {
     slitOpen[0] = state.slit1Open !== false; slitOpen[1] = state.slit2Open !== false;
   }
   if (!openSlitIds().length) slitOpen[0] = true;
+  slitDetector = Array.from({ length: MAX_SLITS }, (_, k) => Array.isArray(state.slitDetector) && !!state.slitDetector[k] && k < numSlits && !!slitOpen[k]);
   syncLegacySlits();
   updateSlitButton();
 
@@ -1658,7 +1662,7 @@ $(document).ready(function() {
          { value: 'nm', text: 'nm', scale:1.e-6 }
          ], true);
          */
-      createParameterInput('detector', 'screen-height', 'Screen Length', 120, 5000, 10, 1200, [
+      createParameterInput('detector', 'screen-height', 'Screen length', 120, 5000, 10, 1200, [
             { value: 'nm', text: 'nm', scale:1 },
             { value: 'um', text: 'µm', scale:1.e3 },
             { value: 'mm', text: 'mm', scale:1.e6 }
@@ -1707,7 +1711,7 @@ $(document).ready(function() {
       var resetDefaultsBtn = $('<button>', { 
          id: 'resetDefaultsButton', 
          text: 'Reset all settings',
-         title: 'Put every setting of this app back to its default: slits, physics, display and the numerical engine options. The level stays.'
+         title: 'Put every setting of this app back to its default: slits, wavelength and other physics, the view (Orthodox), display, theme and the numerical-engine options. The level stays.'
       });
       resetDefaultsBtn.css({ marginTop: '10px', width: '100%' });
       $('#graphics-parameter-container').append(resetDefaultsBtn);
@@ -2375,6 +2379,7 @@ $(document).ready(function() {
       $(document).on('change', '#slit-at-wall', () => updateSlitCountControls());
       function detectorsChanged() {
          syncWhichPathDetector();
+         try { saveSimulationState(); } catch (_) {}
          updateWhichPathButton();
          updateSlitCountControls();
          updateMathFormulas();

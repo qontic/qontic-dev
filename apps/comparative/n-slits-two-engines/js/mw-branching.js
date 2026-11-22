@@ -1,4 +1,4 @@
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te27';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te28';
 // Count active branch-view time only; pausing does not consume the interval.
 export function createBranchDwellClock(now=()=>performance.now()) {
   let elapsed=0,last=null;
@@ -12,7 +12,7 @@ export function createBranchDwellClock(now=()=>performance.now()) {
 export function mountMWBranching({host,controls,isMW,isRunning}) {
   const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=85',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
-  settings.innerHTML=`<label title="At each hit the picture splits into one small picture per screen pixel: one branch for each possible place of the dot. One branch is followed; the others continue."><input type="checkbox" id="mw-branch-tour"> Slow motion: the world splits at each hit</label><div class="mw-follow mw-choice-row" hidden><select aria-label="Branch selection" title="Random follows Born probabilities; Manual lets you choose."><option value="auto">Random</option><option value="manual">Manual</option></select><label class="mw-probability" title="Show branch probabilities"><input type="checkbox" id="mw-show-probabilities"> Prob.</label></div><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><small class="mw-follow" hidden data-level-min="expert">One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small><small class="mw-follow" hidden data-level-max="standard">Each small picture is one branch: the dot landed at a different place in each. The app follows one of them; the others continue.</small>`;
+  settings.innerHTML=`<label title="At each hit the picture splits into one small picture for each place on the screen where the dot could land: one branch for each. One branch is followed; the others continue."><input type="checkbox" id="mw-branch-tour"> Slow motion: the world splits at each hit</label><div class="mw-follow mw-choice-row" hidden><span class="mw-choice-label">Branch to follow</span><select aria-label="Branch to follow" title="Random: the app picks a branch with its weight |ψ|² (its probability). Manual: you pick by clicking a picture; the record is then no longer a fair sample."><option value="auto">Random</option><option value="manual">Manual</option></select><label class="mw-probability" title="Show each branch's weight |ψ|² (its probability) on its picture"><input type="checkbox" id="mw-show-probabilities"> Weights</label></div><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><small class="mw-follow" hidden data-level-min="expert">One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small><small class="mw-follow" hidden data-level-max="standard">Each small picture is one branch: the dot landed at a different place in each. The app follows one of them; the others continue.</small>`;
   controls.append(settings);
   const enabled=settings.querySelector('input'),mode=settings.querySelector('select');
   const overlay=document.createElement('div');overlay.className='mw-branch-overlay';overlay.hidden=true;
@@ -82,7 +82,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
       session.from=session.tiles[index];
       tile.setAttribute('aria-current','true');
       zoom.width=snapshot.width;zoom.height=snapshot.height;zoom.hidden=false;
-      status.textContent=`Selected pixel ${index+1} · entering this branch`;
+      status.textContent=document.body.dataset.qonticLevel==='basic'?`Chosen place ${index+1} · entering this branch`:`Selected pixel ${index+1} · entering this branch`;
       renderCamera(0);
       scroll.hidden=true;
     };
@@ -158,7 +158,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     };
     weights.forEach((weight,index)=>{
       const button=document.createElement('button');button.type='button';button.className='mw-branch-tile';
-      const percent=(100*weight).toPrecision(3)+'%';button.setAttribute('aria-label',`Follow pixel ${index+1}, weight ${percent}`);button.title=`Pixel ${index+1} · Born weight ${percent}`;
+      const percent=(100*weight).toPrecision(3)+'%';button.setAttribute('aria-label',`Follow branch ${index+1}, weight ${percent}`);button.title=document.body.dataset.qonticLevel==='basic'?`Place ${index+1} on the screen · probability ${percent}`:`Pixel ${index+1} · Born weight ${percent}`;
       button.disabled=true;
       const miniature=document.createElement('canvas');miniature.width=192;miniature.height=Math.round(192/aspect);
       const label=document.createElement('span');label.textContent=labelTexts[index];label.hidden=!displayLabels;button.append(miniature,label);button.addEventListener('click',()=>choose(index));grid.append(button);
@@ -237,7 +237,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
         if(!session.splitDone){
           session.splitTime+=dt;
           renderSplit(session.splitTime);
-          status.textContent='Detection · outcome branches separating';
+          status.textContent=document.body.dataset.qonticLevel==='basic'?'The dot lands · the world splits':'Detection · outcome branches separating';
           if(session.splitTime>=splitDuration){
             session.splitDone=true;session.elapsed=0;zoom.hidden=true;
             scroll.style.visibility='';status.style.opacity='1';
@@ -245,14 +245,14 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
           }
         }else if(session.selected===null){
           session.elapsed+=dt;
-          status.textContent=mode.value==='manual'?`${count} outcome branches · choose a pixel to follow`:(document.body.dataset.qonticLevel==='basic'?`${count} branches · following one, chosen by its probability…`:`${count} outcome branches · following one by Born weight…`);
+          status.textContent=mode.value==='manual'?(document.body.dataset.qonticLevel==='basic'?`${count} branches · click a picture to follow it`:`${count} outcome branches · choose a pixel to follow`):(document.body.dataset.qonticLevel==='basic'?`${count} branches · following one, chosen by its probability…`:`${count} outcome branches · following one by Born weight…`);
           if(mode.value==='auto'&&session.elapsed>=1000)choose(selected);
         }else{
           session.zoomTime+=dt;
           // Let the selection register before moving the camera.
           const progress=Math.max(0,Math.min(1,(session.zoomTime-350)/1200));
           renderCamera(progress);
-          status.textContent=`Following pixel ${session.selected+1} · other branches continue`;
+          status.textContent=document.body.dataset.qonticLevel==='basic'?`Following place ${session.selected+1} of ${count} on the screen · the other branches continue`:`Following pixel ${session.selected+1} · other branches continue`;
           if(session.zoomTime>=2000){const index=session.selected;cancel();onSelect(index);return;}
         }
       }else status.textContent='Paused · press Start to continue branching';

@@ -6,7 +6,7 @@
 // the equation is i d_tau psi = -1/2 lap_xi psi + V psi - i W psi, solved by leapfrog
 // with the fourth-order (nine-point cross) Laplacian, a constant step (stable for
 // dt (16/3 + V0) < 1), a weak
-// Robert–Asselin filter (nu = 0.01) against leapfrog's alternating mode, and smooth
+// Robert–Asselin filter (nu = 0.002) against leapfrog's alternating mode, and smooth
 // absorbing layers (-i W) at the edges of the domain.
 //
 // All slit and wall geometry comes from the geometry object (slit-geometry.js) that
@@ -325,7 +325,9 @@ vec2 vel(vec2 x){
 // lost precision for large seeds on GPUs and removed far too many particles where the
 // removal probability per step is small (the Mask layer: 87 hits for 134 expected).
 uint hashu(uint x){ x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; x ^= x >> 16; return x; }
-float rnd01(){ uint h = hashu(uint(gl_VertexID) * 0x9e3779b1u ^ hashu(uint(uFrame) + 0x632be5abu)); return float(h >> 8) * (1. / 16777216.); }
+// Seeded by the particle's own seed (aState.w), so a replayed Direct-PW trial particle draws the
+// same numbers, while fresh particles of a new packet draw new ones.
+float rnd01(){ uint h = hashu(floatBitsToUint(aState.w) * 0x9e3779b1u ^ hashu(uint(uFrame) + 0x632be5abu)); return float(h >> 8) * (1. / 16777216.); }
 void main(){
   vState = aState;
   gl_Position = vec4(-2.);
@@ -816,6 +818,9 @@ export function createNumericalEngine() {
 
   function newPacket() {
     const { p } = G;
+    // Trial particles are valid only if nothing changed since they were launched (checked before
+    // syncRecords below, which itself counts as a change).
+    const ghostsValid = !!(direct && ghosts && ghostVer === uniformVersion);
     gl.bindVertexArray(vao);
     gl.useProgram(progInit);
     setPotentialUniforms(progInit);
@@ -845,16 +850,14 @@ export function createNumericalEngine() {
     const n = p.particles;
     const fresh = () => { const x = G.x0 + randn() * p.sx, tau = (x - G.geom.source) / p.k, sy = s * Math.sqrt(1 + (tau / (2 * s * s)) ** 2); return [x, randn() * sy]; };
     let cands = [];
-    const total = !direct ? n : ghosts && ghostN === n && ghostTotal > n ? ghostTotal : Math.min(DIRECT_MAX, n + Math.ceil(1.6 * n / Math.max(0.05, passFraction)) + 50);   // slot layout kept while it is reused
-    if (direct && ghosts && ghostVer === uniformVersion && ghostTotal === total) {
+    const total = !direct ? n : ghosts && ghostN === n && ghostTotal > n ? ghostTotal : Math.min(DIRECT_MAX, n + Math.ceil(1.6 * n / Math.max(0.08, passFraction)) + 50);   // slot layout kept while it is reused
+    if (ghostsValid && ghostTotal === total) {
       const passedG = ghosts.filter(g => g.passed);
       if (ghosts.length) passFraction = Math.max(0.03, 0.7 * passFraction + 0.3 * passedG.length / ghosts.length);
       for (let i = passedG.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [passedG[i], passedG[j]] = [passedG[j], passedG[i]]; }
       cands = passedG.slice(0, n);
-    } else if (direct && ghosts && ghosts.length && ghostTotal === total) {
-      passFraction = Math.max(0.03, 0.7 * passFraction + 0.3 * ghosts.filter(g => g.passed).length / ghosts.length);
     }
-    lastDirect = { conditioned: cands.length > 0, shown: cands.length || n };
+    lastDirect = { conditioned: cands.length > 0, shown: cands.length || n, requested: n };
     partData = new Float32Array(total * 4);
     parts = []; const used = new Uint8Array(total);
     for (const c of cands) { used[c.slot] = 1; partData.set([G.gx(c.x0), G.gy(c.y0), 1, c.seed], 4 * c.slot); parts.push({ x: c.x0, y: c.y0, x0: c.x0, y0: c.y0, slot: c.slot, path: [[c.x0, c.y0]], done: false, passed: false, absorbed: false, wallY: undefined, slitSide: undefined, numerical: true, conditioned: true }); }
@@ -1015,7 +1018,8 @@ export function createNumericalEngine() {
   }
 
   function collect(events) {
-    if (ghosts) for (const g of ghosts) { if (g.done) continue; const i = g.slot, x = G.mx(partData[4 * i]), mode = partData[4 * i + 2]; if (x >= G.geom.wall) g.passed = true; if (mode >= 2 && mode < 10) g.done = true; }
+    // A trial particle passes when it leaves the wall's exit face without being absorbed.
+    if (ghosts) for (const g of ghosts) { if (g.done) continue; const i = g.slot, gx = partData[4 * i], mode = partData[4 * i + 2]; if (mode === 3) { g.passed = false; g.done = true; continue; } if (gx > G.drive + 0.5) { g.passed = true; g.done = true; } else if (mode >= 2 && mode < 10) g.done = true; }
     for (const a of parts) {
       if (a.done) continue; const i = a.slot;
       const x = G.mx(partData[4 * i]), y = G.my(partData[4 * i + 1]), mode = partData[4 * i + 2];

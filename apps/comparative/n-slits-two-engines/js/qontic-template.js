@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te27';
-import { mountMWBranching } from './mw-branching.js?cache=te27';
-import { APP_RELEASE } from './release.js?cache=te27';
-import { mountNSlitQuiz } from './quiz.js?cache=te27';
+import { mountPacketEngine } from './packet-engine.js?cache=te28';
+import { mountMWBranching } from './mw-branching.js?cache=te28';
+import { APP_RELEASE } from './release.js?cache=te28';
+import { mountNSlitQuiz } from './quiz.js?cache=te28';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te27';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te28';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -227,13 +227,23 @@ $(function () {
     layers.append(row);
   }
   layerTable.remove();
+  // Plain tooltips for controls a beginner meets first.
+  { const nf = document.getElementById('niceFringesButton'); if (nf) { nf.dataset.tipFull = nf.title; }
+    const wl = document.querySelector('label[for="wavelength"]') || document.getElementById('wavelength')?.closest('.input-group')?.querySelector('label'); if (wl && !wl.title) wl.title = 'Wavelength λ of the electrons (their de Broglie wavelength). Longer wavelength: wider fringes.';
+    const wli = document.getElementById('wavelength'); if (wli && !wli.title) wli.title = 'Wavelength λ of the electrons';
+    window.qonticBasicTips = level => { if (nf) nf.title = level === 'basic' ? 'Picks a slit width, separation and screen distance that give clear fringes, and starts a new run.' : nf.dataset.tipFull; };
+  }
+  // Particle and trajectory colours apply only with the Uniform particle colour (not at Basic, where particles are coloured by slit).
+  for (const id of ['traj-color', 'part-color']) { const el = document.getElementById(id); if (el) { el.dataset.levelMin = 'standard'; el.title = 'Particle colour (used when the Pilot-Wave Color setting is Uniform)'; } }
+  { const tips = { 'Wave': 'Opacity of the wave picture; the swatch opens the wave palettes.', 'Color scale': 'Opacity of the colour scale shown with the non-Classic palettes.', 'Probability curve': 'Opacity and colour of the predicted distribution on the screen panel.', 'Screen hits': 'Opacity and colour of the counted hits on the screen panel.', 'Sensor band': 'Shading of the detector strip at the screen by hit count.', 'Trajectories': 'Opacity of the Pilot-Wave particle paths.', 'Particles': 'Opacity of the Pilot-Wave particles.', 'Slit wall': 'Opacity and colour of the wall with the slits.', 'Screen': 'Opacity and colour of the screen line.', 'Distance scales': 'Opacity and colour of the scale bars.' };
+    for (const row of layers.children) { const name = Object.keys(tips).find(k => row.textContent.trim().startsWith(k)); if (name && !row.title) row.title = tips[name]; } }
   // Canvas background: slate grey (default) or black. Stored per browser.
   {
     const row = document.createElement('div');
     row.className = 'input-group packet-inline engine-slits-row te-bg-row';
     row.innerHTML = '<label title="Colour behind the wave.">Background</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-te-bg="grey">Grey</button><button type="button" class="qontic-app-toggle" data-te-bg="black">Black</button></span>';
     layers.after(row);
-    const sync = () => { const bg = window.teBackground?.() || 'grey'; row.querySelectorAll('[data-te-bg]').forEach(b => { const on = b.dataset.teBg === bg; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); }); };
+    const sync = () => { let bg = 'grey'; try { bg = localStorage.getItem('qontic-te-bg') === 'black' ? 'black' : 'grey'; } catch (_) {} row.querySelectorAll('[data-te-bg]').forEach(b => { const on = b.dataset.teBg === bg; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); }); };
     row.querySelectorAll('[data-te-bg]').forEach(b => b.addEventListener('click', () => {
       try { localStorage.setItem('qontic-te-bg', b.dataset.teBg); } catch (_) {}
       sync(); invalidateWaveCache(); renderSetupFlag = 1; lastCycleIndex = -1;
@@ -423,7 +433,7 @@ $(function () {
     filename: 'n-slits-two-engines', labelNode:document.getElementById('view-label'), rangeControl:window.qonticWaveRangeControl, dynamicCanvases:true,
     coordinateControl:coordinates,
     scaleControl:{getVisible:()=>elementOpacity('plot_scales')>0,setVisible:shown=>{if(!shown)lastScaleOpacity=elementOpacity('plot_scales')||1;const slider=document.getElementById('plot_scales-opacity');slider.value=shown?lastScaleOpacity*100:0;slider.dispatchEvent(new Event('input',{bubbles:true}));slider.dispatchEvent(new Event('change',{bubbles:true}));}},
-    getShareUrl: () => location.href.split('#')[0] + buildUrlHash(),
+    getShareUrl: () => { const u = new URL(location.href.split('#')[0]); u.searchParams.delete('level'); return u.toString() + buildUrlHash(); },
     getCanvases: () => {
       const canvases=[...container.querySelectorAll('canvas')];
       const visibleBranches=canvases.filter(canvas=>{
@@ -563,6 +573,7 @@ $(function () {
     window.qonticPacketEngine?.setLevel?.(level);
     quizApi?.setLevel?.(level);
     levelDefaults(level);
+    try { window.qonticBasicTips?.(level); } catch (_) {}
     // Many Worlds at Basic shows the world splitting at each hit (slow-motion branching) unless
     // the user has switched it off there.
     { const tour = document.getElementById('mw-branch-tour'), K = 'qontic-te-mw-tour-basic';

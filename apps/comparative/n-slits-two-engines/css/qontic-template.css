@@ -480,3 +480,7 @@ body.qontic-light.analytical-template .view-caption .cap-swatch { border-color: 
 body[data-view="quiz"] #view-label { visibility: hidden; }
 #palettePopup h3 { padding-right: 64px; }
 .te-range-note { display:inline-block; margin-left:6px; font-size:11px; color:#ffd27a; }
+
+/* Classic palette: controls that act only with the other palettes are hidden. */
+body.te-classic .te-w-hint, body.te-classic .te-row-palette-scale, body.te-classic .qontic-media-toolbar button[aria-label="Wave range"], body.te-classic .qontic-range-panel { display: none !important; }
+.te-unavailable { opacity: .45; }

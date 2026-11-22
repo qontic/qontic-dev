@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te27';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te27';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te27';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te27';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te27';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te27';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te27';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te27';
-import {createNumericalEngine} from './numerical-engine.js?cache=te27';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te27';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te27';
-import {classifySlitSide} from './source-packet-model.js?cache=te27';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te28';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te28';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te28';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te28';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te28';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te28';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te28';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te28';
+import {createNumericalEngine} from './numerical-engine.js?cache=te28';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te28';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te28';
+import {classifySlitSide} from './source-packet-model.js?cache=te28';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -21,8 +21,8 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  extentRow.after(balanceRow);
  const balance=balanceRow.querySelector('input'),balanceEqual=balanceRow.querySelector('button'),balanceOutput=balanceRow.querySelector('output');
  const syncBalance=()=>{const value=+balance.value;balanceOutput.textContent=value===0?'Equal':value===100?'Upper only':value===-100?'Lower only':`${value>0?'Upper':'Lower'} ${Math.round(100/(1+(1-Math.abs(value)/100)**2))}%`;};
- function slitWidthHelp(directActive=false){const selected=Number(extent.value),n=directActive?3:selected,span=2*n*Number(width.value);width.title='Gaussian transmission σ = '+width.value+' nm. The displayed opening and cyan ticks currently span ±'+n+'σ: '+span.toFixed(0)+' nm total.'+(directActive?' Direct PW displays its fixed ±3σ preparation window.':' The common wave model retains its Gaussian tails.');width.parentElement.querySelector('label').title=width.title;width.parentElement.querySelector('input[type=number]').title=width.title;extent.title=directActive?'Direct PW overrides the wall drawing with its fixed ±3σ preparation window. This selected ±'+selected+'σ extent is retained for ordinary PW, Orthodox and Many-Worlds.':'Expert display control: each drawn opening extends ±'+selected+' aperture σ from its center. The full opening is '+(2*selected*Number(width.value)).toFixed(0)+' nm.';extent.parentElement.querySelector('input[type=number]').title=extent.title;}
- length.title='Packet length is limited to at least 50 nm so kσₓ remains in the narrow-band working range for λ ≤ 50 nm.';length.parentElement.querySelector('input[type=number]').title=length.title;
+ function slitWidthHelp(){const selected=Number(extent.value),span=2*selected*Number(width.value);width.title='Analytical engine: Gaussian transmission σ = '+width.value+' nm; the drawn opening spans ±'+selected+'σ ('+span.toFixed(0)+' nm) and the wave keeps its Gaussian tails. Numerical engine (Reflecting/Absorbing wall): a sharp-edged opening of the drawn width ('+span.toFixed(0)+' nm).';width.parentElement.querySelector('label').title=width.title;width.parentElement.querySelector('input[type=number]').title=width.title;extent.title='Half-width of each drawn slit opening, in units of σ ('+(2*selected*Number(width.value)).toFixed(0)+' nm in all). Analytical engine: display only. Numerical engine, Reflecting/Absorbing wall: the actual half-width of the hard-edged opening (changes the computed pattern).';extent.parentElement.querySelector('input[type=number]').title=extent.title;}
+ length.title='Packet length is at least 50 nm, so kσₓ ≥ 4.5 (Δk/k ≤ 0.11) for every wavelength the app allows (λ ≤ 70 nm).';length.parentElement.querySelector('input[type=number]').title=length.title;
  const tailRow=document.createElement('div');tailRow.innerHTML="<div class=\"input-group packet-inline\"><label for=\"packet-tail-length\">Tail length</label><input id=\"packet-tail-length\" aria-label=\"Trajectory tail length\" type=\"range\" min=\"0\" max=\"2000\" step=\"25\" value=\"250\"><input aria-label=\"Trajectory tail length value\" type=\"number\" min=\"0\" max=\"2000\" step=\"25\" value=\"250\"><output>nm</output></div>";panel.append(tailRow);const tailLength=tailRow.querySelector('input[type=range]');
  const intervalRow=document.createElement('div');intervalRow.innerHTML='<div class="input-group packet-inline"><label for="packet-interval">Packet interval</label><input id="packet-interval" aria-label="Packet interval" title="Time between source launches, in picoseconds of simulation time. Independent of packet speed and width." type="range" min="0" max="300" step="5" value="0"><input aria-label="Packet interval value" type="number" min="0" max="300" step="5" value="0"><output>ps</output></div>';panel.append(intervalRow);const interval=intervalRow.querySelector('input[type=range]');
  function maxTailSafeSeparation(limit,n){
@@ -96,17 +96,17 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   const requestedSeparation=userSep;
   separationRange.max=separationNumber.max=dynamicSeparationMax;
   separationRange.value=separationNumber.value=String(Math.max(separationMin,Math.min(dynamicSeparationMax,requestedSeparation)));
-  {const st=document.getElementById('nice-fringes-status'),note=requestedSeparation>physicalSepMax+.5?`Slit separation limited to ${dynamicSeparationMax} nm (you set ${Math.round(requestedSeparation)} nm): the source and the screen must cover every open slit. It comes back when the limit allows.`:'';
+  {const st=document.getElementById('nice-fringes-status'),note=requestedSeparation>physicalSepMax+.5?(level==='basic'?`With more slits the largest separation is ${dynamicSeparationMax} nm, so they all fit on the screen (you set ${Math.round(requestedSeparation)} nm; it comes back with fewer slits).`:`Slit separation limited to ${dynamicSeparationMax} nm (you set ${Math.round(requestedSeparation)} nm): the source and the screen must cover every open slit. It comes back when the limit allows.`):'';
    if(st&&(note||st.textContent===sepLimitNote)){st.textContent=note;}sepLimitNote=note;}
   slitSeparation=+separationRange.value;
   screenHeight=+screenRange.value;
   syncPacketInput(width);syncPacketInput(extent);slitWidthHelp();
-  directedRow.title='PW postselection uses a fixed ±3σ window around each Gaussian slit, independently of the displayed ±'+n+'σ Slit extent. It does not add a steering force.';
-  separationRange.title='Maximum '+dynamicSeparationMax+' nm: slit cores stay on the wall and the analytical transmitted probability remains concentrated in the drawn openings.';
+  directedRow.title='Show only particles that get through the wall (on by default; adds no force). Analytical engine: exact samples conditioned on transmission within ±3σₐ of an open slit. Numerical engine: trial particles of the previous packet that got through, started again from the same place (the first packet after a start or change is shown in full).';
+  separationRange.title=level==='basic'?'Distance between neighbouring slits (up to '+dynamicSeparationMax+' nm here).':'Maximum '+dynamicSeparationMax+' nm: slit cores stay on the wall and the analytical transmitted probability remains concentrated in the drawn openings.';
   separationNumber.title=separationRange.title;
  }
  const directedRow=document.createElement('label');directedRow.className='bohmian-only packet-directed-inline';directedRow.dataset.levelMin='expert';directedRow.title='PW postselection uses a fixed ±3σ window around each Gaussian slit, independently of the displayed Slit extent. It does not add a steering force.';directedRow.innerHTML='Direct PW <input id="packet-directed-slits" type="checkbox">';const directed=directedRow.querySelector('input');directed.checked=localStorage.getItem('qontic-pw-directed-slits')!=='false';
- const slitColorRow=document.createElement('label');slitColorRow.className='bohmian-only packet-slit-colors';slitColorRow.dataset.levelMin='standard';slitColorRow.title='Pilot-Wave particle and hit color. Uniform uses the selected particle color. By slit colours each particle by the slit it went through (sky blue and orange for two slits, one fixed colour per slit for more) and marks on the screen the band reached by the particles of each slit. Spectrum maps each exact wall-crossing position continuously from blue (top) to yellow (bottom), with each histogram bin using the mean hue of its particles. This changes only the display.';slitColorRow.innerHTML='<span>Color</span><select id="packet-particle-color" aria-label="Pilot-Wave particle color"><option value="uniform">Uniform</option><option value="slit">By slit</option><option value="spectrum">Spectrum</option><option value="updown">Start up/down</option><option value="rightleft">Start ahead/behind</option><option value="quadrant">Start quadrant</option><option value="radial">Start radial</option></select>';const particleColorMode=slitColorRow.querySelector('select');let particleColorEngine='ana';particleColorMode.value=localStorage.getItem('qontic-pw-particle-color')||(localStorage.getItem('qontic-pw-color-by-slit')==='true'?'slit':'uniform');
+ const slitColorRow=document.createElement('label');slitColorRow.className='bohmian-only packet-slit-colors';slitColorRow.dataset.levelMin='standard';slitColorRow.title='Pilot-Wave particle and hit color. Uniform uses the selected particle color. By slit colours each particle by the slit it went through (sky blue and orange for two slits, one fixed colour per slit for more) and marks on the screen the band reached by the particles of each slit. Spectrum maps each exact wall-crossing position continuously from blue (top) to yellow (bottom), with each histogram bin using the mean hue of its particles. Start up/down, ahead/behind, quadrant, radial: colour by where the particle started in the packet (shows that paths keep their order). This changes only the display.';slitColorRow.innerHTML='<span>Color</span><select id="packet-particle-color" aria-label="Pilot-Wave particle color"><option value="uniform">Uniform</option><option value="slit">By slit</option><option value="spectrum">Spectrum</option><option value="updown">Start up/down</option><option value="rightleft">Start ahead/behind</option><option value="quadrant">Start quadrant</option><option value="radial">Start radial</option></select>';const particleColorMode=slitColorRow.querySelector('select');let particleColorEngine='ana';particleColorMode.value=localStorage.getItem('qontic-pw-particle-color')||(localStorage.getItem('qontic-pw-color-by-slit')==='true'?'slit':'uniform');
  function syncPacketInput(control){const number=control.parentElement.querySelector('input[type=number]');number.value=control.value;number.max=control.max;number.min=control.min;control.parentElement.querySelector('output').textContent=control===interval?(+interval.value===0?'Auto':particleType==='neutron'?'ns':'ps'):control===extent?'σ':'nm';if(control===interval)interval.title='0 = wait until the previous packet has completed all outcomes. Positive values set time between source launches in '+(particleType==='neutron'?'nanoseconds':'picoseconds')+' of simulation time; independent of packet speed and width.';}
  for(const number of panel.querySelectorAll('input[type=number]')){const commitNumber=()=>{const range=number.parentElement.querySelector('input[type=range]'),value=Number(number.value);if(Number.isFinite(value))range.value=Math.max(+range.min,Math.min(+range.max,value));range.dispatchEvent(new Event('input',{bubbles:true}));};number.addEventListener('change',commitNumber);number.addEventListener('blur',commitNumber);number.addEventListener('keydown',event=>{if(event.key==='Enter'){commitNumber();number.blur();}});}
  tailLength.addEventListener('input',()=>{syncPacketInput(tailLength);for(const a of particles)trimTail(a.path,+tailLength.value/100);draw();});
@@ -144,7 +144,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  // dev.25: Lines became the default trail; move stored Glow once.
  try{if(!localStorage.getItem('qontic-te-trails-v25')){localStorage.setItem('qontic-te-trails-v25','1');if(numOpt.trails==='glow'&&!numOpt.onePreset){numOpt.trails='lines';const o=JSON.parse(localStorage.getItem('qontic-te-num-opts')||'{}');o.trails='lines';localStorage.setItem('qontic-te-num-opts',JSON.stringify(o));}}}catch(_){}
  let numCurveShown=false,maskSaved=false;const ANA_COMPARE='#9b4fd0';
- let level='expert',expertSaved=null,basicHitsSaved=null;const BASIC_HITS=30;
+ let engineBeforeBasic=null,level='expert',expertSaved=null,basicHitsSaved=null;const BASIC_HITS=30;
  const basicHits=()=>{let v=30;try{v=+(localStorage.getItem('qontic-te-basic-hits')||30);}catch(_){}return Math.max(1,Math.min(100,Math.round(v)||30));};
  // Basic Core: "Electrons per wave" (1–100), the number of electrons each drawn wave stands for.
  let basicHitsRow=null;
@@ -157,7 +157,9 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    r.addEventListener('input',()=>{basicHitsRow.querySelector('output').textContent=r.value;});
    r.addEventListener('change',()=>{try{localStorage.setItem('qontic-te-basic-hits',r.value);}catch(_){}if(level==='basic'&&!window.qonticMWBranches?.enabled)document.getElementById('MaxPart-group')?.setValueInFirstUnit(+r.value);syncBasicHits();});}
   const r=basicHitsRow.querySelector('input'),slow=!!window.qonticMWBranches?.enabled&&interpretation==='manyworlds';
-  r.value=basicHits();basicHitsRow.querySelector('output').textContent=slow?'1':r.value;r.disabled=slow;
+  // Show the number actually in use (slow motion and quiz demonstrations can set it).
+  const inUse=+document.getElementById('MaxPart-input')?.value||basicHits();
+  r.value=level==='basic'?inUse:basicHits();basicHitsRow.querySelector('output').textContent=r.value;r.disabled=slow;
   r.title=slow?'Many Worlds slow motion sends one electron per wave.':'';
  }
  const saveNumOpt=()=>{const out={...numOpt,rv:1};if(expertSaved)Object.assign(out,expertSaved);localStorage.setItem('qontic-te-num-opts',JSON.stringify(out));};
@@ -195,7 +197,9 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   try{slitConfigurationChanged();updateSlitCountControls();}catch(_){}
   // Its own settings, not whatever was set before: reflecting wall, instant reflecting blade, Schrödinger current.
   numSlitModel='reflecting';Object.assign(numOpt,{showChange:true,replay:false,blade:'reflecting',tau:0,guide:'schrodinger'});replay.events=[];replay.pending=[];replay.start=null;saveNumOpt();syncShutterUI();
-  const atWall=document.getElementById('slit-at-wall');if(atWall&&!atWall.checked){atWall.checked=true;atWall.dispatchEvent(new Event('change',{bubbles:true}));}
+  const atWall=document.getElementById('slit-at-wall'),atWallWas=!!atWall?.checked;if(atWall&&!atWall.checked){atWall.checked=true;atWall.dispatchEvent(new Event('change',{bubbles:true}));}
+  // The tick box is put back once the click has been queued.
+  if(atWall&&!atWallWas)setTimeout(()=>{atWall.checked=false;atWall.dispatchEvent(new Event('change',{bubbles:true}));},700);
   $('#resetButton').trigger('click');
   setTimeout(()=>{$('#startButton').trigger('click');setTimeout(()=>document.querySelector('#slit-open-buttons [data-slit="1"]')?.click(),150);},50);
  }
@@ -208,7 +212,9 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   // The Mask wall is an Expert option (checking the numerical engine against the analytical one).
   if(level!=='expert'&&numSlitModel==='mask'){maskSaved=true;numSlitModel='reflecting';resetEngine();}
   else if(level==='expert'&&maskSaved){maskSaved=false;numSlitModel='mask';resetEngine();}
-  if(level==='basic'){if(onePreset)toggleOneParticle(false);if(engine==='numerical')setEngine('analytical');}
+  // Basic runs the analytical engine; the engine chosen above Basic comes back when leaving it.
+  if(level==='basic'){if(onePreset)toggleOneParticle(false);if(engine==='numerical'){engineBeforeBasic='numerical';setEngine('analytical');}}
+  else if(engineBeforeBasic){const e=engineBeforeBasic;engineBeforeBasic=null;if(e!==engine)setEngine(e);}
   // Basic: 30 hits per packet (dots arrive one by one); the user's number comes back above Basic.
   {const g=document.getElementById('MaxPart-group'),inp=document.getElementById('MaxPart-input');
    // Basic: its own "Electrons per wave" value (default 30); the Standard/Expert value is kept and comes back.
@@ -262,9 +268,9 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    <div class="input-group packet-inline"><label for="num-bladew" title="Strength of the absorbing blade, W in units of the packet energy E.">Blade W/E</label><input id="num-bladew" type="range" min="0.5" max="20" step="0.5"><input id="num-bladew-n" type="number" min="0.5" max="20" step="0.5"><output></output></div>
    <div class="input-group packet-inline"><label title="Each new packet starts from the slits as they were when the first change was made, and replays the slit and detector changes at the same packet times (with the same blade settings), so the hits keep accumulating for the same experiment. Off: the next packet uses the slits as they are.">Replay clicks</label><input id="num-replay" type="checkbox" style="justify-self:start"><span></span><output></output></div>
    <div class="input-group packet-inline"><label title="Turn on before changing a slit during a run. At the first slit change of a packet a copy of the wave is started that keeps the old slits; the picture then shows the live wave minus that reference (times the gain), the dashed line marks the cut (the part of the wave that had left the wall when the change started), and the canvas gives |δψ|/|ψ| ahead of and behind it. Off with detectors.">Show change</label><input id="num-change" type="checkbox" style="justify-self:start"><input id="num-gain" type="range" min="1" max="50" step="1" title="Change gain"><output id="num-gain-o"></output></div>
-   <div class="input-group packet-inline engine-slits-row"><label title="Classic look: Glow keeps a fading image of where the particles have been (half-life below), as in the numerical N-slit app; Lines draws each particle's recent path.">Trails</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-trails="glow">Glow</button><button type="button" class="qontic-app-toggle" data-num-trails="lines">Lines</button></span></div>
+   <div class="input-group packet-inline engine-slits-row"><label title="With the Classic wave palette: Glow keeps a fading image of where the particles have been (half-life below), as in the numerical N-slit app; Lines draws each particle's recent path.">Trails</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-trails="glow">Glow</button><button type="button" class="qontic-app-toggle" data-num-trails="lines">Lines</button></span></div>
    <div class="input-group packet-inline"><label for="num-half" title="Glow trails: time for a trail to fade to half its brightness (seconds of real time).">Trail half-life</label><input id="num-half" type="range" min="0.2" max="10" step="0.1"><input id="num-half-n" type="number" min="0.2" max="10" step="0.1"><output>s</output></div>
-   <div class="input-group packet-inline"><label for="num-dot" title="Classic look: radius of the glowing particle dots, in pixels.">Particle size</label><input id="num-dot" type="range" min="1" max="8" step="0.5"><input id="num-dot-n" type="number" min="1" max="8" step="0.5"><output>px</output></div>
+   <div class="input-group packet-inline"><label for="num-dot" title="With the Classic wave palette: radius of the glowing particle dots, in pixels.">Particle size</label><input id="num-dot" type="range" min="1" max="8" step="0.5"><input id="num-dot-n" type="number" min="1" max="8" step="0.5"><output>px</output></div>
    <div class="input-group packet-inline engine-slits-row"><label title="One particle per packet in the Pilot-Wave view, with large dots and long trails: follow a single particle through the computed wave, packet after packet (as the numerical N-slit app's one-particle preset). Click again to go back.">Preset</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-one="1">One particle</button></span></div>`;
   numBox.append(shutterBox);
   {
@@ -351,7 +357,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  // geometry; its particles are handed to the same drawing, hit and histogram code.
  // One engine runs at a time; each keeps its own hits.
  const num=createNumericalEngine();
- let engine=new URLSearchParams(location.hash.slice(1)).get('numeng')==='1'||new URLSearchParams(location.search).get('engine')==='numerical'?'numerical':'analytical';
+ let engine=new URLSearchParams(location.hash.length>1?location.hash.slice(1):(()=>{try{return localStorage.getItem('qontic-te-packet')||'';}catch(_){return '';}})()).get('numeng')==='1'||new URLSearchParams(location.search).get('engine')==='numerical'?'numerical':'analytical';
  let numStatus=null,numProfile=null,numProfileAt=-Infinity,numSlitModel=['reflecting','absorbing','mask'].includes(localStorage.getItem('qontic-te-num-wall'))?localStorage.getItem('qontic-te-num-wall'):'reflecting';
  const savedHits={analytical:null,numerical:null};
  mountEngineControls();
@@ -440,13 +446,37 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    note.textContent=realSpeedRatio<.9?`${base} GPU-limited: running at ${Math.round(100*realSpeedRatio)}% of the requested speed (${g.budget} steps per frame${per?', '+per:''}).${est}`:`${base}${per?' '+per+'.':''}${est}`;}}
  }
  function setEngine(next){
-  if(next===engine)return;
+  if(next===engine)return;setTimeout(savePacketSettings,0);
   savedHits[engine]={hits:hits.slice(),slitHits:JSON.parse(JSON.stringify(slitHits)),spectrumHitCounts:spectrumHitCounts.slice(),spectrumHitSums:spectrumHitSums.slice(),nHits,hitMax,fingerprint};
   engine=next;resetEngine();
   const saved=savedHits[engine];
   if(saved&&saved.fingerprint===fingerprint&&saved.hits.length===hits.length){hits=saved.hits;slitHits=saved.slitHits;spectrumHitCounts=saved.spectrumHitCounts;spectrumHitSums=saved.spectrumHitSums;nHits=saved.nHits;hitMax=saved.hitMax;}
   syncEngineControls();draw();
   window.dispatchEvent(new Event('qontic-engine-change'));
+ }
+ // Controls that only act with the non-Classic palettes (Show menu, wave range, colour scale) are hidden with Classic.
+ let classicUIState=null;
+ function syncClassicUI(){
+  const c=classicPalette(),key=c+'|'+numericalActive();if(key===classicUIState)return;classicUIState=key;
+  document.body.classList.toggle('te-classic',c);document.body.classList.toggle('te-numerical',numericalActive());
+  const show=document.getElementById('waveFunctionOption');if(show){show.disabled=c;for(const id of ['waveFunctionOption','basicsWaveFunctionOption']){const el=document.getElementById(id),row=el?.closest('.input-group');if(row)row.style.display=c?'none':'';}show.title='';}
+  const scale=[...document.querySelectorAll('.analytical-layers > *')].find(r=>/^\s*Color scale/.test(r.textContent));if(scale)scale.classList.add('te-row-palette-scale');
+  if(c){const rb=document.querySelector('.qontic-media-toolbar button[aria-label="Wave range"]');if(rb&&rb.getAttribute('aria-pressed')==='true')rb.click();}
+ }
+ // Controls with no effect in the current engine or wall are disabled, with the reason in the tooltip.
+ let availState=null;
+ function syncAvailability(){
+  const n=numericalActive(),mask=numSlitModel==='mask',lines=numOpt.trails==='lines';
+  const set=(el,off,why)=>{if(!el||(el.disabled===off&&el.classList.contains('te-av')===off))return;el.classList.toggle('te-av',off);el.disabled=off||(el===interval||el===interval.parentElement?.querySelector('input[type=number]'))&&!!window.qonticMWBranches?.enabled&&interpretation==='manyworlds'||(el===balance||el===balanceEqual)&&p&&p.centers.length!==2;const row=el.closest('.input-group,label,.engine-slits-row,.flow-row')||el;row.classList.toggle('te-unavailable',off);if(off){if(!el.dataset.tipSaved)el.dataset.tipSaved=el.title||'';el.title=why;}else if(el.dataset.tipSaved!==undefined){el.title=el.dataset.tipSaved;delete el.dataset.tipSaved;}};
+  const flowWhy='Flow overlay: analytical engine only (it is computed from the analytical wave).';
+  for(const id of ['flow-arrows','flow-lines','flow-length','flow-spacing'])set(document.getElementById(id),n,flowWhy);
+  const intervalWhy='Numerical engine: one packet at a time.';
+  set(interval,n,intervalWhy);set(interval.parentElement?.querySelector('input[type=number]'),n,intervalWhy);
+  const balWhy='Numerical engine: slit balance acts only with the Mask wall.';
+  set(balance,n&&!mask,balWhy);set(balanceEqual,n&&!mask,balWhy);
+  const bladeWhy='No blade with the Mask wall: the Mask changes at once.';
+  document.querySelectorAll('[data-num-blade]').forEach(b=>set(b,mask,bladeWhy));for(const id of ['num-tau','num-tau-n','num-bladew','num-bladew-n'])set(document.getElementById(id),mask,bladeWhy);
+  const half=document.getElementById('num-half'),halfRow=half?.closest('.input-group');if(halfRow)halfRow.style.display=lines?'none':'';
  }
  function syncEngineControls(){
   document.querySelectorAll('[data-engine]').forEach(b=>{const on=b.dataset.engine===engine;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
@@ -457,8 +487,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   {const chg=document.getElementById('num-change');if(chg){const off=!!p?.whichPath;chg.disabled=off;chg.title=off?'Show change is off while which-slit detectors are on.':'';}}
   document.querySelectorAll('[data-num-look]').forEach(b=>{const on=b.dataset.numLook===numLook;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   // Classic look: the Show menu does not apply; particles coloured by slit unless chosen otherwise.
-  document.body.classList.toggle('te-classic',classicPalette());document.body.classList.toggle('te-numerical',numericalActive());
-  const show=document.getElementById('waveFunctionOption');if(show){show.disabled=classicPalette();for(const id of ['waveFunctionOption','basicsWaveFunctionOption']){const el=document.getElementById(id),row=el?.closest('.input-group');if(row)row.style.display=classicPalette()?'none':'';}show.title=classicLook()?'Classic numerical look: phase and density as in the numerical N-slit app (Engine tab → Numerical look).':'';}
+  syncClassicUI();
   // Each engine keeps its own particle colour; the numerical default is By slit, as in the numerical N-slit app.
   const colorKey=numericalActive()?'num':'ana';
   if(colorKey!==particleColorEngine){particleColorEngine=colorKey;particleColorMode.value=colorKey==='num'?(localStorage.getItem('qontic-te-num-particle-color')||'slit'):(localStorage.getItem('qontic-pw-particle-color')||'uniform');}
@@ -595,7 +624,22 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   }
   syncWhichPathButton();if(!isAnimating)draw();return true;
  }
- function resetEngine(){transition=null;if(atWallQueue.length){atWallQueue=[];atWallPrev=null;window.dispatchEvent(new Event('qontic-atwall-cancel'));}
+ // Basic, Many Worlds: the world splits in slow motion for the first 3 hits of each run, then the
+ // screen fills as in the other views (the user can tick slow motion again).
+ let basicAutoOff=false;
+ function mwAutoNote(text){const host=document.querySelector('.mw-branch-settings');if(!host)return;let el=host.querySelector('.mw-auto-note');if(!el){el=document.createElement('small');el.className='mw-auto-note';el.style.cssText='display:block;margin-top:6px;color:var(--accent,#7dd3fc)';host.append(el);}el.textContent=text||'';el.hidden=!text;}
+ function basicSlowMotionCheck(){
+  if(level!=='basic'||basicAutoOff||nHits<3)return;basicAutoOff=true;
+  setTimeout(()=>{const t=document.getElementById('mw-branch-tour');if(t?.checked){t.checked=false;t.dispatchEvent(new Event('change',{bubbles:true}));}
+   mwAutoNote('Slow motion off after 3 hits: the screen now fills as in the other views. Tick it to watch more splits.');},0);
+ }
+ function basicSlowMotionRestart(){
+  if(level!=='basic'||!basicAutoOff)return;basicAutoOff=false;mwAutoNote('');
+  let pref=null;try{pref=localStorage.getItem('qontic-te-mw-tour-basic');}catch(_){}
+  setTimeout(()=>{const t=document.getElementById('mw-branch-tour');if(t&&pref!=='off'&&!t.checked){t.checked=true;t.dispatchEvent(new Event('change',{bubbles:true}));}},0);
+ }
+ document.addEventListener('change',e=>{if(e.target?.id==='mw-branch-tour'&&e.target.checked)mwAutoNote('');},true);
+ function resetEngine(){transition=null;basicSlowMotionRestart();if(atWallQueue.length){atWallQueue=[];atWallPrev=null;window.dispatchEvent(new Event('qontic-atwall-cancel'));}
   window.qonticMWBranches?.cancel();detectorFlashes.clear();pending=[];particles=[];pulses=[];nextEmission=0;visualPhase=0;flash=null;hold=0;lastMode=interpretation;p=config();fingerprint=configFingerprint(p);yOffset=screenHeight/200;
   coeff=sourceCoefficients(p);sourceGrid=null;epochs=[{p,coeff,start:-Infinity,grid:null}];profile=sourceProfile(p,-yOffset,screenHeight/100-yOffset,2049);law=detectorLaw(p,profile,-yOffset,screenHeight/100-yOffset);
   timeUnit=(particleType==='neutron'?mNeutron:mElectron)*10000/hbar;syncWhichPathButton();
@@ -616,7 +660,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function updateMath(){
   packetMath.innerHTML=basicPhysicsHTML+'<div data-level-min="standard">'+physicsHTML.replace('<h1>Physics</h1>','<h1>Physics</h1>'+standardSummaryHTML)+nSlitPhysicsHTML+'<h3>Direct-PW preparation</h3><p>Direct PW samples transmitted configurations within a fixed ±3σₐ window around each Gaussian aperture, independently of the displayed Slit extent. This window contains 99.73% of an isolated Gaussian profile. The green comparison curve remains the common analytical Gaussian-wave prediction rather than introducing a hard finite-core cut.</p><h3>Unequal slit transmission</h3><p>The expert “Slit balance” control works only when exactly two slits are open (it is disabled otherwise). It multiplies the amplitudes of the upper and lower open apertures by factors a₁ and a₂ between zero and one. One slit remains fully open while the other is attenuated; “Upper only” or “Lower only” sets the opposite factor to zero. The analytical Gaussian propagation is unchanged: only the corresponding closed-form component coefficients change. Unequal amplitudes reduce fringe visibility and break the reflection symmetry of the Pilot-Wave velocity field.</p>'+whichPathPhysicsHTML+'<div id="te-engines">'+enginesPhysicsHTML+'</div></div>';
   math.removeAttribute('aria-busy');
-  const views=document.getElementById('rationale');views.innerHTML=basicViewsHTML+'<div data-level-min="standard">'+viewsHTML+nSlitViewsHTML+'<h3>3D wave surface</h3><p>The optional interactive 3D view graphs the same analytical field used by the 2D view. Dragging rotates the camera, the wheel or a pinch gesture zooms, and right-dragging pans. The Height selector can graph contrast-enhanced |Ψ|², cos θ, or Re Ψ and Im Ψ with the same enhanced amplitude envelope. The monotonic height boost preserves zeros and ordering but is not a linear amplitude scale; it keeps the weaker transmitted wave readable beside the incident packet. The cos θ choice is a continuous phase display that avoids an artificial moving cliff at the ±π wrap; unlike θ itself, it does not uniquely identify the phase angle. For cos θ, Re Ψ and Im Ψ, the middle of the height range is zero, and the reference grid and apparatus lie on that zero plane; the translucent floor lets negative lobes remain visible below it. To prevent temporal aliasing, the 3D carrier-phase animation is display-capped at 2 rad/s; this changes neither the wavefunction used for guidance nor any simulated timing. Surface color independently retains the wave quantity selected in the ordinary Show control and uses the same slowed display phase in 3D. With which-path tagging, phase and signed height use a density-weighted display of the noninterfering detector-record components rather than treating them as a coherent sum. Height and color are display coordinates and do not add a physical spatial dimension. The detector histogram is likewise graphed vertically above a low detector wall: it uses the same predicted curve, retained hits and square-root count error bars as the 2D histogram. Pilot-Wave particles and trajectories are drawn on a flat plane, not on the graph of the wave: by default the apparatus zero plane, the physical x–y plane. The 3D toolbar’s Particle height slider raises that plane for visibility only, and its Wave slider sets the surface opacity in Pilot-Wave. When Show is set to Phase, a wheel in the corner gives the surface color for each phase angle θ; because the display uses cos θ, +θ and −θ share a color. Their dynamics are always calculated entirely in the physical x–y plane. The Pilot-Wave toolbar eye hides or shows the wave in both the 2D and 3D displays; it does not alter the guidance field or interrupt the simulation.</p><h3>Direct-PW statistics</h3><p>The fixed ±3σₐ Direct-PW window omits only the 0.27% isolated-Gaussian tails. The green curve continues to show the common analytical probability distribution, without a hard central cut. Toggling Direct PW preserves earlier hits and affects new packets.</p>'+whichPathViewsHTML+'</div>';
+  const views=document.getElementById('rationale');views.innerHTML=basicViewsHTML+'<div data-level-min="standard">'+viewsHTML+nSlitViewsHTML+'<h3>3D wave surface</h3><p>The optional interactive 3D view graphs the field of the active engine: the analytical field, or in the numerical engine the computed ψ. The screen curve and the hits lie flat on a panel beyond the screen. Dragging rotates the camera, the wheel or a pinch gesture zooms, and right-dragging pans. The Height selector can graph contrast-enhanced |Ψ|², cos θ, or Re Ψ and Im Ψ with the same enhanced amplitude envelope. The monotonic height boost preserves zeros and ordering but is not a linear amplitude scale; it keeps the weaker transmitted wave readable beside the incident packet. The cos θ choice is a continuous phase display that avoids an artificial moving cliff at the ±π wrap; unlike θ itself, it does not uniquely identify the phase angle. For cos θ, Re Ψ and Im Ψ, the middle of the height range is zero, and the reference grid and apparatus lie on that zero plane; the translucent floor lets negative lobes remain visible below it. To prevent temporal aliasing, the 3D carrier-phase animation is display-capped at 2 rad/s; this changes neither the wavefunction used for guidance nor any simulated timing. Surface color independently retains the wave quantity selected in the ordinary Show control and uses the same slowed display phase in 3D. With which-path tagging, phase and signed height use a density-weighted display of the noninterfering detector-record components rather than treating them as a coherent sum. Height and color are display coordinates and do not add a physical spatial dimension. The detector histogram is likewise graphed vertically above a low detector wall: it uses the same predicted curve, retained hits and square-root count error bars as the 2D histogram. Pilot-Wave particles and trajectories are drawn on a flat plane, not on the graph of the wave: by default the apparatus zero plane, the physical x–y plane. The 3D toolbar’s Particle height slider raises that plane for visibility only, and its Wave slider sets the surface opacity in Pilot-Wave. When Show is set to Phase, a wheel in the corner gives the surface color for each phase angle θ; because the display uses cos θ, +θ and −θ share a color. Their dynamics are always calculated entirely in the physical x–y plane. The Pilot-Wave toolbar eye hides or shows the wave in both the 2D and 3D displays; it does not alter the guidance field or interrupt the simulation.</p><h3>Direct-PW statistics</h3><p>The fixed ±3σₐ Direct-PW window omits only the 0.27% isolated-Gaussian tails. The green curve continues to show the common analytical probability distribution, without a hard central cut. Toggling Direct PW preserves earlier hits and affects new packets.</p>'+whichPathViewsHTML+'</div>';
   views.removeAttribute('aria-busy');
   for(const node of [...packetMath.querySelectorAll('[data-equation]'),...views.querySelectorAll('[data-equation]')]){
    const formula=physicsEquations[node.dataset.equation]??whichPathEquations[node.dataset.equation];
@@ -632,9 +676,9 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   syncPwWaveButton();
   syncWhichPathButton();syncNiceButton();
   const countLabel=document.querySelector('#MaxPart-group label');if(countLabel)countLabel.textContent=interpretation==='bohmian'||numericalActive()?'Part./packet:':'Hits / packet:';try{syncBasicHits();}catch(_){}
-  const countInput=document.getElementById('MaxPart-input');countInput.title=interpretation==='bohmian'?(directed.checked?'Particles per packet, conditioned on transmission through an open slit.':'Incident particles per packet; some are absorbed.'):'Screen registrations per new packet, conditioned on reaching the screen.';
+  const countInput=document.getElementById('MaxPart-input');countInput.title=interpretation==='bohmian'?(directed.checked?'Particles per packet, conditioned on transmission through an open slit.':'Incident particles per packet; some are absorbed.'):(numericalActive()?'Particles per packet; from the second packet after a start or change only particles that got through the wall (some still miss the screen at the sides).':'Screen registrations per new packet, conditioned on reaching the screen.');
   if(lastMode===interpretation)return;
-  // The Pauli term is a pilot-wave guidance law: it applies in the Pilot-Wave view only.
+  // The chosen current (Schrödinger or Pauli) is used in every view.
   if(numericalActive())pushShutter();
   {const pwb=document.querySelector('.te-pw-only');if(pwb)pwb.hidden=interpretation!=='bohmian';}
   window.qonticMWBranches?.cancel();detectorFlashes.clear();flash=null;hold=0;
@@ -665,12 +709,13 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function syncPwWaveButton(){
   if(!pwWaveButton)return;
   pwWaveButton.hidden=interpretation!=='bohmian';pwWaveButton.setAttribute('aria-pressed',String(pwWaveVisible));
-  pwWaveButton.title=pwWaveVisible?'Hide the Pilot-Wave field without changing particle guidance':'Show the Pilot-Wave field';
+  pwWaveButton.title=pwWaveVisible?'Hide the wave (the particles still follow it)':'Show the Pilot-Wave field';
  }
  function stats(){
+  if(basicHitsRow&&level==='basic'){const out=basicHitsRow.querySelector('output'),v=document.getElementById('MaxPart-input')?.value;if(out&&v&&out.textContent!==String(v))syncBasicHits();}
   const mass=particleType==='neutron'?mNeutron:mElectron,speed=hbar/mass*p.k/100;
   $('#waveSpeed').text(speed>=1000?(speed/1000).toFixed(2)+' km/s':speed.toFixed(2)+' m/s');
-  $('#particleEnergy').text((.5*mass*(hbar*p.k/(mass*100))**2/1.602176634e-19).toExponential(2)+' eV');
+  {const eV=.5*mass*(hbar*p.k/(mass*100))**2/1.602176634e-19,ex=Math.floor(Math.log10(eV)),sup=String(ex).replace(/-/,'⁻').replace(/\d/g,d=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);$('#particleEnergy').text((eV/10**ex).toFixed(2)+'×10'+sup+' eV');}
   time=totalTime*timeUnit;$('#systemTime').text(time.toFixed(3)+' ns');$('#realTime').text(realElapsed.toFixed(1)+' s');$('#nhits').text(nHits);$('#shownParticles').text(particles.filter(a=>!a.done).length);$('#maxParticlesDisplay').text(p.particles);$('#nSteps').text(nSteps);$('#noHitCount').text(absorbed+' absorbed · '+missed+(numericalActive()?' reflected or lost at the edges':' missed'));
   const sampleButton=document.getElementById('resampleHitsButton');
   sampleButton.disabled=nHits===0||!!window.qonticMWBranches?.busy||numericalActive();
@@ -701,7 +746,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
     projectOutcome:surfaceBranches?((pixel,count,w,h)=>surface3D.projectDetector((pixel+.5)/count,.1,w,h)):null,
     createRecord(i){const record=recordWithHit(previous,i);if(surfaceBranches)return createSurfaceRecord(record);const strip=document.createElement('canvas'),scale=Math.min(1,256/canvas.height);strip.width=Math.ceil((canvas.width-detectorX)*scale);strip.height=Math.ceil(canvas.height*scale);const context=strip.getContext('2d');context.scale(scale,scale);context.translate(-detectorX,0);histogram({context,hits:record});return strip;},
     onSplit(){detectorFlashes.clear();nHits++;logNBranches+=Math.log10(p.bins);setRecord(index);updateBranchCountDisplay();stats();},
-    onSelect(i){event.cohort.branching=false;setRecord(i);detectorFlashes.clear();flash=null;last=null;draw();}
+    onSelect(i){event.cohort.branching=false;setRecord(i);detectorFlashes.clear();flash=null;last=null;draw();basicSlowMotionCheck();}
    });if(started)return;event.cohort.branching=false;
   }
   let side=event.slitSide;if(!side&&p.whichPath){const r=recordOfHit(index);if(r)side=r.group;}
@@ -776,7 +821,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te27').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te28').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1308,7 +1353,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    // separate slit images when the beams do not overlap).
    const cs=[...c].sort((a,b)=>a-b),dn=Math.min(...cs.slice(1).map((x,i)=>x-cs[i]))*100,formula=lambda*D/dn;
    let m=niceInfo&&niceInfo.fp===fingerprint&&niceInfo.spacing?niceInfo.spacing:measuredFringeSpacing();if(m&&Math.abs(m/formula-1)>.5)m=null;
-   const meas=m?`spacing ≈ ${Math.round(m)} nm`:'no fringes: the slit beams barely overlap';
+   const meas=(m?`spacing ≈ ${Math.round(m)} nm`:'no fringes: the slit beams barely overlap')+(numericalActive()&&m?' (analytical curve)':'');
    if(c.length===2){const d=Math.abs(c[1]-c[0])*100;text=level==='basic'||!m?meas:`${meas} (λ(D−L)/d = ${Math.round(lambda*D/d)} nm)`;}
    else{const W=(Math.max(...c)-Math.min(...c))*100,far=W*W/lambda,field=D>=10*far?'far field':`near field (far field ≫ ${far>=1000?(far/1000).toFixed(far>=10000?0:1)+' µm':Math.round(far)+' nm'})`;text=level==='basic'?meas:`${meas} · ${field}`;}
   }
@@ -1323,7 +1368,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   let host=document.getElementById('view-caption');
   if(!host){const container=document.getElementById('canvas-container');if(!container)return;host=document.createElement('div');host.id='view-caption';host.className='view-caption';host.setAttribute('aria-live','polite');container.after(host);}
   const view={copenhagen:'Orthodox: the wave gives the probability of each detection; each hit on the screen is one detection. No path is drawn between source and screen.',
-   bohmian:'Pilot Wave: each dot is a particle with a position at all times, guided by the wave; its line is its recent path. '+(numericalActive()?(numSlitModel==='reflecting'?'The wave reflected by the wall carries some particles back; the guidance law keeps them out of the wall.':'Particles whose wave is absorbed in the wall are removed there (effective rule, probability from the local absorption).')+(directed.checked?(num.directState?.conditioned?' Direct PW: only particles that pass a slit are shown; they are trial particles of the previous packet that passed, started again from the same place (same wave, same motion).':' Direct PW: the first packet after a start or a change is shown in full; from the next one on, only particles that pass a slit.'):''):(directed.checked?(level==='basic'?'Only the particles that get through a slit are shown, so hits arrive as fast as in the other views.':'Direct PW: only particles that pass a slit are drawn; the others, absorbed at the wall in this model, are left out, as in the other views.'):(level==='basic'?'Most particles hit the wall and stop there, so hits arrive more slowly than in the other views.':'Particles that hit the wall are absorbed.'))),
+   bohmian:'Pilot Wave: each dot is a particle with a position at all times, guided by the wave; its line is its recent path. '+(numericalActive()?(directed.checked&&num.directState?.conditioned?(level==='expert'?'Direct PW: o':'O')+'nly particles that get through the wall are shown: trial particles of the previous packet that got through, started again from the same place (same wave, same motion).':(numSlitModel==='reflecting'?'The wave reflected by the wall carries some particles back; the guidance law keeps them out of the wall.':'Particles whose wave is absorbed in the wall are removed there (effective rule, probability from the local absorption).')+(directed.checked?' From the next packet on, only particles that get through the wall are shown.':'')):(directed.checked?(level==='basic'?'Particles that hit the wall stop there and are not drawn, so hits arrive as fast as in the other views.':(level==='expert'?'Direct PW: o':'O')+'nly particles that pass a slit are drawn; the others, absorbed at the wall in this model, are left out, as in the other views.'):(level==='basic'?'Most particles hit the wall and stop there, so hits arrive more slowly than in the other views.':'Particles that hit the wall are absorbed.'))),
    manyworlds:level==='basic'?'Many Worlds: the wave never collapses. Every possible result happens, each in its own branch of the world; the screen shows the results in our branch.':'Many Worlds: the wave never collapses. The hits shown are the record of one branch, chosen with weights |ψ|². “Branch records” counts possible screen records, not worlds.'}[interpretation]||'';
   const engineLine=numericalActive()?`Numerical engine (Schrödinger equation on a grid, ${numSlitModel==='mask'?'analytical Gaussian mask':numSlitModel+' wall'}): ${interpretation==='bohmian'?'particles are guided by the computed wave.':'the hits are drawn from the computed flux through the screen.'}${numSlitModel!=='mask'?' Its slits have sharp edges, unlike the analytical engine’s soft (Gaussian) ones, so the patterns differ'+(level==='expert'?' (choose Wall: Mask to compare like with like).':'.'):''} `:engineWanted()?'Numerical engine not available here; showing the analytical engine. ':'';
   const swatch=(color,label)=>`<span class="cap-swatch" style="background:${color}"></span>${label}`;
@@ -1334,7 +1379,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    // Open slits, plus closed slits whose hits are still on the screen.
    const ids=new Set(p?.slitIds||[]);for(const [g,counts] of Object.entries(slitHits||{}))if(counts?.some?.(n=>n>0))ids.add(+String(g).slice(1));
    const list=[...ids].sort((a,b)=>a-b);
-   if(list.length>1)lines.push('Particle and hit colours: '+list.map(k=>swatch(slitColorOf('k'+k),`slit ${k+1}`)).join(' · ')+(p?.whichPath?'.':level==='basic'?'. Particles from different slits never cross the dashed lines on the screen.':'. Dashed lines on the screen mark each slit’s band (paraxial model).')+greyNote);
+   if(list.length>1)lines.push('Particle and hit colours: '+list.map(k=>swatch(slitColorOf('k'+k),`slit ${k+1}`)).join(' · ')+(p?.whichPath?'.':level==='basic'?(list.length===2?'. Particles from different slits never cross the dashed line on the bar chart.':'. Particles from different slits never cross the dashed lines on the bar chart.'):'. Dashed lines on the screen panel mark each slit’s band (paraxial model).')+greyNote);
   }else if(pwMode==='spectrum')lines.push('Particle and hit colours: position where the particle crossed the wall, blue (top) to yellow (bottom).');
   else if(START_MODES.includes(pwMode)){const L={updown:[[1,'started in the upper half'],[0,'lower half']],rightleft:[[2,'started ahead of the packet centre'],[0,'behind it']],quadrant:[[1,'upper, behind'],[3,'upper, ahead'],[0,'lower, behind'],[2,'lower, ahead']],radial:[[0,'innermost quarter'],[1,'second'],[2,'third'],[3,'outermost quarter (from the packet centre)']]}[pwMode];
    lines.push('Particle colours by starting position: '+L.map(([g,t])=>swatch(START_COLORS[g],t)).join(' · ')+'.');}
@@ -1351,12 +1396,12 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   if(niceInfo&&niceInfo.fp===fingerprint)lines.push('<b>Nice fringes:</b> '+niceInfo.text);
   else if(niceInfo){niceInfo=null;const el=document.getElementById('nice-fringes-status');if(el&&el.textContent.includes('details below'))el.textContent='';}
   const colours=lines.map(l=>`<p class="cap-legend">${l}</p>`).join('');
-  const hitText=pwMode==='slit'?'dots = hits counted (coloured by slit), bars = ±√n':pwMode==='spectrum'?'dots = hits counted (coloured by wall position), bars = ±√n':swatch(pwMode==='uniform'?colorPart:colorHit,'dots = hits counted, bars = ±√n');
-  const legend=level==='basic'?'Screen: '+swatch(colorProb,'curve = where hits are expected')+' · '+swatch(interpretation==='bohmian'&&pwMode==='uniform'?colorPart:colorHit,'bars = hits so far at each place')+' · '+swatch(colorSensor,'flash on the screen = an electron arriving')+((p?.particles||30)===1?'. Each wave you see stands for one electron; it makes one dot.':'. Each wave you see stands for '+(p?.particles||30)+' electrons sent one at a time; each electron makes one dot.'):'Screen: '+(numericalActive()?(numCurveShown?swatch(colorProb,'solid curve = numerical prediction (computed flux)')+' · '+swatch(ANA_COMPARE,'dashed = analytical prediction, for comparison'):swatch(colorProb,'curve = analytical prediction until the first numerical packet reaches the screen')):swatch(colorProb,'curve = predicted distribution'))+(transition&&t<transition.until?' (dashed: the earlier slit setting, for the part of the wave already past the wall)':'')+' · '+hitText+' · black strip with green bars = hits per detector pixel. One packet = '+(p?.particles??'')+(interpretation!=='bohmian'&&!numericalActive()?((p?.particles===1?' hit':' hits')+(level==='basic'?'.':' (Hits / packet, Advanced).')):((p?.particles===1?' particle':' particles')+(level==='basic'?'.':' (Part./packet, Advanced).')));
+  const hitText=pwMode==='slit'?'dots = hits per pixel (coloured by slit) with ±√n error bars':pwMode==='spectrum'?'dots = hits per pixel (coloured by wall position) with ±√n error bars':swatch(pwMode==='uniform'?colorPart:colorHit,'dots = hits per pixel with ±√n error bars');
+  const legend=level==='basic'?'Screen: '+swatch(colorProb,'curve = where hits are expected')+' · '+swatch(interpretation==='bohmian'&&pwMode==='uniform'?colorPart:colorHit,'bars = hits so far at each place')+' · '+swatch(colorSensor,'flash on the screen = an electron arriving')+((p?.particles||30)===1?'. Each wave you see stands for one electron; it makes one hit.':'. Each wave you see stands for '+(p?.particles||30)+' electrons sent one at a time; each electron makes one hit.'):'Screen: '+(numericalActive()?(numCurveShown?swatch(colorProb,'solid curve = numerical prediction (computed flux)')+' · '+swatch(ANA_COMPARE,'dashed = analytical prediction, for comparison'):swatch(colorProb,'curve = analytical prediction until the first numerical packet reaches the screen')):swatch(colorProb,'curve = predicted distribution'))+(transition&&t<transition.until?' (dashed: the earlier slit setting, for the part of the wave already past the wall)':'')+' · '+hitText+' · strip at the screen = the same counts as a bar chart. One packet = '+(p?.particles??'')+(interpretation!=='bohmian'&&!numericalActive()?((p?.particles===1?' hit':' hits')+(level==='basic'?'.':' (Hits / packet, Advanced).')):((p?.particles===1?' particle':' particles')+(level==='basic'?'.':' ('+((document.querySelector('#MaxPart-group label')?.textContent||'Part./packet').replace(/:\s*$/,'').trim())+', Advanced).')));
   const key=engineLine+view+colours+legend;if(key===captionKey)return;captionKey=key;
   host.innerHTML=`<p>${engineLine?`<b>${engineLine}</b>`:''}${view}</p><p class="cap-legend">${legend}</p>${colours}`;
  }
- function draw(){if(!enabled)return;ensure();syncMode();updateFringeScale();updateCaption();setupCtx.clearRect(0,0,canvas.width,canvas.height);
+ function draw(){try{syncClassicUI();syncAvailability();}catch(_){}if(!enabled)return;ensure();syncMode();updateFringeScale();updateCaption();setupCtx.clearRect(0,0,canvas.width,canvas.height);
   setupCtx.save();if(!surfaceView&&shown('plot_screen')){setupCtx.globalAlpha=elementOpacity('plot_screen');setupCtx.strokeStyle=classicPalette()&&!numericalActive()?'#8a9bab':colorScreen;if(p.source){
    // Draw the expert-selected slit cores, except that Direct PW displays its
    // fixed ±3σ preparation window. The analytical wave remains untruncated.
@@ -1408,7 +1453,17 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   for(const [key,id] of [['flowLength','flow-length'],['flowSpacing','flow-spacing']]){const el=v(id),n=el&&num(key,+el.min,+el.max);if(n!==null&&n!==undefined){el.value=n;fire(el,'input');}}
   for(const [key,id] of [['flowArrows','flow-arrows'],['flowLines','flow-lines']]){const el=v(id);if(el&&params.has(key)){el.checked=params.get(key)==='1';fire(el);}}
  }
- const params=new URLSearchParams(location.hash.slice(1));
+ // Packet, flow and engine settings survive a reload (a share link in the URL wins).
+ const PACKET_KEY='qontic-te-packet';
+ const params=new URLSearchParams(location.hash.length>1?location.hash.slice(1):(()=>{try{return localStorage.getItem(PACKET_KEY)||'';}catch(_){return '';}})());
+ function savePacketSettings(){
+  try{const v=id=>document.getElementById(id),old=new URLSearchParams(localStorage.getItem(PACKET_KEY)||'');
+   const q=[['sourceWidth',sourceWidth.value],['packetLength',length.value],['packetWidth',width.value],['slitExtent',extent.value],['slitBalance',balance.value],
+    ['packetCount',level==='basic'||window.qonticMWBranches?.enabled?old.get('packetCount'):v('MaxPart-input')?.value],['tailLength',tailLength.value],['packetInterval',interval.value],
+    ['flowArrows',v('flow-arrows')?.checked?1:0],['flowLines',v('flow-lines')?.checked?1:0],['flowLength',v('flow-length')?.value],['flowSpacing',v('flow-spacing')?.value],['numeng',(engineBeforeBasic||engine)==='numerical'?1:0]];
+   localStorage.setItem(PACKET_KEY,q.filter(([,x])=>x!==undefined&&x!==null&&x!=='').map(([k,x])=>k+'='+encodeURIComponent(x)).join('&'));}catch(_){}
+ }
+ document.addEventListener('change',()=>setTimeout(savePacketSettings,0),true);
  if(params.has('surface3d'))surfaceView=params.get('surface3d')==='1';
  if(['psi2','phase','real','imag'].includes(params.get('surfaceHeight')))surfaceHeightMode=params.get('surfaceHeight');
  for(const [key,el] of [['packetLength',length],['packetWidth',width],['slitExtent',extent],['sourceWidth',sourceWidth],['tailLength',tailLength],['packetInterval',interval]]){const n=Number(params.get(key));if(params.has(key)&&n>=+el.min&&n<=+el.max){el.value=n;syncPacketInput(el);}}
@@ -1432,7 +1487,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  const constrainedInputs=new Set(['slit-separation','source-position','screen-height','wavelength']);
  document.addEventListener('input',event=>{if(constrainedInputs.has(event.target?.id))applyPacketLimits();},true);
 
- for(const id of ['MaxPart','MaxPart-input'])document.getElementById(id).addEventListener(id==='MaxPart'?'input':'change',()=>queueMicrotask(()=>{ensure();draw();}));
+ for(const id of ['MaxPart','MaxPart-input'])document.getElementById(id).addEventListener(id==='MaxPart'?'input':'change',()=>queueMicrotask(()=>{ensure();draw();try{syncBasicHits();}catch(_){}}));
  const syncGeometryReadouts=next=>{
   document.getElementById('source-position-group')?.setValueInFirstUnit(next?.wall??sourcePos);
   document.getElementById('detector-distance-group')?.setValueInFirstUnit(next?.distance??detectorDistance);
@@ -1514,11 +1569,12 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   document.querySelector('#waveFunctionOption option[value=Phase]').textContent='Phase (cos θ)';if(!$('#waveFunctionOption').val())$('#waveFunctionOption').val('Psi2');
   const species=document.createElement('div');species.className='input-group packet-species packet-core-options';species.append(directedRow,slitColorRow);
   const particleRow=document.createElement('div');particleRow.className='input-group packet-inline packet-particle';const particleLabel=document.createElement('label');particleLabel.htmlFor='particleType';particleLabel.textContent='Particle';particleRow.append(particleLabel,document.getElementById('particleType'));panel.prepend(particleRow);document.getElementById('slit-count-bar').after(species);
-  // A shared link may request the ideal which-slit detector; otherwise start without one.
+  // A shared link may request which-slit detectors.
   // Detectors come from the link: slits=1d1 (d = open with a detector) or, in older
   // links, wp=slitK. Otherwise the run starts without detectors.
   const linkedSlits=params.get('slits')||'',linkedDetector=params.get('wp');
-  slitDetector.fill(false);
+  // Without a link the detectors saved with the other settings stay (they survive a reload).
+  if(location.hash.length>1)slitDetector.fill(false);
   if(/^[01d]{1,16}$/.test(linkedSlits))for(let k=0;k<linkedSlits.length;k++)if(linkedSlits[k]==='d')slitDetector[k]=true;
   if(/^slit\d+$/.test(linkedDetector||''))slitDetector[parseInt(linkedDetector.slice(4),10)-1]=true;
   syncWhichPathDetector();updateWhichPathButton();updateSlitCountControls();setupGeo(false);reset=0;resetEngine();
