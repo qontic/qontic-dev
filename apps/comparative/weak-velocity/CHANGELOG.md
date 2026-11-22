@@ -1,5 +1,11 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.6.5 — 2026-11-21
+- Instants, drawing matches the physics: the pointer marker and the detection are drawn at the particle's position in the packet (Δ), 50 nm apart, instead of on the packet-centre lines; with the position along the beam recorded, the stored pointer samples are drawn at their own positions (selected cell bright) and thirteen ticks mark the cells. Frames widened to ±3σₓ, the range runs are drawn from (and the range used for pointing). Labels "packet centre at t₁/t₂"; the weak frame says the coupling acts on the whole packet. Pointer label kept inside the plot.
+- Stage-2 caption at instants leads with one plain sentence on what the arrow is. Results: "Runs (packets)" at instants; "Ideal weak pointer at Δ = …" when a cell is selected (it no longer changes value under an unchanged label).
+- Turning on "Record the position along the beam too" raises the runs to 10 million (each position gets a thirteenth to a fifth of them) and says so; a shared link with recx=1 does the same unless it gives runs.
+- Physics text: the app records the position along the beam at t₂ and infers it at t₁ from the forward speed (the packet translates rigidly). Stale wording removed ("shaded bands", "screen click").
+
 ## 0.6.4 — 2026-11-21
 - Stage 1: "Pause after each run" (on by default). The simulation stops after each run with its pointer reading and detection drawn large and labelled, and the caption states both numbers; Start begins the next run, and the held markers shrink into the small stored points. Labels on a dark backing (cyan on the bright wave was hard to read); off-scale pointer label kept clear of the status line.
 

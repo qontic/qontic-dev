@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.6.4';
-import * as M from './weak-model.js?v=0.6.4';
+import { APP_RELEASE } from './release.js?v=0.6.5';
+import * as M from './weak-model.js?v=0.6.5';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -159,8 +159,9 @@ function selectCell(j) {
     return { expected, expCurve, binCur, curCurve };
   })());
   exp.expected = c.expected; exp.expCurve = c.expCurve; exp.binCur = c.binCur; exp.curCurve = c.curCurve;
+  updateText();
 }
-const cellDx = () => (exp?.mix && state.recx ? exp.mix.parts[state.cell].dx : 0);
+const cellDx = () => (exp?.mix && state.recx ? (exp.mix.parts[state.cell ?? exp.mix.central]?.dx ?? 0) : 0);
 // One run: at planes from the single table; at instants from the mixture
 // (the run then also carries its longitudinal offset dx and cell index).
 function sampleOne(e) { return e.mix ? M.sampleMixtureRun(e.mix) : M.sampleRun(e.table); }
@@ -260,6 +261,8 @@ function updateText() {
   $('#x1Label').textContent = instant() ? 'Packet centre at t₁' : 'Weak plane';
   $('#gapLabel').textContent = instant() ? 'Travel from t₁ to t₂' : 'Gap to strong plane';
   $('#expLabel').textContent = instant() ? (state.recx ? 'Prediction, pointer + recorded position' : 'Prediction, pointer + packet') : 'Prediction for this pointer';
+  $('#perPlaneLabel').textContent = instant() ? 'Runs (packets)' : 'Runs per pair of planes';
+  $('#curLabel').textContent = instant() && state.recx && exp?.mix ? `Ideal weak pointer at Δ = ${Math.round(nm(cellDx())) === 0 ? '0' : (cellDx() > 0 ? '+' : '−') + Math.abs(nm(cellDx())).toFixed(0)} nm` : instant() ? 'Ideal weak pointer, j/|ψ|² at the packet centre' : 'Ideal weak pointer, j/|ψ|²';
   $('#runsLabel').textContent = instant() ? 'Runs (one packet each)' : 'Runs at these planes';
   $('#pairLabel').textContent = instant() ? 'Packet centre at t₁ → t₂' : 'Plane pair';
   for (const [id, unit] of [['sw', state.sw], ['x1', state.x1], ['gap', state.gap]]) $(`#${id}`).setAttribute('aria-valuetext', `${unit} nanometres`);
@@ -286,17 +289,21 @@ let hadRun = false;
 function liveBody() {
   const N = exp.runs.toLocaleString('en-US');
   if (state.stage === 'one') {
-    const timing = instant() ? ` Measured at instants: each run is one packet. The pointer is coupled at t₁ and the transverse position measured at t₂ (shaded bands: the packet, ±2σₓ = ±${2 * state.packet} nm). ${state.recx ? 'The position along the beam is recorded too, as in Wiseman\'s protocol.' : 'The position along the beam is not recorded; the detection is drawn at a position sampled from the packet, for display only.'}` : '';
-    if (exp.runs === 0) return state.running ? `The first run is under way: watch the pointer move, then the screen click.${timing}` : 'Press <b>Start</b>. Watch the pointer move, then the screen click. One run gives two numbers.';
+    const timing = instant() ? ` Measured at instants: each run is one packet. The pointer is coupled at t₁ and the transverse position measured at t₂, wherever the particle is in the packet (frames: ±3σₓ = ±${3 * state.packet} nm, the range runs are drawn from); the pointer marker and the detection are drawn at the same position along the packet, 50 nm apart. ${state.recx ? 'The position along the beam is recorded too, as in Wiseman\'s protocol.' : 'The position along the beam is not recorded; both are drawn at a position sampled from the packet, for display only.'}` : '';
+    if (exp.runs === 0) return state.running ? `The first run is under way: watch the pointer move, then the detector click at the strong line.${timing}` : 'Press <b>Start</b>. Watch the pointer move, then the detector click at the strong line. One run gives two numbers.';
     const paused = anim?.done ? `<b>Run ${exp.runs} done.</b> The pointer reads Y = ${nm(anim.run.Y).toFixed(0)} nm; the detector clicked at y<sub>f</sub> = ${nm(anim.run.yf).toFixed(0)} nm. Press <b>Start</b> for the next run; this one then shrinks into a stored point. ` : '';
     return `${paused}${plural(exp.runs, 'run', 'runs')}.${timing} The amber marker is the recorded pointer coordinate Y. The pointer's initial preparation spread is σₚ = ${state.sw} nm. A wider pointer gives less information in one run and disturbs the wave less. One run does not establish a particle's path.`;
   }
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const bw = 2 * Y_HALF / N_BINS, strip = `${nm(-Y_HALF + state.selected * bw).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * bw).toFixed(0)} nm`;
-    const kept = instant() && state.recx ? ` The position along the beam is recorded too (Wiseman's protocol), so each run is sorted by where the particle was along its packet: thirteen positions Δ, each its own pair of weak and strong positions, a gap apart. Arrows are drawn at every position (faint) and the selected one (bright bands, Δ = ${cellDx() >= 0 ? '+' : '−'}${Math.abs(nm(cellDx())).toFixed(0)} nm). Point inside the strong frame, or use Position along the beam, to choose it; at Δ = 0 the result is that of the planes.` : '';
+    const kept = instant() && state.recx ? ` The position along the beam is recorded too (Wiseman's protocol), so each run is sorted by where the particle was along its packet: thirteen positions Δ, each its own pair of weak and strong positions, a gap apart. Arrows are drawn at every position (faint) and the selected one (bright bands, Δ = ${cellDx() >= 0 ? '+' : '−'}${Math.abs(nm(cellDx())).toFixed(0)} nm). Point inside the strong frame, or use Position along the beam, to choose it; at Δ = 0 the result is that of the planes. Each position gets only a thirteenth to a fifth of the runs, so 10 million runs are used.` : '';
     const at = instant() ? (state.recx ? '' : ` Measured at instants, transverse position only: with a ${state.packet} nm packet the arrows average the field over the planes the packet spans, so the prediction (blue) and the dotted fixed-time curve differ from j/|ψ|² (dashed). Detections are drawn at positions along the beam sampled from the packet, for display only; they are not recorded.`) + ' While running, the moving packets show the timing, slowed down: one packet is drawn for many runs.' : '';
-    const head = `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${kept}${at}`;
+    // One plain sentence first; the details follow.
+    const lead = !instant() ? '' : state.recx
+      ? '<b>Runs are sorted by where the particle was in its packet: each position Δ (ticks) is its own weak–strong pair, a gap apart.</b> '
+      : '<b>Each particle is somewhere in its packet (the frames), so this arrow mixes the arrows of every position in the frame.</b> ';
+    const head = `${lead}${N} of ${state.perPlane.toLocaleString('en-US')} runs.${kept}${at}`;
     if (!b) return `${head} ${exp.runs ? 'Too few runs in the selected strip yet.' : 'Press <b>Start</b>.'} ${SELECT_HINT_TEXT()}`;
     // Neutral wording: two averages over the same post-selected runs, not a path.
     const shift = nm(b.v * exp.dtau), err = nm(b.err * exp.dtau), mY = nm(b.y - b.v * exp.dtau);
@@ -355,7 +362,12 @@ document.querySelectorAll('[data-timing]').forEach((b) => b.addEventListener('cl
   stop(); pending = true; updateText();
 }));
 $('#pauseEach').addEventListener('click', () => { state.pauseEach = !state.pauseEach; $('#pauseEach').setAttribute('aria-pressed', String(state.pauseEach)); });
-$('#recx').addEventListener('click', () => { state.recx = !state.recx; state.cell = null; stop(); pending = true; updateText(); });
+$('#recx').addEventListener('click', () => {
+  state.recx = !state.recx; state.cell = null;
+  // Each position along the beam gets a thirteenth to a fifth of the runs.
+  if (state.recx && state.perPlane < 1e7) { state.perPlane = 1e7; $('#perPlane').value = RUNS.indexOf(1e7); $('#perPlaneOut').value = fmtRuns(1e7); }
+  stop(); pending = true; updateText();
+});
 $('#cellSel').addEventListener('input', (e) => { selectCell(+e.target.value); });
 $('#packet').addEventListener('input', (e) => { state.packet = +e.target.value; stop(); pending = true; updateText(); });
 document.querySelectorAll('[data-wavemode]').forEach((b) => b.addEventListener('click', () => {
@@ -588,7 +600,7 @@ function readUrl() {
   for (const key of ['expected', 'current']) if (q.get(key) === '0') state.show[key] = false;
   if (q.get('ft') === '1') state.show.fixedTime = true;
   if (q.get('timing') === 'instant') state.timing = 'instant';
-  if (q.get('recx') === '1') state.recx = true;
+  if (q.get('recx') === '1') { state.recx = true; if (!q.has('runs')) state.perPlane = 1e7; }
   { const v = parseFloat(q.get('packet')); if (Number.isFinite(v)) { state.packet = Math.min(300, Math.max(50, Math.round(v / 10) * 10)); urlAsked.packet = v; } }
   if (q.get('bohm') === '1') state.show.bohm = true;
   for (const key of ['expected', 'current', 'fixedTime']) document.querySelector(`[data-toggle="${key}"]`).setAttribute('aria-pressed', String(state.show[key]));
@@ -769,7 +781,7 @@ const RUN_SECONDS_INSTANT = 3.0;
 // strong one) so both events can be seen.
 const PACKET_A = 0.3, PACKET_B = 0.72;
 function packetCentre(a) {
-  const m = 2 * packetSigma(), x1c = exp.x1, x2c = exp.x2, xa = p.wall - 0.6, xb = p.screen;
+  const m = 3 * packetSigma(), x1c = exp.x1, x2c = exp.x2, xa = p.wall - 0.6, xb = p.screen;
   if (a.t < PACKET_A) return xa + (x1c - m - xa) * a.t / PACKET_A;
   if (a.t < PACKET_B) return x1c - m + (x2c - x1c + 2 * m) * (a.t - PACKET_A) / (PACKET_B - PACKET_A);
   return x2c + m + (xb - x2c - m) * Math.min(1, (a.t - PACKET_B) / (1 - PACKET_B));
@@ -777,7 +789,7 @@ function packetCentre(a) {
 function makeRunAnim(run) {
   lastRun = run; if (waveGrid) waveGrid.overKey = null;
   if (!instant()) return { t: 0, run, tW: RUN_TW, tS: RUN_TS };
-  const m = 2 * packetSigma(), g = exp.x2 - exp.x1, f = (d) => PACKET_A + (PACKET_B - PACKET_A) * d / (g + 2 * m);
+  const m = 3 * packetSigma(), g = exp.x2 - exp.x1, f = (d) => PACKET_A + (PACKET_B - PACKET_A) * d / (g + 2 * m);
   return { t: 0, run, tW: f(m), tS: f(m + g), packet: true };
 }
 // Stage 1 at instants: dim the wave outside the packet, |F(x - xc)|^2.
@@ -808,7 +820,7 @@ function trainCentres(xLeft) {
 }
 function advanceTrain(dt) {
   if (!exp) return;
-  const near = trainCentres(p.wall - 0.6).some((c) => c > exp.x1 - 2 * packetSigma() && c < exp.x2 + 2 * packetSigma());
+  const near = trainCentres(p.wall - 0.6).some((c) => c > exp.x1 - 3 * packetSigma() && c < exp.x2 + 3 * packetSigma());
   // about 2.5 s across the drawing at speed 1, four times slower around the measurements
   train.pos += dt * state.speed * (p.screen - p.wall) / 2.5 * (near ? 0.25 : 1);
 }
@@ -1020,27 +1032,35 @@ function drawApparatus(P, box) {
     pr.forEach(([y, r], i) => { const xx = X(p.screen) + 28 + w * r / mx; i ? ctx.lineTo(xx, Yp(y)) : ctx.moveTo(xx, Yp(y)); }); ctx.stroke();
   }
 
-  // At instants: shaded bands (±2σ of the packet) around the packet centre at
+  // At instants: shaded bands (±3σ of the packet) around the packet centre at
   // t1 (weak) and t2 (strong); the particle can be anywhere in them.
   if (exp && !(map?.done) && instant()) {
     // Outlined frames (filled overlaps read as a third colour): the packet's
-    // extent, ±2σx, at t1 (dashed amber) and at t2 (solid cyan).
+    // extent, ±3σx, at t1 (dashed amber) and at t2 (solid cyan).
     const s = packetSigma(), top = Yp(Y_HALF), h = Yp(-Y_HALF) - top;
-    const frame = (xc, col, dash, inset) => { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.setLineDash(dash); ctx.strokeRect(X(xc - 2 * s), top + inset, X(xc + 2 * s) - X(xc - 2 * s), h - 2 * inset); ctx.setLineDash([]); };
+    const frame = (xc, col, dash, inset) => { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.setLineDash(dash); ctx.strokeRect(X(xc - 3 * s), top + inset, X(xc + 3 * s) - X(xc - 3 * s), h - 2 * inset); ctx.setLineDash([]); };
     // Flashes when a packet of the moving train is measured.
     if (state.stage !== 'one' && state.running) {
       for (const c of trainCentres(p.wall - 0.6)) {
         for (const [xc, col] of [[exp.x1, P.weak], [exp.x2, P.strong]]) {
           const f = Math.exp(-(((c - xc) / Math.max(0.08, 0.15 * s)) ** 2));
-          if (f > 0.02) { ctx.globalAlpha = 0.28 * f; ctx.fillStyle = col; ctx.fillRect(X(xc - 2 * s), top, X(xc + 2 * s) - X(xc - 2 * s), h); }
+          if (f > 0.02) { ctx.globalAlpha = 0.28 * f; ctx.fillStyle = col; ctx.fillRect(X(xc - 3 * s), top, X(xc + 3 * s) - X(xc - 3 * s), h); }
         }
       }
       ctx.globalAlpha = 1;
     }
     frame(exp.x1, P.weak, [6, 4], 0);
     frame(exp.x2, P.strong, [], 3);
-    backedText(P, 'packet at t₁ (±2σₓ)', X(exp.x1 - 2 * s) + 5, Yp(Y_HALF) + 14, { color: P.weak, size: 10 });
-    backedText(P, 'packet at t₂', X(exp.x2 + 2 * s) - 6, Yp(Y_HALF) + 28, { color: P.strong, size: 10, align: 'right' });
+    if (state.recx && exp.mix) {
+      // Ticks: the thirteen positions Δ, each a weak–strong pair a gap apart.
+      exp.mix.parts.forEach((q, j) => {
+        const on = j === state.cell;
+        ctx.strokeStyle = P.strong; ctx.lineWidth = on ? 2.5 : 1.2; ctx.beginPath(); ctx.moveTo(X(exp.x2 + q.dx), top + 3); ctx.lineTo(X(exp.x2 + q.dx), top + (on ? 16 : 10)); ctx.stroke();
+        ctx.strokeStyle = P.weak; ctx.beginPath(); ctx.moveTo(X(exp.x1 + q.dx), top + h - 3); ctx.lineTo(X(exp.x1 + q.dx), top + h - (on ? 16 : 10)); ctx.stroke();
+      });
+    }
+    backedText(P, 'weak measurement at t₁ acts on the whole packet (±3σₓ)', X(exp.x1 - 3 * s) + 5, Yp(Y_HALF) + 28, { color: P.weak, size: 10 });
+    backedText(P, 'strong measurement at t₂', X(exp.x2 + 3 * s) - 6, Yp(Y_HALF) + 42, { color: P.strong, size: 10, align: 'right' });
     if (state.recx && exp.mix) { const w = exp.mix.width / 2, d = cellDx(); ctx.globalAlpha = 0.25; ctx.fillStyle = P.strong; ctx.fillRect(X(exp.x2 + d - w), top, X(exp.x2 + d + w) - X(exp.x2 + d - w), h); ctx.fillStyle = P.weak; ctx.fillRect(X(exp.x1 + d - w), top, X(exp.x1 + d + w) - X(exp.x1 + d - w), h); ctx.globalAlpha = 1; }
   }
   // the current pair of planes (at instants: the packet centre at t1 and t2)
@@ -1048,8 +1068,8 @@ function drawApparatus(P, box) {
     ctx.lineWidth = instant() ? 1 : 1.5;
     ctx.strokeStyle = P.weak; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(exp.x1), Yp(Y_HALF)); ctx.lineTo(X(exp.x1), Yp(-Y_HALF)); ctx.stroke(); ctx.setLineDash([]);
     ctx.strokeStyle = P.strong; ctx.beginPath(); ctx.moveTo(X(exp.x2), Yp(Y_HALF)); ctx.lineTo(X(exp.x2), Yp(-Y_HALF)); ctx.stroke();
-    text(instant() ? 'weak · t₁' : 'weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
-    text(instant() ? 'strong · t₂' : 'strong', X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
+    text(instant() ? 'packet centre at t₁' : 'weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
+    text(instant() ? 'at t₂' : 'strong', X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
   }
   // Accumulated runs as points: pointer readings beside the weak plane,
   // detections between the planes. The first PLANE_POINTS runs are kept as
@@ -1060,7 +1080,14 @@ function drawApparatus(P, box) {
     const n = exp.ptsN, sz = n > 2000 ? 1.5 : 2.2;
     ctx.globalAlpha = n > 2000 ? 0.45 : 0.75;
     ctx.fillStyle = P.weak;
-    for (let i = 0; i < n; i++) { const yy = Yp(exp.ptsY[i]); if (yy >= top && yy <= bot) ctx.fillRect(xw - 2 - exp.ptsU[i] * 6 - sz / 2, yy - sz / 2, sz, sz); }
+    const a1 = ctx.globalAlpha;
+    for (let i = 0; i < n; i++) {
+      const yy = Yp(exp.ptsY[i]); if (yy < top || yy > bot) continue;
+      // At instants each pointer sample sits at its run's position along the beam at t1.
+      if (instant()) { ctx.globalAlpha = state.recx && exp.ptsS[i] !== state.cell ? a1 * 0.3 : a1; ctx.fillRect(X(exp.x1 + exp.ptsX[i]) - sz / 2, yy - sz / 2, sz, sz); }
+      else ctx.fillRect(xw - 2 - exp.ptsU[i] * 6 - sz / 2, yy - sz / 2, sz, sz);
+    }
+    ctx.globalAlpha = a1;
     ctx.fillStyle = P.strong;
     // Narrow bands just beside each line: only the transverse position is
     // recorded; the sideways spread is for visibility, not a position along x.
@@ -1085,7 +1112,7 @@ function drawApparatus(P, box) {
     const sP = packetSigma(), unknownX = instant() && !state.recx, d = cellDx();
     const bw = 2 * Y_HALF / N_BINS, a = -Y_HALF + i * bw;
     ctx.fillStyle = P.strip;
-    if (unknownX) ctx.fillRect(X(exp.x1 - 2 * sP), Yp(a + bw), X(exp.x2 + 2 * sP) - X(exp.x1 - 2 * sP), Yp(a) - Yp(a + bw));
+    if (unknownX) ctx.fillRect(X(exp.x1 - 3 * sP), Yp(a + bw), X(exp.x2 + 3 * sP) - X(exp.x1 - 3 * sP), Yp(a) - Yp(a + bw));
     else ctx.fillRect(X(exp.x1 + d) - 4, Yp(a + bw), X(exp.x2 + d) - X(exp.x1 + d) + 30, Yp(a) - Yp(a + bw));
     if (n >= 200) {
       const mY = exp.bins.sumY[i] / n, mYf = exp.bins.sumYf[i] / n;
@@ -1093,9 +1120,9 @@ function drawApparatus(P, box) {
       const xw = X(exp.x1 + d), xs = X(exp.x2 + d);
       if (unknownX) {
         // Bars across the frames: the weak reading belongs somewhere in the dashed frame.
-        ctx.lineWidth = 3; ctx.strokeStyle = P.weak; ctx.beginPath(); ctx.moveTo(X(exp.x1 - 2 * sP), Yp(mY)); ctx.lineTo(X(exp.x1 + 2 * sP), Yp(mY)); ctx.stroke();
-        ctx.strokeStyle = P.strong; ctx.beginPath(); ctx.moveTo(X(exp.x2 - 2 * sP), Yp(mYf)); ctx.lineTo(X(exp.x2 + 2 * sP), Yp(mYf)); ctx.stroke();
-        const lx = X(exp.x1 - 2 * sP) + 8, up2 = mY >= mYf;   // inside the dashed frame: always room
+        ctx.lineWidth = 3; ctx.strokeStyle = P.weak; ctx.beginPath(); ctx.moveTo(X(exp.x1 - 3 * sP), Yp(mY)); ctx.lineTo(X(exp.x1 + 3 * sP), Yp(mY)); ctx.stroke();
+        ctx.strokeStyle = P.strong; ctx.beginPath(); ctx.moveTo(X(exp.x2 - 3 * sP), Yp(mYf)); ctx.lineTo(X(exp.x2 + 3 * sP), Yp(mYf)); ctx.stroke();
+        const lx = X(exp.x1 - 3 * sP) + 8, up2 = mY >= mYf;   // inside the dashed frame: always room
         backedText(P, `mean pointer reading ${nm(mY).toFixed(1)} nm`, lx, Yp(mY) + (up2 ? -10 : 18), { color: P.weak, size: 11, weight: 600 });
         backedText(P, '(weak position not recorded:', lx, Yp(mY) + (up2 ? 5 : 33), { color: P.weak, size: 10 });
         backedText(P, 'anywhere in the dashed frame)', lx, Yp(mY) + (up2 ? 18 : 46), { color: P.weak, size: 10 });
@@ -1137,7 +1164,7 @@ function drawShrink(P, X, Yp) {
   if (f >= 1) { shrink = null; return; }
   const r = 8 * (1 - f) + 1.2 * f;
   ctx.globalAlpha = 1 - 0.5 * f;
-  ctx.fillStyle = P.weak; ctx.beginPath(); ctx.arc(X(exp.x1), Yp(shrink.run.Y), r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = P.weak; ctx.beginPath(); ctx.arc(X(exp.x1 + shrink.dx), Yp(shrink.run.Y), r, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(X(exp.x2 + shrink.dx), Yp(shrink.run.yf), r, 0, Math.PI * 2); ctx.fill();
   ctx.globalAlpha = 1;
 }
@@ -1152,21 +1179,32 @@ function drawPointerGauge(P, box, X, Yp) {
   if (!anim) return;
   const t = anim.t, tW = anim.tW, tS = anim.tS;
   const ease = (u) => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
-  if (t > tW - 0.04 && t < tW + 0.16) { ctx.strokeStyle = P.weak; ctx.globalAlpha = 0.35; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(xw, top); ctx.lineTo(xw, bot); ctx.stroke(); ctx.globalAlpha = 1; }
+  if (!anim.packet && t > tW - 0.04 && t < tW + 0.16) { ctx.strokeStyle = P.weak; ctx.globalAlpha = 0.35; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(xw, top); ctx.lineTo(xw, bot); ctx.stroke(); ctx.globalAlpha = 1; }
+  // At instants the particle met the coupling at its own position along the
+  // packet (x1 + Δ), 50 nm before its detection at x2 + Δ: the marker is drawn there.
+  const xm = anim.packet ? X(exp.x1 + anim.run.dx) : xw;
   // Marker slides from the pointer's zero to the reading.
   const Yr = anim.run.Y * ease((t - tW) / 0.12), yc = Yp(Yr), cl = (v) => Math.max(top, Math.min(bot, v));
   const settled = t > tW + 0.12;
-  if (settled) { ctx.globalAlpha = 0.25; ctx.fillStyle = P.weak; ctx.fillRect(xw - 4, cl(Yp(Yr + sw)), 8, cl(Yp(Yr - sw)) - cl(Yp(Yr + sw))); ctx.globalAlpha = 1; }
+  if (settled) { ctx.globalAlpha = 0.25; ctx.fillStyle = P.weak; ctx.fillRect(xm - 4, cl(Yp(Yr + sw)), 8, cl(Yp(Yr - sw)) - cl(Yp(Yr + sw))); ctx.globalAlpha = 1; }
   ctx.strokeStyle = P.weak; ctx.fillStyle = P.weak; ctx.lineWidth = 2;
   if (yc >= top && yc <= bot) {
     // The latest run is drawn large; it shrinks into a stored point when the next run starts.
-    ctx.beginPath(); ctx.moveTo(xw - 15, yc); ctx.lineTo(xw - 4, yc); ctx.stroke();
-    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(xw, yc, 7.5, 0, Math.PI * 2); ctx.stroke();
-    if (settled) { ctx.beginPath(); ctx.arc(xw, yc, 3.5, 0, Math.PI * 2); ctx.fill(); backedText(P, `Y = ${nm(anim.run.Y).toFixed(0)} nm; initial σₚ = ${state.sw} nm`, xw - 18, yc + 4, { color: P.weak, size: 11, align: 'right', weight: 600 }); }
+    ctx.beginPath(); ctx.moveTo(xm - 15, yc); ctx.lineTo(xm - 4, yc); ctx.stroke();
+    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(xm, yc, 7.5, 0, Math.PI * 2); ctx.stroke();
+    if (settled) {
+      ctx.beginPath(); ctx.arc(xm, yc, 3.5, 0, Math.PI * 2); ctx.fill();
+      // Label to the left of the marker, unless that would leave the plot.
+      const lbl = `Y = ${nm(anim.run.Y).toFixed(0)} nm; initial σₚ = ${state.sw} nm`, room = xm - 18 - lbl.length * 6.6 > X(p.wall) + 4;
+      backedText(P, lbl, room ? xm - 18 : xm + 12, room ? yc + 4 : yc - 12, { color: P.weak, size: 11, align: room ? 'right' : 'left', weight: 600 });
+    }
   } else {
     const up = yc < top, ya = up ? top + 2 : bot - 2, d = up ? 1 : -1;
-    ctx.beginPath(); ctx.moveTo(xw, ya); ctx.lineTo(xw - 5, ya + 8 * d); ctx.lineTo(xw + 5, ya + 8 * d); ctx.closePath(); ctx.fill();
-    if (settled) backedText(P, `Y = ${nm(anim.run.Y).toFixed(0)} nm (off scale); initial σₚ = ${state.sw} nm`, xw - 10, up ? ya + 16 : ya - 30, { color: P.weak, size: 11, align: 'right', weight: 600 });
+    ctx.beginPath(); ctx.moveTo(xm, ya); ctx.lineTo(xm - 5, ya + 8 * d); ctx.lineTo(xm + 5, ya + 8 * d); ctx.closePath(); ctx.fill();
+    if (settled) {
+      const lbl = `Y = ${nm(anim.run.Y).toFixed(0)} nm (off scale); initial σₚ = ${state.sw} nm`, room = xm - 10 - lbl.length * 6.6 > X(p.wall) + 4;
+      backedText(P, lbl, room ? xm - 10 : xm + 10, up ? ya + 16 : ya - 30, { color: P.weak, size: 11, align: room ? 'right' : 'left', weight: 600 });
+    }
   }
   if (t > tS) {
     const r = t < tS + 0.1 ? 4 + 40 * (t - tS) : 8;
