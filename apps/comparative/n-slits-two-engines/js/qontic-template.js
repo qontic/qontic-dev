@@ -1,14 +1,14 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te20';
-import { mountMWBranching } from './mw-branching.js?cache=te20';
-import { APP_RELEASE } from './release.js?cache=te20';
-import { mountNSlitQuiz } from './quiz.js?cache=te20';
+import { mountPacketEngine } from './packet-engine.js?cache=te21';
+import { mountMWBranching } from './mw-branching.js?cache=te21';
+import { APP_RELEASE } from './release.js?cache=te21';
+import { mountNSlitQuiz } from './quiz.js?cache=te21';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te20';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te21';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
-import '../../../../shared/qontic-controls.js?v=3.5';
+import '../../../../shared/qontic-controls.js?v=3.6';
 
 // Adapt the existing controls in place so their listeners and physics stay intact.
 $(function () {
@@ -70,6 +70,8 @@ $(function () {
   controls.setAttribute('show-autorun', 'false');
   // Engine tab (between Core and Advanced): the analytical/numerical choice and the numerical options.
   controls.setAttribute('show-engine', 'true');
+  // Views as three buttons (students did not see that the single pill switches views).
+  controls.setAttribute('interpretation-style', 'segmented');
   document.getElementById('psiTabs').prepend(controls);
   const themeStyle = document.createElement('style');
   themeStyle.textContent = `:host-context(.qontic-light) .qontic-speed { color: #526a77; }
@@ -404,7 +406,7 @@ $(function () {
   let media;
   media=mountQonticMedia({
     stage: document.getElementById('canvas-wrapper'), controls,
-    filename: 'double-slit', labelNode:document.getElementById('view-label'), rangeControl:window.qonticWaveRangeControl, dynamicCanvases:true,
+    filename: 'n-slits-two-engines', labelNode:document.getElementById('view-label'), rangeControl:window.qonticWaveRangeControl, dynamicCanvases:true,
     coordinateControl:coordinates,
     scaleControl:{getVisible:()=>elementOpacity('plot_scales')>0,setVisible:shown=>{if(!shown)lastScaleOpacity=elementOpacity('plot_scales')||1;const slider=document.getElementById('plot_scales-opacity');slider.value=shown?lastScaleOpacity*100:0;slider.dispatchEvent(new Event('input',{bubbles:true}));slider.dispatchEvent(new Event('change',{bubbles:true}));}},
     getShareUrl: () => location.href.split('#')[0] + buildUrlHash(),
@@ -548,28 +550,52 @@ $(function () {
     window.qonticPacketEngine?.setLevel?.(level);
     quizApi?.setLevel?.(level);
     levelDefaults(level);
+    // Basic runs at 3× by default (beginners waited 10–15 s for the first hit at 1×); the speed
+    // chosen before comes back above Basic.
+    { const sp = document.getElementById('animationStep'), K = 'qontic-te-speed-before-basic';
+      if (sp) { let saved = null; try { saved = localStorage.getItem(K); } catch (_) {}
+        if (level === 'basic' && saved === null && Math.abs(+sp.value - 1) < 1e-9) { try { localStorage.setItem(K, sp.value); } catch (_) {} $(sp).val(3).trigger('input').trigger('change'); }
+        else if (level !== 'basic' && saved !== null) { if (Math.abs(+sp.value - 3) < 1e-9) $(sp).val(+saved).trigger('input').trigger('change'); try { localStorage.removeItem(K); } catch (_) {} } } }
     // Basic: at most four slits (the slider and the model), λ from 30 to 50 nm (below 30 nm the
     // slit beams barely overlap at the default geometry and the fringes go).
     slitRange.max = level === 'basic' ? '4' : '8';
     if (level === 'basic' && numSlits > 4) { slitRange.value = '4'; $(slitRange).trigger('input'); }
     const lam = document.getElementById('wavelength-group'), lamRange = document.getElementById('wavelength');
-    if (lamRange) lamRange.min = level === 'basic' ? '30' : lamRange.dataset.minAll;
+    if (lamRange) { lamRange.min = level === 'basic' ? '30' : lamRange.dataset.minAll; const n = document.getElementById('wavelength-input'); if (n) n.min = lamRange.min; }
     if (lam && level === 'basic' && lam.getValueInFirstUnit() < 30) lam.setValueInFirstUnit(30);
   };
   controls.setAttribute('levels', 'basic:Basic,standard:Standard,expert:Expert');
   controls.setAttribute('tab-levels', 'engine:standard,advanced:standard');
   controls.addEventListener('qontic:level', event => applyLevel(event.detail.level));
   {
-    const fromUrl = new URLSearchParams(location.search).get('level') || new URLSearchParams(location.hash.slice(1)).get('level');
+    // A share link's hash carries the level it was made at; it wins over a ?level= left in the address.
+    const fromUrl = new URLSearchParams(location.hash.slice(1)).get('level') || new URLSearchParams(location.search).get('level');
     let saved = null; try { saved = localStorage.getItem('qontic-te-level'); } catch (_) {}
-    // A first visit (nothing saved) starts at λ = 40 nm, mid-range, so a longer λ can be tried.
     let fresh = false; try { fresh = !saved && !localStorage.getItem('nSlitTwoEnginesState'); } catch (_) {}
     applyLevel(LEVELS.includes(fromUrl) ? fromUrl : LEVELS.includes(saved) ? saved : 'basic');
-    if (fresh && document.body.dataset.qonticLevel === 'basic') document.getElementById('wavelength-group')?.setValueInFirstUnit(40);
     // The Pilot-Wave colour menu and Direct PW are attached a little later: a second pass for them.
     const again = (tries = 40) => { if (document.getElementById('packet-particle-color') && document.getElementById('packet-directed-slits')) levelDefaults(document.body.dataset.qonticLevel); else if (tries > 0) setTimeout(() => again(tries - 1), 100); };
     setTimeout(again, 0);
   }
+  // Switching view while paused: redraw the picture (the legacy redraw left the wave blank).
+  if (typeof window.changeInterpretation === 'function' && !window.changeInterpretation.teWrapped) {
+    const orig = window.changeInterpretation;
+    window.changeInterpretation = function (...args) { const r = orig.apply(this, args); if (!isAnimating) setTimeout(() => window.qonticPacketEngine?.redraw?.(), 0); return r; };
+    window.changeInterpretation.teWrapped = true;
+  }
+  // Typed values outside a control's range: say so next to the box (the value is clamped).
+  document.addEventListener('change', event => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== 'number' || input.value === '') return;
+    const v = +input.value, min = input.min === '' ? -Infinity : +input.min, max = input.max === '' ? Infinity : +input.max;
+    if (v >= min && v <= max) return;
+    let note = input.parentElement.querySelector('.te-range-note');
+    if (!note) { note = document.createElement('span'); note.className = 'te-range-note'; note.setAttribute('role', 'status'); input.after(note); }
+    note.textContent = `range ${input.min}–${input.max}`;
+    clearTimeout(note._t); note._t = setTimeout(() => note.remove(), 3500);
+  }, true);
+  // Escape closes the palette chooser.
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') $('#palettePopup:visible').hide(); });
   // "What is the difference?" in the Engine tab: Physics tab, section on the two engines.
   document.addEventListener('click', event => {
     const link = event.target.closest('.te-engines-link');

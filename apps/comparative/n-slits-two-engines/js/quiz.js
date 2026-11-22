@@ -95,14 +95,15 @@ let quizSaved = null, quizWatching = false;
 function isRunning() { return typeof isAnimating !== 'undefined' && isAnimating; }
 
 // Put the app in the question's configuration, paused and reset.
-function setTo({ view, slits, color = null, engine = 'analytical', num = null }) {
+function setTo({ view, slits, color = null, engine = 'analytical', num = null, hits = null }) {
   if (isRunning()) $('#startButton').trigger('click');
   const pe = window.qonticPacketEngine;
   // Remember the user's engine and numerical options the first time the quiz changes them.
   if (pe && !quizSaved) {
     const color = document.getElementById('packet-particle-color');
     quizSaved = { engine: pe.engine, num: pe.numOptions, view: interpretation, numSlits, open: slitOpen.slice(), det: slitDetector.slice(),
-      color: color ? color.value : null, atWall: !!document.getElementById('slit-at-wall')?.checked };
+      color: color ? color.value : null, atWall: !!document.getElementById('slit-at-wall')?.checked,
+      hits: +(document.getElementById('MaxPart-input')?.value || 0) };
   }
   if (pe?.setEngine && pe.engine !== engine) pe.setEngine(engine);
   // Numerical questions set the wall, blade, closing time, Show change and guiding law;
@@ -110,6 +111,8 @@ function setTo({ view, slits, color = null, engine = 'analytical', num = null })
   pe?.setNumOptions?.(num || { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: false }, { persist: false });
   // Q5's Watch ticks this; every question starts with it off.
   const atWall = document.getElementById('slit-at-wall'); if (atWall && atWall.checked) { atWall.checked = false; atWall.dispatchEvent(new Event('change', { bubbles: true })); }
+  // Hits per packet: a question may ask for one electron at a time; the others use the user's number.
+  { const g = document.getElementById('MaxPart-group'), want = hits || quizSaved?.hits; if (g && want && +document.getElementById('MaxPart-input').value !== want) g.setValueInFirstUnit(want); }
   if (view && interpretation !== view) changeInterpretation(view);
   numSlits = slits.length;
   for (let k = 0; k < MAX_SLITS; k++) {
@@ -133,6 +136,7 @@ function restoreSaved(pe) {
   numSlits = q.numSlits;
   for (let k = 0; k < MAX_SLITS; k++) { slitOpen[k] = q.open[k]; slitDetector[k] = q.det[k]; }
   if (q.color) setColor(q.color);
+  if (q.hits) document.getElementById('MaxPart-group')?.setValueInFirstUnit(q.hits);
   const atWall = document.getElementById('slit-at-wall'); if (atWall && atWall.checked !== q.atWall) { atWall.checked = q.atWall; atWall.dispatchEvent(new Event('change', { bubbles: true })); }
   slitConfigurationChanged();
   pe.setWhichPath?.(whichPathDetector);
@@ -174,17 +178,17 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       plain: 'One dot, at a place that cannot be predicted.',
       answers: [{ id: 'dot', label: 'One dot, at a place that cannot be predicted' }, { id: 'faint', label: 'A faint copy of the whole fringe pattern' }, { id: 'two', label: 'Two dots, one behind each slit' }, { id: 'centre', label: 'One dot, always in the centre' }],
       answer: 'dot',
-      explain: 'Each electron makes one dot. Where it lands is random: the wave gives the probability, highest in the bright fringes and zero in the dark ones. The fringes appear only after many electrons, one dot at a time.',
-      prepare: () => setTo({ view: 'copenhagen', slits: ['open', 'open'] }),
+      explain: 'Each electron makes one dot. Where it lands cannot be predicted: the wave gives the probability, highest in the bright fringes and close to zero in the dark ones. (In the app each packet stands for 30 electrons sent one at a time; Watch it sends them one by one.) The fringes appear only after many electrons, one dot at a time.',
+      prepare: () => setTo({ view: 'copenhagen', slits: ['open', 'open'], hits: 1 }),
       draw: c => drawSetup(c, ['open', 'open'], { hitY: .38 }),
     },
     {
       question: 'Two open slits, with a which-slit detector on slit 1. What does the screen show after many hits?',
       caption: 'Two open slits; D marks the detector on slit 1.',
-      plain: 'No fringes: a smooth bump.',
-      answers: [{ id: 'smooth', label: 'No fringes: a smooth bump' }, { id: 'same', label: 'The same fringes as without the detector' }, { id: 'one', label: 'Fringes only behind slit 2' }, { id: 'none', label: 'Nothing: the detector stops the electrons' }],
+      plain: 'No fringes: just the two single-slit bumps, added together.',
+      answers: [{ id: 'smooth', label: 'No fringes: the two single-slit bumps, added' }, { id: 'same', label: 'The same fringes as without the detector' }, { id: 'one', label: 'Fringes only behind slit 2' }, { id: 'none', label: 'Nothing: the detector stops the electrons' }],
       answer: 'smooth',
-      explain: 'Once it is recorded which slit each electron went through, the waves from the two slits no longer add up and cancel, so the fringes go. What is left is the sum of the two single-slit bumps, which overlap here into one smooth bump. The Views tab says how each view describes this.',
+      explain: 'Once it is recorded which slit each electron went through, the waves from the two slits no longer add up and cancel, so the fringes disappear. What is left is the two single-slit bumps added together: a broad pattern with no fringes (here with a shallow dip in the middle, where the two bumps overlap less). The Views tab says how each view describes this.',
       prepare: () => setTo({ view: 'copenhagen', slits: ['detector', 'open'] }),
       draw: c => drawSetup(c, ['detector', 'open']),
     },
@@ -204,7 +208,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       plain: 'Slit 1: in this model of pilot-wave motion paths never cross, so the top slit feeds the top of the screen.',
       answers: [{ id: 's1', label: 'Slit 1' }, { id: 's2', label: 'Slit 2' }, { id: 's3', label: 'Slit 3' }, { id: 'any', label: 'Any of them: the waves overlap there' }],
       answer: 's1',
-      explain: 'In pilot-wave theory each particle passes one slit, and in this model, where every particle moves forward at the same speed, trajectories never cross, so the slits map onto bands of the screen in order: slit 1 to the top band, slit 3 to the bottom one. The band edges follow from the guidance law itself; how many particles land in each band comes from the theory’s assumption that starting positions are distributed as |ψ|². In the simulation, Color: By slit colours each particle by its slit, and dashed lines on the histogram mark the bands. The Orthodox view gives no slit at all (question 4).',
+      explain: 'In pilot-wave theory each particle passes one slit, and in this model, where every particle moves forward at the same speed, trajectories never cross, so the slits map onto bands of the screen in order: slit 1 to the top band, slit 3 to the bottom one. The band edges follow from the guidance law itself; how many particles land in each band comes from the theory’s assumption that starting positions are distributed as |ψ|². In the simulation, Color: By slit colours each particle by its slit, and dashed lines on the histogram mark the bands. The Orthodox view gives no slit at all (see the Orthodox question).',
       prepare: () => setTo({ view: 'bohmian', slits: ['open', 'open', 'open'], color: 'slit' }),
       draw: c => drawSetup(c, ['open', 'open', 'open'], { hitY: .1 }),
     },
@@ -241,7 +245,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
     {
       question: 'Orthodox view, two slits, no detector. A particle is detected in the central bright fringe. Which slit did it go through?',
       caption: 'Two open slits; the dot is the detection in the central fringe.',
-      plain: 'Standard quantum mechanics does not say: without a measurement at the slits it assigns no slit.',
+      plain: 'The Orthodox view does not say: without a measurement at the slits it assigns no slit.',
       answers: [
         { id: 'upper', label: 'The upper slit; which one is random' },
         { id: 'lower', label: 'The lower slit; which one is random' },
@@ -254,7 +258,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       draw: c => drawSetup(c, ['open', 'open'], { hitY: .5 }),
     },
     {
-      question: 'Pilot Wave, two slits. The packet centre is reaching the wall when you close the lower slit. In this app\u2019s model, what do the particles already past the wall do?',
+      question: 'Pilot Wave, two slits. The packet centre is reaching the wall when you close the lower slit. In the analytical engine, what do the particles already past the wall do?',
       caption: 'The packet centre is reaching the wall; slit 2 is being closed.',
       plain: 'In the app\u2019s model they keep the two-slit pattern, because the wave from slit 2 is already past the wall. In the full Schr\u00f6dinger equation the later, changed part of the wave also reaches them, so the wave guiding them changes substantially (by 31% of its amplitude in this app\u2019s numerical engine, Show change).',
       answers: [
@@ -263,7 +267,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
         { id: 'stop', label: 'Stop, or vanish from the screen' },
       ],
       answer: 'keep',
-      explain: 'In the app\u2019s model each particle went through one slit but is guided by the whole wave, including the part from the other slit, which is already past the wall. The model carries each slice of the packet forward at the packet speed, so only slices that cross the wall after the click see one slit. This is an approximation: in the full equation the part already past changes very little, but the later, changed part spreads into its region (see Physics, \u201cWhat the full Schr\u00f6dinger equation does\u201d). Watch it: the app ticks \u201cApply slit changes when the packet reaches the wall\u201d and closes slit 2 as the packet centre reaches the wall. The front of the packet keeps the two-slit fringes; the back shows one slit. The dashed curve on the screen is the two-slit prediction for the part of the packet already past the wall. At these default settings the model is outside its range of validity: the fringes kept at the front show the model, not the Schr\u00f6dinger equation.',
+      explain: 'In the analytical engine each particle went through one slit but is guided by the whole wave, including the part from the other slit, which is already past the wall. The model carries each slice of the packet forward at the packet speed, so only slices that cross the wall after the click see one slit. This is an approximation: in the full equation the part already past changes very little, but the later, changed part spreads into its region (see Physics, \u201cWhat the full Schr\u00f6dinger equation does\u201d). Watch it: the app ticks \u201cApply slit changes when the packet reaches the wall\u201d and closes slit 2 as the packet centre reaches the wall. The front of the packet keeps the two-slit fringes; the back shows one slit. The dashed curve on the screen is the two-slit prediction for the part of the packet already past the wall. At these default settings the model is outside its range of validity: the fringes kept at the front show the model, not the Schr\u00f6dinger equation.',
       prepare: () => setTo({ view: 'bohmian', slits: ['open', 'open'], color: 'slit' }),
       afterWatch: () => { const box = document.getElementById('slit-at-wall'); if (box) box.checked = true; setTimeout(() => document.querySelector('#slit-open-buttons button[data-slit="1"]')?.click(), 100); },
       draw: c => drawSetup(c, ['open', 'open'], { packet: true, shutter: 1 }),
@@ -332,7 +336,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       plain: 'About three quarters.',
       answers: [{ id: 'none', label: 'Almost none, as in the analytical engine' }, { id: 'quarter', label: 'About a quarter' }, { id: 'most', label: 'About three quarters' }],
       answer: 'most',
-      explain: 'The slits are narrow, so most of the packet hits the wall: in this app the reflecting wall sends back 78% of the packet and lets 20% past (the rest leaves through the side edges of the grid). The analytical engine’s mask reflects nothing; the numerical Mask and Absorbing walls reflect 0.3% or less. The screen pattern depends on what passes, so the engines can agree on the fringes while disagreeing about the wave in front of the wall.',
+      explain: 'The slits are narrow, so most of the packet hits the wall: in this app the reflecting wall sends back 78% of the packet and lets 20% past (the rest leaves through the side edges of the grid). The analytical engine’s mask reflects nothing; the numerical Absorbing wall (and, at Expert, the Mask) reflects 0.3% or less. The screen pattern depends on what passes: with the same soft slit openings (Mask) the engines agree on the fringes while disagreeing about the wave in front of the wall.',
       prepare: () => setTo({ engine: 'numerical', view: 'copenhagen', slits: ['open', 'open'], num: { wall: 'reflecting', blade: 'reflecting', tau: 0, showChange: false, guide: 'schrodinger', replay: false } }),
       draw: c => drawSetup(c, ['open', 'open'], { reflected: true, label: 'numerical engine · reflecting wall' }),
     },

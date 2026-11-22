@@ -40,16 +40,17 @@ const installLevelStyle = order => {
 };
 
 class QonticControls extends HTMLElement {
-  static observedAttributes = ["interpretation", "interpretations", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-rerun", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-advanced", "show-expert", "extra-tabs", "show-engine", "levels", "level", "tab-levels"];
+  static observedAttributes = ["interpretation", "interpretations", "running", "auto-run", "speed", "active-tab", "accent", "theme", "show-interpretation", "show-autorun", "show-reset", "show-rerun", "show-speed", "speed-min", "speed-max", "speed-step", "disabled", "show-tabs", "show-appearance", "show-advanced", "show-expert", "extra-tabs", "show-engine", "levels", "level", "tab-levels", "interpretation-style"];
 
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
-      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=7", import.meta.url).href}">
+      <link rel="stylesheet" href="${new URL("./qontic-controls.css?v=8", import.meta.url).href}">
       <section class="qontic-common-controls" aria-label="Simulation controls">
         <div class="qontic-level" role="radiogroup" aria-label="Level of detail" hidden></div>
         <button class="qontic-interpretation" type="button"></button>
+        <div class="qontic-interp-seg" role="radiogroup" aria-label="View" hidden></div>
         <div class="qontic-run-row" role="group" aria-label="Run controls">
           <button class="qontic-main-run" type="button"></button>
           <button class="qontic-reset" type="button">Reset</button>
@@ -78,6 +79,12 @@ class QonticControls extends HTMLElement {
       if (!button || button.dataset.level === this.getAttribute("level")) return;
       this.setAttribute("level", button.dataset.level);
       this.dispatch("level", { level: button.dataset.level });
+    });
+    root.querySelector(".qontic-interp-seg").addEventListener("click", event => {
+      const button = event.target.closest("[data-interp]");
+      if (!button || button.dataset.interp === this.getAttribute("interpretation")) return;
+      this.setAttribute("interpretation", button.dataset.interp);
+      this.dispatch("interpretation", { interpretation: button.dataset.interp });
     });
     root.querySelector(".qontic-interpretation").addEventListener("click", () => {
       const list = interpretationList(this);
@@ -153,7 +160,16 @@ class QonticControls extends HTMLElement {
     const interpretation = this.getAttribute("interpretation") || list[0][0];
     const [, label] = list.find(([id]) => id === interpretation) || list[0];
     const interpretationButton = root.querySelector(".qontic-interpretation");
-    interpretationButton.hidden = this.getAttribute("show-interpretation") === "false";
+    // interpretation-style="segmented" (optional): one button per view instead of the cycling pill.
+    const segmented = this.getAttribute("interpretation-style") === "segmented";
+    const seg = root.querySelector(".qontic-interp-seg");
+    interpretationButton.hidden = this.getAttribute("show-interpretation") === "false" || segmented;
+    seg.hidden = !segmented || this.getAttribute("show-interpretation") === "false";
+    if (segmented) {
+      const html = `<span>View</span>${list.map(([id, l]) => `<button type="button" role="radio" data-interp="${id}">${l}</button>`).join("")}`;
+      if (seg.dataset.html !== html) { seg.innerHTML = html; seg.dataset.html = html; seg.style.gridTemplateColumns = `auto repeat(${list.length},minmax(0,1fr))`; }
+      seg.querySelectorAll("[data-interp]").forEach(b => { const on = b.dataset.interp === interpretation; b.classList.toggle("active", on); b.setAttribute("aria-checked", String(on)); });
+    }
     interpretationButton.textContent = label;
     interpretationButton.style.setProperty("--qontic-control-accent", this.getAttribute("accent") || "#55d8e6");
     interpretationButton.title = "Click to change interpretation";

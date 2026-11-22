@@ -475,3 +475,8 @@ body.qontic-light.analytical-template .view-caption { color: #3f5868; }
 
 /* Light swatches (yellow, pink) need a dark edge on the light page (3.0-dev.22). */
 body.qontic-light.analytical-template .view-caption .cap-swatch { border-color: rgba(20,40,60,.55); }
+
+/* Quiz tab: the view label in the header would give away answers (the question sets the view). */
+body[data-view="quiz"] #view-label { visibility: hidden; }
+#palettePopup h3 { padding-right: 64px; }
+.te-range-note { display:inline-block; margin-left:6px; font-size:11px; color:#ffd27a; }

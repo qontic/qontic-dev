@@ -92,3 +92,13 @@ button:disabled, input:disabled { opacity:.5; cursor:default; }
 .qontic-speed > span { grid-column:1 / -1; font-size:11px; }
 .qontic-speed input { margin:0; }
 @media (pointer:coarse) { .qontic-level button { min-height:40px; } }
+.qontic-interp-seg { display:grid; align-items:center; gap:0; }
+.qontic-interp-seg span { padding-right:8px; color:#9fb6c3; font-size:12px; }
+.qontic-interp-seg button { min-width:0; padding:5px 4px; border:1px solid var(--qontic-control-accent,#55d8e6); border-left-width:0; background:#111b2a; color:#b9d4e0; cursor:pointer; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.qontic-interp-seg button:first-of-type { border-left-width:1px; border-radius:999px 0 0 999px; }
+.qontic-interp-seg button:last-of-type { border-radius:0 999px 999px 0; }
+.qontic-interp-seg button.active { background:var(--qontic-control-accent,#55d8e6); color:#06202a; font-weight:600; }
+:host-context(.qontic-light) .qontic-interp-seg button { background:#f5fafc; color:#075c69; }
+:host-context(.qontic-light) .qontic-interp-seg button.active { background:#087487; color:#fff; }
+:host-context(.qontic-light) .qontic-interp-seg span { color:#405866; }
+@media (pointer:coarse) { .qontic-interp-seg button { min-height:40px; } }

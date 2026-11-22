@@ -3,6 +3,35 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.21 — 2026-11-21
+Fixes and changes from the ten-student review of dev.20 (context/2026-11-21-n-slits-two-engines-ten-student-review.md); Pablo approved all recommendations.
+Bugs
+- Slit separation slider moves both ways again (dev.13 kept the larger of old and new values). The user's separation is taken from the user's own slider/box changes and from app setters (Nice fringes, links).
+- Direct PW and the particle Color menu really hidden at Basic (their rows were created after the level tagging; now tagged at creation).
+- Fringe readout: peaks down to 8% of the maximum count, so a few fringes are found (λ 50, d 200, D−L 2000 now reads ≈ 434 nm instead of "no fringes"); the tooltip says why it can differ from λ(D−L)/d; with Nice fringes the same spacing everywhere.
+- Nice fringes removes detectors first, starts the run (as its tooltip said), un-highlights; plain caption at Basic ("Wavelength 50 nm, slits 630 nm apart, screen 3000 nm away: 7 bright bands about 235 nm apart").
+- Share links keep the level (hash wins over ?level=), λ at Basic, the wall, current, blade, closing time, absorber and replay.
+- The header view label is hidden on the Quiz tab (Q5 gave away its answer).
+- Changing the current (Schrödinger / Pauli) starts a new run in the numerical engine (the record was a mix of two currents).
+- Numerical engine after a live slit change: the earlier prediction stays (dashed) and the stats say "(front: earlier)" until the change reaches the screen.
+- Try-it preset sets its own wall, blade, closing time and current. Show change is disabled while detectors are on. Switching view while paused redraws the picture. Typed values outside a range show the range. Escape closes the palette chooser; its Close no longer overlaps the title. Screenshots are named n-slits-two-engines-*.png. Missing space in the numerical caption; numerical Orthodox/Many Worlds caption says the hits are drawn from the computed flux and that its sharp-edged slits differ from the analytical soft ones.
+Text
+- Quiz: Q3 "cannot be predicted" (not "random"), Watch it sends one electron per packet; Q4 "the two single-slit bumps, added"; Q6 cross-reference; Q9 "the Orthodox view"; Q10 "in the analytical engine"; last question no longer relies on the Expert-only Mask.
+- Views: the Orthodox paragraph now states its open question (what counts as a measurement, why the state reduces), as the other views state theirs.
+- Basic text plainer (high point / low point instead of crest/trough, "in every view", "the wave guides its path", wavelength defined; Basic Many Worlds and Pilot Wave captions without |ψ|², branch records or "paraxial").
+- Physics: λ(D−L)/d throughout, grid formula with its margins, reflecting-wall L1 24%, absorbing transmission 15–18%.
+Changes (decisions A–I)
+- A. With detectors, Orthodox and Many Worlds give each hit its record (drawn from |ψ_b|²/Σ|ψ|² at that pixel): hits and bars take the record's slit colour (stacked bars at Basic) and the D that fired flashes.
+- B. Basic runs at 3× by default (the speed set before comes back above Basic).
+- C. Basic caption: "Each wave you see stands for 30 electrons sent one at a time; each electron makes one dot."
+- D. Phase key hidden at Basic; docked key 150 px; its caption "Dark: no wave · bright: strong wave".
+- E. One slit-colour order for any number of slits and both engines (sky blue, orange, bluish green, yellow, …; first four distinguishable with red–green colour blindness, checked with the palette validator).
+- F. Views as three buttons ("View: Orthodox | Pilot Wave | Many Worlds"; shared controls, optional interpretation-style="segmented").
+- G. λ up to 70 nm; default 50 nm at every level (Basic range 30–70 nm).
+- H. Basic caps the slit separation at 700 nm (slits stay on the picture); the user's value comes back above Basic.
+- I. Standard Physics opens with a summary: λ = h/p, |ψ₁+ψ₂|², d sin θ = mλ, Δy ≈ λ(D−L)/d, single-slit bump, detectors, views.
+Checked: fresh Basic (λ 50, 3×, 30–70 nm, separation max 700, three view buttons, no phase key); slider down and up by keys; detector run with record-coloured stacked bars and D flash; Nice fringes (detectors removed, run started, one spacing); Standard summary visible only at Standard; λ 50 d 200 D−L 2000 readout; quiz label hidden; share links (expert numerical options and level; Basic λ 45) after reload; numerical live close "(front: earlier)"; regression (te12, te15, te26, te27, te37, te39, blocker test), unit tests; phone and desktop screenshots; no page errors.
+
 ## 1.0-dev.20 — 2026-11-21
 Pablo: no good place for the phase key on the canvas; agreed to put it under the picture.
 - The phase key is docked by default at the left of the caption under the picture (112 px), where it covers nothing. Its ⇱ button floats it over the canvas (drag, resize, fold to an icon, as in dev.18–19); ⇲ puts it back. The choice is remembered.

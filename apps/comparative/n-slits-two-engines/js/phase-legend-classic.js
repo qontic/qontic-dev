@@ -52,7 +52,7 @@ export function paintPhaseLegend(canvas, scale = 2) {
   ctx.fillText('±π', 29, 74); ctx.fillText('0', 137, 74);
   ctx.font = 'italic 17px Georgia, serif'; ctx.fillStyle = '#9299b2'; ctx.fillText('φ', 84, 74);
   ctx.font = '10px system-ui, sans-serif'; ctx.fillStyle = '#9299b2';
-  ctx.fillText('Purple base shows density', 84, 137);
+  ctx.fillText('Dark: no wave · bright: strong wave', 84, 137);
   canvas.setAttribute('role', 'img');
   canvas.setAttribute('aria-label', 'Wave phase over a purple density layer: positive pi over two is blue, negative pi over two is red, and plus or minus pi is magenta. At phase zero the purple density remains visible. Colors are shown at full reference brightness; the wave fades with its density.');
   return canvas;

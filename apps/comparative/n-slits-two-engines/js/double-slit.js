@@ -1634,7 +1634,7 @@ $(document).ready(function() {
 	  initWaveWebGL();
 
 
-      createParameterInput('detector', 'slit-separation', 'Slit Sep.', 0, 2000, 1, 300, [
+      createParameterInput('detector', 'slit-separation', 'Slit separation', 0, 2000, 1, 300, [
          { value: 'nm', text: 'nm', scale:1 },
          { value: 'um', text: 'µm', scale:1.e3 },
          { value: 'mm', text: 'mm', scale:1.e6 }
@@ -1646,7 +1646,7 @@ $(document).ready(function() {
          { value: 'mm', text: 'mm', scale:1.e6 }
          ], true);
 
-      createParameterInput('detector', 'detector-distance', 'Screen dist.', 50, 3000, 1, 1000, [
+      createParameterInput('detector', 'detector-distance', 'Screen dist. (D−L)', 50, 3000, 1, 1000, [
             { value: 'nm', text: 'nm', scale:1 },
             { value: 'um', text: 'µm', scale:1.e3 },
             { value: 'mm', text: 'mm', scale:1.e6 }
@@ -1669,7 +1669,7 @@ $(document).ready(function() {
             ], false);
 
 
-      createParameterInput('particle', 'wavelength', 'λ', 1, 50, 1, 50, [
+      createParameterInput('particle', 'wavelength', 'Wavelength λ', 1, 70, 1, 50, [
             { value: 'nm', text: 'nm', scale:1 },
             { value: 'um', text: 'µm', scale:1.e3 },
             { value: 'mm', text: 'mm', scale:1.e6 }
