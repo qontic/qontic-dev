@@ -1,5 +1,9 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.6.2 — 2026-11-21
+- Instants: the packet's extent at t₁ and t₂ (±2σₓ) is drawn as outlined frames (dashed amber, solid cyan) with labels, instead of filled bands whose overlap read as a third, green region.
+- Instants, stages 2–3: while running, a slowed, representative train of packets moves through; each flashes amber as its centre passes the weak position (t₁) and cyan at the strong one (t₂), and the train slows near the measurements. Shown for timing only; the caption says one packet is drawn for many runs.
+
 ## 0.6.1 — 2026-11-21
 Fixes from the ten-student review (context/2026-11-21-weak-velocity-ten-student-review.md).
 - Model: the Instants mixture and the fixed-time curve use the same rule — an offset counts only if its weak position is behind the slit wall and its strong position is not past the screen (they disagreed by 22% at the first map pair, and runs could be measured beyond the screen). New test (20 tests); weak-limit tolerance tightened to 1%.

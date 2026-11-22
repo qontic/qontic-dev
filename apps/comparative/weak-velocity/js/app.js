@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.6.1';
-import * as M from './weak-model.js?v=0.6.1';
+import { APP_RELEASE } from './release.js?v=0.6.2';
+import * as M from './weak-model.js?v=0.6.2';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -265,7 +265,7 @@ function liveBody() {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const bw = 2 * Y_HALF / N_BINS, strip = `${nm(-Y_HALF + state.selected * bw).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * bw).toFixed(0)} nm`;
     const kept = instant() && state.recx ? ` ${exp.used.toLocaleString('en-US')} used: the position along the beam is recorded too (Wiseman's protocol), and only runs within ±${Math.round(3 * state.packet / 13)} nm of the packet centre are kept (bright band). This returns the result at planes.` : '';
-    const at = instant() ? (state.recx ? '' : ` Measured at instants, transverse position only: with a ${state.packet} nm packet the arrows average the field over the planes the packet spans, so the prediction (blue) and the dotted fixed-time curve differ from j/|ψ|² (dashed). Detections are drawn at positions along the beam sampled from the packet, for display only; they are not recorded.`) : '';
+    const at = instant() ? (state.recx ? '' : ` Measured at instants, transverse position only: with a ${state.packet} nm packet the arrows average the field over the planes the packet spans, so the prediction (blue) and the dotted fixed-time curve differ from j/|ψ|² (dashed). Detections are drawn at positions along the beam sampled from the packet, for display only; they are not recorded.`) + ' While running, the moving packets show the timing, slowed down: one packet is drawn for many runs.' : '';
     const head = `${N} of ${state.perPlane.toLocaleString('en-US')} runs.${kept}${at}`;
     if (!b) return `${head} ${exp.runs ? 'Too few runs in the selected strip yet.' : 'Press <b>Start</b>.'} ${SELECT_HINT_TEXT()}`;
     // Neutral wording: two averages over the same post-selected runs, not a path.
@@ -740,15 +740,35 @@ function makeRunAnim(run) {
 }
 // Stage 1 at instants: dim the wave outside the packet, |F(x - xc)|^2.
 function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
-function drawPacketMask(P, X, Yp, xc, xLeft) {
+// Dim the wave outside the packets whose centres are in `centres`:
+// opacity of the dimming layer = dim·(1 − max_k |F(x − x_k)|²/|F(0)|²).
+function drawPacketMask(P, X, Yp, centres, xLeft) {
   const s = packetSigma(), [r, g, b] = hexRgb(P.panel), dim = 0.82, top = Yp(Y_HALF), h = Yp(-Y_HALF) - top;
-  const xa = X(xc - 4 * s), xb = X(xc + 4 * s), left = X(xLeft), right = X(p.screen);
-  ctx.fillStyle = `rgba(${r},${g},${b},${dim})`;
-  if (xa > left) ctx.fillRect(left, top, xa - left, h);
-  if (right > xb) ctx.fillRect(xb, top, right - xb, h);
-  const grad = ctx.createLinearGradient(xa, 0, xb, 0);
-  for (let k = 0; k <= 16; k++) { const u = -4 + k / 2; grad.addColorStop(k / 16, `rgba(${r},${g},${b},${dim * (1 - Math.exp(-u * u / 2))})`); }
-  ctx.fillStyle = grad; ctx.fillRect(xa, top, xb - xa, h);
+  const left = X(xLeft), right = X(p.screen), n = 160, grad = ctx.createLinearGradient(left, 0, right, 0);
+  for (let i = 0; i <= n; i++) {
+    const x = xLeft + (p.screen - xLeft) * i / n;
+    let f = 0; for (const c of centres) f = Math.max(f, Math.exp(-((x - c) ** 2) / (2 * s * s)));
+    grad.addColorStop(i / n, `rgba(${r},${g},${b},${dim * (1 - f)})`);
+  }
+  ctx.fillStyle = grad; ctx.fillRect(left, top, right - left, h);
+}
+// Stages 2–3 at instants: a slowed, representative train of packets moving
+// through; each flashes amber as its centre passes the weak position (t1) and
+// cyan at the strong position (t2). It shows the timing only; the runs are
+// counted separately (one packet drawn per many runs).
+const train = { pos: 0 };
+const TRAIN_SPACING = () => Math.max(6 * packetSigma(), (p.screen - p.wall) / 2.6);
+function trainCentres(xLeft) {
+  const S = TRAIN_SPACING(), L = p.screen + 4 * packetSigma() - (xLeft - 4 * packetSigma()), out = [];
+  const m = Math.ceil(L / S);
+  for (let k = 0; k < m; k++) out.push(xLeft - 4 * packetSigma() + ((train.pos + k * S) % (m * S)));
+  return out;
+}
+function advanceTrain(dt) {
+  if (!exp) return;
+  const near = trainCentres(p.wall - 0.6).some((c) => c > exp.x1 - 2 * packetSigma() && c < exp.x2 + 2 * packetSigma());
+  // about 2.5 s across the drawing at speed 1, four times slower around the measurements
+  train.pos += dt * state.speed * (p.screen - p.wall) / 2.5 * (near ? 0.25 : 1);
 }
 const waveKey = (xa, xb, nx) => [xa, xb, nx, p.k, p.sy, p.centers, p.wall, p.sourceSigma, Y_HALF].join('|');
 // Base grid: ψ at every column (density and phase angle kx + arg φ).
@@ -858,7 +878,8 @@ function drawApparatus(P, box) {
       lines.forEach((ln, i) => backedText(P, ln, X(exp ? exp.x2 : w.mixedFrom) + 10, Yp(-Y_HALF) - 22 + 12 * i, { color: P.muted, size: 10 }));
     }
     if (state.waveMode !== 'density' && !w.canCrest) text('wavelength too short to draw crests here: density shown', X(p.wall) + 8, box.y + box.h - 18, { color: P.muted, size: 10 });
-    if (instant() && state.stage === 'one' && exp && anim?.packet) drawPacketMask(P, X, Yp, packetCentre(anim), x0);
+    if (instant() && state.stage === 'one' && exp && anim?.packet) drawPacketMask(P, X, Yp, [packetCentre(anim)], x0);
+    if (instant() && state.stage !== 'one' && exp && !(map?.done) && state.running) drawPacketMask(P, X, Yp, trainCentres(p.wall - 0.6), x0);
   }
   // wall with two slits (±1.5 sigma openings)
   ctx.strokeStyle = P.wall; ctx.lineWidth = 4;
@@ -956,12 +977,25 @@ function drawApparatus(P, box) {
   // At instants: shaded bands (±2σ of the packet) around the packet centre at
   // t1 (weak) and t2 (strong); the particle can be anywhere in them.
   if (exp && !(map?.done) && instant()) {
+    // Outlined frames (filled overlaps read as a third colour): the packet's
+    // extent, ±2σx, at t1 (dashed amber) and at t2 (solid cyan).
     const s = packetSigma(), top = Yp(Y_HALF), h = Yp(-Y_HALF) - top;
-    ctx.globalAlpha = 0.13;
-    ctx.fillStyle = P.weak; ctx.fillRect(X(exp.x1 - 2 * s), top, X(exp.x1 + 2 * s) - X(exp.x1 - 2 * s), h);
-    ctx.fillStyle = P.strong; ctx.fillRect(X(exp.x2 - 2 * s), top, X(exp.x2 + 2 * s) - X(exp.x2 - 2 * s), h);
-    if (state.recx && exp.mix) { const w = exp.mix.width / 2; ctx.globalAlpha = 0.3; ctx.fillRect(X(exp.x2 - w), top, X(exp.x2 + w) - X(exp.x2 - w), h); }
-    ctx.globalAlpha = 1;
+    const frame = (xc, col, dash, inset) => { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.setLineDash(dash); ctx.strokeRect(X(xc - 2 * s), top + inset, X(xc + 2 * s) - X(xc - 2 * s), h - 2 * inset); ctx.setLineDash([]); };
+    // Flashes when a packet of the moving train is measured.
+    if (state.stage !== 'one' && state.running) {
+      for (const c of trainCentres(p.wall - 0.6)) {
+        for (const [xc, col] of [[exp.x1, P.weak], [exp.x2, P.strong]]) {
+          const f = Math.exp(-(((c - xc) / Math.max(0.08, 0.15 * s)) ** 2));
+          if (f > 0.02) { ctx.globalAlpha = 0.28 * f; ctx.fillStyle = col; ctx.fillRect(X(xc - 2 * s), top, X(xc + 2 * s) - X(xc - 2 * s), h); }
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+    frame(exp.x1, P.weak, [6, 4], 0);
+    frame(exp.x2, P.strong, [], 3);
+    backedText(P, 'packet at t₁ (±2σₓ)', X(exp.x1 - 2 * s) + 5, Yp(Y_HALF) + 14, { color: P.weak, size: 10 });
+    backedText(P, 'packet at t₂', X(exp.x2 + 2 * s) - 6, Yp(Y_HALF) + 28, { color: P.strong, size: 10, align: 'right' });
+    if (state.recx && exp.mix) { const w = exp.mix.width / 2; ctx.globalAlpha = 0.28; ctx.fillStyle = P.strong; ctx.fillRect(X(exp.x2 - w), top, X(exp.x2 + w) - X(exp.x2 - w), h); ctx.globalAlpha = 1; }
   }
   // the current pair of planes (at instants: the packet centre at t1 and t2)
   if (exp && !(map?.done)) {
@@ -1279,6 +1313,7 @@ function frame(now) {
   const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   if (pending && !drag) rebuild();
   if (state.waveMode !== 'density' && (state.running || (state.stage === 'one' && !exp?.runs))) phaseClock = (phaseClock + dt * state.speed * 2 * Math.PI / 0.8) % (2 * Math.PI);
+  if (state.running && exp && instant() && state.stage !== 'one') advanceTrain(dt);
   if (state.running && exp) {
     if (state.stage === 'one') {
       if (!anim) anim = makeRunAnim(sampleOne(exp));
