@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.6.5';
-import * as M from './weak-model.js?v=0.6.5';
+import { APP_RELEASE } from './release.js?v=0.6.6';
+import * as M from './weak-model.js?v=0.6.6';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -289,7 +289,7 @@ let hadRun = false;
 function liveBody() {
   const N = exp.runs.toLocaleString('en-US');
   if (state.stage === 'one') {
-    const timing = instant() ? ` Measured at instants: each run is one packet. The pointer is coupled at t₁ and the transverse position measured at t₂, wherever the particle is in the packet (frames: ±3σₓ = ±${3 * state.packet} nm, the range runs are drawn from); the pointer marker and the detection are drawn at the same position along the packet, 50 nm apart. ${state.recx ? 'The position along the beam is recorded too, as in Wiseman\'s protocol.' : 'The position along the beam is not recorded; both are drawn at a position sampled from the packet, for display only.'}` : '';
+    const timing = instant() ? ` Measured at instants: each run is one packet. The pointer is coupled at t₁, when the packet centre is at the weak position, and the transverse position is measured at t₂, when it has moved on by the gap; between the two the motion is drawn slowed down (at the real speed the gap takes a few percent of the crossing time). Both act wherever the particle is in the packet (frames: ±3σₓ = ±${3 * state.packet} nm, the range runs are drawn from); the pointer marker and the detection are drawn at the same position along the packet, 50 nm apart. ${state.recx ? 'The position along the beam is recorded too, as in Wiseman\'s protocol.' : 'The position along the beam is not recorded; both are drawn at a position sampled from the packet, for display only.'}` : '';
     if (exp.runs === 0) return state.running ? `The first run is under way: watch the pointer move, then the detector click at the strong line.${timing}` : 'Press <b>Start</b>. Watch the pointer move, then the detector click at the strong line. One run gives two numbers.';
     const paused = anim?.done ? `<b>Run ${exp.runs} done.</b> The pointer reads Y = ${nm(anim.run.Y).toFixed(0)} nm; the detector clicked at y<sub>f</sub> = ${nm(anim.run.yf).toFixed(0)} nm. Press <b>Start</b> for the next run; this one then shrinks into a stored point. ` : '';
     return `${paused}${plural(exp.runs, 'run', 'runs')}.${timing} The amber marker is the recorded pointer coordinate Y. The pointer's initial preparation spread is σₚ = ${state.sw} nm. A wider pointer gives less information in one run and disturbs the wave less. One run does not establish a particle's path.`;
@@ -775,22 +775,25 @@ const RUN_SECONDS = 1.8;
 const RUN_TW = 0.15, RUN_TS = 0.55;   // pointer moves, then detection, within a run
 let waveGrid = null, waveLayer = null, phaseClock = 0, lastRun = null;
 const HUE = (() => { const t = new Uint8Array(256 * 3); for (let i = 0; i < 256; i++) { const h = i / 256 * 6, c = 1, x = 1 - Math.abs(h % 2 - 1); const [r, g, b] = h < 1 ? [c, x, 0] : h < 2 ? [x, c, 0] : h < 3 ? [0, c, x] : h < 4 ? [0, x, c] : h < 5 ? [x, 0, c] : [c, 0, x]; t[3 * i] = 70 + 185 * r; t[3 * i + 1] = 70 + 185 * g; t[3 * i + 2] = 70 + 185 * b; } return t; })();
-const RUN_SECONDS_INSTANT = 3.0;
-// At instants the packet travels through the drawing; it slows down between
-// the two measurements (t1 when its centre is at the weak position, t2 at the
-// strong one) so both events can be seen.
-const PACKET_A = 0.3, PACKET_B = 0.72;
+const RUN_SECONDS_INSTANT = 4.0;
+// At instants the packet travels through the drawing. Its centre stops at the
+// weak position (t1), creeps the gap to the strong position (slowed: at the
+// real speed the 50 nm take a few percent of the crossing), stops there (t2),
+// then leaves. Fractions of the run:
+const PK = { tW: 0.26, go: 0.38, tS: 0.66, leave: 0.78 };
 function packetCentre(a) {
-  const m = 3 * packetSigma(), x1c = exp.x1, x2c = exp.x2, xa = p.wall - 0.6, xb = p.screen;
-  if (a.t < PACKET_A) return xa + (x1c - m - xa) * a.t / PACKET_A;
-  if (a.t < PACKET_B) return x1c - m + (x2c - x1c + 2 * m) * (a.t - PACKET_A) / (PACKET_B - PACKET_A);
-  return x2c + m + (xb - x2c - m) * Math.min(1, (a.t - PACKET_B) / (1 - PACKET_B));
+  const x1c = exp.x1, x2c = exp.x2, xa = p.wall - 0.6, xb = p.screen, t = a.t;
+  const sm = (u) => u * u * (3 - 2 * u);
+  if (t < PK.tW) return xa + (x1c - xa) * (1 - (1 - t / PK.tW) ** 2);       // decelerate onto x1
+  if (t < PK.go) return x1c;
+  if (t < PK.tS) return x1c + (x2c - x1c) * sm((t - PK.go) / (PK.tS - PK.go));
+  if (t < PK.leave) return x2c;
+  return x2c + (xb - x2c) * ((t - PK.leave) / (1 - PK.leave)) ** 2;
 }
 function makeRunAnim(run) {
   lastRun = run; if (waveGrid) waveGrid.overKey = null;
   if (!instant()) return { t: 0, run, tW: RUN_TW, tS: RUN_TS };
-  const m = 3 * packetSigma(), g = exp.x2 - exp.x1, f = (d) => PACKET_A + (PACKET_B - PACKET_A) * d / (g + 2 * m);
-  return { t: 0, run, tW: f(m), tS: f(m + g), packet: true };
+  return { t: 0, run, tW: PK.tW, tS: PK.tS, packet: true };
 }
 // Stage 1 at instants: dim the wave outside the packet, |F(x - xc)|^2.
 function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
@@ -820,9 +823,13 @@ function trainCentres(xLeft) {
 }
 function advanceTrain(dt) {
   if (!exp) return;
-  const near = trainCentres(p.wall - 0.6).some((c) => c > exp.x1 - 3 * packetSigma() && c < exp.x2 + 3 * packetSigma());
-  // about 2.5 s across the drawing at speed 1, four times slower around the measurements
-  train.pos += dt * state.speed * (p.screen - p.wall) / 2.5 * (near ? 0.25 : 1);
+  const cs = trainCentres(p.wall - 0.6);
+  const near = cs.some((c) => c > exp.x1 - 3 * packetSigma() && c < exp.x2 + 3 * packetSigma());
+  const gap = cs.some((c) => c > exp.x1 - 0.15 && c < exp.x2 + 0.15);
+  // about 2.5 s across the drawing at speed 1, four times slower around the
+  // measurements, and slow enough between t1 and t2 that the two flashes separate
+  const v = (p.screen - p.wall) / 2.5, vGap = (exp.x2 - exp.x1 + 0.3) / 2.0;
+  train.pos += dt * state.speed * (gap ? Math.min(0.25 * v, vGap) : near ? 0.25 * v : v);
 }
 const waveKey = (xa, xb, nx) => [xa, xb, nx, p.k, p.sy, p.centers, p.wall, p.sourceSigma, Y_HALF].join('|');
 // Base grid: ψ at every column (density and phase angle kx + arg φ).
@@ -1043,11 +1050,28 @@ function drawApparatus(P, box) {
     if (state.stage !== 'one' && state.running) {
       for (const c of trainCentres(p.wall - 0.6)) {
         for (const [xc, col] of [[exp.x1, P.weak], [exp.x2, P.strong]]) {
-          const f = Math.exp(-(((c - xc) / Math.max(0.08, 0.15 * s)) ** 2));
-          if (f > 0.02) { ctx.globalAlpha = 0.28 * f; ctx.fillStyle = col; ctx.fillRect(X(xc - 3 * s), top, X(xc + 3 * s) - X(xc - 3 * s), h); }
+          const f = Math.exp(-(((c - xc) / Math.min(0.12, 0.25 * (exp.x2 - exp.x1))) ** 2));
+          if (f > 0.02) { ctx.globalAlpha = 0.38 * f; ctx.fillStyle = col; ctx.fillRect(X(xc - 3 * s), top, X(xc + 3 * s) - X(xc - 3 * s), h); }
         }
       }
       ctx.globalAlpha = 1;
+    }
+    // Stage 1: each frame flashes at its own instant; the clock is labelled.
+    if (state.stage === 'one' && anim?.packet) {
+      const fl = (t0) => Math.max(0, 1 - Math.abs(anim.t - t0 - 0.03) / 0.07);
+      for (const [xc, col, t0] of [[exp.x1, P.weak, anim.tW], [exp.x2, P.strong, anim.tS]]) {
+        const f = fl(t0); if (f > 0) { ctx.globalAlpha = 0.25 * f; ctx.fillStyle = col; ctx.fillRect(X(xc - 3 * s), top, X(xc + 3 * s) - X(xc - 3 * s), h); ctx.globalAlpha = 1; }
+      }
+      const t = anim.t;
+      const msg = t < anim.tW ? 'packet arriving' : t < PK.go ? 't₁: weak coupling' : t < anim.tS ? 'between t₁ and t₂ (slowed down)' : t < PK.leave ? 't₂: strong measurement' : 'after t₂';
+      backedText(P, msg, X(exp.x1), Yp(-Y_HALF) - 34, { color: t >= anim.tS ? P.strong : P.weak, size: 12, weight: 600, align: 'center' });
+    } else if (state.stage !== 'one' && state.running) {
+      // Stages 2-3: the same clock, read from the train packet nearest the gap.
+      const c = trainCentres(p.wall - 0.6).find((q) => q > exp.x1 - 0.3 && q < exp.x2 + 0.3);
+      if (c !== undefined) {
+        const msg = c < exp.x1 - 0.12 ? 'a packet reaches t₁' : c < exp.x1 + 0.1 ? 't₁: weak coupling' : c < exp.x2 - 0.1 ? 'between t₁ and t₂ (slowed down)' : c < exp.x2 + 0.12 ? 't₂: strong measurement' : 'after t₂';
+        backedText(P, msg, X(exp.x1), Yp(-Y_HALF) - 34, { color: c >= exp.x2 - 0.1 ? P.strong : P.weak, size: 12, weight: 600, align: 'center' });
+      }
     }
     frame(exp.x1, P.weak, [6, 4], 0);
     frame(exp.x2, P.strong, [], 3);

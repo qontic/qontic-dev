@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.6.6 — 2026-11-21
+- Instants: the two measurements no longer look simultaneous. Before, the weak coupling and the detection fired about 70 ms apart in stage 1 (the packet crossed the 50 nm gap at its drawing speed). Now the packet stops with its centre at the weak position (t₁, amber frame flashes), creeps the gap over about a second (labelled "slowed down"), and stops at the strong position (t₂, detection). Stages 2–3: the train slows to about 2 s across the gap, the flashes are narrower and stronger, and a status line reads t₁ / between / t₂ from the packet nearest the gap. Physics text says why the real-speed version would look simultaneous.
+
 ## 0.6.5 — 2026-11-21
 - Instants, drawing matches the physics: the pointer marker and the detection are drawn at the particle's position in the packet (Δ), 50 nm apart, instead of on the packet-centre lines; with the position along the beam recorded, the stored pointer samples are drawn at their own positions (selected cell bright) and thirteen ticks mark the cells. Frames widened to ±3σₓ, the range runs are drawn from (and the range used for pointing). Labels "packet centre at t₁/t₂"; the weak frame says the coupling acts on the whole packet. Pointer label kept inside the plot.
 - Stage-2 caption at instants leads with one plain sentence on what the arrow is. Results: "Runs (packets)" at instants; "Ideal weak pointer at Δ = …" when a cell is selected (it no longer changes value under an unchanged label).
