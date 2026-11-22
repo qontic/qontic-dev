@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.7.0">
+<link rel="stylesheet" href="css/wv.css?v=0.7.1">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -253,6 +253,8 @@
   <ul>
     <li>Units with ħ = m = 1 inside the code; positions are shown in nm.</li>
     <li>The coupling is impulsive and the pointer does not evolve between coupling and reading. Only the particle's transverse coordinate is coupled.</li>
+    <li><b>Why only the transverse position (stages 1–3).</b> In the paraxial model the forward velocity is the same everywhere, v<sub>x</sub> = ħk/m, and the packet only translates. Only v<sub>y</sub> needs measuring; v<sub>x</sub> is known. Measuring at a plane gives the position along the beam for free (the plane's), and at instants it follows from the speed. Kocsis et al. likewise measured only the transverse momentum. Beyond this model (wide angles, or packets short enough to stretch as they travel) v<sub>x</sub> varies, and both coordinates would have to be measured weakly. Stage 4 does read both, as Wiseman's protocol does; here the reading along the beam only adds noise, because its mean is fixed by the speed.</li>
+    <li>The pointer reading Y is a pointer coordinate, drawn on the same scale as y. A 200 nm pointer reads outside the drawn range in about one run in eight; those readings are counted at the edge of the drawing, and all of them enter the averages.</li>
     <li>A sharp pointer adds transverse momentum of spread ħ/(2σ<sub>p</sub>). Relative to forward momentum this is λ/(4πσ<sub>p</sub>). At the default λ = 50 nm it is about 0.4 for a 10 nm pointer, so the sharp-pointer demonstration is qualitative beyond the controlled paraxial range. The Gaussian solution remains exact within the reduced model.</li>
     <li>The joint distribution is tabulated across the screen (±<span data-screen-half>400</span> nm), with finer cells for sharper pointers and wider screens. At each detected position, the pointer grid covers the conditional Gaussian envelopes to eight standard deviations. This includes readings outside the detector window. Tests check domain and grid convergence as well as sampled strip averages.</li>
     <li>Particles that hit the wall are not counted; the experiment starts behind the slits.</li>
@@ -331,6 +333,6 @@
   <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and many runs per pair of planes, with only a fraction contributing to each arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.7.0"></script>
+<script type="module" src="js/app.js?v=0.7.1"></script>
 </body>
 </html>

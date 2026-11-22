@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.7.0';
-import * as M from './weak-model.js?v=0.7.0';
+import { APP_RELEASE } from './release.js?v=0.7.1';
+import * as M from './weak-model.js?v=0.7.1';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -289,6 +289,38 @@ function traceBack(c0) {
   return pts;
 }
 
+// At the end of the run: arrows from windows on a grid, and lines traced back
+// from windows next to the screen, started at equal shares of the runs
+// detected there; the j/|ψ|² flow lines from the same windows for comparison.
+function windowSummary() {
+  if (!wf || wf.runs < state.perPlane) return null;
+  const key = [state.win.r, state.nLines, wf.runs].join('|');
+  if (wf.summary?.key === key) return wf.summary;
+  const r = state.win.r / 100, F = wf.field, nYf = F.nYf;
+  // Arrows: windows every 100 nm along the beam and every 50 nm across.
+  const arrows = [];
+  for (let x = p.wall + F.gapX + Math.max(r, 0.5); x <= p.screen - r + 1e-9; x += 1)
+    for (let y = -Y_HALF + 0.25; y < Y_HALF; y += 0.5) { const q = M.windowQuery(F, wf.acc, x, y, r); if (q.n >= 300) arrows.push({ q }); }
+  // Starts: equal shares of the runs whose strong result lies within one window of the screen.
+  const xs = p.screen - r, counts = new Float64Array(nYf);
+  F.x1s.forEach((x1, j) => { if (Math.abs(x1 + F.gapX - xs) <= r) for (let i = 0; i < nYf; i++) counts[i] += wf.acc.n[j * nYf + i]; });
+  const total = counts.reduce((a, b) => a + b, 0), starts = [];
+  let acc = 0, k = 0;
+  for (let i = 0; i < nYf && k < state.nLines; i++) { acc += counts[i]; while (k < state.nLines && acc >= (k + 0.5) / state.nLines * total) { starts.push(F.yfMin + (i + 0.5) * F.dYf); k++; } }
+  const lines = [], flows = [];
+  let sum = 0, m = 0;
+  for (const y0 of starts) {
+    const pts = traceBack({ x: xs, y: y0 }), last = pts[pts.length - 1].c, q0 = pts[0].q;
+    if (!q0 || !(q0.n >= 300)) continue;
+    lines.push(pts.map(({ c }) => [c.x, c.y]));
+    const ref = M.bohmTrajectory(T0, p.k, p.wall, q0.yfm, Math.max(p.wall + 0.01, last.x), 200, q0.x2m);
+    flows.push(ref);
+    sum += (ref[ref.length - 1][1] - last.y) ** 2; m++;
+  }
+  wf.summary = { key, arrows, lines, flows, rms: m ? nm(Math.sqrt(sum / m)) : null, n: m };
+  return wf.summary;
+}
+
 // ---------------------------------------------------------------- text
 const fmtNm = (u, d = 0) => `${nm(u).toFixed(d)} nm`;
 const fmtS = (s, d = 3) => (s === null || !Number.isFinite(s) ? '—' : (s >= 0 ? '+' : '−') + Math.abs(s).toFixed(d));
@@ -397,7 +429,9 @@ function windowLive() {
     const pts = traceBack(c), last = pts[pts.length - 1].c;
     return ` Trace (amber dots): each mean weak position became the next window, ${pts.length - 1} steps of ${state.gap} nm, reaching ${nm(last.x - p.wall).toFixed(0)} nm at y = ${nm(last.y).toFixed(0)} nm. The dashed line follows the flow of j/|ψ|² backward from the window, for comparison; the difference at the end comes mostly from the window averaging the velocity over its area (a smaller window follows the field more closely, with fewer runs), plus sampling noise added up over the steps.`;
   })() : ' Click (or use Trace back) to repeat the step: the mean weak position becomes the next window, towards the slits.';
-  return `<b>${q.n.toLocaleString('en-US')} runs ended in the window at ${where}.</b> Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean is sharp: (${nm(q.Xm - p.wall).toFixed(0)}, ${nm(q.Ym).toFixed(1)}) nm${instant() ? ' at t₁' : ''}. The arrow from it to the mean strong position${instant() ? ' at t₂' : ''} is the measured velocity: slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. ${head} ${how}${tr} It is a difference of two averages over the same selected runs, not the path of any particle.`;
+  const S = windowSummary();
+  const sum = S ? ` <b>Field from windows:</b> ${S.n} lines traced back from windows next to the screen, started at equal shares of the runs detected there (amber lines); arrows from windows on a grid.${state.show.bohm ? ` The dashed lines follow the flow of j/|ψ|² backward from the same windows; the traces end ${S.rms.toFixed(1)} nm from them (rms), mostly because each window averages the velocity over its area.` : ' Switch on the j/|ψ|² flow lines below the drawing to compare.'} No particle is followed: every step uses different runs.` : '';
+  return `<b>${q.n.toLocaleString('en-US')} runs ended in the window at ${where}.</b> Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean is sharp: (${nm(q.Xm - p.wall).toFixed(0)}, ${nm(q.Ym).toFixed(1)}) nm${instant() ? ' at t₁' : ''}. The arrow from it to the mean strong position${instant() ? ' at t₂' : ''} is the measured velocity: slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. ${head} ${how}${tr} It is a difference of two averages over the same selected runs, not the path of any particle.${sum}`;
 }
 
 function showNext() {
@@ -1203,8 +1237,10 @@ function drawApparatus(P, box) {
         ctx.strokeStyle = P.weak; ctx.beginPath(); ctx.moveTo(X(exp.x1 + q.dx), top + h - 3); ctx.lineTo(X(exp.x1 + q.dx), top + h - (on ? 16 : 10)); ctx.stroke();
       });
     }
-    backedText(P, 'weak measurement at t₁ acts on the whole packet (±3σₓ)', X(exp.x1 - 3 * s) + 5, Yp(Y_HALF) + 28, { color: P.weak, size: 10 });
-    backedText(P, 'strong measurement at t₂', X(exp.x2 + 3 * s) - 6, Yp(Y_HALF) + 42, { color: P.strong, size: 10, align: 'right' });
+    // What the frames are: the packet's extent at each instant (the particle is somewhere inside).
+    const narrowF = X(exp.x2 + 3 * s) - X(exp.x1 - 3 * s) < 380;
+    backedText(P, narrowF ? 'dashed: the packet at t₁ (pointer coupled)' : 'dashed box: the packet at t₁ — the particle is somewhere inside when the pointer is coupled', X(exp.x1 - 3 * s) + 5, Yp(Y_HALF) + 28, { color: P.weak, size: 10 });
+    backedText(P, narrowF ? 'solid: the packet at t₂ (position measured)' : `solid box: the packet at t₂, ${state.gap} nm further on — where it is when its position is measured`, X(exp.x2 + 3 * s) - 6, Yp(Y_HALF) + 42, { color: P.strong, size: 10, align: 'right' });
     if (state.recx && exp.mix) { const w = exp.mix.width / 2, d = cellDx(); ctx.globalAlpha = 0.25; ctx.fillStyle = P.strong; ctx.fillRect(X(exp.x2 + d - w), top, X(exp.x2 + d + w) - X(exp.x2 + d - w), h); ctx.fillStyle = P.weak; ctx.fillRect(X(exp.x1 + d - w), top, X(exp.x1 + d + w) - X(exp.x1 + d - w), h); ctx.globalAlpha = 1; }
   }
   // the current pair of planes (at instants: the packet centre at t1 and t2)
@@ -1227,14 +1263,16 @@ function drawApparatus(P, box) {
     ctx.globalAlpha = n > 2000 ? 0.45 : 0.75;
     ctx.fillStyle = P.weak;
     const a1 = ctx.globalAlpha;
+    let above = 0, below = 0;
     for (let i = 0; i < n; i++) {
-      const yy = Yp(exp.ptsY[i]); if (yy < top || yy > bot) continue;
+      const yy = Yp(exp.ptsY[i]); if (yy < top) { above++; continue; } if (yy > bot) { below++; continue; }
       // At instants each pointer sample sits at its run's position along the beam at t1.
       if (instant()) { ctx.globalAlpha = state.recx && exp.ptsS[i] !== state.cell ? a1 * 0.3 : a1; ctx.fillRect(X(exp.x1 + exp.ptsX[i]) - sz / 2, yy - sz / 2, sz, sz); }
       else ctx.fillRect(xw - 2 - exp.ptsU[i] * 6 - sz / 2, yy - sz / 2, sz, sz);
     }
     ctx.globalAlpha = a1;
-    ctx.fillStyle = P.strong;
+    offScale(P, instant() ? X(exp.x1) : xw - 5, top, bot, above, below, n);
+    ctx.fillStyle = P.strong; ctx.globalAlpha = a1;
     // Narrow bands just beside each line: only the transverse position is
     // recorded; the sideways spread is for visibility, not a position along x.
     if (instant()) {
@@ -1361,6 +1399,18 @@ function drawPointerGauge(P, box, X, Yp) {
   }
 }
 
+// Pointer readings beyond the drawing: a wide pointer reads far outside the
+// pattern. They are counted and marked at the edge rather than dropped silently.
+function offScale(P, x, top, bot, above, below, n) {
+  if (!n) return;
+  ctx.globalAlpha = 1; ctx.fillStyle = P.weak;
+  for (const [cnt, y, d] of [[above, top + 2, 1], [below, bot - 2, -1]]) {
+    if (!cnt) continue;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 5, y + 8 * d); ctx.lineTo(x + 5, y + 8 * d); ctx.closePath(); ctx.fill();
+    backedText(P, `${Math.round(100 * cnt / n)}% of readings ${d > 0 ? 'above' : 'below'} the drawing (pointer spread ${state.sw} nm)`, x + 8, y + (d > 0 ? 9 : -16), { color: P.weak, size: 10 });
+  }
+}
+
 // ---------------------------------------------------------------- stage 4 drawing
 function arrowLine(x0, y0, x1, y1, head = 8) {
   const a = Math.atan2(y1 - y0, x1 - x0);
@@ -1376,7 +1426,30 @@ function drawWindowStage(P, X, Yp) {
   ctx.fillStyle = P.strong; ctx.globalAlpha = 0.2;
   for (let i = 0; i < wf.n; i++) ctx.fillRect(X(wf.px2[i]) - 0.75, Yp(wf.pyf[i]) - 0.75, 1.5, 1.5);
   ctx.globalAlpha = 1;
+  const S = windowSummary();
+  if (S) {
+    const path = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Yp(y)) : ctx.moveTo(X(x), Yp(y)))); ctx.stroke(); };
+    if (state.show.arrows) {
+      ctx.strokeStyle = P.arrow; ctx.fillStyle = P.arrow; ctx.lineWidth = 1.4;
+      // Each arrow drawn at a common length along its measured direction; opacity shows precision.
+      const L = 16;
+      for (const { q } of S.arrows) {
+        const sx = X(q.x2m), sy = Yp(q.yfm), ang = Math.atan2(-(Yp(q.yfm + q.slope) - Yp(q.yfm)), X(q.x2m + 1) - X(q.x2m));
+        ctx.globalAlpha = 0.35 + 0.65 * Math.max(0.15, Math.min(1, 0.04 / Math.max(1e-6, q.err)));
+        arrowLine(sx - L * Math.cos(ang), sy + L * Math.sin(ang), sx, sy, 5);
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.save(); ctx.beginPath(); ctx.rect(X(p.wall), Yp(Y_HALF), X(p.screen) - X(p.wall), Yp(-Y_HALF) - Yp(Y_HALF)); ctx.clip();
+    if (state.show.lines) { ctx.strokeStyle = P.line; ctx.lineWidth = 1.8; S.lines.forEach(path); }
+    if (state.show.bohm) { ctx.strokeStyle = P.bohm; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]); S.flows.forEach(path); ctx.setLineDash([]); }
+    ctx.restore();
+  }
   // The weak readings of the sampled runs that ended in the window.
+  ctx.fillStyle = P.weak;
+  let wAbove = 0, wBelow = 0, wN = 0;
+  for (let i = 0; i < wf.n; i++) if (inWin(wf.px2[i], wf.pyf[i])) { wN++; if (wf.pY[i] > Y_HALF) wAbove++; else if (wf.pY[i] < -Y_HALF) wBelow++; }
+  offScale(P, X(c.x) - 30, Yp(Y_HALF), Yp(-Y_HALF), wAbove, wBelow, wN);
   ctx.fillStyle = P.weak;
   for (let i = 0; i < wf.n; i++) if (inWin(wf.px2[i], wf.pyf[i])) { ctx.globalAlpha = 0.55; ctx.fillRect(X(wf.pX[i]) - 1.5, Yp(wf.pY[i]) - 1.5, 3, 3); ctx.globalAlpha = 1; ctx.fillStyle = P.strong; ctx.fillRect(X(wf.px2[i]) - 1.5, Yp(wf.pyf[i]) - 1.5, 3, 3); ctx.fillStyle = P.weak; }
   // The window (a disc in lengths; an ellipse if the drawing's scales differ).
@@ -1681,7 +1754,7 @@ function sizeCanvas(cv, c) {
 }
 function render() {
   const P = palette();
-  const mt = $('.map-toggles'), mapped = !!map?.done;
+  const mt = $('.map-toggles'), mapped = !!map?.done || (state.stage === 'window' && !!wf && wf.runs >= state.perPlane);
   if (mt.hidden === mapped) mt.hidden = !mapped;
   // Short switch labels when the drawing is narrow, so they stay on one row.
   const narrow = canvas.clientWidth < 640;
