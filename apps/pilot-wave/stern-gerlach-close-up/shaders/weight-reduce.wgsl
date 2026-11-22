@@ -1,8 +1,8 @@
 
-// Orthodox reading: per workgroup, (1) sums of |chi|^2 on the + side of axis n1, on the + side
-// of n2, on the + side of both, and in total; (2) the spin density chi^dagger sigma chi; (3) the
-// first moments of |chi|^2 in y and z. The x factor |phi|^2 integrates to the same constant
-// everywhere, so it cancels in the probabilities and in <sigma>.
+// Orthodox reading: per workgroup, (1) the weight of |chi|^2 in each of the four outcome regions
+// (nearest expected spot centre); (2) the spin density chi^dagger sigma chi; (3) the first moments of
+// |chi|^2 in y and z. The x factor |phi|^2 integrates to the same constant everywhere, so it cancels
+// in the probabilities and in <sigma>.
 @group(0) @binding(1) var<storage, read> waveIn: array<WaveCell>;
 @group(0) @binding(2) var<storage, read_write> partialSums: array<vec4<f32>>;
 @group(0) @binding(3) var<storage, read> waveIn3: array<vec4<f32>>;   // Full 3D window (dummy for the fast engine)
@@ -32,9 +32,9 @@ fn main(
     // Third slot: first moment along the beam in the 3D window (x' from the window centre).
     let xp = select(0.0, f32(id / (H * u32(gridD()))) - winX0(), engine3D());
     moment = vec4<f32>(rho * r.x, rho * r.y, rho * xp, 0.0);
-    let a = dot(r, uni.axes.xy) > 0.0;
-    let b = dot(r, uni.axes.zw) > 0.0;
-    sums = vec4<f32>(select(0.0, rho, a), select(0.0, rho, b), select(0.0, rho, a && b), rho);
+    // Weight of |chi|^2 in each outcome region (nearest expected spot centre).
+    let k = regionIndex(r);
+    sums = vec4<f32>(select(0.0, rho, k == 0u), select(0.0, rho, k == 1u), select(0.0, rho, k == 2u), select(0.0, rho, k == 3u));
   }
   wgSums[lid] = sums;
   wgSpin[lid] = spin;

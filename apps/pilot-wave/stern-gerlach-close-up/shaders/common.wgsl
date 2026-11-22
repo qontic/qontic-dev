@@ -28,6 +28,14 @@ struct Uniforms {
   win: vec4<f32>,       // window centre Xc (grid x), cells along x', 1 when the 3D engine is on, ribbon factor (width across / width)
   mag3a: vec4<f32>,     // magnet 1 entrance, exit; magnet 2 entrance, exit (grid x)
   mag3b: vec4<f32>,     // magnet 1 theta, magnet 2 theta, ramp length, number of magnets
+  // Outcome regions at the screen: the expected spot centres (grid y, z from the box centre) for
+  // the outcomes (+,+), (+,−), (−,+), (−,−) of the magnets (one magnet: two centres, the others far
+  // away). Each place belongs to the nearest centre.
+  centres01: vec4<f32>,
+  centres23: vec4<f32>,
+  // Block after the first magnet: active (during the two steps in which the packet centre passes
+  // the block), axis n1 (grid y, z), blocked side (+1 or −1 along n1).
+  block: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> uni: Uniforms;
 
@@ -203,3 +211,33 @@ fn branchTint(c: f32) -> vec3<f32> {
 fn branchSpin(s: vec3<f32>) -> f32 {
   return (s.y * uni.detector.z + s.z * uni.detector.w) * clamp(uni.trail0.x, 0.0, 1.0);
 }
+
+// Block after the first magnet: 0 on the blocked side of the line through the box centre
+// across n1, 1 on the other side, with an edge 3 cells wide (a sharp edge would ring on the grid).
+// 1 everywhere while no block is active.
+fn blockMask(y: f32, z: f32) -> f32 {
+  if (uni.block.x < 0.5) { return 1.0; }
+  let r = vec2<f32>(y, z) - boxCenterYZ();
+  let d = dot(r, uni.block.yz) * uni.block.w;
+  return 1.0 - smoothstep(-1.5, 1.5, d);
+}
+fn inBlockedHalf(y: f32, z: f32) -> bool {
+  if (uni.block.x < 0.5) { return false; }
+  let r = vec2<f32>(y, z) - boxCenterYZ();
+  return dot(r, uni.block.yz) * uni.block.w > 0.0;
+}
+// Index (0..3) of the nearest expected spot centre to r (grid y, z from the box centre).
+fn regionIndex(r: vec2<f32>) -> u32 {
+  let d0 = distance(r, uni.centres01.xy);
+  let d1 = distance(r, uni.centres01.zw);
+  let d2 = distance(r, uni.centres23.xy);
+  let d3 = distance(r, uni.centres23.zw);
+  var k = 0u;
+  var best = d0;
+  if (d1 < best) { best = d1; k = 1u; }
+  if (d2 < best) { best = d2; k = 2u; }
+  if (d3 < best) { k = 3u; }
+  return k;
+}
+// Dots removed by the block are parked with w = −1e6.
+fn particleIsAbsorbed(state: vec4<f32>) -> bool { return state.w < -1.0e5; }

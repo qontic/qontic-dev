@@ -59,24 +59,24 @@ const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg3d10",
-  palette: "./shaders/palette.wgsl?v=sg3d10",
-  waveInit: "./shaders/wave-init.wgsl?v=sg3d10",
-  waveStep: "./shaders/wave-step.wgsl?v=sg3d10",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d10",
-  cloud: "./shaders/cloud.wgsl?v=sg3d10",
-  particleRender: "./shaders/particle-render.wgsl?v=sg3d10",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d10",
-  density: "./shaders/density.wgsl?v=sg3d10",
-  boxShell: "./shaders/box-shell.wgsl?v=sg3d10",
-  line: "./shaders/line.wgsl?v=sg3d10",
-  fieldLine: "./shaders/field-line.wgsl?v=sg3d10",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d10",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d10",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d10",
-  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d10",
-  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d10",
-  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d10",
+  common: "./shaders/common.wgsl?v=sg3d11",
+  palette: "./shaders/palette.wgsl?v=sg3d11",
+  waveInit: "./shaders/wave-init.wgsl?v=sg3d11",
+  waveStep: "./shaders/wave-step.wgsl?v=sg3d11",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d11",
+  cloud: "./shaders/cloud.wgsl?v=sg3d11",
+  particleRender: "./shaders/particle-render.wgsl?v=sg3d11",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d11",
+  density: "./shaders/density.wgsl?v=sg3d11",
+  boxShell: "./shaders/box-shell.wgsl?v=sg3d11",
+  line: "./shaders/line.wgsl?v=sg3d11",
+  fieldLine: "./shaders/field-line.wgsl?v=sg3d11",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d11",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d11",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d11",
+  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d11",
+  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d11",
+  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d11",
 };
 
 function applyShaderConstants(source) {
@@ -196,6 +196,8 @@ const params = {
   spinTheta: 90,
   spinPhi: 0,          // lab +x: the equal superposition of +z and −z
   magnetAngle: 0,
+  magnet2Angle: 90,  // Two magnets: lab angle of the second magnet from the first (from +z toward +x)
+  block: 0,          // Two magnets: block after the first magnet (0 none, 1 the + part, 2 the − part)
   sgGradient: DEFAULT_SG_GRADIENT,
   sgFieldOn: 1,
   showFieldArrows: 1,
@@ -236,6 +238,7 @@ const params = {
 
   paletteId: 4,
 };
+const PARAM_DEFAULTS = { ...params };
 
 const PALETTE_NAMES = [
   "Nebula",
@@ -534,7 +537,7 @@ const labFWHM = sigma => 2.3548 * sigma / Math.SQRT2 * LAB_SCALE.sz;  // m
 // it nearly vanish).
 const MAGNET_PRESETS = [
   { name: "One magnet", magnets: [{ start: 0, length: 1, theta: 0 }], b0: 2 },
-  { name: "Two magnets at 90°", magnets: [{ start: 0, length: 0.4, theta: 0 }, { start: 0.56, length: 0.7, theta: -Math.PI / 2 }], b0: 2 },
+  { name: "Two magnets", magnets: [{ start: 0, length: 0.4, theta: 0 }, { start: 0.56, length: 0.7, theta: -Math.PI / 2 }], b0: 2, second: true },
   { name: "Weak field", magnets: [{ start: 0, length: 1, theta: 0 }], b0: 0.3 },
 ];
 const magnetPreset = () => MAGNET_PRESETS[params.magnetPreset | 0] || MAGNET_PRESETS[0];
@@ -560,7 +563,12 @@ function magnets() {
   const turn = params.magnetAngle * DEG;
   const x0 = magnetEntryX();
   const u = MAGNET_CELLS * params.magnetScale;
-  return magnetPreset().magnets.map(mg => ({ a: x0 + mg.start * u, b: x0 + (mg.start + mg.length) * u, theta: mg.theta - turn }));
+  const preset = magnetPreset();
+  return preset.magnets.map((mg, i) => ({
+    a: x0 + mg.start * u, b: x0 + (mg.start + mg.length) * u,
+    // The second magnet's angle (Two magnets) is set by its own slider, relative to the first.
+    theta: (preset.second && i === 1 ? -params.magnet2Angle * DEG : mg.theta) - turn,
+  }));
 }
 const lastMagnetEndX = () => Math.max(...magnets().map(mg => mg.b));
 const smooth01 = t => { const u = Math.min(1, Math.max(0, t)); return u * u * (3 - 2 * u); };
@@ -576,6 +584,61 @@ function magnetState(t) {
 // Unit vectors (y, z) along each magnet's gradient axis: the axes measured at the plate.
 function measurementAxes() {
   return magnets().map(mg => [Math.sin(mg.theta), Math.cos(mg.theta)]);
+}
+// Block after the first magnet (Two magnets only): +1 blocks the + part, −1 the − part, 0 none.
+const blockSign = () => (magnetPreset().second && params.block ? (params.block === 1 ? 1 : -1) : 0);
+// Grid x of the block: the middle of the gap between the two magnets.
+function blockX() {
+  const ms = magnets();
+  return ms.length > 1 ? 0.5 * (ms[0].b + ms[1].a) : Infinity;
+}
+// Probability that a run passes the block: the weight of the unblocked part after the first
+// magnet, (1 ∓ cos γ1)/2 for the spin at angle γ1 to the first magnet's axis.
+function blockPassProbability() {
+  const sv = spinVector(), n1 = measurementAxes()[0];
+  const c = Math.max(-1, Math.min(1, sv[1] * n1[0] + sv[2] * n1[1]));
+  return 0.5 * (1 - blockSign() * c);
+}
+// Expected spot centres at the screen (grid y, z from the box centre) for the outcomes
+// (+,+), (+,−), (−,+), (−,−): each magnet alone moves its two parts by ± half its splitting along
+// its axis (the classical estimate). One magnet: (+), (−) and two far-away dummies.
+function spotCentres() {
+  const ax = measurementAxes();
+  const S = expectedSplittings().map(e => (Number.isFinite(e.cells) ? e.cells : 0));
+  const far = [1e6, 1e6];
+  if (ax.length < 2) {
+    const h = 0.5 * S[0];
+    return [[h * ax[0][0], h * ax[0][1]], [-h * ax[0][0], -h * ax[0][1]], far, far];
+  }
+  const out = [];
+  const bs = blockSign();
+  for (const s1 of [1, -1]) for (const s2 of [1, -1]) {
+    // With a block the spots of the blocked part do not exist: move them far away.
+    if (bs && s1 === bs) { out.push(far); continue; }
+    out.push([0.5 * (s1 * S[0] * ax[0][0] + s2 * S[1] * ax[1][0]), 0.5 * (s1 * S[0] * ax[0][1] + s2 * S[1] * ax[1][1])]);
+  }
+  return out;
+}
+// Outcome region of a point (grid offsets from the box centre): the nearest expected spot centre.
+function regionOf(dy, dz, centres = spotCentres()) {
+  let k = 0, best = Infinity;
+  centres.forEach(([cy, cz], i) => { const d = Math.hypot(dy - cy, dz - cz); if (d < best) { best = d; k = i; } });
+  return k;
+}
+// Regions to list in the corner box: index, label, + or − along the last magnet's axis.
+function outcomeRegions() {
+  const ms = magnets();
+  const p = ms.map(m => axisName(m.theta)), q = ms.map(m => axisName(m.theta + Math.PI));
+  if (ms.length > 1) {
+    const all = [
+      { k: 0, label: `${p[0]}, then ${p[1]}`, plus: true }, { k: 1, label: `${p[0]}, then ${q[1]}`, plus: false },
+      { k: 2, label: `${q[0]}, then ${p[1]}`, plus: true }, { k: 3, label: `${q[0]}, then ${q[1]}`, plus: false },
+    ];
+    const b = blockSign();
+    return b === 0 ? all : all.filter(r => (b > 0 ? r.k >= 2 : r.k < 2));
+  }
+  if (p[0] === "+z") return [{ k: 0, label: "Upper spot (+z)", plus: true }, { k: 1, label: "Lower spot (−z)", plus: false }];
+  return [{ k: 0, label: `Toward ${p[0]}`, plus: true }, { k: 1, label: `Toward ${q[0]}`, plus: false }];
 }
 // Name of the direction of grid angle theta, in lab terms: the lab angle (from +z toward +x)
 // is −theta.
@@ -600,6 +663,19 @@ spinSphereRow.append(spinSphere, spinSphereText);
 controls.appendChild(spinSphereRow);
 const magnetPresetControl = addCycleButton("magnetPreset", "Magnets", MAGNET_PRESETS.map(p => p.name), () => applyMagnetPreset());
 const magnetPresetControlSync = () => magnetPresetControl.sync();
+addSlider("magnet2Angle", "Second magnet, from the first", 0, 360, 1, () => { updateGradientLimit(false); rebuildBoxGeometry(); rebuildMagneticFieldLines(); resetAll(); updateStats(); }, v => `${Math.round(v)}°`);
+addChips("magnet2Angle", [0, 45, 90, 180], () => { updateGradientLimit(false); rebuildBoxGeometry(); rebuildMagneticFieldLines(); resetAll(); updateStats(); });
+addCycleButton("block", "Block after magnet 1", ["None", "Block the + part", "Block the − part"], () => { resetAll(); updateStats(); });
+// The second-magnet rows only show with Two magnets.
+function syncMagnetRows() {
+  const two = Boolean(magnetPreset().second);
+  for (const key of ["magnet2Angle", "block"]) {
+    const row = document.getElementById(key)?.closest(".row");
+    if (row) row.classList.toggle("sg-hidden-row", !two);
+    document.querySelectorAll(`[data-chips-for="${key}"]`).forEach(r => r.classList.toggle("sg-hidden-row", !two));
+  }
+}
+syncMagnetRows();
 const fieldShapeControl = addCycleButton("fieldShape", "Field", ["Textbook", "Knife edge (1922-like)"], () => { updateGradientLimit(true); rebuildMagneticFieldLines(); resetAll(); updateStats(); });
 const applyMagnetAngle = () => { rebuildMagneticFieldLines(); resetAll(); updateStats(); };
 addSlider("magnetAngle", "Magnet angle", 0, 360, 1, applyMagnetAngle, v => `${Math.round(v)}°`);
@@ -664,12 +740,16 @@ addSlider("dt", "Time step", 0.002, 0.016, 0.002, null, d => `${Math.round(d * L
 // the physics; the user's value is kept and comes back at that level (also across reloads).
 let appStarted = false;
 const LEVEL_RANK = { basic: 0, standard: 1, expert: 2 };
+const SHARE_KEYS = {
+  st: "spinTheta", sp: "spinPhi", ma: "magnetAngle", mp: "magnetPreset", m2: "magnet2Angle", bl: "block",
+  fs: "fieldShape", bs: "beamShape", sd: "screenDistance", g: "sgGradient", dc: "dotColour", n: "nParticles",
+};
 const LEVEL_CONTROLS = {
-  spinPhi: "standard", magnetPreset: "standard", fieldShape: "standard", screenDistance: "standard",
+  spinPhi: "standard", magnetPreset: "standard", magnet2Angle: "standard", block: "standard", fieldShape: "standard", screenDistance: "standard",
   p0: "standard", beamShape: "standard", packetSigma: "standard",
   fieldLineDensity: "standard", fieldArrowSpacing: "standard", cameraProjection: "standard",
   cloudGain: "standard", dotGain: "standard", trailHalfLife: "standard",
-  nParticles: "standard", dotColour: "standard",
+  nParticles: "standard", dotColour: "standard", showFieldArrows: "standard", showDotSpin: "standard", showMagnet: "standard",
   showPhase: "expert", spinTerm: "expert", dt: "expert",
 };
 const LEVEL_DEFAULTS = Object.fromEntries(Object.keys(LEVEL_CONTROLS).map(k => [k, params[k]]));
@@ -699,6 +779,7 @@ function applyLevelDefaults(level) {
   for (const key of changed) { syncSlider(key); controlSyncs[key]?.(); }
   if (!simulationAvailable || !appStarted) return true;
   if (changed.has("cameraProjection")) { activeOrthoView = null; syncCameraUi(); }
+  syncMagnetRows();
   updateGradientLimit(changed.has("magnetPreset") || changed.has("fieldShape"));
   rebuildBoxGeometry();
   rebuildMagneticFieldLines();
@@ -721,7 +802,7 @@ window.addEventListener("keyup", (e) => {
 
 const COLOR_WRITE_RED = 0x1;
 const COLOR_WRITE_ALL = 0xf;
-const UNIFORM_FLOATS = 108;   // viewProj at 80, then win, mag3a, mag3b
+const UNIFORM_FLOATS = 120;   // viewProj at 80, then win, mag3a, mag3b, centres01, centres23, block
 const UNIFORM_BYTES = UNIFORM_FLOATS * 4;
 const DENSITY_FORMAT = "rgba16float";
 const uniformData = new Float32Array(UNIFORM_FLOATS);
@@ -1349,6 +1430,17 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([xc, WIN_NX, is3D() ? 1 : 0, ribbonFactor()], 96);
   uniformData.set([ms3[0].a, ms3[0].b, ms3[1] ? ms3[1].a : 0, ms3[1] ? ms3[1].b : 0], 100);
   uniformData.set([ms3[0].theta, ms3[1] ? ms3[1].theta : 0, RAMP_CELLS, ms3.length], 104);
+  const cen = spotCentres();
+  uniformData.set([cen[0][0], cen[0][1], cen[1][0], cen[1][1]], 108);
+  uniformData.set([cen[2][0], cen[2][1], cen[3][0], cen[3][1]], 112);
+  // The block acts during the two steps in which the packet centre passes it (both time levels
+  // of the leapfrog are cut, and the dots on that side are removed).
+  const bs = blockSign();
+  const xb = blockX();
+  const v = params.p0 / params.mass;
+  const blockOn = bs !== 0 && xc >= xb && xc < xb + 2 * v * params.dt;
+  const n1 = measurementAxes()[0];
+  uniformData.set([blockOn ? 1 : 0, n1[0], n1[1], bs], 116);
   device.queue.writeBuffer(buffer, 0, uniformData);
 }
 
@@ -1977,7 +2069,15 @@ function updateSpinSphereText() {
     const m2 = ms[1];
     const cd = Math.cos(m2.theta - m.theta);
     const p2 = axisName(m2.theta), q2 = axisName(m2.theta + Math.PI);
-    rows = `${p}, then ${p2}: ${pct(pPlus * (1 + cd) / 2)}<br>${p}, then ${q2}: ${pct(pPlus * (1 - cd) / 2)}<br>${q}, then ${p2}: ${pct((1 - pPlus) * (1 - cd) / 2)}<br>${q}, then ${q2}: ${pct((1 - pPlus) * (1 + cd) / 2)}`;
+    const bs = blockSign();
+    if (bs) {
+      // One part is blocked: the other leaves the first magnet with spin ±n1 and splits again.
+      const keep = -bs;   // sign along n1 of the part that passes
+      const kp = keep > 0 ? p : q;
+      rows = `Blocked (${bs > 0 ? p : q}): ${pct(bs > 0 ? pPlus : 1 - pPlus)} of runs<br>Of the rest (spin ${kp}):<br>then ${p2}: ${pct((1 + keep * cd) / 2)}<br>then ${q2}: ${pct((1 - keep * cd) / 2)}`;
+    } else {
+      rows = `${p}, then ${p2}: ${pct(pPlus * (1 + cd) / 2)}<br>${p}, then ${q2}: ${pct(pPlus * (1 - cd) / 2)}<br>${q}, then ${p2}: ${pct((1 - pPlus) * (1 - cd) / 2)}<br>${q}, then ${q2}: ${pct((1 - pPlus) * (1 + cd) / 2)}`;
+    }
   }
   spinSphereText.innerHTML = `Angle γ between <span class="c-spin">spin</span> and <span class="c-mag">magnet</span>: <b>${Math.round(gamma)}°</b><br>${rows}${note}`;
   spinSphereText.title = "γ: angle between the spin (orange arrow) and the magnet axis (red dashed line). Expected fractions: cos²(γ/2) and sin²(γ/2).";
@@ -2082,7 +2182,7 @@ function rebuildParticles() {
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
   }
-  hitCounts = { counts: measurementAxes().length > 1 ? [0, 0, 0, 0] : [0, 0], arrived: 0, total: n };
+  hitCounts = { counts: [0, 0, 0, 0], arrived: 0, blocked: 0, total: n };
   lastHitReadback = 0;
   updateHitDisplay();
   particleFlip = 0;
@@ -2092,15 +2192,10 @@ function rebuildParticles() {
 const hitDisplay = document.getElementById("plate-hits");
 // Labels of the outcome regions on the plate: two halves along one axis, or four quadrants.
 function outcomeLabels() {
-  const ms = magnets();
-  const p = ms.map(m => axisName(m.theta)), q = ms.map(m => axisName(m.theta + Math.PI));
-  if (ms.length > 1) return [`${p[0]}, ${p[1]}`, `${p[0]}, ${q[1]}`, `${q[0]}, ${p[1]}`, `${q[0]}, ${q[1]}`];
-  if (p[0] === "+z") return ["Upper half (+z)", "Lower half (−z)"];
-  return [`Toward ${p[0]}`, `Toward ${q[0]}`];
+  return outcomeRegions().map(r => r.label);
 }
 // Colour the outcome labels like the branches: green for + along the (last) magnet axis, red for −.
-function colourLabel(label, k, n) {
-  const plus = n > 2 ? k % 2 === 0 : k === 0;
+function colourLabel(label, plus) {
   const colour = params.palette ? (plus ? "#4c9be8" : "#f29e29") : (plus ? "#45ee66" : "#ff5533");
   return `<span style="color:${colour}">${plus ? "▲" : "▼"} ${label}</span>`;
 }
@@ -2114,13 +2209,13 @@ const orthoHits = { n: 0, sampled: false, sampling: false, revealed: 0, pos: nul
 function clearOrthoHits() {
   orthoHits.sampled = false;
   orthoHits.revealed = 0;
-  orthoHits.counts = measurementAxes().length > 1 ? [0, 0, 0, 0] : [0, 0];
+  orthoHits.counts = [0, 0, 0, 0];
   orthoHits.epoch = (orthoHits.epoch || 0) + 1;
 }
 function maybeSampleOrthoHits() {
   if (reading !== "cpn" || orthoHits.sampled || orthoHits.sampling) return;
   if (visualPacketCenterX() < detectorPlateXGrid()) return;
-  const n = Math.floor(params.nParticles);
+  let n = Math.floor(params.nParticles);
   if (n <= 0) return;
   if (orthoHits.failedEpoch === orthoHits.epoch) return;
   orthoHits.sampling = true;
@@ -2158,7 +2253,15 @@ function maybeSampleOrthoHits() {
     let acc = 0;
     for (let k = 0; k < H * D; k++) { acc += rho[k]; cdf[k] = acc; }
     if (!(acc > 0)) return;
-    const pos = new Float32Array(2 * n);
+    // With a block, each run passes it with the probability of the unblocked part (Born rule
+    // for the blocker); only those runs give a detection at the screen.
+    const nRuns = n;
+    const pass = blockSign() ? blockPassProbability() : 1;
+    let nDet = 0;
+    for (let i = 0; i < nRuns; i++) if (Math.random() < pass) nDet++;
+    n = nDet;
+    orthoHits.runs = nRuns;
+    const pos = new Float32Array(2 * Math.max(1, n));
     for (let i = 0; i < n; i++) {
       const u = Math.random() * acc;
       let lo = 0, hi = H * D - 1;
@@ -2204,15 +2307,10 @@ function revealOrthoHits() {
   if (!orthoHits.sampled || orthoHits.revealed >= orthoHits.n) return;
   const before = orthoHits.revealed;
   orthoHits.revealed = Math.min(orthoHits.n, before + Math.ceil(orthoHits.n / 60));
-  const axes = measurementAxes();
+  const centres = spotCentres();
   const cy = 0.5 * (simH - 1), cz = 0.5 * (simD - 1);
   for (let i = before; i < orthoHits.revealed; i++) {
-    const dy = orthoHits.pos[2 * i] - cy, dz = orthoHits.pos[2 * i + 1] - cz;
-    const a = dy * axes[0][0] + dz * axes[0][1] > 0;
-    if (axes.length > 1) {
-      const b = dy * axes[1][0] + dz * axes[1][1] > 0;
-      orthoHits.counts[a ? (b ? 0 : 1) : (b ? 2 : 3)]++;
-    } else orthoHits.counts[a ? 0 : 1]++;
+    orthoHits.counts[regionOf(orthoHits.pos[2 * i] - cy, orthoHits.pos[2 * i + 1] - cz, centres)]++;
   }
   updateHitDisplay();
   if (orthoHits.revealed < orthoHits.n) requestRedraw();
@@ -2220,23 +2318,29 @@ function revealOrthoHits() {
 
 function updateHitDisplay() {
   if (!hitDisplay) return;
-  const labels = outcomeLabels();
+  const regions = outcomeRegions();
+  const bs = blockSign();
+  const passed = bs && visualPacketCenterX() >= blockX();
   if (reading === "cpn") {
     hitDisplay.hidden = false;
     const vals = weightCounts.values;
-    const rows = labels.map((l, k) => `${colourLabel(l, k, labels.length)}: ${weightCounts.valid && vals[k] !== undefined ? vals[k].toFixed(2) : "–"}`).join("<br>");
+    const rows = regions.map(r => `${colourLabel(r.label, r.plus)}: ${weightCounts.valid && vals[r.k] !== undefined ? vals[r.k].toFixed(2) : "–"}`).join("<br>");
     const sp = weightCounts.valid && weightCounts.spin ? Math.hypot(...weightCounts.spin).toFixed(2) : "–";
     let det = "";
     if (orthoHits.revealed > 0) {
-      const drows = labels.map((l, k) => `${colourLabel(l, k, labels.length)}: ${orthoHits.counts[k] ?? 0}`).join("<br>");
-      det = `<b>Detections at the screen</b><br>${drows}<br>${orthoHits.revealed} of ${orthoHits.n} runs<br><span class="plate-hits-note">Each mark: one run, drawn from |Ψ|² (Born rule).</span><br>`;
+      const drows = regions.map(r => `${colourLabel(r.label, r.plus)}: ${orthoHits.counts[r.k] ?? 0}`).join("<br>");
+      const runs = orthoHits.runs || orthoHits.n;
+      const blockedRuns = runs - orthoHits.n;
+      det = `<b>Detections at the screen</b><br>${drows}<br>${orthoHits.revealed} detections, ${runs} runs${blockedRuns > 0 ? ` (${blockedRuns} stopped by the block)` : ""}<br><span class="plate-hits-note">Each mark: one run, drawn from |Ψ|² (Born rule).</span><br>`;
     }
-    hitDisplay.innerHTML = `${det}<b>Probability now</b><br>${rows}<br>Length of ⟨σ⟩: ${sp}<br><span class="plate-hits-note">${orthoHits.revealed > 0 ? "Weight of |Ψ|² in each region." : "Weight of |Ψ|² in each region; at the screen, the chance of a detection there."}</span>`;
+    const note = passed ? "Weight of the |Ψ|² that passed the block, in each region." : orthoHits.revealed > 0 ? "Weight of |Ψ|² in each region." : "Weight of |Ψ|² in each region; at the screen, the chance of a detection there.";
+    hitDisplay.innerHTML = `${det}<b>Probability now</b><br>${rows}<br>Length of ⟨σ⟩: ${sp}<br><span class="plate-hits-note">${note}</span>`;
     return;
   }
   hitDisplay.hidden = !dotsShown() || hitCounts.total <= 0;
-  const rows = labels.map((l, k) => `${colourLabel(l, k, labels.length)}: ${hitCounts.counts[k] ?? 0}`).join("<br>");
-  hitDisplay.innerHTML = `<b>Dots at the screen</b><br>${rows}<br>${hitCounts.arrived} of ${hitCounts.total} arrived${hitCounts.arrived > 0 ? `<br><span class="plate-hits-note">Counted by halves of the screen: a few dots in a spot's tail can land past the middle.</span>` : ""}`;
+  const rows = regions.map(r => `${colourLabel(r.label, r.plus)}: ${hitCounts.counts[r.k] ?? 0}`).join("<br>");
+  const blockedLine = hitCounts.blocked > 0 ? `<br>${hitCounts.blocked} stopped by the block` : "";
+  hitDisplay.innerHTML = `<b>Dots at the screen</b><br>${rows}<br>${hitCounts.arrived} of ${hitCounts.total} arrived${blockedLine}${hitCounts.arrived > 0 ? `<br><span class="plate-hits-note">Each dot is counted at the nearest expected spot; a few dots in a spot's tail can be counted with the other spot.</span>` : ""}`;
 }
 
 // Orthodox reading: sum |Psi|^2 above and below the middle on the GPU, then read the sums back.
@@ -2259,18 +2363,18 @@ function readWeights(now) {
   const tRead = simTime;
   readback.mapAsync(GPUMapMode.READ, 0, groups * 48).then(() => {
     const sums = new Float32Array(readback.getMappedRange(0, groups * 48));
-    let A = 0, B = 0, AB = 0, total = 0, mx = 0, my = 0, mz = 0, ry = 0, rz = 0, rx = 0;
+    const R = [0, 0, 0, 0];
+    let total = 0, mx = 0, my = 0, mz = 0, ry = 0, rz = 0, rx = 0;
     for (let i = 0; i < groups; i++) {
       const k = 12 * i;
-      A += sums[k]; B += sums[k + 1]; AB += sums[k + 2]; total += sums[k + 3];
+      for (let j = 0; j < 4; j++) R[j] += sums[k + j];
       mx += sums[k + 4]; my += sums[k + 5]; mz += sums[k + 6];
       ry += sums[k + 8]; rz += sums[k + 9]; rx += sums[k + 10];
     }
     readback.unmap();
+    total = R[0] + R[1] + R[2] + R[3];
     if (readback === weightReadback && total > 0) {
-      const values = twoAxes
-        ? [AB / total, (A - AB) / total, (B - AB) / total, (total - A - B + AB) / total]
-        : [A / total, 1 - A / total];
+      const values = R.map(r => r / total);
       // <sigma> of the whole state and the centre of |chi|^2 (from the box centre).
       weightCounts = { values, valid: true, spin: [mx / total, my / total, mz / total], centre: [ry / total, rz / total], beam: rx / total, time: tRead };
       updateHitDisplay();
@@ -2297,23 +2401,18 @@ function readHitCounts(now) {
   const axes = measurementAxes();
   buffer.mapAsync(GPUMapMode.READ, 0, n * 16).then(() => {
     const state = new Float32Array(buffer.getMappedRange(0, n * 16));
-    const counts = axes.length > 1 ? [0, 0, 0, 0] : [0, 0];
-    let arrived = 0;
+    const counts = [0, 0, 0, 0];
+    const centres = spotCentres();
+    let arrived = 0, blocked = 0;
     for (let i = 0; i < n; i++) {
+      if (state[i * 4 + 3] < -1e5) { blocked++; continue; }
       if (state[i * 4 + 3] < plateX - 1e-4) continue;
-      const dy = state[i * 4 + 1] - cy, dz = state[i * 4 + 2] - cz;
-      const a = dy * axes[0][0] + dz * axes[0][1] > 0;
-      if (axes.length > 1) {
-        const b = dy * axes[1][0] + dz * axes[1][1] > 0;
-        counts[a ? (b ? 0 : 1) : (b ? 2 : 3)]++;
-      } else {
-        counts[a ? 0 : 1]++;
-      }
+      counts[regionOf(state[i * 4 + 1] - cy, state[i * 4 + 2] - cz, centres)]++;
       arrived++;
     }
     buffer.unmap();
     if (buffer === hitReadback) {
-      hitCounts = { counts, arrived, total: n };
+      hitCounts = { counts, arrived, blocked, total: n };
       updateHitDisplay();
     } else {
       buffer.destroy();
@@ -3014,9 +3113,15 @@ function gradientMax() {
   const room = L - 4 - 2.5 * packetStdAtScreen();
   // The knife-edge gradient grows toward the edge, so the part deflected that way goes farther:
   // 1.15 keeps it as far from the walls as the textbook default (numpy: 0.9% within 6 cells).
-  const per = Math.max(...splittingPerGradient().map(s => s.cells)) * (fieldShape() ? 1.15 : 1);
-  if (!(per > 0) || !Number.isFinite(per)) return 10;
-  return Math.max(0.5, Math.min(20, Math.floor(10 * room / (0.5 * per)) / 10));
+  // Farthest expected spot centre per unit gradient (one magnet: half its splitting; two magnets:
+  // the sum of the two half-splittings along their axes).
+  const S = splittingPerGradient().map(e => e.cells);
+  if (!S.every(x => x > 0 && Number.isFinite(x))) return 10;
+  const ax = measurementAxes();
+  let reach = 0.5 * S[0];
+  if (S.length > 1) for (const s2 of [1, -1]) reach = Math.max(reach, 0.5 * Math.hypot(S[0] * ax[0][0] + s2 * S[1] * ax[1][0], S[0] * ax[0][1] + s2 * S[1] * ax[1][1]));
+  reach *= fieldShape() ? 1.15 : 1;
+  return Math.max(0.5, Math.min(20, Math.floor(10 * room / reach) / 10));
 }
 function expectedSplitting() {
   return expectedSplittings()[0].cells;
@@ -3033,6 +3138,7 @@ function updateGradientLimit(setDefault) {
   refreshUnitLabels();
 }
 function applyMagnetPreset() {
+  syncMagnetRows();
   updateGradientLimit(true);
   rebuildBoxGeometry();
   rebuildMagneticFieldLines();
@@ -3678,6 +3784,39 @@ export const simulation = {
   moments: () => (weightCounts.valid ? { spin: weightCounts.spin, centre: weightCounts.centre, beam: weightCounts.beam, time: weightCounts.time, values: weightCounts.values } : null),
   setGeometry(g) { Object.assign(params, g); syncSlider('screenDistance'); finishGeometryChange(); },
   timing: () => ({ ...TIMING }),
+  // Share links: the settings that differ from the defaults, as short query keys.
+  shareParams() {
+    const out = {};
+    for (const [k, key] of Object.entries(SHARE_KEYS)) if (params[key] !== PARAM_DEFAULTS[key]) out[k] = String(params[key]);
+    return out;
+  },
+  // Lowest level at which every shared setting is visible (so a shared link never sets a hidden control).
+  shareLevel(query) {
+    let rank = 0;
+    for (const [k, key] of Object.entries(SHARE_KEYS)) if (query.has(k) && LEVEL_CONTROLS[key]) rank = Math.max(rank, LEVEL_RANK[LEVEL_CONTROLS[key]]);
+    return ["basic", "standard", "expert"][rank];
+  },
+  applyShare(query) {
+    let any = false;
+    for (const [k, key] of Object.entries(SHARE_KEYS)) {
+      if (!query.has(k)) continue;
+      const v = parseFloat(query.get(k));
+      if (!Number.isFinite(v)) continue;
+      params[key] = v;
+      syncSlider(key);
+      controlSyncs[key]?.();
+      any = true;
+    }
+    if (!any || !simulationAvailable) return;
+    syncMagnetRows();
+    const g = params.sgGradient;
+    updateGradientLimit(false);
+    if (query.has("g")) { params.sgGradient = Math.min(g, gradientMax()); syncSlider("sgGradient"); }
+    rebuildBoxGeometry();
+    rebuildMagneticFieldLines();
+    resetAll();
+    updateStats();
+  },
   separation: () => ({ flightTime: flightTime(), std: packetStdAtScreen(), gMax: gradientMax(), g: params.sgGradient, split: expectedSplitting(), L: 0.5 * (simD - 1), screen: params.screenDistance }),
   frameStats: () => ({ frameCostPerStep, lastFrameSteps, requested: params.stepsPerFrame, limitedFor: speedLimited ? Math.round(performance.now() - speedLimited) : 0 }),
   applyLevel: level => applyLevelDefaults(level),
@@ -3730,6 +3869,13 @@ export const simulation = {
     syncSlider("spinTheta");
     syncSlider("spinPhi");
     if (simulationAvailable) { resetAll(); updateStats(); }
+  },
+  setSecondMagnet(angle2, block) {
+    params.magnet2Angle = angle2;
+    params.block = block | 0;
+    syncSlider("magnet2Angle");
+    controlSyncs.block?.();
+    syncMagnetRows();
   },
   setDotColour(mode) {
     params.dotColour = mode ? 1 : 0;

@@ -34,5 +34,6 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   );
   let rhs = pauliRHS(c, lap, magneticFieldYZ(f32(y), f32(z)));
   let dt2 = 2.0 * uni.physics.w;
-  waveOut[id] = WaveCell(state.prevUp + dt2 * rhs.up, state.prevDown + dt2 * rhs.down, c.up, c.down);
+  let m = blockMask(f32(y), f32(z));
+  waveOut[id] = WaveCell(m * (state.prevUp + dt2 * rhs.up), m * (state.prevDown + dt2 * rhs.down), m * c.up, m * c.down);
 }

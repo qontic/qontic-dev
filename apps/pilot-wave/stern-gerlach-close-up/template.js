@@ -84,7 +84,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=43'));
+  ({ simulation } = await import('./main.js?v=45'));
   if (new URLSearchParams(location.search).has('debug')) window.qonticSG = simulation;
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
@@ -105,6 +105,18 @@ if (simulation?.isAvailable()) {
     stage,
     controls,
     filename: 'stern-gerlach-close-up',
+    // Share links keep the settings: level, reading, engine and every changed control.
+    getShareUrl: () => {
+      const url = new URL(location.href);
+      url.search = '';
+      url.hash = '';
+      const q = url.searchParams;
+      q.set('level', document.body.dataset.qonticLevel || 'basic');
+      if (simulation.getReading() === 'cpn') q.set('r', 'cpn');
+      if (simulation.getEngine?.() === '3d') q.set('e', '3d');
+      for (const [k, v] of Object.entries(simulation.shareParams())) q.set(k, v);
+      return url.href;
+    },
     getCanvases: () => [canvas],
     beginRecording() {
       const wasRunning = simulation.isRunning();
@@ -166,9 +178,21 @@ controls.setAttribute('levels', 'basic:Basic,standard:Standard,expert:Expert');
 controls.setAttribute('tab-levels', 'engine:standard,advanced:standard');
 controls.addEventListener('qontic:level', event => applyLevel(event.detail.level));
 {
-  const fromUrl = new URLSearchParams(location.search).get('level');
+  const query = new URLSearchParams(location.search);
+  const fromUrl = query.get('level');
   let saved = null; try { saved = localStorage.getItem('qontic-sg-level'); } catch (_) {}
-  applyLevel(LEVELS.includes(fromUrl) ? fromUrl : LEVELS.includes(saved) ? saved : 'basic');
+  let level = LEVELS.includes(fromUrl) ? fromUrl : LEVELS.includes(saved) ? saved : 'basic';
+  // A shared link: raise the level if its settings need it, then apply them.
+  const needed = simulation?.shareLevel?.(query) || 'basic';
+  if (LEVELS.indexOf(needed) > LEVELS.indexOf(level)) level = needed;
+  if (query.get('e') === '3d' && level === 'basic') level = 'standard';
+  applyLevel(level);
+  simulation?.applyShare?.(query);
+  if (query.get('r') === 'cpn') applyReading('cpn');
+  if (query.get('e') === '3d') {
+    engineTab.setValue('3d');
+    simulation?.setEngine('3d').then(r => { if (r && !r.ok) engineTab.setValue('fast'); });
+  }
 }
 
 
@@ -177,10 +201,11 @@ function applyReading(id) {
   controls.setAttribute('interpretation', id);
   simulation?.setReading(id);
 }
-function prepare({ spin, reading = 'pw', angle = 0, dotColour = 0 }) {
+function prepare({ spin, reading = 'pw', angle = 0, dotColour = 0, preset = 0, angle2 = 90, block = 0 }) {
   return () => {
     applyReading(reading);
-    simulation?.setMagnetPreset(0);
+    simulation?.setSecondMagnet?.(angle2, block);
+    simulation?.setMagnetPreset(preset);
     simulation?.setMagnetAngle?.(angle);
     simulation?.setDotColour?.(dotColour);
     simulation?.setInitialSpin(spin);
@@ -331,6 +356,28 @@ mountQonticQuiz({
       prepare: prepare({ spin: 1, angle: 180, dotColour: 1 }), draw: c => drawSideView(c, { dot: true, flip: true }),
       plain: 'In the upper spot again, but now that is the − result: the outcome depends on the magnet, not only on the particle.',
       explain: 'With the magnet turned over, the field points down and is stronger toward the bottom, so the −n part of the wave (spin +z) goes up and the +n part goes down. The wave splits symmetrically as before, and a dot that starts above the middle still ends in the upper spot, which is now the −n result. In pilot-wave theory the spin result is not a value the particle carries in advance; it depends on the arrangement (contextuality). The run uses Dot colour: Starting half (Display): yellow dots started above the middle.' },
+    { question: 'Spin +z. The magnet is turned to 60° (from +z toward +x). Of 500 atoms, about how many land on the side toward 60°?',
+      answer: 'cos', caption: 'The magnet axis is 60° from the spin.', watch: true,
+      answers: [
+        { id: 'cos', label: 'About 375: cos²(30°) = 0.75' },
+        { id: 'half', label: 'About 250: any tilt gives 50–50' },
+        { id: 'cos60', label: 'About 125: cos²(60°) = 0.25' },
+        { id: 'all', label: 'All 500' },
+      ],
+      prepare: prepare({ spin: 0, angle: 60 }), draw: c => drawSideView(c),
+      plain: 'About 375: the fraction toward the magnet axis is cos²(γ/2), with γ = 60° the angle between spin and axis.',
+      explain: 'For a spin at angle γ to the magnet axis, the + side gets cos²(γ/2) and the − side sin²(γ/2). Here γ = 60°, so 0.75 × 500 = 375, give or take about √(500 × 0.75 × 0.25) ≈ 10. The sphere next to the controls shows this prediction.' },
+    { question: 'Spin +z (as if a first z magnet had kept only +z). An x magnet follows, its −x part is blocked, and a z magnet comes last. What reaches the screen?',
+      answer: 'half', caption: 'Two magnets: x, block −x, then z. Initial spin +z.', watch: true,
+      answers: [
+        { id: 'half', label: 'Half of the passing atoms go to +z and half to −z: the −z part comes back' },
+        { id: 'allz', label: 'All of them go to +z: they were prepared +z' },
+        { id: 'none', label: 'Nothing: the block stops everything' },
+        { id: 'quarter', label: 'Only a quarter, all at +z' },
+      ],
+      prepare: prepare({ spin: 0, preset: 1, angle: 90, angle2: 270, block: 2 }), draw: c => drawSideView(c),
+      plain: 'Half +z and half −z: after the x magnet the passing atoms have spin +x, which is an equal mix of +z and −z.',
+      explain: 'Half the runs are stopped at the block (the −x part). The rest leave the x magnet with spin +x, the equal superposition of +z and −z, so the z magnet splits them 50–50: the −z part comes back. Measuring x leaves no memory of the earlier +z.' },
     { question: 'For a silver atom the magnetic moment is antiparallel to the spin. In this field, which spin part goes up?',
       answer: 'minus', caption: 'Side view at the start.', watch: false,
       answers: [

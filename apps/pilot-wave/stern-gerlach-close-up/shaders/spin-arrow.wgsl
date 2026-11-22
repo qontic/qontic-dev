@@ -19,7 +19,7 @@ fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> Arrow
   if (id >= u32(uni.particle1.z)) { return out; }
   let state = particles[id];
   let s = spins[id];
-  if (s.w < 0.5) { return out; }
+  if (s.w < 0.5 || particleIsAbsorbed(state)) { return out; }
   let base = vec3<f32>(state.w, state.y, state.z) * worldScale();
   // The arrow keeps its true direction: no compression along the beam.
   let tip = base + s.xyz * ARROW_CELLS * uni.visual1.w;

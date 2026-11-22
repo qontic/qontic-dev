@@ -23,6 +23,11 @@ fn particleVertex(vertexIndex: u32, instanceIndex: u32, stamp: bool) -> Particle
   out.upperStart = startSide[instanceIndex];
   out.depthFade = 1.0;
   out.local = quadCorner(vertexIndex) + vec2<f32>(0.5);
+  if (particleIsAbsorbed(state)) {
+    out.alive = 0.0;
+    out.position = vec4<f32>(2.0, 2.0, 2.0, 1.0);
+    return out;
+  }
   let hitDetector = uni.detector.y > 0.5 && state.w >= uni.detector.x - 1e-4;
   out.brightness = select(1.0, max(1.0, state.x), hitDetector);
   let maxP = uni.sim.xyz - vec3<f32>(1.0);

@@ -99,7 +99,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(num_workgroups) 
   let id = gid.x;
   if (id >= u32(uni.particle1.z)) { return; }
   let state = particlesIn[id];
-  let frozen = particleIsFrozen(state);
+  let frozen = particleIsFrozen(state) || particleIsAbsorbed(state);
   let dt = uni.physics.w;
   let x = vec3<f32>(state.w, state.y, state.z);
   if (stage < 3u) {
@@ -111,10 +111,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>, @builtin(num_workgroups) 
     rk[2u * id + 1u] = vec4<f32>(acc, 0.0);
     return;
   }
+  if (particleIsAbsorbed(state)) { particlesOut[id] = state; return; }
   if (frozen) {
     particlesOut[id] = vec4<f32>(detectorFlashBrightness(state.x), state.y, state.z, state.w);
     return;
   }
+  // The block removes the dots on its side while the packet passes it.
+  if (inBlockedHalf(state.y, state.z)) { particlesOut[id] = vec4<f32>(state.x, state.y, state.z, -1.0e6); return; }
   let acc = rk[2u * id + 1u].xyz + guidingVelocity(rk[2u * id].xyz);
   let xn = reflectIntoBox(x + (dt / 6.0) * acc);
   if (uni.detector.y > 0.5 && x.x < uni.detector.x && xn.x >= uni.detector.x) {

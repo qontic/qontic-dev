@@ -41,7 +41,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let xLab = uni.win.x + f32(ix) - winX0();
   let rhs = pauliRHS(c, lap, magneticField3(xLab, f32(y), f32(z)));
   let dt2 = 2.0 * uni.physics.w;
-  let next = wavePrev[id] + dt2 * vec4<f32>(rhs.up, rhs.down);
+  let next = blockMask(f32(y), f32(z)) * (wavePrev[id] + dt2 * vec4<f32>(rhs.up, rhs.down));
   // Values with |psi'|^2 < 1e-24 (the packet peak is ~1e-2 or more) are set to zero, so the empty
   // part of the window holds exact zeros rather than ever-smaller numbers, which slowed the
   // step down on some GPUs once the field had spread the wave. No visible or measurable effect.
