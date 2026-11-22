@@ -1,5 +1,14 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.8.0 — 2026-11-22
+- Levels: Basic · Standard · Expert (switch above Start). First-time visitors start at Basic.
+  - Basic: stages 1–3, pointer spread, pause after each run, the two predictions and both plots. Tabs Core and Display; five Results rows.
+  - Standard adds the Windows stage, Measure at (planes or instants), packet length, weak plane, gap, runs, the strip slider, the Advanced tab (geometry), Edit geometry, wave display modes, accumulated runs, times and the full Results.
+  - Expert adds recording the position along the beam, window length and width, the fixed-time curve, arrows per plane and lines, and the y_f − Y view.
+  - A setting the level hides takes its default value; the user's value comes back with the level. Links carry `level`. A link that uses Standard or Expert settings opens at that level.
+- Each plot has a Key button that shows or hides its legend (remembered).
+- Uses the new shared helper `shared/qontic-levels.js` (template docs: "Optional levels of detail").
+
 ## 0.7.3 — 2026-11-22
 - Stage 4: the window is an ellipse with its own length along the beam and width across (sliders "Window length (along)", 20–200 nm, and "Window width (across)", 4–100 nm; equal values give a circle). The default is 100 × 10 nm instead of a circle 50 nm across. The window decides which runs are averaged, so its shape changes the result. Across the beam the velocity changes fast near the fringes; along the beam it changes slowly. At (550, 50) nm, where j/|ψ|² is −0.372, the prediction is −0.362 for the ellipse and −0.249 for the old circle. With 20M runs the end-of-run lines now end 3–4 nm (rms) from the j/|ψ|² flow lines instead of 16 nm. The transverse grid of strong positions is 2 nm (was 5 nm). The weak-readings panel samples up to 400k runs.
 - Model: windowQuery(field, acc, xc, yc, rx, ry). New test (23): in a steep region the long narrow window follows j/|ψ|² within 0.02, and the 50 nm circle misses by more than 0.08.

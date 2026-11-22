@@ -3,8 +3,9 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.7.3';
-import * as M from './weak-model.js?v=0.7.3';
+import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
+import { APP_RELEASE } from './release.js?v=0.8.0';
+import * as M from './weak-model.js?v=0.8.0';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -61,6 +62,7 @@ const state = {
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, fixedTime: false, bohm: false, scatter: true, planeRuns: true },
   selected: null, shiftView: false,
   labels: (() => { try { return localStorage.getItem('qontic-weak-velocity-labels') !== 'false'; } catch (e) { return true; } })(),   // explanatory labels in the drawing (Legend button)
+  panelKey: (() => { try { return JSON.parse(localStorage.getItem('qontic-weak-velocity-panel-keys')) || { scatter: true, vel: true }; } catch (e) { return { scatter: true, vel: true }; } })(),   // legends of the two plots
   win: { len: 100, wid: 10, x: 550, y: 50, pinned: false, trace: false },   // stage 4: window centre (nm behind the slits); full length along the beam and width across (nm)
   timing: 'plane', packet: 150, recx: false, cell: null,
   pauseEach: true,   // stage 1: stop after each run so it can be looked at   // measure at planes or at instants; packet length in nm
@@ -375,7 +377,7 @@ function updateText() {
 }
 
 const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
-const SELECT_HINT_TEXT = () => `Choose a detected-position strip with the Selected strip control, the strong ${instant() ? 'band' : 'plane'}, or either plot.`;
+const SELECT_HINT_TEXT = () => document.body.dataset.qonticLevel === 'basic' ? 'Choose a detected-position strip by pointing at the strong plane or at either plot.' : `Choose a detected-position strip with the Selected strip control, the strong ${instant() ? 'band' : 'plane'}, or either plot.`;
 const RATIONALE_LINK = '<button type="button" class="link-button" data-goto="rationale">Same lines, three readings: see Rationale</button>';
 function liveText() {
   if (state.stage === 'window') return wf ? (urlNote && !hadRun ? `<span class="url-note">${urlNote}</span> ` : '') + windowLive() : '';
@@ -620,6 +622,13 @@ function setPanelOpen(k, open) { panels[k].open = open; applyPanelState(k); save
 for (const [k, pn] of Object.entries(panels)) {
   pn.el.querySelector('[data-fp-act="close"]').addEventListener('click', () => { setPanelOpen(k, false); document.querySelector(`[data-fp-open="${k}"]`).focus(); });
   pn.el.querySelector('[data-fp-act="min"]').addEventListener('click', () => { pn.min = !pn.min; applyPanelState(k); savePanels(); });
+  // Key: this plot's legend on or off (remembered).
+  const keyBtn = pn.el.querySelector('[data-fp-act="legend"]');
+  if (keyBtn) {
+    const k = pn.el.dataset.fp;
+    keyBtn.setAttribute('aria-pressed', String(state.panelKey[k] !== false));
+    keyBtn.addEventListener('click', () => { state.panelKey[k] = state.panelKey[k] === false; keyBtn.setAttribute('aria-pressed', String(state.panelKey[k])); try { localStorage.setItem('qontic-weak-velocity-panel-keys', JSON.stringify(state.panelKey)); } catch (e) { /* ignore */ } });
+  }
   pn.el.querySelector('[data-fp-act="shift"]')?.addEventListener('click', (e) => { state.shiftView = !state.shiftView; e.currentTarget.setAttribute('aria-pressed', String(state.shiftView)); updateTitles(); });
   // Click a strip in the plot to post-select on it.
   pn.cv.addEventListener('click', (e) => {
@@ -741,7 +750,7 @@ function readUrl() {
 function shareUrl() {
   const u = new URL(location.href);
   const g = {}; for (const k of Object.keys(GEO_DEFAULT)) if (geo[k] !== GEO_DEFAULT[k]) g[k] = geo[k];
-  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(state.recx ? {recx: 1} : {}), ...(state.packet !== 150 ? {packet: state.packet} : {}), ...(state.stage === 'window' ? {winx: state.win.x, winy: state.win.y, winl: state.win.len, winw: state.win.wid} : {}) }).toString();
+  u.search = new URLSearchParams({ level: document.body.dataset.qonticLevel || 'basic', stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(state.recx ? {recx: 1} : {}), ...(state.packet !== 150 ? {packet: state.packet} : {}), ...(state.stage === 'window' ? {winx: state.win.x, winy: state.win.y, winl: state.win.len, winw: state.win.wid} : {}) }).toString();
   return u.toString();
 }
 
@@ -1572,7 +1581,9 @@ function axes(P, box, title, yLabel, ymin, ymax, fmtY) {
 }
 
 // Legend at the top right; items separated by ' · ' wrap onto more lines when narrow.
+let legendPanel = null;   // the plot being drawn, for its Key switch
 function legend(P, box, s) {
+  if (legendPanel && state.panelKey[legendPanel] === false) return;
   ctx.font = '400 11px Inter, Arial, sans-serif';
   const lines = [];
   for (const item of s.split(' · ')) {
@@ -1793,9 +1804,11 @@ function render() {
     const s = sizeCanvas(pnl.cv, ctx);
     if (!s) continue;
     ctx.fillStyle = P.panel; ctx.fillRect(0, 0, s.W, s.H);
+    legendPanel = k;
     if (state.stage === 'window') { if (wf) (k === 'scatter' ? drawWindowCloud : drawWindowProfile)(P, plotBox(s.W, s.H)); }
     else (k === 'scatter' ? drawScatter : drawVelocity)(P, plotBox(s.W, s.H));
   }
+  legendPanel = null;
   ctx = mainCtx;
   syncOverlays();
 }
@@ -1902,6 +1915,45 @@ const media = mountQonticMedia({
   beginRecording: () => { const was = state.running; if (!was) start(); return was; },
   endRecording: (was) => { if (!was) stop(); },
 });
+// ---------------------------------------------------------------- levels
+// Basic: stages 1–3, pointer spread, the main predictions. Standard: windows,
+// instants, planes, runs, geometry, display modes. Expert: everything. A setting a
+// level hides takes its default; the user's value comes back with the level.
+const setRuns = (v) => { state.perPlane = v; $('#perPlane').value = RUNS.indexOf(v); $('#perPlaneOut').value = fmtRuns(v); pending = true; };
+const setShow = (key, v) => { if (state.show[key] !== v) toggle(key); pending = true; };
+const levelSettings = [
+  { id: 'timing', min: 'standard', value: 'plane', get: () => state.timing, set: (v) => { state.timing = v; stop(); pending = true; } },
+  { id: 'packet', min: 'standard', value: 150, get: () => state.packet, set: (v) => { state.packet = v; pending = true; } },
+  { id: 'x1', min: 'standard', value: 500, get: () => state.x1, set: (v) => { state.x1 = v; $('#x1').value = v; pending = true; } },
+  { id: 'gap', min: 'standard', value: 50, get: () => state.gap, set: (v) => { state.gap = v; $('#gap').value = v; clampGeometry(); pending = true; } },
+  { id: 'runs', min: 'standard', value: 1e6, get: () => state.perPlane, set: setRuns },
+  { id: 'waveMode', min: 'standard', value: 'density', get: () => state.waveMode, set: (v) => { state.waveMode = v; document.querySelectorAll('[data-wavemode]').forEach((o) => { const on = o.dataset.wavemode === v; o.classList.toggle('active', on); o.setAttribute('aria-pressed', String(on)); }); } },
+  { id: 'planeRuns', min: 'standard', value: true, get: () => state.show.planeRuns, set: (v) => setShow('planeRuns', v) },
+  { id: 'scatterRuns', min: 'standard', value: true, get: () => state.show.scatter, set: (v) => setShow('scatter', v) },
+  ...Object.keys(GEO_DEFAULT).map((k) => ({ id: `geo-${k}`, min: 'standard', value: GEO_DEFAULT[k], get: () => geo[k], set: (v) => setGeometry(k, v) })),
+  { id: 'recx', min: 'expert', value: false, get: () => state.recx, set: (v) => { state.recx = v; state.cell = null; $('#recx').setAttribute('aria-pressed', String(v)); pending = true; } },
+  { id: 'fixedTime', min: 'expert', value: false, get: () => state.show.fixedTime, set: (v) => setShow('fixedTime', v) },
+  { id: 'winLen', min: 'expert', value: 100, get: () => state.win.len, set: (v) => { state.win.len = v; } },
+  { id: 'winWid', min: 'expert', value: 10, get: () => state.win.wid, set: (v) => { state.win.wid = v; } },
+  { id: 'arrowEvery', min: 'expert', value: 1, get: () => state.arrowEvery, set: (v) => { state.arrowEvery = v; $('#arrowDensity').value = 6 - v / Math.ceil(N_BINS / 40); } },
+  { id: 'nLines', min: 'expert', value: 20, get: () => state.nLines, set: (v) => { state.nLines = v; $('#lineCount').value = v; $('#lineCountOut').value = v; if (map?.done) buildLines(); } },
+  { id: 'shiftView', min: 'expert', value: false, get: () => state.shiftView, set: (v) => { state.shiftView = v; panels.scatter.el.querySelector('[data-fp-act="shift"]')?.setAttribute('aria-pressed', String(v)); } },
+];
+// A shared link that uses higher-level settings opens at the level that shows them.
+function linkLevel() {
+  const q = new URLSearchParams(location.search);
+  if (['recx', 'winl', 'winw', 'winr', 'ft', 'cell'].some((k) => q.has(k))) return 'expert';
+  if (q.get('stage') === 'window' || ['timing', 'x1', 'gap', 'runs', 'packet', 'show', ...Object.keys(GEO_DEFAULT)].some((k) => q.has(k))) return 'standard';
+  return 'basic';
+}
+mountQonticLevels({
+  controls: controlsEl, storageKey: 'qontic-weak-velocity', settings: levelSettings, minimumLevel: linkLevel,
+  onChange: (level) => {
+    if (level === 'basic' && state.stage === 'window') setStage('map');
+    updateText();
+  },
+});
+
 // Edit geometry: a toolbar button, as in the analytical double-slit app. The
 // handles appear only while it is pressed; right-click on the drawing also
 // toggles it, and Escape leaves it.
@@ -1910,6 +1962,7 @@ const editButton = (() => {
   if (!toolbar) return null;
   const b = document.createElement('button'); b.type = 'button'; b.className = toolbar.querySelector('button').className;
   b.setAttribute('aria-label', 'Edit geometry'); b.setAttribute('aria-pressed', 'false');
+  b.dataset.levelMin = 'standard';   // geometry is a Standard setting
   b.title = 'Edit geometry · right-click the drawing. Drag the screen, the slits or the planes; Escape exits.';
   b.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 5l4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg>';
   toolbar.insertBefore(b, toolbar.querySelector('[role=status]'));
@@ -1921,7 +1974,7 @@ function setEditing(on) {
   if (!on) { hover = null; canvas.style.cursor = ''; if (drag) endDrag(); }
 }
 editButton?.addEventListener('click', () => setEditing(!editing));
-canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); setEditing(!editing); });
+canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); if (document.body.dataset.qonticLevel !== 'basic' || editing) setEditing(!editing); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && editing) { e.preventDefault(); setEditing(false); } }, true);
 
 mountQonticShortcuts({

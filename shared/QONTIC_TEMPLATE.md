@@ -103,6 +103,18 @@ The distance scale uses a nearly transparent background (10% opacity) to leave t
 - Reference: `apps/pilot-wave/hydrogen-atom/hydrogen-template.js`.
 
 
+## Optional levels of detail (Basic · Standard · Expert)
+
+Reference apps: `apps/comparative/n-slits-two-engines` (its own helper) and `apps/comparative/weak-velocity` (the shared helper below).
+
+- `<qontic-controls levels="basic:Basic,standard:Standard,expert:Expert" level="basic" tab-levels="advanced:standard">` draws the Level switch above Start. It mirrors the level on `<body data-qontic-level>` and hides any element marked `data-level-min="standard"` (or `"expert"`) below that level. An element marked `data-level-max="basic"` shows only at that level or below. `tab-levels` gives the lowest level that shows a tab. Changing the level fires `qontic:level`.
+- `shared/qontic-levels.js`: `mountQonticLevels({ controls, storageKey, settings, minimumLevel, onChange, keepAcrossLoads })` does the rest:
+  - it remembers the level and reads `?level=` or `#level=` from the link;
+  - first-time visitors start at the lowest level;
+  - `minimumLevel()` lets a link that uses higher-level settings open at the level that shows them;
+  - each entry in `settings` is `{ id, min, get, set, value }`. Below `min` the setting takes `value`; the user's own value is kept and restored when the level shows it again. Keep that value across page loads only if the app keeps its other settings too (`keepAcrossLoads: true`).
+- Basic is for a first visit: one or two controls, the main result and no expert tools. Keep controls that change the record (geometry, timing) at Standard or above. Include `level` in share links.
+
 ## Optional Engine tab (more than one physics engine)
 
 Use it when one app offers two models of the same experiment that students should be able to compare (reference: `apps/comparative/n-slits-two-engines`, analytical paraxial model and numerical Schrödinger solver).

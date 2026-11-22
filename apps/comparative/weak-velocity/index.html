@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.7.3">
+<link rel="stylesheet" href="css/wv.css?v=0.8.0">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -22,7 +22,7 @@
 <section class="lab qontic-workspace" data-panel="sim">
   <aside class="controls qontic-sidebar qontic-panel qontic-control-panel">
     <section class="always-controls" aria-label="Simulation controls">
-      <qontic-controls show-interpretation="false" running="false" auto-run="false" show-autorun="false" show-reset="true" speed="1" speed-min="0.25" speed-max="4" speed-step="0.25" active-tab="core" show-advanced="true"></qontic-controls>
+      <qontic-controls levels="basic:Basic,standard:Standard,expert:Expert" level="basic" tab-levels="advanced:standard" show-interpretation="false" running="false" auto-run="false" show-autorun="false" show-reset="true" speed="1" speed-min="0.25" speed-max="4" speed-step="0.25" active-tab="core" show-advanced="true"></qontic-controls>
     </section>
     <div class="control-tab-body qontic-control-body">
       <div class="control-pane" data-control-pane="core">
@@ -32,37 +32,37 @@
             <button class="qontic-app-toggle active" type="button" data-stage="one" aria-pressed="true" title="Runs one at a time, slowly: the pointer moves, then the screen clicks.">1 · One run</button>
             <button class="qontic-app-toggle" type="button" data-stage="many" aria-pressed="false" title="Many runs at the same pair of planes. Post-select on the strong result and average the pointer.">2 · Many runs</button>
             <button class="qontic-app-toggle" type="button" data-stage="map" aria-pressed="false" title="Repeat the experiment with the planes moved step by step from the slits to the screen, then connect the arrows.">3 · Map the field</button>
-            <button class="qontic-app-toggle" type="button" data-stage="window" aria-pressed="false" title="Runs at all times over the whole field. Point anywhere: a small window of strong results, the mean weak reading of those runs, and the arrow between them.">4 · Windows</button>
+            <button class="qontic-app-toggle" type="button" data-stage="window" data-level-min="standard" aria-pressed="false" title="Runs at all times over the whole field. Point anywhere: a small window of strong results, the mean weak reading of those runs, and the arrow between them.">4 · Windows</button>
           </div>
         </div>
         <div class="qontic-control-section">
-          <div class="qontic-control-section-title">Measure at</div>
-          <div class="qontic-app-toggle-group" role="group" aria-label="Measure at planes or at instants">
+          <div class="qontic-control-section-title" data-level-min="standard">Measure at</div>
+          <div class="qontic-app-toggle-group" data-level-min="standard" role="group" aria-label="Measure at planes or at instants">
             <button class="qontic-app-toggle active" type="button" data-timing="plane" aria-pressed="true" title="Detectors at fixed distances from the slits, as in Kocsis et al.: each records the transverse position of every particle that reaches it.">Planes</button>
             <button class="qontic-app-toggle" type="button" data-timing="instant" aria-pressed="false" title="Measurements at two instants, t₁ and t₂, as Wiseman wrote the protocol. Each run is one packet, and the particle can be anywhere along it. With the position along the beam recorded too, this is Wiseman's protocol and gives the same field as the planes; with the transverse position only, one coordinate is dropped. (Packet length, Advanced tab).">Instants</button>
           </div>
-          <div class="toggle-row" id="recxRow" hidden title="Record the position along the beam at t₂ as well, as in Wiseman's protocol, and keep only runs within ±0.23σₓ of the packet centre. This gives the same field as the planes, at the cost of about 80% of the runs."><span>Record the position along the beam too (Wiseman)</span><button class="toggle" type="button" id="recx" aria-pressed="false" aria-label="Post-select on the longitudinal position as well"></button></div>
-          <label class="control-row" id="cellRow" hidden title="Which position along the beam, Δ from the packet centre, the strip averages, plots and Results use. Pointing inside the strong frame chooses it too."><span>Position along the beam Δ</span><input id="cellSel" type="range" min="0" max="12" step="1" value="6" aria-label="Position along the beam, relative to the packet centre"><output id="cellOut">0 nm</output></label>
-          <label class="control-row" id="packetRow" hidden title="Longitudinal density standard deviation of each packet, σₓ. It matters when measuring at instants and for the dotted fixed-time curve. The double-slit app uses 50 nm; the effect is easier to see at 150 nm."><span>Packet length σₓ</span><input id="packet" type="range" min="50" max="300" step="10" value="150" aria-label="Packet length in nanometres"><output id="packetOut">150 nm</output></label>
+          <div class="toggle-row" id="recxRow" data-level-min="expert" hidden title="Record the position along the beam at t₂ as well, as in Wiseman's protocol, and keep only runs within ±0.23σₓ of the packet centre. This gives the same field as the planes, at the cost of about 80% of the runs."><span>Record the position along the beam too (Wiseman)</span><button class="toggle" type="button" id="recx" aria-pressed="false" aria-label="Post-select on the longitudinal position as well"></button></div>
+          <label class="control-row" id="cellRow" data-level-min="expert" hidden title="Which position along the beam, Δ from the packet centre, the strip averages, plots and Results use. Pointing inside the strong frame chooses it too."><span>Position along the beam Δ</span><input id="cellSel" type="range" min="0" max="12" step="1" value="6" aria-label="Position along the beam, relative to the packet centre"><output id="cellOut">0 nm</output></label>
+          <label class="control-row" id="packetRow" data-level-min="standard" hidden title="Longitudinal density standard deviation of each packet, σₓ. It matters when measuring at instants and for the dotted fixed-time curve. The double-slit app uses 50 nm; the effect is easier to see at 150 nm."><span>Packet length σₓ</span><input id="packet" type="range" min="50" max="300" step="10" value="150" aria-label="Packet length in nanometres"><output id="packetOut">150 nm</output></label>
         </div>
         <div class="toggle-row" id="pauseRow" title="Stage 1: stop after each run so the two readings can be looked at. Press Start for the next run."><span>Pause after each run</span><button class="toggle" type="button" id="pauseEach" aria-pressed="true" aria-label="Pause after each run"></button></div>
         <label class="control-row" title="Spread of the pointer's ready state. Large spread: a weak measurement, little disturbance, very noisy. Small spread: a strong measurement that disturbs the wave.">
           <span>Pointer spread</span><input id="sw" type="range" min="5" max="400" step="5" value="200" aria-label="Pointer spread in nanometres"><output id="swOut">200 nm</output>
         </label>
         <p class="core-hint" id="swHint"></p>
-        <label class="control-row" id="x1Row" title="Distance from the slits to the plane where the pointer is coupled (stages 1 and 2).">
+        <label class="control-row" id="x1Row" data-level-min="standard" title="Distance from the slits to the plane where the pointer is coupled (stages 1 and 2).">
  <span id="x1Label">Weak plane</span><input id="x1" type="range" min="0" max="900" step="10" value="500" aria-label="Distance of the weak plane from the slits in nanometres"><output id="x1Out">500 nm</output>
         </label>
-        <label class="control-row" title="Distance from the weak plane to the plane where the particle's position is detected.">
+        <label class="control-row" data-level-min="standard" title="Distance from the weak plane to the plane where the particle's position is detected.">
           <span id="gapLabel">Gap to strong plane</span><input id="gap" type="range" min="10" max="100" step="5" value="50" aria-label="Gap between the weak and strong planes in nanometres"><output id="gapOut">50 nm</output>
         </label>
-        <label class="control-row" id="runsRow" title="Runs collected at the pair of planes (stage 2), or at each pair of planes (stage 3). The default is one million runs per pair, shared among the detected-position strips; each arrow uses only its strip.">
+        <label class="control-row" id="runsRow" data-level-min="standard" title="Runs collected at the pair of planes (stage 2), or at each pair of planes (stage 3). The default is one million runs per pair, shared among the detected-position strips; each arrow uses only its strip.">
           <span id="perPlaneLabel">Runs per pair of planes</span><input id="perPlane" type="range" min="0" max="11" step="1" value="6" aria-label="Runs per pair of planes"><output id="perPlaneOut">1M</output>
         </label>
-        <label class="control-row" data-stage-rows="window" hidden title="Length of the window along the beam. The velocity changes slowly along the beam, so a long window collects more runs at little cost.">
+        <label class="control-row" data-stage-rows="window" data-level-min="expert" hidden title="Length of the window along the beam. The velocity changes slowly along the beam, so a long window collects more runs at little cost.">
           <span>Window length (along)</span><input id="winL" type="range" min="20" max="200" step="10" value="100" aria-label="Window length along the beam in nanometres"><output id="winLOut">100 nm</output>
         </label>
-        <label class="control-row" data-stage-rows="window" hidden title="Width of the window across the beam. The velocity changes fast across the beam near the fringes: a narrow window follows it closely but collects fewer runs. Equal length and width give a circle.">
+        <label class="control-row" data-stage-rows="window" data-level-min="expert" hidden title="Width of the window across the beam. The velocity changes fast across the beam near the fringes: a narrow window follows it closely but collects fewer runs. Equal length and width give a circle.">
           <span>Window width (across)</span><input id="winW" type="range" min="4" max="100" step="2" value="10" aria-label="Window width across the beam in nanometres"><output id="winWOut">10 nm</output>
         </label>
         <label class="control-row" data-stage-rows="window" hidden title="Position of the window's centre along the beam, behind the slits. Pointing in the drawing does the same.">
@@ -72,7 +72,7 @@
           <span>Window across</span><input id="winY" type="range" min="-400" max="400" step="5" value="50" aria-label="Window centre across the beam in nanometres"><output id="winYOut">50 nm</output>
         </label>
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="winTrace" data-stage-rows="window" hidden title="Use the mean weak position as the next window, step by step towards the slits (Anssi Kuha's construction).">Trace back from this window</button>
-        <label class="control-row strip-row" data-stage-rows="many map" hidden>
+        <label class="control-row strip-row" data-stage-rows="many map" data-level-min="standard" hidden>
           <span>Selected strip</span><input id="selectedStrip" type="range" min="0" max="39" step="1" value="35" aria-label="Selected detected-position strip"><output id="selectedStripOut">300 to 320 nm</output>
         </label>
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="showSetup">Show the setup</button>
@@ -91,14 +91,14 @@
           <p class="core-hint" id="geoNote"></p>
           <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="geoReset">Default geometry</button>
         </div>
-        <div class="qontic-control-section">
+        <div class="qontic-control-section" data-level-min="expert">
           <div class="qontic-control-section-title">Field map (stage 3)</div>
           <label class="control-row" title="How many strips show an arrow. All measured strips contribute to the reconstructed lines."><span>Arrows per plane</span><input id="arrowDensity" type="range" min="1" max="5" step="1" value="5" aria-label="Arrows per plane"><output id="arrowDensityOut">40</output></label>
           <label class="control-row" title="Number of lines through the measured arrows, and of flow lines of j/|ψ|² computed from ψ from the same starting points."><span>Lines</span><input id="lineCount" type="range" min="4" max="60" step="2" value="20" aria-label="Number of lines"><output id="lineCountOut">20</output></label>
         </div>
       </div>
       <div class="control-pane hidden" data-control-pane="display">
-        <div class="qontic-control-section">
+        <div class="qontic-control-section" data-level-min="standard">
           <div class="qontic-control-section-title">Wave shown as</div>
           <div class="qontic-app-toggle-group" role="group" aria-label="What to display">
             <button class="qontic-app-toggle active" type="button" data-wavemode="density" aria-pressed="true" title="Density |ψ|², each column scaled to its own maximum.">Density |ψ|²</button>
@@ -110,14 +110,14 @@
         <div class="toggle-row"><span>Measured arrows</span><button class="toggle" type="button" data-toggle="arrows" aria-pressed="true" aria-label="Show the measured velocity arrows"></button></div>
         <div class="toggle-row"><span>j/|ψ|²: prediction for an ideal weak pointer</span><button class="toggle" type="button" data-toggle="current" aria-pressed="true" aria-label="Show the current velocity curve"></button></div>
         <div class="toggle-row"><span>Prediction for this pointer</span><button class="toggle" type="button" data-toggle="expected" aria-pressed="true" aria-label="Show the prediction for this pointer (infinitely many runs)"></button></div>
-        <div class="toggle-row" title="Wiseman's timing: both measurements at fixed times, recording only the transverse position. The particle can then be anywhere along the 50 nm packet, so the arrows average the planes the packet spans (weak limit). See Physics: A plane or an instant?"><span>Fixed-time measurement, transverse position only</span><button class="toggle" type="button" data-toggle="fixedTime" aria-pressed="false" aria-label="Show the prediction for a fixed-time measurement that records only the transverse position"></button></div>
+        <div class="toggle-row" data-level-min="expert" title="Wiseman's timing: both measurements at fixed times, recording only the transverse position. The particle can then be anywhere along the 50 nm packet, so the arrows average the planes the packet spans (weak limit). See Physics: A plane or an instant?"><span>Fixed-time measurement, transverse position only</span><button class="toggle" type="button" data-toggle="fixedTime" aria-pressed="false" aria-label="Show the prediction for a fixed-time measurement that records only the transverse position"></button></div>
         <div class="toggle-row"><span>Lines through the arrows</span><button class="toggle" type="button" data-toggle="lines" aria-pressed="true" aria-label="Show the lines through the measured arrows"></button></div>
         <div class="toggle-row"><span>Flow lines of j/|ψ|² from ψ (trajectories in pilot-wave)</span><button class="toggle" type="button" data-toggle="bohm" aria-pressed="false" aria-label="Overlay the flow lines of j/|ψ|² computed from ψ, which are the trajectories in pilot-wave theory"></button></div>
-        <div class="toggle-row"><span>Accumulated runs on the planes</span><button class="toggle" type="button" data-toggle="planeRuns" aria-pressed="true" aria-label="Show pointer readings and detections as points beside the two planes"></button></div>
+        <div class="toggle-row" data-level-min="standard"><span>Accumulated runs on the planes</span><button class="toggle" type="button" data-toggle="planeRuns" aria-pressed="true" aria-label="Show pointer readings and detections as points beside the two planes"></button></div>
         <div class="toggle-row"><span>Data plot</span><button class="toggle" type="button" data-panel-toggle="scatter" aria-pressed="true" aria-label="Show the floating data plot"></button></div>
         <div class="toggle-row"><span>Velocity plot</span><button class="toggle" type="button" data-panel-toggle="vel" aria-pressed="true" aria-label="Show the floating velocity plot"></button></div>
         <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="resetPanels">Reset plot width</button>
-        <div class="toggle-row"><span>Runs in the data plot</span><button class="toggle" type="button" data-toggle="scatter" aria-pressed="true" aria-label="Show individual runs in the data plot"></button></div>
+        <div class="toggle-row" data-level-min="standard"><span>Runs in the data plot</span><button class="toggle" type="button" data-toggle="scatter" aria-pressed="true" aria-label="Show individual runs in the data plot"></button></div>
       </div>
     </div>
     <section class="results-panel qontic-panel" data-results-panel aria-label="Results">
@@ -131,17 +131,17 @@
         <span data-stage-rows="window" title="Across over along: (mean strong − mean weak) across, divided by the same along the beam. One standard error.">Measured slope v<sub>y</sub>/v<sub>x</sub></span><output data-stage-rows="window" data-result="winMeas">—</output>
         <span data-stage-rows="window" data-prediction="expected" title="What this pointer gives in this window with infinitely many runs.">Prediction, this pointer and window</span><output data-stage-rows="window" data-prediction="expected" data-result="winExp">—</output>
         <span data-stage-rows="window" data-prediction="current" title="j/|ψ|² at the window centre. It differs from the line above where the velocity changes within the window.">j/|ψ|² at the window centre</span><output data-stage-rows="window" data-prediction="current" data-result="winCur">—</output>
-        <span data-times-row hidden title="Times after the packet centre leaves the slits, for an electron with the wavelength set in Advanced (v = h/mλ). The app itself has no mass: only these times depend on it.">Times (electron)</span><output data-times-row hidden data-result="times">—</output>
-        <span id="cellRunsLabel" data-recx-row hidden>Runs at this Δ</span><output data-result="cellRuns" data-recx-row hidden>—</output>
-        <span data-stage-rows="map" title="Weak → strong position, distances behind the slits." id="pairLabel">Plane pair</span><output data-stage-rows="map" data-result="pair">—</output>
+        <span data-times-row data-level-min="standard" hidden title="Times after the packet centre leaves the slits, for an electron with the wavelength set in Advanced (v = h/mλ). The app itself has no mass: only these times depend on it." data-level-min="standard">Times (electron)</span><output data-times-row hidden data-result="times" data-level-min="standard">—</output>
+        <span id="cellRunsLabel" data-recx-row hidden data-level-min="expert">Runs at this Δ</span><output data-result="cellRuns" data-level-min="expert" data-recx-row hidden>—</output>
+        <span data-stage-rows="map" title="Weak → strong position, distances behind the slits." id="pairLabel" data-level-min="standard">Plane pair</span><output data-stage-rows="map" data-result="pair" data-level-min="standard">—</output>
         <span data-stage-rows="many map">Selected strip, detected at</span><output data-stage-rows="many map" data-result="strip">—</output>
-        <span data-stage-rows="many map">Runs in the strip</span><output data-stage-rows="many map" data-result="inStrip">—</output>
-        <span data-stage-rows="many map">Mean pointer reading</span><output data-stage-rows="many map" data-result="meanY">—</output>
+        <span data-stage-rows="many map" data-level-min="standard">Runs in the strip</span><output data-stage-rows="many map" data-result="inStrip" data-level-min="standard">—</output>
+        <span data-stage-rows="many map" data-level-min="standard">Mean pointer reading</span><output data-stage-rows="many map" data-result="meanY" data-level-min="standard">—</output>
         <span data-stage-rows="many map" title="Slope of the arrow, v_y/v_x (dimensionless; v_x is the same everywhere). One standard error.">Measured slope v<sub>y</sub>/v<sub>x</sub></span><output data-stage-rows="many map" data-result="vMeas">—</output>
         <span data-stage-rows="many map" data-prediction="expected" id="expLabel" title="What this pointer gives with infinitely many runs, including its disturbance of the wave (and, at instants, the averaging over the packet).">Prediction for this pointer</span><output data-stage-rows="many map" data-prediction="expected" data-result="vExp">—</output>
         <span data-stage-rows="many map" data-prediction="current" title="j/|ψ|² at the strong plane, averaged over the strip: the limit of a very wide pointer. It coincides with the line above for a weak pointer." id="curLabel">Ideal weak pointer, j/|ψ|²</span><output data-stage-rows="many map" data-prediction="current" data-result="vCur">—</output>
-        <span data-stage-rows="many map" data-prediction="fixedTime" title="Measurement at fixed times using the transverse position only, weak limit: j/|ψ|² averaged over the planes the packet spans, then over the strip (the dotted curve).">Fixed time, transverse only</span><output data-stage-rows="many map" data-prediction="fixedTime" data-result="vFt">—</output>
-        <span data-stage-rows="map">Plane pairs mapped</span><output data-stage-rows="map" data-result="planes">—</output>
+        <span data-stage-rows="many map" data-prediction="fixedTime" title="Measurement at fixed times using the transverse position only, weak limit: j/|ψ|² averaged over the planes the packet spans, then over the strip (the dotted curve)." data-level-min="expert">Fixed time, transverse only</span><output data-stage-rows="many map" data-prediction="fixedTime" data-result="vFt" data-level-min="expert">—</output>
+        <span data-stage-rows="map" data-level-min="standard">Plane pairs mapped</span><output data-stage-rows="map" data-result="planes" data-level-min="standard">—</output>
       </div>
     </section>
   </aside>
@@ -163,11 +163,11 @@
       <div class="col-split" role="separator" aria-orientation="vertical" aria-label="Drag to change the width of the plots" tabindex="0" title="Drag to change the width of the plots (arrow keys also work)"></div>
       <div class="side-col">
         <div class="float-panel" data-fp="scatter" aria-label="Data plot">
-          <div class="fp-head"><span class="fp-title">Runs: pointer Y vs y_f</span><button type="button" class="fp-mode" data-fp-act="shift" aria-pressed="false" title="Magnify the signal: detected position minus mean pointer reading, in each strip (same sign as the velocity)">y<sub>f</sub> − Y</button><button type="button" data-fp-act="min" aria-label="Minimize the data plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the data plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
+          <div class="fp-head"><span class="fp-title">Runs: pointer Y vs y_f</span><button type="button" class="fp-mode" data-fp-act="legend" aria-pressed="true" title="Show or hide this plot's legend">Key</button><button type="button" class="fp-mode" data-fp-act="shift" data-level-min="expert" aria-pressed="false" title="Magnify the signal: detected position minus mean pointer reading, in each strip (same sign as the velocity)">y<sub>f</sub> − Y</button><button type="button" data-fp-act="min" aria-label="Minimize the data plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the data plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
           <canvas class="fp-canvas" id="dataCanvas" aria-label="Pointer reading against detected position for each run"></canvas>
         </div>
         <div class="float-panel" data-fp="vel" aria-label="Velocity plot">
-          <div class="fp-head"><span class="fp-title">Velocity: slope v_y/v_x</span><button type="button" data-fp-act="min" aria-label="Minimize the velocity plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the velocity plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
+          <div class="fp-head"><span class="fp-title">Velocity: slope v_y/v_x</span><button type="button" class="fp-mode" data-fp-act="legend" aria-pressed="true" title="Show or hide this plot's legend">Key</button><button type="button" data-fp-act="min" aria-label="Minimize the velocity plot" title="Minimize">–</button><button type="button" data-fp-act="close" aria-label="Close the velocity plot" title="Close (reopen from the button on the drawing or the Display tab)">×</button></div>
           <canvas class="fp-canvas" id="velocityCanvas" aria-label="Measured velocity against detected position"></canvas>
         </div>
       </div>
@@ -288,7 +288,8 @@
     </ol>
     <p>Note where students get stuck and which words or controls they misread. Repeat the same questions at the end in their own words. Use this first tryout to improve the explanation; it is not yet a test of learning effectiveness.</p>
   </details>
-  <p><b>Links.</b> The share button copies the state: <code>stage</code> (one, many, map, window), <code>sw</code> (pointer spread, nm), <code>x1</code> (weak plane), <code>gap</code>, <code>runs</code> (runs per pair of planes), <code>show</code> (density, crests, phase), the geometry (<code>wavelength</code>, <code>slitWidth</code>, <code>separation</code>, <code>wall</code>, <code>distance</code>, <code>screen</code>, <code>sourceWidth</code>, in nm) <code>bohm=1</code> for the flow-line overlay, <code>expected=0&amp;current=0</code> to hide both predictions and their Results values, <code>timing=instant</code> to measure at instants, <code>packet</code> (packet length σₓ in nm, default 150), <code>recx=1</code> to record the position along the beam too, <code>ft=1</code> for the dotted fixed-time curve, and <code>winx</code>, <code>winy</code> (window centre), <code>winl</code>, <code>winw</code> (window length along and width across), all in nm, stage 4. Values outside the allowed ranges are adjusted, and the app says so.</p>
+  <p><b>Levels.</b> The Level switch above Start offers Basic, Standard and Expert. Basic shows stages 1–3 with the pointer spread only; Standard adds the Windows stage, measuring at instants, the planes, the number of runs, the geometry and the display modes; Expert adds recording the position along the beam, the window's shape, the fixed-time curve and the map settings. A setting the level hides takes its default value; yours comes back when you return to a level that shows it. First-time visitors start at Basic; links that use Standard or Expert settings open at that level.</p>
+  <p><b>Links.</b> The share button copies the state: <code>level</code> (basic, standard, expert), <code>stage</code> (one, many, map, window), <code>sw</code> (pointer spread, nm), <code>x1</code> (weak plane), <code>gap</code>, <code>runs</code> (runs per pair of planes), <code>show</code> (density, crests, phase), the geometry (<code>wavelength</code>, <code>slitWidth</code>, <code>separation</code>, <code>wall</code>, <code>distance</code>, <code>screen</code>, <code>sourceWidth</code>, in nm) <code>bohm=1</code> for the flow-line overlay, <code>expected=0&amp;current=0</code> to hide both predictions and their Results values, <code>timing=instant</code> to measure at instants, <code>packet</code> (packet length σₓ in nm, default 150), <code>recx=1</code> to record the position along the beam too, <code>ft=1</code> for the dotted fixed-time curve, and <code>winx</code>, <code>winy</code> (window centre), <code>winl</code>, <code>winw</code> (window length along and width across), all in nm, stage 4. Values outside the allowed ranges are adjusted, and the app says so.</p>
 
   </details>
 
@@ -336,6 +337,6 @@
   <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and many runs per pair of planes, with only a fraction contributing to each arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.7.3"></script>
+<script type="module" src="js/app.js?v=0.8.0"></script>
 </body>
 </html>
