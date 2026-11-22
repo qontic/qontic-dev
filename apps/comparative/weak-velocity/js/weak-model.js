@@ -482,3 +482,81 @@ export function mixtureCurves(mix, only = null) {
   }
   return {yf: mix.yf, marginal, meanY};
 }
+
+// ------------------------------------------------------------ windows over the field
+// Runs spread over all times. The packet only translates, so a run whose weak
+// coupling happens with the particle at x1 is a run at the pair of planes
+// (x1, x1 + gap): the field is a set of thin plane pairs, dx apart, each with
+// its own joint table, all equally likely. The weak pointer reads both
+// coordinates; along the beam its mean is x2 - v_x tau exactly (rigid
+// translation), so that reading only adds noise of the same spread sw.
+// A window is a disc of strong results; its runs give the mean weak position
+// and the mean strong position, whose difference over tau is the velocity.
+export function windowPlanes(wallX, xMax, gapX, dx) {
+  const out = [], n = Math.max(1, Math.floor((xMax - gapX - wallX) / dx));
+  for (let j = 0; j < n; j++) out.push(wallX + (j + 0.5) * dx);
+  return out;
+}
+
+export function windowField({terms0, k, wallX, gapX, sw, yfMin, yfMax, nYf, x1s, dx}) {
+  const dtau = gapX / k;
+  const tables = x1s.map(x1 => jointTable({terms1: propagate(terms0, (x1 - wallX) / k), dtau, sw, yfMin, yfMax, nYf}));
+  return {x1s, dx, gapX, dtau, sw, tables, nYf, yfMin, dYf: (yfMax - yfMin) / nYf};
+}
+
+export function makeWindowAcc(nPlanes, nYf) {
+  const z = () => new Float64Array(nPlanes * nYf);
+  return {total: 0, n: z(), sx: z(), sy: z(), sxx: z(), syy: z(), sxy: z(), sX: z(), sY: z(), sx2: z(), syf: z()};
+}
+
+function gauss(random) {
+  let u = 0; while (u === 0) u = random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * random());
+}
+
+export function sampleWindowRun(field, random = Math.random) {
+  const j = Math.min(field.x1s.length - 1, Math.floor(random() * field.x1s.length));
+  const x1 = field.x1s[j] + (random() - 0.5) * field.dx;
+  const r = sampleRun(field.tables[j], random);
+  const i = Math.max(0, Math.min(field.nYf - 1, Math.floor((r.yf - field.yfMin) / field.dYf)));
+  return {j, i, x1, x2: x1 + field.gapX, X: x1 + field.sw * gauss(random), Y: r.Y, yf: r.yf};
+}
+
+export function addWindowRun(acc, field, run) {
+  const c = run.j * field.nYf + run.i, dx = run.x2 - run.X, dy = run.yf - run.Y;
+  acc.total++; acc.n[c]++; acc.sx[c] += dx; acc.sy[c] += dy; acc.sxx[c] += dx * dx; acc.syy[c] += dy * dy; acc.sxy[c] += dx * dy;
+  acc.sX[c] += run.X; acc.sY[c] += run.Y; acc.sx2[c] += run.x2; acc.syf[c] += run.yf;
+}
+
+// Cells whose centre (strong position) lies in the disc (xc, yc, r).
+function windowCells(field, xc, yc, r, fn) {
+  const {x1s, gapX, nYf, yfMin, dYf} = field;
+  for (let j = 0; j < x1s.length; j++) {
+    const ddx = x1s[j] + gapX - xc;
+    if (Math.abs(ddx) > r) continue;
+    const h = Math.sqrt(r * r - ddx * ddx);
+    const i0 = Math.max(0, Math.ceil((yc - h - yfMin) / dYf - 0.5)), i1 = Math.min(nYf - 1, Math.floor((yc + h - yfMin) / dYf - 0.5));
+    for (let i = i0; i <= i1; i++) fn(j, i, j * nYf + i);
+  }
+}
+
+// Measured window: mean weak and strong positions, slope v_y/v_x = mean(dy)/mean(dx)
+// with its standard error (delta method, covariance kept); and the same for
+// infinitely many runs from the exact tables.
+export function windowQuery(field, acc, xc, yc, r) {
+  let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sX = 0, sY = 0, sx2 = 0, syf = 0;
+  let w = 0, wX = 0, wY = 0, wx2 = 0, wyf = 0;
+  windowCells(field, xc, yc, r, (j, i, c) => {
+    n += acc.n[c]; sx += acc.sx[c]; sy += acc.sy[c]; sxx += acc.sxx[c]; syy += acc.syy[c]; sxy += acc.sxy[c];
+    sX += acc.sX[c]; sY += acc.sY[c]; sx2 += acc.sx2[c]; syf += acc.syf[c];
+    const t = field.tables[j], q = t.marginal[i] * t.dYf;
+    if (q > 0 && Number.isFinite(t.meanY[i])) { w += q; wX += q * field.x1s[j]; wY += q * t.meanY[i]; wx2 += q * (field.x1s[j] + field.gapX); wyf += q * t.yf[i]; }
+  });
+  const expected = w > 0 ? {weight: w / field.x1s.length, Xm: wX / w, Ym: wY / w, x2m: wx2 / w, yfm: wyf / w, slope: (wyf - wY) / w / field.gapX} : null;
+  if (n < 2) return {n, expected};
+  const mx = sx / n, my = sy / n;
+  const vx = (sxx / n - mx * mx) * n / (n - 1), vy = (syy / n - my * my) * n / (n - 1), cxy = (sxy / n - mx * my) * n / (n - 1);
+  const slope = my / mx;
+  const err = Math.sqrt(Math.max(0, (vy - 2 * slope * cxy + slope * slope * vx) / (mx * mx * n)));
+  return {n, Xm: sX / n, Ym: sY / n, x2m: sx2 / n, yfm: syf / n, slope, err, expected};
+}

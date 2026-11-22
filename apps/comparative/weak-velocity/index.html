@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.6.6">
+<link rel="stylesheet" href="css/wv.css?v=0.7.0">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -32,6 +32,7 @@
             <button class="qontic-app-toggle active" type="button" data-stage="one" aria-pressed="true" title="Runs one at a time, slowly: the pointer moves, then the screen clicks.">1 · One run</button>
             <button class="qontic-app-toggle" type="button" data-stage="many" aria-pressed="false" title="Many runs at the same pair of planes. Post-select on the strong result and average the pointer.">2 · Many runs</button>
             <button class="qontic-app-toggle" type="button" data-stage="map" aria-pressed="false" title="Repeat the experiment with the planes moved step by step from the slits to the screen, then connect the arrows.">3 · Map the field</button>
+            <button class="qontic-app-toggle" type="button" data-stage="window" aria-pressed="false" title="Runs at all times over the whole field. Point anywhere: a small window of strong results, the mean weak reading of those runs, and the arrow between them.">4 · Windows</button>
           </div>
         </div>
         <div class="qontic-control-section">
@@ -56,8 +57,18 @@
           <span id="gapLabel">Gap to strong plane</span><input id="gap" type="range" min="10" max="100" step="5" value="50" aria-label="Gap between the weak and strong planes in nanometres"><output id="gapOut">50 nm</output>
         </label>
         <label class="control-row" id="runsRow" title="Runs collected at the pair of planes (stage 2), or at each pair of planes (stage 3). The default is one million runs per pair, shared among the detected-position strips; each arrow uses only its strip.">
-          <span id="perPlaneLabel">Runs per pair of planes</span><input id="perPlane" type="range" min="0" max="9" step="1" value="6" aria-label="Runs per pair of planes"><output id="perPlaneOut">1M</output>
+          <span id="perPlaneLabel">Runs per pair of planes</span><input id="perPlane" type="range" min="0" max="11" step="1" value="6" aria-label="Runs per pair of planes"><output id="perPlaneOut">1M</output>
         </label>
+        <label class="control-row" data-stage-rows="window" hidden title="Radius of the window of strong results. A larger window collects more runs (smaller error bars) but averages the field over more of the drawing.">
+          <span>Window radius</span><input id="winR" type="range" min="10" max="60" step="5" value="25" aria-label="Window radius in nanometres"><output id="winROut">25 nm</output>
+        </label>
+        <label class="control-row" data-stage-rows="window" hidden title="Position of the window's centre along the beam, behind the slits. Pointing in the drawing does the same.">
+          <span>Window along the beam</span><input id="winX" type="range" min="60" max="1000" step="10" value="550" aria-label="Window centre along the beam in nanometres"><output id="winXOut">550 nm</output>
+        </label>
+        <label class="control-row" data-stage-rows="window" hidden title="Transverse position of the window's centre. Pointing in the drawing does the same.">
+          <span>Window across</span><input id="winY" type="range" min="-400" max="400" step="5" value="50" aria-label="Window centre across the beam in nanometres"><output id="winYOut">50 nm</output>
+        </label>
+        <button type="button" class="qontic-app-toggle qontic-app-toggle--wide" id="winTrace" data-stage-rows="window" hidden title="Use the mean weak position as the next window, step by step towards the slits (Anssi Kuha's construction).">Trace back from this window</button>
         <label class="control-row strip-row" data-stage-rows="many map" hidden>
           <span>Selected strip</span><input id="selectedStrip" type="range" min="0" max="39" step="1" value="35" aria-label="Selected detected-position strip"><output id="selectedStripOut">300 to 320 nm</output>
         </label>
@@ -110,6 +121,14 @@
       <div class="results-head"><strong>Results</strong><button type="button" data-results-collapse aria-label="Collapse results" aria-expanded="true" aria-controls="resultsBody">−</button></div>
       <div class="results-body" id="resultsBody">
         <span id="runsLabel">Runs at these planes</span><output data-result="runs">—</output>
+        <span data-stage-rows="window" title="Centre and radius of the window of strong results, behind the slits.">Window</span><output data-stage-rows="window" data-result="winC">—</output>
+        <span data-stage-rows="window">Runs in the window</span><output data-stage-rows="window" data-result="winN">—</output>
+        <span data-stage-rows="window" title="Mean of the weak pointer readings, along and across the beam, for the runs whose strong result is in the window.">Mean weak reading (X̄, Ȳ)</span><output data-stage-rows="window" data-result="winWeak">—</output>
+        <span data-stage-rows="window">Mean strong position</span><output data-stage-rows="window" data-result="winStrong">—</output>
+        <span data-stage-rows="window" title="Across over along: (mean strong − mean weak) across, divided by the same along the beam. One standard error.">Measured slope v<sub>y</sub>/v<sub>x</sub></span><output data-stage-rows="window" data-result="winMeas">—</output>
+        <span data-stage-rows="window" data-prediction="expected" title="What this pointer gives in this window with infinitely many runs.">Prediction, this pointer and window</span><output data-stage-rows="window" data-prediction="expected" data-result="winExp">—</output>
+        <span data-stage-rows="window" data-prediction="current" title="j/|ψ|² at the window centre. It differs from the line above where the velocity changes within the window.">j/|ψ|² at the window centre</span><output data-stage-rows="window" data-prediction="current" data-result="winCur">—</output>
+        <span data-times-row hidden title="Times after the packet centre leaves the slits, for an electron with the wavelength set in Advanced (v = h/mλ). The app itself has no mass: only these times depend on it.">Times (electron)</span><output data-times-row hidden data-result="times">—</output>
         <span id="cellRunsLabel" data-recx-row hidden>Runs at this Δ</span><output data-result="cellRuns" data-recx-row hidden>—</output>
         <span data-stage-rows="map" title="Weak → strong position, distances behind the slits." id="pairLabel">Plane pair</span><output data-stage-rows="map" data-result="pair">—</output>
         <span data-stage-rows="many map">Selected strip, detected at</span><output data-stage-rows="many map" data-result="strip">—</output>
@@ -182,6 +201,7 @@
     <li><b>Beyond the textbook:</b> a weak measurement couples a pointer so loosely that one reading says little; averaging the pointer over runs that end in the same detected strip gives a velocity. With a weak pointer and many runs it equals j/|ψ|².</li>
     <li><b>Where views differ:</b> all three predict the same arrows and lines; they differ on whether the lines describe paths (Rationale tab).</li>
     <li><b>Planes or instants:</b> measuring at fixed distances, as in the photon experiment, or at fixed times, as Wiseman wrote it, gives the same field if the position along the beam is recorded too.</li>
+    <li><b>Windows (stage 4):</b> runs at all times fill the whole field; a small window of strong results, the mean weak reading of the runs that ended there, and the arrow between them give the velocity anywhere. Repeating the step traces a line back to the slits.</li>
   </ul></div>
 
   <h2>The wave</h2>
@@ -217,6 +237,12 @@
   <h2>What the measurement does to the wave</h2>
   <p>The coupling entangles the particle with the pointer: after it, the state is ψ(y) φ(Y − y), not a product. For a given reading Y, the particle's wave is ψ(y) φ(Y − y), which is ψ cut down to a window of width σ<sub>p</sub> around Y; this conditional wave is what then reaches the strong plane, and it is what the joint probability P(Y, y<sub>f</sub>) is built from. In stage 1 the drawing shows, beyond the weak plane, the wave of the current run. With a 200 nm pointer the window is wider than the pattern and the wave looks almost unchanged; with 10 nm it is a narrow beam around the reading. Averaged over all readings, the density at the weak plane is unchanged, but downstream the interference between parts of the wave farther apart than about σ<sub>p</sub> is lost: the density matrix is multiplied by exp[−(y − y′)²/(8σ<sub>p</sub>²)]. Stage 2 draws that averaged density beyond the weak plane. It is a mixture, with no single wave, so no crests or phase are drawn there. A test checks it against the table of P(Y, y<sub>f</sub>).</p>
 
+  <h2>Stage 4: windows over the field</h2>
+  <p>Stage 4 does the measurement the other way round: instead of choosing a pair of planes first, it collects runs at all times and chooses afterwards. Each run is one packet, measured weakly at a random instant t₁ and strongly at t₂ = t₁ + τ. The weak pointer reads both coordinates; the strong measurement records the full position. Because the packet only translates, a run whose particle was at x₁ along the beam at t₁ is a run at the pair of planes x₁ and x₁ + gap, so in the simulation the field is a stack of thin plane pairs 10 nm apart, all equally likely, each with its own exact joint distribution. Along the beam the weak reading averages to x₂ − v<sub>x</sub>τ exactly (the packet does not stretch), so that reading only adds noise of the same spread σ<sub>p</sub>.</p>
+  <p>A window is a disc of strong results. The runs that ended in it give two averages: the mean weak position (X̄, Ȳ) and the mean strong position. Their difference over τ is the measured velocity; the slope shown is the difference across divided by the difference along. The individual weak readings scatter over hundreds of nanometres (the amber cloud); only their mean is sharp. The prediction for the same window and pointer is computed from the exact distributions. It differs from j/|ψ|² at the window's centre where the velocity changes within the window: at the default window (550 nm, 50 nm, radius 25 nm) the prediction is −0.25 against −0.37 at the centre. A smaller window follows the field more closely and collects fewer runs. With 20 million runs and a 25 nm window, the error in the slope is about 0.01–0.04 where the wave is bright.</p>
+  <p>Clicking a window traces back from it: the mean weak position becomes the next window, one gap at a time, until the slits. This is the construction Anssi Kuha used in the simulations that led to this app. It is compared with the flow line of j/|ψ|² followed backward from the same window. Followed forward from the slits instead, small differences fan out with the pattern, so that comparison would mostly show the fan-out. The two need not end at the same point. Most of the difference is systematic: each window averages the velocity over its area, which matters where it changes steeply. With exact averages (infinitely many runs) and the default 25 nm window, traces from five starting windows end 2–20 nm from the flow line; with a 10 nm window, within about 8 nm, but each window then collects about six times fewer runs. Sampling noise adds a few nanometres more, accumulated over the steps; the pointer's disturbance matters little at 200 nm. As in stage 3, no particle is followed: every step uses different runs.</p>
+  <p>Times are shown in picoseconds for an electron with the chosen wavelength (v = h/mλ, about 14.5 km/s at 50 nm). Only these numbers depend on the mass; the rest of the app uses lengths. At the defaults the weak coupling happens 34.4 ps after the packet centre leaves the slits and the strong measurement 3.44 ps later.</p>
+
   <h2>Stage 3: the velocity field and its flow lines</h2>
   <p>Stage 3 repeats the experiment at twelve pairs of planes from the slits to the screen, each with fresh runs. The arrows give a measured velocity field. Starting points divide the detected distribution at the first strong plane into equal-probability intervals. They are taken from a fine histogram, including when the screen accepts only part of the wave. Each line follows the measured arrows, interpolated between planes and strips. No particle is followed through all twelve pairs: joining the arrows is a step in the analysis. Amber ticks show where the reconstructed lines reach the screen; grey ticks show the ends of the exact j/|ψ|² flow lines from the same starts. The caption reports their root-mean-square difference and how many lines reach the screen. An open circle marks a line that stops where measured velocities are unavailable. This compares the reconstruction with the prepared-state flow; agreement is predicted by all three views.</p>
   <p>The optional dashed lines are the flow lines of j/|ψ|² computed directly from ψ, from the same starts. They are the same curves as the pilot-wave trajectories of the double-slit app. Agreement between the two sets checks the measurement and its statistics.</p>
@@ -244,6 +270,7 @@
     <li>Find the pointer spread at which the measured arrows depart visibly from j/|ψ|². <i>Below about 50 nm the blue and dashed curves separate; at 10 nm they differ by more than the error bars over most of the screen.</i> Link: <code>?stage=many&amp;sw=10</code></li>
     <li>How many runs in one strip are needed for an error of 0.01 in the slope with a 200 nm pointer and a 50 nm gap? <i>The error is about σ<sub>p</sub>/(√N Δx) = 4/√N, so N ≈ 160 000 runs in the strip, about 5 million in total for either strip next to the centre.</i></li>
     <li>Switch to <em>Measure at: Instants</em> with a 150 nm packet. Does the arrow in the strip 40–60 nm change? Then turn on <em>Record the position along the beam too</em>. <i>Transverse position only: the prediction becomes −0.27, because the arrows average over the packet; with 1 million runs that is about two error bars from −0.34, clearer with 10 million. With the position along the beam recorded it returns to −0.34, using about 18% of the runs.</i> Link: <code>?stage=many&amp;timing=instant&amp;runs=10000000</code></li>
+    <li>In stage 4, point at the window (550 nm, 50 nm). Why does the measured slope, about −0.25, differ from j/|ψ|² at the centre, −0.37? Make the window smaller and compare. <i>The window averages the field over 50 nm across, where the velocity changes steeply; with a 10 nm window the prediction moves toward −0.37 but the error grows, because fewer runs end in it.</i> Link: <code>?stage=window&amp;timing=instant</code></li>
     <li>Do lines reconstructed from many separate runs establish the path of one measured particle? <i>No. All three views predict the same reconstructed field. In pilot-wave theory its ideal weak-limit flow lines are guidance trajectories; that identification is not required to reconstruct the field.</i> Link: <code>?stage=map</code></li>
   </ol>
   <details class="student-tryout">
@@ -256,7 +283,7 @@
     </ol>
     <p>Note where students get stuck and which words or controls they misread. Repeat the same questions at the end in their own words. Use this first tryout to improve the explanation; it is not yet a test of learning effectiveness.</p>
   </details>
-  <p><b>Links.</b> The share button copies the state: <code>stage</code> (one, many, map), <code>sw</code> (pointer spread, nm), <code>x1</code> (weak plane), <code>gap</code>, <code>runs</code> (runs per pair of planes), <code>show</code> (density, crests, phase), the geometry (<code>wavelength</code>, <code>slitWidth</code>, <code>separation</code>, <code>wall</code>, <code>distance</code>, <code>screen</code>, <code>sourceWidth</code>, in nm) <code>bohm=1</code> for the flow-line overlay, <code>expected=0&amp;current=0</code> to hide both predictions and their Results values, <code>timing=instant</code> to measure at instants, <code>packet</code> (packet length σₓ in nm, default 150), <code>recx=1</code> to record the position along the beam too, and <code>ft=1</code> for the dotted fixed-time curve. Values outside the allowed ranges are adjusted, and the app says so.</p>
+  <p><b>Links.</b> The share button copies the state: <code>stage</code> (one, many, map, window), <code>sw</code> (pointer spread, nm), <code>x1</code> (weak plane), <code>gap</code>, <code>runs</code> (runs per pair of planes), <code>show</code> (density, crests, phase), the geometry (<code>wavelength</code>, <code>slitWidth</code>, <code>separation</code>, <code>wall</code>, <code>distance</code>, <code>screen</code>, <code>sourceWidth</code>, in nm) <code>bohm=1</code> for the flow-line overlay, <code>expected=0&amp;current=0</code> to hide both predictions and their Results values, <code>timing=instant</code> to measure at instants, <code>packet</code> (packet length σₓ in nm, default 150), <code>recx=1</code> to record the position along the beam too, <code>ft=1</code> for the dotted fixed-time curve, and <code>winx</code>, <code>winy</code>, <code>winr</code> (window centre and radius in nm, stage 4). Values outside the allowed ranges are adjusted, and the app says so.</p>
 
   </details>
 
@@ -304,6 +331,6 @@
   <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and many runs per pair of planes, with only a fraction contributing to each arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.6.6"></script>
+<script type="module" src="js/app.js?v=0.7.0"></script>
 </body>
 </html>
