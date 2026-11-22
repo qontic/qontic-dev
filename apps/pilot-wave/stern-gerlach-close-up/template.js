@@ -84,7 +84,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=45'));
+  ({ simulation } = await import('./main.js?v=46'));
   if (new URLSearchParams(location.search).has('debug')) window.qonticSG = simulation;
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
@@ -201,9 +201,10 @@ function applyReading(id) {
   controls.setAttribute('interpretation', id);
   simulation?.setReading(id);
 }
-function prepare({ spin, reading = 'pw', angle = 0, dotColour = 0, preset = 0, angle2 = 90, block = 0 }) {
+function prepare({ spin, reading = 'pw', angle = 0, dotColour = 0, preset = 0, angle2 = 90, block = 0, atoms = null }) {
   return () => {
     applyReading(reading);
+    if (atoms) simulation?.setParticles?.(atoms);
     simulation?.setSecondMagnet?.(angle2, block);
     simulation?.setMagnetPreset(preset);
     simulation?.setMagnetAngle?.(angle);
@@ -309,7 +310,7 @@ mountQonticQuiz({
         { id: 'all', label: 'All 500 in one half, chosen at random on each run' },
         { id: 'most', label: 'About 400' },
       ],
-      prepare: prepare({ spin: 1 }), draw: c => drawSideView(c),
+      prepare: prepare({ spin: 1, atoms: 500 }), draw: c => drawSideView(c),
       plain: 'About 250: the starting positions are random, drawn from |Ψ|², and half the weight is in the upper part.',
       explain: 'Each dot lands in the upper half with probability ½, so the count fluctuates around 250 with a standard deviation of √(500 × ½ × ½) ≈ 11. Watch the counts in the corner over a few reruns.' },
     { question: 'Orthodox reading. Same superposition. Where is the particle while the packet is splitting, before it reaches the screen?',

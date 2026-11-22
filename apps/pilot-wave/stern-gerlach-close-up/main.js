@@ -693,6 +693,57 @@ function syncSlider(key) {
 }
 // Above ~3.5 the deflected branches reach the hard walls before the plate.
 addSlider("sgGradient", "Field gradient", 0.0, 6.0, 0.05, () => requestTrailClear(), g => `${labGradient(g).toFixed(1)} T/cm`);
+// Basic: atoms per run (1 or 500); the full Particle count slider is in Advanced at Standard.
+{
+  const row = document.createElement("div");
+  row.className = "row chip-row atoms-row";
+  row.dataset.levelMax = "basic";
+  const lab = document.createElement("span");
+  lab.textContent = "Atoms per run";
+  const box = document.createElement("div");
+  box.className = "chips";
+  for (const n of [1, 500]) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "qontic-app-toggle chip";
+    b.textContent = String(n);
+    b.dataset.atoms = String(n);
+    b.setAttribute("aria-label", `Atoms per run: ${n}`);
+    b.addEventListener("click", () => {
+      params.nParticles = n;
+      syncSlider("nParticles");
+      syncAtomChips();
+      if (simulationAvailable) { rebuildParticles(); resetAll(); updateStats(); }
+    });
+    box.appendChild(b);
+  }
+  row.append(lab, box);
+  controls.appendChild(row);
+}
+syncAtomChipsLater();
+function syncAtomChipsLater() { queueMicrotask(() => syncAtomChips()); }
+function syncAtomChips() {
+  document.querySelectorAll("[data-atoms]").forEach(b => {
+    const on = Number(b.dataset.atoms) === Math.floor(params.nParticles);
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", String(on));
+  });
+}
+// Clear the screen record (all levels).
+{
+  const row = document.createElement("div");
+  row.className = "row";
+  const lab = document.createElement("span");
+  lab.textContent = "Earlier runs on the screen";
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "qontic-app-toggle";
+  b.id = "clearScreen";
+  b.textContent = "Clear screen";
+  b.addEventListener("click", () => { clearScreenRecord(); updateHitDisplay(); });
+  row.append(lab, b, document.createElement("div"));
+  controls.appendChild(row);
+}
 addSlider("screenDistance", "Screen distance", 10 * BEAM_SCALE, 60 * BEAM_SCALE, BEAM_SCALE, () => applyScreenDistance(), d => `${(d * LAB_SCALE.sx * 100).toFixed(1)} cm`);
 
 addSectionHeader("Wave and guidance").dataset.levelMin = "standard";
@@ -730,7 +781,7 @@ addToggleInt("showTrail", "Draw trails");
 addSlider("trailHalfLife", "Trail half-life", 0.1, 10.0, 0.1, null, t => `${(t * LAB_SCALE.st * 1e6).toFixed(1)} µs`);
 
 controls = advancedControls;
-addSlider("nParticles", "Particle count", 1, 5000, 1, () => rebuildParticles());
+addSlider("nParticles", "Particle count", 1, 5000, 1, () => { rebuildParticles(); resetAll(); syncAtomChips(); });
 addToggleInt("spinTerm", "Spin term (Pauli)", () => requestRedraw());
 // 2D leapfrog: stable below ~0.022 at the largest gradient (z-then-y magnets, g = 7.5).
 addSlider("dt", "Time step", 0.002, 0.016, 0.002, null, d => `${Math.round(d * LAB_SCALE.st * 1e9)} ns`);
@@ -753,6 +804,9 @@ const LEVEL_CONTROLS = {
   showPhase: "expert", spinTerm: "expert", dt: "expert",
 };
 const LEVEL_DEFAULTS = Object.fromEntries(Object.keys(LEVEL_CONTROLS).map(k => [k, params[k]]));
+// Basic starts with one atom per run (the screen keeps the earlier runs), as in the experiment;
+// "Atoms per run" in Core offers 1 or 500 there.
+const BASIC_DEFAULTS = { nParticles: 1 };
 for (const [key, min] of Object.entries(LEVEL_CONTROLS)) {
   const row = document.getElementById(key)?.closest(".row");
   if (row) row.dataset.levelMin = min;
@@ -767,7 +821,8 @@ function applyLevelDefaults(level) {
   for (const [key, min] of Object.entries(LEVEL_CONTROLS)) {
     if (LEVEL_RANK[min] > rank) {
       if (!(key in levelSaved)) levelSaved[key] = params[key];
-      if (params[key] !== LEVEL_DEFAULTS[key]) { params[key] = LEVEL_DEFAULTS[key]; changed.add(key); }
+      const target = level === "basic" && key in BASIC_DEFAULTS ? BASIC_DEFAULTS[key] : LEVEL_DEFAULTS[key];
+      if (params[key] !== target) { params[key] = target; changed.add(key); }
     } else if (key in levelSaved) {
       const v = levelSaved[key];
       delete levelSaved[key];
@@ -777,6 +832,7 @@ function applyLevelDefaults(level) {
   try { localStorage.setItem(LEVEL_SAVED_KEY, JSON.stringify(levelSaved)); } catch { /* private mode */ }
   if (!changed.size) return false;
   for (const key of changed) { syncSlider(key); controlSyncs[key]?.(); }
+  syncAtomChips();
   if (!simulationAvailable || !appStarted) return true;
   if (changed.has("cameraProjection")) { activeOrthoView = null; syncCameraUi(); }
   syncMagnetRows();
@@ -2316,6 +2372,89 @@ function revealOrthoHits() {
   if (orthoHits.revealed < orthoHits.n) requestRedraw();
 }
 
+
+// ── Screen record: landings kept across runs ─────────────────────────────────
+// Each run adds its landings (pilot-wave dots, or orthodox detections) to the screen; they stay
+// while the settings stay the same, so one atom per run builds up the two spots. Any change of
+// settings, or Clear screen, wipes the record. The two readings keep separate records.
+const RECORD_MAX = 20000;
+const screenRecord = { pw: [], cpn: [], runs: { pw: 0, cpn: 0 }, signature: "", buffers: [], bindGroup: null, drawn: "" };
+let lastArrivedPos = null;   // grid (y, z) of the dots at the screen in the latest readback
+function recordSignature() {
+  const keys = ["spinTheta", "spinPhi", "magnetAngle", "magnetPreset", "magnet2Angle", "block", "fieldShape", "beamShape",
+    "screenDistance", "sgGradient", "p0", "packetSigma", "sgFieldOn", "spinTerm", "dt", "approachCells", "magnetScale"];
+  return keys.map(k => params[k]).join("|") + "|" + engine;
+}
+function clearScreenRecord() {
+  screenRecord.pw = []; screenRecord.cpn = [];
+  screenRecord.runs = { pw: 0, cpn: 0 };
+  screenRecord.drawn = "";
+  requestRedraw();
+}
+// Called at the start of every new run (resetAll): keep the finished run's landings if nothing
+// but the run changed, otherwise start a new record.
+function harvestRun() {
+  const sig = recordSignature();
+  if (sig !== screenRecord.signature) {
+    clearScreenRecord();
+    screenRecord.signature = sig;
+    lastArrivedPos = null;
+    return;
+  }
+  const cy = 0.5 * (simH - 1), cz = 0.5 * (simD - 1);
+  const add = (key, pos, n) => {
+    if (!pos || n <= 0) return;
+    const list = screenRecord[key];
+    for (let i = 0; i < n; i++) list.push([pos[2 * i] - cy, pos[2 * i + 1] - cz]);
+    if (list.length > RECORD_MAX) list.splice(0, list.length - RECORD_MAX);
+    screenRecord.runs[key]++;
+  };
+  if (lastArrivedPos && lastArrivedPos.n > 0) add("pw", lastArrivedPos.pos, lastArrivedPos.n);
+  if (orthoHits.sampled) add("cpn", orthoHits.pos, orthoHits.n);
+  else if (orthoHits.runs) screenRecord.runs.cpn++;
+  lastArrivedPos = null;
+}
+function recordCounts(key) {
+  const counts = [0, 0, 0, 0];
+  const centres = spotCentres();
+  for (const [dy, dz] of screenRecord[key]) counts[regionOf(dy, dz, centres)]++;
+  return counts;
+}
+// GPU buffers for the marks of the record of the current reading (rebuilt when it changes).
+function syncRecordBuffers() {
+  const key = reading === "cpn" ? "cpn" : "pw";
+  const list = screenRecord[key];
+  const tag = `${key}:${list.length}:${screenRecord.runs[key]}:${params.palette}`;
+  if (tag === screenRecord.drawn) return list.length;
+  screenRecord.drawn = tag;
+  screenRecord.buffers.forEach(destroyGpuResource);
+  screenRecord.buffers = [];
+  screenRecord.bindGroup = null;
+  const n = list.length;
+  if (!n) return 0;
+  const plateX = detectorPlateXGrid();
+  const cy = 0.5 * (simH - 1), cz = 0.5 * (simD - 1);
+  const axes = measurementAxes();
+  const last = axes[axes.length - 1];
+  const state = new Float32Array(4 * n), spin = new Float32Array(4 * n);
+  list.forEach(([dy, dz], i) => {
+    state.set([2.0, cy + dy, cz + dz, plateX], 4 * i);
+    const sgn = dy * last[0] + dz * last[1] > 0 ? 1 : -1;
+    spin.set([0, sgn * last[0], sgn * last[1], 1], 4 * i);
+  });
+  const b1 = makeBuffer("screen record", state, GPUBufferUsage.STORAGE);
+  const b2 = makeBuffer("screen record side", new Float32Array(n).fill(-10), GPUBufferUsage.STORAGE);
+  const b3 = makeBuffer("screen record colour", spin, GPUBufferUsage.STORAGE);
+  screenRecord.buffers = [b1, b2, b3];
+  screenRecord.bindGroup = bindGroup(pipelineParticleRender, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer: b1 } },
+    { binding: 2, resource: { buffer: b2 } },
+    { binding: 3, resource: { buffer: b3 } },
+  ]);
+  return n;
+}
+
 function updateHitDisplay() {
   if (!hitDisplay) return;
   const regions = outcomeRegions();
@@ -2327,20 +2466,28 @@ function updateHitDisplay() {
     const rows = regions.map(r => `${colourLabel(r.label, r.plus)}: ${weightCounts.valid && vals[r.k] !== undefined ? vals[r.k].toFixed(2) : "–"}`).join("<br>");
     const sp = weightCounts.valid && weightCounts.spin ? Math.hypot(...weightCounts.spin).toFixed(2) : "–";
     let det = "";
-    if (orthoHits.revealed > 0) {
-      const drows = regions.map(r => `${colourLabel(r.label, r.plus)}: ${orthoHits.counts[r.k] ?? 0}`).join("<br>");
+    const rec = recordCounts("cpn");
+    const recN = screenRecord.cpn.length;
+    if (orthoHits.revealed > 0 || recN > 0) {
+      const drows = regions.map(r => `${colourLabel(r.label, r.plus)}: ${(orthoHits.counts[r.k] ?? 0) + rec[r.k]}`).join("<br>");
       const runs = orthoHits.runs || orthoHits.n;
       const blockedRuns = runs - orthoHits.n;
-      det = `<b>Detections at the screen</b><br>${drows}<br>${orthoHits.revealed} detections, ${runs} runs${blockedRuns > 0 ? ` (${blockedRuns} stopped by the block)` : ""}<br><span class="plate-hits-note">Each mark: one run, drawn from |Ψ|² (Born rule).</span><br>`;
+      const thisRun = orthoHits.revealed > 0 ? `This run: ${orthoHits.revealed} detection${orthoHits.revealed === 1 ? "" : "s"}${blockedRuns > 0 ? `, ${blockedRuns} stopped by the block` : ""}` : "This run: none yet";
+      const earlier = recN > 0 ? `<br>Earlier runs: ${screenRecord.runs.cpn}, ${recN} detections` : "";
+      det = `<b>Detections at the screen</b><br>${drows}<br>${thisRun}${earlier}<br><span class="plate-hits-note">Each mark: one atom, drawn from |Ψ|² (Born rule).</span><br>`;
     }
     const note = passed ? "Weight of the |Ψ|² that passed the block, in each region." : orthoHits.revealed > 0 ? "Weight of |Ψ|² in each region." : "Weight of |Ψ|² in each region; at the screen, the chance of a detection there.";
     hitDisplay.innerHTML = `${det}<b>Probability now</b><br>${rows}<br>Length of ⟨σ⟩: ${sp}<br><span class="plate-hits-note">${note}</span>`;
     return;
   }
   hitDisplay.hidden = !dotsShown() || hitCounts.total <= 0;
-  const rows = regions.map(r => `${colourLabel(r.label, r.plus)}: ${hitCounts.counts[r.k] ?? 0}`).join("<br>");
-  const blockedLine = hitCounts.blocked > 0 ? `<br>${hitCounts.blocked} stopped by the block` : "";
-  hitDisplay.innerHTML = `<b>Dots at the screen</b><br>${rows}<br>${hitCounts.arrived} of ${hitCounts.total} arrived${blockedLine}${hitCounts.arrived > 0 ? `<br><span class="plate-hits-note">Each dot is counted at the nearest expected spot; a few dots in a spot's tail can be counted with the other spot.</span>` : ""}`;
+  const rec = recordCounts("pw");
+  const recN = screenRecord.pw.length;
+  const rows = regions.map(r => `${colourLabel(r.label, r.plus)}: ${(hitCounts.counts[r.k] ?? 0) + rec[r.k]}`).join("<br>");
+  const blockedLine = hitCounts.blocked > 0 ? `, ${hitCounts.blocked} stopped by the block` : "";
+  const earlier = recN > 0 ? `<br>Earlier runs: ${screenRecord.runs.pw}, ${recN} dots` : "";
+  const anyArrived = hitCounts.arrived > 0 || recN > 0;
+  hitDisplay.innerHTML = `<b>Dots at the screen</b><br>${rows}<br>This run: ${hitCounts.arrived} of ${hitCounts.total} arrived${blockedLine}${earlier}${anyArrived ? `<br><span class="plate-hits-note">Each dot is one atom. Dots are counted at the nearest expected spot; a few in a spot's tail can be counted with the other spot.</span>` : ""}`;
 }
 
 // Orthodox reading: sum |Psi|^2 above and below the middle on the GPU, then read the sums back.
@@ -2403,16 +2550,19 @@ function readHitCounts(now) {
     const state = new Float32Array(buffer.getMappedRange(0, n * 16));
     const counts = [0, 0, 0, 0];
     const centres = spotCentres();
+    const pos = new Float32Array(2 * n);
     let arrived = 0, blocked = 0;
     for (let i = 0; i < n; i++) {
       if (state[i * 4 + 3] < -1e5) { blocked++; continue; }
       if (state[i * 4 + 3] < plateX - 1e-4) continue;
       counts[regionOf(state[i * 4 + 1] - cy, state[i * 4 + 2] - cz, centres)]++;
+      pos[2 * arrived] = state[i * 4 + 1]; pos[2 * arrived + 1] = state[i * 4 + 2];
       arrived++;
     }
     buffer.unmap();
     if (buffer === hitReadback) {
       hitCounts = { counts, arrived, blocked, total: n };
+      lastArrivedPos = { pos, n: arrived };
       updateHitDisplay();
     } else {
       buffer.destroy();
@@ -2586,6 +2736,12 @@ function render(encoder, camera) {
     }
   }
 
+  const recordN = syncRecordBuffers();
+  if (recordN > 0 && screenRecord.bindGroup && (reading === "cpn" || dotsShown())) {
+    pass.setPipeline(pipelineParticleRender);
+    pass.setBindGroup(0, screenRecord.bindGroup);
+    pass.draw(6, recordN);
+  }
   if (reading === "cpn" && orthoHits.revealed > 0 && orthoHits.bindGroup) {
     pass.setPipeline(pipelineParticleRender);
     pass.setBindGroup(0, orthoHits.bindGroup);
@@ -3337,6 +3493,7 @@ async function setEngine(id) {
 function resetAll() {
   rerunHoldStart = null;
   rerunPending = false;
+  harvestRun();
   clearOrthoHits();
   resetWave();
   rebuildParticles();
@@ -3809,6 +3966,7 @@ export const simulation = {
     }
     if (!any || !simulationAvailable) return;
     syncMagnetRows();
+    syncAtomChips();
     const g = params.sgGradient;
     updateGradientLimit(false);
     if (query.has("g")) { params.sgGradient = Math.min(g, gradientMax()); syncSlider("sgGradient"); }
@@ -3876,6 +4034,12 @@ export const simulation = {
     syncSlider("magnet2Angle");
     controlSyncs.block?.();
     syncMagnetRows();
+  },
+  setParticles(n) {
+    params.nParticles = Math.max(1, Math.floor(n));
+    syncSlider("nParticles");
+    syncAtomChips();
+    if (simulationAvailable) rebuildParticles();
   },
   setDotColour(mode) {
     params.dotColour = mode ? 1 : 0;
