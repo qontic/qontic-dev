@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te23';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te23';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te23';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te23';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te23';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te23';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te23';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te23';
-import {createNumericalEngine} from './numerical-engine.js?cache=te23';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te23';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te23';
-import {classifySlitSide} from './source-packet-model.js?cache=te23';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te24';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te24';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te24';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te24';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te24';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te24';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te24';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te24';
+import {createNumericalEngine} from './numerical-engine.js?cache=te24';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te24';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te24';
+import {classifySlitSide} from './source-packet-model.js?cache=te24';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -202,6 +202,8 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  }
  function pushShutter(){if(!num.available||!p)return;num.setShutter({tau:numOpt.tau*p.sx/p.k,mode:numOpt.blade,wOverE:numOpt.bladeW});num.setShowChange(numOpt.showChange);num.setSpin(numOpt.guide==='up'?.5:numOpt.guide==='down'?-.5:0);}
  // Wave palette "Classic" (default, both engines): phase blue/red over a purple density on the slate background (fades into it where the wave is weak).
+ window.teBackground=()=>{try{return localStorage.getItem('qontic-te-bg')==='black'?'black':'grey';}catch(_){return 'grey';}};
+ const teBackground=window.teBackground;
  const classicPalette=()=>window.paletteModule?.getCurrentPaletteName?.()==='Classic';
  // Numerical-only parts of that look (metal wall, glowing dots, grey particles, slit colours).
  const classicLook=()=>numericalActive()&&classicPalette();
@@ -401,7 +403,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   // would be cut off before it reached the screen. Waves diffracted to wide angles
   // travel farther, hence the factor.
   const passed=(p.screen-num.grid.x0+5*p.sx)/p.k;
-  if(num.modelTime>1.6*passed||(num.modelTime>1.15*passed&&particles.every(a=>a.done))){num.newPacket();if(numOpt.replay&&replay.events.length){applySlitSnapshot(replay.start);replay.pending=replay.events.slice().sort((a,b)=>a.t-b.t);}else replay.packetStart=slitSnapshot();particles=num.particles;assignStartGroups(particles);nParticles+=p.particles;}
+  if(num.modelTime>1.6*passed||(num.modelTime>1.15*passed&&particles.every(a=>a.done))){num.newPacket();clearTrails();if(numOpt.replay&&replay.events.length){applySlitSnapshot(replay.start);replay.pending=replay.events.slice().sort((a,b)=>a.t-b.t);}else replay.packetStart=slitSnapshot();particles=num.particles;assignStartGroups(particles);nParticles+=p.particles;}
   if(atWallQueue.length){const centre=num.grid.x0+p.k*num.modelTime;if(centre>=p.wall&&(atWallPrev??-Infinity)<p.wall){const queue=atWallQueue;atWallQueue=[];atWallPrev=null;queue.forEach(f=>f());}else atWallPrev=centre;}
   if(num.changeActive&&performance.now()-(numFrame.changeAt||0)>300){num.updateChangeStats();numFrame.changeAt=performance.now();}
   frameStats={requested:modelDt,advanced,physicsMs:performance.now()-t0,steps:num.steps};
@@ -576,7 +578,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   window.qonticMWBranches?.cancel();detectorFlashes.clear();pending=[];particles=[];pulses=[];nextEmission=0;visualPhase=0;flash=null;hold=0;lastMode=interpretation;p=config();fingerprint=configFingerprint(p);yOffset=screenHeight/200;
   coeff=sourceCoefficients(p);sourceGrid=null;epochs=[{p,coeff,start:-Infinity,grid:null}];profile=sourceProfile(p,-yOffset,screenHeight/100-yOffset,2049);law=detectorLaw(p,profile,-yOffset,screenHeight/100-yOffset);
   timeUnit=(particleType==='neutron'?mNeutron:mElectron)*10000/hbar;syncWhichPathButton();
-  hits=Array(p.bins).fill(0);slitHits=emptySlitHits(p.bins);screenBands=computeSlitBands();spectrumHitCounts=Array(p.bins).fill(0);spectrumHitSums=Array(p.bins).fill(0);nHits=0;hitMax=0;logNBranches=0;nParticles=0;trajectories.length=0;absorbed=0;missed=0;t=0;totalTime=0;pulse=0;nSteps=0;last=null;realElapsed=0;prepare();numReset();updateBranchCountDisplay();setWaveRangeAuto(0,1);updateMath();stats();if(typeof syncEngineControls==='function')syncEngineControls();
+  hits=Array(p.bins).fill(0);slitHits=emptySlitHits(p.bins);screenBands=computeSlitBands();spectrumHitCounts=Array(p.bins).fill(0);spectrumHitSums=Array(p.bins).fill(0);nHits=0;hitMax=0;logNBranches=0;clearTrails();nParticles=0;trajectories.length=0;absorbed=0;missed=0;t=0;totalTime=0;pulse=0;nSteps=0;last=null;realElapsed=0;prepare();numReset();updateBranchCountDisplay();setWaveRangeAuto(0,1);updateMath();stats();if(typeof syncEngineControls==='function')syncEngineControls();
  }
  function configFingerprint(value){const {particles:count,...preparation}=value;return JSON.stringify([preparation,screenHeight,particleType]);}
  function syncSlowPacketMode(){
@@ -752,7 +754,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te23').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te24').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -880,11 +882,14 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  // Classic look: glowing dots (sprites per colour) and fading glow trails (as in the numerical N-slit app).
  const glowSprites=new Map();
  function glowSprite(color,r){const key=color+r;let c=glowSprites.get(key);if(c)return c;c=document.createElement('canvas');const n=Math.ceil(r*2.6);c.width=c.height=2*n;const g=c.getContext('2d'),gr=g.createRadialGradient(n,n,0,n,n,n);const q=document.createElement('canvas').getContext('2d');q.fillStyle=color;const hex=q.fillStyle,rgb=hex[0]==='#'?[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)).join(','):hex.replace(/rgba?\(|\)/g,'').split(',').slice(0,3).join(',');const lite=rgb.split(',').map(v=>Math.round(+v+(255-v)*.45)).join(',');gr.addColorStop(0,`rgba(${lite},1)`);gr.addColorStop(.14,`rgba(${lite},.95)`);gr.addColorStop(.26,`rgba(${rgb},1)`);gr.addColorStop(.38,`rgba(${rgb},.9)`);gr.addColorStop(.55,`rgba(${rgb},.35)`);gr.addColorStop(1,`rgba(${rgb},0)`);g.fillStyle=gr;g.fillRect(0,0,2*n,2*n);glowSprites.set(key,c);return c;}
- let trailCanvas=null,trailCtx=null,trailAt=null;
+ let trailCanvas=null,trailCtx=null,trailAt=null,trailKeep=1;
+ // Trails belong to one packet: cleared when the next packet starts and on reset.
+ function clearTrails(){if(trailCtx)trailCtx.clearRect(0,0,trailCanvas.width,trailCanvas.height);trailKeep=1;}
  function updateTrails(groupOf,show){
   if(!trailCanvas||trailCanvas.width!==canvas.width||trailCanvas.height!==canvas.height){trailCanvas=document.createElement('canvas');trailCanvas.width=canvas.width;trailCanvas.height=canvas.height;trailCtx=trailCanvas.getContext('2d');}
   const now=realElapsed,dt=trailAt===null?0:Math.max(0,now-trailAt);trailAt=now;
-  if(dt>0){trailCtx.globalCompositeOperation='destination-out';trailCtx.fillStyle=`rgba(0,0,0,${(1-Math.pow(.5,dt/Math.max(.05,numOpt.halfLife))).toFixed(4)})`;trailCtx.fillRect(0,0,trailCanvas.width,trailCanvas.height);}
+  // Fade in steps of at least 15%: an 8-bit canvas ignores tiny per-frame fades, which left faint trails for good.
+  if(dt>0){trailKeep*=Math.pow(.5,dt/Math.max(.05,numOpt.halfLife));if(trailKeep<.85){trailCtx.globalCompositeOperation='destination-out';trailCtx.fillStyle=`rgba(0,0,0,${(1-trailKeep).toFixed(4)})`;trailCtx.fillRect(0,0,trailCanvas.width,trailCanvas.height);trailKeep=1;}}
   trailCtx.globalCompositeOperation='lighter';
   if(show&&isAnimating)for(const a of particles){if(a.done)continue;trailCtx.fillStyle=groupColor(groupOf(a),true);trailCtx.globalAlpha=.35;trailCtx.beginPath();trailCtx.arc(X(a.x),Y(a.y),1.6,0,2*Math.PI);trailCtx.fill();}
   trailCtx.globalAlpha=1;trailCtx.globalCompositeOperation='source-over';
@@ -1016,7 +1021,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  }
  function drawSourceWave(){
   syncPhaseKey(level!=='basic'&&classicPalette()&&waveShown()&&!(numericalActive()&&numOpt.showChange&&num.changeActive));
-  waveCtx.clearRect(0,0,canvas.width,canvas.height);waveCtx.fillStyle='#344f63';waveCtx.fillRect(0,0,canvas.width,canvas.height);
+  waveCtx.clearRect(0,0,canvas.width,canvas.height);waveCtx.fillStyle=teBackground()==='black'?'#000':'#344f63';waveCtx.fillRect(0,0,canvas.width,canvas.height);
   // Numerical engine: its WebGL canvas is shown directly as a layer above this one
   // (no copy into a 2D canvas, so the page never waits for the GPU); label on the setup layer.
   if(numericalActive()){numLayer(waveShown());if(waveShown())drawNumericalWave();drawEngineLabel(setupCtx);/* phase key: floating panel (syncPhaseKey) */0;drawChangeOverlay();return;}

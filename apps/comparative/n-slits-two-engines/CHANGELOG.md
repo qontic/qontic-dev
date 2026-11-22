@@ -3,6 +3,11 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.24 — 2026-11-21
+- Display tab: Background Grey (default) or Black, both engines; stored per browser, cleared by Reset all settings.
+- Numerical Pilot Wave glow trails are cleared when the next packet starts (and on reset). The fade now goes in steps of at least 15%: tiny per-frame fades are lost on an 8-bit canvas, which left faint trails on the screen for good.
+- Checked: background pixels (black 0,0,0; grey 52,79,99), numerical Pilot Wave run on black, te69, te12x; no console errors.
+
 ## 1.0-dev.23 — 2026-11-21
 - Classic palette back on the slate-grey background used before dev.17 (both engines), instead of black. The wave now fades into the background where it is weak (alpha = brightness), so it looks the same as before on black but leaves no dark halo on grey. Phase-key caption "Faint: weak wave · vivid: strong wave".
 - Checked: screenshots of the analytical engine at Basic and the numerical engine at Standard; no console errors.

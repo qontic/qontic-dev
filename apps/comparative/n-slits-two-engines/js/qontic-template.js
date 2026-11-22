@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te23';
-import { mountMWBranching } from './mw-branching.js?cache=te23';
-import { APP_RELEASE } from './release.js?cache=te23';
-import { mountNSlitQuiz } from './quiz.js?cache=te23';
+import { mountPacketEngine } from './packet-engine.js?cache=te24';
+import { mountMWBranching } from './mw-branching.js?cache=te24';
+import { APP_RELEASE } from './release.js?cache=te24';
+import { mountNSlitQuiz } from './quiz.js?cache=te24';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te23';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te24';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -227,6 +227,20 @@ $(function () {
     layers.append(row);
   }
   layerTable.remove();
+  // Canvas background: slate grey (default) or black. Stored per browser.
+  {
+    const row = document.createElement('div');
+    row.className = 'input-group packet-inline engine-slits-row te-bg-row';
+    row.innerHTML = '<label title="Colour behind the wave.">Background</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-te-bg="grey">Grey</button><button type="button" class="qontic-app-toggle" data-te-bg="black">Black</button></span>';
+    layers.after(row);
+    const sync = () => { const bg = window.teBackground?.() || 'grey'; row.querySelectorAll('[data-te-bg]').forEach(b => { const on = b.dataset.teBg === bg; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); }); };
+    row.querySelectorAll('[data-te-bg]').forEach(b => b.addEventListener('click', () => {
+      try { localStorage.setItem('qontic-te-bg', b.dataset.teBg); } catch (_) {}
+      sync(); invalidateWaveCache(); renderSetupFlag = 1; lastCycleIndex = -1;
+      if (!isAnimating) window.qonticPacketEngine?.redraw?.();
+    }));
+    sync();
+  }
   document.getElementById('waveCanvas').style.display = '';
   sensorWidth = 30;
   // Browser zoom supplies consistent sizing across controls and canvas.
