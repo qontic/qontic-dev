@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te25';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te25';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te25';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te25';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te25';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te25';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te25';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te25';
-import {createNumericalEngine} from './numerical-engine.js?cache=te25';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te25';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te25';
-import {classifySlitSide} from './source-packet-model.js?cache=te25';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te26';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te26';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te26';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te26';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te26';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te26';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te26';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te26';
+import {createNumericalEngine} from './numerical-engine.js?cache=te26';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te26';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te26';
+import {classifySlitSide} from './source-packet-model.js?cache=te26';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -113,7 +113,8 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  let geometryEditing=false,resumeAfterEditing=false;
  let slitPreviewWidth=null,slitPreviewSeparation=null;
  const displayCenters=()=>slitPreviewSeparation===null?p.centers:openSlitIds().map(k=>slitCenterSign(k)*slitPreviewSeparation/200);
- const displayExtentSigma=()=>interpretation==='bohmian'&&directed.checked?3:(p?.slitExtentSigma??Number(extent.value));
+ // The drawn opening is the same in every view (Direct PW's ±3σ sampling window is not drawn: the Gaussian mask lets particles through beyond the drawn edge in every view).
+ const displayExtentSigma=()=>p?.slitExtentSigma??Number(extent.value);
  const detectorFlashes=new Map();
  // Which-slit detectors: the record of each hit (Orthodox, Many Worlds in the analytical engine:
  // drawn from the record probabilities at that screen pixel, |ψ_b|² / Σ|ψ|²), and a flash of
@@ -375,16 +376,20 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function numReset(){
   numProfile=null;numProfileAt=-Infinity;
   if(!engineWanted()||!num.available){numStatus=engineWanted()?{ok:false,reason:num.reason}:null;return;}
-  num.setDirect?.(interpretation==='bohmian'&&directed.checked);numStatus=num.reset(p,numView(),numSlitModel);pushShutter();
+  num.setDirect?.(interpretation!=='bohmian'||directed.checked);numStatus=num.reset(p,numView(),numSlitModel);pushShutter();
   if(!replay.applying){replay.start=null;replay.events=[];replay.pending=[];replay.packetStart=slitSnapshot();}
   if(numStatus.ok){particles=num.particles;assignStartGroups(particles);pulses=[];nParticles=p.particles;}
  }
+ const numCohort={pending:0,branching:false};
  function numProcess(events){
   for(const e of events){
    const a=e.a;
    if(e.type==='wall'){a.slitSide=classifySlitSide(a.wallY,p);continue;}
    a.finishedAt=realElapsed;
-   if(e.type==='hit'){const index=Math.floor((e.y+yOffset)/(screenHeight/100)*p.bins);if(index>=0&&index<p.bins){addHit(index,a.slitSide,a.wallY);if(a.slitSide)flashDetectorOf(a.slitSide);detectorFlashes.set(index,DETECTOR_PULSE_SECONDS);flash={index,remaining:DETECTOR_PULSE_SECONDS};a.path.length=0;}else missed++;}
+   if(e.type==='hit'){const index=Math.floor((e.y+yOffset)/(screenHeight/100)*p.bins);
+    // Many Worlds slow motion: the hit goes through the branch split, as in the analytical engine.
+    if(index>=0&&index<p.bins&&interpretation==='manyworlds'&&window.qonticMWBranches?.enabled&&!p.whichPath){pending.push({index,cohort:numCohort,slitSide:a.slitSide,wallY:a.wallY});numCohort.pending++;a.path.length=0;continue;}
+    if(index>=0&&index<p.bins){addHit(index,a.slitSide,a.wallY);if(a.slitSide)flashDetectorOf(a.slitSide);detectorFlashes.set(index,DETECTOR_PULSE_SECONDS);flash={index,remaining:DETECTOR_PULSE_SECONDS};a.path.length=0;}else missed++;}
    else if(e.type==='absorbed'){absorbed++;}
    else if(e.type==='missed'){missed++;}
   }
@@ -405,7 +410,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   // would be cut off before it reached the screen. Waves diffracted to wide angles
   // travel farther, hence the factor.
   const passed=(p.screen-num.grid.x0+5*p.sx)/p.k;
-  if(num.modelTime>1.6*passed||(num.modelTime>1.15*passed&&particles.every(a=>a.done))){num.setDirect?.(interpretation==='bohmian'&&directed.checked);num.newPacket();clearTrails();if(numOpt.replay&&replay.events.length){applySlitSnapshot(replay.start);replay.pending=replay.events.slice().sort((a,b)=>a.t-b.t);}else replay.packetStart=slitSnapshot();particles=num.particles;assignStartGroups(particles);nParticles+=p.particles;}
+  if(num.modelTime>1.6*passed||(num.modelTime>1.15*passed&&particles.every(a=>a.done))){num.setDirect?.(interpretation!=='bohmian'||directed.checked);num.newPacket();clearTrails();if(numOpt.replay&&replay.events.length){applySlitSnapshot(replay.start);replay.pending=replay.events.slice().sort((a,b)=>a.t-b.t);}else replay.packetStart=slitSnapshot();particles=num.particles;assignStartGroups(particles);nParticles+=p.particles;}
   if(atWallQueue.length){const centre=num.grid.x0+p.k*num.modelTime;if(centre>=p.wall&&(atWallPrev??-Infinity)<p.wall){const queue=atWallQueue;atWallQueue=[];atWallPrev=null;queue.forEach(f=>f());}else atWallPrev=centre;}
   if(num.changeActive&&performance.now()-(numFrame.changeAt||0)>300){num.updateChangeStats();numFrame.changeAt=performance.now();}
   frameStats={requested:modelDt,advanced,physicsMs:performance.now()-t0,steps:num.steps};
@@ -673,7 +678,8 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    const previous=hits.slice();
    const setRecord=i=>{hits=recordWithHit(previous,i);hitMax=Math.max(...hits);};
    const surfaceBranches=surfaceView&&surface3D;
-   const started=window.qonticMWBranches.begin({selected:index,weights:law.weights,detectorFraction:detectorX/canvas.width,sensorFraction:sensorWidth/canvas.width,sensorColor:colorSensor,recordFull:!!surfaceBranches,
+   const weights=numericalActive()&&numProfile?(()=>{try{return detectorLaw(p,numProfile,-yOffset,screenHeight/100-yOffset).weights;}catch(_){return law.weights;}})():law.weights;
+   const started=window.qonticMWBranches.begin({selected:index,weights,detectorFraction:detectorX/canvas.width,sensorFraction:sensorWidth/canvas.width,sensorColor:colorSensor,recordFull:!!surfaceBranches,
     captureFrame:surfaceBranches?((context,w,h,includeWave)=>surface3D.capture(context,w,h,{includeWave,includeRecords:false})):null,
     projectOutcome:surfaceBranches?((pixel,count,w,h)=>surface3D.projectDetector((pixel+.5)/count,.1,w,h)):null,
     createRecord(i){const record=recordWithHit(previous,i);if(surfaceBranches)return createSurfaceRecord(record);const strip=document.createElement('canvas'),scale=Math.min(1,256/canvas.height);strip.width=Math.ceil((canvas.width-detectorX)*scale);strip.height=Math.ceil(canvas.height*scale);const context=strip.getContext('2d');context.scale(scale,scale);context.translate(-detectorX,0);histogram({context,hits:record});return strip;},
@@ -753,7 +759,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te25').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te26').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1337,7 +1343,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   setupCtx.save();if(!surfaceView&&shown('plot_screen')){setupCtx.globalAlpha=elementOpacity('plot_screen');setupCtx.strokeStyle=classicPalette()&&!numericalActive()?'#8a9bab':colorScreen;if(p.source){
    // Draw the expert-selected slit cores, except that Direct PW displays its
    // fixed ±3σ preparation window. The analytical wave remains untruncated.
-   const half=(slitPreviewWidth!==null&&slitPreviewWidth!==undefined?displayExtentSigma()*slitPreviewWidth:(interpretation==='bohmian'&&directed.checked?3*p.sy*100:p.geometry.openingHalf*100))*toCanvasY;
+   const half=(slitPreviewWidth!==null&&slitPreviewWidth!==undefined?displayExtentSigma()*slitPreviewWidth:p.geometry.openingHalf*100)*toCanvasY;
    if(numericalActive())drawNumericalWall();else{
    const openings=displayCenters().map(center=>[Math.max(0,Y(center)-half),Math.min(canvas.height,Y(center)+half)]).filter(([a,b])=>b>a).sort((a,b)=>a[0]-b[0]);
    setupCtx.strokeStyle=classicPalette()?'#8a9bab':colorScreen;setupCtx.lineWidth=6;setupCtx.lineCap='butt';setupCtx.beginPath();let cursor=0;

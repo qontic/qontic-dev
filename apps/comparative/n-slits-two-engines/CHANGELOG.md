@@ -3,6 +3,13 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.26 — 2026-11-21
+- Many Worlds slow-motion splitting works in the numerical engine: numerical hits go through the same branch split, with weights from the computed screen flux.
+- Numerical hits are conditioned on passing a slit in every view (Orthodox and Many Worlds too, as the analytical engine counts only screen detections); Pilot Wave follows the Direct PW setting.
+- 3D view: the screen curve and hits lie flat on a light panel beyond the screen instead of standing up; camera re-centred.
+- The drawn slit openings are the same in every view (Direct PW no longer draws its ±3σ sampling window), so slits no longer grow when switching to Pilot Wave.
+- Checked: numerical MW split (100 branches, one followed), 3D screenshot, Orthodox vs Pilot Wave slit region pixel-identical at Basic, te69, te12x, te27x, te73; no console errors.
+
 ## 1.0-dev.25 — 2026-11-21
 - Direct PW (postselection on passing a slit) on by default at every level (Expert can switch it off). Pilot Wave now records as many hits per packet as the other views: at Basic 150 vs 150 in 20 s (before: 24, with 155 particles stopped at the wall). Caption and Physics text updated.
 - Direct PW in the numerical engine. Each packet also moves invisible trial particles from |ψ₀|²; those that cross the wall are shown in the next packet from the same start, slot and seed (motion and absorption draws are deterministic for an unchanged wave). Exact conditioned samples: in the check, 400 of 400 shown particles passed in every conditioned packet. The first packet after a start or a change is unconditioned. setShutter/setSpin no longer count unchanged values as changes.

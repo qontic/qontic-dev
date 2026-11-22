@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {dragSurfaceGeometry} from './packet-interaction.js?cache=te25';
-import {surfaceZeroLevel} from './packet-model.js?cache=te25';
+import {dragSurfaceGeometry} from './packet-interaction.js?cache=te26';
+import {surfaceZeroLevel} from './packet-model.js?cache=te26';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
+// Screen curve and hits lie flat on the floor beyond the screen (height = distance from the screen).
+const FLAT_X=X_MAX+.1,FLAT_Z=.02;
 
 function color(value,fallback='#ffffff'){
  try{return new THREE.Color(value||fallback);}catch{return new THREE.Color(fallback);}
@@ -48,7 +50,7 @@ export function mountPacketSurface3D({host}){
  controls.target.set(.15,0,.18);
  let visible=false,lastState=null,frame=0,recordObjects=[];
 
- const resetCamera=()=>{camera.position.set(5.25,-4.9,3.65);controls.target.set(.15,0,.18);controls.update();render();};
+ const resetCamera=()=>{camera.position.set(5.7,-5.1,3.8);controls.target.set(.55,0,.12);controls.update();render();};
  resetCamera();
 
  scene.add(new THREE.HemisphereLight(0xcceeff,0x102532,1.9));
@@ -153,9 +155,10 @@ export function mountPacketSurface3D({host}){
  function addDetector(state){
   const zero=surfaceZeroLevel(state.heightMode,SURFACE_HEIGHT),x=X_MAX+.04,base=zero+.08;
   if(state.showDetector){const wall=new THREE.Mesh(new THREE.BoxGeometry(.075,Y_MAX-Y_MIN,.16),fade(new THREE.MeshPhongMaterial({color:color(state.detectorColor),transparent:true,opacity:.68}),layerOpacity(state,'detector')));wall.position.set(x,0,base);dynamic.add(wall);}
+  if(state.showProbability||state.showHits){const panel=new THREE.Mesh(new THREE.PlaneGeometry(1.0,Y_MAX-Y_MIN),new THREE.MeshBasicMaterial({color:0xe9eef2,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false}));panel.position.set(FLAT_X+.5,0,zero+.005);dynamic.add(panel);}
   if(state.showProbability&&state.probability.length){
    const step=Math.max(1,Math.ceil(state.probability.length/300)),points=[];
-   for(let i=0;i<state.probability.length;i+=step){const v=i/(state.probability.length-1);points.push(world(1.015,v,base+.9*state.probability[i]));}
+   for(let i=0;i<state.probability.length;i+=step){const v=i/(state.probability.length-1);points.push(new THREE.Vector3(FLAT_X+.9*state.probability[i],Y_MAX-v*(Y_MAX-Y_MIN),zero+FLAT_Z));}
    const probability=line(points,fade(new THREE.LineBasicMaterial({color:color(state.probabilityColor),linewidth:2}),layerOpacity(state,'probability')));dynamic.add(probability);recordObjects.push(probability);
   }
   if(!state.showHits)return;
@@ -163,9 +166,9 @@ export function mountPacketSurface3D({host}){
   const pointPositions=[],pointColors=[],errorPositions=[],errorColors=[];
   for(let i=0;i<state.hits.length;i++){
    if(!state.hits[i])continue;
-   const v=(i+.5)/state.hits.length,y=Y_MAX-v*(Y_MAX-Y_MIN),z=base+.9*state.hitHeights[i],e=.9*state.hitErrors[i],c=color(state.hitColors[i]);
-   pointPositions.push(x+.055,y,z);pointColors.push(c.r,c.g,c.b);
-   errorPositions.push(x+.055,y,Math.max(base,z-e),x+.055,y,z+e);errorColors.push(c.r,c.g,c.b,c.r,c.g,c.b);
+   const v=(i+.5)/state.hits.length,y=Y_MAX-v*(Y_MAX-Y_MIN),h=FLAT_X+.9*state.hitHeights[i],e=.9*state.hitErrors[i],c=color(state.hitColors[i]),zf=zero+FLAT_Z;
+   pointPositions.push(h,y,zf);pointColors.push(c.r,c.g,c.b);
+   errorPositions.push(Math.max(FLAT_X,h-e),y,zf,h+e,y,zf);errorColors.push(c.r,c.g,c.b,c.r,c.g,c.b);
   }
   if(pointPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(pointPositions,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(pointColors,3));const points=new THREE.Points(geometry,fade(new THREE.PointsMaterial({size:.065,sizeAttenuation:true,vertexColors:true}),hitOpacity));dynamic.add(points);recordObjects.push(points);}
   if(errorPositions.length){const errors=lines(errorPositions,errorColors,.95*hitOpacity);dynamic.add(errors);recordObjects.push(errors);}
@@ -200,7 +203,7 @@ export function mountPacketSurface3D({host}){
   for(const object of hidden)object.visible=true;renderer.render(scene,camera);
  }
  function projectDetector(v,z,width,height){
-  const point=new THREE.Vector3(X_MAX+.095,Y_MAX-v*(Y_MAX-Y_MIN),surfaceZeroLevel(lastState?.heightMode,SURFACE_HEIGHT)+z).project(camera);
+  const point=new THREE.Vector3(FLAT_X+Math.max(0,z-.08),Y_MAX-v*(Y_MAX-Y_MIN),surfaceZeroLevel(lastState?.heightMode,SURFACE_HEIGHT)+FLAT_Z).project(camera);
   return {x:(point.x+1)*width/2,y:(1-point.y)*height/2};
  }
  function editorValue(kind,start,worldDelta){
