@@ -1,5 +1,9 @@
 # Einstein’s Recoiling Slit
 
+## 2.0.0 — 2026-11-22
+
+Simplified after Pablo found 1.2 still confusing. One picture: the experiment runs continuously (300 photons/s, φ steps through 12 settings), clicks pile up at D₊ and D₋, the fringe builds underneath, and one "Why" panel shows the overlap of the atom's two recoil states (= visibility). Changing the trap depth keeps the previous fringe as open dots. The three views are one line each plus what they change in the apparatus (Pilot Wave: the atom's actual position for each photon; Many Worlds: both outputs carry on). New Quiz tab (shared qontic-quiz module, as in N-Slits): eight questions with a still sketch, explanation and "Watch it in the simulation". Removed: four-stage walkthrough, wave and record panels, Re/Im display, momentum readout, visibility-vs-depth and position-stripe panels (the stripes are explained in the Quiz and Physics). Heating stays under Advanced.
+
 ## 1.2.0 — 2026-11-21
 
 The experiment is the main element again (Pablo: "we lost the representation of the experiment"). One canvas, apparatus on top: tweezer beam whose waist and atom glow follow the position spread, phase shifter showing φ, detectors with click counters, inset of the atom's spread against the 390 nm stripes, and Einstein's mapping written on the diagram (movable slit, two slits, position on the screen, the screen). "Measure the fringe" now plays through the apparatus: photons stream in, a pulse runs on both arms, each ends in a click at D₊ or D₋ while φ steps through 12 values; counters and fringe points fill in live (7 s; press again to skip). The one-photon walkthrough animates in the same apparatus. Below: fringe and visibility, one-photon atom waves and records, recoil-wave overlap and position stripes.
