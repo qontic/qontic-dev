@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.6.3">
+<link rel="stylesheet" href="css/wv.css?v=0.6.4">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -44,6 +44,7 @@
           <label class="control-row" id="cellRow" hidden title="Which position along the beam, Δ from the packet centre, the strip averages, plots and Results use. Pointing inside the strong frame chooses it too."><span>Position along the beam Δ</span><input id="cellSel" type="range" min="0" max="12" step="1" value="6" aria-label="Position along the beam, relative to the packet centre"><output id="cellOut">0 nm</output></label>
           <label class="control-row" id="packetRow" hidden title="Longitudinal density standard deviation of each packet, σₓ. It matters when measuring at instants and for the dotted fixed-time curve. The double-slit app uses 50 nm; the effect is easier to see at 150 nm."><span>Packet length σₓ</span><input id="packet" type="range" min="50" max="300" step="10" value="150" aria-label="Packet length in nanometres"><output id="packetOut">150 nm</output></label>
         </div>
+        <div class="toggle-row" id="pauseRow" title="Stage 1: stop after each run so the two readings can be looked at. Press Start for the next run."><span>Pause after each run</span><button class="toggle" type="button" id="pauseEach" aria-pressed="true" aria-label="Pause after each run"></button></div>
         <label class="control-row" title="Spread of the pointer's ready state. Large spread: a weak measurement, little disturbance, very noisy. Small spread: a strong measurement that disturbs the wave.">
           <span>Pointer spread</span><input id="sw" type="range" min="5" max="400" step="5" value="200" aria-label="Pointer spread in nanometres"><output id="swOut">200 nm</output>
         </label>
@@ -303,6 +304,6 @@
   <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and many runs per pair of planes, with only a fraction contributing to each arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.6.3"></script>
+<script type="module" src="js/app.js?v=0.6.4"></script>
 </body>
 </html>

@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.6.3';
-import * as M from './weak-model.js?v=0.6.3';
+import { APP_RELEASE } from './release.js?v=0.6.4';
+import * as M from './weak-model.js?v=0.6.4';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -60,7 +60,8 @@ const state = {
   waveMode: 'density', arrowEvery: 1, nLines: 20,
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, fixedTime: false, bohm: false, scatter: true, planeRuns: true },
   selected: null, shiftView: false,
-  timing: 'plane', packet: 150, recx: false, cell: null,   // measure at planes or at instants; packet length in nm
+  timing: 'plane', packet: 150, recx: false, cell: null,
+  pauseEach: true,   // stage 1: stop after each run so it can be looked at   // measure at planes or at instants; packet length in nm
 };
 let exp = null;              // current pair of planes
 let map = null;              // stage 3 state
@@ -193,7 +194,7 @@ function planeX1(i) { const d = geo.distance; return 0.02 * d + i * (d - state.g
 
 function rebuild() {
   pending = false;
-  anim = null; lastRun = null;
+  anim = null; lastRun = null; shrink = null;
   if (state.stage === 'map') {
     map = { index: 0, planes: [], done: false, lines: null, bohm: null };
     exp = makeExperiment(planeX1(0));
@@ -252,6 +253,7 @@ function updateText() {
   $('#x1Row').style.display = state.stage === 'map' ? 'none' : '';
   document.querySelectorAll('[data-timing]').forEach((b) => { const on = b.dataset.timing === state.timing; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
   $('#recxRow').hidden = !instant();
+  $('#pauseRow').hidden = state.stage !== 'one';
   $('#cellRow').hidden = !(instant() && state.recx);
   $('#packetRow').hidden = !(instant() || state.show.fixedTime);
   // Words that change with the timing: planes vs instants.
@@ -286,7 +288,8 @@ function liveBody() {
   if (state.stage === 'one') {
     const timing = instant() ? ` Measured at instants: each run is one packet. The pointer is coupled at t₁ and the transverse position measured at t₂ (shaded bands: the packet, ±2σₓ = ±${2 * state.packet} nm). ${state.recx ? 'The position along the beam is recorded too, as in Wiseman\'s protocol.' : 'The position along the beam is not recorded; the detection is drawn at a position sampled from the packet, for display only.'}` : '';
     if (exp.runs === 0) return state.running ? `The first run is under way: watch the pointer move, then the screen click.${timing}` : 'Press <b>Start</b>. Watch the pointer move, then the screen click. One run gives two numbers.';
-    return `${plural(exp.runs, 'run', 'runs')}.${timing} The amber marker is the recorded pointer coordinate Y. The pointer's initial preparation spread is σₚ = ${state.sw} nm. A wider pointer gives less information in one run and disturbs the wave less. One run does not establish a particle's path.`;
+    const paused = anim?.done ? `<b>Run ${exp.runs} done.</b> The pointer reads Y = ${nm(anim.run.Y).toFixed(0)} nm; the detector clicked at y<sub>f</sub> = ${nm(anim.run.yf).toFixed(0)} nm. Press <b>Start</b> for the next run; this one then shrinks into a stored point. ` : '';
+    return `${paused}${plural(exp.runs, 'run', 'runs')}.${timing} The amber marker is the recorded pointer coordinate Y. The pointer's initial preparation spread is σₚ = ${state.sw} nm. A wider pointer gives less information in one run and disturbs the wave less. One run does not establish a particle's path.`;
   }
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
@@ -351,6 +354,7 @@ document.querySelectorAll('[data-timing]').forEach((b) => b.addEventListener('cl
   if (instant() && !state.show.fixedTime) toggle('fixedTime');
   stop(); pending = true; updateText();
 }));
+$('#pauseEach').addEventListener('click', () => { state.pauseEach = !state.pauseEach; $('#pauseEach').setAttribute('aria-pressed', String(state.pauseEach)); });
 $('#recx').addEventListener('click', () => { state.recx = !state.recx; state.cell = null; stop(); pending = true; updateText(); });
 $('#cellSel').addEventListener('input', (e) => { selectCell(+e.target.value); });
 $('#packet').addEventListener('input', (e) => { state.packet = +e.target.value; stop(); pending = true; updateText(); });
@@ -382,6 +386,7 @@ function syncMobileRun() { mobileRun.textContent = state.running ? '❚❚ Stop'
 function setLive(on) { $('#story').setAttribute('aria-live', on ? 'polite' : 'off'); document.querySelectorAll('[data-result]').forEach((o) => o.setAttribute('aria-live', on ? 'polite' : 'off')); }
 function stop() { state.running = false; controlsEl.setAttribute('running', 'false'); syncMobileRun(); setLive(true); }
 function start() {
+  if (state.stage === 'one' && anim?.done) { shrinkRun(anim); anim = null; }
   if (map?.done) pending = true;
   if (state.stage === 'many' && exp && exp.runs >= state.perPlane) pending = true;
   state.running = true; controlsEl.setAttribute('running', 'true'); showStep('live'); syncMobileRun(); setLive(false);
@@ -1109,7 +1114,7 @@ function drawApparatus(P, box) {
     } else text('too few runs in this strip yet', X(exp.x2) + 34, Yp(a + bw / 2) + 4, { color: P.muted, size: 11 });
   }
   // stage 1: pointer gauge and detection flash
-  if (state.stage === 'one' && exp) drawPointerGauge(P, box, X, Yp);
+  if (state.stage === 'one' && exp) { drawShrink(P, X, Yp); drawPointerGauge(P, box, X, Yp); }
   // While a plane is dragged, show where the pair will be.
   if (drag && (drag.kind === 'x1' || drag.kind === 'gap')) {
     const a1 = p.wall + state.x1 / 100, a2 = a1 + state.gap / 100;
@@ -1123,6 +1128,19 @@ function drawApparatus(P, box) {
   return { X, Yp };
 }
 
+// The last run's two markers shrink into the small stored points (about 0.45 s).
+let shrink = null;
+function shrinkRun(a) { shrink = { run: a.run, dx: a.packet ? a.run.dx : 0, t0: performance.now() }; }
+function drawShrink(P, X, Yp) {
+  if (!shrink || !exp) return;
+  const f = Math.min(1, (performance.now() - shrink.t0) / (450 / Math.max(0.25, state.speed)));
+  if (f >= 1) { shrink = null; return; }
+  const r = 8 * (1 - f) + 1.2 * f;
+  ctx.globalAlpha = 1 - 0.5 * f;
+  ctx.fillStyle = P.weak; ctx.beginPath(); ctx.arc(X(exp.x1), Yp(shrink.run.Y), r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(X(exp.x2 + shrink.dx), Yp(shrink.run.yf), r, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+}
 function drawPointerGauge(P, box, X, Yp) {
   // The pointer's scale is drawn along the weak plane, in the same units as y.
   // The marker shows the pointer reading Y; it is not a sighting of the particle.
@@ -1141,19 +1159,21 @@ function drawPointerGauge(P, box, X, Yp) {
   if (settled) { ctx.globalAlpha = 0.25; ctx.fillStyle = P.weak; ctx.fillRect(xw - 4, cl(Yp(Yr + sw)), 8, cl(Yp(Yr - sw)) - cl(Yp(Yr + sw))); ctx.globalAlpha = 1; }
   ctx.strokeStyle = P.weak; ctx.fillStyle = P.weak; ctx.lineWidth = 2;
   if (yc >= top && yc <= bot) {
-    ctx.beginPath(); ctx.moveTo(xw - 13, yc); ctx.lineTo(xw - 3, yc); ctx.stroke();
-    ctx.beginPath(); ctx.arc(xw, yc, 5.5, 0, Math.PI * 2); ctx.stroke();
-    if (settled) text(`Y = ${nm(anim.run.Y).toFixed(0)} nm; initial σₚ = ${state.sw} nm`, xw - 16, yc + 4, { color: P.weak, size: 11, align: 'right' });
+    // The latest run is drawn large; it shrinks into a stored point when the next run starts.
+    ctx.beginPath(); ctx.moveTo(xw - 15, yc); ctx.lineTo(xw - 4, yc); ctx.stroke();
+    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(xw, yc, 7.5, 0, Math.PI * 2); ctx.stroke();
+    if (settled) { ctx.beginPath(); ctx.arc(xw, yc, 3.5, 0, Math.PI * 2); ctx.fill(); backedText(P, `Y = ${nm(anim.run.Y).toFixed(0)} nm; initial σₚ = ${state.sw} nm`, xw - 18, yc + 4, { color: P.weak, size: 11, align: 'right', weight: 600 }); }
   } else {
     const up = yc < top, ya = up ? top + 2 : bot - 2, d = up ? 1 : -1;
     ctx.beginPath(); ctx.moveTo(xw, ya); ctx.lineTo(xw - 5, ya + 8 * d); ctx.lineTo(xw + 5, ya + 8 * d); ctx.closePath(); ctx.fill();
-    if (settled) text(`Y = ${nm(anim.run.Y).toFixed(0)} nm (off scale); initial σₚ = ${state.sw} nm`, xw - 10, ya + 12 * d + 4, { color: P.weak, size: 11, align: 'right' });
+    if (settled) backedText(P, `Y = ${nm(anim.run.Y).toFixed(0)} nm (off scale); initial σₚ = ${state.sw} nm`, xw - 10, up ? ya + 16 : ya - 30, { color: P.weak, size: 11, align: 'right', weight: 600 });
   }
   if (t > tS) {
-    const r = t < tS + 0.1 ? 4 + 20 * (t - tS) : 6;
+    const r = t < tS + 0.1 ? 4 + 40 * (t - tS) : 8;
     const xd = X(exp.x2 + (anim.packet ? anim.run.dx : 0));
     ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(xd, Yp(anim.run.yf), r, 0, Math.PI * 2); ctx.fill();
-    text(`detected at ${nm(anim.run.yf).toFixed(0)} nm`, xd + 10, Yp(anim.run.yf) + 4, { color: P.strong, size: 11 });
+    ctx.strokeStyle = P.light ? '#ffffff' : '#07131d'; ctx.lineWidth = 1.5; ctx.stroke();
+    backedText(P, `detected at ${nm(anim.run.yf).toFixed(0)} nm`, xd + 12, Yp(anim.run.yf) + 4, { color: P.strong, size: 11, weight: 600 });
   }
 }
 
@@ -1380,8 +1400,16 @@ function frame(now) {
   if (state.running && exp) {
     if (state.stage === 'one') {
       if (!anim) anim = makeRunAnim(sampleOne(exp));
-      anim.t += dt * state.speed / (instant() ? RUN_SECONDS_INSTANT : RUN_SECONDS);
-      if (anim.t >= 1) { addRun(exp, anim.run); anim = null; }
+      if (!anim.done) {
+        anim.t += dt * state.speed / (instant() ? RUN_SECONDS_INSTANT : RUN_SECONDS);
+        if (anim.t >= 1) {
+          addRun(exp, anim.run);
+          // Pause after each run: the finished run stays on screen, large,
+          // until Start; otherwise it shrinks into a stored point right away.
+          if (state.pauseEach) { anim.t = 1; anim.done = true; stop(); }
+          else { shrinkRun(anim); anim = null; }
+        }
+      }
     } else if (state.stage === 'many') {
       // One schedule for the drawing and the plots: the collection takes about
       // MANY_SECONDS at speed 1, starting slowly (cubic) so the first points

@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.6.4 — 2026-11-21
+- Stage 1: "Pause after each run" (on by default). The simulation stops after each run with its pointer reading and detection drawn large and labelled, and the caption states both numbers; Start begins the next run, and the held markers shrink into the small stored points. Labels on a dark backing (cyan on the bright wave was hard to read); off-scale pointer label kept clear of the status line.
+
 ## 0.6.3 — 2026-11-21
 - Instants with the position along the beam recorded: runs are sorted by their position Δ in the packet (thirteen cells). Each cell is its own pair of weak and strong positions, a gap apart, so one fixed-time experiment gives arrows at thirteen positions along the beam (faint), with the selected one bright. Pointing inside the strong frame chooses Δ and the strip; a "Position along the beam Δ" slider does the same from the keyboard. The selection draws the mean pointer reading at that cell's weak position joined to the mean detection at its strong position; plots, Results and predictions follow the cell (Δ = 0 gives the planes). New Results row "Runs at Δ".
 - Instants, transverse position only: the selected strip's mean pointer reading is drawn as a bar across the dashed frame (the weak position is not recorded), and the arrow is said to be placed at the packet centre by convention.
