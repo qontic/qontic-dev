@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.7.2';
-import * as M from './weak-model.js?v=0.7.2';
+import { APP_RELEASE } from './release.js?v=0.7.3';
+import * as M from './weak-model.js?v=0.7.3';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -61,7 +61,7 @@ const state = {
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, fixedTime: false, bohm: false, scatter: true, planeRuns: true },
   selected: null, shiftView: false,
   labels: (() => { try { return localStorage.getItem('qontic-weak-velocity-labels') !== 'false'; } catch (e) { return true; } })(),   // explanatory labels in the drawing (Legend button)
-  win: { r: 25, x: 550, y: 50, pinned: false, trace: false },   // stage 4: window centre (nm behind the slits), radius
+  win: { len: 100, wid: 10, x: 550, y: 50, pinned: false, trace: false },   // stage 4: window centre (nm behind the slits); full length along the beam and width across (nm)
   timing: 'plane', packet: 150, recx: false, cell: null,
   pauseEach: true,   // stage 1: stop after each run so it can be looked at   // measure at planes or at instants; packet length in nm
 };
@@ -253,11 +253,11 @@ const fmtPs = (t) => (t >= 100 ? t.toFixed(0) : t >= 10 ? t.toFixed(1) : t.toFix
 // Runs at all times, so their strong results cover the whole drawing. Because
 // the packet only translates, a run whose weak coupling finds the particle at
 // x1 is a run at the planes (x1, x1 + gap): the field is a set of thin plane
-// pairs 10 nm apart, all equally likely. A window is a disc of strong results.
-const WIN_DX = 0.1, WIN_SAMPLE = 60000;
+// pairs 10 nm apart, all equally likely. A window is an ellipse of strong results.
+const WIN_DX = 0.1, WIN_SAMPLE = 400000, WIN_DRAW = 60000;   // runs kept as a sample; the first WIN_DRAW are drawn over the field
 let wf = null;
 function makeWindowField() {
-  const gapX = state.gap / 100, x1s = M.windowPlanes(p.wall, p.screen, gapX, WIN_DX), nYf = Math.round(2 * Y_HALF / 0.05);
+  const gapX = state.gap / 100, x1s = M.windowPlanes(p.wall, p.screen, gapX, WIN_DX), nYf = Math.round(2 * Y_HALF / 0.02);
   const field = M.windowField({ terms0: T0, k: p.k, wallX: p.wall, gapX, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf, x1s, dx: WIN_DX });
   return { field, acc: M.makeWindowAcc(x1s.length, nYf), runs: 0, n: 0,
     px2: new Float32Array(WIN_SAMPLE), pyf: new Float32Array(WIN_SAMPLE), pX: new Float32Array(WIN_SAMPLE), pY: new Float32Array(WIN_SAMPLE) };
@@ -275,7 +275,10 @@ function winCentre() {
   state.win.x = Math.max(xmin, Math.min(xmax, state.win.x)); state.win.y = Math.max(-geo.screen / 2, Math.min(geo.screen / 2, state.win.y));
   return { x: p.wall + state.win.x / 100, y: state.win.y / 100 };
 }
-const winQuery = (c) => M.windowQuery(wf.field, wf.acc, c.x, c.y, state.win.r / 100);
+// Half-axes of the window in model units: along the beam (rx) and across (ry).
+const winRx = () => state.win.len / 200, winRy = () => state.win.wid / 200;
+const winSize = () => (state.win.len === state.win.wid ? `${state.win.len} nm circle` : `${state.win.len} × ${state.win.wid} nm`);
+const winQuery = (c) => M.windowQuery(wf.field, wf.acc, c.x, c.y, winRx(), winRy());
 // Anssi Kuha's construction: the mean weak position of a window becomes the
 // next window, one gap at a time, towards the slits.
 function traceBack(c0) {
@@ -295,16 +298,16 @@ function traceBack(c0) {
 // detected there; the j/|ψ|² flow lines from the same windows for comparison.
 function windowSummary() {
   if (!wf || wf.runs < state.perPlane) return null;
-  const key = [state.win.r, state.nLines, wf.runs].join('|');
+  const key = [state.win.len, state.win.wid, state.nLines, wf.runs].join('|');
   if (wf.summary?.key === key) return wf.summary;
-  const r = state.win.r / 100, F = wf.field, nYf = F.nYf;
+  const rx = winRx(), ry = winRy(), F = wf.field, nYf = F.nYf;
   // Arrows: windows every 100 nm along the beam and every 50 nm across.
   const arrows = [];
-  for (let x = p.wall + F.gapX + Math.max(r, 0.5); x <= p.screen - r + 1e-9; x += 1)
-    for (let y = -Y_HALF + 0.25; y < Y_HALF; y += 0.5) { const q = M.windowQuery(F, wf.acc, x, y, r); if (q.n >= 300) arrows.push({ q }); }
+  for (let x = p.wall + F.gapX + Math.max(rx, 0.5); x <= p.screen - rx + 1e-9; x += 1)
+    for (let y = -Y_HALF + 0.25; y < Y_HALF; y += 0.5) { const q = M.windowQuery(F, wf.acc, x, y, rx, ry); if (q.n >= 300) arrows.push({ q }); }
   // Starts: equal shares of the runs whose strong result lies within one window of the screen.
-  const xs = p.screen - r, counts = new Float64Array(nYf);
-  F.x1s.forEach((x1, j) => { if (Math.abs(x1 + F.gapX - xs) <= r) for (let i = 0; i < nYf; i++) counts[i] += wf.acc.n[j * nYf + i]; });
+  const xs = p.screen - rx, counts = new Float64Array(nYf);
+  F.x1s.forEach((x1, j) => { if (Math.abs(x1 + F.gapX - xs) <= rx) for (let i = 0; i < nYf; i++) counts[i] += wf.acc.n[j * nYf + i]; });
   const total = counts.reduce((a, b) => a + b, 0), starts = [];
   let acc = 0, k = 0;
   for (let i = 0; i < nYf && k < state.nLines; i++) { acc += counts[i]; while (k < state.nLines && acc >= (k + 0.5) / state.nLines * total) { starts.push(F.yfMin + (i + 0.5) * F.dYf); k++; } }
@@ -341,10 +344,11 @@ function updateText() {
   document.querySelectorAll('[data-screen-half]').forEach((el) => { el.textContent = `${geo.screen / 2}`; });
   const W = state.stage === 'window';
   $('#x1Row').style.display = state.stage === 'map' || W ? 'none' : '';
-  $('#winROut').value = `${state.win.r} nm`; $('#winR').value = state.win.r;
+  $('#winLOut').value = `${state.win.len} nm`; $('#winL').value = state.win.len;
+  $('#winWOut').value = `${state.win.wid} nm`; $('#winW').value = state.win.wid;
   $('#winX').max = geo.distance; $('#winX').min = state.gap + 10; $('#winX').value = state.win.x; $('#winXOut').value = `${state.win.x} nm`;
   $('#winY').min = -geo.screen / 2; $('#winY').max = geo.screen / 2; $('#winY').value = state.win.y; $('#winYOut').value = `${state.win.y} nm`;
-  for (const [id, v] of [['winR', state.win.r], ['winX', state.win.x], ['winY', state.win.y]]) $(`#${id}`).setAttribute('aria-valuetext', `${v} nanometres`);
+  for (const [id, v] of [['winL', state.win.len], ['winW', state.win.wid], ['winX', state.win.x], ['winY', state.win.y]]) $(`#${id}`).setAttribute('aria-valuetext', `${v} nanometres`);
   $('#winTrace').textContent = state.win.trace ? 'Clear the trace' : 'Trace back from this window';
   document.querySelectorAll('[data-timing]').forEach((b) => { const on = b.dataset.timing === state.timing; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
   $('#recxRow').hidden = !instant() || W;
@@ -431,7 +435,7 @@ function windowLive() {
     return ` Trace (amber dots): each mean weak position became the next window, ${pts.length - 1} steps of ${state.gap} nm, reaching ${nm(last.x - p.wall).toFixed(0)} nm at y = ${nm(last.y).toFixed(0)} nm. The dashed line follows the flow of j/|ψ|² backward from the window, for comparison; the difference at the end comes mostly from the window averaging the velocity over its area (a smaller window follows the field more closely, with fewer runs), plus sampling noise added up over the steps.`;
   })() : ' Click (or use Trace back) to repeat the step: the mean weak position becomes the next window, towards the slits.';
   const S = windowSummary();
-  const sum = S ? ` <b>Field from windows:</b> ${S.n} lines traced back from windows next to the screen, started at equal shares of the runs detected there (amber lines); arrows from windows on a grid.${state.show.bohm ? ` The dashed lines follow the flow of j/|ψ|² backward from the same windows; the traces end ${S.rms.toFixed(1)} nm from them (rms), mostly because each window averages the velocity over its area.` : ' Switch on the j/|ψ|² flow lines below the drawing to compare.'} No particle is followed: every step uses different runs.` : '';
+  const sum = S ? ` <b>Field from windows:</b> ${S.n} lines traced back from windows next to the screen, started at equal shares of the runs detected there (amber lines); arrows from windows on a grid.${state.show.bohm ? ` The dashed lines follow the flow of j/|ψ|² backward from the same windows; the traces end ${S.rms.toFixed(1)} nm from them (rms), from the window's averaging and the sampling noise added up over the steps.` : ' Switch on the j/|ψ|² flow lines below the drawing to compare.'} No particle is followed: every step uses different runs.` : '';
   return `<b>${q.n.toLocaleString('en-US')} runs ended in the window at ${where}.</b> Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean is sharp: (${nm(q.Xm - p.wall).toFixed(0)}, ${nm(q.Ym).toFixed(1)}) nm${instant() ? ' at t₁' : ''}. The arrow from it to the mean strong position${instant() ? ' at t₂' : ''} is the measured velocity: slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. ${head} ${how}${tr} It is a difference of two averages over the same selected runs, not the path of any particle.${sum}`;
 }
 
@@ -504,7 +508,8 @@ $('#lineCount').addEventListener('input', (e) => { state.nLines = +e.target.valu
 document.querySelectorAll('[data-maptoggle]').forEach((b) => b.addEventListener('click', () => toggle(b.dataset.maptoggle)));
 $('#selectedStrip').addEventListener('input', (e) => { state.selected = +e.target.value; });
 $('#showSetup').addEventListener('click', () => { stop(); showStep('setup'); });
-$('#winR').addEventListener('input', (e) => { state.win.r = +e.target.value; updateText(); });
+$('#winL').addEventListener('input', (e) => { state.win.len = +e.target.value; updateText(); });
+$('#winW').addEventListener('input', (e) => { state.win.wid = +e.target.value; updateText(); });
 $('#winX').addEventListener('input', (e) => { state.win.x = +e.target.value; state.win.pinned = true; updateText(); });
 $('#winY').addEventListener('input', (e) => { state.win.y = +e.target.value; state.win.pinned = true; updateText(); });
 $('#winTrace').addEventListener('click', () => { state.win.trace = !state.win.trace; state.win.pinned = state.win.trace || state.win.pinned; updateText(); });
@@ -713,7 +718,10 @@ function readUrl() {
   const gap = num('gap', 10, 100, 5); if (gap !== null) state.gap = gap;
   if (['one', 'many', 'map', 'window'].includes(q.get('stage'))) state.stage = q.get('stage');
   if (state.stage === 'window' && !q.has('runs')) state.perPlane = 2e7;
-  for (const [key, f] of [['winx', 'x'], ['winy', 'y'], ['winr', 'r']]) { const v = parseFloat(q.get(key)); if (Number.isFinite(v)) state.win[f] = key === 'winr' ? Math.max(10, Math.min(60, Math.round(v / 5) * 5)) : Math.round(v); }
+  for (const [key, f] of [['winx', 'x'], ['winy', 'y']]) { const v = parseFloat(q.get(key)); if (Number.isFinite(v)) state.win[f] = Math.round(v); }
+  // Window size: winl (length along the beam) and winw (width across), nm; winr (a radius) gives a circle.
+  { const r = parseFloat(q.get('winr')); if (Number.isFinite(r)) state.win.len = state.win.wid = 2 * Math.round(r / 5) * 5; }
+  for (const [key, f, lo, hi] of [['winl', 'len', 20, 200], ['winw', 'wid', 4, 100]]) { const v = parseFloat(q.get(key)); if (Number.isFinite(v)) state.win[f] = Math.max(lo, Math.min(hi, Math.round(v / 2) * 2)); }
   for (const k of Object.keys(GEO_DEFAULT)) { const v = parseFloat(q.get(k)); if (Number.isFinite(v)) { geo[k] = v; urlAsked[k] = v; } }
   for (const k of ['sw', 'x1', 'gap']) { const v = parseFloat(q.get(k)); if (Number.isFinite(v)) urlAsked[k] = v; }
   const rq = parseFloat(q.get('runs')); if (Number.isFinite(rq)) urlAsked.runs = rq;
@@ -733,7 +741,7 @@ function readUrl() {
 function shareUrl() {
   const u = new URL(location.href);
   const g = {}; for (const k of Object.keys(GEO_DEFAULT)) if (geo[k] !== GEO_DEFAULT[k]) g[k] = geo[k];
-  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(state.recx ? {recx: 1} : {}), ...(state.packet !== 150 ? {packet: state.packet} : {}), ...(state.stage === 'window' ? {winx: state.win.x, winy: state.win.y, winr: state.win.r} : {}) }).toString();
+  u.search = new URLSearchParams({ stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(state.recx ? {recx: 1} : {}), ...(state.packet !== 150 ? {packet: state.packet} : {}), ...(state.stage === 'window' ? {winx: state.win.x, winy: state.win.y, winl: state.win.len, winw: state.win.wid} : {}) }).toString();
   return u.toString();
 }
 
@@ -1104,7 +1112,7 @@ function drawApparatus(P, box) {
     ctx.restore();
     appMap = { X, Yp, box, x0, x1, Yh: YH };
     drawGrips(P);
-    backedText(P, `Windows · σₚ ${state.sw} nm · gap ${state.gap} nm${instant() ? ` · instants, τ = ${fmtPs(psAt(state.gap))} (electron)` : ''} · window r ${state.win.r} nm`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
+    backedText(P, `Windows · σₚ ${state.sw} nm · gap ${state.gap} nm${instant() ? ` · instants, τ = ${fmtPs(psAt(state.gap))} (electron)` : ''} · window ${winSize()}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
     return { X, Yp };
   }
   // scale bar 100 nm
@@ -1430,12 +1438,12 @@ function arrowLine(x0, y0, x1, y1, head = 8) {
 }
 function drawWindowStage(P, X, Yp) {
   if (!wf) return;
-  const c = winCentre(), r = state.win.r / 100;
-  const rx = Math.abs(X(c.x + r) - X(c.x)), ry = Math.abs(Yp(c.y + r) - Yp(c.y));
-  const inWin = (x, y) => ((x - c.x) / r) ** 2 + ((y - c.y) / r) ** 2 <= 1;
+  const c = winCentre(), ax = winRx(), ay = winRy();
+  const rx = Math.max(2, Math.abs(X(c.x + ax) - X(c.x))), ry = Math.max(2, Math.abs(Yp(c.y + ay) - Yp(c.y)));
+  const inWin = (x, y) => ((x - c.x) / ax) ** 2 + ((y - c.y) / ay) ** 2 <= 1;
   // A sample of the strong results over the whole field.
   ctx.fillStyle = P.strong; ctx.globalAlpha = 0.2;
-  for (let i = 0; i < wf.n; i++) ctx.fillRect(X(wf.px2[i]) - 0.75, Yp(wf.pyf[i]) - 0.75, 1.5, 1.5);
+  for (let i = 0, m = Math.min(wf.n, WIN_DRAW); i < m; i++) ctx.fillRect(X(wf.px2[i]) - 0.75, Yp(wf.pyf[i]) - 0.75, 1.5, 1.5);
   ctx.globalAlpha = 1;
   const S = windowSummary();
   if (S) {
@@ -1495,7 +1503,7 @@ function drawWindowStage(P, X, Yp) {
 // Plot: the weak readings (Y against X) of the sampled runs in the window,
 // with their mean, beside the mean strong position.
 function drawWindowCloud(P, box) {
-  const c = winCentre(), r = state.win.r / 100, span = Math.max(3 * state.sw / 100, 3 * r);
+  const c = winCentre(), ax = winRx(), ay = winRy(), span = Math.max(3 * state.sw / 100, 3 * ax);
   const Xp = (x) => box.x + (x - (c.x - span)) / (2 * span) * box.w, Vp = (y) => box.y + box.h - (y - (c.y - span)) / (2 * span) * box.h;
   ctx.fillStyle = P.panel; ctx.fillRect(box.x, box.y, box.w, box.h);
   ctx.strokeStyle = P.grid; ctx.lineWidth = 1; ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w, box.h);
@@ -1509,10 +1517,10 @@ function drawWindowCloud(P, box) {
   ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
   let shown = 0;
   for (let i = 0; i < wf.n; i++) {
-    if (((wf.px2[i] - c.x) / r) ** 2 + ((wf.pyf[i] - c.y) / r) ** 2 > 1) continue;
+    if (((wf.px2[i] - c.x) / ax) ** 2 + ((wf.pyf[i] - c.y) / ay) ** 2 > 1) continue;
     shown++; ctx.fillStyle = P.weak; ctx.globalAlpha = 0.6; ctx.fillRect(Xp(wf.pX[i]) - 1.5, Vp(wf.pY[i]) - 1.5, 3, 3); ctx.globalAlpha = 1;
   }
-  ctx.strokeStyle = P.strong; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(Xp(c.x), Vp(c.y), Xp(c.x + r) - Xp(c.x), Vp(c.y) - Vp(c.y + r), 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = P.strong; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(Xp(c.x), Vp(c.y), Math.max(1.5, Xp(c.x + ax) - Xp(c.x)), Math.max(1.5, Vp(c.y) - Vp(c.y + ay)), 0, 0, Math.PI * 2); ctx.stroke();
   const q = winQuery(c);
   if (q.n >= 30) {
     ctx.strokeStyle = P.arrow; ctx.fillStyle = P.arrow; ctx.lineWidth = 2; arrowLine(Xp(q.Xm), Vp(q.Ym), Xp(q.x2m), Vp(q.yfm), 7);
@@ -1521,9 +1529,9 @@ function drawWindowCloud(P, box) {
   ctx.restore();
   legend(P, box, `amber dots: weak readings of runs ending in the window (${shown} sampled of ${q.n.toLocaleString('en-US')}) · ring: their mean · cyan circle: the window · same scale both ways`);
 }
-// Plot: slope across the field at the window's x, from windows of this radius.
+// Plot: slope across the field at the window's x, from windows of this size.
 function drawWindowProfile(P, box) {
-  const vm = 0.6, c = winCentre(), r = state.win.r / 100;
+  const vm = 0.6, c = winCentre(), ax = winRx(), ay = winRy(), step = Math.max(2 * ay, 0.1);
   const { X, V } = axes(P, box, '', 'slope v_y / v_x', -vm, vm, (v) => v.toFixed(2));
   if (!wf) return;
   ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
@@ -1534,16 +1542,16 @@ function drawWindowProfile(P, box) {
     for (let i = 0; i <= n; i++) { const y = -Y_HALF + 2 * Y_HALF * i / n, v = f(y); if (v === null || Math.abs(v) > 3 * vm) { on = false; continue; } on ? ctx.lineTo(X(y), V(v)) : ctx.moveTo(X(y), V(v)); on = true; }
     ctx.stroke(); ctx.setLineDash([]);
   };
-  if (state.show.expected) curve((y) => { const q = M.windowQuery(wf.field, wf.acc, c.x, y, r); return q.expected && q.expected.weight > 1e-4 ? q.expected.slope : null; }, P.exp, [], 2);
+  if (state.show.expected) curve((y) => { if (!(M.density(terms, y) > 1e-4)) return null; const q = M.windowQuery(wf.field, wf.acc, c.x, y, ax, ay); return q.expected ? q.expected.slope : null; }, P.exp, [], 2);
   if (state.show.current) curve((y) => (M.density(terms, y) > 1e-4 ? M.currentVelocity(terms, y) / p.k : null), P.cur, [5, 4], 1.2);
   ctx.strokeStyle = P.arrow; ctx.fillStyle = P.arrow; ctx.lineWidth = 1.3;
-  for (let y = -Y_HALF + r; y <= Y_HALF - r + 1e-9; y += r) {
-    const q = M.windowQuery(wf.field, wf.acc, c.x, y, r);
+  for (let y = -Y_HALF + step / 2; y <= Y_HALF - step / 2 + 1e-9; y += step) {
+    const q = M.windowQuery(wf.field, wf.acc, c.x, y, ax, ay);
     if (q.n >= 200) drawEstimate(X, V, y, q.slope, q.err, vm);
   }
   ctx.strokeStyle = P.strong; ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(X(c.y), box.y); ctx.lineTo(X(c.y), box.y + box.h); ctx.stroke(); ctx.setLineDash([]);
   ctx.restore();
-  legend(P, box, `amber points: windows of radius ${state.win.r} nm, ${state.win.r} nm apart (neighbours overlap) · blue line: prediction · dashed: j/|ψ|² · dotted: this window`);
+  legend(P, box, `amber points: windows of ${winSize()}, ${nm(step).toFixed(0)} nm apart · blue line: prediction · dashed: j/|ψ|² · dotted: this window`);
 }
 
 function axes(P, box, title, yLabel, ymin, ymax, fmtY) {
@@ -1700,7 +1708,7 @@ function updateResults() {
     if (!wf) return;
     set('runs', wf.runs.toLocaleString('en-US'));
     const c = winCentre(), q = winQuery(c);
-    set('winC', `(${nm(c.x - p.wall).toFixed(0)}, ${nm(c.y).toFixed(0)}) nm, r ${state.win.r} nm`);
+    set('winC', `(${nm(c.x - p.wall).toFixed(0)}, ${nm(c.y).toFixed(0)}) nm, ${winSize()}`);
     set('winN', q.n.toLocaleString('en-US'));
     const ok = q.n >= 30;
     set('winWeak', ok ? `(${nm(q.Xm - p.wall).toFixed(1)}, ${nm(q.Ym).toFixed(1)}) nm` : '—');

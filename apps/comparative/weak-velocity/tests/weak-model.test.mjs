@@ -317,4 +317,14 @@ test('windows: sampled windows match their predictions (chi2)', () => {
   assert.ok(m > 40 && chi / m < 1.6, `windows chi2/n = ${chi / m} over ${m}`);
 });
 
+test('windows: a long narrow window follows j/|psi|^2 where a wide circle does not', () => {
+  const gapX = 0.5, dx = 0.1, x1s = M.windowPlanes(p.wall, p.screen, gapX, dx);
+  const F = M.windowField({terms0: t0, k: p.k, wallX: p.wall, gapX, sw: 2, yfMin: -4, yfMax: 4, nYf: 400, x1s, dx});
+  const acc = M.makeWindowAcc(x1s.length, 400), xc = p.wall + 5.5, yc = 0.5;
+  const cur = M.currentVelocity(M.propagate(t0, (xc - p.wall) / p.k), yc) / p.k;
+  const ell = M.windowQuery(F, acc, xc, yc, 0.5, 0.05).expected.slope, disc = M.windowQuery(F, acc, xc, yc, 0.25).expected.slope;
+  assert.ok(Math.abs(ell - cur) < 0.02, `ellipse ${ell} vs ${cur}`);
+  assert.ok(Math.abs(disc - cur) > 0.08, `disc ${disc} vs ${cur}: the test point should be steep`);
+});
+
 console.log(`${passed} tests passed`);

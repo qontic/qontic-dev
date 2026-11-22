@@ -528,13 +528,14 @@ export function addWindowRun(acc, field, run) {
   acc.sX[c] += run.X; acc.sY[c] += run.Y; acc.sx2[c] += run.x2; acc.syf[c] += run.yf;
 }
 
-// Cells whose centre (strong position) lies in the disc (xc, yc, r).
-function windowCells(field, xc, yc, r, fn) {
+// Cells whose centre (strong position) lies in the ellipse centred at (xc, yc)
+// with half-length rx along the beam and half-width ry across (a disc if equal).
+function windowCells(field, xc, yc, rx, ry, fn) {
   const {x1s, gapX, nYf, yfMin, dYf} = field;
   for (let j = 0; j < x1s.length; j++) {
     const ddx = x1s[j] + gapX - xc;
-    if (Math.abs(ddx) > r) continue;
-    const h = Math.sqrt(r * r - ddx * ddx);
+    if (Math.abs(ddx) > rx) continue;
+    const h = ry * Math.sqrt(1 - (ddx / rx) ** 2);
     const i0 = Math.max(0, Math.ceil((yc - h - yfMin) / dYf - 0.5)), i1 = Math.min(nYf - 1, Math.floor((yc + h - yfMin) / dYf - 0.5));
     for (let i = i0; i <= i1; i++) fn(j, i, j * nYf + i);
   }
@@ -543,10 +544,10 @@ function windowCells(field, xc, yc, r, fn) {
 // Measured window: mean weak and strong positions, slope v_y/v_x = mean(dy)/mean(dx)
 // with its standard error (delta method, covariance kept); and the same for
 // infinitely many runs from the exact tables.
-export function windowQuery(field, acc, xc, yc, r) {
+export function windowQuery(field, acc, xc, yc, rx, ry = rx) {
   let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sX = 0, sY = 0, sx2 = 0, syf = 0;
   let w = 0, wX = 0, wY = 0, wx2 = 0, wyf = 0;
-  windowCells(field, xc, yc, r, (j, i, c) => {
+  windowCells(field, xc, yc, rx, ry, (j, i, c) => {
     n += acc.n[c]; sx += acc.sx[c]; sy += acc.sy[c]; sxx += acc.sxx[c]; syy += acc.syy[c]; sxy += acc.sxy[c];
     sX += acc.sX[c]; sY += acc.sY[c]; sx2 += acc.sx2[c]; syf += acc.syf[c];
     const t = field.tables[j], q = t.marginal[i] * t.dYf;

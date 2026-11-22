@@ -1,5 +1,10 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.7.3 — 2026-11-22
+- Stage 4: the window is an ellipse with its own length along the beam and width across (sliders "Window length (along)", 20–200 nm, and "Window width (across)", 4–100 nm; equal values give a circle). The default is 100 × 10 nm instead of a circle 50 nm across. The window decides which runs are averaged, so its shape changes the result. Across the beam the velocity changes fast near the fringes; along the beam it changes slowly. At (550, 50) nm, where j/|ψ|² is −0.372, the prediction is −0.362 for the ellipse and −0.249 for the old circle. With 20M runs the end-of-run lines now end 3–4 nm (rms) from the j/|ψ|² flow lines instead of 16 nm. The transverse grid of strong positions is 2 nm (was 5 nm). The weak-readings panel samples up to 400k runs.
+- Model: windowQuery(field, acc, xc, yc, rx, ry). New test (23): in a steep region the long narrow window follows j/|ψ|² within 0.02, and the 50 nm circle misses by more than 0.08.
+- Physics and instructor question updated. Link parameters winl, winw (winr still gives a circle).
+
 ## 0.7.2 — 2026-11-22
 - Legend button (template header) shows or hides the explanatory labels in the drawing: what the two boxes are, the off-scale counts and the trace description. Data labels (times, readings, window counts) stay. The choice is remembered.
 - Instants: the full-height lines at the packet centre (dashed amber at t₁, solid cyan at t₂) read as a boundary between the two boxes. Nothing happens on those lines at instants, so they are now short ticks at the top and bottom edges. The arrows are still drawn at the packet centre at t₂, by convention. Planes are unchanged: there the lines are the detectors.
