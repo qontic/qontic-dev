@@ -511,6 +511,8 @@ export function createNumericalEngine() {
   let G = null;           // grid and geometry
   let state = null;       // textures, buffers
   let parts = [];         // particle objects for the app
+  let direct = false, ghostN = 0, ghosts = null, ghostVer = -1, ghostTotal = 0, passFraction = 0.2, lastDirect = { conditioned: false, shown: 0 };
+  const DIRECT_MAX = 12000;
   let partData = null, partBufA = null, partBufB = null, partVao = null, tf = null;
   let behind = false, frame = 0, simTau = 0, stepsDone = 0, stepCarry = 0, budget = 8;
   // Step budget per frame. With a GPU timer (EXT_disjoint_timer_query_webgl2) the GPU
@@ -832,20 +834,42 @@ export function createNumericalEngine() {
     // Norm of the initial packet in grid cells (amplitude Gaussians exp(-x^2/4 sigma^2)).
     G.norm0 = 2 * Math.PI * (p.sx / G.h) * (s * Math.sqrt(1 + (tauW / (2 * s * s)) ** 2) / G.h);
     // Particles from |psi0|^2: x ~ N(x0, sx), y ~ N(0, sigma_y(x)) of the paraxial beam.
+    // Direct PW (postselection on passing a slit): besides the shown particles, invisible
+    // "ghost" particles from |psi0|^2 are moved through the same wave. Pilot-wave motion is
+    // deterministic, and so are the absorption draws (hash of slot index and step number),
+    // so a ghost that crossed the wall in this packet crosses it again in the next packet
+    // if it starts from the same place in the same slot, with the same wave (no change of
+    // slits, detectors, current or blade in between). The next packet shows such ghosts:
+    // exact samples of |psi0|^2 conditioned on passing. The first packet, and the first
+    // after any change, is shown unconditioned.
     const n = p.particles;
-    partData = new Float32Array(n * 4);
-    parts = [];
-    for (let i = 0; i < n; i++) {
-      const x = G.x0 + randn() * p.sx, tau = (x - G.geom.source) / p.k, sy = s * Math.sqrt(1 + (tau / (2 * s * s)) ** 2), y = randn() * sy;
-      partData.set([G.gx(x), G.gy(y), 1, i + 1 + Math.random()], 4 * i);
-      parts.push({ x, y, x0: x, y0: y, path: [[x, y]], done: false, passed: false, absorbed: false, wallY: undefined, slitSide: undefined, numerical: true });
+    const fresh = () => { const x = G.x0 + randn() * p.sx, tau = (x - G.geom.source) / p.k, sy = s * Math.sqrt(1 + (tau / (2 * s * s)) ** 2); return [x, randn() * sy]; };
+    let cands = [];
+    const total = !direct ? n : ghosts && ghostN === n && ghostTotal > n ? ghostTotal : Math.min(DIRECT_MAX, n + Math.ceil(1.6 * n / Math.max(0.05, passFraction)) + 50);   // slot layout kept while it is reused
+    if (direct && ghosts && ghostVer === uniformVersion && ghostTotal === total) {
+      const passedG = ghosts.filter(g => g.passed);
+      if (ghosts.length) passFraction = Math.max(0.03, 0.7 * passFraction + 0.3 * passedG.length / ghosts.length);
+      for (let i = passedG.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [passedG[i], passedG[j]] = [passedG[j], passedG[i]]; }
+      cands = passedG.slice(0, n);
+    } else if (direct && ghosts && ghosts.length && ghostTotal === total) {
+      passFraction = Math.max(0.03, 0.7 * passFraction + 0.3 * ghosts.filter(g => g.passed).length / ghosts.length);
     }
+    lastDirect = { conditioned: cands.length > 0, shown: cands.length || n };
+    partData = new Float32Array(total * 4);
+    parts = []; const used = new Uint8Array(total);
+    for (const c of cands) { used[c.slot] = 1; partData.set([G.gx(c.x0), G.gy(c.y0), 1, c.seed], 4 * c.slot); parts.push({ x: c.x0, y: c.y0, x0: c.x0, y0: c.y0, slot: c.slot, path: [[c.x0, c.y0]], done: false, passed: false, absorbed: false, wallY: undefined, slitSide: undefined, numerical: true, conditioned: true }); }
+    const freeSlots = []; for (let i = 0; i < total; i++) if (!used[i]) freeSlots.push(i);
+    let fi = 0;
+    if (!cands.length) for (let i = 0; i < n && fi < freeSlots.length; i++) { const slot = freeSlots[fi++], [x, y] = fresh(); partData.set([G.gx(x), G.gy(y), 1, slot + 1 + Math.random()], 4 * slot); parts.push({ x, y, x0: x, y0: y, slot, path: [[x, y]], done: false, passed: false, absorbed: false, wallY: undefined, slitSide: undefined, numerical: true }); }
+    ghosts = direct ? [] : null; ghostTotal = total; ghostN = n;
+    if (direct) for (; fi < freeSlots.length; fi++) { const slot = freeSlots[fi], [x, y] = fresh(), seed = slot + 1 + Math.random(); partData.set([G.gx(x), G.gy(y), 1, seed], 4 * slot); ghosts.push({ slot, x0: x, y0: y, seed, passed: false, done: false }); }
+    frame = 0;
     for (const b of [partBufA, partBufB]) if (b) gl.deleteBuffer(b);
     if (partVao) gl.deleteVertexArray(partVao); if (tf) gl.deleteTransformFeedback(tf);
     partBufA = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, partBufA); gl.bufferData(gl.ARRAY_BUFFER, partData, gl.DYNAMIC_COPY);
     partBufB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, partBufB); gl.bufferData(gl.ARRAY_BUFFER, partData.byteLength, gl.DYNAMIC_COPY);
     partVao = gl.createVertexArray(); tf = gl.createTransformFeedback();
-    simTau = 0; stepsDone = 0; stepCarry = 0; uniformVersion++;
+    simTau = 0; stepsDone = 0; stepCarry = 0; uniformVersion++; ghostVer = uniformVersion;
     partGen++;
     if (partFence) { gl.deleteSync(partFence); partFence = null; }
     if (readBuf) gl.deleteBuffer(readBuf);
@@ -905,7 +929,7 @@ export function createNumericalEngine() {
     gl.bindVertexArray(partVao); gl.bindBuffer(gl.ARRAY_BUFFER, partBufA); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
     gl.enable(gl.RASTERIZER_DISCARD);
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf); gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, partBufB);
-    gl.beginTransformFeedback(gl.POINTS); gl.drawArrays(gl.POINTS, 0, parts.length); gl.endTransformFeedback();
+    gl.beginTransformFeedback(gl.POINTS); gl.drawArrays(gl.POINTS, 0, partData.length / 4); gl.endTransformFeedback();
     gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null); gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
     gl.disable(gl.RASTERIZER_DISCARD);
     [partBufA, partBufB] = [partBufB, partBufA];
@@ -991,8 +1015,9 @@ export function createNumericalEngine() {
   }
 
   function collect(events) {
-    for (let i = 0; i < parts.length; i++) {
-      const a = parts[i]; if (a.done) continue;
+    if (ghosts) for (const g of ghosts) { if (g.done) continue; const i = g.slot, x = G.mx(partData[4 * i]), mode = partData[4 * i + 2]; if (x >= G.geom.wall) g.passed = true; if (mode >= 2 && mode < 10) g.done = true; }
+    for (const a of parts) {
+      if (a.done) continue; const i = a.slot;
       const x = G.mx(partData[4 * i]), y = G.my(partData[4 * i + 1]), mode = partData[4 * i + 2];
       a.x = x; a.y = y; a.path.push([x, y]);
       if (!a.passed && x >= G.geom.wall) { a.passed = true; a.wallY = y; events.push({ type: "wall", a }); }
@@ -1107,8 +1132,13 @@ export function createNumericalEngine() {
       }
       return { mismatch: Math.sqrt(d / t), normTotal: t, normRecords: rb, records: L.length };
     },
-    setShutter(opts) { Object.assign(shutter, opts); uniformVersion++; refVersion++; },
-    setSpin(s) { spin = s; uniformVersion++; },
+    // Only a real change counts (it also invalidates the Direct PW trial particles).
+    setShutter(opts) { const before = JSON.stringify(shutter); Object.assign(shutter, opts); if (JSON.stringify(shutter) !== before) { uniformVersion++; refVersion++; } },
+    setSpin(s) { if (s !== spin) { spin = s; uniformVersion++; } },
+    // Direct PW: postselect shown particles on passing a slit (from the next packet on).
+    setDirect(on) { on = !!on; if (on !== direct) { direct = on; ghosts = null; } },
+    get direct() { return direct; },
+    get directState() { return { ...lastDirect, passFraction }; },
     setShowChange(on) { showChange = !!on; if (!on) freeReference(); },
     get changeActive() { return !!ref; },
     get changeStats() { return changeStats; },

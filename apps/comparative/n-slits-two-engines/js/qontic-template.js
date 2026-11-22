@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te24';
-import { mountMWBranching } from './mw-branching.js?cache=te24';
-import { APP_RELEASE } from './release.js?cache=te24';
-import { mountNSlitQuiz } from './quiz.js?cache=te24';
+import { mountPacketEngine } from './packet-engine.js?cache=te25';
+import { mountMWBranching } from './mw-branching.js?cache=te25';
+import { APP_RELEASE } from './release.js?cache=te25';
+import { mountNSlitQuiz } from './quiz.js?cache=te25';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te24';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te25';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -517,7 +517,7 @@ $(function () {
     ['packet-length', 'standard', 'range', 100],
     ['packet-slit-width', 'standard', 'range', 30],
     ['packet-particle-color', 'standard', 'select', 'uniform', 'slit'],
-    ['packet-directed-slits', 'expert', 'check', false],
+    ['packet-directed-slits', 'expert', 'check', true],
     ['packet-slit-extent', 'expert', 'range', 1.5],
     ['packet-slit-balance', 'expert', 'range', 0],
     ['packet-tail-length', 'expert', 'range', 250],

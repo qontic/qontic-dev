@@ -3,6 +3,13 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.25 — 2026-11-21
+- Direct PW (postselection on passing a slit) on by default at every level (Expert can switch it off). Pilot Wave now records as many hits per packet as the other views: at Basic 150 vs 150 in 20 s (before: 24, with 155 particles stopped at the wall). Caption and Physics text updated.
+- Direct PW in the numerical engine. Each packet also moves invisible trial particles from |ψ₀|²; those that cross the wall are shown in the next packet from the same start, slot and seed (motion and absorption draws are deterministic for an unchanged wave). Exact conditioned samples: in the check, 400 of 400 shown particles passed in every conditioned packet. The first packet after a start or a change is unconditioned. setShutter/setSpin no longer count unchanged values as changes.
+- 3D view works in the numerical engine (heights from the computed field, colours from the picture).
+- Numerical trails default to Lines (stored Glow moved once).
+- Checked: hit counts by view (Basic, Expert), numerical Direct PW over four packets, numerical 3D screenshot, te69, te12x, te27x, unit tests; no console errors.
+
 ## 1.0-dev.24 — 2026-11-21
 - Display tab: Background Grey (default) or Black, both engines; stored per browser, cleared by Reset all settings.
 - Numerical Pilot Wave glow trails are cleared when the next packet starts (and on reset). The fade now goes in steps of at least 15%: tiny per-frame fades are lost on an 8-bit canvas, which left faint trails on the screen for good.

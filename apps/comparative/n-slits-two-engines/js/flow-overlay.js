@@ -1,4 +1,4 @@
-import {sourceTransverse, sourceCoefficients, sourceEnvelope} from './source-packet-model.js?cache=te24';
+import {sourceTransverse, sourceCoefficients, sourceEnvelope} from './source-packet-model.js?cache=te25';
 
 // Spatial streamlines of the reduced forward model: dy/dx = v_y/k.
 // These are calculated field curves, not measured paths or particle histories.
