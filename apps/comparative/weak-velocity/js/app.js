@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.8.1';
-import * as M from './weak-model.js?v=0.8.1';
+import { APP_RELEASE } from './release.js?v=0.9.0';
+import * as M from './weak-model.js?v=0.9.0';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -21,7 +21,7 @@ mountQonticShell({
 // ---------------------------------------------------------------- model (units of 100 nm)
 // Geometry in nm, with the analytical double-slit app's ranges and limits.
 // screen = length of the screen (and of the transverse range shown and binned).
-const GEO_DEFAULT = Object.freeze({ wavelength: 50, slitWidth: 30, separation: 300, wall: 225, distance: 1000, screen: 800, sourceWidth: 200 });
+const GEO_DEFAULT = Object.freeze({ slits: 2, wavelength: 50, slitWidth: 30, separation: 300, wall: 225, distance: 1000, screen: 800, sourceWidth: 200 });
 const geo = { ...GEO_DEFAULT };
 const SLIT_EXTENT = 1.5;     // drawn opening ±1.5σ, as in the double-slit app
 let p, T0, Y_HALF;
@@ -684,6 +684,7 @@ const plotBox = (W, H) => ({ x: 58, y: 8, w: Math.max(40, W - 72), h: Math.max(4
 
 // ---------------------------------------------------------------- geometry controls (Advanced)
 const GEO_INPUTS = {
+  slits: { min: 1, max: 8, step: 1 },
   wavelength: { min: 1, max: 50, step: 1 },
   slitWidth: { min: 30, max: 200, step: 5 },
   separation: { min: 0, max: 2000, step: 5 },
@@ -703,7 +704,9 @@ function geometryLimits() {
   geo.slitWidth = Math.min(geo.slitWidth, lim.slitWidth.max);
   const base = { sy: geo.slitWidth / 100, k: 2 * Math.PI * 100 / geo.wavelength, wall: geo.wall / 100, sourceSigma: geo.sourceWidth / 100 };
   const room = Math.min(2000, Math.max(0, Math.floor(geo.screen - 2 * SLIT_EXTENT * geo.slitWidth)));
-  lim.separation.max = Math.max(0, Math.floor(100 * maximumCoreSafeSeparation(base, SLIT_EXTENT, room / 100) + 1e-9));
+  // N slits, equally spaced: the outermost pair must stay on the screen and hold the probability.
+  const n = Math.max(2, geo.slits), signs = Array.from({ length: n }, (_, i) => 2 * i - (n - 1));
+  lim.separation.max = Math.max(0, Math.floor(100 * maximumCoreSafeSeparation(base, SLIT_EXTENT, room / 100 / (n - 1), signs) + 1e-9));
   return lim;
 }
 function clampGeometry() {
@@ -819,7 +822,7 @@ function handles() {
   p.centers.forEach((c, i) => {
     out.push({ kind: 'slitWidth', x: xw, y: Yp(c + SLIT_EXTENT * p.sy) * 1, i, edge: 1 });
     out.push({ kind: 'slitWidth', x: xw, y: Yp(c - SLIT_EXTENT * p.sy), i, edge: -1 });
-    out.push({ kind: 'separation', x: xw, y: Yp(c), i });
+    if (Math.abs(i - (p.centers.length - 1) / 2) > 1e-9) out.push({ kind: 'separation', x: xw, y: Yp(c), i });   // no handle on a middle slit
   });
   out.push({ kind: 'screen', x: xs, y: Yp(Y_HALF), edge: 1 }, { kind: 'screen', x: xs, y: Yp(-Y_HALF), edge: -1 });
   out.push({ kind: 'distance', x: xs, y: Yp(0), line: true });
@@ -840,7 +843,7 @@ function hitHandle(px, py) {
   return null;
 }
 const CURSOR = { slitWidth: 'ns-resize', separation: 'ns-resize', screen: 'ns-resize', distance: 'ew-resize', gap: 'ew-resize', x1: 'ew-resize' };
-const GEO_LABEL = { wavelength: 'Wavelength', sourceWidth: 'Source width', wall: 'Source to slits' };
+const GEO_LABEL = { slits: 'Number of slits', wavelength: 'Wavelength', sourceWidth: 'Source width', wall: 'Source to slits' };
 const DRAG_LABEL = { slitWidth: 'Slit width σ', separation: 'Slit separation', screen: 'Screen length', distance: 'Slits to screen', gap: 'Gap to strong plane', x1: 'Weak plane' };
 function drawGrips(P) {
   const hs = handles();
@@ -925,7 +928,7 @@ canvas.addEventListener('pointerdown', (e) => {
   // The mapping at the start of the drag converts pointer positions to lengths.
   const m = appMap, invX = (qx) => m.x0 + (qx - m.box.x) / m.box.w * (m.x1 - m.x0);
   const invY = (qy) => m.Yh - (qy - m.box.y - 26) / (m.box.h - 44) * 2 * m.Yh;
-  drag = { kind: h.kind, invX, invY, px, py, label: '', m0: { x0: m.x0, x1: m.x1, Yh: m.Yh } };
+  drag = { kind: h.kind, i: h.i, invX, invY, px, py, label: '', m0: { x0: m.x0, x1: m.x1, Yh: m.Yh } };
   exp = null; map = null; anim = null; pending = true;
   dragMove(px, py);
 });
@@ -937,7 +940,7 @@ function dragMove(px, py) {
   const k = drag.kind, xm = drag.invX(px), ym = drag.invY(py);
   if (k === 'distance') geo.distance = nm(xm - p.wall);
   else if (k === 'screen') geo.screen = 2 * nm(Math.abs(ym));
-  else if (k === 'separation') geo.separation = 2 * nm(Math.abs(ym));
+  else if (k === 'separation') geo.separation = nm(Math.abs(ym)) / Math.abs((drag.i ?? 1) - (p.centers.length - 1) / 2);   // slit i sits at (i − (N−1)/2)·separation
   else if (k === 'slitWidth') { const c = p.centers.reduce((a, b) => (Math.abs(b - ym) < Math.abs(a - ym) ? b : a)); geo.slitWidth = nm(Math.abs(ym - c)) / SLIT_EXTENT; }
   else if (k === 'gap') { state.gap = Math.round(Math.max(10, Math.min(+$('#gap').max, nm(xm - p.wall) - state.x1)) / 5) * 5; $('#gap').value = state.gap; }
   else if (k === 'x1') { state.x1 = Math.round(Math.max(0, Math.min(+$('#x1').max, nm(xm - p.wall))) / 10) * 10; $('#x1').value = state.x1; }

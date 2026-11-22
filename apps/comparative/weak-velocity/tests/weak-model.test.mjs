@@ -327,4 +327,21 @@ test('windows: a long narrow window follows j/|psi|^2 where a wide circle does n
   assert.ok(Math.abs(disc - cur) > 0.08, `disc ${disc} vs ${cur}: the test point should be steep`);
 });
 
+test('N slits: the model takes 1–8 equal slits; probability conserved and the weak limit is j/|psi|^2', () => {
+  for (const n of [1, 3, 8]) {
+    const g = {...M.DEFAULT_GEOMETRY, slits: n, separation: n === 8 ? 150 : 300};
+    const q = M.modelParams(g), t = M.wallTerms(q);
+    assert.equal(q.centers.length, n);
+    if (n > 1) assert.ok(Math.abs(q.centers[1] - q.centers[0] - g.separation / 100) < 1e-12);
+    const norm = (x) => { let s = 0; for (let y = -12; y <= 12; y += 0.005) s += M.density(M.propagate(t, (x - q.wall) / q.k), y) * 0.005; return s; };
+    const a = norm(q.wall + 0.5), b = norm(q.wall + 9);
+    assert.ok(Math.abs(a - b) / a < 1e-3, `N=${n}: norm ${a} vs ${b}`);
+    const x1 = q.wall + 4, dtau = 0.5 / q.k, t1 = M.propagate(t, (x1 - q.wall) / q.k), t2 = M.propagate(t1, dtau);
+    for (const yf of [0.15, 0.9, -1.7]) {
+      const wl = M.weakValueLimit(t1, dtau, yf).re, cur = M.currentVelocity(t2, yf);
+      assert.ok(Math.abs((yf - wl) / dtau - cur) < 1e-6 * Math.max(1, Math.abs(cur)), `N=${n} yf=${yf}: ${(yf - wl) / dtau} vs ${cur}`);
+    }
+  }
+});
+
 console.log(`${passed} tests passed`);

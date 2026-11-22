@@ -35,9 +35,10 @@ export function modelParams(g = DEFAULT_GEOMETRY) {
     wall: g.wall / 100,
     screen: (g.wall + g.distance) / 100,
     sourceSigma: g.sourceWidth / 100,
-    centers: [-g.separation / 200, g.separation / 200],
-    apertureWeights: [1, 1],
-    slits: 2,
+    // N equal Gaussian slits, equally spaced (the same model as the analytical N-slit app).
+    centers: Array.from({length: g.slits ?? 2}, (_, i) => (i - ((g.slits ?? 2) - 1) / 2) * g.separation / 100),
+    apertureWeights: Array.from({length: g.slits ?? 2}, () => 1),
+    slits: g.slits ?? 2,
   };
 }
 

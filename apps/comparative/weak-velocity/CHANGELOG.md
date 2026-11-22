@@ -1,5 +1,13 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.0 — 2026-11-22
+- N slits: Advanced → Number of slits, 1–8 (Standard level and up; default 2). They are equal Gaussian slits, equally spaced, the same model as the analytical N-slit app. The Gaussian-sum model already took any number of apertures, so it stays exact. The separation limit keeps the outermost slits on the screen. Dragging an outer slit sets the spacing (slit i sits at (i − (N−1)/2) × separation); a middle slit has no handle. Link parameter `slits`.
+- Checked:
+  - 3 slits: map lines end 4.9 nm (rms) from the j/|ψ|² flow lines (500k runs per pair).
+  - 1 slit: −0.080 ± 0.014 measured against −0.078 predicted.
+  - 8 slits: the separation is limited to 100 nm.
+  - New test (24): probability is conserved and the weak limit equals j/|ψ|² for 1, 3 and 8 slits.
+
 ## 0.8.1 — 2026-11-22
 - Changing the pointer spread (or the weak plane, gap or packet length) after a run cleared the arrows. That was by design: a new setting is a new experiment. But it was easy to miss that Start was needed again. Now the new runs start when the slider is released, if there were results to replace (stages 2–4; stage 1 stays manual).
 - Display: "Moving wave (travelling crests)", at every level. Crests keep moving between runs. The density of a steady beam does not move; the crests (the phase) do. Turning it on from the density view switches to crests; turning it off switches back.
