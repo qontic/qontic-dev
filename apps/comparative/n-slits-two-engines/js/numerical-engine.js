@@ -444,7 +444,8 @@ void main(){
     float I = pow(clamp(1. - exp(-20.*rel), 0., 1.), 0.5);
     float ph = rel > 0. && vis > 0. ? atan(psi.y, psi.x) : 0.;
     vec3 dens = mix(vec3(0.26,0.13,0.49), vec3(0.72,0.50,0.99), pow(I, 0.7));
-    o = vec4(mix(dens, inRec ? recCol : phaseColor(ph), 0.77905591) * I * vis * uAlpha, 1.0);
+    float aC = I * vis * uAlpha;
+    o = vec4(mix(dens, inRec ? recCol : phaseColor(ph), 0.77905591) * aC, aC);   // premultiplied: fades into the background
     return;
   }
   // Visibility on a log scale (down to 1e-4 of the incoming peak), so the much

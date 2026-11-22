@@ -3,6 +3,10 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.23 — 2026-11-21
+- Classic palette back on the slate-grey background used before dev.17 (both engines), instead of black. The wave now fades into the background where it is weak (alpha = brightness), so it looks the same as before on black but leaves no dark halo on grey. Phase-key caption "Faint: weak wave · vivid: strong wave".
+- Checked: screenshots of the analytical engine at Basic and the numerical engine at Standard; no console errors.
+
 ## 1.0-dev.22 — 2026-11-21
 - Many Worlds at Basic now shows the world splitting at each hit. The slow-motion branching option is visible at Basic and on by default there (remembered if the user switches it off). Plain label "Slow motion: the world splits at each hit", a one-line hint on what each small picture is, and a Basic status line without "Born weight".
 - Basic caption reads "one electron" when a wave stands for one electron.
