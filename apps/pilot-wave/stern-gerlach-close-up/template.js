@@ -1,4 +1,4 @@
-import '../../../shared/qontic-controls.js?v=5';
+import '../../../shared/qontic-controls.js?v=6';
 import { mountQonticEngineTab } from '../../../shared/qontic-engine-tab.js?v=1';
 import { mountQonticShell } from '../../../shared/qontic-shell.js';
 import { mountQonticMedia } from '../../../shared/qontic-media.js?v=legend1';
@@ -84,7 +84,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=39'));
+  ({ simulation } = await import('./main.js?v=40'));
   if (new URLSearchParams(location.search).has('debug')) window.qonticSG = simulation;
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
@@ -186,7 +186,9 @@ function prepare({ spin, reading = 'pw' }) {
     setRunning(false);
   };
 }
-// A still side view (x to the right, z up) that does not show the outcome.
+// A still side view (beam to the right, z up) that does not show the outcome: the magnet only
+// over its own stretch (N red below, S blue above), field lines with arrowheads between the poles,
+// and a shading that gets brighter toward the top where the field is stronger.
 function drawSideView(c, { dot = false } = {}) {
   const g = c.getContext('2d');
   const W = c.width, H = c.height;
@@ -196,10 +198,21 @@ function drawSideView(c, { dot = false } = {}) {
   g.strokeStyle = 'rgba(160, 190, 210, 0.45)';
   g.lineWidth = 1;
   g.strokeRect(x0, y0, x1 - x0, y1 - y0);
-  for (let x = x0 + 18; x < x1 - 20; x += 24) {
+  const m0 = x0 + 0.32 * (x1 - x0), m1 = x0 + 0.68 * (x1 - x0);
+  const shade = g.createLinearGradient(0, y1, 0, y0);
+  shade.addColorStop(0, 'rgba(255, 80, 50, 0.03)');
+  shade.addColorStop(1, 'rgba(255, 80, 50, 0.22)');
+  g.fillStyle = shade;
+  g.fillRect(m0, y0, m1 - m0, y1 - y0);
+  g.fillStyle = '#7a1f1f'; g.fillRect(m0, y1, m1 - m0, 14);   // N pole
+  g.fillStyle = '#1f2f7a'; g.fillRect(m0, y0 - 14, m1 - m0, 14); // S pole
+  for (let x = m0 + 14; x < m1 - 8; x += 22) {
     g.strokeStyle = 'rgba(255, 70, 40, 0.75)';
     g.lineWidth = 2;
     g.beginPath(); g.moveTo(x, y1); g.lineTo(x, y0); g.stroke();
+    g.fillStyle = 'rgba(255, 70, 40, 0.9)';
+    const ya = (y0 + y1) / 2 - 6;
+    g.beginPath(); g.moveTo(x, ya - 7); g.lineTo(x - 5, ya + 3); g.lineTo(x + 5, ya + 3); g.closePath(); g.fill();
   }
   g.strokeStyle = '#5cc6f0';
   g.lineWidth = 3;
@@ -207,8 +220,8 @@ function drawSideView(c, { dot = false } = {}) {
   const cx = x0 + 70, cz = (y0 + y1) / 2, r = 42;
   const blob = g.createRadialGradient(cx, cz, 0, cx, cz, r);
   blob.addColorStop(0, 'rgba(232, 251, 255, 0.95)');
-  blob.addColorStop(0.45, 'rgba(74, 168, 255, 0.8)');
-  blob.addColorStop(1, 'rgba(40, 90, 220, 0)');
+  blob.addColorStop(0.45, 'rgba(171, 204, 255, 0.8)');
+  blob.addColorStop(1, 'rgba(120, 160, 230, 0)');
   g.fillStyle = blob;
   g.beginPath(); g.arc(cx, cz, r, 0, 2 * Math.PI); g.fill();
   if (dot) {
@@ -219,7 +232,7 @@ function drawSideView(c, { dot = false } = {}) {
   g.font = '13px Inter, system-ui, sans-serif';
   g.fillText('beam →', cx - 22, y1 + 22);
   g.fillText('z ↑', 6, y0 - 10);
-  g.fillText('B up, stronger toward the top', x0 + 40, y0 - 12);
+  g.fillText('magnet: B up, stronger toward the top', m0 - 40, y0 - 22);
   g.fillText('screen', x1 - 40, y1 + 22);
 }
 const spinAnswers = [
@@ -248,8 +261,8 @@ mountQonticQuiz({
       answer: 'split', answers: spinAnswers, caption: 'Side view at the start. Initial spin: equal +z and −z.',
       prepare: prepare({ spin: 1 }), draw: c => drawSideView(c),
       plain: 'It splits: the +z part goes up and the −z part goes down, each with half the weight.',
-      explain: 'Apart from a small y component of the field, which barely matters here, the Pauli equation acts on each spin component separately, so the two components feel opposite forces. The uniform part of the field keeps them from mixing, so each part keeps weight ½.' },
-    { question: `${PW} Same superposition. The yellow particle starts in the upper half of the packet. Where does it end up?`,
+      explain: 'Apart from a small x component of the field, which barely matters here, the Pauli equation acts on each spin component separately, so the two components feel opposite forces. The uniform part of the field keeps them from mixing, so each part keeps weight ½.' },
+    { question: `${PW} Same superposition. The marked particle (yellow in the picture) starts in the upper half of the packet. Where does it end up?`,
       answer: 'upper', caption: 'Side view at the start. The yellow dot is the particle.',
       answers: [
         { id: 'upper', label: 'In the upper branch' },
@@ -282,7 +295,7 @@ mountQonticQuiz({
       prepare: prepare({ spin: 1, reading: 'cpn' }), draw: c => drawSideView(c),
       plain: 'The orthodox reading gives it no position until it is detected.',
       explain: 'Only the wave is described. At the screen a single hit appears in one half, with probability ½ each. "In one branch, we do not know which" is the pilot-wave answer; the simulation shows only the cloud in this reading.' },
-    { question: `${PW} The spin term of the guidance law is switched off (Advanced: Spin term). What changes at the screen?`,
+    { question: `${PW} The spin term of the guidance law is switched off (Advanced tab, Expert level: Spin term). What changes at the screen?`,
       answer: 'paths', caption: 'Side view at the start.', watch: false,
       answers: [
         { id: 'paths', label: 'Only the individual trajectories; the counts have the same statistics' },

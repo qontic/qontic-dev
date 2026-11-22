@@ -320,7 +320,10 @@ function formatValue(key, v, format) {
   try { return format(v); } catch { return fmt(v); }
 }
 function refreshUnitLabels() {
-  for (const { key, val, format } of unitLabels) val.textContent = formatValue(key, params[key], format);
+  for (const { key, val, format } of unitLabels) {
+    val.textContent = formatValue(key, params[key], format);
+    document.getElementById(key)?.setAttribute("aria-valuetext", val.textContent);
+  }
 }
 const controlSyncs = {};
 function addSlider(key, label, min, max, step, onChange = null, format = null) {
@@ -344,10 +347,12 @@ function addSlider(key, label, min, max, step, onChange = null, format = null) {
   val.textContent = formatValue(key, params[key], format);
   if (format) unitLabels.push({ key, val, format });
 
+  input.setAttribute("aria-valuetext", formatValue(key, params[key], format));
   input.addEventListener("input", () => {
     const v = parseFloat(input.value);
     params[key] = v;
     val.textContent = formatValue(key, v, format);
+    input.setAttribute("aria-valuetext", val.textContent);
     requestRedraw();
   });
   input.addEventListener("change", () => {
@@ -376,6 +381,7 @@ function addChips(key, values, onSet, format = v => `${v}°`) {
     b.className = "qontic-app-toggle chip";
     b.textContent = format(v);
     b.title = `Set to ${format(v)}`;
+    b.setAttribute("aria-label", `${document.querySelector(`label[for="${key}"]`)?.textContent || key}: ${format(v)}`);
     b.addEventListener("click", () => {
       params[key] = v;
       syncSlider(key);
@@ -693,8 +699,10 @@ function applyLevelDefaults(level) {
   return true;
 }
 
-window.addEventListener("keydown", event => {
-  if (!simulationAvailable || event.defaultPrevented || event.target.closest?.("button, a, summary")) return;
+// Camera keys (W/A/S/D/Q/E) act only while the canvas has focus (click it or Tab to it), so
+// single-letter shortcuts never fire while the user works elsewhere on the page.
+canvas.addEventListener("keydown", event => {
+  if (!simulationAvailable || event.defaultPrevented) return;
   handleCameraKey(event);
 });
 
@@ -1759,7 +1767,9 @@ function cameraFrame() {
   ];
   const aspect = Math.max(1e-3, canvas.width / Math.max(1, canvas.height));
   const view = mat4LookAt(eye, target, up);
-  const halfFovTangent = Math.tan(Math.PI / 9) / Math.min(1, aspect);
+  // Vertical field of view: 40° on a landscape canvas; on a narrower canvas (phone portrait) it
+  // widens so the horizontal extent stays that of a 1.5:1 canvas and the whole flight fits.
+  const halfFovTangent = Math.tan(Math.PI / 9) * Math.max(1, 1.5 / aspect);
   const fovy = 2 * Math.atan(halfFovTangent);
   let proj;
   if ((params.cameraProjection | 0) === 1) {
@@ -1943,13 +1953,24 @@ function drawSpinSphere() {
 function updateSpinSphereText() {
   if (!spinSphereText) return;
   const s = spinVector();
-  const m = magnets()[0];
+  const ms = magnets();
+  const m = ms[0];
   const c = Math.max(-1, Math.min(1, s[1] * Math.sin(m.theta) + s[2] * Math.cos(m.theta)));
   const gamma = Math.acos(c) / DEG;
   const pPlus = 0.5 * (1 + c);
   const p = axisName(m.theta), q = axisName(m.theta + Math.PI);
+  const pct = x => `${(100 * x).toFixed(0)}%`;
   const note = magnetPreset().b0 < 1 ? `<br><span class="spin-sphere-note">Weak field: spins can flip.</span>` : "";
-  spinSphereText.innerHTML = `Angle between <span class="c-spin">spin</span> and <span class="c-mag">magnet</span>: <b>${Math.round(gamma)}°</b><br>${(100 * pPlus).toFixed(0)}% toward ${p}<br>${(100 * (1 - pPlus)).toFixed(0)}% toward ${q}${note}`;
+  let rows = `P(${p}) = cos²(γ/2) = ${pct(pPlus)}<br>P(${q}) = sin²(γ/2) = ${pct(1 - pPlus)}`;
+  if (ms.length > 1) {
+    // Second magnet at angle δ to the first: each part leaves the first magnet with spin ±n1, so
+    // the four outcomes have probabilities P(±1) (1 ± cos δ)/2 and P(±1) (1 ∓ cos δ)/2.
+    const m2 = ms[1];
+    const cd = Math.cos(m2.theta - m.theta);
+    const p2 = axisName(m2.theta), q2 = axisName(m2.theta + Math.PI);
+    rows = `${p}, then ${p2}: ${pct(pPlus * (1 + cd) / 2)}<br>${p}, then ${q2}: ${pct(pPlus * (1 - cd) / 2)}<br>${q}, then ${p2}: ${pct((1 - pPlus) * (1 - cd) / 2)}<br>${q}, then ${q2}: ${pct((1 - pPlus) * (1 + cd) / 2)}`;
+  }
+  spinSphereText.innerHTML = `Angle γ between <span class="c-spin">spin</span> and <span class="c-mag">magnet</span>: <b>${Math.round(gamma)}°</b><br>${rows}${note}`;
   spinSphereText.title = "γ: angle between the spin (orange arrow) and the magnet axis (red dashed line). Expected fractions: cos²(γ/2) and sin²(γ/2).";
 }
 
@@ -2085,7 +2106,7 @@ function updateHitDisplay() {
   }
   hitDisplay.hidden = !dotsShown() || hitCounts.total <= 0;
   const rows = labels.map((l, k) => `${colourLabel(l, k, labels.length)}: ${hitCounts.counts[k] ?? 0}`).join("<br>");
-  hitDisplay.innerHTML = `<b>Dots at the screen</b><br>${rows}<br>${hitCounts.arrived} of ${hitCounts.total} arrived`;
+  hitDisplay.innerHTML = `<b>Dots at the screen</b><br>${rows}<br>${hitCounts.arrived} of ${hitCounts.total} arrived${hitCounts.arrived > 0 ? `<br><span class="plate-hits-note">Counted by halves of the screen: a few dots in a spot's tail can land past the middle.</span>` : ""}`;
 }
 
 // Orthodox reading: sum |Psi|^2 above and below the middle on the GPU, then read the sums back.
@@ -2367,6 +2388,7 @@ const legendDots = document.getElementById("legend-dots");
 const legendCloudText = document.querySelector("#legend-cloud .legend-text");
 const legendPlateText = document.querySelector("#legend-plate .legend-text");
 const legendSpin = document.getElementById("legend-spin");
+const legendMagnet = document.getElementById("legend-magnet");
 const legendSpinText = document.querySelector("#legend-spin .legend-text");
 function updateStats() {
   if (legendField) legendField.hidden = !(params.sgFieldOn && params.sgGradient > 0);
@@ -2384,6 +2406,7 @@ function updateStats() {
   if (legendPlateText) legendPlateText.textContent = reading === "pw"
     ? "Screen: a dot stops where it reaches it."
     : "Screen: where the position is measured. The chance of a hit in each region is the weight of |Ψ|² that reaches it.";
+  if (legendMagnet) legendMagnet.innerHTML = `<i class="swatch magnet"></i>Magnet poles: N (red) and S (blue)${fieldShape() ? ", the S pole a knife edge" : ""}. The field points from N to S and is stronger near S.`;
   const spinText = spinLabel();
   updateSpinSphereText();
   refreshUnitLabels();
@@ -2931,7 +2954,7 @@ function niceStep(range, target = 5) {
   for (const f of [1, 2, 5, 10]) if (f * p >= raw) return f * p;
   return 10 * p;
 }
-function drawAxis(g, camera, w, h, dpr, { from, to, unitScale, offset, unit, name, skipStartLabel = false }) {
+function drawAxis(g, camera, w, h, dpr, { from, to, unitScale, offset, unit, name, skipStartLabel = false, skipEndLabel = false, namePos = 1 }) {
   const A = projectGridToScreen(camera, from, w, h);
   const B = projectGridToScreen(camera, to, w, h);
   if (!A || !B) return;
@@ -2949,9 +2972,12 @@ function drawAxis(g, camera, w, h, dpr, { from, to, unitScale, offset, unit, nam
     const px = A[0] + t * dx, py = A[1] + t * dy;
     g.beginPath(); g.moveTo(px, py); g.lineTo(px + 6 * dpr * nx, py + 6 * dpr * ny); g.stroke();
     if (skipStartLabel && Math.hypot(px - A[0], py - A[1]) < 18 * dpr) continue;  // corner shared with another axis
+    if (skipEndLabel && Math.hypot(px - B[0], py - B[1]) < 26 * dpr) continue;
     g.fillText(v.toFixed(decimals), px + 9 * dpr * nx - 8 * dpr, py + 9 * dpr * ny + 4 * dpr);
   }
-  g.fillText(`${name} (${unit})`, B[0] + 22 * dpr * nx, B[1] + 22 * dpr * ny);
+  // namePos: 0 = start, 0.5 = middle, 1 = end of the axis (axes that meet at a corner put their
+  // names elsewhere so they do not overlap).
+  g.fillText(`${name} (${unit})`, A[0] + namePos * dx + 24 * dpr * nx, A[1] + namePos * dy + 24 * dpr * ny);
 }
 function drawLabScale(camera) {
   if (!labCanvas) return;
@@ -2973,10 +2999,10 @@ function drawLabScale(camera) {
   const x0 = tunnelStartX();
   const xp = detectorPlateXGrid();
   const yMax = simH - 1, zMax = simD - 1;
-  drawAxis(g, camera, w, h, dpr, { from: [x0, 0, 0], to: [xp, 0, 0], unitScale: LAB_SCALE.sx * 100, offset: 0, unit: "cm", name: "y" });
+  drawAxis(g, camera, w, h, dpr, { from: [x0, 0, 0], to: [xp, 0, 0], unitScale: LAB_SCALE.sx * 100, offset: 0, unit: "cm", name: "y", namePos: 0.5 });
   drawAxis(g, camera, w, h, dpr, { from: [xp, 0, 0], to: [xp, 0, zMax], unitScale: LAB_SCALE.sz * 1e6, offset: 0.5 * zMax, unit: "µm", name: "z", skipStartLabel: true });
   // Lab x = −grid y: drawn from grid y = yMax toward 0, so the labels increase toward lab +x.
-  drawAxis(g, camera, w, h, dpr, { from: [xp, yMax, 0], to: [xp, 0, 0], unitScale: LAB_SCALE.sz * 1e6, offset: 0.5 * yMax, unit: "µm", name: "x", skipStartLabel: true });
+  drawAxis(g, camera, w, h, dpr, { from: [xp, yMax, 0], to: [xp, 0, 0], unitScale: LAB_SCALE.sz * 1e6, offset: 0.5 * yMax, unit: "µm", name: "x", skipStartLabel: true, skipEndLabel: true, namePos: 0 });
 }
 
 // Time for the packet, including its tail, to pass the detector plate.
@@ -3097,6 +3123,8 @@ function makeEditHandle(key, label, title, cursor) {
   b.title = title;
   b.style.cursor = cursor;
   b.addEventListener("pointerdown", e => startEditDrag(e, key));
+  b.addEventListener("keydown", e => nudgeEditHandle(e, key));
+  b.setAttribute("aria-label", `${title} Arrow keys move it.`);
   editLayer.append(b);
   editHandles[key] = b;
 }
@@ -3154,6 +3182,26 @@ function positionEditHandles(camera) {
   }
 }
 let editDrag = null;
+// Keyboard: arrow keys move a handle (Left/Down smaller, Right/Up larger), Shift for larger steps.
+function nudgeEditHandle(e, key) {
+  const dir = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+  if (!dir) return;
+  e.preventDefault();
+  const k = e.shiftKey ? 5 : 1;
+  if (key === "angle") {
+    params.magnetAngle = ((params.magnetAngle + dir * k * 5) % 360 + 360) % 360;
+    syncSlider("magnetAngle");
+  } else if (key === "approach") {
+    params.approachCells = clamp(params.approachCells + dir * k * BEAM_SCALE, 8 * BEAM_SCALE, 60 * BEAM_SCALE);
+  } else if (key === "magnetEnd") {
+    params.magnetScale = Math.round(100 * clamp(params.magnetScale + dir * k * 0.05, 0.25, 2.5)) / 100;
+  } else if (key === "screen") {
+    params.screenDistance = clamp(params.screenDistance + dir * k * BEAM_SCALE, 10 * BEAM_SCALE, 60 * BEAM_SCALE);
+    syncSlider("screenDistance");
+  }
+  editReadout.textContent = editReadoutText(key);
+  finishGeometryChange();
+}
 function startEditDrag(e, key) {
   e.preventDefault();
   editHandles[key].setPointerCapture(e.pointerId);
@@ -3525,6 +3573,8 @@ export const simulation = {
       device.queue.submit([enc.finish()]);
     }
     await device.queue.onSubmittedWorkDone();
+    requestTrailClear();   // trails are stamped only by the animation loop
+    requestRedraw();
     return { engine, stepMs: +stepMs.toFixed(3), renderMs: +((performance.now() - t1) / 20).toFixed(3), stepsPerFrame: params.stepsPerFrame };
   },
   engine3Info: () => ({ ...engine3Available(), megabytes: Math.ceil(engine3Bytes() * 2 / 2 ** 20) }),

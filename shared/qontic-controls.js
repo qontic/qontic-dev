@@ -115,6 +115,22 @@ class QonticControls extends HTMLElement {
         this.dispatch("tab", { tab: button.dataset.tab });
       }
     });
+    // Keyboard (WAI-ARIA radiogroup/tablist pattern): Left/Right (or Up/Down) and Home/End move to
+    // the previous/next level or tab and select it; only the selected level button is in the Tab
+    // order, so without this keyboard users could not leave the current level.
+    const arrowSelect = (box, selector) => box.addEventListener("keydown", event => {
+      const items = [...box.querySelectorAll(selector)].filter(b => !b.hidden);
+      const i = items.indexOf(event.target.closest(selector));
+      if (i < 0) return;
+      const j = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[event.key];
+      if (j === undefined) return;
+      event.preventDefault();
+      const next = items[(j + items.length) % items.length];
+      next.focus();
+      next.click();
+    });
+    arrowSelect(root.querySelector(".qontic-level"), "[data-level]");
+    arrowSelect(root.querySelector(".qontic-control-tabs"), "[data-tab]");
     root.querySelector(".qontic-theme-toggle").addEventListener("click", () => {
       const theme = (this.getAttribute("theme") || "dark") === "light" ? "dark" : "light";
       this.setAttribute("theme", theme);
