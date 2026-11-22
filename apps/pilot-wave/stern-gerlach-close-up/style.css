@@ -129,8 +129,8 @@ body:not(.simulation-ready) .engine-badge { display: none; }
 body.sg-cb-palette #scene-legend .swatch.dots { background: linear-gradient(90deg, #4c9be8 50%, #f29e29 50%); }
 body.sg-cb-palette #scene-legend .swatch.field { border-color: #a6a9b3; }
 .sg-hidden-row { display: none !important; }
-/* Plain introduction at the Basic level. */
-.prompt.intro { font-size: 12px; line-height: 1.45; opacity: 0.92; }
+/* Plain introduction at the Basic level, below the canvas. */
+.stage-intro { margin: 0 2px; font-size: 12px; line-height: 1.45; color: #b9cad6; }
 /* Projector-size screens: larger counts box. */
 @media (max-height: 640px) and (min-width: 900px) {
   .plate-hits { font-size: 13px; max-width: 250px; }

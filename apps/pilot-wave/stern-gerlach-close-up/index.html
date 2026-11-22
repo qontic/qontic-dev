@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../../../shared/qontic-shell.css" />
   <link rel="stylesheet" href="../../../shared/qontic-app.css" />
   <link rel="stylesheet" href="../../../shared/qontic-quiz.css?v=8" />
-  <link rel="stylesheet" href="./style.css?v=24" />
+  <link rel="stylesheet" href="./style.css?v=25" />
   <link rel="modulepreload" href="./main.js?v=32" />
 </head>
 <body>
@@ -58,13 +58,13 @@
         <span id="camera-hint">Drag to rotate; wheel or − + to zoom. Keys with the canvas focused: Space start/stop, R reset, W/A/S/D/Q/E turn the view.</span>
         <a class="qontic-app-toggle controls-link" href="#ui">Controls ↓</a>
       </div>
+      <p class="stage-intro" data-level-max="basic">In 1922 Stern and Gerlach sent silver atoms through a magnet whose field is stronger on one side. Each atom is a tiny magnet (its spin), and instead of a smear the atoms landed in two separate spots. Here you set the spin direction and the magnet's direction, and the sphere predicts how many land in each spot. <b>Pilot Wave</b> shows each atom as a dot guided by the wave; <b>Orthodox</b> shows only the wave and, at the screen, where atoms are detected. XZ looks at the screen face-on.</p>
     </section>
     <aside class="qontic-sidebar qontic-panel qontic-control-panel" id="ui" tabindex="-1" aria-label="Simulation controls">
       <qontic-controls running="false" speed="1" speed-min="0.1" speed-max="3.8" speed-step="0.1"
         show-reset="true" show-rerun="false" show-autorun="true" auto-run="true" show-engine="true" show-interpretation="true" interpretations="cpn,pw" interpretation="pw" interpretation-style="segmented" disabled></qontic-controls>
       <div class="qontic-control-body" id="controls">
         <div data-control-pane="core">
-          <p class="prompt intro" data-level-max="basic">In 1922 Stern and Gerlach sent silver atoms through a magnet whose field is stronger on one side. Each atom is a tiny magnet (its spin), and instead of a smear the atoms landed in two separate spots. Here you set the spin direction and the magnet's direction, and the sphere predicts how many land in each spot. <b>Pilot Wave</b> shows each atom as a dot guided by the wave; <b>Orthodox</b> shows only the wave and, at the screen, where atoms are detected. XZ looks at the screen face-on.</p>
           <p class="prompt">Point the spin, turn the magnet, and compare the dots at the screen with the expected split.</p>
         </div>
         <div data-control-pane="engine" hidden></div>
