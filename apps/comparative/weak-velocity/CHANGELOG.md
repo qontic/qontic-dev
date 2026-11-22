@@ -1,5 +1,9 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.7.2 — 2026-11-22
+- Legend button (template header) shows or hides the explanatory labels in the drawing: what the two boxes are, the off-scale counts and the trace description. Data labels (times, readings, window counts) stay. The choice is remembered.
+- Instants: the full-height lines at the packet centre (dashed amber at t₁, solid cyan at t₂) read as a boundary between the two boxes. Nothing happens on those lines at instants, so they are now short ticks at the top and bottom edges. The arrows are still drawn at the packet centre at t₂, by convention. Planes are unchanged: there the lines are the detectors.
+
 ## 0.7.1 — 2026-11-22
 - Pointer readings beyond the drawing (about one in eight with a 200 nm pointer) were silently left out of the drawing. They are now counted and marked at the top and bottom edges ("6% of readings above the drawing"), in stage 2 at planes and at instants and for the window's cloud in stage 4. They always entered the averages.
 - Stage 4: when the run finishes, the field is drawn as in stage 3. Arrows come from windows on a grid. Lines are traced back from windows next to the screen, started at equal shares of the runs detected there. Optional dashed j/|ψ|² flow lines are followed backward from the same windows. The same three switches as stage 3 apply, and the Lines slider sets the number of lines. The caption gives the rms difference at the line ends (16 nm at the defaults), mostly from window averaging.

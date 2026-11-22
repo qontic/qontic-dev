@@ -3,8 +3,8 @@ import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.7.1';
-import * as M from './weak-model.js?v=0.7.1';
+import { APP_RELEASE } from './release.js?v=0.7.2';
+import * as M from './weak-model.js?v=0.7.2';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -60,6 +60,7 @@ const state = {
   waveMode: 'density', arrowEvery: 1, nLines: 20,
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, fixedTime: false, bohm: false, scatter: true, planeRuns: true },
   selected: null, shiftView: false,
+  labels: (() => { try { return localStorage.getItem('qontic-weak-velocity-labels') !== 'false'; } catch (e) { return true; } })(),   // explanatory labels in the drawing (Legend button)
   win: { r: 25, x: 550, y: 50, pinned: false, trace: false },   // stage 4: window centre (nm behind the slits), radius
   timing: 'plane', packet: 150, recx: false, cell: null,
   pauseEach: true,   // stage 1: stop after each run so it can be looked at   // measure at planes or at instants; packet length in nm
@@ -1239,15 +1240,25 @@ function drawApparatus(P, box) {
     }
     // What the frames are: the packet's extent at each instant (the particle is somewhere inside).
     const narrowF = X(exp.x2 + 3 * s) - X(exp.x1 - 3 * s) < 380;
-    backedText(P, narrowF ? 'dashed: the packet at t₁ (pointer coupled)' : 'dashed box: the packet at t₁ — the particle is somewhere inside when the pointer is coupled', X(exp.x1 - 3 * s) + 5, Yp(Y_HALF) + 28, { color: P.weak, size: 10 });
-    backedText(P, narrowF ? 'solid: the packet at t₂ (position measured)' : `solid box: the packet at t₂, ${state.gap} nm further on — where it is when its position is measured`, X(exp.x2 + 3 * s) - 6, Yp(Y_HALF) + 42, { color: P.strong, size: 10, align: 'right' });
+    if (state.labels) backedText(P, narrowF ? 'dashed: the packet at t₁ (pointer coupled)' : 'dashed box: the packet at t₁ — the particle is somewhere inside when the pointer is coupled', X(exp.x1 - 3 * s) + 5, Yp(Y_HALF) + 28, { color: P.weak, size: 10 });
+    if (state.labels) backedText(P, narrowF ? 'solid: the packet at t₂ (position measured)' : `solid box: the packet at t₂, ${state.gap} nm further on — where it is when its position is measured`, X(exp.x2 + 3 * s) - 6, Yp(Y_HALF) + 42, { color: P.strong, size: 10, align: 'right' });
     if (state.recx && exp.mix) { const w = exp.mix.width / 2, d = cellDx(); ctx.globalAlpha = 0.25; ctx.fillStyle = P.strong; ctx.fillRect(X(exp.x2 + d - w), top, X(exp.x2 + d + w) - X(exp.x2 + d - w), h); ctx.fillStyle = P.weak; ctx.fillRect(X(exp.x1 + d - w), top, X(exp.x1 + d + w) - X(exp.x1 + d - w), h); ctx.globalAlpha = 1; }
   }
   // the current pair of planes (at instants: the packet centre at t1 and t2)
   if (exp && !(map?.done)) {
-    ctx.lineWidth = instant() ? 1 : 1.5;
-    ctx.strokeStyle = P.weak; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(exp.x1), Yp(Y_HALF)); ctx.lineTo(X(exp.x1), Yp(-Y_HALF)); ctx.stroke(); ctx.setLineDash([]);
-    ctx.strokeStyle = P.strong; ctx.beginPath(); ctx.moveTo(X(exp.x2), Yp(Y_HALF)); ctx.lineTo(X(exp.x2), Yp(-Y_HALF)); ctx.stroke();
+    if (instant()) {
+      // At instants nothing happens on a line: the packet centre at t1 and t2 is
+      // marked by ticks at the edges only (the arrows are drawn there by convention).
+      ctx.lineWidth = 2;
+      for (const [x, col] of [[exp.x1, P.weak], [exp.x2, P.strong]]) {
+        ctx.strokeStyle = col; ctx.beginPath();
+        ctx.moveTo(X(x), Yp(Y_HALF)); ctx.lineTo(X(x), Yp(Y_HALF) + 12); ctx.moveTo(X(x), Yp(-Y_HALF)); ctx.lineTo(X(x), Yp(-Y_HALF) - 12); ctx.stroke();
+      }
+    } else {
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = P.weak; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(exp.x1), Yp(Y_HALF)); ctx.lineTo(X(exp.x1), Yp(-Y_HALF)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = P.strong; ctx.beginPath(); ctx.moveTo(X(exp.x2), Yp(Y_HALF)); ctx.lineTo(X(exp.x2), Yp(-Y_HALF)); ctx.stroke();
+    }
     // At instants the two times are labelled (electron with this wavelength; see Results).
     const tw = map ? '' : ` = ${fmtPs(psAt(nm(exp.x1 - p.wall)))}`, ts = map ? '' : ` = ${fmtPs(psAt(nm(exp.x2 - p.wall)))}`;
     text(instant() ? `packet centre at t₁${tw}` : 'weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
@@ -1402,7 +1413,7 @@ function drawPointerGauge(P, box, X, Yp) {
 // Pointer readings beyond the drawing: a wide pointer reads far outside the
 // pattern. They are counted and marked at the edge rather than dropped silently.
 function offScale(P, x, top, bot, above, below, n) {
-  if (!n) return;
+  if (!n || !state.labels) return;
   ctx.globalAlpha = 1; ctx.fillStyle = P.weak;
   for (const [cnt, y, d] of [[above, top + 2, 1], [below, bot - 2, -1]]) {
     if (!cnt) continue;
@@ -1477,7 +1488,7 @@ function drawWindowStage(P, X, Yp) {
     pts.forEach(({ c: a }) => { ctx.beginPath(); ctx.arc(X(a.x), Yp(a.y), 3.5, 0, Math.PI * 2); ctx.fill(); });
     ctx.strokeStyle = P.light ? '#36505f' : '#e8f0f4'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]); ctx.beginPath(); ref.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Yp(y)) : ctx.moveTo(X(x), Yp(y)))); ctx.stroke(); ctx.setLineDash([]);
     const dEnd = nm(ref[ref.length - 1][1] - last.y);
-    if (canvas.clientWidth < 560) backedText(P, `trace · dashed: j/|ψ|² flow, ${dEnd >= 0 ? '+' : '−'}${Math.abs(dEnd).toFixed(1)} nm`, X(last.x) + 6, Yp(last.y) + (last.y > 0 ? 18 : -10), { color: P.text, size: 10 });
+    if (!state.labels) { /* explanatory label hidden */ } else if (canvas.clientWidth < 560) backedText(P, `trace · dashed: j/|ψ|² flow, ${dEnd >= 0 ? '+' : '−'}${Math.abs(dEnd).toFixed(1)} nm`, X(last.x) + 6, Yp(last.y) + (last.y > 0 ? 18 : -10), { color: P.text, size: 10 });
     else backedText(P, `trace (amber) · j/|ψ|² flow line from the window (dashed), ${nm(ref[ref.length - 1][1] - last.y) >= 0 ? '+' : '−'}${Math.abs(nm(ref[ref.length - 1][1] - last.y)).toFixed(1)} nm from the trace here`, X(last.x) + 6, Yp(last.y) + (last.y > 0 ? 18 : -10), { color: P.text, size: 10 });
   }
 }
@@ -1871,6 +1882,12 @@ const media = mountQonticMedia({
     setVisible: (v) => { distanceScale.setVisible(v); try { localStorage.setItem('qontic-weak-velocity-scale-visible', String(v)); } catch (e) { /* ignore */ } },
   },
   coordinateControl: coordinateTools,
+  // Legend button: explanatory labels in the drawing (what the boxes are,
+  // off-scale counts, the trace description). Data labels stay.
+  legendControl: {
+    getVisible: () => state.labels,
+    setVisible: (v) => { state.labels = v; try { localStorage.setItem('qontic-weak-velocity-labels', String(v)); } catch (e) { /* ignore */ } },
+  },
   getCanvases: () => [canvas, ...(coordinateTools.canvas.hidden ? [] : [coordinateTools.canvas]), ...scaleCanvas(), ...Object.values(panels).filter((pn) => pn.open && !pn.min).map((pn) => pn.cv)],
   filename: 'weak-velocity',
   getShareUrl: shareUrl,
