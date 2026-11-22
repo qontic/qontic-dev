@@ -191,10 +191,13 @@ fn magneticField3(xLab: f32, y: f32, z: f32) -> vec3<f32> {
 // Branch colours, as in the comparative Stern–Gerlach app: neutral pale blue while the spin
 // along the magnet axis is undecided, green toward + and red toward − once the field acts.
 // c = spin component along the axis (−1 … 1), times the colour strength.
+// Outcome palette (trail0.y): 0 green/red as in the comparative app; 1 blue/orange, which stays
+// distinct for red–green colour blindness (neutral then pale grey, so it does not read as blue).
+fn cbPalette() -> bool { return uni.trail0.y > 0.5; }
 fn branchTint(c: f32) -> vec3<f32> {
-  let neutral = vec3<f32>(0.67, 0.80, 1.0);
-  let plus = vec3<f32>(0.27, 0.93, 0.40);
-  let minus = vec3<f32>(1.0, 0.33, 0.20);
+  let neutral = select(vec3<f32>(0.67, 0.80, 1.0), vec3<f32>(0.80, 0.80, 0.82), cbPalette());
+  let plus = select(vec3<f32>(0.27, 0.93, 0.40), vec3<f32>(0.30, 0.61, 0.91), cbPalette());
+  let minus = select(vec3<f32>(1.0, 0.33, 0.20), vec3<f32>(0.95, 0.62, 0.16), cbPalette());
   return mix(neutral, select(minus, plus, c > 0.0), clamp(abs(c), 0.0, 1.0));
 }
 fn branchSpin(s: vec3<f32>) -> f32 {

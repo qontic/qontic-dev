@@ -43,7 +43,10 @@ fn fs(in: LineOut) -> @location(0) vec4<f32> {
   let aaPx = 1.3;
   let edge = 1.0 - smoothstep(halfWidthPx, halfWidthPx + aaPx, abs(in.lineCoordPx));
   let core = 1.0 - smoothstep(0.0, halfWidthPx + aaPx, abs(in.lineCoordPx));
-  let color = mix(vec3<f32>(1.0, 0.13, 0.045), vec3<f32>(1.0, 0.54, 0.30), 0.35 * core);
+  // Red field lines, or grey with the colour-blind palette (red would clash with the outcomes).
+  let red = mix(vec3<f32>(1.0, 0.13, 0.045), vec3<f32>(1.0, 0.54, 0.30), 0.35 * core);
+  let grey = mix(vec3<f32>(0.62, 0.64, 0.70), vec3<f32>(0.85, 0.86, 0.9), 0.35 * core);
+  let color = select(red, grey, cbPalette());
   let alpha = 0.28 * in.fade * sgOn * edge;
   if (alpha < 0.002) { discard; }
   return vec4<f32>(color, alpha);

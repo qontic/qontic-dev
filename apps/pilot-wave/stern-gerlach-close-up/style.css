@@ -124,3 +124,7 @@ body:not(.simulation-ready) .engine-badge { display: none; }
 .chip-row { margin-top: -4px; }
 .chips { display: flex; flex-wrap: wrap; gap: 3px; grid-column: 2 / -1; }
 .chips .chip { padding: 1px 6px; min-width: 0; font-size: 11px; line-height: 1.5; }
+
+/* Colour-blind-safe outcome palette (Display: Outcome colours). */
+body.sg-cb-palette #scene-legend .swatch.dots { background: linear-gradient(90deg, #4c9be8 50%, #f29e29 50%); }
+body.sg-cb-palette #scene-legend .swatch.field { border-color: #a6a9b3; }

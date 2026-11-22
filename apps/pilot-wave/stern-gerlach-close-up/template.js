@@ -14,7 +14,7 @@ let simulation;
 mountQonticShell({
   title: 'Stern–Gerlach Close-Up',
   navigation: 'breadcrumbs',
-  purpose: 'Advanced pilot-wave simulation · Requires WebGPU',
+  purpose: 'Spin-½ atom, Pilot Wave and Orthodox readings · Requires WebGPU',
   homeHref: '../../../index.html?tab=apps',
 });
 
@@ -84,7 +84,7 @@ canvas.addEventListener('stern-gerlach:unavailable', () => {
 });
 
 try {
-  ({ simulation } = await import('./main.js?v=40'));
+  ({ simulation } = await import('./main.js?v=43'));
   if (new URLSearchParams(location.search).has('debug')) window.qonticSG = simulation;
 } catch (error) {
   // The engine displays specific WebGPU errors when it can.
@@ -177,11 +177,12 @@ function applyReading(id) {
   controls.setAttribute('interpretation', id);
   simulation?.setReading(id);
 }
-function prepare({ spin, reading = 'pw' }) {
+function prepare({ spin, reading = 'pw', angle = 0, dotColour = 0 }) {
   return () => {
     applyReading(reading);
     simulation?.setMagnetPreset(0);
-    simulation?.setMagnetAngle?.(0);
+    simulation?.setMagnetAngle?.(angle);
+    simulation?.setDotColour?.(dotColour);
     simulation?.setInitialSpin(spin);
     setRunning(false);
   };
@@ -189,7 +190,7 @@ function prepare({ spin, reading = 'pw' }) {
 // A still side view (beam to the right, z up) that does not show the outcome: the magnet only
 // over its own stretch (N red below, S blue above), field lines with arrowheads between the poles,
 // and a shading that gets brighter toward the top where the field is stronger.
-function drawSideView(c, { dot = false } = {}) {
+function drawSideView(c, { dot = false, flip = false } = {}) {
   const g = c.getContext('2d');
   const W = c.width, H = c.height;
   g.fillStyle = '#03080f';
@@ -199,20 +200,22 @@ function drawSideView(c, { dot = false } = {}) {
   g.lineWidth = 1;
   g.strokeRect(x0, y0, x1 - x0, y1 - y0);
   const m0 = x0 + 0.32 * (x1 - x0), m1 = x0 + 0.68 * (x1 - x0);
-  const shade = g.createLinearGradient(0, y1, 0, y0);
+  const shade = flip ? g.createLinearGradient(0, y0, 0, y1) : g.createLinearGradient(0, y1, 0, y0);
   shade.addColorStop(0, 'rgba(255, 80, 50, 0.03)');
   shade.addColorStop(1, 'rgba(255, 80, 50, 0.22)');
   g.fillStyle = shade;
   g.fillRect(m0, y0, m1 - m0, y1 - y0);
-  g.fillStyle = '#7a1f1f'; g.fillRect(m0, y1, m1 - m0, 14);   // N pole
-  g.fillStyle = '#1f2f7a'; g.fillRect(m0, y0 - 14, m1 - m0, 14); // S pole
+  // N pole (red) below and S pole (blue) above; turned over with flip.
+  g.fillStyle = flip ? '#1f2f7a' : '#7a1f1f'; g.fillRect(m0, y1, m1 - m0, 14);
+  g.fillStyle = flip ? '#7a1f1f' : '#1f2f7a'; g.fillRect(m0, y0 - 14, m1 - m0, 14);
   for (let x = m0 + 14; x < m1 - 8; x += 22) {
     g.strokeStyle = 'rgba(255, 70, 40, 0.75)';
     g.lineWidth = 2;
     g.beginPath(); g.moveTo(x, y1); g.lineTo(x, y0); g.stroke();
     g.fillStyle = 'rgba(255, 70, 40, 0.9)';
     const ya = (y0 + y1) / 2 - 6;
-    g.beginPath(); g.moveTo(x, ya - 7); g.lineTo(x - 5, ya + 3); g.lineTo(x + 5, ya + 3); g.closePath(); g.fill();
+    const d = flip ? -1 : 1;
+    g.beginPath(); g.moveTo(x, ya - 7 * d); g.lineTo(x - 5, ya + 3 * d); g.lineTo(x + 5, ya + 3 * d); g.closePath(); g.fill();
   }
   g.strokeStyle = '#5cc6f0';
   g.lineWidth = 3;
@@ -232,7 +235,7 @@ function drawSideView(c, { dot = false } = {}) {
   g.font = '13px Inter, system-ui, sans-serif';
   g.fillText('beam →', cx - 22, y1 + 22);
   g.fillText('z ↑', 6, y0 - 10);
-  g.fillText('magnet: B up, stronger toward the top', m0 - 40, y0 - 22);
+  g.fillText(flip ? 'magnet: B down, stronger toward the bottom' : 'magnet: B up, stronger toward the top', x0 + 30, y0 - 22);
   g.fillText('screen', x1 - 40, y1 + 22);
 }
 const spinAnswers = [
@@ -272,7 +275,7 @@ mountQonticQuiz({
       ],
       prepare: prepare({ spin: 1 }), draw: c => drawSideView(c, { dot: true }),
       plain: 'In the upper branch: its starting position decides.',
-      explain: 'The particle follows the velocity field of the wave, and particle paths cannot cross in this description. Particles from the upper half follow the upper branch and those from the lower half the lower one; only particles that start very near the middle can end in the other branch. The particle carries no extra spin variable: the spin is in the wave.' },
+      explain: 'The particle follows the velocity field of the wave, and particle paths cannot cross in this description. Particles from the upper half follow the upper branch and those from the lower half the lower one; only particles that start very near the middle can end in the other branch. In the minimal pilot-wave view (Norsen) the particle carries no extra spin variable: the spin is in the wave. Dewdney, Holland and Kyprianidis attach a spin vector to the particle, taken from the wave at its position; the trajectory is the same.' },
     { question: `${PW} Same superposition, 500 dots. About how many end up on the upper half of the screen?`,
       answer: 'half', caption: 'Side view at the start.',
       answers: [
@@ -294,7 +297,7 @@ mountQonticQuiz({
       ],
       prepare: prepare({ spin: 1, reading: 'cpn' }), draw: c => drawSideView(c),
       plain: 'The orthodox reading gives it no position until it is detected.',
-      explain: 'Only the wave is described. At the screen a single hit appears in one half, with probability ½ each. "In one branch, we do not know which" is the pilot-wave answer; the simulation shows only the cloud in this reading.' },
+      explain: 'Only the wave is described. At the screen a single detection appears in one half, with probability ½ each; in this reading the app draws one detection per run when the packet reaches the screen. "In one branch, we do not know which" is the pilot-wave answer.' },
     { question: `${PW} The spin term of the guidance law is switched off (Advanced tab, Expert level: Spin term). What changes at the screen?`,
       answer: 'paths', caption: 'Side view at the start.', watch: false,
       answers: [
@@ -305,7 +308,29 @@ mountQonticQuiz({
       ],
       prepare: prepare({ spin: 1 }), draw: c => drawSideView(c),
       plain: 'Only the trajectories change; the statistics stay the same.',
-      explain: 'The spin term (ħ/2mρ)∇×(Ψ†σΨ) has zero divergence, so it does not change how the dot density evolves: it stays |Ψ|² with or without it. It does change which way individual dots move, and which dots near the middle cross to the other branch. Try the Spin term switch in the Advanced tab.' },
+      explain: 'The spin term (ħ/2mρ)∇×(Ψ†σΨ) has zero divergence, so it does not change how the dot density evolves: it stays |Ψ|² with or without it. It does change which way individual dots move, and which dots near the middle cross to the other branch. Try the Spin term switch in the Advanced tab (Expert level).' },
+    { question: 'Orthodox reading. Same superposition. A detection is recorded in the upper half of the screen. In the standard orthodox account, what is the state of the atom right after it?',
+      answer: 'collapse', caption: 'Side view at the start. The cloud is |Ψ|².',
+      answers: [
+        { id: 'collapse', label: 'Only the upper (+z) part: the wave has collapsed onto the outcome found' },
+        { id: 'both', label: 'Both parts, as before; the detection changes nothing' },
+        { id: 'x', label: 'Spin +x again, as it was prepared' },
+        { id: 'none', label: 'No state at all: the atom has been absorbed and the question has no meaning' },
+      ],
+      prepare: prepare({ spin: 1, reading: 'cpn' }), draw: c => drawSideView(c),
+      plain: 'Only the upper part: in the orthodox account a measurement collapses the wave.',
+      explain: 'In the Dirac–von Neumann account a measurement collapses the wave onto the outcome found, so a second z measurement would give +z again. The theory does not say which interactions count as a measurement or when the collapse happens: this is the measurement problem. The app keeps drawing the wave without collapse so that many runs can be shown on one screen; each mark at the screen is one run.' },
+    { question: `${PW} Spin +x. With the magnet at 0°, a dot that starts above the middle lands in the upper spot: a +z result. The magnet is turned to 180° (its axis now points down) and a dot starts at the same place. Where does it land, and what result is recorded?`,
+      answer: 'upminus', caption: 'Side view at the start. Magnet turned 180°: S below, N above.',
+      answers: [
+        { id: 'upminus', label: 'In the upper spot again; recorded as − along the magnet axis' },
+        { id: 'downplus', label: 'In the lower spot; recorded as + along the magnet axis' },
+        { id: 'upplus', label: 'In the upper spot; recorded as + along the magnet axis' },
+        { id: 'coin', label: 'In either spot, at random' },
+      ],
+      prepare: prepare({ spin: 1, angle: 180, dotColour: 1 }), draw: c => drawSideView(c, { dot: true, flip: true }),
+      plain: 'In the upper spot again, but now that is the − result: the outcome depends on the magnet, not only on the particle.',
+      explain: 'With the magnet turned over, the field points down and is stronger toward the bottom, so the −n part of the wave (spin +z) goes up and the +n part goes down. The wave splits symmetrically as before, and a dot that starts above the middle still ends in the upper spot, which is now the −n result. In pilot-wave theory the spin result is not a value the particle carries in advance; it depends on the arrangement (contextuality). The run uses Dot colour: Starting half (Display): yellow dots started above the middle.' },
     { question: 'For a silver atom the magnetic moment is antiparallel to the spin. In this field, which spin part goes up?',
       answer: 'minus', caption: 'Side view at the start.', watch: false,
       answers: [

@@ -60,16 +60,29 @@ fn particleVertex(vertexIndex: u32, instanceIndex: u32, stamp: bool) -> Particle
   return out;
 }
 
+// Dot colour: the spin of the wave along the magnet axis (−1 … 1, see branchTint), or with Dot
+// colour = Starting half (trail0.z = 1) 2 + side: 3 for dots that started above the middle,
+// 2 below. Orthodox detections carry side −10 and always use the spin colour.
+fn dotColourValue(i: u32) -> f32 {
+  let side = startSide[i];
+  if (uni.trail0.z > 0.5 && side > -1.0) { return 2.0 + side; }
+  return branchSpin(spins[i].xyz);
+}
+fn dotTint(v: f32) -> vec3<f32> {
+  if (v > 1.5) { return select(vec3<f32>(0.35, 0.65, 1.0), vec3<f32>(1.0, 0.85, 0.2), v > 2.5); }
+  return branchTint(v);
+}
+
 @vertex
 fn vsRender(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> ParticleOut {
   var out = particleVertex(vertexIndex, instanceIndex, false);
-  out.upperStart = branchSpin(spins[instanceIndex].xyz);
+  out.upperStart = dotColourValue(instanceIndex);
   return out;
 }
 @vertex
 fn vsStamp(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> ParticleOut {
   var out = particleVertex(vertexIndex, instanceIndex, true);
-  out.upperStart = branchSpin(spins[instanceIndex].xyz);
+  out.upperStart = dotColourValue(instanceIndex);
   return out;
 }
 
@@ -84,7 +97,7 @@ fn fsRender(in: ParticleOut) -> @location(0) vec4<f32> {
   let a = clamp(uni.particle0.z * in.depthFade * blur * edge, 0.0, 0.85);
   let flashT = smoothstep(2.0, 10.0, in.brightness);
   // Neutral until the field sorts the spin; then green (+ along the magnet axis) or red (−).
-  let base = branchTint(in.upperStart);
+  let base = dotTint(in.upperStart);
   let col = mix(base, vec3<f32>(1.0), 0.6 * flashT);
   let a2 = clamp(a * 1.6 + 0.4 * flashT, 0.0, 1.0);
   return vec4<f32>(col, a2);
@@ -100,5 +113,5 @@ fn fsStamp(in: ParticleOut) -> @location(0) vec4<f32> {
   let blur = exp(-(r * r) / max(uni.particle0.y, 1e-4));
   let a = clamp(uni.particle0.z * uni.viewport.w * in.depthFade * blur * edge, 0.0, 1.0);
   // Premultiplied: rgb carries the dot's colour, alpha the trail weight.
-  return vec4<f32>(branchTint(in.upperStart) * a, a);
+  return vec4<f32>(dotTint(in.upperStart) * a, a);
 }

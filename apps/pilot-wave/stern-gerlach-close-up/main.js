@@ -59,24 +59,24 @@ const X_VIS = 0.4;
 const PARTICLE_WORKGROUP_SIZE = 128;
 
 const SHADER_FILES = {
-  common: "./shaders/common.wgsl?v=sg3d8",
-  palette: "./shaders/palette.wgsl?v=sg3d8",
-  waveInit: "./shaders/wave-init.wgsl?v=sg3d8",
-  waveStep: "./shaders/wave-step.wgsl?v=sg3d8",
-  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d8",
-  cloud: "./shaders/cloud.wgsl?v=sg3d8",
-  particleRender: "./shaders/particle-render.wgsl?v=sg3d8",
-  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d8",
-  density: "./shaders/density.wgsl?v=sg3d8",
-  boxShell: "./shaders/box-shell.wgsl?v=sg3d8",
-  line: "./shaders/line.wgsl?v=sg3d8",
-  fieldLine: "./shaders/field-line.wgsl?v=sg3d8",
-  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d8",
-  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d8",
-  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d8",
-  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d8",
-  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d8",
-  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d8",
+  common: "./shaders/common.wgsl?v=sg3d10",
+  palette: "./shaders/palette.wgsl?v=sg3d10",
+  waveInit: "./shaders/wave-init.wgsl?v=sg3d10",
+  waveStep: "./shaders/wave-step.wgsl?v=sg3d10",
+  particleUpdate: "./shaders/particle-update.wgsl?v=sg3d10",
+  cloud: "./shaders/cloud.wgsl?v=sg3d10",
+  particleRender: "./shaders/particle-render.wgsl?v=sg3d10",
+  spinArrow: "./shaders/spin-arrow.wgsl?v=sg3d10",
+  density: "./shaders/density.wgsl?v=sg3d10",
+  boxShell: "./shaders/box-shell.wgsl?v=sg3d10",
+  line: "./shaders/line.wgsl?v=sg3d10",
+  fieldLine: "./shaders/field-line.wgsl?v=sg3d10",
+  detectorPlate: "./shaders/detector-plate.wgsl?v=sg3d10",
+  magnetPole: "./shaders/magnet-pole.wgsl?v=sg3d10",
+  weightReduce: "./shaders/weight-reduce.wgsl?v=sg3d10",
+  wave3dInit: "./shaders/wave3d-init.wgsl?v=sg3d10",
+  wave3dStep: "./shaders/wave3d-step.wgsl?v=sg3d10",
+  particleUpdate3d: "./shaders/particle-update-3d.wgsl?v=sg3d10",
 };
 
 function applyShaderConstants(source) {
@@ -205,6 +205,8 @@ const params = {
   fieldShape: 0,   // 0 textbook (linear gradient), 1 knife edge (line pole)
   beamShape: 0,    // 0 round, 1 ribbon (wide across the beam, as the 1922 slit)
   showSpin: 1,
+  palette: (() => { try { return localStorage.getItem("qontic-sg-palette") === "1" ? 1 : 0; } catch { return 0; } })(),
+  dotColour: 0,     // 0: spin along the magnet axis, 1: starting half (above/below the middle)
   showDotSpin: 0,
   screenDistance: 40 * BEAM_SCALE,
   approachCells: 30 * BEAM_SCALE,   // = APPROACH_CELLS
@@ -630,6 +632,13 @@ addSlider("fieldArrowSpacing", "Arrow spacing", 8, 60, 2, () => rebuildMagneticF
 addToggleInt("showMagnet", "Magnet poles");
 addToggleInt("showSpin", "Spin arrow", () => updateStats());
 addToggleInt("showDotSpin", "Spin on dots", () => updateStats());
+addCycleButton("palette", "Outcome colours", ["Green / red", "Blue / orange (colour-blind safe)"], v => {
+  try { localStorage.setItem("qontic-sg-palette", String(v)); } catch { /* private mode */ }
+  document.body.classList.toggle("sg-cb-palette", Boolean(v));
+  requestTrailClear(); updateStats(); updateHitDisplay();
+});
+document.body.classList.toggle("sg-cb-palette", Boolean(params.palette));
+addCycleButton("dotColour", "Dot colour", ["Spin along magnet", "Starting half"], () => { requestTrailClear(); updateStats(); });
 const cameraProjectionControl = addCycleButton("cameraProjection", "Camera view", ["Perspective", "Orthographic"], () => {
   activeOrthoView = null;
   syncCameraUi();
@@ -660,7 +669,7 @@ const LEVEL_CONTROLS = {
   p0: "standard", beamShape: "standard", packetSigma: "standard",
   fieldLineDensity: "standard", fieldArrowSpacing: "standard", cameraProjection: "standard",
   cloudGain: "standard", dotGain: "standard", trailHalfLife: "standard",
-  nParticles: "standard",
+  nParticles: "standard", dotColour: "standard",
   showPhase: "expert", spinTerm: "expert", dt: "expert",
 };
 const LEVEL_DEFAULTS = Object.fromEntries(Object.keys(LEVEL_CONTROLS).map(k => [k, params[k]]));
@@ -1318,7 +1327,7 @@ function writeUniforms(buffer, camera, viewportW, viewportH, densityFade = 1.0, 
   uniformData.set([viewportW, viewportH, params.cameraProjection | 0, params.trailStampGain], 32);
   const branch = branchColour();
   uniformData.set([detectorPlateXGrid(), 1.0, branch.axis[0], branch.axis[1]], 36);
-  uniformData.set([branch.strength, 0.0, 0.0, params.trailVisGain], 40);
+  uniformData.set([branch.strength, params.palette | 0, params.dotColour | 0, params.trailVisGain], 40);   // trail0.y: outcome palette, trail0.z: dot colour mode
   uniformData.set([params.trailVisGamma, 2, densityFade, densitySizeScale], 44);
   const sgTint = params.sgFieldOn && params.sgGradient > 0 ? 1 : 0;
   uniformData.set(sgTint ? [0.82, 0.34, 0.28, 0.30] : [0.38, 0.72, 0.68, 0.22], 48);
@@ -2045,9 +2054,10 @@ function rebuildParticles() {
     const xVisual = x;  // no wrap: x is the free coordinate along the beam
     y = Math.max(1, Math.min(simH - 2, y));
     z = Math.max(1, Math.min(simD - 2, z));
-    // Colour by the side of the packet along the first magnet's axis (z for a z magnet).
-    const n1 = measurementAxes()[0];
-    startSide[i] = (y - y0) * n1[0] + (z - z0) * n1[1] > 0 ? 1 : 0;
+    // Starting half, fixed in space (above or below the middle in z), for the Dot colour
+    // option "Starting half": it does not turn with the magnet, so the same dots can be followed
+    // at Magnet angle 0° and 180° (contextuality).
+    startSide[i] = z > z0 ? 1 : 0;
     data[i * 4 + 0] = x;
     data[i * 4 + 1] = y;
     data[i * 4 + 2] = z;
@@ -2091,8 +2101,123 @@ function outcomeLabels() {
 // Colour the outcome labels like the branches: green for + along the (last) magnet axis, red for −.
 function colourLabel(label, k, n) {
   const plus = n > 2 ? k % 2 === 0 : k === 0;
-  return `<span style="color:${plus ? "#45ee66" : "#ff5533"}">${label}</span>`;
+  const colour = params.palette ? (plus ? "#4c9be8" : "#f29e29") : (plus ? "#45ee66" : "#ff5533");
+  return `<span style="color:${colour}">${plus ? "▲" : "▼"} ${label}</span>`;
 }
+
+// ── Orthodox reading: detections at the screen (Born rule) ───────────────────
+// When the packet reaches the screen, |Psi|^2 there is read back and one detection per run is
+// drawn at random from it; the marks appear over about a second. Fast engine: |chi(x, z)|^2 (the
+// factor along the beam integrates out); Full 3D: |psi'|^2 summed along the beam over the window.
+// These are not the pilot-wave dots: in this reading the atom has no position before detection.
+const orthoHits = { n: 0, sampled: false, sampling: false, revealed: 0, pos: null, counts: [0, 0], bindGroup: null, buffers: [] };
+function clearOrthoHits() {
+  orthoHits.sampled = false;
+  orthoHits.revealed = 0;
+  orthoHits.counts = measurementAxes().length > 1 ? [0, 0, 0, 0] : [0, 0];
+  orthoHits.epoch = (orthoHits.epoch || 0) + 1;
+}
+function maybeSampleOrthoHits() {
+  if (reading !== "cpn" || orthoHits.sampled || orthoHits.sampling) return;
+  if (visualPacketCenterX() < detectorPlateXGrid()) return;
+  const n = Math.floor(params.nParticles);
+  if (n <= 0) return;
+  if (orthoHits.failedEpoch === orthoHits.epoch) return;
+  orthoHits.sampling = true;
+  const epoch = orthoHits.epoch;
+  const three = is3D();
+  const src = three ? [wave3A, wave3B][flip] : [waveBufferA, waveBufferB][flip];
+  const size = src.size;
+  const staging = device.createBuffer({ label: "orthodox detections readback", size, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+  const enc = device.createCommandEncoder({ label: "orthodox detections copy" });
+  enc.copyBufferToBuffer(src, 0, staging, 0, size);
+  device.queue.submit([enc.finish()]);
+  staging.mapAsync(GPUMapMode.READ).then(() => {
+    const f = new Float32Array(staging.getMappedRange());
+    const H = simH, D = simD;
+    const rho = new Float64Array(H * D);
+    if (three) {
+      const plane = H * D;
+      for (let ix = 0; ix < WIN_NX; ix++) {
+        for (let k = 0; k < plane; k++) {
+          const o = 4 * (ix * plane + k);
+          rho[k] += f[o] * f[o] + f[o + 1] * f[o + 1] + f[o + 2] * f[o + 2] + f[o + 3] * f[o + 3];
+        }
+      }
+    } else {
+      for (let k = 0; k < H * D; k++) {
+        const o = 8 * k;
+        rho[k] = f[o] * f[o] + f[o + 1] * f[o + 1] + f[o + 2] * f[o + 2] + f[o + 3] * f[o + 3];
+      }
+    }
+    staging.unmap();
+    staging.destroy();
+    if (epoch !== orthoHits.epoch) return;   // reset while reading
+    // Cell index k = y + z H (both engines). Cumulative distribution, then one sample per run.
+    const cdf = new Float64Array(H * D);
+    let acc = 0;
+    for (let k = 0; k < H * D; k++) { acc += rho[k]; cdf[k] = acc; }
+    if (!(acc > 0)) return;
+    const pos = new Float32Array(2 * n);
+    for (let i = 0; i < n; i++) {
+      const u = Math.random() * acc;
+      let lo = 0, hi = H * D - 1;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (cdf[mid] < u) lo = mid + 1; else hi = mid; }
+      pos[2 * i] = (lo % H) + Math.random() - 0.5;
+      pos[2 * i + 1] = Math.floor(lo / H) + Math.random() - 0.5;
+    }
+    writeOrthoHitBuffers(pos, n);
+    orthoHits.pos = pos;
+    orthoHits.n = n;
+    orthoHits.sampled = true;
+    orthoHits.revealed = 0;
+    requestRedraw();
+  }).catch(() => { orthoHits.failedEpoch = epoch; }).finally(() => { orthoHits.sampling = false; });
+}
+function writeOrthoHitBuffers(pos, n) {
+  orthoHits.buffers.forEach(destroyGpuResource);
+  const plateX = detectorPlateXGrid();
+  const axes = measurementAxes();
+  const last = axes[axes.length - 1];
+  const cy = 0.5 * (simH - 1), cz = 0.5 * (simD - 1);
+  const state = new Float32Array(4 * n), spin = new Float32Array(4 * n);
+  for (let i = 0; i < n; i++) {
+    const y = pos[2 * i], z = pos[2 * i + 1];
+    state.set([2.0, y, z, plateX], 4 * i);
+    // Colour by the half of the screen the detection is in (the recorded outcome).
+    const sgn = (y - cy) * last[0] + (z - cz) * last[1] > 0 ? 1 : -1;
+    spin.set([0, sgn * last[0], sgn * last[1], 1], 4 * i);
+  }
+  const b1 = makeBuffer("orthodox detections", state, GPUBufferUsage.STORAGE);
+  const b2 = makeBuffer("orthodox detections side", new Float32Array(Math.max(1, n)).fill(-10), GPUBufferUsage.STORAGE);
+  const b3 = makeBuffer("orthodox detections colour", spin, GPUBufferUsage.STORAGE);
+  orthoHits.buffers = [b1, b2, b3];
+  orthoHits.bindGroup = bindGroup(pipelineParticleRender, [
+    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 1, resource: { buffer: b1 } },
+    { binding: 2, resource: { buffer: b2 } },
+    { binding: 3, resource: { buffer: b3 } },
+  ]);
+}
+// Reveal the detections a few at a time (about one second for all of them) and count them.
+function revealOrthoHits() {
+  if (!orthoHits.sampled || orthoHits.revealed >= orthoHits.n) return;
+  const before = orthoHits.revealed;
+  orthoHits.revealed = Math.min(orthoHits.n, before + Math.ceil(orthoHits.n / 60));
+  const axes = measurementAxes();
+  const cy = 0.5 * (simH - 1), cz = 0.5 * (simD - 1);
+  for (let i = before; i < orthoHits.revealed; i++) {
+    const dy = orthoHits.pos[2 * i] - cy, dz = orthoHits.pos[2 * i + 1] - cz;
+    const a = dy * axes[0][0] + dz * axes[0][1] > 0;
+    if (axes.length > 1) {
+      const b = dy * axes[1][0] + dz * axes[1][1] > 0;
+      orthoHits.counts[a ? (b ? 0 : 1) : (b ? 2 : 3)]++;
+    } else orthoHits.counts[a ? 0 : 1]++;
+  }
+  updateHitDisplay();
+  if (orthoHits.revealed < orthoHits.n) requestRedraw();
+}
+
 function updateHitDisplay() {
   if (!hitDisplay) return;
   const labels = outcomeLabels();
@@ -2101,7 +2226,12 @@ function updateHitDisplay() {
     const vals = weightCounts.values;
     const rows = labels.map((l, k) => `${colourLabel(l, k, labels.length)}: ${weightCounts.valid && vals[k] !== undefined ? vals[k].toFixed(2) : "–"}`).join("<br>");
     const sp = weightCounts.valid && weightCounts.spin ? Math.hypot(...weightCounts.spin).toFixed(2) : "–";
-    hitDisplay.innerHTML = `<b>Probability now</b><br>${rows}<br>Length of ⟨σ⟩: ${sp}<br><span class="plate-hits-note">Weight of |Ψ|² in each region.<br>At the screen: the chance of a hit there.</span>`;
+    let det = "";
+    if (orthoHits.revealed > 0) {
+      const drows = labels.map((l, k) => `${colourLabel(l, k, labels.length)}: ${orthoHits.counts[k] ?? 0}`).join("<br>");
+      det = `<b>Detections at the screen</b><br>${drows}<br>${orthoHits.revealed} of ${orthoHits.n} runs<br><span class="plate-hits-note">Each mark: one run, drawn from |Ψ|² (Born rule).</span><br>`;
+    }
+    hitDisplay.innerHTML = `${det}<b>Probability now</b><br>${rows}<br>Length of ⟨σ⟩: ${sp}<br><span class="plate-hits-note">${orthoHits.revealed > 0 ? "Weight of |Ψ|² in each region." : "Weight of |Ψ|² in each region; at the screen, the chance of a detection there."}</span>`;
     return;
   }
   hitDisplay.hidden = !dotsShown() || hitCounts.total <= 0;
@@ -2357,6 +2487,11 @@ function render(encoder, camera) {
     }
   }
 
+  if (reading === "cpn" && orthoHits.revealed > 0 && orthoHits.bindGroup) {
+    pass.setPipeline(pipelineParticleRender);
+    pass.setBindGroup(0, orthoHits.bindGroup);
+    pass.draw(6, orthoHits.revealed);
+  }
   if (dotsShown()) {
     pass.setPipeline(pipelineParticleRender);
     pass.setBindGroup(0, particleRenderBindGroups[particleFlip]);
@@ -2404,8 +2539,12 @@ function updateStats() {
     legendSpinText.textContent = (params.showSpin ? packet : "") + (params.showDotSpin && dotsShown() ? dots : "");
   }
   if (legendPlateText) legendPlateText.textContent = reading === "pw"
-    ? "Screen: a dot stops where it reaches it."
-    : "Screen: where the position is measured. The chance of a hit in each region is the weight of |Ψ|² that reaches it.";
+    ? "Screen: a dot stops where it reaches it (an idealised detector)."
+    : "Screen: where the position is detected. Each mark is one run: a detection at a position drawn at random from |Ψ|² there (Born rule).";
+  const legendDotsText = document.querySelector("#legend-dots .legend-text");
+  if (legendDotsText) legendDotsText.textContent = params.dotColour
+    ? "Dots (pilot-wave reading): possible positions of the particle, one per run. Colour: yellow if the dot started above the middle, blue if below; this does not turn with the magnet."
+    : `Dots (pilot-wave reading): possible positions of the particle, one per run, started at random from |Ψ|². Colour: the spin of the wave at the dot along the magnet axis; ${params.palette ? "pale grey where it has no definite sign along that axis, blue for +, orange for −" : "pale blue where it has no definite sign along that axis, green for +, red for −"}.`;
   if (legendMagnet) legendMagnet.innerHTML = `<i class="swatch magnet"></i>Magnet poles: N (red) and S (blue)${fieldShape() ? ", the S pole a knife edge" : ""}. The field points from N to S and is stronger near S.`;
   const spinText = spinLabel();
   updateSpinSphereText();
@@ -2821,8 +2960,8 @@ function rebuildSimulation() {
 
   deleteWaveTargets();
   const waveBytes = waveCount * WAVE_CELL_BYTES;
-  waveBufferA = makeStorageBuffer("wave state A", waveBytes);
-  waveBufferB = makeStorageBuffer("wave state B", waveBytes);
+  waveBufferA = makeStorageBuffer("wave state A", waveBytes, GPUBufferUsage.COPY_SRC);
+  waveBufferB = makeStorageBuffer("wave state B", waveBytes, GPUBufferUsage.COPY_SRC);
   flip = 0;
   rebuildWaveBindGroups();
 
@@ -3044,8 +3183,8 @@ function engine3Available() {
 function ensure3DResources() {
   if (wave3A) return;
   waveCount3 = WIN_NX * simH * simD;
-  wave3A = makeStorageBuffer("3D wave A", waveCount3 * WAVE3_CELL_BYTES);
-  wave3B = makeStorageBuffer("3D wave B", waveCount3 * WAVE3_CELL_BYTES);
+  wave3A = makeStorageBuffer("3D wave A", waveCount3 * WAVE3_CELL_BYTES, GPUBufferUsage.COPY_SRC);
+  wave3B = makeStorageBuffer("3D wave B", waveCount3 * WAVE3_CELL_BYTES, GPUBufferUsage.COPY_SRC);
   // After a reset flip = 0: psi(0) in A, psi(-dt) in B.
   wave3InitBindGroup = bindGroup(pipelineWave3Init, [
     { binding: 0, resource: { buffer: uniformBuffer } },
@@ -3092,6 +3231,7 @@ async function setEngine(id) {
 function resetAll() {
   rerunHoldStart = null;
   rerunPending = false;
+  clearOrthoHits();
   resetWave();
   rebuildParticles();
   clearDensity();
@@ -3445,6 +3585,8 @@ async function main() {
       }
     }
 
+    maybeSampleOrthoHits();
+    revealOrthoHits();
     writeUniforms(uniformBuffer, camera, canvas.width, canvas.height);
     render(encoder, camera);
     drawLabScale(camera);
@@ -3517,6 +3659,7 @@ export const simulation = {
   setReading(value) {
     reading = value === "cpn" ? "cpn" : "pw";
     lastHitReadback = 0;
+    if (reading === "cpn" && simulationAvailable && appStarted) maybeSampleOrthoHits();
     requestTrailClear();
     updateStats();
     updateHitDisplay();
@@ -3587,6 +3730,12 @@ export const simulation = {
     syncSlider("spinTheta");
     syncSlider("spinPhi");
     if (simulationAvailable) { resetAll(); updateStats(); }
+  },
+  setDotColour(mode) {
+    params.dotColour = mode ? 1 : 0;
+    controlSyncs.dotColour?.();
+    requestTrailClear();
+    updateStats();
   },
   setMagnetAngle(deg) {
     params.magnetAngle = deg;
