@@ -3,6 +3,11 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.29 — 2026-11-22
+- Share links: the Engine tab now shows the linked numerical options (Current, Blade, Closing time, Replay; before only the data was set and the buttons showed the defaults); Show change and its gain travel in the link.
+- "Apply slit changes when the packet reaches the wall" survives a reload and travels in share links.
+- Found by the second persistence sweep on dev.28 (157 checks; remaining differences: Background is a per-browser display preference and is not in share links).
+
 ## 1.0-dev.28 — 2026-11-22
 Exhaustive review: scripted sweep of every control (124 controls, 54 level × engine × view × tab contexts, 2513 actions, no JS errors) plus a persistence check, then three reviewers (one per level) working from the evidence. Fixes:
 - Numerical conditioning: a trial particle passes only if it leaves the wall's exit face without being absorbed (before: the wall mid-plane, so particles absorbed in the back half of the Mask/Absorbing layer counted); conditioning now works with detectors (validity checked before the records are set up); absorption random numbers are seeded by the particle's own seed (replays repeat them, fresh packets get new ones); the pass fraction is updated only from completed packets. Checked: Mask wall and detector runs, 400/400 conditioned particles not absorbed.
