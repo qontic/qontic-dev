@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.30 — 2026-11-23
+- Title is "N-Slits" (page header, browser tab, catalogue entry, version line); "two engines" removed.
+
 ## 1.0-dev.29 — 2026-11-22
 - Share links: the Engine tab now shows the linked numerical options (Current, Blade, Closing time, Replay; before only the data was set and the buttons showed the defaults); Show change and its gain travel in the link.
 - "Apply slit changes when the packet reaches the wall" survives a reload and travels in share links.
