@@ -1,5 +1,11 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.9 — 2026-11-27
+- Instants with the position recorded (Pablo): one position's arrows at a time. Many runs had drawn all 13 positions' columns across the packet box. Map the field had shown all 13 while a pair ran and kept only the centre one when it finished, so arrows seemed to come from other times and then vanish.
+  - Many runs: the selected position (Δ = 0 by default) gives one column at its own place along the beam. The ticks mark the others; pointing or the Δ slider chooses which.
+  - Map the field: the central position, live and when finished.
+- Caption and Physics updated to match.
+
 ## 0.9.8 — 2026-11-27
 - Instants (Pablo): the position along the beam is now recorded by default, as in Wiseman's protocol. Each of the 13 positions in the packet is its own weak–strong pair, with its own column of arrows at its true place along the beam. Before, the default used the transverse position only, so the arrows averaged over the packet and were drawn at its centre by convention while the points were scattered.
 - Switching to Instants raises the runs to 10 million, because each position gets a fifth to a thirteenth of them.

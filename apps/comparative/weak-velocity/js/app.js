@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.9.8';
-import * as M from './weak-model.js?v=0.9.8';
+import { APP_RELEASE } from './release.js?v=0.9.9';
+import * as M from './weak-model.js?v=0.9.9';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -410,11 +410,11 @@ function liveBody() {
   if (state.stage === 'many') {
     const b = M.binVelocities(exp.bins, exp.dtau)[state.selected];
     const bw = 2 * Y_HALF / N_BINS, strip = `${nm(-Y_HALF + state.selected * bw).toFixed(0)} to ${nm(-Y_HALF + (state.selected + 1) * bw).toFixed(0)} nm`;
-    const kept = instant() && state.recx ? ` The position along the beam is recorded too (Wiseman's protocol), so each run is sorted by where the particle was along its packet: thirteen positions Δ, each its own pair of weak and strong positions, a gap apart. Arrows are drawn at every position (faint) and the selected one (bright bands, Δ = ${cellDx() >= 0 ? '+' : '−'}${Math.abs(nm(cellDx())).toFixed(0)} nm). Point inside the strong frame, or use Position along the beam, to choose it; at Δ = 0 the result is that of the planes. Each position gets only a thirteenth to a fifth of the runs, so 10 million runs are used.` : '';
+    const kept = instant() && state.recx ? ` The position along the beam is recorded too (Wiseman's protocol), so each run is sorted by where the particle was along its packet: thirteen positions Δ, each its own pair of weak and strong positions, a gap apart. The arrows shown are those of one position, Δ = ${Math.round(nm(cellDx())) === 0 ? '0' : (cellDx() > 0 ? '+' : '−') + Math.abs(nm(cellDx())).toFixed(0) + ' nm'} (bright bands): one column at its own place along the beam. Point inside the strong frame, or use Position along the beam, to see another; at Δ = 0 the result is that of the planes. Each position gets only a thirteenth to a fifth of the runs, so 10 million runs are used.` : '';
     const at = instant() ? (state.recx ? '' : ` Measured at instants, transverse position only: with a ${state.packet} nm packet the arrows average the field over the planes the packet spans, so the prediction (blue)${state.show.fixedTime ? ' and the dotted fixed-time curve' : ''} differ${state.show.fixedTime ? '' : 's'} from j/|ψ|² (dashed). Detections are drawn at positions along the beam sampled from the packet, for display only; they are not recorded.`) + ' While running, the moving packets show the timing, slowed down: one packet is drawn for many runs.' : '';
     // One plain sentence first; the details follow.
     const lead = !instant() ? '' : state.recx
-      ? '<b>Runs are sorted by where the particle was in its packet: each position Δ (ticks) is its own weak–strong pair, a gap apart.</b> '
+      ? '<b>Runs are sorted by where the particle was in its packet; each position Δ (ticks) is its own weak–strong pair, and the arrows of the selected one are shown.</b> '
       : '<b>Each particle is somewhere in its packet (the frames), so this arrow mixes the arrows of every position in the frame.</b> ';
     const head = `${lead}${N} of ${state.perPlane.toLocaleString('en-US')} runs.${kept}${at}`;
     if (!b) return `${head} ${exp.runs ? 'Too few runs in the selected strip yet.' : 'Press <b>Start</b>.'} ${SELECT_HINT_TEXT()}`;
@@ -1206,8 +1206,10 @@ function drawApparatus(P, fullBox) {
   if (exp && (state.stage === 'many' || (map && !map.done))) {
     const toEst = (bins) => M.binVelocities(bins, exp.dtau, 200).map((b) => (b ? { y: b.y, s: b.v / p.k, err: b.err / p.k } : null));
     // With the position along the beam recorded, every packet cell is its own
-    // plane pair: arrows at each cell's strong position, the selected one bright.
-    if (exp.cellBins) exp.cellBins.forEach((cb, j) => arrowsFrom.push({ x: exp.x2 + exp.mix.parts[j].dx, est: toEst(cb), live: true, faint: j !== state.cell }));
+    // plane pair. Only the selected cell's arrows are drawn (Δ = 0 by default, and
+    // always the central cell in the map), at that cell's own position, so one
+    // run of stage 2 or one map pair shows one column; the ticks mark the others.
+    if (exp.cellBins) { const j = state.stage === 'map' ? exp.mix.central : state.cell; arrowsFrom.push({ x: exp.x2 + exp.mix.parts[j].dx, est: toEst(exp.cellBins[j]), live: true }); }
     else arrowsFrom.push({ x: exp.x2, est: toEst(exp.bins), live: true });
   }
   // Finished pairs are drawn here; the pair being measured is drawn after its
