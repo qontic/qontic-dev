@@ -1,5 +1,19 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.12.0 — 2026-11-27
+- **Quiz tab** (Pablo): eight predict-before-you-watch questions on the shared quiz module, drawn from the misreadings in the ten-student review of 0.11.1: one run read as a velocity; why the mean is sharp when the dots are not; what the window selects (strong results); a 10 nm pointer departs from j/|ψ|² (model: rms slope difference 0.09, against 0.003 at 200 nm); a larger window moves away from j/|ψ|² (−0.246 against −0.360; j/|ψ|² −0.372); the trace back is a chain of windows, not a path; agreement with j/|ψ|² does not decide between the views; the two methods give the same field. Each opens its state in the simulation. Answers shuffled, score shown, `?quiz=N` links.
+- Ten-student review of 0.11.1 (understandability), fixes:
+  - "Show the setup" had only the Planes text; the Windows method now has its own setup (Emma, Marcus, Priya).
+  - Step 3 caption said the j/|ψ|² switch is "below the drawing"; it is at the top (Sofia, Kofi, Marcus).
+  - Windows step 2 caption starts with one line of results, now including the mean strong position (the arrow's tip) so the slope can be checked (Raj); the method description is no longer repeated there (Marcus, Leila, Jun).
+  - Trace back drawn as open circles in the text colour joined by a faint dotted line, not amber dots on a solid line, so it no longer blends with the readings or looks like a path (Kofi, Leila, Jun, Hannah). Its label is shorter and stays inside the drawing (many).
+  - Windows step 1: the caption says a single reading can land beyond the detection, with 200 nm pointer noise in both directions (Raj, Kofi); "dashed ring" became "dashed ellipse" ("ring" now means only the mean) (Sofia); the dotted lines are described as recorded distances, not where the particle was (Hannah); labels no longer hide under the status line (Raj, Kofi, Jun).
+  - Touch: a tap or a sideways drag moves the window; tracing is on the Trace back button; the caption says so (Priya).
+  - Planes keep their own number of runs after a visit to Windows (was left at 20M) (Marcus).
+  - Plot keys start off on plots narrower than 300 px, where they covered the data; the Key button still shows them (Priya, Leila).
+  - Physics: the remaining "stage" headings and tooltips now say "step"; τ is the time between the measurements throughout (Raj); the Windows paragraph says choosing t₁ at random is this app's way of covering the field, valid because the field does not change with time (Tomás); 34.4 ps is for the Planes method (Raj). Method tooltips: Kocsis et al. used fixed imaging planes but measured momentum weakly (Tomás).
+  - Rationale: a paragraph on how each view reads the trace back (Hannah).
+
 ## 0.11.1 — 2026-11-27
 - Windows (Pablo): the labels beside the window ("mean weak reading", "window of strong results: N runs") and the off-scale counts covered the runs near it. They are now a key in the top-left corner, which also gives the share of weak readings beyond the drawing. The toolbar Legend button hides the key.
 - Windows, Map the field: the grid arrows build up while the runs come in, redrawn about once a second, as in the planes map. The traced-back lines are drawn when all runs are in. Before, nothing was added until the end, so Many runs and Map looked the same during the run.

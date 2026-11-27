@@ -4,8 +4,9 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.11.1';
-import * as M from './weak-model.js?v=0.11.1';
+import { APP_RELEASE } from './release.js?v=0.12.0';
+import * as M from './weak-model.js?v=0.12.0';
+import { mountWeakQuiz } from './quiz.js?v=0.12.0';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -75,7 +76,7 @@ const state = {
   labels: (() => { try { return localStorage.getItem('qontic-weak-velocity-labels') !== 'false'; } catch (e) { return true; } })(),   // explanatory labels in the drawing (Legend button)
   movingWave: false,
   equalScales: false,   // same nm-per-pixel both ways in the drawing   // crests travel all the time (the density of a steady beam does not move)
-  panelKey: (() => { try { return JSON.parse(localStorage.getItem('qontic-weak-velocity-panel-keys')) || { scatter: true, vel: true }; } catch (e) { return { scatter: true, vel: true }; } })(),   // legends of the two plots
+  panelKey: (() => { try { return JSON.parse(localStorage.getItem('qontic-weak-velocity-panel-keys')) || {}; } catch (e) { return {}; } })(),   // legends of the two plots
   win: { len: 100, wid: 10, x: 550, y: 50, pinned: false, trace: false },   // stage 4: window centre (nm behind the slits); full length along the beam and width across (nm)
   // recx: at instants the position along the beam is recorded too (Wiseman's protocol), by default;
   // switching it off (Expert, "Drop the position along the beam") shows the averaging over the packet.
@@ -365,6 +366,7 @@ const fmtNm = (u, d = 0) => `${nm(u).toFixed(d)} nm`;
 const fmtS = (s, d = 3) => (s === null || !Number.isFinite(s) ? '—' : (s >= 0 ? '+' : '−') + Math.abs(s).toFixed(d));
 
 function updateText() {
+  canvas.style.touchAction = winData() ? 'pan-y' : '';
   $('#swOut').value = `${state.sw} nm`;
   // At instants the two controls are times (electron with this wavelength); the
   // distances, which the model uses, are shown in brackets.
@@ -462,24 +464,27 @@ function liveBody() {
 
 function windowLive() {
   const tau = fmtPs(psAt(state.gap));
-  const how = timed()
-    ? `Each run is one packet measured at two instants, chosen at random from run to run, so the strong results cover the whole field. The weak pointer reads both coordinates at t₁; the strong measurement records the position at t₂ = t₁ + τ (τ = ${tau} for an electron).`
-    : 'Each run is at a pair of planes chosen at random, a gap apart, so the strong results cover the whole field. The weak pointer reads both coordinates; the strong plane gives the position.';
+  const how = `Each run is one packet measured at two instants, t₁ chosen at random from run to run and t₂ = t₁ + τ (τ = ${tau} for an electron), so the strong results cover the whole field. The weak pointer reads both coordinates at t₁; the strong measurement records the position at t₂.`;
   const step = state.stage === 'wmap' ? '<b>Windows method, step 3: map the field.</b>' : '<b>Windows method, step 2: many runs.</b>';
+  const touch = matchMedia('(pointer: coarse)').matches;
   if (wf.runs === 0) return state.stage === 'wmap'
     ? `${step} ${how} Press <b>Start</b> to collect the runs; then arrows from windows on a grid and lines traced back from the screen are drawn from them. You can still point anywhere.`
-    : `${step} ${how} Press <b>Start</b>, then point anywhere: the window (an ellipse, ${winSize()}) picks the runs whose strong result fell inside it.`;
-  const c = winCentre(), q = winQuery(c), head = `${wf.runs.toLocaleString('en-US')} of ${state.perPlane.toLocaleString('en-US')} runs.`;
-  if (!(q.n >= 30)) return `${head} ${how} Too few runs in this window yet; point where the wave is bright, or wait.`;
+    : `${step} ${how} Press <b>Start</b>, then ${touch ? 'tap' : 'point'} anywhere: the window (an ellipse, ${winSize()}) picks the runs whose strong result fell inside it.`;
+  const c = winCentre(), q = winQuery(c), head = `${wf.runs.toLocaleString('en-US')} of ${state.perPlane.toLocaleString('en-US')} runs collected.`;
+  if (!(q.n >= 30)) return `${step} ${head} Too few runs in this window yet; ${touch ? 'tap' : 'point'} where the wave is bright, or wait.`;
   const where = `(${nm(c.x - p.wall).toFixed(0)}, ${nm(c.y).toFixed(0)}) nm`;
+  // First line: the result, in numbers a student can check (slope = across / along of the arrow).
+  const result = `<b>Window at ${where}: ${q.n.toLocaleString('en-US')} runs; mean weak reading (${nm(q.Xm - p.wall).toFixed(0)}, ${nm(q.Ym).toFixed(1)}) nm at t₁ → mean strong position (${nm(q.x2m - p.wall).toFixed(0)}, ${nm(q.yfm).toFixed(1)}) nm at t₂; slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}.</b>`;
+  const what = ` The window selects the runs whose <i>strong</i> result fell inside it. Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean (amber ring) is sharp. The arrow from it to the mean strong position is the measured velocity: a difference of two averages over the same runs, not the path of any particle.`;
   const tr = state.win.trace ? (() => {
     const pts = traceBack(c), last = pts[pts.length - 1].c;
-    return ` <b>Trace (amber dots): a chain of windows, not a path: each dot uses different runs and no particle is followed.</b> Each mean weak position became the next window, ${pts.length - 1} steps of about one gap (${state.gap} nm) each, reaching ${nm(last.x - p.wall).toFixed(0)} nm at y = ${nm(last.y).toFixed(0)} nm. The dashed line follows the flow of j/|ψ|² backward from the window, for comparison; the difference at the end comes mostly from the window averaging the velocity over its area (a smaller window follows the field more closely, with fewer runs), plus sampling noise added up over the steps.`;
-  })() : ' Click (or use Trace back) to repeat the step: the mean weak position becomes the next window, towards the slits.';
+    return ` <b>Trace back (open circles): a chain of windows, not a path.</b> Each mean weak position became the next window, ${pts.length - 1} steps of about one gap (${state.gap} nm), reaching x = ${nm(last.x - p.wall).toFixed(0)} nm behind the slits at y = ${nm(last.y).toFixed(0)} nm. Each circle uses different runs; no particle is followed. The dashed line is the j/|ψ|² flow line followed backward from the window; the difference comes mostly from the window averaging the velocity over its area, plus sampling noise added over the steps.`;
+  })() : touch ? ' Use <b>Trace back from this window</b> to repeat the step towards the slits.' : ' Click (or use Trace back) to repeat the step: the mean weak position becomes the next window, towards the slits.';
   const S = windowSummary();
-  const sum = S?.live ? ` <b>Field from windows:</b> arrows from windows on a grid build up as the runs come in; the lines traced back from the screen are drawn when all runs are in.` : S ? ` <b>Field from windows:</b> ${S.n} lines traced back from windows next to the screen, started at equal shares of the runs detected there (amber lines); arrows from windows on a grid.${state.show.bohm ? ` The dashed lines follow the flow of j/|ψ|² backward from the same windows; the traces end ${S.rms.toFixed(1)} nm from them (rms), from the window's averaging and the sampling noise added up over the steps.` : ' Switch on the j/|ψ|² flow lines below the drawing to compare.'} No particle is followed: every step uses different runs.` : '';
-  if (state.stage === 'wmap' && sum) return `${step}${sum} <b>Pointing:</b> ${q.n.toLocaleString('en-US')} runs ended in the window at ${where}; slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. Click to trace back from it. ${head}`;
-  return `${step} <b>${q.n.toLocaleString('en-US')} runs ended in the window at ${where}.</b> Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean is sharp: (${nm(q.Xm - p.wall).toFixed(0)}, ${nm(q.Ym).toFixed(1)}) nm${timed() ? ' at t₁' : ''}. The arrow from it to the mean strong position${timed() ? ' at t₂' : ''} is the measured velocity for these runs (a difference of two averages): slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. ${head} ${how}${tr} It is a difference of two averages over the same selected runs, not the path of any particle.${sum}`;
+  const sum = S?.live ? ` <b>Field from windows:</b> arrows from windows on a grid build up as the runs come in; the lines traced back from the screen are drawn when all runs are in.` : S ? ` <b>Field from windows:</b> ${S.n} lines traced back from windows next to the screen, started at equal shares of the runs detected there (amber lines); arrows from windows on a grid.${state.show.bohm ? ` The dashed lines follow the flow of j/|ψ|² backward from the same windows; the traces end ${S.rms.toFixed(1)} nm from them (rms), from the window's averaging and the sampling noise added up over the steps.` : ' Switch on the j/|ψ|² flow lines (switch at the top of the drawing) to compare.'} No particle is followed: every step uses different runs.` : '';
+  const running = wf.runs < state.perPlane ? ` ${head}` : '';
+  if (state.stage === 'wmap') return `${step}${sum} ${result}${running}${state.win.trace ? tr : ''}`;
+  return `${step} ${result}${running}${what}${tr}`;
 }
 
 function showNext() {
@@ -505,15 +510,22 @@ function showNext() {
 }
 
 function showStep(step) {
-  $('#setupStep').classList.toggle('hidden', step !== 'setup');
+  $('#setupStep').classList.toggle('hidden', step !== 'setup' || isWin());
+  $('#setupWin').classList.toggle('hidden', step !== 'setup' || !isWin());
   $('#liveStep').classList.toggle('hidden', step === 'setup');
   if (step !== 'setup') showNext();
 }
 
 // ---------------------------------------------------------------- controls
+let planeRuns = null;
+const isWinStage = (s) => WIN_STAGES.includes(s);
 function setStage(stage, go = false) {
+  const prevStage = state.stage;
   state.stage = stage; pending = true; stop(); showStep('live');
   // A window collects a few hundredth of the runs: 20 million by default.
+  // The planes' number of runs is kept and comes back when the Planes method is chosen again.
+  if (WIN_STAGES.includes(stage) && !isWinStage(prevStage)) planeRuns = state.perPlane;
+  if (!WIN_STAGES.includes(stage) && isWinStage(prevStage) && planeRuns !== null) { state.perPlane = planeRuns; $('#perPlane').value = RUNS.indexOf(planeRuns); $('#perPlaneOut').value = fmtRuns(planeRuns); }
   if ((stage === 'window' || stage === 'wmap') && state.perPlane < 2e7) { state.perPlane = 2e7; $('#perPlane').value = RUNS.indexOf(2e7); $('#perPlaneOut').value = fmtRuns(2e7); }
   if (go) start();
   updateText();
@@ -609,6 +621,7 @@ $('#winX').addEventListener('input', (e) => { state.win.pinned = true; moveWindo
 $('#winY').addEventListener('input', (e) => { state.win.pinned = true; moveWindow({ x: state.win.x, y: +e.target.value }); });
 $('#winTrace').addEventListener('click', () => { state.win.trace = !state.win.trace; state.win.pinned = state.win.trace || state.win.pinned; updateText(); });
 $('#setupGo').addEventListener('click', () => setStage('one', true));
+$('#setupWinGo').addEventListener('click', () => setStage('wone', true));
 
 // Phones: a small bar fixed at the bottom of the window, so Start is always in reach.
 const mobileRun = $('#mobileRun');
@@ -716,6 +729,9 @@ function applyPanelState(k) {
   sideCol.hidden = !any; split.hidden = !any;
 }
 function setPanelOpen(k, open) { panels[k].open = open; applyPanelState(k); savePanels(); }
+// Plot keys: shown unless switched off; on a narrow plot (under 300 px) off unless switched on.
+const keyWidth = {};
+const keyShown = (k) => state.panelKey[k] ?? !(keyWidth[k] < 300);
 for (const [k, pn] of Object.entries(panels)) {
   pn.el.querySelector('[data-fp-act="close"]').addEventListener('click', () => { setPanelOpen(k, false); document.querySelector(`[data-fp-open="${k}"]`).focus(); });
   pn.el.querySelector('[data-fp-act="min"]').addEventListener('click', () => { pn.min = !pn.min; applyPanelState(k); savePanels(); });
@@ -723,8 +739,8 @@ for (const [k, pn] of Object.entries(panels)) {
   const keyBtn = pn.el.querySelector('[data-fp-act="legend"]');
   if (keyBtn) {
     const k = pn.el.dataset.fp;
-    keyBtn.setAttribute('aria-pressed', String(state.panelKey[k] !== false));
-    keyBtn.addEventListener('click', () => { state.panelKey[k] = state.panelKey[k] === false; keyBtn.setAttribute('aria-pressed', String(state.panelKey[k])); try { localStorage.setItem('qontic-weak-velocity-panel-keys', JSON.stringify(state.panelKey)); } catch (e) { /* ignore */ } });
+    keyBtn.setAttribute('aria-pressed', String(keyShown(k)));
+    keyBtn.addEventListener('click', () => { state.panelKey[k] = !keyShown(k); keyBtn.setAttribute('aria-pressed', String(state.panelKey[k])); try { localStorage.setItem('qontic-weak-velocity-panel-keys', JSON.stringify(state.panelKey)); } catch (e) { /* ignore */ } });
   }
   pn.el.querySelector('[data-fp-act="shift"]')?.addEventListener('click', (e) => { state.shiftView = !state.shiftView; e.currentTarget.setAttribute('aria-pressed', String(state.shiftView)); updateTitles(); });
   // Click a strip in the plot to post-select on it.
@@ -966,7 +982,7 @@ function windowAt(px, py) {
 }
 // Moving the window changes the caption and Results at every step: silent while
 // it moves, announced once when it stops (screen readers).
-let winQuiet = null;
+let winQuiet = null, touchWin = false;
 function moveWindow(w) {
   state.win.x = w.x; state.win.y = w.y; winCentre(); updateText();
   if (!state.running) { setLive(false); clearTimeout(winQuiet); winQuiet = setTimeout(() => { if (!state.running) setLive(true); }, 700); }
@@ -974,6 +990,7 @@ function moveWindow(w) {
 canvas.addEventListener('pointermove', (e) => {
   const [px, py] = pointerPos(e);
   if (drag) { dragMove(px, py); return; }
+  if (touchWin) { const w = windowAt(px, py); if (w) moveWindow(w); return; }
   if (winData()) {
     hover = hitHandle(px, py);
     const w = hover ? null : windowAt(px, py);
@@ -993,7 +1010,12 @@ canvas.addEventListener('pointerdown', (e) => {
     // Click: pin the window here and trace back; click again to let it follow the pointer.
     const w = windowAt(px, py);
     if (!w) return;
-    if (state.win.pinned && e.pointerType === 'mouse') { state.win.pinned = false; state.win.trace = false; moveWindow(w); }
+    if (e.pointerType !== 'mouse') {
+      // Touch and pen: a tap (or a drag) moves the window only; tracing is on the Trace back button.
+      moveWindow(w); state.win.pinned = true; touchWin = true; canvas.setPointerCapture(e.pointerId); updateText();
+      return;
+    }
+    if (state.win.pinned) { state.win.pinned = false; state.win.trace = false; moveWindow(w); }
     else { moveWindow(w); state.win.pinned = true; state.win.trace = true; updateText(); }
     return;
   }
@@ -1012,7 +1034,7 @@ canvas.addEventListener('pointerdown', (e) => {
   exp = null; map = null; anim = null; pending = true;
   dragMove(px, py);
 });
-function endDrag() { if (!drag) return; drag = null; hover = null; canvas.style.cursor = ''; pending = true; state.selected = null; updateText(); }
+function endDrag() { touchWin = false; if (!drag) return; drag = null; hover = null; canvas.style.cursor = ''; pending = true; state.selected = null; updateText(); }
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 function dragMove(px, py) {
@@ -1240,11 +1262,12 @@ function drawApparatus(P, fullBox) {
   text('slits', X(p.wall), box.y + box.h - 4, { color: P.muted, size: 11, align: 'center' });
   text('screen', X(p.screen), box.y + box.h - 4, { color: P.muted, size: 11, align: 'center' });
   if (isWin()) {
+    // Status line first, so the runs drawn near the bottom stay on top of it.
+    backedText(P, `Windows method · σₚ ${state.sw} nm · gap ${state.gap} nm${` · τ = ${fmtPs(psAt(state.gap))} (electron)`}${state.stage === 'wone' ? '' : ` · window ${winSize()}`}${stretchNote()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
     if (state.stage === 'wone') drawWoneStage(P, X, Yp); else drawWindowStage(P, X, Yp);
     ctx.restore();
     appMap = { X, Yp, box, x0, x1, Yh: YH };
     drawGrips(P);
-    backedText(P, `Windows method · σₚ ${state.sw} nm · gap ${state.gap} nm${` · τ = ${fmtPs(psAt(state.gap))} (electron)`}${state.stage === 'wone' ? '' : ` · window ${winSize()}`}${stretchNote()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
     return { X, Yp };
   }
   // scale bar 100 nm
@@ -1609,8 +1632,8 @@ function drawWoneStage(P, X, Yp) {
   ctx.setLineDash([]); ctx.globalAlpha = 1;
   // Labels at the top: the particle's distance along the beam at each instant.
   if (show) {
-    text('t₁', X(r.x1) - 4, bot - 22, { color: P.weak, size: 11, align: 'right' });
-    if (t >= WONE_TS) text('t₂', X(r.x2) + 4, bot - 22, { color: P.strong, size: 11 });
+    text('t₁', X(r.x1) - 4, top + 12, { color: P.weak, size: 11, align: 'right' });
+    if (t >= WONE_TS) text('t₂', X(r.x2) + 4, top + 12, { color: P.strong, size: 11 });
   }
   const right = X(r.x2) > canvas.clientWidth * 0.7;
   // t₁: the pointer reads both coordinates; the ring is one pointer spread σₚ.
@@ -1626,14 +1649,14 @@ function drawWoneStage(P, X, Yp) {
     if (off) { const d = r.Y > 0 ? -1 : 1; ctx.moveTo(X(r.X), wy + 7 * d); ctx.lineTo(X(r.X) - 6, wy - 4 * d); ctx.lineTo(X(r.X) + 6, wy - 4 * d); ctx.closePath(); }
     else ctx.arc(X(r.X), wy, 6, 0, Math.PI * 2);
     ctx.fill();
-    if (show) backedText(P, `weak reading at t₁ = ${fmtPs(psAt(nm(r.x1 - p.wall)))}${off ? ` (${r.Y > 0 ? 'above' : 'below'} the drawing)` : ''}`, X(r.X) + (right ? -10 : 10), wy + (r.Y > Y_HALF ? 16 : -10), { color: P.weak, size: 11, weight: 600, align: right ? 'right' : 'left' });
+    if (show) backedText(P, `weak reading at t₁ = ${fmtPs(psAt(nm(r.x1 - p.wall)))}${off ? ` (${r.Y > 0 ? 'above' : 'below'} the drawing)` : ''}`, X(r.X) + (right ? -10 : 10), wy + (r.Y > Y_HALF ? 28 : -10), { color: P.weak, size: 11, weight: 600, align: right ? 'right' : 'left' });
     ctx.globalAlpha = 1;
   }
   // t₂: the strong measurement records the position.
   if (t > WONE_TS) {
     const k = fade((t - WONE_TS) / 0.1);
     ctx.globalAlpha = k; ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(X(r.x2), Yp(r.yf), 6, 0, Math.PI * 2); ctx.fill();
-    if (show) backedText(P, `detected at t₂ = ${fmtPs(psAt(nm(r.x2 - p.wall)))}`, X(r.x2) + (right ? -10 : 10), Yp(r.yf) + 18, { color: P.strong, size: 11, weight: 600, align: right ? 'right' : 'left' });
+    if (show) backedText(P, `detected at t₂ = ${fmtPs(psAt(nm(r.x2 - p.wall)))}`, X(r.x2) + (right ? -10 : 10), Math.min(bot - 24, Yp(r.yf) + 18), { color: P.strong, size: 11, weight: 600, align: right ? 'right' : 'left' });
     ctx.globalAlpha = 1;
   }
 }
@@ -1659,7 +1682,7 @@ function woneLive() {
   const now = wone.anim && wone.anim.t < 1
     ? (wone.anim.t < WONE_TS ? `Weak reading ${pos(r.X, r.Y)} at t₁ = ${fmtPs(psAt(nm(r.x1 - p.wall)))}…` : `Weak reading ${pos(r.X, r.Y)} at t₁; detected at ${pos(r.x2, r.yf)} at t₂ = ${fmtPs(psAt(nm(r.x2 - p.wall)))}.`)
     : `Run ${n}: weak reading ${pos(r.X, r.Y)} at t₁ = ${fmtPs(psAt(nm(r.x1 - p.wall)))}; detected at ${pos(r.x2, r.yf)} at t₂ = ${fmtPs(psAt(nm(r.x2 - p.wall)))}.`;
-  return `<b>Windows method, step 1: one run.</b> ${now} ${how} The dotted lines t₁ and t₂ mark the particle's distance behind the slits at the two instants (recorded exactly at t₂, read with noise at t₁). The pointer reading scatters by σₚ = ${state.sw} nm (dashed ring), so one run says almost nothing about the velocity; and because the instants differ from run to run, the detections spread over the whole field. ${state.pauseEach ? 'Press <b>Start</b> for the next run. ' : ''}Step 2 collects many runs and averages them in a window.`;
+  return `<b>Windows method, step 1: one run.</b> ${now} ${how} The dotted lines t₁ and t₂ mark the distance behind the slits recorded at t₂, and that distance minus the travel in τ. The pointer reading scatters by σₚ = ${state.sw} nm in both directions (dashed ellipse), so a single reading can land far from the t₁ line, even beyond the detection: one run says almost nothing about the velocity; and because the instants differ from run to run, the detections spread over the whole field. ${state.pauseEach ? 'Press <b>Start</b> for the next run. ' : ''}Step 2 collects many runs and averages them in a window.`;
 }
 function drawWindowStage(P, X, Yp) {
   if (!wf) return;
@@ -1725,13 +1748,22 @@ function drawWindowStage(P, X, Yp) {
     // Flow of j/|ψ|² backward from the window's mean strong position, the direction the trace goes
     // (forward from the slits small differences fan out, so that comparison is ill-conditioned).
     const ref = M.bohmTrajectory(T0, p.k, p.wall, q.yfm, Math.max(p.wall + 0.01, last.x), 300, q.x2m);
-    ctx.strokeStyle = P.arrow; ctx.fillStyle = P.arrow; ctx.lineWidth = 2.5;
+    // Open circles joined by a faint dotted line, in the text colour: a chain of windows,
+    // distinct from the amber cloud of readings and not drawn as a solid path.
+    const ink = P.text, casing = P.light ? '#ffffff' : '#07131d';
+    ctx.strokeStyle = ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
     ctx.beginPath(); pts.forEach(({ c: a }, i) => (i ? ctx.lineTo(X(a.x), Yp(a.y)) : ctx.moveTo(X(a.x), Yp(a.y)))); ctx.stroke();
-    pts.forEach(({ c: a }) => { ctx.beginPath(); ctx.arc(X(a.x), Yp(a.y), 3.5, 0, Math.PI * 2); ctx.fill(); });
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    pts.forEach(({ c: a }) => { ctx.beginPath(); ctx.arc(X(a.x), Yp(a.y), 4, 0, Math.PI * 2); ctx.fillStyle = casing; ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.stroke(); });
     ctx.strokeStyle = P.light ? '#36505f' : '#e8f0f4'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]); ctx.beginPath(); ref.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Yp(y)) : ctx.moveTo(X(x), Yp(y)))); ctx.stroke(); ctx.setLineDash([]);
     const dEnd = nm(ref[ref.length - 1][1] - last.y);
-    if (!state.labels) { /* explanatory label hidden */ } else if (canvas.clientWidth < 560) backedText(P, `chain of windows (no particle followed) · dashed: j/|ψ|² flow, ${dEnd >= 0 ? '+' : '−'}${Math.abs(dEnd).toFixed(1)} nm`, X(last.x) + 6, Yp(last.y) + (last.y > 0 ? 18 : -10), { color: P.text, size: 10 });
-    else backedText(P, `chain of windows (amber): each dot uses different runs, no particle is followed · j/|ψ|² flow line from the window (dashed), ${nm(ref[ref.length - 1][1] - last.y) >= 0 ? '+' : '−'}${Math.abs(nm(ref[ref.length - 1][1] - last.y)).toFixed(1)} nm from the trace here`, X(last.x) + 6, Yp(last.y) + (last.y > 0 ? 18 : -10), { color: P.text, size: 10 });
+    // Short label, kept inside the drawing (right-aligned when the trace ends far right).
+    if (state.labels) {
+      const lab = canvas.clientWidth < 560 ? `chain of windows · dashed: j/|ψ|² flow, ${dEnd >= 0 ? '+' : '−'}${Math.abs(dEnd).toFixed(1)} nm` : `chain of windows (open circles), no particle followed · dashed: j/|ψ|² flow line, ${dEnd >= 0 ? '+' : '−'}${Math.abs(dEnd).toFixed(1)} nm here`;
+      ctx.font = '400 10px Inter, Arial, sans-serif';
+      const wLab = ctx.measureText(lab).width, lx = X(last.x) + 8, fits = lx + wLab < X(p.screen) - 4;
+      backedText(P, lab, fits ? lx : X(last.x) - 8, Yp(last.y) + (last.y > 0 ? 20 : -12), { color: P.text, size: 10, align: fits ? 'left' : 'right' });
+    }
   }
 }
 // Plot: the weak readings (Y against X) of the sampled runs in the window,
@@ -1808,7 +1840,7 @@ function axes(P, box, title, yLabel, ymin, ymax, fmtY) {
 // Legend at the top right; items separated by ' · ' wrap onto more lines when narrow.
 let legendPanel = null;   // the plot being drawn, for its Key switch
 function legend(P, box, s) {
-  if (legendPanel && state.panelKey[legendPanel] === false) return;
+  if (legendPanel) { keyWidth[legendPanel] = box.w; if (!keyShown(legendPanel)) return; }
   ctx.font = '400 11px Inter, Arial, sans-serif';
   const lines = [];
   for (const item of s.split(' · ')) {
@@ -2245,4 +2277,18 @@ document.querySelectorAll('[data-wavemode]').forEach((o) => { const on = o.datas
 $('#perPlane').value = RUNS.indexOf(state.perPlane); $('#perPlaneOut').value = fmtRuns(state.perPlane);
 updateText();
 showStep(new URLSearchParams(location.search).has('stage') ? 'live' : 'setup');
+// Quiz: each question sets the app (paused); "Watch it in the simulation" runs it.
+mountWeakQuiz({
+  panel: $('#quizPanel'), tab: $('.tabs [data-view="quiz"]'), simulationTab: $('.tabs [data-view="sim"]'),
+  setTo: ({ level, stage, sw = 200, win = null, trace = false, bohm = false }) => {
+    stop();
+    if (level && levelsApi.rank(levelsApi.level()) < levelsApi.rank(level)) levelsApi.set(level);
+    setSw(sw);
+    if (win) Object.assign(state.win, win, { pinned: true });
+    state.win.trace = trace;
+    if (state.show.bohm !== bohm) toggle('bohm');
+    setStage(stage);
+  },
+  run: () => { if (!(winData() && wf && wf.runs >= state.perPlane)) start(); },
+});
 requestAnimationFrame(frame);
