@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.9.5';
-import * as M from './weak-model.js?v=0.9.5';
+import { APP_RELEASE } from './release.js?v=0.9.6';
+import * as M from './weak-model.js?v=0.9.6';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -383,12 +383,14 @@ function updateText() {
 const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 const SELECT_HINT_TEXT = () => document.body.dataset.qonticLevel === 'basic' ? 'Choose a detected-position strip by pointing at the strong plane or at either plot.' : `Choose a detected-position strip with the Selected strip control, the strong ${instant() ? 'band' : 'plane'}, or either plot.`;
 const RATIONALE_LINK = '<button type="button" class="link-button" data-goto="rationale">Same lines, three readings: see Rationale</button>';
+// Arrows switched off (Display, or the switch on the drawing): say so, so a run without arrows is not a mystery.
+const arrowsOffNote = () => (!state.show.arrows && state.stage !== 'one' ? ' <b>Measured arrows are switched off</b> (switch on the drawing, or Display).' : '');
 function liveText() {
-  if (state.stage === 'window') return wf ? (urlNote && !hadRun ? `<span class="url-note">${urlNote}</span> ` : '') + windowLive() : '';
+  if (state.stage === 'window') return wf ? (urlNote && !hadRun ? `<span class="url-note">${urlNote}</span> ` : '') + windowLive() + arrowsOffNote() : '';
   if (!exp) return '';
   // A note about an adjusted link stays until the first run.
   const note = urlNote && !hadRun ? `<span class="url-note">${urlNote}</span> ` : '';
-  return note + liveBody();
+  return note + liveBody() + arrowsOffNote();
 }
 let hadRun = false;
 function liveBody() {
@@ -1349,8 +1351,10 @@ function drawApparatus(P, fullBox) {
     }
     // At instants the two times are labelled (electron with this wavelength; see Results).
     const tw = map ? '' : ` = ${fmtPs(psAt(nm(exp.x1 - p.wall)))}`, ts = map ? '' : ` = ${fmtPs(psAt(nm(exp.x2 - p.wall)))}`;
-    text(instant() ? `packet centre at t₁${tw}` : (map || canvas.clientWidth < 760 ? 'weak' : 'weak plane: pointer coupled at any y'), X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
-    text(instant() ? `at t₂${ts}` : (map || canvas.clientWidth < 760 ? 'strong' : 'strong plane: y measured, any value'), X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
+    // In stage 3 the display switches sit at the top of the drawing: the labels go below them.
+    const ly = map ? Yp(Y_HALF) + 62 : Yp(Y_HALF) - 4, lab = map ? backedText.bind(null, P) : text;
+    lab(instant() ? `packet centre at t₁${tw}` : (map || canvas.clientWidth < 760 ? 'weak' : 'weak plane: pointer coupled at any y'), X(exp.x1) - 3, ly, { color: P.weak, size: 11, align: 'right' });
+    lab(instant() ? `at t₂${ts}` : (map || canvas.clientWidth < 760 ? 'strong' : 'strong plane: y measured, any value'), X(exp.x2) + 3, ly, { color: P.strong, size: 11, align: 'left' });
   }
   // Accumulated runs as points: pointer readings beside the weak plane,
   // detections between the planes. The first PLANE_POINTS runs are kept as
@@ -1370,7 +1374,7 @@ function drawApparatus(P, fullBox) {
       else ctx.fillRect(xw - 2 - exp.ptsU[i] * 6 - sz / 2, yy - sz / 2, sz, sz);
     }
     ctx.globalAlpha = a1;
-    offScale(P, instant() ? X(exp.x1) : xw - 5, top, bot, above, below, n);
+    offScale(P, instant() ? X(exp.x1) : xw - 5, top + (map ? 72 : 0), bot, above, below, n);   // below the map switches in stage 3
     ctx.fillStyle = P.strong; ctx.globalAlpha = a1;
     // Narrow bands just beside each line: only the transverse position is
     // recorded; the sideways spread is for visibility, not a position along x.
@@ -1861,7 +1865,9 @@ function sizeCanvas(cv, c) {
 }
 function render() {
   const P = palette();
-  const mt = $('.map-toggles'), mapped = !!map?.done || (state.stage === 'window' && !!wf && wf.runs >= state.perPlane);
+  // The display switches show for the whole of stage 3 (the arrows switch matters while it runs too)
+  // and for a finished Windows run.
+  const mt = $('.map-toggles'), mapped = state.stage === 'map' || (state.stage === 'window' && !!wf && wf.runs >= state.perPlane);
   if (mt.hidden === mapped) mt.hidden = !mapped;
   // Short switch labels when the drawing is narrow, so they stay on one row.
   const narrow = canvas.clientWidth < 640;

@@ -1,5 +1,11 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.6 — 2026-11-27
+- Map the field (Pablo): on a second run the arrows were missing because the "Measured arrows" switch was off. The switch at the top of the drawing showed only once a map was finished and hid as soon as the next run started, so a click on it after the first map went unseen. Nothing in the code turns it off by itself; checked with mouse clicks on Start and with the Space bar.
+  - The display switches now show for the whole of stage 3, including during a run.
+  - In stages 2–4 the caption says "Measured arrows are switched off (switch on the drawing, or Display)" whenever they are.
+  - In stage 3 the plane labels and the off-scale count sit below the switches.
+
 ## 0.9.5 — 2026-11-27
 - Bug (Pablo): on a second Map the field run, the pair being measured showed no arrows. Since 0.9.3 its arrows run between the weak and strong planes, where its stored pointer readings and detections are drawn, and the points were drawn on top. The first run looked fine only because the finished map has no points. The pair being measured now has its arrows drawn after its points, in stages 2 and 3. Finished pairs are drawn as before.
 
