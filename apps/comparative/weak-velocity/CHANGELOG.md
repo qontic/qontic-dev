@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.5 — 2026-11-27
+- Bug (Pablo): on a second Map the field run, the pair being measured showed no arrows. Since 0.9.3 its arrows run between the weak and strong planes, where its stored pointer readings and detections are drawn, and the points were drawn on top. The first run looked fine only because the finished map has no points. The pair being measured now has its arrows drawn after its points, in stages 2 and 3. Finished pairs are drawn as before.
+
 ## 0.9.4 — 2026-11-27
 - Map the field (Pablo): the current plane pair's arrows are shown while its runs come in, as in Many runs; noisy ones are faint. This reverses the 0.4 choice of drawing a pair's arrows only when it was complete. Each pair now takes about 1.2 s at speed 1, starting slowly so the arrows can be seen building up. A full map takes about 15 s instead of about 5 s; the speed control shortens it.
 

@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.9.4';
-import * as M from './weak-model.js?v=0.9.4';
+import { APP_RELEASE } from './release.js?v=0.9.5';
+import * as M from './weak-model.js?v=0.9.5';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -1199,7 +1199,10 @@ function drawApparatus(P, fullBox) {
     if (exp.cellBins) exp.cellBins.forEach((cb, j) => arrowsFrom.push({ x: exp.x2 + exp.mix.parts[j].dx, est: toEst(cb), live: true, faint: j !== state.cell }));
     else arrowsFrom.push({ x: exp.x2, est: toEst(exp.bins), live: true });
   }
-  if (state.show.arrows) for (const a of arrowsFrom) for (const [ei, e] of a.est.entries()) {
+  // Finished pairs are drawn here; the pair being measured is drawn after its
+  // stored points (pointer readings and detections lie between its planes and
+  // would otherwise cover its arrows).
+  const drawArrows = (list) => { if (state.show.arrows) for (const a of list) for (const [ei, e] of a.est.entries()) {
     if (!e || (map?.done && ei % state.arrowEvery !== Math.floor(state.arrowEvery / 2))) continue;
     // Opacity shows the precision: noisy arrows are drawn faint, never hidden.
     const rel = Math.max(0.15, Math.min(1, 0.04 / Math.max(1e-6, e.err)));
@@ -1219,7 +1222,8 @@ function drawApparatus(P, fullBox) {
     ctx.lineTo(ex - hd * Math.cos(dir - 0.45), ey - hd * Math.sin(dir - 0.45));
     ctx.lineTo(ex - hd * Math.cos(dir + 0.45), ey - hd * Math.sin(dir + 0.45)); ctx.closePath(); ctx.fill();
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; };
+  drawArrows(arrowsFrom.filter((a) => !a.live));
 
   let keyTop = Yp(-Y_HALF);   // the status line sits above the key, if any
   // lines from the measured field, and pilot-wave trajectories
@@ -1381,6 +1385,7 @@ function drawApparatus(P, fullBox) {
     const stride = pointStride();
     if (stride > 1) text(`points: one run in ${stride.toLocaleString('en-US')}`, xw - 6, bot + 13, { color: P.muted, size: 10, align: 'right' });
   }
+  drawArrows(arrowsFrom.filter((a) => a.live));
   // Selected strip: mean pointer reading on the weak plane, joined to the mean
   // detected position on the strong plane. The slope of this step is the arrow.
   if (exp && state.stage !== 'one' && !(map?.done) && hoverStrip !== null) {
