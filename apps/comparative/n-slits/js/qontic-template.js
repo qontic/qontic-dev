@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te430';
-import { mountMWBranching } from './mw-branching.js?cache=te430';
-import { APP_RELEASE } from './release.js?cache=te430';
-import { mountNSlitQuiz } from './quiz.js?cache=te430';
+import { mountPacketEngine } from './packet-engine.js?cache=te431';
+import { mountMWBranching } from './mw-branching.js?cache=te431';
+import { APP_RELEASE } from './release.js?cache=te431';
+import { mountNSlitQuiz } from './quiz.js?cache=te431';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te430';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te431';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -459,9 +459,8 @@ $(function () {
       try { updateSlitCountControls?.(); } catch (_) {}
       const n = Math.round(+h.get('packetCount'));
       if (n >= 1) {
-        const r = document.getElementById('te-basic-hits');
-        if (lvl === 'basic' && r) { r.value = String(Math.min(100, n)); r.dispatchEvent(new Event('change', { bubbles: true })); }
-        else document.getElementById('MaxPart-group')?.setValueInFirstUnit(n);
+        if (lvl === 'basic') try { localStorage.setItem('qontic-te-basic-hits', String(Math.min(1000, n))); } catch (_) {}
+        document.getElementById('MaxPart-group')?.setValueInFirstUnit(n);
       }
       const sp = +h.get('speed'); if (sp > 0) document.getElementById('animationStep-group')?.setValueInFirstUnit(sp);
       if (h.has('arrows')) window.qonticArrows?.set(h.get('arrows') === '1', h.has('arrowsY') ? +h.get('arrowsY') : undefined);
@@ -549,7 +548,7 @@ $(function () {
   levelTag('.qontic-range-panel', 'standard');
   levelTag('.flow-settings', 'expert');
   for (const label of ['Wave range', 'Grid', 'Coordinates and measure', '3D wave surface', 'Edit geometry']) levelTag(`.qontic-media-toolbar button[aria-label="${label}"]`, 'standard');
-  // 4.2: Branch records shown at every level in Many Worlds (with more than one electron per wave the split is not drawn; the count is the record).
+  // 4.2: Branch records shown at every level in Many Worlds (with more than one particle per packet the split is not drawn; the count is the record).
   // The Pilot-Wave field button only in the Pilot Wave view.
   const pwFieldButton = document.querySelector('.qontic-media-toolbar button[aria-label="Pilot-Wave field"]');
   const syncPwField = () => { if (pwFieldButton) { pwFieldButton.hidden = interpretation !== 'bohmian'; pwFieldButton.style.setProperty('display', interpretation !== 'bohmian' ? 'none' : '', interpretation !== 'bohmian' ? 'important' : ''); } };
@@ -648,7 +647,7 @@ $(function () {
     let fresh = false; try { fresh = !saved && !localStorage.getItem('nSlitTwoEnginesState'); } catch (_) {}
     // A Basic link's packetCount is the Basic "Electrons per wave".
     { const h = new URLSearchParams(location.hash.slice(1)), n = Math.round(+h.get('packetCount'));
-      if (h.get('level') === 'basic' && n >= 1) try { localStorage.setItem('qontic-te-basic-hits', String(Math.min(100, n))); } catch (_) {} }
+      if (h.get('level') === 'basic' && n >= 1) try { localStorage.setItem('qontic-te-basic-hits', String(Math.min(1000, n))); } catch (_) {} }
     applyLevel(LEVELS.includes(fromUrl) ? fromUrl : LEVELS.includes(saved) ? saved : 'basic');
     // The Pilot-Wave colour menu and Direct PW are attached a little later: a second pass for them.
     const again = (tries = 40) => { if (document.getElementById('packet-particle-color') && document.getElementById('packet-directed-slits')) levelDefaults(document.body.dataset.qonticLevel); else if (tries > 0) setTimeout(() => again(tries - 1), 100); };

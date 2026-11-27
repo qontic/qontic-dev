@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.3.1 — 2026-11-27
+- One packet-count control at every level: "Particles per packet" in Core (Basic included). The Basic-only "Electrons per wave" slider is gone; Basic still keeps its own value (default 30) and the Standard/Expert value comes back when leaving Basic. The label no longer changes with the view (was Hits / packet or Part./packet). Captions, Many Worlds note, Views text and quiz say particles per packet.
+
 ## 4.3 — 2026-11-27
 - The packet count (Hits / packet, Part./packet) moved from Advanced to Core at Standard and Expert (Basic keeps Electrons per wave in Core). Captions say Core.
 - Many Worlds: the branch count is shown at the top right of the picture at every level (same number as Branch records; in embeds below the Open in N-Slits link).

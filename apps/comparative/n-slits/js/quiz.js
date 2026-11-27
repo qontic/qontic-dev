@@ -178,7 +178,7 @@ export function mountNSlitQuiz({ panel, tab, simulationTab }) {
       plain: 'One hit, at a place that cannot be predicted.',
       answers: [{ id: 'dot', label: 'One hit, at a place that cannot be predicted' }, { id: 'faint', label: 'A faint copy of the whole fringe pattern' }, { id: 'two', label: 'Two hits, one behind each slit' }, { id: 'centre', label: 'One hit, always in the centre' }],
       answer: 'dot',
-      explain: 'Each electron makes one hit (in the app: a flash on the screen and one more count in its bar). Where it lands cannot be predicted: the wave gives the probability, highest in the bright fringes and close to zero in the dark ones. (In the app each wave stands for several electrons sent one at a time — 30 by default, set by Electrons per wave at Basic; Watch it sends them one by one.) The fringes appear only after many electrons, one hit at a time.',
+      explain: 'Each electron makes one hit (in the app: a flash on the screen and one more count in its bar). Where it lands cannot be predicted: the wave gives the probability, highest in the bright fringes and close to zero in the dark ones. (In the app each wave stands for several electrons sent one at a time — 30 by default, set by Particles per packet; Watch it sends them one by one.) The fringes appear only after many electrons, one hit at a time.',
       prepare: () => setTo({ view: 'copenhagen', slits: ['open', 'open'], hits: 1 }),
       draw: c => drawSetup(c, ['open', 'open'], { hitY: .38 }),
     },
