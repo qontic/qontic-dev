@@ -1,5 +1,14 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.2 — 2026-11-27
+- Planes (Xavier Oriols, 16 Nov): the lines are labelled as position measurements across the whole plane, "weak plane: pointer coupled at any y" and "strong plane: y measured, any value", not detection at one point. Short labels on a narrow drawing and in the map.
+- Flow-line overlay (this app): the key gives all three readings ("pilot-wave: the particles' trajectories · orthodox, many-worlds: lines of probability flow"). The lines are drawn light grey (dark grey in the light theme) with a dark casing instead of pink, which a red-green colour-blind viewer could not tell from the blue prediction. The button label is unchanged.
+- Drawing scale: the status line says when the drawing is stretched and by how much ("drawing stretched ×1.4 across the beam (slopes in the numbers are true)"). Display → "Equal scales (true arrow angles)" (Standard and up) draws 1 nm the same length both ways; pointing and dragging still work.
+- Kocsis et al.: two statements that could not be checked against the paper were removed: "41 planes" (now "a series of imaging planes", as in the abstract) and the attribution of trajectory bunching to measurement noise.
+- Basic: the stage-2 caption explains the slope v_y/v_x and j/|ψ|² in one sentence each.
+- Short screens (projector at 1024 × 576): the plots start closed unless a layout was saved, so the drawing takes the width; they reopen from the drawing or Display.
+- The off-scale count at the bottom no longer overlaps the status line.
+
 ## 0.9.1 — 2026-11-22 (ten-student review of 0.9.0)
 - Bug: at Basic, "Next: windows over the field" opened stage 4 while the level stayed Basic (no stage button lit). It now reads "(opens Standard)" and switches the level. Next-step buttons are rebuilt with each run, so a finished run's buttons no longer stay up after a restart.
 - Bug: the window's effective area jumped by up to 19% when it moved by 1 nm. Cells were counted by their centres on a 2 nm grid. Edge cells now count by the fraction inside, across the beam and along it. The default window's prediction at (550, 50) nm is −0.360 (was −0.362).

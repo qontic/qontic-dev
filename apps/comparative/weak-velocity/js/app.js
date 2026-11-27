@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.9.1';
-import * as M from './weak-model.js?v=0.9.1';
+import { APP_RELEASE } from './release.js?v=0.9.2';
+import * as M from './weak-model.js?v=0.9.2';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -62,7 +62,8 @@ const state = {
   show: { wave: true, arrows: true, lines: true, current: true, expected: true, fixedTime: false, bohm: false, scatter: true, planeRuns: true },
   selected: null, shiftView: false,
   labels: (() => { try { return localStorage.getItem('qontic-weak-velocity-labels') !== 'false'; } catch (e) { return true; } })(),   // explanatory labels in the drawing (Legend button)
-  movingWave: false,   // crests travel all the time (the density of a steady beam does not move)
+  movingWave: false,
+  equalScales: false,   // same nm-per-pixel both ways in the drawing   // crests travel all the time (the density of a steady beam does not move)
   panelKey: (() => { try { return JSON.parse(localStorage.getItem('qontic-weak-velocity-panel-keys')) || { scatter: true, vel: true }; } catch (e) { return { scatter: true, vel: true }; } })(),   // legends of the two plots
   win: { len: 100, wid: 10, x: 550, y: 50, pinned: false, trace: false },   // stage 4: window centre (nm behind the slits); full length along the beam and width across (nm)
   timing: 'plane', packet: 150, recx: false, cell: null,
@@ -410,7 +411,8 @@ function liveBody() {
     if (!b) return `${head} ${exp.runs ? 'Too few runs in the selected strip yet.' : 'Press <b>Start</b>.'} ${SELECT_HINT_TEXT()}`;
     // Neutral wording: two averages over the same post-selected runs, not a path.
     const shift = nm(b.v * exp.dtau), err = nm(b.err * exp.dtau), mY = nm(b.y - b.v * exp.dtau);
-    const done = exp.runs >= state.perPlane ? ' Error bars are one standard deviation: about one strip in three should miss the prediction by more than its bar.' : '';
+    const done = (exp.runs >= state.perPlane ? ' Error bars are one standard deviation: about one strip in three should miss the prediction by more than its bar.' : '')
+      + (document.body.dataset.qonticLevel === 'basic' ? ' (The slope v<sub>y</sub>/v<sub>x</sub> is the arrow\u2019s direction: sideways speed over forward speed. j/|ψ|² is what quantum mechanics predicts for a perfectly weak pointer: the probability current over the density.)' : '');
     return `${head} Beside the planes: a sample of the pointer readings (amber) and detections (cyan), drawn just beside each line for visibility; only transverse positions are recorded${instant() && state.recx ? ', plus the position along the beam at t₂' : ''}. ${SELECT_HINT_TEXT()} For the runs detected in the strip ${strip} (mean ${nm(b.y).toFixed(1)} nm), the mean pointer reading is <b>${mY.toFixed(1)} nm</b>. Detection minus pointer mean, ${shift >= 0 ? '+' : '−'}${Math.abs(shift).toFixed(1)} ± ${err.toFixed(1)} nm, divided by ${instant() ? `v<sub>x</sub>Δt = ${state.gap} nm (the packet's travel from t₁ to t₂)` : `the ${state.gap} nm gap`} gives the slope v<sub>y</sub>/v<sub>x</sub>. It is a difference of two averages over the same selected runs, not the path of any particle.${done}`;
   }
   if (map && !map.done && !state.running && map.index === 0 && exp.runs === 0) return 'Press <b>Start</b> to map the field: twelve pairs of planes, each a separate experiment. (Changing a setting clears the map.)';
@@ -498,6 +500,7 @@ $('#movingWave').addEventListener('click', () => {
   if (state.movingWave && state.waveMode === 'density') { modeBeforeMoving = 'density'; setMode('crests'); }
   else if (!state.movingWave && modeBeforeMoving) { setMode(modeBeforeMoving); modeBeforeMoving = null; }
 });
+$('#equalScales').addEventListener('click', () => { state.equalScales = !state.equalScales; $('#equalScales').setAttribute('aria-pressed', String(state.equalScales)); if (waveGrid) waveGrid.dirty = true; });
 $('#pauseEach').addEventListener('click', () => { state.pauseEach = !state.pauseEach; $('#pauseEach').setAttribute('aria-pressed', String(state.pauseEach)); });
 $('#recx').addEventListener('click', () => {
   state.recx = !state.recx; state.cell = null;
@@ -632,7 +635,10 @@ function loadPanels(useSaved = true) {
   let saved = null;
   if (useSaved) { try { saved = JSON.parse(localStorage.getItem(PANEL_KEY) || 'null'); } catch (e) { saved = null; } }
   setColWidth(saved?.width ?? defaultColWidth());
-  for (const k of Object.keys(panels)) { panels[k].open = saved?.[k]?.open ?? panels[k].open; panels[k].min = saved?.[k]?.min ?? false; applyPanelState(k); }
+  // Short screens (a projector at 1024 × 576): the plots start closed so the drawing takes the width;
+  // they reopen from the button on the drawing or the Display tab.
+  const short = !saved && window.innerHeight < 650 && !stacked();
+  for (const k of Object.keys(panels)) { panels[k].open = saved?.[k]?.open ?? (short ? false : panels[k].open); panels[k].min = saved?.[k]?.min ?? false; applyPanelState(k); }
 }
 function applyPanelState(k) {
   const pn = panels[k];
@@ -793,11 +799,11 @@ function palette() {
   return light ? {
     light, bg: '#fbfdfe', panel: '#f1f6f8', grid: '#d6e2e8', text: '#183747', muted: '#5f7684',
     wave: [12, 90, 140], wall: '#36505f', weak: '#a36400', strong: '#087788', arrow: '#b35c00', line: '#b35c00',
-    bohm: '#8a2bbd', ft: '#c2334f', exp: '#1f5fbf', cur: '#183747', dots: 'rgba(24,55,71,0.22)', strip: 'rgba(8,119,136,0.13)',
+    bohm: '#33424d', bohmCase: 'rgba(255,255,255,0.85)', ft: '#c2334f', exp: '#1f5fbf', cur: '#183747', dots: 'rgba(24,55,71,0.22)', strip: 'rgba(8,119,136,0.13)',
   } : {
     light, bg: '#07131d', panel: '#0b1c29', grid: '#1d3546', text: '#d9edf7', muted: '#8299aa',
     wave: [95, 210, 235], wall: '#9fb3c1', weak: '#f0b341', strong: '#5fe0f0', arrow: '#f6b54a', line: '#f6b54a',
-    bohm: '#e07bff', ft: '#ff7f9c', exp: '#62a8ff', cur: '#d9edf7', dots: 'rgba(200,225,240,0.20)', strip: 'rgba(95,224,240,0.13)',
+    bohm: '#eef3f6', bohmCase: 'rgba(7,19,29,0.85)', ft: '#ff7f9c', exp: '#62a8ff', cur: '#d9edf7', dots: 'rgba(200,225,240,0.20)', strip: 'rgba(95,224,240,0.13)',
   };
 }
 
@@ -1121,17 +1127,32 @@ function drawWave(P, X, Yp, xa, xb) {
   return { want, canCrest, mixedFrom: g.mixedFrom < Infinity ? g.xa + g.mixedFrom / g.nx * (g.xb - g.xa) : null };
 }
 
-function drawApparatus(P, box) {
+let drawStretch = 1;
+// Shown when the two scales differ by more than 10%: the arrows' drawn angles are then not their slopes.
+const stretchNote = () => (Math.abs(drawStretch - 1) > 0.1 ? ` · drawing stretched ×${Math.max(drawStretch, 1 / drawStretch).toFixed(1)} ${drawStretch > 1 ? 'across' : 'along'} the beam (slopes in the numbers are true)` : '');   // vertical / horizontal scale of the drawing (1 = true angles)
+function drawApparatus(P, fullBox) {
   const D = p.screen - p.wall;
+  let box = fullBox;
   // While the screen is dragged, keep the drawing's scale from the start of the
   // drag so the screen follows the pointer; it rescales on release.
   const frozen = drag && (drag.kind === 'distance' || drag.kind === 'screen') ? drag.m0 : null;
   const x0 = frozen ? frozen.x0 : p.wall - 0.05 * D - 0.1, x1 = frozen ? frozen.x1 : p.screen + 0.1 * D + 0.2;
   const YH = frozen ? frozen.Yh : Y_HALF;
+  // Equal scales (Display): shrink the drawing area so 1 nm is the same length
+  // both ways; arrows then show their true angles. The pointer and drag code
+  // invert X and Yp through appMap.box, so the shrunken box keeps them right.
+  {
+    const sx = box.w / (x1 - x0), sy = (box.h - 44) / (2 * YH);
+    if (state.equalScales && !frozen) {
+      const sc = Math.min(sx, sy), w = (x1 - x0) * sc, h = 2 * YH * sc;
+      box = { x: box.x + (box.w - w) / 2, y: box.y + (box.h - 44 - h) / 2, w, h: h + 44 };
+      drawStretch = 1;
+    } else drawStretch = sy / sx;
+  }
   const X = (x) => box.x + (x - x0) / (x1 - x0) * box.w;
   const Yp = (y) => box.y + 26 + (YH - y) / (2 * YH) * (box.h - 44);
-  ctx.fillStyle = P.panel; ctx.fillRect(box.x, box.y, box.w, box.h);
-  ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
+  ctx.fillStyle = P.panel; ctx.fillRect(fullBox.x, fullBox.y, fullBox.w, fullBox.h);
+  ctx.save(); ctx.beginPath(); ctx.rect(fullBox.x, fullBox.y, fullBox.w, fullBox.h); ctx.clip();
   // wave
   if (state.show.wave) {
     const w = drawWave(P, X, Yp, x0, p.screen);
@@ -1160,7 +1181,7 @@ function drawApparatus(P, box) {
     ctx.restore();
     appMap = { X, Yp, box, x0, x1, Yh: YH };
     drawGrips(P);
-    backedText(P, `Windows · σₚ ${state.sw} nm · gap ${state.gap} nm${instant() ? ` · instants, τ = ${fmtPs(psAt(state.gap))} (electron)` : ''} · window ${winSize()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
+    backedText(P, `Windows · σₚ ${state.sw} nm · gap ${state.gap} nm${instant() ? ` · instants, τ = ${fmtPs(psAt(state.gap))} (electron)` : ''} · window ${winSize()}${stretchNote()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
     return { X, Yp };
   }
   // scale bar 100 nm
@@ -1206,25 +1227,26 @@ function drawApparatus(P, box) {
     });
     if (state.show.bohm) {
       // Flow lines of j/|psi|^2 computed from psi (trajectories in pilot-wave), same starts, drawn on top.
+      ctx.strokeStyle = P.bohmCase; ctx.lineWidth = 3.6; map.bohm.forEach(path);
       ctx.strokeStyle = P.bohm; ctx.lineWidth = 1.7; ctx.setLineDash([6, 4]); map.bohm.forEach(path); ctx.setLineDash([]);
     }
     ctx.restore();
     // key
     const keys = [];
     if (state.show.lines) keys.push([P.line, [], 1.8, 'lines through the measured arrows']);
-    if (state.show.bohm) keys.push([P.bohm, [6, 4], 1.7, 'flow lines of j/|ψ|² from ψ (trajectories in pilot-wave), same starts']);
+    if (state.show.bohm) keys.push([P.bohm, [6, 4], 1.7, 'flow lines of j/|ψ|² from ψ, same starts'], [null, [], 0, 'pilot-wave: the particles\u2019 trajectories · orthodox, many-worlds: lines of probability flow']);
     if (keys.length) {
       const kx = X(p.wall) + 14, ky = Yp(-Y_HALF) - 10;
       ctx.font = '400 11px Inter, Arial, sans-serif';
       // Short labels when the drawing is narrow (projector, phone).
-      if (40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width)) > box.w - 40) keys.forEach((k) => { k[3] = k[0] === P.line ? 'measured lines' : 'j/|ψ|² flow lines (trajectories in pilot-wave)'; });
+      if (40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width)) > box.w - 40) keys.forEach((k) => { k[3] = k[0] === P.line ? 'measured lines' : k[0] === null ? 'PW: trajectories · OQM, MW: probability flow' : 'j/|ψ|² flow lines'; });
       const kw = 40 + Math.max(...keys.map((k) => ctx.measureText(k[3]).width));
       ctx.fillStyle = P.light ? 'rgba(241,246,248,0.88)' : 'rgba(11,28,41,0.88)'; ctx.fillRect(kx - 6, ky - 15 * keys.length, kw, 6 + 15 * keys.length);
       keyTop = ky - 15 * keys.length;
       keys.forEach(([col, dash, lw, label], i) => {
         const yy = ky - 15 * (keys.length - 1 - i);
-        ctx.lineWidth = lw; ctx.strokeStyle = col; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(kx, yy - 4); ctx.lineTo(kx + 22, yy - 4); ctx.stroke(); ctx.setLineDash([]);
-        text(label, kx + 30, yy, { color: P.text, size: 11 });
+        if (col) { ctx.lineWidth = lw; ctx.strokeStyle = col; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(kx, yy - 4); ctx.lineTo(kx + 22, yy - 4); ctx.stroke(); ctx.setLineDash([]); }
+        text(label, kx + 30, yy, { color: col ? P.text : P.muted, size: col ? 11 : 10 });
       });
     }
     // screen check: measured end points vs equal-probability positions
@@ -1317,8 +1339,8 @@ function drawApparatus(P, box) {
     }
     // At instants the two times are labelled (electron with this wavelength; see Results).
     const tw = map ? '' : ` = ${fmtPs(psAt(nm(exp.x1 - p.wall)))}`, ts = map ? '' : ` = ${fmtPs(psAt(nm(exp.x2 - p.wall)))}`;
-    text(instant() ? `packet centre at t₁${tw}` : 'weak', X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
-    text(instant() ? `at t₂${ts}` : 'strong', X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
+    text(instant() ? `packet centre at t₁${tw}` : (map || canvas.clientWidth < 760 ? 'weak' : 'weak plane: pointer coupled at any y'), X(exp.x1) - 3, Yp(Y_HALF) - 4, { color: P.weak, size: 11, align: 'right' });
+    text(instant() ? `at t₂${ts}` : (map || canvas.clientWidth < 760 ? 'strong' : 'strong plane: y measured, any value'), X(exp.x2) + 3, Yp(Y_HALF) - 4, { color: P.strong, size: 11, align: 'left' });
   }
   // Accumulated runs as points: pointer readings beside the weak plane,
   // detections between the planes. The first PLANE_POINTS runs are kept as
@@ -1402,7 +1424,7 @@ function drawApparatus(P, box) {
   ctx.restore();
   appMap = { X, Yp, box, x0, x1, Yh: YH };
   drawGrips(P);
-  backedText(P, `${state.stage === 'one' ? 'One run' : state.stage === 'many' ? 'Many runs' : 'Field map'} · σₚ ${state.sw} nm · gap ${state.gap} nm${instant() ? ` · instants, σₓ ${state.packet} nm` : ''}${map ? ` · pair ${Math.min(map.index + 1, N_PLANES)}/${N_PLANES}` : ''}`, X(p.wall) + 10, keyTop - 8, {color: P.muted, size: 10});
+  backedText(P, `${state.stage === 'one' ? 'One run' : state.stage === 'many' ? 'Many runs' : 'Field map'} · σₚ ${state.sw} nm · gap ${state.gap} nm${instant() ? ` · instants, σₓ ${state.packet} nm` : ''}${map ? ` · pair ${Math.min(map.index + 1, N_PLANES)}/${N_PLANES}` : ''}${stretchNote()}`, X(p.wall) + 10, keyTop - 8, {color: P.muted, size: 10});
   return { X, Yp };
 }
 
@@ -1474,7 +1496,7 @@ function offScale(P, x, top, bot, above, below, n) {
   for (const [cnt, y, d] of [[above, top + 2, 1], [below, bot - 2, -1]]) {
     if (!cnt) continue;
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 5, y + 8 * d); ctx.lineTo(x + 5, y + 8 * d); ctx.closePath(); ctx.fill();
-    backedText(P, `${Math.round(100 * cnt / n)}% of readings ${d > 0 ? 'above' : 'below'} the drawing (pointer spread ${state.sw} nm)`, x + 8, y + (d > 0 ? 9 : -16), { color: P.weak, size: 10 });
+    backedText(P, `${Math.round(100 * cnt / n)}% of readings ${d > 0 ? 'above' : 'below'} the drawing (pointer spread ${state.sw} nm)`, x + 8, y + (d > 0 ? 9 : -30), { color: P.weak, size: 10 });
   }
 }
 
@@ -1509,7 +1531,7 @@ function drawWindowStage(P, X, Yp) {
     }
     ctx.save(); ctx.beginPath(); ctx.rect(X(p.wall), Yp(Y_HALF), X(p.screen) - X(p.wall), Yp(-Y_HALF) - Yp(Y_HALF)); ctx.clip();
     if (state.show.lines) { ctx.strokeStyle = P.line; ctx.lineWidth = 1.8; S.lines.forEach(path); }
-    if (state.show.bohm) { ctx.strokeStyle = P.bohm; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]); S.flows.forEach(path); ctx.setLineDash([]); }
+    if (state.show.bohm) { ctx.strokeStyle = P.bohmCase; ctx.lineWidth = 3.4; S.flows.forEach(path); ctx.strokeStyle = P.bohm; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]); S.flows.forEach(path); ctx.setLineDash([]); }
     ctx.restore();
   }
   // The weak readings of the sampled runs that ended in the window.
@@ -1980,6 +2002,7 @@ const levelSettings = [
   { id: 'winWid', min: 'expert', value: 10, get: () => state.win.wid, set: (v) => { state.win.wid = v; } },
   { id: 'arrowEvery', min: 'expert', value: 1, get: () => state.arrowEvery, set: (v) => { state.arrowEvery = v; $('#arrowDensity').value = 6 - v / Math.ceil(N_BINS / 40); } },
   { id: 'nLines', min: 'expert', value: 20, get: () => state.nLines, set: (v) => { state.nLines = v; $('#lineCount').value = v; $('#lineCountOut').value = v; if (map?.done) buildLines(); } },
+  { id: 'equalScales', min: 'standard', value: false, get: () => state.equalScales, set: (v) => { state.equalScales = v; $('#equalScales').setAttribute('aria-pressed', String(v)); } },
   { id: 'shiftView', min: 'expert', value: false, get: () => state.shiftView, set: (v) => { state.shiftView = v; panels.scatter.el.querySelector('[data-fp-act="shift"]')?.setAttribute('aria-pressed', String(v)); } },
 ];
 // A shared link that uses higher-level settings opens at the level that shows them.
