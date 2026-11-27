@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te31';
-import { mountMWBranching } from './mw-branching.js?cache=te31';
-import { APP_RELEASE } from './release.js?cache=te31';
-import { mountNSlitQuiz } from './quiz.js?cache=te31';
+import { mountPacketEngine } from './packet-engine.js?cache=te402';
+import { mountMWBranching } from './mw-branching.js?cache=te402';
+import { APP_RELEASE } from './release.js?cache=te402';
+import { mountNSlitQuiz } from './quiz.js?cache=te402';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te31';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te402';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -435,6 +435,28 @@ $(function () {
     if (stage) { const a = document.createElement('a'); a.className = 'te-embed-open'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open in N-Slits ↗'; a.href = '#';
       a.addEventListener('click', () => { const u = new URL(location.href.split('#')[0]); u.searchParams.delete('embed'); u.searchParams.delete('level'); a.href = u.toString() + buildUrlHash(); });
       if (getComputedStyle(stage).position === 'static') stage.style.position = 'relative'; stage.append(a); }
+    // The notebook's set-up buttons: apply a set-up without reloading the page. The notebook
+    // sends only set-ups that differ in view, slits, λ, geometry, electrons per wave and speed.
+    window.addEventListener('message', event => {
+      if (event.source !== window.parent || event.data?.type !== 'ns-setup') return;
+      const hash = String(event.data.hash || ''), h = new URLSearchParams(hash);
+      if (isAnimating) $('#startButton').trigger('click');
+      history.replaceState(null, '', location.pathname + location.search + '#' + hash);
+      const lvl = document.body.dataset.qonticLevel;
+      applyUrlHash();
+      if (typeof window.changeInterpretation === 'function') window.changeInterpretation(interpretation);
+      try { updateSlitCountControls?.(); } catch (_) {}
+      const n = Math.round(+h.get('packetCount'));
+      if (n >= 1) {
+        const r = document.getElementById('te-basic-hits');
+        if (lvl === 'basic' && r) { r.value = String(Math.min(100, n)); r.dispatchEvent(new Event('change', { bubbles: true })); }
+        else document.getElementById('MaxPart-group')?.setValueInFirstUnit(n);
+      }
+      const sp = +h.get('speed'); if (sp > 0) document.getElementById('animationStep-group')?.setValueInFirstUnit(sp);
+      $('#resetButton').trigger('click');
+      if (h.get('run') === '1') setTimeout(() => { if (!isAnimating) $('#startButton').trigger('click'); }, 150);
+      event.source.postMessage({ type: 'ns-applied' }, '*');
+    });
   }
   let media;
   media=mountQonticMedia({
@@ -619,6 +641,7 @@ $(function () {
     const again = (tries = 40) => { if (document.getElementById('packet-particle-color') && document.getElementById('packet-directed-slits')) levelDefaults(document.body.dataset.qonticLevel); else if (tries > 0) setTimeout(() => again(tries - 1), 100); };
     setTimeout(again, 0);
     // run=1 in the link: start the run once the page is ready (used by the notebook's set-ups).
+    { const sp = +new URLSearchParams(location.hash.slice(1)).get('speed'); if (sp > 0) document.getElementById('animationStep-group')?.setValueInFirstUnit(sp); }
     if (new URLSearchParams(location.hash.slice(1)).get('run') === '1') setTimeout(() => { if (!isAnimating) $('#startButton').trigger('click'); }, 900);
   }
   // Switching view while paused: redraw the picture (the legacy redraw left the wave blank).

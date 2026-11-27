@@ -1,32 +1,47 @@
 // N-Slits embedded in the notebook. Each .ns-embed holds an iframe of the app in embed mode
 // (?embed=1: compact page, settings kept inside the frame) and buttons that load a set-up,
 // given as a share-link hash. A frame loads when it comes near the screen.
+// A set-up that differs from the loaded one only in view, slits, λ, geometry, electrons per
+// wave or speed is sent to the running app (no reload); others (level, engine, preset,
+// numerical options) reload the frame.
 const APP = '../../apps/comparative/n-slits/index.html';
+const IN_PLACE = new Set(['view', 'slits', 'wl', 'sep', 'det', 'scr', 'packetCount', 'speed', 'run']);
 let serial = 0;
 
-function urlFor(box, hash, query) {
-  const q = new URLSearchParams(query ?? box.dataset.query ?? '');
+const structural = (hash, query) => {
+  const h = new URLSearchParams(hash); for (const k of IN_PLACE) h.delete(k);
+  return [...h.entries()].sort().map(e => e.join('=')).join('&') + '|' + (query || '');
+};
+function urlFor(hash, query) {
+  const q = new URLSearchParams(query || '');
   q.set('embed', '1'); q.set('s', String(++serial));
   return `${APP}?${q.toString()}#${hash}`;
 }
-function load(box, hash, button) {
-  const frame = box.querySelector('iframe');
-  frame.src = urlFor(box, hash, button ? (button.dataset.nsQuery || '') : undefined);
+function mark(box, button) {
   box.querySelectorAll('[data-ns-hash]').forEach(b => { const on = b === button; b.classList.toggle('primary', on); b.setAttribute('aria-pressed', String(on)); });
+}
+function load(box, hash, button, query) {
+  const frame = box.querySelector('iframe'), key = structural(hash, query);
+  if (box._key === key && box._ready && frame.contentWindow) frame.contentWindow.postMessage({ type: 'ns-setup', hash }, '*');
+  else { box._key = key; box._ready = false; frame.src = urlFor(hash, query); }
+  mark(box, button);
 }
 
 const seen = new IntersectionObserver(entries => {
   for (const e of entries) if (e.isIntersecting) {
     const box = e.target; seen.unobserve(box);
     // First load without starting the run (the reader presses Start or a set-up button).
-    if (!box.querySelector('iframe').getAttribute('src')) load(box, box.dataset.hash.replace(/(^|&)run=1/, ''), box.querySelector('[data-ns-hash].primary'));
+    if (!box.querySelector('iframe').getAttribute('src')) load(box, box.dataset.hash.replace(/(^|&)run=1/, ''), box.querySelector('[data-ns-hash].primary'), box.dataset.query);
   }
 }, { rootMargin: '300px 0px' });
 
 document.querySelectorAll('.ns-embed').forEach(box => {
+  const frame = box.querySelector('iframe');
+  // The app listens for set-ups once its page has loaded.
+  frame.addEventListener('load', () => { box._ready = false; setTimeout(() => { box._ready = true; }, 1200); });
   box.querySelectorAll('[data-ns-hash]').forEach(b => {
     b.type = 'button'; b.setAttribute('aria-pressed', String(b.classList.contains('primary')));
-    b.addEventListener('click', () => load(box, b.dataset.nsHash, b));
+    b.addEventListener('click', () => load(box, b.dataset.nsHash, b, b.dataset.nsQuery || ''));
   });
   const open = box.querySelector('.ns-open');
   if (open) open.addEventListener('click', () => {

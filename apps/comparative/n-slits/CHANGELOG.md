@@ -3,6 +3,11 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.0.2 — 2026-11-27
+- Basic "Electrons per wave" slider: during a run, every frame reset it to the value in use, so dragging did nothing (it worked only while stopped). The slider now keeps the dragged value and applies it on release. Checked: drag during a run 30 → 87 → 7.
+- Embed mode: the notebook's set-up buttons apply a set-up to the running app (view, slits, λ, geometry, electrons per wave, speed) without reloading; set-ups that change level, engine or preset still reload. A link's speed is now applied.
+- All module imports get a new cache key (te402); the 4.0 imports still used the 3.x key te31.
+
 ## 4.0.1 — 2026-11-27
 - Embed mode for the Double Slit notebook: `?embed=1` hides header, footer, shortcut hint and level switch, keeps settings frame-local (memory only), adds an "Open in N-Slits ↗" link (full URL without embed/level). Links can set Basic electrons per wave (packetCount with level=basic) and start the run (run=1). Share links never carry embed or level.
 

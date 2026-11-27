@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te31';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te31';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te31';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te31';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te31';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te31';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te31';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te31';
-import {createNumericalEngine} from './numerical-engine.js?cache=te31';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te31';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te31';
-import {classifySlitSide} from './source-packet-model.js?cache=te31';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te402';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te402';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te402';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te402';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te402';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te402';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te402';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te402';
+import {createNumericalEngine} from './numerical-engine.js?cache=te402';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te402';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te402';
+import {classifySlitSide} from './source-packet-model.js?cache=te402';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -154,12 +154,12 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    basicHitsRow.innerHTML='<label for="te-basic-hits" title="How many electrons each wave on the picture stands for. They are sent one at a time; each makes one dot. 1: watch the pattern build dot by dot." style="width:auto;min-width:0;white-space:nowrap">Electrons per wave:</label><input id="te-basic-hits" type="range" min="1" max="100" step="1" style="width:100%;min-width:60px"><output style="text-align:right"></output>';
    host.after(basicHitsRow);
    const r=basicHitsRow.querySelector('input');
-   r.addEventListener('input',()=>{basicHitsRow.querySelector('output').textContent=r.value;});
-   r.addEventListener('change',()=>{try{localStorage.setItem('qontic-te-basic-hits',r.value);}catch(_){}if(level==='basic'&&!window.qonticMWBranches?.enabled)document.getElementById('MaxPart-group')?.setValueInFirstUnit(+r.value);syncBasicHits();});}
+   r.addEventListener('input',()=>{basicHitsRow.dataset.drag='1';basicHitsRow.querySelector('output').textContent=r.value;});
+   r.addEventListener('change',()=>{delete basicHitsRow.dataset.drag;try{localStorage.setItem('qontic-te-basic-hits',r.value);}catch(_){}if(level==='basic'&&!window.qonticMWBranches?.enabled)document.getElementById('MaxPart-group')?.setValueInFirstUnit(+r.value);syncBasicHits();});}
   const r=basicHitsRow.querySelector('input'),slow=!!window.qonticMWBranches?.enabled&&interpretation==='manyworlds';
   // Show the number actually in use (slow motion and quiz demonstrations can set it).
   const inUse=+document.getElementById('MaxPart-input')?.value||basicHits();
-  r.value=level==='basic'?inUse:basicHits();basicHitsRow.querySelector('output').textContent=r.value;r.disabled=slow;
+  if(!basicHitsRow.dataset.drag){r.value=level==='basic'?inUse:basicHits();basicHitsRow.querySelector('output').textContent=r.value;}r.disabled=slow;
   r.title=slow?'Many Worlds slow motion sends one electron per wave.':'';
  }
  const saveNumOpt=()=>{const out={...numOpt,rv:1};if(expertSaved)Object.assign(out,expertSaved);localStorage.setItem('qontic-te-num-opts',JSON.stringify(out));};
@@ -712,7 +712,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   pwWaveButton.title=pwWaveVisible?'Hide the wave (the particles still follow it)':'Show the Pilot-Wave field';
  }
  function stats(){
-  if(basicHitsRow&&level==='basic'){const out=basicHitsRow.querySelector('output'),v=document.getElementById('MaxPart-input')?.value;if(out&&v&&out.textContent!==String(v))syncBasicHits();}
+  if(basicHitsRow&&level==='basic'&&!basicHitsRow.dataset.drag){const out=basicHitsRow.querySelector('output'),v=document.getElementById('MaxPart-input')?.value;if(out&&v&&out.textContent!==String(v))syncBasicHits();}
   const mass=particleType==='neutron'?mNeutron:mElectron,speed=hbar/mass*p.k/100;
   $('#waveSpeed').text(speed>=1000?(speed/1000).toFixed(2)+' km/s':speed.toFixed(2)+' m/s');
   {const eV=.5*mass*(hbar*p.k/(mass*100))**2/1.602176634e-19,ex=Math.floor(Math.log10(eV)),sup=String(ex).replace(/-/,'⁻').replace(/\d/g,d=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);$('#particleEnergy').text((eV/10**ex).toFixed(2)+'×10'+sup+' eV');}
@@ -821,7 +821,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te31').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te402').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
