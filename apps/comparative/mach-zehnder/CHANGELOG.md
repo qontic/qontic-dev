@@ -1,5 +1,14 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.19 — 2026-11-27
+Compact control panel (Pablo: too much empty space between controls; the panel needed scrolling).
+- Smaller gaps between the control groups, the prediction form and the hints; slightly lower buttons.
+- The "Controls" heading is hidden (kept for screen readers).
+- The reason box is one line, with "Why? One sentence" as its placeholder instead of a separate label.
+- The verdict and the explanation moved from the bottom of the control panel to a box under the canvas (on a phone: after the controls, as before).
+- The tuning note under the second beam splitter is hidden in the panel; the canvas label and caption say the same.
+- No change to physics, wording of the questions, or logging.
+
 ## 0.18 — 2026-11-06
 Study arms and options for the four-arm pilot.
 - `?arm=textbook`: orthodox with collapse at any measurement (the flag counts as one) and no decoherence; no configuration-space panel; textbook explanations and Physics paragraph.

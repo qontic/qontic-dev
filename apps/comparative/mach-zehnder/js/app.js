@@ -2,10 +2,10 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.18';
-import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.18';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY, TEXTBOOK_EXPLAIN, TEXTBOOK_PHYSICS, AGREE } from './content.js?v=0.18';
-import { waveBranches, computeField, paintField } from './waves.js?v=0.18';
+import { APP_RELEASE } from './release.js?v=0.19';
+import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.19';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY, TEXTBOOK_EXPLAIN, TEXTBOOK_PHYSICS, AGREE } from './content.js?v=0.19';
+import { waveBranches, computeField, paintField } from './waves.js?v=0.19';
 
 // Study arm (IUSE design). ?arm=orthodox gives the comparison arm: the same app,
 // setups, tasks and timing, but only the orthodox account with decoherence.
@@ -247,7 +247,7 @@ function syncPanel() {
   const deg = Math.round(state.setup.delta * 180 / Math.PI);
   document.getElementById('mz-tuning').textContent = !state.setup.bs2
     ? 'Removed: nothing recombines. The upper beam heads to D2 and the lower beam to D1.'
-    : !showTuning() ? 'In place.'
+    : !showTuning() ? ''
     : 'In place, tuned so that with nothing in the arms every atom reaches D1 and D2 stays dark.';
   evaluate();
   const fb = document.getElementById('mz-feedback');

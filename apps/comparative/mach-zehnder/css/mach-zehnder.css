@@ -73,3 +73,31 @@
 .qontic-light .mz-app .mz-table td { color: #142b3a; }
 .qontic-light .mz-app .mz-table th { color: #3d596a; }
 .qontic-light .mz-app .details-panel .core-hint { color: #3d596a; }
+
+/* 0.19: compact control panel, so the whole panel fits a laptop screen without scrolling. */
+.mz-app .controls > h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; }
+.mz-app .control-tab-body { padding: 8px; }
+.mz-app .control-pane { gap: 8px; }
+.mz-app .qontic-control-section { gap: 3px; margin: 0; }
+.mz-app .qontic-control-section-title { font-size: 11.5px; line-height: 1.2; }
+.mz-app .qontic-app-toggle { padding: 4px 6px; }
+.mz-app .core-hint { margin: 0; line-height: 1.35; }
+.mz-app .mz-tuning:empty { display: none; }
+.mz-app .mz-predict { gap: 6px; padding: 7px 8px; margin: 0; }
+.mz-app .mz-options { gap: 2px; }
+.mz-app .mz-option { line-height: 1.25; }
+.mz-app .mz-conf { height: 24px; }
+.mz-app .mz-predict .mz-reason > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.mz-app .mz-predict .mz-reason textarea { min-height: 28px; padding: 4px 8px; }
+.mz-app .mz-terms { margin-top: 0; }
+.mz-app .mz-feedback { gap: 6px; margin-top: 0; padding-top: 8px; line-height: 1.4; }
+.mz-app .mz-verdict { padding: 4px 8px; }
+.mz-app .mz-tuning { display: none; }
+/* The verdict and explanation sit under the canvas, not at the bottom of the control panel. */
+.mz-app .mz-feedback { padding: 10px 14px; border: 1px solid var(--qontic-panel-border, #294b60); border-radius: 11px; background: var(--panel, #0b1926); font-size: 13px; }
+.qontic-light .mz-app .mz-feedback { background: #f8fbfd; }
+@media (min-width: 1001px) {
+  .mz-app .qontic-workspace > .qontic-sidebar { grid-row: 1 / span 2; }
+  .mz-app .qontic-workspace > .mz-feedback { grid-column: 2; grid-row: 2; }
+}
+@media (max-width: 1000px) { .mz-app .qontic-workspace > .mz-feedback { grid-column: 1; grid-row: 3; } }
