@@ -12,11 +12,11 @@
 <body class="qontic-notebook">
 <main class="shell">
 <header><div><p class="eyebrow">Q-Ontic notebook</p><h1>Double Slit: Three Accounts — Notebook</h1></div></header><div class="qn-intro"><p class="lead">Electrons sent one at a time through two slits build up bands on a screen. All accounts agree on that pattern and on how to calculate it. They disagree about what happens between the source and the screen. The demonstrations are the N-Slits app, embedded and set up for each part: press a set-up button, then Start.</p>
-<p class="prereq"><b>Reading path:</b> Parts 1–4 introduce the experiment; Part 5 compares three views; Part 6 solves the full Schrödinger equation, with reflection at the wall and pilot-wave trajectories. Use Brief for the demonstrations or Full for explanations and mathematics.</p><p class="concept-note">Parts 1–5 use N-Slits at the Basic level with its analytical engine, a simplified model without wall reflections. Part 6 uses its numerical engine. Each embedded app keeps its own settings; <b>Open in N-Slits ↗</b> opens the same set-up in the full app.</p></div><section class="section" id="foundations" data-nav-label="Before you begin">
+<p class="prereq"><b>Reading path:</b> Parts 1–4 introduce the experiment; Part 5 compares three views; Part 6 solves the full Schrödinger equation, with reflection at the wall and pilot-wave trajectories. Use Brief for the demonstrations or Full for explanations and mathematics.</p><p class="concept-note">Parts 1–5 use N-Slits at the Basic level with its analytical engine, a simplified model without wall reflections. Part 6 uses its numerical engine. Each embedded app keeps its own settings; <b>Open in N-Slits ↗</b> opens the same set-up in the full app.</p></div><section class="section" id="foundations" data-nav-label="Basics">
 <div class="section-head"><h2>Before you begin: reading the pictures</h2>
 </div><div class="prose ds-overview"><p>Every demonstration shows the experiment from above. The electrons come in from the left, the wall with the slits is in the middle, the detector screen is on the right. The moving coloured pattern is the wavefunction ψ: red and blue are its high and low points (its phase), and the brighter the colour, the stronger the wave. The brightness is enhanced so that weak parts stay visible; it is not an absolute probability scale. The stripes are the wave, not extra particles and not the bands counted on the screen. The white panel on the right of the screen counts the hits at each height y (bars), and the green curve gives the probability of a hit there.</p>
 <div class="cards ds-concepts">
-<div class="card"><h3>1. Two alternatives</h3><span class="symbol">ψ = ψ<sub>U</sub> + ψ<sub>L</sub></span><p>With both slits open, the state is a sum of a part from the upper slit and a part from the lower slit. These are two terms describing one electron, not two electrons.</p></div>
+<div class="card"><h3>1. Two alternatives</h3><span class="symbol">ψ = ψ<sub>1</sub> + ψ<sub>2</sub></span><p>With both slits open, the state is a sum of a part from slit 1 (upper) and a part from slit 2 (lower). These are two terms describing one electron, not two electrons.</p></div>
 <div class="card"><h3>2. Add, then square</h3><span class="symbol gold">P(y) ∝ |ψ(y)|²</span><p>The probability of a hit is the squared size of the total ψ at that point. Because the parts are added first, they can reinforce or cancel.</p></div>
 <div class="card"><h3>3. One run, one dot</h3><span class="symbol orange">one electron → one hit</span><p>A single electron makes one spot at one place. The bands appear only after many electrons, each sent alone.</p></div>
 </div>
@@ -31,7 +31,7 @@
 </div></section>
 
 
-<section class="section" id="app-tour" data-nav-label="App tour">
+<section class="section" id="app-tour" data-nav-label="Tour">
 <div class="section-head"><h2>Quick tour of N-Slits</h2><p>The demonstrations are the N-Slits app at its Basic level. The full app has two more levels and a numerical engine; for this course you need only these.</p></div>
 <div class="cards ds-concepts">
 <div class="card"><h3>Controls</h3><p><b>View</b>: Orthodox, Pilot Wave or Many Worlds. <span class="ui">Start</span> / <span class="ui">Stop</span>, <span class="ui">Reset</span> and <span class="ui">Speed</span> below it. The slit buttons <b>1</b>, <b>2</b> open or close a slit; the small <b>D</b> under a slit puts a which-slit detector on it. <span class="ui">Wavelength λ</span>, <span class="ui">Slit separation</span> and <span class="ui">Electrons per wave</span> set the experiment; <span class="ui">Nice fringes</span> picks settings with clear bands.</p></div>
@@ -40,7 +40,7 @@
 </div></section>
 
 <!-- ============ PART 1 ============ -->
-<section class="section" id="part1" data-nav-label="1 The puzzle">
+<section class="section" id="part1" data-nav-label="1 Puzzle">
 <div class="section-head">
 <h2>1. The puzzle: two slits are not one slit plus one slit <span class="time-est">≈ 8 min</span></h2>
 <p>With one slit open, electrons spread into one broad hump on the screen. Open both and the screen shows bands, including places that each slit alone would reach but that are now nearly empty.</p>
@@ -56,7 +56,7 @@
 </section>
 
 <!-- ============ PART 2 ============ -->
-<section class="section" id="part2" data-nav-label="2 One electron">
+<section class="section" id="part2" data-nav-label="2 One hit">
 <div class="section-head">
 <h2>2. One electron, one hit <span class="time-est">≈ 6 min</span></h2>
 <p>The smooth curve is never seen directly. The wavefunction extends through both slits, while the screen records one spot at one place. What the wavefunction says about the electron differs between the accounts in Part 5.</p>
@@ -71,34 +71,28 @@
 </section>
 
 <!-- ============ PART 3 ============ -->
-<section class="section" id="part3" data-nav-label="3 Add, then square">
+<section class="section" id="part3" data-nav-label="3 Arrows">
 <div class="section-head">
 <h2>3. Add, then square <span class="time-est">≈ 8 min</span></h2>
 <p>Think of each part of the wave at a point P as an arrow, like the hand of a clock. Its length says how strong that part is; its direction says where in its cycle the wave is when it arrives. To get the probability, add the two arrows tip to tail first, then take the length of the result and square it.</p>
-<div class="notice"><strong>What to notice:</strong> Drag P (or move the slider) to a dark band. The two arrows have about the same length and point in opposite directions, so they cancel. Near the center, the two geometric distances differ by about half a wavelength.<span class="guided-equation qn-full">\[|\psi_U+\psi_L|^2=|\psi_U|^2+|\psi_L|^2+2\,\mathrm{Re}(\psi_U^{*}\psi_L)\]</span></div>
-<p class="concept-note">The straight colored lines measure distances from the slits to P; they are not particle trajectories. The arrows represent wave amplitudes, not directions of motion.</p>
-<div class="prose qn-full ds-explanation"><p>In the language of complex numbers, the arrows are ψ<sub>U</sub> and ψ<sub>L</sub>. In the formula above, the first two terms are the two humps of Part 1. The last, the interference term, can be positive or negative; it makes the bands.</p><p>The colored lines in the figure run from each slit to P. Their lengths r<sub>U</sub> and r<sub>L</sub> differ, and every extra wavelength of path turns an arrow once around. Near the center, where the two arrows have about the same length, bright bands sit where r<sub>L</sub> − r<sub>U</sub> is a whole number of wavelengths and dark bands halfway between. Farther out, one slit's arrow is much shorter than the other, so the arrows can no longer cancel completely and the bands wash out. That is the single-slit envelope of Part 1 seen with arrows.</p></div>
+<div class="notice"><strong>What to notice:</strong> Drag P (the gold dot on the screen) to a dark band. The two arrows point in nearly opposite directions, so their sum is short: they almost cancel (not fully here, because at P one slit's beam is stronger than the other's). Near the center, the two distances differ by about half a wavelength.<span class="guided-equation qn-full">\[|\psi_1+\psi_2|^2=|\psi_1|^2+|\psi_2|^2+2\,\mathrm{Re}(\psi_1^{*}\psi_2)\]</span></div>
+<p class="concept-note">The dashed lines in the app measure distances from the slits to P; they are not particle trajectories. The arrows represent wave amplitudes, not directions of motion.</p>
+<div class="prose qn-full ds-explanation"><p>In the language of complex numbers, the arrows are ψ<sub>1</sub> (slit 1, upper) and ψ<sub>2</sub> (slit 2, lower). In the formula above, the first two terms are the two humps of Part 1. The last, the interference term, can be positive or negative; it makes the bands.</p><p>The dashed lines run from each slit to P. Their lengths r<sub>1</sub> and r<sub>2</sub> differ, and every extra wavelength of path turns an arrow once around. Near the center, where the two arrows have about the same length, bright bands sit where r<sub>2</sub> − r<sub>1</sub> is a whole number of wavelengths and dark bands halfway between. Farther out, one slit's arrow is much shorter than the other, so the arrows can no longer cancel completely and the bands wash out. That is the single-slit envelope of Part 1 seen with arrows.</p></div>
 <div class="quiz" data-quiz="">
 <p class="q"><strong>Try it:</strong> When two equal-length arrows point in opposite directions, what happens to the probability at P?</p>
-<div class="options"><button data-choice="a" type="button" data-ok="true" data-fb="Right. Opposite arrows of equal length cancel, so the probability there is close to zero.">It is close to zero.</button><button data-choice="b" type="button" data-ok="false" data-fb="Look at the readout |ψU + ψL|² when the arrows point in opposite directions.">It is the sum of the two humps.</button><button data-choice="c" type="button" data-ok="false" data-fb="Look at the readout |ψU + ψL|² when the arrows point in opposite directions.">It is largest.</button></div>
+<div class="options"><button data-choice="a" type="button" data-ok="true" data-fb="Right. Opposite arrows of equal length cancel, so the probability there is close to zero.">It is close to zero.</button><button data-choice="b" type="button" data-ok="false" data-fb="Look at the readout |ψ1 + ψ2|² when the arrows point in opposite directions.">It is the sum of the two humps.</button><button data-choice="c" type="button" data-ok="false" data-fb="Look at the readout |ψ1 + ψ2|² when the arrows point in opposite directions.">It is largest.</button></div>
 <p aria-live="polite" class="fb" hidden=""></p></div>
 </div>
-<div class="section-body"><div class="canvas-card" data-figure="arrows"><canvas class="ns-fig" aria-label="Distances from the two slits to a point P on the screen, and the two amplitude arrows added tip to tail"></canvas>
-<p class="ds-figure-key">Left: the wall, the screen with the predicted curve, and the distances from each slit to P. Right: the arrows ψ<sub>U</sub>, ψ<sub>L</sub> and their sum. A far-field sketch of the same experiment; N-Slits does not draw arrows.</p>
-<aside class="qn-results ds-results"><div class="qn-results-head"><strong>At point P</strong></div><div class="readout"></div></aside>
-<div class="controls"><div class="shared-control-grid">
-<div class="row"><label><span>Wavelength λ</span> <output></output></label><input data-f="lam" type="range" min="30" max="70" step="1" value="50" aria-label="Wavelength"></div>
-<div class="row"><label><span>Slit separation d</span> <output></output></label><input data-f="d" type="range" min="150" max="700" step="10" value="300" aria-label="Slit separation"></div>
-<div class="row"><label><span>Point P on the screen, y</span> <output></output></label><input data-f="p" type="range" min="-600" max="600" step="5" value="0" aria-label="Point P"></div>
-</div></div></div><details class="derivation qn-full"><summary>Details and math: the arrows</summary><div class="body"><p>The arrows are ψ<sub>U</sub>(P) and ψ<sub>L</sub>(P), rotated together so that ψ<sub>U</sub> points right; only their relative angle matters for |ψ|². Their lengths are scaled so that the peak of one slit alone has length 1. The relative angle is close to 2π(r<sub>L</sub> − r<sub>U</sub>)/λ, with small corrections from the curvature of the beams.</p></div></details></div>
+<div class="section-body ns-section-body"><div class="ns-embed" data-hash="level=basic&amp;view=copenhagen&amp;wl=50&amp;sep=300&amp;det=1000&amp;scr=1200&amp;slits=11&amp;arrows=1&amp;arrowsY=0" data-query=""><div class="buttons ns-scenarios"><button data-ns-hash="level=basic&amp;view=copenhagen&amp;wl=50&amp;sep=300&amp;det=1000&amp;scr=1200&amp;slits=11&amp;arrows=1&amp;arrowsY=0" class="primary">P at the centre</button><button data-ns-hash="level=basic&amp;view=copenhagen&amp;wl=50&amp;sep=300&amp;det=1000&amp;scr=1200&amp;slits=11&amp;arrows=1&amp;arrowsY=83">P on the first dark band</button><button data-ns-hash="level=basic&amp;view=copenhagen&amp;wl=50&amp;sep=300&amp;det=1000&amp;scr=1200&amp;slits=11&amp;arrows=1&amp;arrowsY=166">P on the next bright band</button><button data-ns-hash="level=basic&amp;view=copenhagen&amp;wl=50&amp;sep=300&amp;det=1000&amp;scr=1200&amp;slits=11&amp;arrows=1&amp;arrowsY=420">P far out</button></div><iframe class="ns-frame" title="N-Slits: arrows at a point P" loading="lazy" style="height:760px"></iframe></div><p class="ns-hint">Drag the gold P along the screen, or change λ and the slit separation in the panel. The panel at the lower left draws the arrows; the arrow button in the toolbar turns them on and off.</p>
+<details class="derivation qn-full"><summary>Details and math: the arrows</summary><div class="body"><p>The arrows are the two slit terms of the wave N-Slits computes, ψ<sub>1</sub>(P) and ψ<sub>2</sub>(P) (Gaussian slits, paraxial propagation), rotated together so that ψ<sub>1</sub> points up; only their relative angle matters for |ψ|². Lengths are scaled so that the sum at the central peak, with all slits open, has length 1; one slit alone there gives 1/2, so |ψ<sub>1</sub>|² + |ψ<sub>2</sub>|² ≈ 0.5 near the centre. The relative angle is close to 2π(r<sub>2</sub> − r<sub>1</sub>)/λ, with small corrections from the curvature of the beams. With which-slit detectors on, the panel does not add the arrows: Part 4.</p></div></details></div>
 </section>
 
 <!-- ============ PART 4 ============ -->
-<section class="section" id="part4" data-nav-label="4 Which slit?">
+<section class="section" id="part4" data-nav-label="4 Which slit">
 <div class="section-head">
 <h2>4. Which slit? A record at one slit <span class="time-est">≈ 8 min</span></h2>
 <p>Place a detector at the upper slit that records whether the electron passed there. The record can be any physical change: a click, a flipped spin, a moved atom. Nobody needs to look at it. N-Slits has an ideal detector: its record always tells the two paths apart. The small figure after it shows a partial record.</p>
-<div class="notice"><strong>What to notice:</strong> As the record becomes reliable, the bands fade, behind the wall and on the screen, until only the two humps added remain.<span class="guided-equation">\[P_\gamma = P_U + P_L + \gamma\,(\text{interference term})\]</span></div>
+<div class="notice"><strong>What to notice:</strong> As the record becomes reliable, the bands fade, behind the wall and on the screen, until only the two humps added remain.<span class="guided-equation">\[P_\gamma = P_1 + P_2 + \gamma\,(\text{interference term})\]</span></div>
 <p class="concept-note"><b>γ = 1:</b> indistinguishable records, full interference. <b>γ = 0:</b> distinguishable records, no interference. No one needs to read the record.</p>
 <div class="prose qn-full ds-explanation"><p>The record links the electron to the detector: "went through the upper slit" now goes together with "detector reads upper", and the same for the lower slit. The number γ measures how much the two detector readings overlap, that is, how hard they are to tell apart. If the readings can be told apart perfectly, γ = 0 and the bands disappear. If they cannot be told apart at all, γ = 1 and the bands are as strong as with no detector. In between, the bands fade. The readout gives the interference term as a percentage of its value with no detector. The app's which-slit detector is an ideal one: it always corresponds to γ = 0.</p></div>
 <div class="quiz" data-quiz="">
@@ -110,11 +104,11 @@
 <div class="section-body ns-section-body"><div class="ns-embed" data-hash="level=basic&amp;view=copenhagen&amp;wl=50&amp;sep=300&amp;det=1000&amp;scr=1200&amp;slits=11&amp;run=1" data-query=""><div class="buttons ns-scenarios" role="group" aria-label="Set-ups"><button class="button primary" data-ns-hash="level=basic&amp;view=copenhagen&amp;wl=50&amp;sep=300&amp;det=1000&amp;scr=1200&amp;slits=11&amp;run=1">No record</button><button class="button" data-ns-hash="level=basic&amp;view=copenhagen&amp;wl=50&amp;sep=300&amp;det=1000&amp;scr=1200&amp;slits=d1&amp;run=1">Record at the upper slit</button><button class="button" data-ns-hash="level=basic&amp;view=copenhagen&amp;wl=50&amp;sep=300&amp;det=1000&amp;scr=1200&amp;slits=dd&amp;run=1">Records at both slits</button></div><iframe class="ns-frame" title="N-Slits: which slit?" style="height:760px" allow="fullscreen"></iframe><p class="ns-note">With a detector, the parts of the wave tied to different records get different colours, and each hit takes the colour of its record.</p></div><div class="canvas-card ns-small" data-figure="gamma"><canvas class="ns-fig ns-fig-short" aria-label="Screen distribution for a partial which-slit record"></canvas>
 <p class="ds-figure-key">A partial record (not in N-Slits): the gold curve for the overlap γ of the two detector readings, between no record (γ = 1) and a reliable one (γ = 0). Same far-field sketch as in Part 3.</p>
 <aside class="qn-results ds-results"><div class="qn-results-head"><strong>Overlap of the records</strong></div><div class="readout"></div></aside>
-<div class="controls"><div class="row"><label><span>Overlap of the records γ</span> <output></output></label><input data-f="gamma" type="range" min="0" max="1" step="0.01" value="1" aria-label="Overlap of the records"></div></div></div><details class="derivation qn-full"><summary>Details and math: the overlap γ</summary><div class="body"><p>With a record, the state of electron and detector is ψ<sub>U</sub>|D<sub>U</sub>⟩ + ψ<sub>L</sub>|D<sub>L</sub>⟩. For records |D<sub>U</sub>⟩ and |D<sub>L</sub>⟩, the screen density is |ψ<sub>U</sub>|² + |ψ<sub>L</sub>|² + 2 Re[γ ψ<sub>U</sub><sup>*</sup>ψ<sub>L</sub>] with γ = ⟨D<sub>U</sub>|D<sub>L</sub>⟩. Here γ is taken real and between 0 and 1. With γ &lt; 1 the figure draws the crests of the stronger component at each point; the probabilities do not depend on this display choice.</p></div></details></div>
+<div class="controls"><div class="row"><label><span>Overlap of the records γ</span> <output></output></label><input data-f="gamma" type="range" min="0" max="1" step="0.01" value="1" aria-label="Overlap of the records"></div></div></div><details class="derivation qn-full"><summary>Details and math: the overlap γ</summary><div class="body"><p>With a record, the state of electron and detector is ψ<sub>1</sub>|D<sub>1</sub>⟩ + ψ<sub>2</sub>|D<sub>2</sub>⟩. For records |D<sub>1</sub>⟩ and |D<sub>2</sub>⟩, the screen density is |ψ<sub>1</sub>|² + |ψ<sub>2</sub>|² + 2 Re[γ ψ<sub>1</sub><sup>*</sup>ψ<sub>2</sub>] with γ = ⟨D<sub>1</sub>|D<sub>2</sub>⟩. Here γ is taken real and between 0 and 1. With γ &lt; 1 the figure draws the crests of the stronger component at each point; the probabilities do not depend on this display choice.</p></div></details></div>
 </section>
 
 <!-- ============ PART 5 ============ -->
-<section class="section" id="part5" data-nav-label="5 Three accounts">
+<section class="section" id="part5" data-nav-label="5 Views">
 <div class="section-head">
 <h2>5. Same pattern, three accounts <span class="time-est">≈ 15 min</span></h2>
 <p>All three accounts start with the same prepared wavefunction and predict the same screen statistics. They disagree about what exists and what happens between the source and the screen. Choose an account above the demonstration; each starts a run.</p>
@@ -167,7 +161,7 @@
 </section>
 
 <!-- ============ PART 7 ============ -->
-<section class="section" id="part6" data-nav-label="7 Team questions">
+<section class="section" id="part6" data-nav-label="7 Team">
 <div class="section-head"><h2>7. Team questions</h2>
 </div><div class="prose ds-overview"><p>Each team takes one account and explains the double-slit experiment from inside it. Every team answers the same five questions, so the presentations can be compared side by side.</p>
 <ol class="questions-list">
@@ -193,7 +187,7 @@
 </div></section>
 
 <!-- ============ PART 7 ============ -->
-<section class="section" id="part7" data-nav-label="8 Model &amp; references">
+<section class="section" id="part7" data-nav-label="8 Refs">
 <div class="section-head">
 <h2>8. About the model, and going further</h2>
 <p>Parts 1–5 use N-Slits’ analytical engine: the beam moves forward at constant speed and spreads only sideways, and the slits are smooth openings that absorb what they do not let through. Part 6 uses its numerical engine, the Schrödinger equation on a grid with a hard wall.</p>
@@ -223,7 +217,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
 });
 </script>
-<script type="module" src="embeds.js?v=20261127b"></script>
+<script type="module" src="embeds.js?v=20261127c"></script>
 <script type="module" src="figures.js?v=20261127"></script>
 <script type="module" src="notebook-ui.js?v=20261127-nslits"></script></body>
 </html>

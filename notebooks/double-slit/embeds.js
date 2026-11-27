@@ -2,10 +2,10 @@
 // (?embed=1: compact page, settings kept inside the frame) and buttons that load a set-up,
 // given as a share-link hash. A frame loads when it comes near the screen.
 // A set-up that differs from the loaded one only in view, slits, λ, geometry, electrons per
-// wave or speed is sent to the running app (no reload); others (level, engine, preset,
+// wave, speed or the arrows at P is sent to the running app (no reload); others (level, engine, preset,
 // numerical options) reload the frame.
 const APP = '../../apps/comparative/n-slits/index.html';
-const IN_PLACE = new Set(['view', 'slits', 'wl', 'sep', 'det', 'scr', 'packetCount', 'speed', 'run']);
+const IN_PLACE = new Set(['view', 'slits', 'wl', 'sep', 'det', 'scr', 'packetCount', 'speed', 'run', 'arrows', 'arrowsY']);
 let serial = 0;
 
 const structural = (hash, query) => {

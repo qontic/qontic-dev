@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te402';
-import { mountMWBranching } from './mw-branching.js?cache=te402';
-import { APP_RELEASE } from './release.js?cache=te402';
-import { mountNSlitQuiz } from './quiz.js?cache=te402';
+import { mountPacketEngine } from './packet-engine.js?cache=te410';
+import { mountMWBranching } from './mw-branching.js?cache=te410';
+import { APP_RELEASE } from './release.js?cache=te410';
+import { mountNSlitQuiz } from './quiz.js?cache=te410';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te402';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te410';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -453,6 +453,7 @@ $(function () {
         else document.getElementById('MaxPart-group')?.setValueInFirstUnit(n);
       }
       const sp = +h.get('speed'); if (sp > 0) document.getElementById('animationStep-group')?.setValueInFirstUnit(sp);
+      if (h.has('arrows')) window.qonticArrows?.set(h.get('arrows') === '1', h.has('arrowsY') ? +h.get('arrowsY') : undefined);
       $('#resetButton').trigger('click');
       if (h.get('run') === '1') setTimeout(() => { if (!isAnimating) $('#startButton').trigger('click'); }, 150);
       event.source.postMessage({ type: 'ns-applied' }, '*');

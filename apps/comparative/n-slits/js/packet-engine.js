@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te402';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te402';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te402';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te402';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te402';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te402';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te402';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te402';
-import {createNumericalEngine} from './numerical-engine.js?cache=te402';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te402';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te402';
-import {classifySlitSide} from './source-packet-model.js?cache=te402';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te410';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te410';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te410';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te410';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te410';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te410';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te410';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te410';
+import {createNumericalEngine} from './numerical-engine.js?cache=te410';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te410';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te410';
+import {classifySlitSide} from './source-packet-model.js?cache=te410';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -821,7 +821,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te402').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te410').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1425,10 +1425,10 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    }
   }}
   setupCtx.setLineDash([]);if(!surfaceView&&shown('plot_detector')){setupCtx.globalAlpha=elementOpacity('plot_detector');setupCtx.strokeStyle=colorDetector;setupCtx.beginPath();setupCtx.moveTo(detectorX,0);setupCtx.lineTo(detectorX,canvas.height);setupCtx.stroke();}setupCtx.restore();
-  drawWave();flowOverlay.draw({ctx:setupCtx,p,coeff:epochs.length>1?coeffAt:coeff,pulses,t,X,Y,width:canvas.width,height:canvas.height,yOffset,surfaceView});drawParticles();histogram();drawDetection();updateSurface3D();window.qonticScaleOverlay?.update();geometryControls?.update();slitControls?.update();separationControls?.update();stats();
+  drawWave();flowOverlay.draw({ctx:setupCtx,p,coeff:epochs.length>1?coeffAt:coeff,pulses,t,X,Y,width:canvas.width,height:canvas.height,yOffset,surfaceView});drawParticles();histogram();drawDetection();try{drawArrowsOnCanvas();}catch(_){}updateSurface3D();window.qonticScaleOverlay?.update();geometryControls?.update();slitControls?.update();separationControls?.update();stats();
  }
 
- function hash(){return '&engine=packet&packetOrigin=source&sourceWidth='+sourceWidth.value+'&packetLength='+length.value+'&packetWidth='+width.value+'&slitExtent='+extent.value+'&slitBalance='+balance.value+'&packetCount='+p.particles+'&tailLength='+tailLength.value+'&packetInterval='+interval.value+(surfaceView?'&surface3d=1&surfaceHeight='+surfaceHeightMode:'')+(engine==='numerical'?'&numeng=1':'')+'&wall='+numSlitModel+'&cur='+(expertSaved?.guide??numOpt.guide)+'&blade='+(expertSaved?.blade??numOpt.blade)+'&tau='+(expertSaved?.tau??numOpt.tau)+'&bw='+(expertSaved?.bladeW??numOpt.bladeW)+'&repl='+((expertSaved?.replay??numOpt.replay)?1:0)+'&chg='+((expertSaved?.showChange??numOpt.showChange)?1:0)+'&gain='+(expertSaved?.changeGain??numOpt.changeGain)+'&level='+level+viewHash();}
+ function hash(){return '&engine=packet&packetOrigin=source&sourceWidth='+sourceWidth.value+'&packetLength='+length.value+'&packetWidth='+width.value+'&slitExtent='+extent.value+'&slitBalance='+balance.value+'&packetCount='+p.particles+'&tailLength='+tailLength.value+'&packetInterval='+interval.value+(surfaceView?'&surface3d=1&surfaceHeight='+surfaceHeightMode:'')+(engine==='numerical'?'&numeng=1':'')+'&wall='+numSlitModel+'&cur='+(expertSaved?.guide??numOpt.guide)+'&blade='+(expertSaved?.blade??numOpt.blade)+'&tau='+(expertSaved?.tau??numOpt.tau)+'&bw='+(expertSaved?.bladeW??numOpt.bladeW)+'&repl='+((expertSaved?.replay??numOpt.replay)?1:0)+'&chg='+((expertSaved?.showChange??numOpt.showChange)?1:0)+'&gain='+(expertSaved?.changeGain??numOpt.changeGain)+'&level='+level+viewHash()+(window.qonticArrows?.hash()||'');}
  // Settings that live outside the packet model but define what a shared link shows.
  function viewHash(){
   const v=id=>document.getElementById(id);
@@ -1540,6 +1540,73 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  pwWaveButton=document.createElement('button');pwWaveButton.type='button';pwWaveButton.className=editButton.className;pwWaveButton.setAttribute('aria-label','Pilot-Wave field');
  pwWaveButton.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5z"/><circle cx="12" cy="12" r="2.4"/><path d="M3 20c3-3 5-3 8 0s5 3 10 0"/></svg>';
  toolbar.insertBefore(pwWaveButton,surfaceButton);
+ // 4.1: Arrows at a point P (analytical engine). Each open slit's amplitude at P on the screen is an
+ // arrow (the slit's term of the computed wave, sourceComponents); the arrows are added tip to tail
+ // and the probability is the squared length of the sum. With which-slit records the arrows belong
+ // to different records and are not added. P is dragged along the screen; nothing is reset.
+ const arrows={on:false,y:0};
+ try{const s=JSON.parse(localStorage.getItem('qontic-te-arrows')||'null');if(s){arrows.on=!!s.on;arrows.y=Number(s.y)||0;}}catch(_){}
+ if(params.has('arrows'))arrows.on=params.get('arrows')==='1';if(params.has('arrowsY')&&isFinite(+params.get('arrowsY')))arrows.y=+params.get('arrowsY');
+ const saveArrows=()=>{try{localStorage.setItem('qontic-te-arrows',JSON.stringify(arrows));}catch(_){}};
+ const arrowsButton=document.createElement('button');arrowsButton.type='button';arrowsButton.className=editButton.className;arrowsButton.setAttribute('aria-label','Arrows at a point P');
+ arrowsButton.title='Arrows at a point P: each open slit’s amplitude at P, added tip to tail. Drag P along the screen.';
+ arrowsButton.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 19l5-9 8-4"/><path d="M8.2 10.4 10 10l.2 1.8M15.6 5.2 18 6l-1.1 2.2"/><path d="M5 19 18 6" stroke-dasharray="2 2.5"/></svg>';
+ toolbar.insertBefore(arrowsButton,pwWaveButton);
+ const arrowsPanel=document.createElement('div');arrowsPanel.className='te-arrows-panel';arrowsPanel.hidden=true;
+ arrowsPanel.innerHTML='<canvas width="116" height="116" aria-hidden="true"></canvas><div><div class="te-arrows-title">Arrows at P</div><div class="te-arrows-text" role="status"></div></div>';
+ const arrowsHandle=document.createElement('button');arrowsHandle.type='button';arrowsHandle.className='te-arrows-handle';arrowsHandle.textContent='P';arrowsHandle.hidden=true;
+ arrowsHandle.setAttribute('aria-label','Point P on the screen; drag or use the arrow keys');
+ geometryHost.append(arrowsPanel,arrowsHandle);
+ const arrowsUsable=()=>arrows.on&&p&&coeff&&!numericalActive()&&!surfaceView;
+ const clampArrowsY=()=>{const h=screenHeight/2;arrows.y=Math.max(-h,Math.min(h,Math.round(arrows.y)));};
+ function arrowsData(){
+  clampArrowsY();const yw=arrows.y/100,x=p.screen,comps=sourceComponents(yw,x,p,coeff),c0=sourceComponents(0,x,p,coeff);
+  const norm=(c0.reduce((n,c)=>n+Math.sqrt(c.rho),0)/Math.max(1,c0.length))*Math.max(c0.length,numSlits)||1,groups=p.whichPath?branchOf(p):comps.map(()=>0);
+  return {yw,comps,norm,groups,ids:p.slitIds||comps.map((_,k)=>k)};
+ }
+ function drawArrowsOnCanvas(){
+  const show=arrowsUsable();arrowsPanel.hidden=arrowsHandle.hidden=!show;arrowsButton.setAttribute('aria-pressed',String(arrows.on));
+  arrowsButton.disabled=numericalActive();arrowsButton.title=numericalActive()?'Arrows at P use the analytical engine (Engine tab).':'Arrows at a point P: each open slit’s amplitude at P, added tip to tail. Drag P along the screen.';
+  if(!show)return;
+  const d=arrowsData(),py=Y(d.yw);
+  arrowsHandle.style.left=(100*detectorX/canvas.width)+'%';arrowsPanel.style.left=(50*(wallX+detectorX)/canvas.width).toFixed(2)+'%';arrowsHandle.style.top=(100*py/canvas.height)+'%';
+  setupCtx.save();setupCtx.lineWidth=1.5;setupCtx.setLineDash([6,5]);
+  p.centers.forEach((c,k)=>{setupCtx.strokeStyle=slitColorOf('k'+d.ids[k]);setupCtx.beginPath();setupCtx.moveTo(wallX+4,Y(c));setupCtx.lineTo(detectorX,py);setupCtx.stroke();});
+  setupCtx.restore();
+  // Phasor panel
+  const cv=arrowsPanel.querySelector('canvas'),dpr=window.devicePixelRatio||1;
+  if(cv.width!==Math.round(116*dpr)){cv.width=Math.round(116*dpr);cv.height=Math.round(116*dpr);}
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,116,116);
+  const light=document.body.classList.contains('qontic-light'),cx=58,cy=58,R=50,ink=light?'#334':'#9fb3c8';
+  g.strokeStyle=light?'rgba(0,0,0,.18)':'rgba(255,255,255,.16)';g.lineWidth=1;g.beginPath();g.arc(cx,cy,R,0,2*Math.PI);g.moveTo(cx-R-6,cy);g.lineTo(cx+R+6,cy);g.moveTo(cx,cy-R-6);g.lineTo(cx,cy+R+6);g.stroke();
+  const ph0=Math.atan2(d.comps[0].im,d.comps[0].re),cs=Math.cos(-ph0),sn=Math.sin(-ph0),s=R/d.norm;
+  const vec=c=>{const re=c.re*cs-c.im*sn,im=c.re*sn+c.im*cs;return [im*s,-re*s];};
+  const arrow=(x0,y0,x1,y1,col,w)=>{const L=Math.hypot(x1-x0,y1-y0);g.strokeStyle=g.fillStyle=col;g.lineWidth=w;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();if(L<3)return;const a=Math.atan2(y1-y0,x1-x0),hd=Math.min(8,L*.45);g.beginPath();g.moveTo(x1,y1);g.lineTo(x1-hd*Math.cos(a-.42),y1-hd*Math.sin(a-.42));g.lineTo(x1-hd*Math.cos(a+.42),y1-hd*Math.sin(a+.42));g.closePath();g.fill();};
+  const nG=Math.max(...d.groups)+1;let sumSq=0,totalSq=0;
+  for(let b=0;b<nG;b++){let x=cx,y=cy,sr=0,si=0;const members=d.groups.filter(v=>v===b).length;
+   d.comps.forEach((c,k)=>{if(d.groups[k]!==b)return;const [dx,dy]=vec(c);x+=dx;y+=dy;sr+=c.re;si+=c.im;});
+   if(members>1){g.globalAlpha=.75;arrow(cx,cy,x,y,light?'#1d2733':'#eef3f8',5);g.globalAlpha=1;}
+   x=cx;y=cy;d.comps.forEach((c,k)=>{if(d.groups[k]!==b)return;const [dx,dy]=vec(c);arrow(x,y,x+dx,y+dy,slitColorOf('k'+d.ids[k]),2);x+=dx;y+=dy;});
+   totalSq+=(sr*sr+si*si)/(d.norm*d.norm);}
+  for(const c of d.comps)sumSq+=c.rho/(d.norm*d.norm);
+  const names=d.ids.map(id=>'ψ<sub>'+(id+1)+'</sub>'),f=v=>v.toFixed(2);
+  let html='';
+  if(d.comps.length===2){const D=detectorDistance,lam=2*Math.PI*100/p.k,r=p.centers.map(c=>Math.hypot(D,arrows.y-c*100));html+=`r<sub>${d.ids[1]+1}</sub> − r<sub>${d.ids[0]+1}</sub> = <b>${f((r[1]-r[0])/lam)} λ</b><br>`;}
+  if(nG===1&&d.comps.length>1)html+=`|${names.join(' + ')}|² = <b>${f(totalSq)}</b><br>${names.map(n=>'|'+n+'|²').join(' + ')} = <b>${f(sumSq)}</b>`;
+  else if(d.comps.length===1)html+=`|${names[0]}|² = <b>${f(totalSq)}</b>`;
+  else html+=`Records tell the paths apart: the arrows are not added.<br>Probability ∝ ${p.whichPath&&nG===d.comps.length?names.map(n=>'|'+n+'|²').join(' + '):'sum over records of |arrows|²'} = <b>${f(totalSq)}</b>`;
+  const key=d.ids.map(id=>`<span style="color:${slitColorOf('k'+id)}">■</span> ψ<sub>${id+1}</sub>`).join(' ')+(nG===1&&d.comps.length>1?' <span class="te-arrows-sum">■</span> sum':'');
+  html=`<div class="te-arrows-key">${key}</div>`+html+`<div class="te-arrows-note">1 = central peak, all slits open; only angles between arrows matter.</div>`;
+  const t=arrowsPanel.querySelector('.te-arrows-text');if(t.innerHTML!==html)t.innerHTML=html;
+ }
+ window.qonticArrows={set(on,y){if(on!==undefined)arrows.on=!!on;if(y!==undefined&&isFinite(+y))arrows.y=+y;saveArrows();draw();},get(){return {...arrows};},hash(){return arrows.on?'&arrows=1&arrowsY='+Math.round(arrows.y):'';}};
+ arrowsButton.addEventListener('click',()=>{arrows.on=!arrows.on;saveArrows();draw();});
+ {let drag=null;
+  const fromEvent=e=>{const r=geometryHost.getBoundingClientRect(),py=(e.clientY-r.top)/r.height*canvas.height;arrows.y=(py/(100*toCanvasY)-yOffset)*100;clampArrowsY();if(!isAnimating)draw();};
+  arrowsHandle.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();drag=e.pointerId;arrowsHandle.setPointerCapture(e.pointerId);});
+  arrowsHandle.addEventListener('pointermove',e=>{if(drag===e.pointerId)fromEvent(e);});
+  const end=e=>{if(drag===e.pointerId){drag=null;saveArrows();}};arrowsHandle.addEventListener('pointerup',end);arrowsHandle.addEventListener('pointercancel',end);
+  arrowsHandle.addEventListener('keydown',e=>{const st=e.shiftKey?25:5;if(e.key==='ArrowUp'){arrows.y-=st;}else if(e.key==='ArrowDown'){arrows.y+=st;}else return;e.preventDefault();clampArrowsY();saveArrows();if(!isAnimating)draw();});}
  pwWaveButton.addEventListener('click',()=>{pwWaveVisible=!pwWaveVisible;localStorage.setItem('qontic-pw-wave-visible',String(pwWaveVisible));syncPwWaveButton();draw();});
  function syncSurfaceView(){
   localStorage.setItem('qontic-double-slit-surface-view',String(surfaceView));geometryHost.classList.toggle('packet-surface-3d',surfaceView);

@@ -3,6 +3,10 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.1 — 2026-11-27
+- Arrows at a point P (toolbar button; link keys arrows=1, arrowsY=<nm from the screen centre, down positive>). Analytical engine only. A gold P on the screen (drag, or arrow keys) with dashed lines from each open slit; a panel draws each open slit's term of the computed wave at P (sourceComponents) as an arrow, added tip to tail, with the sum; readouts r₂ − r₁ in λ (two slits), |ψ₁+ψ₂|² and |ψ₁|²+|ψ₂|², in units of the central peak with all slits open. With which-slit records the arrows are not added (one sum per record). Nothing is reset when P moves. Used by Part 3 of the Double Slit notebook.
+- Checked: centre 1.00 / 0.50; first dark band (y = 83–86 nm at λ 50, d 300, D 1000) r₂ − r₁ = −0.49 λ, |sum|² = 0.10 (the minimum of the app's curve, not zero: at P the two beams differ in strength); next bright band 0.71; one slit at the centre 0.25.
+
 ## 4.0.2 — 2026-11-27
 - Basic "Electrons per wave" slider: during a run, every frame reset it to the value in use, so dragging did nothing (it worked only while stopped). The slider now keeps the dragged value and applies it on release. Checked: drag during a run 30 → 87 → 7.
 - Embed mode: the notebook's set-up buttons apply a set-up to the running app (view, slits, λ, geometry, electrons per wave, speed) without reloading; set-ups that change level, engine or preset still reload. A link's speed is now applied.
