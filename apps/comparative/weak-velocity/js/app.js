@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.10.0';
-import * as M from './weak-model.js?v=0.10.0';
+import { APP_RELEASE } from './release.js?v=0.11.0';
+import * as M from './weak-model.js?v=0.11.0';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -43,7 +43,15 @@ const N_PLANES = 12;
 const packetSigma = () => state.packet / 100;
 const instant = () => state.timing === 'instant';
 // The Windows stage always runs at random times (Wiseman's protocol); since 0.10 stages 1–3 use planes only.
-const timed = () => instant() || state.stage === 'window';
+// Two methods, the same three steps. Planes (as in Kocsis et al.): stages one,
+// many, map. Windows (Wiseman's protocol: random times, full position): wone,
+// window, wmap. The stage buttons show the step; the Method switch the method.
+const WIN_STAGES = ['wone', 'window', 'wmap'];
+const isWin = () => WIN_STAGES.includes(state.stage);
+const winData = () => state.stage === 'window' || state.stage === 'wmap';   // collected runs, pointing
+const STEP = { one: 'one', many: 'many', map: 'map', wone: 'one', window: 'many', wmap: 'map' };
+const stageFor = (method, step) => (method === 'windows' ? { one: 'wone', many: 'window', map: 'wmap' } : { one: 'one', many: 'many', map: 'map' })[step];
+const timed = () => instant() || isWin();
 const SCATTER_N = 4000;
 const PLANE_POINTS = 6000; // runs kept as points beside the planes
 const MANY_SECONDS = 6;
@@ -207,8 +215,14 @@ function planeX1(i) { const d = geo.distance; return 0.02 * d + i * (d - state.g
 function rebuild() {
   pending = false;
   anim = null; lastRun = null; shrink = null;
-  if (state.stage === 'window') {
-    map = null; exp = null; wf = makeWindowField();
+  if (isWin()) {
+    // The runs are kept when moving between Windows' many runs and map (same
+    // settings), unless Start or Reset asked for a fresh sample.
+    map = null; exp = null;
+    const key = winKey();
+    if (!wf || wf.key !== key || wfReset) { wf = makeWindowField(); wf.key = key; }
+    wfReset = false;
+    if (state.stage === 'wone') { wone = { runs: [], anim: null }; }
     updateText(); showNext();
     return;
   }
@@ -259,13 +273,14 @@ const ELECTRON_V = () => 6.62607015e-34 / (9.1093837e-31 * geo.wavelength * 1e-9
 const psAt = (nmDist) => nmDist * 1e-9 / ELECTRON_V() * 1e12;
 const fmtPs = (t) => (t >= 100 ? t.toFixed(0) : t >= 10 ? t.toFixed(1) : t.toFixed(2)) + ' ps';
 
-// ---------------------------------------------------------------- stage 4: windows over the field
+// ---------------------------------------------------------------- the Windows method
 // Runs at all times, so their strong results cover the whole drawing. Because
 // the packet only translates, a run whose weak coupling finds the particle at
 // x1 is a run at the planes (x1, x1 + gap): the field is a set of thin plane
 // pairs 10 nm apart, all equally likely. A window is an ellipse of strong results.
 const WIN_DX = 0.1, WIN_SAMPLE = 400000, WIN_DRAW = 60000;   // runs kept as a sample; the first WIN_DRAW are drawn over the field
-let wf = null;
+let wf = null, wfReset = false, wone = { runs: [], anim: null };
+const winKey = () => [state.gap, state.sw, Y_HALF, JSON.stringify(geo)].join('|');
 function makeWindowField() {
   const gapX = state.gap / 100, x1s = M.windowPlanes(p.wall, p.screen, gapX, WIN_DX), nYf = Math.round(2 * Y_HALF / 0.02);
   const field = M.windowField({ terms0: T0, k: p.k, wallX: p.wall, gapX, sw: state.sw / 100, yfMin: -Y_HALF, yfMax: Y_HALF, nYf, x1s, dx: WIN_DX });
@@ -307,7 +322,7 @@ function traceBack(c0) {
 // from windows next to the screen, started at equal shares of the runs
 // detected there; the j/|ψ|² flow lines from the same windows for comparison.
 function windowSummary() {
-  if (!wf || wf.runs < state.perPlane) return null;
+  if (state.stage !== 'wmap' || !wf || wf.runs < state.perPlane) return null;
   const key = [state.win.len, state.win.wid, state.nLines, wf.runs].join('|');
   if (wf.summary?.key === key) return wf.summary;
   const rx = winRx(), ry = winRy(), F = wf.field, nYf = F.nYf;
@@ -350,13 +365,13 @@ function updateText() {
   const angle = geo.wavelength / (4 * Math.PI * state.sw);
   $('#swHint').textContent = 'A wider pointer gives noisier readings and disturbs the wave less. Below about 50 nm the two predictions separate.'
     + (angle > 0.2 ? ' This sharp-pointer setting is a qualitative illustration beyond the reliable paraxial range.' : '');
-  $('#perPlane').setAttribute('aria-valuetext', `${state.perPlane.toLocaleString('en-US')} ${state.stage === 'window' ? 'runs over the whole field' : 'runs per pair of planes'}`);
+  $('#perPlane').setAttribute('aria-valuetext', `${state.perPlane.toLocaleString('en-US')} ${winData() ? 'runs over the whole field' : 'runs per pair of planes'}`);
   $('#arrowDensityOut').value = Math.ceil(N_BINS / state.arrowEvery);
   $('#arrowDensity').setAttribute('aria-valuetext', `${Math.ceil(N_BINS / state.arrowEvery)} arrows per plane`);
   // Numbers in the Physics tab that follow the geometry.
   document.querySelectorAll('[data-strip-width]').forEach((el) => { el.textContent = `${Number((geo.screen / N_BINS).toPrecision(3))} nm`; });
   document.querySelectorAll('[data-screen-half]').forEach((el) => { el.textContent = `${geo.screen / 2}`; });
-  const W = state.stage === 'window';
+  const W = isWin();
   $('#x1Row').style.display = state.stage === 'map' || W ? 'none' : '';
   $('#winLOut').value = `${state.win.len} nm`; $('#winL').value = state.win.len;
   $('#winWOut').value = `${state.win.wid} nm`; $('#winW').value = state.win.wid;
@@ -366,26 +381,23 @@ function updateText() {
   $('#winTrace').textContent = state.win.trace ? 'Clear the trace' : 'Trace back from this window';
   document.querySelectorAll('[data-timing]').forEach((b) => { const on = b.dataset.timing === state.timing; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
   $('#recxRow').hidden = !instant() || W;
-  $('#pauseRow').hidden = state.stage !== 'one';
+  $('#pauseRow').hidden = state.stage !== 'one' && state.stage !== 'wone';
   $('#cellRow').hidden = !(instant() && state.recx) || W;
   $('#packetRow').hidden = !(instant() || state.show.fixedTime) || W;
   // Words that change with the timing: planes vs instants.
   $('#x1Label').textContent = instant() ? 'Weak at t₁' : 'Weak plane';
-  $('#gapLabel').textContent = instant() ? 'Strong, τ later' : 'Gap to strong plane';
+  $('#gapLabel').textContent = instant() ? 'Strong, τ later' : isWin() ? 'Travel from t₁ to t₂' : 'Gap to strong plane';
   $('#expLabel').textContent = instant() ? (state.recx ? 'Prediction, pointer + recorded position' : 'Prediction, pointer + packet') : 'Prediction for this pointer';
   $('#perPlaneLabel').textContent = W ? 'Runs, whole field' : instant() ? 'Runs (packets)' : 'Runs per pair of planes';
   $('#curLabel').textContent = instant() && state.recx && exp?.mix ? `Ideal weak pointer at Δ = ${Math.round(nm(cellDx())) === 0 ? '0' : (cellDx() > 0 ? '+' : '−') + Math.abs(nm(cellDx())).toFixed(0)} nm` : instant() ? 'Ideal weak pointer, j/|ψ|² at the packet centre' : 'Ideal weak pointer, j/|ψ|²';
-  $('#runsLabel').textContent = W ? 'Runs (whole field)' : instant() ? 'Runs (one packet each)' : 'Runs at these planes';
+  $('#runsLabel').textContent = state.stage === 'wone' ? 'Runs so far' : W ? 'Runs (whole field)' : instant() ? 'Runs (one packet each)' : 'Runs at these planes';
   $('#pairLabel').textContent = instant() ? 'Packet centre at t₁ → t₂' : 'Plane pair';
   for (const [id, unit] of [['sw', state.sw], ['x1', state.x1], ['gap', state.gap]]) $(`#${id}`).setAttribute('aria-valuetext', instant() && id !== 'sw' ? `${fmtPs(psAt(unit))}, ${unit} nanometres` : `${unit} nanometres`);
   $('#recx').setAttribute('aria-pressed', String(!state.recx));   // the switch is "Drop the position along the beam"
   $('#packet').value = state.packet; $('#packetOut').value = `${state.packet} nm`;
   $('#packet').setAttribute('aria-valuetext', `${state.packet} nanometres`);
-  $('#runsRow').style.display = state.stage === 'one' ? 'none' : '';
-  document.querySelectorAll('[data-stage]').forEach((b) => {
-    const on = b.dataset.stage === state.stage;
-    b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
-  });
+  $('#runsRow').style.display = state.stage === 'one' || state.stage === 'wone' ? 'none' : '';
+  syncMethod();
 }
 
 const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
@@ -394,7 +406,7 @@ const RATIONALE_LINK = '<button type="button" class="link-button" data-goto="rat
 // Arrows switched off (Display, or the switch on the drawing): say so, so a run without arrows is not a mystery.
 const arrowsOffNote = () => (!state.show.arrows && state.stage !== 'one' ? ' <b>Measured arrows are switched off</b> (switch on the drawing, or Display).' : '');
 function liveText() {
-  if (state.stage === 'window') return wf ? (urlNote && !hadRun ? `<span class="url-note">${urlNote}</span> ` : '') + windowLive() + arrowsOffNote() : '';
+  if (isWin()) return wf ? (urlNote && !hadRun ? `<span class="url-note">${urlNote}</span> ` : '') + (state.stage === 'wone' ? woneLive() : windowLive()) + arrowsOffNote() : '';
   if (!exp) return '';
   // A note about an adjusted link stays until the first run.
   const note = urlNote && !hadRun ? `<span class="url-note">${urlNote}</span> ` : '';
@@ -443,7 +455,10 @@ function windowLive() {
   const how = timed()
     ? `Each run is one packet measured at two instants, chosen at random from run to run, so the strong results cover the whole field. The weak pointer reads both coordinates at t₁; the strong measurement records the position at t₂ = t₁ + τ (τ = ${tau} for an electron).`
     : 'Each run is at a pair of planes chosen at random, a gap apart, so the strong results cover the whole field. The weak pointer reads both coordinates; the strong plane gives the position.';
-  if (wf.runs === 0) return `<b>Windows over the field.</b> ${how} Press <b>Start</b>, then point anywhere: the window (an ellipse, 100 nm along the beam by 10 nm across) picks the runs whose strong result fell inside it.`;
+  const step = state.stage === 'wmap' ? '<b>Windows method, step 3: map the field.</b>' : '<b>Windows method, step 2: many runs.</b>';
+  if (wf.runs === 0) return state.stage === 'wmap'
+    ? `${step} ${how} Press <b>Start</b> to collect the runs; then arrows from windows on a grid and lines traced back from the screen are drawn from them. You can still point anywhere.`
+    : `${step} ${how} Press <b>Start</b>, then point anywhere: the window (an ellipse, ${winSize()}) picks the runs whose strong result fell inside it.`;
   const c = winCentre(), q = winQuery(c), head = `${wf.runs.toLocaleString('en-US')} of ${state.perPlane.toLocaleString('en-US')} runs.`;
   if (!(q.n >= 30)) return `${head} ${how} Too few runs in this window yet; point where the wave is bright, or wait.`;
   const where = `(${nm(c.x - p.wall).toFixed(0)}, ${nm(c.y).toFixed(0)}) nm`;
@@ -453,7 +468,8 @@ function windowLive() {
   })() : ' Click (or use Trace back) to repeat the step: the mean weak position becomes the next window, towards the slits.';
   const S = windowSummary();
   const sum = S ? ` <b>Field from windows:</b> ${S.n} lines traced back from windows next to the screen, started at equal shares of the runs detected there (amber lines); arrows from windows on a grid.${state.show.bohm ? ` The dashed lines follow the flow of j/|ψ|² backward from the same windows; the traces end ${S.rms.toFixed(1)} nm from them (rms), from the window's averaging and the sampling noise added up over the steps.` : ' Switch on the j/|ψ|² flow lines below the drawing to compare.'} No particle is followed: every step uses different runs.` : '';
-  return `<b>${q.n.toLocaleString('en-US')} runs ended in the window at ${where}.</b> Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean is sharp: (${nm(q.Xm - p.wall).toFixed(0)}, ${nm(q.Ym).toFixed(1)}) nm${timed() ? ' at t₁' : ''}. The arrow from it to the mean strong position${timed() ? ' at t₂' : ''} is the measured velocity for these runs (a difference of two averages): slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. ${head} ${how}${tr} It is a difference of two averages over the same selected runs, not the path of any particle.${sum}`;
+  if (state.stage === 'wmap' && sum) return `${step}${sum} <b>Pointing:</b> ${q.n.toLocaleString('en-US')} runs ended in the window at ${where}; slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. Click to trace back from it. ${head}`;
+  return `${step} <b>${q.n.toLocaleString('en-US')} runs ended in the window at ${where}.</b> Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean is sharp: (${nm(q.Xm - p.wall).toFixed(0)}, ${nm(q.Ym).toFixed(1)}) nm${timed() ? ' at t₁' : ''}. The arrow from it to the mean strong position${timed() ? ' at t₂' : ''} is the measured velocity for these runs (a difference of two averages): slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. ${head} ${how}${tr} It is a difference of two averages over the same selected runs, not the path of any particle.${sum}`;
 }
 
 function showNext() {
@@ -461,12 +477,16 @@ function showNext() {
   box.innerHTML = '';
   const add = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = label.startsWith('Next') ? 'qontic-app-toggle wv-next' : 'qontic-app-toggle'; b.textContent = label; b.addEventListener('click', fn); box.append(b); };
   if (state.stage === 'one') add('Next: many runs', () => setStage('many', true));
+  if (state.stage === 'wone') add('Next: many runs (windows)', () => setStage('window', !(wf && wf.runs >= state.perPlane)));
+  if (state.stage === 'window' && wf && wf.runs >= state.perPlane) add('Next: map the field (same runs)', () => setStage('wmap'));
+  if (state.stage === 'wmap' && wf && wf.runs >= state.perPlane) add('Back to the planes method', () => setStage('map'));
   if (state.stage === 'many' && exp && exp.runs >= state.perPlane) add('Repeat these runs (new sample)', () => { pending = true; start(); });
   if (state.stage === 'many') add('Next: map the field', () => setStage('map', true));
   if (state.stage === 'map' && map?.done) {
     // Windows is a Standard stage: at Basic the button says so and changes the level.
-    if (document.body.dataset.qonticLevel === 'basic') add('Next: windows over the field (opens Standard)', () => { levelsApi?.set('standard'); setStage('window', true); });
-    else add('Next: windows over the field', () => setStage('window', true));
+    // The other method: the same three steps with measurements at random times.
+    if (document.body.dataset.qonticLevel === 'basic') add('Next: the Windows method (opens Standard)', () => { levelsApi?.set('standard'); setStage('wone'); });
+    else add('Next: the Windows method', () => setStage('wone'));
   }
   if (state.stage === 'map' && map?.done) {
     if (state.sw >= 40) add('Repeat with a 10 nm pointer', () => { setSw(10); setStage('map', true); });
@@ -484,7 +504,7 @@ function showStep(step) {
 function setStage(stage, go = false) {
   state.stage = stage; pending = true; stop(); showStep('live');
   // A window collects a few hundredth of the runs: 20 million by default.
-  if (stage === 'window' && state.perPlane < 2e7) { state.perPlane = 2e7; $('#perPlane').value = RUNS.indexOf(2e7); $('#perPlaneOut').value = fmtRuns(2e7); }
+  if ((stage === 'window' || stage === 'wmap') && state.perPlane < 2e7) { state.perPlane = 2e7; $('#perPlane').value = RUNS.indexOf(2e7); $('#perPlaneOut').value = fmtRuns(2e7); }
   if (go) start();
   updateText();
 }
@@ -495,7 +515,24 @@ function toggle(key) {
   document.querySelector(`[data-toggle="${key}"]`)?.setAttribute('aria-pressed', String(state.show[key]));
 }
 
-document.querySelectorAll('[data-stage]').forEach((b) => b.addEventListener('click', () => setStage(b.dataset.stage)));
+// Method switch (Planes | Windows) and the three steps; the step buttons keep their
+// place when the method changes, so the same step of the other method opens.
+const STEP_TITLES = {
+  planes: { one: 'Runs one at a time, slowly: the pointer moves at the weak plane, then the screen clicks at the strong plane.', many: 'Many runs at the same pair of planes. Post-select on the strong result and average the pointer.', map: 'Repeat the experiment with the planes moved step by step from the slits to the screen, then connect the arrows.' },
+  windows: { one: 'Runs one at a time, each measured at two instants chosen at random: the weak reading at t₁, the detection at t₂.', many: 'Collect runs at random instants over the whole field, then point anywhere: a window of strong results, the mean weak reading of those runs, and the arrow between them.', map: 'Arrows from windows on a grid and lines traced back from the screen, from the same runs.' },
+};
+function syncMethod() {
+  const method = isWin() ? 'windows' : 'planes', step = STEP[state.stage];
+  document.querySelectorAll('[data-method]').forEach((b) => { const on = b.dataset.method === method; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
+  document.querySelectorAll('[data-step]').forEach((b) => {
+    const on = b.dataset.step === step;
+    b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
+    b.title = STEP_TITLES[method][b.dataset.step];
+  });
+  const lab = $('#stageTitle'); if (lab) lab.textContent = document.body.dataset.qonticLevel === 'basic' ? 'Stage' : method === 'windows' ? 'Steps · Windows: random instants' : 'Steps · Planes: fixed planes';
+}
+document.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => setStage(stageFor(isWin() ? 'windows' : 'planes', b.dataset.step))));
+document.querySelectorAll('[data-method]').forEach((b) => b.addEventListener('click', () => { if ((b.dataset.method === 'windows') !== isWin()) setStage(stageFor(b.dataset.method, STEP[state.stage])); }));
 document.querySelectorAll('[data-timing]').forEach((b) => b.addEventListener('click', () => {
   state.timing = b.dataset.timing;
   // Recording the position along the beam: each of the 13 positions gets a fifth to a thirteenth of the runs.
@@ -534,7 +571,7 @@ $('#gap').addEventListener('input', (e) => { state.gap = +e.target.value; clampG
 // A setting that clears the results (a new experiment) starts the new runs when the
 // slider is released, if there were results to replace; stage 1 stays manual.
 let hadResults = null;
-const resultsShown = () => (state.stage === 'window' ? !!wf?.runs : state.stage === 'map' ? !!(map && (map.planes.length || exp?.runs)) : state.stage === 'many' && !!exp?.runs);
+const resultsShown = () => (winData() ? !!wf?.runs : state.stage === 'map' ? !!(map && (map.planes.length || exp?.runs)) : state.stage === 'many' && !!exp?.runs);
 for (const id of ['sw', 'x1', 'gap', 'packet']) {
   const el = $(`#${id}`);
   el.addEventListener('pointerdown', () => { hadResults = resultsShown(); });
@@ -574,18 +611,19 @@ function start() {
   if (state.stage === 'one' && anim?.done) { shrinkRun(anim); anim = null; }
   if (map?.done) pending = true;
   if (state.stage === 'many' && exp && exp.runs >= state.perPlane) pending = true;
-  if (state.stage === 'window' && wf && wf.runs >= state.perPlane) pending = true;
+  if (winData() && wf && wf.runs >= state.perPlane) { pending = true; wfReset = true; }
+  if (state.stage === 'wone') woneNext();
   state.running = true; controlsEl.setAttribute('running', 'true'); showStep('live'); syncMobileRun(); setLive(false);
 }
 mobileRun.addEventListener('click', () => (state.running ? stop() : start()));
 if ('IntersectionObserver' in window) new IntersectionObserver((entries) => {
   for (const en of entries) $('.mobile-run').classList.toggle('panel-visible', en.isIntersecting);
 }, { threshold: 0.05 }).observe(document.querySelector('.always-controls'));
-$('#mobileReset').addEventListener('click', () => { stop(); pending = true; });
+$('#mobileReset').addEventListener('click', () => { stop(); pending = true; wfReset = true; });
 $('#mobileControls').addEventListener('click', () => $('.qontic-sidebar').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 controlsEl.addEventListener('qontic:start', () => start());
 controlsEl.addEventListener('qontic:stop', () => stop());
-controlsEl.addEventListener('qontic:reset', () => { stop(); pending = true; });
+controlsEl.addEventListener('qontic:reset', () => { stop(); pending = true; wfReset = true; });
 controlsEl.addEventListener('qontic:speed', (e) => { state.speed = e.detail.speed; });
 controlsEl.addEventListener('qontic:theme', () => { waveTheme = null; if (waveGrid) waveGrid.dirty = true; });
 controlsEl.addEventListener('qontic:tab', (e) => {
@@ -777,8 +815,9 @@ function readUrl() {
   const sw = num('sw', 5, 400, 5); if (sw !== null) state.sw = sw;
   const x1 = num('x1', 0, 3000, 10); if (x1 !== null) state.x1 = x1;
   const gap = num('gap', 10, 100, 5); if (gap !== null) state.gap = gap;
-  if (['one', 'many', 'map', 'window'].includes(q.get('stage'))) state.stage = q.get('stage');
-  if (state.stage === 'window' && !q.has('runs')) state.perPlane = 2e7;
+  if (['one', 'many', 'map', ...WIN_STAGES].includes(q.get('stage'))) state.stage = q.get('stage');
+  if (q.get('method') === 'windows' && !WIN_STAGES.includes(state.stage)) state.stage = stageFor('windows', STEP[state.stage]);
+  if ((state.stage === 'window' || state.stage === 'wmap') && !q.has('runs')) state.perPlane = 2e7;
   for (const [key, f] of [['winx', 'x'], ['winy', 'y']]) { const v = parseFloat(q.get(key)); if (Number.isFinite(v)) state.win[f] = Math.round(v); }
   // Window size: winl (length along the beam) and winw (width across), nm; winr (a radius) gives a circle.
   { const r = parseFloat(q.get('winr')); if (Number.isFinite(r)) state.win.len = state.win.wid = 2 * Math.round(r / 5) * 5; }
@@ -786,13 +825,13 @@ function readUrl() {
   for (const k of Object.keys(GEO_DEFAULT)) { const v = parseFloat(q.get(k)); if (Number.isFinite(v)) { geo[k] = v; urlAsked[k] = v; } }
   for (const k of ['sw', 'x1', 'gap']) { const v = parseFloat(q.get(k)); if (Number.isFinite(v)) urlAsked[k] = v; }
   const rq = parseFloat(q.get('runs')); if (Number.isFinite(rq)) urlAsked.runs = rq;
-  if (q.get('stage') && !['one', 'many', 'map', 'window'].includes(q.get('stage'))) urlBadStage = q.get('stage');
+  if (q.get('stage') && !['one', 'many', 'map', ...WIN_STAGES].includes(q.get('stage'))) urlBadStage = q.get('stage');
   const runs = parseFloat(q.get('runs')); if (Number.isFinite(runs)) state.perPlane = RUNS.reduce((a, b) => (Math.abs(Math.log(b / runs)) < Math.abs(Math.log(a / runs)) ? b : a));
   if (['density', 'crests', 'phase'].includes(q.get('show'))) state.waveMode = q.get('show');
   for (const key of ['expected', 'current']) if (q.get(key) === '0') state.show[key] = false;
   if (q.get('ft') === '1') state.show.fixedTime = true;
   // Measuring at instants in stages 1–3 was removed (0.10): Wiseman's timing is the Windows stage.
-  if (q.get('timing') === 'instant' && state.stage !== 'window') timingLinkNote = true;
+  if (q.get('timing') === 'instant' && !WIN_STAGES.includes(state.stage)) timingLinkNote = true;
   if (q.get('recx') === '0') state.recx = false;
   { const v = parseFloat(q.get('packet')); if (Number.isFinite(v)) { state.packet = Math.min(300, Math.max(50, Math.round(v / 10) * 10)); urlAsked.packet = v; } }
   if (q.get('bohm') === '1') state.show.bohm = true;
@@ -851,7 +890,7 @@ function handles() {
   });
   out.push({ kind: 'screen', x: xs, y: Yp(Y_HALF), edge: 1 }, { kind: 'screen', x: xs, y: Yp(-Y_HALF), edge: -1 });
   out.push({ kind: 'distance', x: xs, y: Yp(0), line: true });
-  if (state.stage !== 'map' && state.stage !== 'window' && (exp || (drag && (drag.kind === 'x1' || drag.kind === 'gap')))) {
+  if (state.stage !== 'map' && !isWin() && (exp || (drag && (drag.kind === 'x1' || drag.kind === 'gap')))) {
     const a1 = p.wall + state.x1 / 100, a2 = a1 + state.gap / 100;
     out.push({ kind: 'gap', x: X(a2), y: Yp(0), line: true });
     out.push({ kind: 'x1', x: X(a1), y: Yp(0), line: true });
@@ -910,7 +949,7 @@ function stripAt(px, py) {
 }
 // Stage 4: the pointer position in lengths (nm behind the slits, nm across), or null outside the field.
 function windowAt(px, py) {
-  if (!appMap || editing || state.stage !== 'window') return null;
+  if (!appMap || editing || !winData()) return null;
   const m = appMap, x = m.x0 + (px - m.box.x) / m.box.w * (m.x1 - m.x0), y = m.Yh - (py - m.box.y - 26) / (m.box.h - 44) * 2 * m.Yh;
   if (x < p.wall + state.gap / 100 || x > p.screen + 0.05 || Math.abs(y) > Y_HALF) return null;
   return { x: Math.round(nm(x - p.wall)), y: Math.round(nm(y)) };
@@ -925,7 +964,7 @@ function moveWindow(w) {
 canvas.addEventListener('pointermove', (e) => {
   const [px, py] = pointerPos(e);
   if (drag) { dragMove(px, py); return; }
-  if (state.stage === 'window') {
+  if (winData()) {
     hover = hitHandle(px, py);
     const w = hover ? null : windowAt(px, py);
     if (w && !state.win.pinned) moveWindow(w);
@@ -940,7 +979,7 @@ canvas.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointerleave', (e) => { if (!drag) { hover = null; canvas.style.cursor = ''; } if (e.pointerType === 'mouse') hoverStrip = null; });
 canvas.addEventListener('pointerdown', (e) => {
   const [px, py] = pointerPos(e), h = hitHandle(px, py);
-  if (!h && state.stage === 'window') {
+  if (!h && winData()) {
     // Click: pin the window here and trace back; click again to let it follow the pointer.
     const w = windowAt(px, py);
     if (!w) return;
@@ -1190,12 +1229,12 @@ function drawApparatus(P, fullBox) {
   ctx.strokeStyle = P.wall; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(X(p.screen), Yp(Y_HALF)); ctx.lineTo(X(p.screen), Yp(-Y_HALF)); ctx.stroke();
   text('slits', X(p.wall), box.y + box.h - 4, { color: P.muted, size: 11, align: 'center' });
   text('screen', X(p.screen), box.y + box.h - 4, { color: P.muted, size: 11, align: 'center' });
-  if (state.stage === 'window') {
-    drawWindowStage(P, X, Yp);
+  if (isWin()) {
+    if (state.stage === 'wone') drawWoneStage(P, X, Yp); else drawWindowStage(P, X, Yp);
     ctx.restore();
     appMap = { X, Yp, box, x0, x1, Yh: YH };
     drawGrips(P);
-    backedText(P, `Windows · σₚ ${state.sw} nm · gap ${state.gap} nm${` · τ = ${fmtPs(psAt(state.gap))} (electron)`} · window ${winSize()}${stretchNote()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
+    backedText(P, `Windows method · σₚ ${state.sw} nm · gap ${state.gap} nm${` · τ = ${fmtPs(psAt(state.gap))} (electron)`}${state.stage === 'wone' ? '' : ` · window ${winSize()}`}${stretchNote()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
     return { X, Yp };
   }
   // scale bar 100 nm
@@ -1528,11 +1567,89 @@ function offScale(P, x, top, bot, above, below, n) {
   }
 }
 
-// ---------------------------------------------------------------- stage 4 drawing
+// ---------------------------------------------------------------- Windows drawing
 function arrowLine(x0, y0, x1, y1, head = 8) {
   const a = Math.atan2(y1 - y0, x1 - x0);
   ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - head * Math.cos(a - 0.4), y1 - head * Math.sin(a - 0.4)); ctx.lineTo(x1 - head * Math.cos(a + 0.4), y1 - head * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+}
+// Windows, step 1: single runs, each at a pair of instants chosen at random.
+// The weak reading (both coordinates, at t₁) appears first, then the detection (t₂).
+const WONE_SECONDS = 2.2, WONE_TS = 0.5, WONE_KEEP = 400;
+function drawWoneStage(P, X, Yp) {
+  if (!wf) return;
+  const top = Yp(Y_HALF), bot = Yp(-Y_HALF);
+  // Earlier runs: small points (pointer readings amber, detections cyan).
+  for (const r of wone.runs) {
+    ctx.fillStyle = P.weak; ctx.globalAlpha = 0.6; ctx.fillRect(X(r.X) - 1.5, Yp(r.Y) - 1.5, 3, 3);
+    ctx.fillStyle = P.strong; ctx.globalAlpha = 0.8; ctx.fillRect(X(r.x2) - 1.5, Yp(r.yf) - 1.5, 3, 3);
+  }
+  ctx.globalAlpha = 1;
+  const a = wone.anim;
+  if (!a) {
+    if (!wone.runs.length) backedText(P, 'press Start: one run at a time, each at random instants', X(p.wall) + 14, top + 18, { color: P.muted, size: 11 });
+    return;
+  }
+  const r = a.run, t = a.t, show = state.labels;
+  const fade = (u) => Math.max(0, Math.min(1, u));
+  // Where the packet's centre was at t₁ and t₂ (faint lines): chosen at random for this run.
+  ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
+  ctx.strokeStyle = P.weak; ctx.globalAlpha = 0.6 * fade(t / 0.1); ctx.beginPath(); ctx.moveTo(X(r.x1), top); ctx.lineTo(X(r.x1), bot); ctx.stroke();
+  if (t >= WONE_TS) { ctx.strokeStyle = P.strong; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(X(r.x2), top); ctx.lineTo(X(r.x2), bot); ctx.stroke(); }
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  // Labels at the top: the particle's distance along the beam at each instant.
+  if (show) {
+    text('t₁', X(r.x1) - 4, bot - 22, { color: P.weak, size: 11, align: 'right' });
+    if (t >= WONE_TS) text('t₂', X(r.x2) + 4, bot - 22, { color: P.strong, size: 11 });
+  }
+  const right = X(r.x2) > canvas.clientWidth * 0.7;
+  // t₁: the pointer reads both coordinates; the ring is one pointer spread σₚ.
+  if (t > 0.08) {
+    const k = fade((t - 0.08) / 0.12), sx = Math.abs(X(r.X + state.sw / 100) - X(r.X)), sy = Math.abs(Yp(r.Y + state.sw / 100) - Yp(r.Y));
+    ctx.globalAlpha = k;
+    ctx.strokeStyle = P.weak; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]);
+    if (sx < canvas.clientWidth && sy < canvas.clientHeight) { ctx.beginPath(); ctx.ellipse(X(r.X), Yp(r.Y), Math.max(4, sx), Math.max(4, sy), 0, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.setLineDash([]);
+    // A reading beyond the drawing is drawn at its edge, as a triangle pointing out.
+    const off = Math.abs(r.Y) > Y_HALF, wy = off ? Yp(Math.sign(r.Y) * Y_HALF) + (r.Y > 0 ? 8 : -8) : Yp(r.Y);
+    ctx.fillStyle = P.weak; ctx.beginPath();
+    if (off) { const d = r.Y > 0 ? -1 : 1; ctx.moveTo(X(r.X), wy + 7 * d); ctx.lineTo(X(r.X) - 6, wy - 4 * d); ctx.lineTo(X(r.X) + 6, wy - 4 * d); ctx.closePath(); }
+    else ctx.arc(X(r.X), wy, 6, 0, Math.PI * 2);
+    ctx.fill();
+    if (show) backedText(P, `weak reading at t₁ = ${fmtPs(psAt(nm(r.x1 - p.wall)))}${off ? ` (${r.Y > 0 ? 'above' : 'below'} the drawing)` : ''}`, X(r.X) + (right ? -10 : 10), wy + (r.Y > Y_HALF ? 16 : -10), { color: P.weak, size: 11, weight: 600, align: right ? 'right' : 'left' });
+    ctx.globalAlpha = 1;
+  }
+  // t₂: the strong measurement records the position.
+  if (t > WONE_TS) {
+    const k = fade((t - WONE_TS) / 0.1);
+    ctx.globalAlpha = k; ctx.fillStyle = P.strong; ctx.beginPath(); ctx.arc(X(r.x2), Yp(r.yf), 6, 0, Math.PI * 2); ctx.fill();
+    if (show) backedText(P, `detected at t₂ = ${fmtPs(psAt(nm(r.x2 - p.wall)))}`, X(r.x2) + (right ? -10 : 10), Yp(r.yf) + 18, { color: P.strong, size: 11, weight: 600, align: right ? 'right' : 'left' });
+    ctx.globalAlpha = 1;
+  }
+}
+function woneStep(dt) {
+  if (!wone.anim) wone.anim = { t: 0, run: M.sampleWindowRun(wf.field), done: false };
+  const a = wone.anim;
+  if (a.done) return;
+  a.t += dt * state.speed / WONE_SECONDS;
+  if (a.t >= 1) {
+    a.t = 1; wone.count = (wone.count || 0) + 1; hadRun = true;
+    if (state.pauseEach) { a.done = true; stop(); }
+    else { wone.runs.push(a.run); if (wone.runs.length > WONE_KEEP) wone.runs.shift(); wone.anim = null; }
+  }
+}
+// Start after a paused run: keep it as a small point and begin the next.
+function woneNext() { if (wone.anim?.done) { wone.runs.push(wone.anim.run); if (wone.runs.length > WONE_KEEP) wone.runs.shift(); wone.anim = null; } }
+function woneLive() {
+  const tau = fmtPs(psAt(state.gap));
+  const how = `Each run is one particle measured twice: a weak pointer reads its position (both coordinates) at an instant t₁ chosen at random, and a strong measurement records its position at t₂ = t₁ + τ (τ = ${tau} for an electron, ${state.gap} nm of travel).`;
+  if (!wone.anim && !wone.runs.length) return `<b>Windows method, step 1: one run.</b> ${how} Press <b>Start</b>.`;
+  const r = wone.anim?.run || wone.runs[wone.runs.length - 1], n = wone.count || 0;
+  const pos = (x, y) => `(${nm(x - p.wall).toFixed(0)}, ${nm(y).toFixed(0)}) nm`;
+  const now = wone.anim && wone.anim.t < 1
+    ? (wone.anim.t < WONE_TS ? `Weak reading ${pos(r.X, r.Y)} at t₁ = ${fmtPs(psAt(nm(r.x1 - p.wall)))}…` : `Weak reading ${pos(r.X, r.Y)} at t₁; detected at ${pos(r.x2, r.yf)} at t₂ = ${fmtPs(psAt(nm(r.x2 - p.wall)))}.`)
+    : `Run ${n}: weak reading ${pos(r.X, r.Y)} at t₁ = ${fmtPs(psAt(nm(r.x1 - p.wall)))}; detected at ${pos(r.x2, r.yf)} at t₂ = ${fmtPs(psAt(nm(r.x2 - p.wall)))}.`;
+  return `<b>Windows method, step 1: one run.</b> ${now} ${how} The dotted lines t₁ and t₂ mark the particle's distance behind the slits at the two instants (recorded exactly at t₂, read with noise at t₁). The pointer reading scatters by σₚ = ${state.sw} nm (dashed ring), so one run says almost nothing about the velocity; and because the instants differ from run to run, the detections spread over the whole field. ${state.pauseEach ? 'Press <b>Start</b> for the next run. ' : ''}Step 2 collects many runs and averages them in a window.`;
 }
 function drawWindowStage(P, X, Yp) {
   if (!wf) return;
@@ -1667,7 +1784,7 @@ function axes(P, box, title, yLabel, ymin, ymax, fmtY) {
   for (const v of [ymin, (ymin + ymax) / 2, ymax]) text(fmtY(v), box.x - 5, V(v) + 4, { color: P.muted, size: 11, align: 'right' });
   ctx.save(); ctx.translate(box.x - 42, box.y + box.h / 2); ctx.rotate(-Math.PI / 2); text(yLabel, 0, 0, { color: P.muted, size: 12, align: 'center' }); ctx.restore();
   // selected strip
-  if (state.selected !== null && state.stage !== 'one' && state.stage !== 'window') {
+  if (state.selected !== null && state.stage !== 'one' && !isWin()) {
     const a = -Y_HALF + state.selected * 2 * Y_HALF / N_BINS;
     ctx.fillStyle = P.strip; ctx.fillRect(X(a), box.y, X(a + 2 * Y_HALF / N_BINS) - X(a), box.h);
   }
@@ -1804,13 +1921,15 @@ function updateResults() {
   document.querySelectorAll('[data-times-row]').forEach((el) => { el.hidden = !showTimes; });
   if (showTimes) {
     const tau = psAt(state.gap);
-    if (state.stage === 'window') set('times', `τ = t₂ − t₁ = ${fmtPs(tau)}; window at t₂ = ${fmtPs(psAt(state.win.x))}`);
+    if (state.stage === 'wone') set('times', `τ = t₂ − t₁ = ${fmtPs(tau)}; t₁ chosen at random for each run`);
+    else if (winData()) set('times', `τ = t₂ − t₁ = ${fmtPs(tau)}; window at t₂ = ${fmtPs(psAt(state.win.x))}`);
     else set('times', `t₁ = ${fmtPs(psAt(state.x1))}, t₂ = ${fmtPs(psAt(state.x1 + state.gap))} (τ = ${fmtPs(tau)})`);
   }
-  if (state.stage === 'window') {
-    document.querySelectorAll('[data-stage-rows]').forEach((el) => { el.hidden = !el.dataset.stageRows.split(' ').includes('window') || (el.dataset.prediction && !state.show[el.dataset.prediction]); });
+  if (isWin()) {
+    document.querySelectorAll('[data-stage-rows]').forEach((el) => { el.hidden = !el.dataset.stageRows.split(' ').includes(state.stage) || (el.dataset.prediction && !state.show[el.dataset.prediction]); });
     document.querySelectorAll('[data-recx-row]').forEach((el) => { el.hidden = true; });
     if (!wf) return;
+    if (state.stage === 'wone') { set('runs', (wone.count || 0).toLocaleString('en-US')); return; }
     set('runs', wf.runs.toLocaleString('en-US'));
     const c = winCentre(), q = winQuery(c);
     set('winC', `(${nm(c.x - p.wall).toFixed(0)}, ${nm(c.y).toFixed(0)}) nm, ${winSize()}`);
@@ -1855,10 +1974,10 @@ function updateResults() {
 // Plot titles name the pair of planes in stage 3.
 function updateTitles() {
   const shiftBtn = panels.scatter.el.querySelector('[data-fp-act="shift"]');
-  if (shiftBtn) shiftBtn.hidden = state.stage === 'window';
-  if (state.stage === 'window') {
+  if (shiftBtn) shiftBtn.hidden = isWin();
+  if (isWin()) {
     const a = panels.scatter.el.querySelector('.fp-title'), b = panels.vel.el.querySelector('.fp-title');
-    const t1 = 'Weak readings of the runs in the window', t2 = `Slope across the field at x = ${state.win.x} nm (windows)`;
+    const t1 = state.stage === 'wone' ? 'Weak readings (fill in at step 2)' : 'Weak readings of the runs in the window', t2 = `Slope across the field at x = ${state.win.x} nm (windows)`;
     if (a.textContent !== t1) a.textContent = t1; if (b.textContent !== t2) b.textContent = t2;
     return;
   }
@@ -1880,7 +1999,7 @@ function render() {
   const P = palette();
   // The display switches show for the whole of stage 3 (the arrows switch matters while it runs too)
   // and for a finished Windows run.
-  const mt = $('.map-toggles'), mapped = state.stage === 'map' || (state.stage === 'window' && !!wf && wf.runs >= state.perPlane);
+  const mt = $('.map-toggles'), mapped = state.stage === 'map' || (state.stage === 'wmap' && !!wf && wf.runs >= state.perPlane);
   if (mt.hidden === mapped) mt.hidden = !mapped;
   // Short switch labels when the drawing is narrow, so they stay on one row.
   const narrow = canvas.clientWidth < 640;
@@ -1901,7 +2020,8 @@ function render() {
     if (!s) continue;
     ctx.fillStyle = P.panel; ctx.fillRect(0, 0, s.W, s.H);
     legendPanel = k;
-    if (state.stage === 'window') { if (wf) (k === 'scatter' ? drawWindowCloud : drawWindowProfile)(P, plotBox(s.W, s.H)); }
+    if (state.stage === 'wone') text('The plots fill in at step 2, Many runs.', s.W / 2, s.H / 2, { color: P.muted, size: 12, align: 'center' });
+    else if (winData()) { if (wf) (k === 'scatter' ? drawWindowCloud : drawWindowProfile)(P, plotBox(s.W, s.H)); }
     else (k === 'scatter' ? drawScatter : drawVelocity)(P, plotBox(s.W, s.H));
   }
   legendPanel = null;
@@ -1914,9 +2034,10 @@ let lastT = performance.now(), lastRender = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   if (pending && !drag) rebuild();
-  if (state.waveMode !== 'density' && (state.movingWave || state.running || (state.stage === 'one' && !exp?.runs))) phaseClock = (phaseClock + dt * state.speed * 2 * Math.PI / 0.8) % (2 * Math.PI);
+  if (state.waveMode !== 'density' && (state.movingWave || state.running || ((state.stage === 'one' && !exp?.runs) || state.stage === 'wone'))) phaseClock = (phaseClock + dt * state.speed * 2 * Math.PI / 0.8) % (2 * Math.PI);
   if (state.running && exp && instant() && state.stage !== 'one') advanceTrain(dt);
-  if (state.running && state.stage === 'window' && wf) {
+  if (state.running && state.stage === 'wone' && wf) woneStep(dt);
+  if (state.running && winData() && wf) {
     // About 20 ms of sampling per frame; 20 million runs take ten to twenty seconds.
     const t0 = performance.now(), budget = 40 * Math.min(1, state.speed);
     while (wf.runs < state.perPlane && performance.now() - t0 < budget) for (let i = 0; i < 2000 && wf.runs < state.perPlane; i++) addWindowRun(M.sampleWindowRun(wf.field));
@@ -1954,7 +2075,7 @@ function frame(now) {
     }
   }
   // During a Windows run, redraw about 6 times a second so most of the time goes to sampling.
-  const heavy = state.running && state.stage === 'window';
+  const heavy = state.running && winData();
   if (!heavy || now - lastRender > 160) { lastRender = now; try { render(); } catch (err) { console.error(err); } }
   // Caption, Results and plot titles update together, so their counts agree.
   if (now - lastLive > 0 || pending) { lastLive = now; const lt = liveText(); if (lt !== lastLiveHtml) { lastLiveHtml = lt; $('#liveLine').innerHTML = lt; } updateResults(); updateTitles(); }
@@ -2045,13 +2166,14 @@ const levelSettings = [
 function linkLevel() {
   const q = new URLSearchParams(location.search);
   if (q.get('recx') === '0' || ['winl', 'winw', 'winr', 'ft', 'cell'].some((k) => q.has(k))) return 'expert';
-  if (q.get('stage') === 'window' || ['timing', 'x1', 'gap', 'runs', 'packet', 'show', ...Object.keys(GEO_DEFAULT)].some((k) => q.has(k))) return 'standard';
+  if (WIN_STAGES.includes(q.get('stage')) || q.get('method') === 'windows' || ['timing', 'x1', 'gap', 'runs', 'packet', 'show', ...Object.keys(GEO_DEFAULT)].some((k) => q.has(k))) return 'standard';
   return 'basic';
 }
 const levelsApi = mountQonticLevels({
   controls: controlsEl, storageKey: 'qontic-weak-velocity', settings: levelSettings, minimumLevel: linkLevel,
   onChange: (level) => {
-    if (level === 'basic' && state.stage === 'window') setStage('map');
+    if (level === 'basic' && isWin()) setStage(STEP[state.stage]);
+    syncMethod();
     showNext();
     updateText();
   },
@@ -2101,7 +2223,7 @@ syncGeometryInputs();
     if (changed.length) urlNote = `The link's ${changed.map((k) => `${name(k)} (${urlAsked[k]} → ${cur(k)})`).join(', ')} ${changed.length > 1 ? 'were' : 'was'} adjusted to the allowed range.`;
   }
   if (urlBadStage) urlNote = `${urlNote} The link's stage "${urlBadStage}" is unknown; stage 1 is shown.`.trim();
-  if (timingLinkNote) urlNote = `${urlNote} The link asked to measure at instants; that option was removed, so planes are used. Measuring at random times with the full position, as Wiseman proposed, is stage 4, Windows.`.trim();
+  if (timingLinkNote) urlNote = `${urlNote} The link asked to measure at instants; that option was removed, so planes are used. Measuring at random times with the full position, as Wiseman proposed, is the Windows method (Method switch, Standard level).`.trim();
   if (urlNote) $('#geoNote').textContent = `${urlNote} ${$('#geoNote').textContent}`;
 }
 applyGeometry();

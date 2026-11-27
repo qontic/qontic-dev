@@ -1,5 +1,14 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.11.0 — 2026-11-27
+- Two methods, not four stages (Pablo, option B). A Method switch, "Planes | Windows" (Standard and up), sits above the steps; the steps read the same for both: 1 · One run, 2 · Many runs, 3 · Map the field. Basic shows planes only. Changing method keeps the step.
+  - Windows, step 1 (new): single runs, each at two instants chosen at random. The weak reading (both coordinates, dashed ring of one σₚ) appears at t₁, then the detection at t₂, with both times in ps and dotted lines marking the distance behind the slits at each instant. Pause after each run applies. A reading beyond the drawing is shown at its edge.
+  - Windows, step 2: the former stage 4: collect 20 million runs, point anywhere, trace back.
+  - Windows, step 3: arrows from windows on a grid and lines traced back from the screen. It uses the runs from step 2 when the settings are unchanged; Start or Reset collects a fresh sample.
+  - Links: `stage=wone|window|wmap`, or `method=windows`. `stage=window` still works.
+  - The gap control reads "Travel from t₁ to t₂" for Windows. The caption, Results, plot titles and Next buttons follow the step.
+- Physics, instructor notes, levels and link descriptions now speak of the two methods instead of stage 4.
+
 ## 0.10.0 — 2026-11-27
 - Removed "Measure at: Instants" (Pablo). Stages 1–3 use planes, as in the Kocsis experiment. Wiseman's protocol, with runs at random times, the full position recorded and post-selection on any region of strong results, is stage 4, Windows. The Instants stage 2 was a roundabout slice of it: one packet time, one of 13 positions kept, about 80% of runs discarded. Transverse-only was neither experiment.
   - Removed from the interface: the Planes/Instants switch, packet length, the position-along-the-beam switch and Δ slider, the fixed-time curve option and its Results row, "Runs at this Δ".
