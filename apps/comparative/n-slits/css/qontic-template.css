@@ -484,3 +484,10 @@ body[data-view="quiz"] #view-label { visibility: hidden; }
 /* Classic palette: controls that act only with the other palettes are hidden. */
 body.te-classic .te-w-hint, body.te-classic .te-row-palette-scale, body.te-classic .qontic-media-toolbar button[aria-label="Wave range"], body.te-classic .qontic-range-panel { display: none !important; }
 .te-unavailable { opacity: .45; }
+
+/* Embedded in a notebook (?embed=1). */
+html.te-embed #qontic-app-header, html.te-embed footer.qontic-footer, html.te-embed #shortcut-hint, html.te-embed .back-home, html.te-embed .qontic-back-home { display: none !important; }
+html.te-embed main.shell { padding-top: 6px !important; }
+html.te-embed body { overflow-x: hidden; }
+.te-embed-open { position: absolute; top: 8px; right: 10px; z-index: 30; font: 12px/1.2 Inter, system-ui, sans-serif; color: #cfe8ff !important; background: rgba(10,20,32,.72); border: 1px solid rgba(125,211,252,.4); border-radius: 6px; padding: 4px 8px; text-decoration: none; }
+.te-embed-open:hover { background: rgba(20,40,60,.9); }

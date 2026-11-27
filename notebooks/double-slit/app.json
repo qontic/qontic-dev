@@ -1,6 +1,6 @@
 {
   "id": "double-slit-notebook",
-  "title": "Double Slit — Analytical Notebook",
+  "title": "Double Slit — Notebook",
   "type": "notebook",
   "category": "comparative",
   "module": "double-slit",
@@ -15,7 +15,7 @@
     "many-worlds"
   ],
   "level": "introductory",
-  "description": "Interference, single detections and which-slit records in three accounts, using a simplified analytical model without wall reflections.",
+  "description": "Interference, single detections, which-slit records and three accounts, then the full Schrödinger equation with reflection and pilot-wave trajectories, with N-Slits embedded for the demonstrations.",
   "tags": [
     "Notebook",
     "Double slit",

@@ -7,8 +7,12 @@
     <script>
       // If browser storage is blocked (privacy modes, sandboxed frames), use an
       // in-memory store so the app still starts; settings then last one visit.
+      // Embedded in a notebook (?embed=1): compact page, and settings live only in this frame
+      // (they neither read nor change the visitor's own N-Slits settings).
+      var embed = /[?&]embed=1\b/.test(location.search);
+      if (embed) document.documentElement.classList.add('te-embed');
       (function () {
-        try { var s = window.localStorage; s.setItem('__qontic_probe', '1'); s.removeItem('__qontic_probe'); return; } catch (_) {}
+        if (!embed) try { var s = window.localStorage; s.setItem('__qontic_probe', '1'); s.removeItem('__qontic_probe'); return; } catch (_) {}
         var data = {};
         var mem = {
           getItem: function (k) { k = String(k); return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },

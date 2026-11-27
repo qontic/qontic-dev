@@ -77,3 +77,16 @@
 .qontic-notebook .ds-threshold { display: flex; align-items: start; gap: 7px; margin: 12px 0; color: var(--qn-ink); font-size: 13px; }
 .qontic-notebook .task-card p { margin: 9px 0; }
 .qontic-notebook .section > .quiz { margin: 14px 0; }
+
+/* N-Slits embedded (2026-11-27). */
+.qontic-notebook .section-body.ns-section-body, .qontic-notebook .section-body:has(> [data-figure]) { grid-template-columns: 1fr; }
+.qontic-notebook .ns-embed { min-width: 0; }
+.qontic-notebook .ns-scenarios { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.qontic-notebook .ns-frame { display: block; width: 100%; border: 1px solid #12263a; border-radius: 12px; background: #0b1420; }
+.qontic-notebook .ns-note { margin: 8px 2px 0; color: var(--qn-muted, #9fb3c8); font-size: .92em; }
+.qontic-notebook .canvas-card canvas.ns-fig { height: 340px; touch-action: none; }
+.qontic-notebook .canvas-card canvas.ns-fig-short { height: 240px; }
+.qontic-notebook .canvas-card[data-figure] .controls { padding: 10px 14px 14px; }
+.qontic-notebook .canvas-card[data-figure] .ds-figure-key { padding: 6px 14px 0; }
+.qontic-notebook .ns-small { margin-top: 14px; }
+@media (max-width: 900px) { .qontic-notebook .ns-frame { height: 1100px !important; } }

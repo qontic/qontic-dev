@@ -1,3 +1,20 @@
+# Double-slit notebook
+
+One notebook for the double slit (2026-11-27): the analytical notebook (Parts 1–5 and the
+team questions) merged with the numerical one (now Part 6: the full Schrödinger equation,
+reflection, a guided particle, many particles, equivariance). The demonstrations are
+N-Slits 4.0 embedded (`embeds.js`: iframes of apps/comparative/n-slits in `?embed=1` mode,
+set up by share-link hashes; the frame keeps its own settings). Parts 3 and 4 keep two
+small figures N-Slits does not draw (`figures.js`: amplitude arrows at P; a partial
+which-slit record), a far-field sketch of the same experiment.
+
+The old numerical notebook is archived (archive/double-slit-webgl-notebook);
+notebooks/double-slit-webgl redirects to Part 6.
+
+---
+
+Earlier notes (analytical notebook):
+
 # Double-slit companion notebook
 
 Published companion to the analytical three-view double-slit app. The development

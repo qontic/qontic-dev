@@ -427,13 +427,22 @@ $(function () {
     }
   });
   updateWaveRangeSliderUI();
+  // Embedded (notebook): no level switch; a link opens the same set-up in the full app.
+  if (document.documentElement.classList.contains('te-embed')) {
+    const hideLevel = () => { const r = controls.shadowRoot; if (!r) return setTimeout(hideLevel, 50); if (!r.getElementById('te-embed-style')) { const st = document.createElement('style'); st.id = 'te-embed-style'; st.textContent = '.qontic-level, .qontic-level-row { display: none !important; }'; r.append(st); const lv = r.querySelector('.qontic-level'); const row = lv?.parentElement; if (row && row.children.length <= 2) row.style.display = 'none'; } };
+    hideLevel();
+    const stage = document.getElementById('canvas-wrapper');
+    if (stage) { const a = document.createElement('a'); a.className = 'te-embed-open'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open in N-Slits ↗'; a.href = '#';
+      a.addEventListener('click', () => { const u = new URL(location.href.split('#')[0]); u.searchParams.delete('embed'); u.searchParams.delete('level'); a.href = u.toString() + buildUrlHash(); });
+      if (getComputedStyle(stage).position === 'static') stage.style.position = 'relative'; stage.append(a); }
+  }
   let media;
   media=mountQonticMedia({
     stage: document.getElementById('canvas-wrapper'), controls,
     filename: 'n-slits', labelNode:document.getElementById('view-label'), rangeControl:window.qonticWaveRangeControl, dynamicCanvases:true,
     coordinateControl:coordinates,
     scaleControl:{getVisible:()=>elementOpacity('plot_scales')>0,setVisible:shown=>{if(!shown)lastScaleOpacity=elementOpacity('plot_scales')||1;const slider=document.getElementById('plot_scales-opacity');slider.value=shown?lastScaleOpacity*100:0;slider.dispatchEvent(new Event('input',{bubbles:true}));slider.dispatchEvent(new Event('change',{bubbles:true}));}},
-    getShareUrl: () => { const u = new URL(location.href.split('#')[0]); u.searchParams.delete('level'); return u.toString() + buildUrlHash(); },
+    getShareUrl: () => { const u = new URL(location.href.split('#')[0]); u.searchParams.delete('level'); u.searchParams.delete('embed'); return u.toString() + buildUrlHash(); },
     getCanvases: () => {
       const canvases=[...container.querySelectorAll('canvas')];
       const visibleBranches=canvases.filter(canvas=>{
@@ -602,10 +611,15 @@ $(function () {
     const fromUrl = new URLSearchParams(location.hash.slice(1)).get('level') || new URLSearchParams(location.search).get('level');
     let saved = null; try { saved = localStorage.getItem('qontic-te-level'); } catch (_) {}
     let fresh = false; try { fresh = !saved && !localStorage.getItem('nSlitTwoEnginesState'); } catch (_) {}
+    // A Basic link's packetCount is the Basic "Electrons per wave".
+    { const h = new URLSearchParams(location.hash.slice(1)), n = Math.round(+h.get('packetCount'));
+      if (h.get('level') === 'basic' && n >= 1) try { localStorage.setItem('qontic-te-basic-hits', String(Math.min(100, n))); } catch (_) {} }
     applyLevel(LEVELS.includes(fromUrl) ? fromUrl : LEVELS.includes(saved) ? saved : 'basic');
     // The Pilot-Wave colour menu and Direct PW are attached a little later: a second pass for them.
     const again = (tries = 40) => { if (document.getElementById('packet-particle-color') && document.getElementById('packet-directed-slits')) levelDefaults(document.body.dataset.qonticLevel); else if (tries > 0) setTimeout(() => again(tries - 1), 100); };
     setTimeout(again, 0);
+    // run=1 in the link: start the run once the page is ready (used by the notebook's set-ups).
+    if (new URLSearchParams(location.hash.slice(1)).get('run') === '1') setTimeout(() => { if (!isAnimating) $('#startButton').trigger('click'); }, 900);
   }
   // Switching view while paused: redraw the picture (the legacy redraw left the wave blank).
   if (typeof window.changeInterpretation === 'function' && !window.changeInterpretation.teWrapped) {
