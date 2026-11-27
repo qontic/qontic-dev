@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.0.1 — 2026-11-27
+- Embed mode for the Double Slit notebook: `?embed=1` hides header, footer, shortcut hint and level switch, keeps settings frame-local (memory only), adds an "Open in N-Slits ↗" link (full URL without embed/level). Links can set Basic electrons per wave (packetCount with level=basic) and start the run (run=1). Share links never carry embed or level.
+
 ## 4.0 — 2026-11-27
 - Published as N-Slits 4.0 (= 1.0-dev.31), at apps/comparative/n-slits, id `n-slits`. Replaces N-Slits 3.0 and the numerical double-slit and N-slit apps; their old addresses redirect here (the numerical ones open the numerical engine at Standard).
 
