@@ -51,3 +51,8 @@ document.querySelectorAll('.ns-embed').forEach(box => {
   });
   seen.observe(box);
 });
+// The embedded app reports its height; the frame is sized to fit it.
+window.addEventListener('message', event => {
+  if (event.data?.type !== 'ns-height') return;
+  for (const f of document.querySelectorAll('.ns-frame')) if (f.contentWindow === event.source) { const h = Math.max(420, Math.min(2400, +event.data.h || 0)); f.style.height = h + 'px'; }
+});

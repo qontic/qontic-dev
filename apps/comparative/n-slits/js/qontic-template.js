@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te410';
-import { mountMWBranching } from './mw-branching.js?cache=te410';
-import { APP_RELEASE } from './release.js?cache=te410';
-import { mountNSlitQuiz } from './quiz.js?cache=te410';
+import { mountPacketEngine } from './packet-engine.js?cache=te411';
+import { mountMWBranching } from './mw-branching.js?cache=te411';
+import { APP_RELEASE } from './release.js?cache=te411';
+import { mountNSlitQuiz } from './quiz.js?cache=te411';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te410';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te411';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -435,6 +435,17 @@ $(function () {
     if (stage) { const a = document.createElement('a'); a.className = 'te-embed-open'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open in N-Slits ↗'; a.href = '#';
       a.addEventListener('click', () => { const u = new URL(location.href.split('#')[0]); u.searchParams.delete('embed'); u.searchParams.delete('level'); a.href = u.toString() + buildUrlHash(); });
       if (getComputedStyle(stage).position === 'static') stage.style.position = 'relative'; stage.append(a); }
+    // Narrow screens: the settings panel and readouts are folded under a Controls button, so the
+    // picture is not pushed below a long panel. The page reports its height to the notebook,
+    // which sizes the frame to fit (no inner scrolling).
+    if (stage) {
+      const tg = document.createElement('button'); tg.type = 'button'; tg.className = 'te-embed-controls'; tg.textContent = 'Controls ▾'; tg.setAttribute('aria-expanded', 'false');
+      tg.addEventListener('click', () => { const on = document.documentElement.classList.toggle('te-embed-showcontrols'); tg.textContent = on ? 'Hide controls ▴' : 'Controls ▾'; tg.setAttribute('aria-expanded', String(on)); });
+      stage.append(tg);
+    }
+    { const shell = document.querySelector('main.shell'); let last = 0;
+      const post = () => { const h = Math.ceil((shell?.getBoundingClientRect().height || document.body.scrollHeight) + 16); if (Math.abs(h - last) > 2) { last = h; try { window.parent.postMessage({ type: 'ns-height', h }, '*'); } catch (_) {} } };
+      try { new ResizeObserver(post).observe(shell || document.body); } catch (_) {} window.addEventListener('load', post); setTimeout(post, 1500); }
     // The notebook's set-up buttons: apply a set-up without reloading the page. The notebook
     // sends only set-ups that differ in view, slits, λ, geometry, electrons per wave and speed.
     window.addEventListener('message', event => {

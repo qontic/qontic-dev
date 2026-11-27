@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te410';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te410';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te410';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te410';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te410';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te410';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te410';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te410';
-import {createNumericalEngine} from './numerical-engine.js?cache=te410';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te410';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te410';
-import {classifySlitSide} from './source-packet-model.js?cache=te410';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te411';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te411';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te411';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te411';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te411';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te411';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te411';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te411';
+import {createNumericalEngine} from './numerical-engine.js?cache=te411';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te411';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te411';
+import {classifySlitSide} from './source-packet-model.js?cache=te411';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -821,7 +821,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te410').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te411').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1553,10 +1553,12 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  arrowsButton.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 19l5-9 8-4"/><path d="M8.2 10.4 10 10l.2 1.8M15.6 5.2 18 6l-1.1 2.2"/><path d="M5 19 18 6" stroke-dasharray="2 2.5"/></svg>';
  toolbar.insertBefore(arrowsButton,pwWaveButton);
  const arrowsPanel=document.createElement('div');arrowsPanel.className='te-arrows-panel';arrowsPanel.hidden=true;
- arrowsPanel.innerHTML='<canvas width="116" height="116" aria-hidden="true"></canvas><div><div class="te-arrows-title">Arrows at P</div><div class="te-arrows-text" role="status"></div></div>';
+ arrowsPanel.innerHTML='<canvas width="132" height="132" aria-hidden="true"></canvas><div><div class="te-arrows-title">Arrows at P</div><div class="te-arrows-text" role="status"></div></div>';
  const arrowsHandle=document.createElement('button');arrowsHandle.type='button';arrowsHandle.className='te-arrows-handle';arrowsHandle.textContent='P';arrowsHandle.hidden=true;
  arrowsHandle.setAttribute('aria-label','Point P on the screen; drag or use the arrow keys');
  geometryHost.append(arrowsPanel,arrowsHandle);
+ // Narrow screens: the arrows panel goes below the picture instead of over it.
+ {const mq=window.matchMedia('(max-width: 700px)'),place=()=>{if(mq.matches){geometryHost.after(arrowsPanel);arrowsPanel.classList.add('te-arrows-below');}else{geometryHost.append(arrowsPanel);arrowsPanel.classList.remove('te-arrows-below');}};place();try{mq.addEventListener('change',()=>{place();draw();});}catch(_){}}
  const arrowsUsable=()=>arrows.on&&p&&coeff&&!numericalActive()&&!surfaceView;
  const clampArrowsY=()=>{const h=screenHeight/2;arrows.y=Math.max(-h,Math.min(h,Math.round(arrows.y)));};
  function arrowsData(){
@@ -1569,15 +1571,15 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   arrowsButton.disabled=numericalActive();arrowsButton.title=numericalActive()?'Arrows at P use the analytical engine (Engine tab).':'Arrows at a point P: each open slit’s amplitude at P, added tip to tail. Drag P along the screen.';
   if(!show)return;
   const d=arrowsData(),py=Y(d.yw);
-  arrowsHandle.style.left=(100*detectorX/canvas.width)+'%';arrowsPanel.style.left=(50*(wallX+detectorX)/canvas.width).toFixed(2)+'%';arrowsHandle.style.top=(100*py/canvas.height)+'%';
+  arrowsHandle.style.left=(100*detectorX/canvas.width)+'%';if(!arrowsPanel.classList.contains('te-arrows-below'))arrowsPanel.style.left=(50*(wallX+detectorX)/canvas.width).toFixed(2)+'%';arrowsHandle.style.top=(100*py/canvas.height)+'%';
   setupCtx.save();setupCtx.lineWidth=1.5;setupCtx.setLineDash([6,5]);
   p.centers.forEach((c,k)=>{setupCtx.strokeStyle=slitColorOf('k'+d.ids[k]);setupCtx.beginPath();setupCtx.moveTo(wallX+4,Y(c));setupCtx.lineTo(detectorX,py);setupCtx.stroke();});
   setupCtx.restore();
   // Phasor panel
   const cv=arrowsPanel.querySelector('canvas'),dpr=window.devicePixelRatio||1;
-  if(cv.width!==Math.round(116*dpr)){cv.width=Math.round(116*dpr);cv.height=Math.round(116*dpr);}
-  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,116,116);
-  const light=document.body.classList.contains('qontic-light'),cx=58,cy=58,R=50,ink=light?'#334':'#9fb3c8';
+  if(cv.width!==Math.round(132*dpr)){cv.width=Math.round(132*dpr);cv.height=Math.round(132*dpr);}
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,132,132);
+  const light=document.body.classList.contains('qontic-light'),cx=66,cy=66,R=60,ink=light?'#334':'#9fb3c8';
   g.strokeStyle=light?'rgba(0,0,0,.18)':'rgba(255,255,255,.16)';g.lineWidth=1;g.beginPath();g.arc(cx,cy,R,0,2*Math.PI);g.moveTo(cx-R-6,cy);g.lineTo(cx+R+6,cy);g.moveTo(cx,cy-R-6);g.lineTo(cx,cy+R+6);g.stroke();
   const ph0=Math.atan2(d.comps[0].im,d.comps[0].re),cs=Math.cos(-ph0),sn=Math.sin(-ph0),s=R/d.norm;
   const vec=c=>{const re=c.re*cs-c.im*sn,im=c.re*sn+c.im*cs;return [im*s,-re*s];};

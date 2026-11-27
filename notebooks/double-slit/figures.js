@@ -87,9 +87,9 @@ function mountGamma(root) {
     const pm = Math.max(...p1.map(q => q.p)), X = y => 20 + (y + ymax) / (2 * ymax) * (w - 40), Yv = p => h - 22 - p / pm * (h - 40);
     g.strokeStyle = GRID; g.lineWidth = 1; g.beginPath(); g.moveTo(20, h - 22); g.lineTo(w - 20, h - 22); g.stroke();
     const line = (pr, col, dash, lw) => { g.setLineDash(dash); g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); pr.forEach((q, i) => i ? g.lineTo(X(q.y), Yv(q.p)) : g.moveTo(X(q.y), Yv(q.p))); g.stroke(); g.setLineDash([]); };
-    line(p1, 'rgba(86,180,233,.6)', [5, 4], 1.2); line(p0, 'rgba(230,159,0,.7)', [5, 4], 1.2); line(prof, GOLD, [], 2.2);
+    // Gold curve first; the two references on top (long dashes / dots), so they stay visible where they coincide with it.
+    line(prof, GOLD, [], 3); line(p1, 'rgba(86,180,233,.95)', [9, 5], 1.6); line(p0, 'rgba(230,159,0,.95)', [2, 4], 2);
     g.fillStyle = MUTED; g.font = '12px system-ui, sans-serif'; g.fillText('screen position y', w / 2 - 50, h - 6);
-    g.fillStyle = 'rgba(86,180,233,.9)'; g.fillText('dashed blue: no record (γ = 1)', 24, 16); g.fillStyle = 'rgba(230,159,0,.95)'; g.fillText('dashed orange: reliable record (γ = 0)', 24, 32);
     out.innerHTML = `<div>γ = <b>${gamma.toFixed(2)}</b>: the interference term is <b>${Math.round(gamma * 100)}%</b> of its value with no detector.</div>`;
   }
   gR.addEventListener('input', draw); new ResizeObserver(draw).observe(c); draw();

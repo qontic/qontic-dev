@@ -1,5 +1,7 @@
 # Double-slit notebook
 
+2026-11-27 (after a ten-student review): shortened. Title "Double Slit — Notebook"; Orthodox presented as the standard formalism, not an account. Parts: Basics · 1 Puzzle (incl. one electron at a time) · 2 Arrows (N-Slits Arrows at P) · 3 Which slit · 4 Views · 5 Full equation (optional, collapsed) · 6 Team + homework · 7 Refs. Opens in Brief. Frames sized by the app's height message. index.html is now edited directly (nb/build.py no longer used).
+
 One notebook for the double slit (2026-11-27): the analytical notebook (Parts 1–5 and the
 team questions) merged with the numerical one (now Part 6: the full Schrödinger equation,
 reflection, a guided particle, many particles, equivariance). The demonstrations are

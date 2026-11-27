@@ -1,4 +1,4 @@
-import {sourceCoefficients,sourceDensity,sampleSource} from './source-packet-model.js?cache=te410';
+import {sourceCoefficients,sourceDensity,sampleSource} from './source-packet-model.js?cache=te411';
 // Integral of the piecewise-linear, unnormalised detector density over pixels.
 export function detectorLaw(p,profile,ymin,ymax){
  const bins=Array(p.bins).fill(0),dy=(ymax-ymin)/(profile.values.length-1),bw=(ymax-ymin)/p.bins;

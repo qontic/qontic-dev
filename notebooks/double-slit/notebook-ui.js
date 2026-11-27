@@ -2,11 +2,11 @@ import { mountQonticNotebook } from '../../shared/qontic-notebook.js?v=1.2';
 
 // Use the shared notebook shell for navigation, reading depth and quizzes.
 mountQonticNotebook({
-  title: 'Double Slit: Three Accounts — Notebook',
+  title: 'Double Slit — Notebook',
   eyebrow: 'Q-Ontic notebook',
   version: 'Double-slit notebook',
-  purpose: 'Build the double-slit pattern from single electrons, amplitudes and which-slit records, compare three accounts of the same experiment, then solve the full equation with N-Slits.',
-  depth: 'full',
+  purpose: 'Build the double-slit pattern from single electrons, amplitudes and which-slit records, and compare the Orthodox, Pilot Wave and Many Worlds views of the same experiment; optional: the full equation with N-Slits.',
+  depth: 'brief',
   compactHeader: true,
   homeHref: '../../index.html',
 });
@@ -23,9 +23,9 @@ if (depthButtons) {
   reset.className = 'qn-depth-reset';
   reset.textContent = '↺';
   reset.setAttribute('aria-label', 'Reset reading preference');
-  reset.title = 'Reset reading preference to Full';
+  reset.title = 'Reset reading preference to Brief';
   reset.addEventListener('click', () => {
-    depthButtons.querySelector('[data-depth="full"]').click();
+    depthButtons.querySelector('[data-depth="brief"]').click();
     try {
       localStorage.removeItem('qontic-notebook-depth');
       localStorage.removeItem('qontic-notebook-mode-v3');

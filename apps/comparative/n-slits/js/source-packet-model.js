@@ -2,7 +2,7 @@
 // i (partial_t + k partial_x) u = -partial_y^2 u / 2.
 // The longitudinal envelope translates; longitudinal dispersion and reflection
 // are outside this approximation. No numerical wave-equation solver is used.
-import {gaussian} from './packet-model.js?cache=te410';
+import {gaussian} from './packet-model.js?cache=te411';
 
 function apertureWeights(p){
  if(p.geometry)return p.geometry.open.weights;

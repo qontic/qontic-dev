@@ -23,7 +23,7 @@
   ],
   "resourceNotes": {
     "double-slit-analytical-simulation": "1. Start with interference and compare three accounts.",
-    "double-slit-notebook": "2. The notebook: interference, single detections, which-slit records and three accounts, then the full equation with reflection and pilot-wave trajectories (N-Slits embedded).",
+    "double-slit-notebook": "2. The notebook: interference and single detections, amplitudes as arrows, which-slit records, and the Orthodox, Pilot Wave and Many Worlds views (N-Slits embedded); optional: the full equation with reflection and pilot-wave trajectories.",
     "n-slits": "3. N-Slits: 1 to 8 slits, detectors, slits closed during a run, three levels, and two engines: the analytical model and the full Schrödinger equation (reflection from the wall, trajectories).",
     "weak-velocity-double-slit": "Optional advanced study: weak measurement and reconstructed probability flow."
   }
