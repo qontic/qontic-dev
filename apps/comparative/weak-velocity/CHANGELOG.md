@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.4 — 2026-11-27
+- Map the field (Pablo): the current plane pair's arrows are shown while its runs come in, as in Many runs; noisy ones are faint. This reverses the 0.4 choice of drawing a pair's arrows only when it was complete. Each pair now takes about 1.2 s at speed 1, starting slowly so the arrows can be seen building up. A full map takes about 15 s instead of about 5 s; the speed control shortens it.
+
 ## 0.9.3 — 2026-11-27
 - Arrows (Pablo): in stages 2 and 3 each arrow is now the measured vector itself. It runs from the strip's mean pointer reading at the weak position to its mean detected position at the strong position, as in the Windows stage. Before, it started at the strong position with a fixed length. Where the gap is too short on screen, the tail is extended back along the same direction (at least 12 px), so the head stays on the strong position. The Windows end-of-run grid arrows follow the same rule. Physics text says so.
 

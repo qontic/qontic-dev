@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.9.3';
-import * as M from './weak-model.js?v=0.9.3';
+import { APP_RELEASE } from './release.js?v=0.9.4';
+import * as M from './weak-model.js?v=0.9.4';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -44,7 +44,8 @@ const packetSigma = () => state.packet / 100;
 const instant = () => state.timing === 'instant';
 const SCATTER_N = 4000;
 const PLANE_POINTS = 6000; // runs kept as points beside the planes
-const MANY_SECONDS = 6;     // stage 2 collection time at speed 1
+const MANY_SECONDS = 6;
+const MAP_PAIR_SECONDS = 1.2;   // stage 3: collection time per plane pair at speed 1     // stage 2 collection time at speed 1
 const nm = (u) => u * 100;
 // 1, 2 or 5 times a power of ten, close to x.
 function niceStep(x) { const e = 10 ** Math.floor(Math.log10(x)), f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
@@ -1189,9 +1190,9 @@ function drawApparatus(P, fullBox) {
   // measured arrows
   const arrowsFrom = [];
   if (map) map.planes.forEach((pl) => arrowsFrom.push({ x: pl.x2, est: pl.est }));
-  // Stage 2 shows the arrows building up; stage 3 draws a plane pair's arrows
-  // only once all its runs are in (finished pairs are in map.planes).
-  if (exp && state.stage === 'many') {
+  // Stages 2 and 3 show the current pair's arrows building up while its runs
+  // come in (noisy ones faint); finished pairs of the map are in map.planes.
+  if (exp && (state.stage === 'many' || (map && !map.done))) {
     const toEst = (bins) => M.binVelocities(bins, exp.dtau, 200).map((b) => (b ? { y: b.y, s: b.v / p.k, err: b.err / p.k } : null));
     // With the position along the beam recorded, every packet cell is its own
     // plane pair: arrows at each cell's strong position, the selected one bright.
@@ -1920,7 +1921,10 @@ function frame(now) {
       for (let i = 0; i < n && exp.runs < state.perPlane; i++) addRun(exp, sampleOne(exp));
       if (exp.runs >= state.perPlane) { stop(); showNext(); }
     } else if (map && !map.done) {
-      const n = Math.min(state.perPlane - exp.runs, Math.round(60000 * state.speed));
+      // About MAP_PAIR_SECONDS per pair at speed 1, starting slowly (quadratic),
+      // so each pair's arrows can be seen building up as its runs come in.
+      exp.clock = Math.min(1, (exp.clock || 0) + dt * state.speed / MAP_PAIR_SECONDS);
+      const n = Math.min(state.perPlane - exp.runs, 150000, Math.max(0, Math.ceil(state.perPlane * exp.clock ** 2) - exp.runs));
       for (let i = 0; i < n; i++) addRun(exp, sampleOne(exp));
       if (exp.runs >= state.perPlane) finishPlane();
     }
