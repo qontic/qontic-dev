@@ -1,5 +1,9 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.11.1 — 2026-11-27
+- Windows (Pablo): the labels beside the window ("mean weak reading", "window of strong results: N runs") and the off-scale counts covered the runs near it. They are now a key in the top-left corner, which also gives the share of weak readings beyond the drawing. The toolbar Legend button hides the key.
+- Windows, Map the field: the grid arrows build up while the runs come in, redrawn about once a second, as in the planes map. The traced-back lines are drawn when all runs are in. Before, nothing was added until the end, so Many runs and Map looked the same during the run.
+
 ## 0.11.0 — 2026-11-27
 - Two methods, not four stages (Pablo, option B). A Method switch, "Planes | Windows" (Standard and up), sits above the steps; the steps read the same for both: 1 · One run, 2 · Many runs, 3 · Map the field. Basic shows planes only. Changing method keeps the step.
   - Windows, step 1 (new): single runs, each at two instants chosen at random. The weak reading (both coordinates, dashed ring of one σₚ) appears at t₁, then the detection at t₂, with both times in ps and dotted lines marking the distance behind the slits at each instant. Pause after each run applies. A reading beyond the drawing is shown at its edge.
