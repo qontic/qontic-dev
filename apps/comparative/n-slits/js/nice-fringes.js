@@ -3,7 +3,7 @@
 // central one tallest. Every candidate is judged on the screen density computed
 // with the app's own analytical model (sourceProfile), not on a formula.
 // No DOM; importable from node. Lengths in nm.
-import {sourceProfile} from './source-packet-model.js?cache=te431';
+import {sourceProfile} from './source-packet-model.js?cache=te432';
 
 export const NICE_LIMITS = Object.freeze({
   wavelength: 50, slitWidth: [30, 200], separation: [0, 2000], distance: [50, 3000], screen: [120, 5000], sourceWidth: [50, 400],

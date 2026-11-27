@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te431';
-import { mountMWBranching } from './mw-branching.js?cache=te431';
-import { APP_RELEASE } from './release.js?cache=te431';
-import { mountNSlitQuiz } from './quiz.js?cache=te431';
+import { mountPacketEngine } from './packet-engine.js?cache=te432';
+import { mountMWBranching } from './mw-branching.js?cache=te432';
+import { APP_RELEASE } from './release.js?cache=te432';
+import { mountNSlitQuiz } from './quiz.js?cache=te432';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te431';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te432';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -461,6 +461,7 @@ $(function () {
       if (n >= 1) {
         if (lvl === 'basic') try { localStorage.setItem('qontic-te-basic-hits', String(Math.min(1000, n))); } catch (_) {}
         document.getElementById('MaxPart-group')?.setValueInFirstUnit(n);
+        document.getElementById('MaxPart-input')?.dispatchEvent(new Event('change', { bubbles: true }));
       }
       const sp = +h.get('speed'); if (sp > 0) document.getElementById('animationStep-group')?.setValueInFirstUnit(sp);
       if (h.has('arrows')) window.qonticArrows?.set(h.get('arrows') === '1', h.has('arrowsY') ? +h.get('arrowsY') : undefined);
@@ -621,7 +622,7 @@ $(function () {
     // the user has switched it off there.
     { const tour = document.getElementById('mw-branch-tour'), K = 'qontic-te-mw-tour-basic';
       let pref = null; try { pref = localStorage.getItem(K); } catch (_) {}
-      if (tour && level === 'basic' && pref !== 'off' && !tour.checked) { tour.checked = true; tour.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (tour && level === 'basic' && pref !== 'off' && !tour.checked && +document.getElementById('MaxPart-input')?.value === 1) { tour.checked = true; tour.dispatchEvent(new Event('change', { bubbles: true })); }
       if (tour && !tour.dataset.basicPref) { tour.dataset.basicPref = '1'; tour.addEventListener('change', event => { if (event.isTrusted && document.body.dataset.qonticLevel === 'basic') { try { localStorage.setItem(K, tour.checked ? 'on' : 'off'); } catch (_) {} } }); } }
     // Basic runs at 3× by default (beginners waited 10–15 s for the first hit at 1×); the speed
     // chosen before comes back above Basic.

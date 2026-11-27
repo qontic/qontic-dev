@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.3.2 — 2026-11-27
+- Many Worlds Slow motion and the packet count are coupled: ticking Slow motion sets Particles per packet to 1, unticking brings the previous number back; choosing more than one particle unticks it. At Basic, choosing one particle per packet in Many Worlds ticks it (unless turned off at Basic). The box is no longer ticked by default at Basic with 30 per packet. Checked at Standard and Basic, and the notebook's Many Worlds buttons.
+
 ## 4.3.1 — 2026-11-27
 - One packet-count control at every level: "Particles per packet" in Core (Basic included). The Basic-only "Electrons per wave" slider is gone; Basic still keeps its own value (default 30) and the Standard/Expert value comes back when leaving Basic. The label no longer changes with the view (was Hits / packet or Part./packet). Captions, Many Worlds note, Views text and quiz say particles per packet.
 

@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te431';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te431';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te431';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te431';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te431';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te431';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te431';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te431';
-import {createNumericalEngine} from './numerical-engine.js?cache=te431';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te431';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te431';
-import {classifySlitSide} from './source-packet-model.js?cache=te431';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te432';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te432';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te432';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te432';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te432';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te432';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te432';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te432';
+import {createNumericalEngine} from './numerical-engine.js?cache=te432';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te432';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te432';
+import {classifySlitSide} from './source-packet-model.js?cache=te432';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -638,9 +638,18 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function basicSlowMotionRestart(){
   if(level!=='basic'||!basicAutoOff)return;basicAutoOff=false;mwAutoNote('');
   let pref=null;try{pref=localStorage.getItem('qontic-te-mw-tour-basic');}catch(_){}
-  setTimeout(()=>{const t=document.getElementById('mw-branch-tour');if(t&&pref!=='off'&&!t.checked){t.checked=true;t.dispatchEvent(new Event('change',{bubbles:true}));}},0);
+  setTimeout(()=>{const t=document.getElementById('mw-branch-tour');if(t&&pref!=='off'&&!t.checked&&+document.getElementById('MaxPart-input').value===1){t.checked=true;t.dispatchEvent(new Event('change',{bubbles:true}));}},0);
  }
  document.addEventListener('change',e=>{if(e.target?.id==='mw-branch-tour'&&e.target.checked)mwAutoNote('');},true);
+ // 4.3.2: ticking Slow motion sets Particles per packet to 1 (the split is drawn only for one particle);
+ // unticking it brings the previous number back. Choosing more than one particle unticks it.
+ let tourSavedCount=null;
+ document.addEventListener('change',e=>{
+  if(e.target?.id!=='mw-branch-tour'||!e.isTrusted)return;
+  const g=document.getElementById('MaxPart-group'),inp=document.getElementById('MaxPart-input');if(!g||!inp)return;
+  if(e.target.checked){if(+inp.value!==1){tourSavedCount=+inp.value;g.setValueInFirstUnit(1);inp.dispatchEvent(new Event('change',{bubbles:true}));}}
+  else if(tourSavedCount!==null){g.setValueInFirstUnit(tourSavedCount);tourSavedCount=null;inp.dispatchEvent(new Event('change',{bubbles:true}));}
+ });
  function resetEngine(){transition=null;basicSlowMotionRestart();if(atWallQueue.length){atWallQueue=[];atWallPrev=null;window.dispatchEvent(new Event('qontic-atwall-cancel'));}
   window.qonticMWBranches?.cancel();detectorFlashes.clear();pending=[];particles=[];pulses=[];nextEmission=0;visualPhase=0;flash=null;hold=0;lastMode=interpretation;p=config();fingerprint=configFingerprint(p);yOffset=screenHeight/200;
   coeff=sourceCoefficients(p);sourceGrid=null;epochs=[{p,coeff,start:-Infinity,grid:null}];profile=sourceProfile(p,-yOffset,screenHeight/100-yOffset,2049);law=detectorLaw(p,profile,-yOffset,screenHeight/100-yOffset);
@@ -822,7 +831,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te431').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te432').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1503,7 +1512,9 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  const constrainedInputs=new Set(['slit-separation','source-position','screen-height','wavelength']);
  document.addEventListener('input',event=>{if(constrainedInputs.has(event.target?.id))applyPacketLimits();},true);
 
- for(const id of ['MaxPart','MaxPart-input'])document.getElementById(id).addEventListener(id==='MaxPart'?'input':'change',()=>queueMicrotask(()=>{if(level==='basic')try{localStorage.setItem('qontic-te-basic-hits',String(Math.min(1000,Math.max(1,Math.round(+document.getElementById('MaxPart-input').value)||30))));}catch(_){};ensure();draw();try{syncBasicHits();}catch(_){}}));
+ for(const id of ['MaxPart','MaxPart-input'])document.getElementById(id).addEventListener(id==='MaxPart'?'input':'change',()=>queueMicrotask(()=>{{const tour=document.getElementById('mw-branch-tour'),n=+document.getElementById('MaxPart-input').value;if(tour?.checked&&n>1){tour.checked=false;tour.dispatchEvent(new Event('change',{bubbles:true}));}
+   // Basic: choosing one particle per packet turns the split on (unless the user turned it off at Basic).
+   else if(tour&&!tour.checked&&n===1&&level==='basic'){let pref=null;try{pref=localStorage.getItem('qontic-te-mw-tour-basic');}catch(_){}if(pref!=='off'){tour.checked=true;tour.dispatchEvent(new Event('change',{bubbles:true}));}}}if(level==='basic')try{localStorage.setItem('qontic-te-basic-hits',String(Math.min(1000,Math.max(1,Math.round(+document.getElementById('MaxPart-input').value)||30))));}catch(_){};ensure();draw();try{syncBasicHits();}catch(_){}}));
  const syncGeometryReadouts=next=>{
   document.getElementById('source-position-group')?.setValueInFirstUnit(next?.wall??sourcePos);
   document.getElementById('detector-distance-group')?.setValueInFirstUnit(next?.distance??detectorDistance);
