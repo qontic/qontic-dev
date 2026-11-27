@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.9.9';
-import * as M from './weak-model.js?v=0.9.9';
+import { APP_RELEASE } from './release.js?v=0.10.0';
+import * as M from './weak-model.js?v=0.10.0';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -42,6 +42,8 @@ const N_PLANES = 12;
 // fixed-time curve.
 const packetSigma = () => state.packet / 100;
 const instant = () => state.timing === 'instant';
+// The Windows stage always runs at random times (Wiseman's protocol); since 0.10 stages 1–3 use planes only.
+const timed = () => instant() || state.stage === 'window';
 const SCATTER_N = 4000;
 const PLANE_POINTS = 6000; // runs kept as points beside the planes
 const MANY_SECONDS = 6;
@@ -80,7 +82,7 @@ let waveTheme = null;
 let lastLive = 0, lastLiveHtml = '';
 // Values the link asked for, to report any that had to be adjusted.
 const urlAsked = {};
-let urlNote = '', urlBadStage = null;
+let urlNote = '', urlBadStage = null, timingLinkNote = false;
 
 readUrl();
 applyGeometry();
@@ -438,7 +440,7 @@ function liveBody() {
 
 function windowLive() {
   const tau = fmtPs(psAt(state.gap));
-  const how = instant()
+  const how = timed()
     ? `Each run is one packet measured at two instants, chosen at random from run to run, so the strong results cover the whole field. The weak pointer reads both coordinates at t₁; the strong measurement records the position at t₂ = t₁ + τ (τ = ${tau} for an electron).`
     : 'Each run is at a pair of planes chosen at random, a gap apart, so the strong results cover the whole field. The weak pointer reads both coordinates; the strong plane gives the position.';
   if (wf.runs === 0) return `<b>Windows over the field.</b> ${how} Press <b>Start</b>, then point anywhere: the window (an ellipse, 100 nm along the beam by 10 nm across) picks the runs whose strong result fell inside it.`;
@@ -451,7 +453,7 @@ function windowLive() {
   })() : ' Click (or use Trace back) to repeat the step: the mean weak position becomes the next window, towards the slits.';
   const S = windowSummary();
   const sum = S ? ` <b>Field from windows:</b> ${S.n} lines traced back from windows next to the screen, started at equal shares of the runs detected there (amber lines); arrows from windows on a grid.${state.show.bohm ? ` The dashed lines follow the flow of j/|ψ|² backward from the same windows; the traces end ${S.rms.toFixed(1)} nm from them (rms), from the window's averaging and the sampling noise added up over the steps.` : ' Switch on the j/|ψ|² flow lines below the drawing to compare.'} No particle is followed: every step uses different runs.` : '';
-  return `<b>${q.n.toLocaleString('en-US')} runs ended in the window at ${where}.</b> Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean is sharp: (${nm(q.Xm - p.wall).toFixed(0)}, ${nm(q.Ym).toFixed(1)}) nm${instant() ? ' at t₁' : ''}. The arrow from it to the mean strong position${instant() ? ' at t₂' : ''} is the measured velocity for these runs (a difference of two averages): slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. ${head} ${how}${tr} It is a difference of two averages over the same selected runs, not the path of any particle.${sum}`;
+  return `<b>${q.n.toLocaleString('en-US')} runs ended in the window at ${where}.</b> Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean is sharp: (${nm(q.Xm - p.wall).toFixed(0)}, ${nm(q.Ym).toFixed(1)}) nm${timed() ? ' at t₁' : ''}. The arrow from it to the mean strong position${timed() ? ' at t₂' : ''} is the measured velocity for these runs (a difference of two averages): slope ${fmtS(q.slope)} ± ${q.err.toFixed(3)}${q.expected ? ` (prediction ${fmtS(q.expected.slope)})` : ''}. ${head} ${how}${tr} It is a difference of two averages over the same selected runs, not the path of any particle.${sum}`;
 }
 
 function showNext() {
@@ -789,9 +791,9 @@ function readUrl() {
   if (['density', 'crests', 'phase'].includes(q.get('show'))) state.waveMode = q.get('show');
   for (const key of ['expected', 'current']) if (q.get(key) === '0') state.show[key] = false;
   if (q.get('ft') === '1') state.show.fixedTime = true;
-  if (q.get('timing') === 'instant') state.timing = 'instant';
+  // Measuring at instants in stages 1–3 was removed (0.10): Wiseman's timing is the Windows stage.
+  if (q.get('timing') === 'instant' && state.stage !== 'window') timingLinkNote = true;
   if (q.get('recx') === '0') state.recx = false;
-  if (q.get('timing') === 'instant' && state.recx && !q.has('runs') && state.stage !== 'window') state.perPlane = 1e7;
   { const v = parseFloat(q.get('packet')); if (Number.isFinite(v)) { state.packet = Math.min(300, Math.max(50, Math.round(v / 10) * 10)); urlAsked.packet = v; } }
   if (q.get('bohm') === '1') state.show.bohm = true;
   for (const key of ['expected', 'current', 'fixedTime']) document.querySelector(`[data-toggle="${key}"]`).setAttribute('aria-pressed', String(state.show[key]));
@@ -801,7 +803,7 @@ function readUrl() {
 function shareUrl() {
   const u = new URL(location.href);
   const g = {}; for (const k of Object.keys(GEO_DEFAULT)) if (geo[k] !== GEO_DEFAULT[k]) g[k] = geo[k];
-  u.search = new URLSearchParams({ level: document.body.dataset.qonticLevel || 'basic', stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(instant() && !state.recx ? {recx: 0} : {}), ...(state.packet !== 150 ? {packet: state.packet} : {}), ...(state.stage === 'window' ? {winx: state.win.x, winy: state.win.y, winl: state.win.len, winw: state.win.wid} : {}) }).toString();
+  u.search = new URLSearchParams({ level: document.body.dataset.qonticLevel || 'basic', stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() && !state.recx ? {recx: 0} : {}), ...(state.packet !== 150 ? {packet: state.packet} : {}), ...(state.stage === 'window' ? {winx: state.win.x, winy: state.win.y, winl: state.win.len, winw: state.win.wid} : {}) }).toString();
   return u.toString();
 }
 
@@ -1193,7 +1195,7 @@ function drawApparatus(P, fullBox) {
     ctx.restore();
     appMap = { X, Yp, box, x0, x1, Yh: YH };
     drawGrips(P);
-    backedText(P, `Windows · σₚ ${state.sw} nm · gap ${state.gap} nm${instant() ? ` · instants, τ = ${fmtPs(psAt(state.gap))} (electron)` : ''} · window ${winSize()}${stretchNote()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
+    backedText(P, `Windows · σₚ ${state.sw} nm · gap ${state.gap} nm${` · τ = ${fmtPs(psAt(state.gap))} (electron)`} · window ${winSize()}${stretchNote()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
     return { X, Yp };
   }
   // scale bar 100 nm
@@ -1582,8 +1584,8 @@ function drawWindowStage(P, X, Yp) {
     ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(q.Xm), Yp(q.Ym), 6, 0, Math.PI * 2); ctx.stroke();
     const narrow = canvas.clientWidth < 560, lx = X(q.Xm) - 10;
     // Weak label below the arrow, window label above it, so they never meet.
-    if (!narrow) backedText(P, `mean weak reading${instant() ? ' at t₁' : ''}`, lx, Yp(q.Ym) + 20, { color: P.weak, size: 11, align: 'right', weight: 600 });
-    backedText(P, narrow ? `window: ${q.n.toLocaleString('en-US')} runs` : `window of strong results${instant() ? ' at t₂' : ''}: ${q.n.toLocaleString('en-US')} runs`, X(c.x), Yp(c.y) - ry - 8, { color: P.strong, size: 11, weight: 600, align: narrow && X(c.x) > canvas.clientWidth * 0.6 ? 'right' : 'center' });
+    if (!narrow) backedText(P, `mean weak reading${timed() ? ' at t₁' : ''}`, lx, Yp(q.Ym) + 20, { color: P.weak, size: 11, align: 'right', weight: 600 });
+    backedText(P, narrow ? `window: ${q.n.toLocaleString('en-US')} runs` : `window of strong results${timed() ? ' at t₂' : ''}: ${q.n.toLocaleString('en-US')} runs`, X(c.x), Yp(c.y) - ry - 8, { color: P.strong, size: 11, weight: 600, align: narrow && X(c.x) > canvas.clientWidth * 0.6 ? 'right' : 'center' });
   } else backedText(P, wf.runs ? 'too few runs in this window yet' : 'press Start, then point anywhere', X(c.x) + rx + 8, Yp(c.y) + 4, { color: P.muted, size: 11 });
   // Trace back: each mean weak position is the next window.
   if (state.win.trace && q.n >= 300) {
@@ -1798,9 +1800,9 @@ function drawVelocity(P, box) {
 function updateResults() {
   const set = (k, v) => { const o = document.querySelector(`[data-result="${k}"]`); if (o) o.value = v; };
   // Times: at instants (and in windows) the two measurements are at two times.
-  const timed = instant() && state.stage !== 'map';
-  document.querySelectorAll('[data-times-row]').forEach((el) => { el.hidden = !timed; });
-  if (timed) {
+  const showTimes = timed() && state.stage !== 'map';
+  document.querySelectorAll('[data-times-row]').forEach((el) => { el.hidden = !showTimes; });
+  if (showTimes) {
     const tau = psAt(state.gap);
     if (state.stage === 'window') set('times', `τ = t₂ − t₁ = ${fmtPs(tau)}; window at t₂ = ${fmtPs(psAt(state.win.x))}`);
     else set('times', `t₁ = ${fmtPs(psAt(state.x1))}, t₂ = ${fmtPs(psAt(state.x1 + state.gap))} (τ = ${fmtPs(tau)})`);
@@ -2099,6 +2101,7 @@ syncGeometryInputs();
     if (changed.length) urlNote = `The link's ${changed.map((k) => `${name(k)} (${urlAsked[k]} → ${cur(k)})`).join(', ')} ${changed.length > 1 ? 'were' : 'was'} adjusted to the allowed range.`;
   }
   if (urlBadStage) urlNote = `${urlNote} The link's stage "${urlBadStage}" is unknown; stage 1 is shown.`.trim();
+  if (timingLinkNote) urlNote = `${urlNote} The link asked to measure at instants; that option was removed, so planes are used. Measuring at random times with the full position, as Wiseman proposed, is stage 4, Windows.`.trim();
   if (urlNote) $('#geoNote').textContent = `${urlNote} ${$('#geoNote').textContent}`;
 }
 applyGeometry();

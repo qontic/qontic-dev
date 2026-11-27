@@ -242,3 +242,6 @@ body.wv-app.qontic-light { background: #eef3f6; color: #183747; }
 .wv-app .in-brief h2 { margin-top: 10px !important; }
 .wv-app .in-brief ul { margin: 4px 0; padding-left: 20px; }
 .qontic-light.wv-app .in-brief { border-color: #c9d9e0; }
+
+/* Controls of the removed Instants option (0.10): kept in the page for the code, never shown. */
+.wv-removed { display: none !important; }

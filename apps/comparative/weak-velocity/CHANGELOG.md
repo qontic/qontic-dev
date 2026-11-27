@@ -1,5 +1,13 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.10.0 — 2026-11-27
+- Removed "Measure at: Instants" (Pablo). Stages 1–3 use planes, as in the Kocsis experiment. Wiseman's protocol, with runs at random times, the full position recorded and post-selection on any region of strong results, is stage 4, Windows. The Instants stage 2 was a roundabout slice of it: one packet time, one of 13 positions kept, about 80% of runs discarded. Transverse-only was neither experiment.
+  - Removed from the interface: the Planes/Instants switch, packet length, the position-along-the-beam switch and Δ slider, the fixed-time curve option and its Results row, "Runs at this Δ".
+  - The code and model functions stay (unused), and the 24 tests still run them.
+  - The Windows stage always uses the timing language (t₁, t₂ = t₁ + τ, times in ps).
+  - A link with `timing=instant` opens with planes and says why.
+- Physics: "A plane or an instant?" became "Planes, and measuring at times", a short paragraph. The Instants instructor question, the link parameters timing / packet / recx / ft, and the level descriptions were updated.
+
 ## 0.9.9 — 2026-11-27
 - Instants with the position recorded (Pablo): one position's arrows at a time. Many runs had drawn all 13 positions' columns across the packet box. Map the field had shown all 13 while a pair ran and kept only the centre one when it finished, so arrows seemed to come from other times and then vanish.
   - Many runs: the selected position (Δ = 0 by default) gives one column at its own place along the beam. The ticks mark the others; pointing or the Δ slider chooses which.
