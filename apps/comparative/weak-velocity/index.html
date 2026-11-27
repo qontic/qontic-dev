@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="../../../shared/favicon.svg">
 <link rel="stylesheet" href="../../../shared/qontic-shell.css?v=3.7">
 <link rel="stylesheet" href="../../../shared/qontic-app.css?v=3.5">
-<link rel="stylesheet" href="css/wv.css?v=0.9.2">
+<link rel="stylesheet" href="css/wv.css?v=0.9.3">
 </head>
 <body class="wv-app">
 <main class="shell">
@@ -223,7 +223,7 @@
   <p class="formula">P(Y, y<sub>f</sub>) = |χ<sub>Y</sub>(y<sub>f</sub>, τ + Δτ)|², &nbsp; χ<sub>Y</sub>(y, τ) = ψ(y, τ) φ(Y − y),</p>
   <p>where χ<sub>Y</sub> evolves freely for Δτ = Δx/v<sub>x</sub>. Each run samples one pair (Y, y<sub>f</sub>) from this distribution. Post-selection keeps the runs whose y<sub>f</sub> falls in a narrow strip (<span data-strip-width>20 nm</span> by default; strips remain at most 20 nm wide when the screen changes) and averages their pointer readings. Following Wiseman,<sup><a href="#ref-1">1</a></sup> the velocity at y<sub>f</sub> is defined as</p>
   <p class="formula">v<sub>y</sub>(y<sub>f</sub>) = [ y<sub>f</sub> − E(Y | y<sub>f</sub>) ] / Δτ.</p>
-  <p>The simulation shows it as the direction v<sub>y</sub>/v<sub>x</sub>, the slope of the arrow. Its standard error is the sample standard deviation of the paired differences y<sub>f</sub> − Y in the strip, divided by √N and by Δτ. This includes the correlation between the two readings. With a wide pointer it is approximately σ<sub>p</sub>/(√N Δτ). The default collects one million runs per pair of planes; each arrow uses only the runs detected in its strip, so the precision varies across the pattern.</p>
+  <p>The simulation shows it as the direction v<sub>y</sub>/v<sub>x</sub>, the slope of the arrow. Each arrow is the measured vector itself: it runs from the mean pointer reading, at the weak position, to the mean detected position of the same runs, at the strong position (where the gap is too short on screen, the tail is extended back along the same direction). Its tip marks the strip's mean detected position; the drawing is stretched across the beam unless Equal scales is on, so its drawn angle is steeper than its slope. Its standard error is the sample standard deviation of the paired differences y<sub>f</sub> − Y in the strip, divided by √N and by Δτ. This includes the correlation between the two readings. With a wide pointer it is approximately σ<sub>p</sub>/(√N Δτ). The default collects one million runs per pair of planes; each arrow uses only the runs detected in its strip, so the precision varies across the pattern.</p>
 
   <h2>What it converges to</h2>
   <p>As σ<sub>p</sub> grows, E(Y | y<sub>f</sub>) tends to the real part of the weak value of the earlier position,<sup><a href="#ref-2">2</a></sup> and v<sub>y</sub> tends to</p>
@@ -341,6 +341,6 @@
   <p>The double-slit app draws the flow lines of j/|ψ|² from the theory. This app shows that the same field can be reconstructed from data that could be taken in a laboratory. Whether the lines are paths is what the three views dispute. It also shows the price: a weak pointer, post-selection and many runs per pair of planes, with only a fraction contributing to each arrow. The idea and the first version of these pictures are Anssi Kuha's.</p>
 </section>
 </main>
-<script type="module" src="js/app.js?v=0.9.2"></script>
+<script type="module" src="js/app.js?v=0.9.3"></script>
 </body>
 </html>

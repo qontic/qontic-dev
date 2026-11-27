@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.3 — 2026-11-27
+- Arrows (Pablo): in stages 2 and 3 each arrow is now the measured vector itself. It runs from the strip's mean pointer reading at the weak position to its mean detected position at the strong position, as in the Windows stage. Before, it started at the strong position with a fixed length. Where the gap is too short on screen, the tail is extended back along the same direction (at least 12 px), so the head stays on the strong position. The Windows end-of-run grid arrows follow the same rule. Physics text says so.
+
 ## 0.9.2 — 2026-11-27
 - Planes (Xavier Oriols, 16 Nov): the lines are labelled as position measurements across the whole plane, "weak plane: pointer coupled at any y" and "strong plane: y measured, any value", not detection at one point. Short labels on a narrow drawing and in the map.
 - Flow-line overlay (this app): the key gives all three readings ("pilot-wave: the particles' trajectories · orthodox, many-worlds: lines of probability flow"). The lines are drawn light grey (dark grey in the light theme) with a dark casing instead of pink, which a red-green colour-blind viewer could not tell from the blue prediction. The button label is unchanged.

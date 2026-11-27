@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.9.2';
-import * as M from './weak-model.js?v=0.9.2';
+import { APP_RELEASE } from './release.js?v=0.9.3';
+import * as M from './weak-model.js?v=0.9.3';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -1198,20 +1198,25 @@ function drawApparatus(P, fullBox) {
     if (exp.cellBins) exp.cellBins.forEach((cb, j) => arrowsFrom.push({ x: exp.x2 + exp.mix.parts[j].dx, est: toEst(cb), live: true, faint: j !== state.cell }));
     else arrowsFrom.push({ x: exp.x2, est: toEst(exp.bins), live: true });
   }
-  const L = Math.max(14, Math.min(26, box.w / 32));
   if (state.show.arrows) for (const a of arrowsFrom) for (const [ei, e] of a.est.entries()) {
     if (!e || (map?.done && ei % state.arrowEvery !== Math.floor(state.arrowEvery / 2))) continue;
     // Opacity shows the precision: noisy arrows are drawn faint, never hidden.
     const rel = Math.max(0.15, Math.min(1, 0.04 / Math.max(1e-6, e.err)));
-    const ang = Math.atan2(-(Yp(e.y + e.s) - Yp(e.y)), X(a.x + 1) - X(a.x));
-    const La = a.faint ? 0.7 * L : L;
-    const sx = X(a.x), sy = Yp(e.y), ex = sx + La * Math.cos(ang), ey = sy - La * Math.sin(ang);
+    // The measured vector: from the mean weak (pointer) reading at the weak
+    // position to the mean detected position at the strong one, a gap earlier.
+    // If that is very short on screen, the tail is extended back along the same
+    // direction, so the head stays on the strong position.
+    const g = state.gap / 100, ex = X(a.x), ey = Yp(e.y);
+    let sx = X(a.x - g), sy = Yp(e.y - e.s * g);
+    const ang = Math.atan2(sy - ey, sx - ex), len = Math.hypot(ex - sx, ey - sy), Lmin = a.faint ? 8 : 12;
+    if (len < Lmin) { sx = ex + Lmin * Math.cos(ang); sy = ey + Lmin * Math.sin(ang); }
+    const hd = Math.min(6, Math.max(3.5, len / 3)), dir = Math.atan2(ey - sy, ex - sx);
     ctx.globalAlpha = (0.35 + 0.65 * rel) * (a.faint ? 0.4 : 1);
     ctx.strokeStyle = P.arrow; ctx.fillStyle = P.arrow; ctx.lineWidth = 1.6;
     ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(ex, ey);
-    ctx.lineTo(ex - 6 * Math.cos(ang - 0.45), ey + 6 * Math.sin(ang - 0.45));
-    ctx.lineTo(ex - 6 * Math.cos(ang + 0.45), ey + 6 * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill();
+    ctx.lineTo(ex - hd * Math.cos(dir - 0.45), ey - hd * Math.sin(dir - 0.45));
+    ctx.lineTo(ex - hd * Math.cos(dir + 0.45), ey - hd * Math.sin(dir + 0.45)); ctx.closePath(); ctx.fill();
   }
   ctx.globalAlpha = 1;
 
@@ -1520,12 +1525,15 @@ function drawWindowStage(P, X, Yp) {
     const path = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Yp(y)) : ctx.moveTo(X(x), Yp(y)))); ctx.stroke(); };
     if (state.show.arrows) {
       ctx.strokeStyle = P.arrow; ctx.fillStyle = P.arrow; ctx.lineWidth = 1.4;
-      // Each arrow drawn at a common length along its measured direction; opacity shows precision.
-      const L = 16;
+      // Each arrow from the window's mean weak reading to its mean strong position
+      // (at least 12 px, extended back along its direction); opacity shows precision.
       for (const { q } of S.arrows) {
-        const sx = X(q.x2m), sy = Yp(q.yfm), ang = Math.atan2(-(Yp(q.yfm + q.slope) - Yp(q.yfm)), X(q.x2m + 1) - X(q.x2m));
+        const ex = X(q.x2m), ey = Yp(q.yfm);
+        let sx = X(q.Xm), sy = Yp(q.Ym);
+        const len = Math.hypot(ex - sx, ey - sy);
+        if (len < 12) { const a = Math.atan2(sy - ey, sx - ex); sx = ex + 12 * Math.cos(a); sy = ey + 12 * Math.sin(a); }
         ctx.globalAlpha = 0.35 + 0.65 * Math.max(0.15, Math.min(1, 0.04 / Math.max(1e-6, q.err)));
-        arrowLine(sx - L * Math.cos(ang), sy + L * Math.sin(ang), sx, sy, 5);
+        arrowLine(sx, sy, ex, ey, 5);
       }
       ctx.globalAlpha = 1;
     }
