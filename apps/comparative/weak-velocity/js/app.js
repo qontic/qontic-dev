@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.9.6';
-import * as M from './weak-model.js?v=0.9.6';
+import { APP_RELEASE } from './release.js?v=0.9.7';
+import * as M from './weak-model.js?v=0.9.7';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -337,8 +337,12 @@ const fmtS = (s, d = 3) => (s === null || !Number.isFinite(s) ? '—' : (s >= 0 
 
 function updateText() {
   $('#swOut').value = `${state.sw} nm`;
-  $('#x1Out').value = `${state.x1} nm`;
-  $('#gapOut').value = `${state.gap} nm`;
+  // At instants the two controls are times (electron with this wavelength); the
+  // distances, which the model uses, are shown in brackets.
+  $('#x1Out').value = instant() ? fmtPs(psAt(state.x1)) : `${state.x1} nm`;
+  $('#gapOut').value = instant() ? fmtPs(psAt(state.gap)) : `${state.gap} nm`;
+  $('#x1Out').title = instant() ? `packet centre ${state.x1} nm behind the slits at t₁ (electron, λ = ${geo.wavelength} nm)` : '';
+  $('#gapOut').title = instant() ? `the packet moves ${state.gap} nm between t₁ and t₂` : '';
   const angle = geo.wavelength / (4 * Math.PI * state.sw);
   $('#swHint').textContent = 'A wider pointer gives noisier readings and disturbs the wave less. Below about 50 nm the two predictions separate.'
     + (angle > 0.2 ? ' This sharp-pointer setting is a qualitative illustration beyond the reliable paraxial range.' : '');
@@ -362,14 +366,14 @@ function updateText() {
   $('#cellRow').hidden = !(instant() && state.recx) || W;
   $('#packetRow').hidden = !(instant() || state.show.fixedTime) || W;
   // Words that change with the timing: planes vs instants.
-  $('#x1Label').textContent = instant() ? 'Packet centre at t₁' : 'Weak plane';
-  $('#gapLabel').textContent = instant() ? 'Travel from t₁ to t₂' : 'Gap to strong plane';
+  $('#x1Label').textContent = instant() ? 'Weak at t₁' : 'Weak plane';
+  $('#gapLabel').textContent = instant() ? 'Strong, τ later' : 'Gap to strong plane';
   $('#expLabel').textContent = instant() ? (state.recx ? 'Prediction, pointer + recorded position' : 'Prediction, pointer + packet') : 'Prediction for this pointer';
   $('#perPlaneLabel').textContent = W ? 'Runs, whole field' : instant() ? 'Runs (packets)' : 'Runs per pair of planes';
   $('#curLabel').textContent = instant() && state.recx && exp?.mix ? `Ideal weak pointer at Δ = ${Math.round(nm(cellDx())) === 0 ? '0' : (cellDx() > 0 ? '+' : '−') + Math.abs(nm(cellDx())).toFixed(0)} nm` : instant() ? 'Ideal weak pointer, j/|ψ|² at the packet centre' : 'Ideal weak pointer, j/|ψ|²';
   $('#runsLabel').textContent = W ? 'Runs (whole field)' : instant() ? 'Runs (one packet each)' : 'Runs at these planes';
   $('#pairLabel').textContent = instant() ? 'Packet centre at t₁ → t₂' : 'Plane pair';
-  for (const [id, unit] of [['sw', state.sw], ['x1', state.x1], ['gap', state.gap]]) $(`#${id}`).setAttribute('aria-valuetext', `${unit} nanometres`);
+  for (const [id, unit] of [['sw', state.sw], ['x1', state.x1], ['gap', state.gap]]) $(`#${id}`).setAttribute('aria-valuetext', instant() && id !== 'sw' ? `${fmtPs(psAt(unit))}, ${unit} nanometres` : `${unit} nanometres`);
   $('#recx').setAttribute('aria-pressed', String(state.recx));
   $('#packet').value = state.packet; $('#packetOut').value = `${state.packet} nm`;
   $('#packet').setAttribute('aria-valuetext', `${state.packet} nanometres`);

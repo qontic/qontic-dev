@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.7 — 2026-11-27
+- Instants (Pablo): the two controls are now times. "Weak at t₁" shows 34.4 ps and "Strong, τ later" shows 3.44 ps, for an electron with the chosen λ; they read "Packet centre at t₁ 500 nm" and "Travel from t₁ to t₂ 50 nm" before. The distances are in the hover text and the screen-reader text. At Planes they stay distances.
+
 ## 0.9.6 — 2026-11-27
 - Map the field (Pablo): on a second run the arrows were missing because the "Measured arrows" switch was off. The switch at the top of the drawing showed only once a map was finished and hid as soon as the next run started, so a click on it after the first map went unseen. Nothing in the code turns it off by itself; checked with mouse clicks on Start and with the Space bar.
   - The display switches now show for the whole of stage 3, including during a run.
