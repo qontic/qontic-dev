@@ -1683,7 +1683,7 @@ $(document).ready(function() {
             { value: '', text: '', scale:1 }
             ], false);
 
-      createParameterInput('particle', 'MaxPart', 'Max. Particles', 1, 1000, 1., 400., [
+      createParameterInput('particle', 'MaxPart', 'Max. Particles', 1, 1000, 1., 30., [
             { value: '', text: '', scale:1 },
             ], false);
 

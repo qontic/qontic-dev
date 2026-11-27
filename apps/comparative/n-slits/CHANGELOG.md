@@ -3,6 +3,10 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.4 — 2026-11-27
+- Changing the level changes nothing but which controls are shown (Pablo). Removed: hidden controls reset to defaults below their level (screen length and distance, source position, packet and slit widths, particle colour, Direct PW, slit extent and balance, tail, interval, detector pixels, flow); Basic speed 3×; Basic's own packet count; Basic slit-separation cap (700 nm), at most 4 slits and λ ≥ 30 nm; Basic forcing the analytical engine and dropping the One-particle preset; Expert numerical options (current, blade, closing time, replay, show change, trails) and the Mask wall reset below Expert. The engine label shows at Basic when the numerical engine is on. Values saved by the old level defaults are restored once. Fresh page: 30 particles per packet at every level (was 400 above Basic).
+- Checked: Expert (6 slits, 250 nm, screen 2000, distance 1500, λ 25, numerical, 200 per packet) and Standard (4 slits, 500 nm) through Basic/Standard/Basic/Expert: every value and the scale identical at each step; old saved values restored; notebook unaffected; no page errors.
+
 ## 4.3.3 — 2026-11-27
 - Bug: switching level could draw the slits (and the wave) off-centre. Basic resets hidden geometry controls to their defaults (screen length 1200 nm, screen distance, source position); the value was written without the input's change handler, so the picture kept the previous screen's centring (e.g. Standard with screen 2000 nm → Basic: four slits shifted up by 400 nm). Level defaults now go through the control's change handler. Checked: Standard 2000/500 nm and 800/206 nm, 4 slits, Basic ↔ Standard twice: slits symmetric at every step.
 

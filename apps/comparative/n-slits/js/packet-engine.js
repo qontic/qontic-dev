@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te433';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te433';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te433';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te433';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te433';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te433';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te433';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te433';
-import {createNumericalEngine} from './numerical-engine.js?cache=te433';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te433';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te433';
-import {classifySlitSide} from './source-packet-model.js?cache=te433';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te440';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te440';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te440';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te440';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te440';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te440';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te440';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te440';
+import {createNumericalEngine} from './numerical-engine.js?cache=te440';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te440';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te440';
+import {classifySlitSide} from './source-packet-model.js?cache=te440';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -83,7 +83,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    if(!screenRaisePending){screenRaisePending=true;setTimeout(()=>{screenRaisePending=false;setupGeo(false);draw();},0);}
   }
   dynamicSeparationMax=sepMaxFor(Math.max(height,minHeight));
-  const physicalSepMax=dynamicSeparationMax;if(document.body.dataset.qonticLevel==='basic')dynamicSeparationMax=Math.min(dynamicSeparationMax,BASIC_SEP_MAX);
+  const physicalSepMax=dynamicSeparationMax;
   const separationMin=openSlitIds().length>=2?Math.min(core,dynamicSeparationMax):0;
   separationRange.min=separationNumber.min=String(separationMin);
   if(+separationRange.value<separationMin)separationRange.value=separationNumber.value=String(separationMin);
@@ -206,26 +206,10 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   setTimeout(()=>{$('#startButton').trigger('click');setTimeout(()=>document.querySelector('#slit-open-buttons [data-slit="1"]')?.click(),150);},50);
  }
  function setLevel(next){
+  // 4.4: changing the level only shows or hides controls; it changes no setting (engine, packet
+  // count, slit separation, numerical options, wall model all stay as they are).
   if(next===level)return;level=next;
-  if(level!=='expert'){
-   if(!expertSaved){expertSaved={};for(const k of EXPERT_KEYS)expertSaved[k]=numOpt[k];}
-   Object.assign(numOpt,EXPERT_DEFAULTS);replay.events=[];replay.pending=[];replay.start=null;
-  }else if(expertSaved){Object.assign(numOpt,expertSaved);expertSaved=null;}
-  // The Mask wall is an Expert option (checking the numerical engine against the analytical one).
-  if(level!=='expert'&&numSlitModel==='mask'){maskSaved=true;numSlitModel='reflecting';resetEngine();}
-  else if(level==='expert'&&maskSaved){maskSaved=false;numSlitModel='mask';resetEngine();}
-  // Basic runs the analytical engine; the engine chosen above Basic comes back when leaving it.
-  if(level==='basic'){if(onePreset)toggleOneParticle(false);if(engine==='numerical'){engineBeforeBasic='numerical';setEngine('analytical');}}
-  else if(engineBeforeBasic){const e=engineBeforeBasic;engineBeforeBasic=null;if(e!==engine)setEngine(e);}
-  // Basic: 30 hits per packet (dots arrive one by one); the user's number comes back above Basic.
-  {const g=document.getElementById('MaxPart-group'),inp=document.getElementById('MaxPart-input');
-   // Basic: its own "Electrons per wave" value (default 30); the Standard/Expert value is kept and comes back.
-   const K='qontic-te-hits-before-basic';let saved=null;try{saved=localStorage.getItem(K);}catch(_){}
-   if(g&&inp){const want=basicHits();if(level==='basic'){if(+inp.value!==want){if(saved==null){try{localStorage.setItem(K,String(+inp.value));}catch(_){}}g.setValueInFirstUnit(want);}}
-   else if(saved!=null){g.setValueInFirstUnit(+saved);try{localStorage.removeItem(K);}catch(_){}}}
-   syncBasicHits();}
-  // Basic caps the slit separation (slits stay on the picture); leaving Basic brings the user's value back.
-  {const before=slitSeparation;try{applyPacketLimits();}catch(_){}if(slitSeparation!==before){setupGeo(false);reset=0;resetEngine();}}
+  try{syncBasicHits();}catch(_){}try{applyPacketLimits();}catch(_){}
   syncShutterUI();pushShutter();if(!isAnimating)draw();
  }
  function pushShutter(){if(!num.available||!p)return;num.setShutter({tau:numOpt.tau*p.sx/p.k,mode:numOpt.blade,wOverE:numOpt.bladeW});num.setShowChange(numOpt.showChange);num.setSpin(numOpt.guide==='up'?.5:numOpt.guide==='down'?-.5:0);}
@@ -831,7 +815,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te433').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te440').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1113,7 +1097,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   ctx.restore();
  }
  function drawEngineLabel(ctx=waveCtx){
-  if(level==='basic')return; // one engine at Basic
+  if(level==='basic'&&!numericalActive())return; // Basic: label only when the numerical engine is on
   // Small, quiet tag in the top-right corner of the wave area: which engine computed the picture.
   const text=numericalActive()?'Numerical':engineWanted()?'Analytical (numerical unavailable)':'Analytical';
   const light=document.body.classList.contains('qontic-light');
@@ -1481,7 +1465,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function savePacketSettings(){
   try{const v=id=>document.getElementById(id),old=new URLSearchParams(localStorage.getItem(PACKET_KEY)||'');
    const q=[['sourceWidth',sourceWidth.value],['packetLength',length.value],['packetWidth',width.value],['slitExtent',extent.value],['slitBalance',balance.value],
-    ['packetCount',level==='basic'?old.get('packetCount'):v('MaxPart-input')?.value],['tailLength',tailLength.value],['packetInterval',interval.value],
+    ['packetCount',v('MaxPart-input')?.value],['tailLength',tailLength.value],['packetInterval',interval.value],
     ['flowArrows',v('flow-arrows')?.checked?1:0],['flowLines',v('flow-lines')?.checked?1:0],['flowLength',v('flow-length')?.value],['flowSpacing',v('flow-spacing')?.value],['numeng',(engineBeforeBasic||engine)==='numerical'?1:0],['atWall',v('slit-at-wall')?.checked?1:0]];
    localStorage.setItem(PACKET_KEY,q.filter(([,x])=>x!==undefined&&x!==null&&x!=='').map(([k,x])=>k+'='+encodeURIComponent(x)).join('&'));}catch(_){}
  }

@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te433';
-import { mountMWBranching } from './mw-branching.js?cache=te433';
-import { APP_RELEASE } from './release.js?cache=te433';
-import { mountNSlitQuiz } from './quiz.js?cache=te433';
+import { mountPacketEngine } from './packet-engine.js?cache=te440';
+import { mountMWBranching } from './mw-branching.js?cache=te440';
+import { APP_RELEASE } from './release.js?cache=te440';
+import { mountNSlitQuiz } from './quiz.js?cache=te440';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te433';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te440';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -618,27 +618,20 @@ $(function () {
     try { localStorage.setItem('qontic-te-level', level); } catch (_) {}
     window.qonticPacketEngine?.setLevel?.(level);
     quizApi?.setLevel?.(level);
-    levelDefaults(level);
+    // 4.4: the level changes only which controls are shown, never a setting.
     try { window.qonticBasicTips?.(level); } catch (_) {}
-    // Many Worlds at Basic shows the world splitting at each hit (slow-motion branching) unless
-    // the user has switched it off there.
     { const tour = document.getElementById('mw-branch-tour'), K = 'qontic-te-mw-tour-basic';
-      let pref = null; try { pref = localStorage.getItem(K); } catch (_) {}
-      if (tour && level === 'basic' && pref !== 'off' && !tour.checked && +document.getElementById('MaxPart-input')?.value === 1) { tour.checked = true; tour.dispatchEvent(new Event('change', { bubbles: true })); }
       if (tour && !tour.dataset.basicPref) { tour.dataset.basicPref = '1'; tour.addEventListener('change', event => { if (event.isTrusted && document.body.dataset.qonticLevel === 'basic') { try { localStorage.setItem(K, tour.checked ? 'on' : 'off'); } catch (_) {} } }); } }
-    // Basic runs at 3× by default (beginners waited 10–15 s for the first hit at 1×); the speed
-    // chosen before comes back above Basic.
-    { const sp = document.getElementById('animationStep'), K = 'qontic-te-speed-before-basic';
-      if (sp) { let saved = null; try { saved = localStorage.getItem(K); } catch (_) {}
-        if (level === 'basic' && saved === null && Math.abs(+sp.value - 1) < 1e-9) { try { localStorage.setItem(K, sp.value); } catch (_) {} $(sp).val(3).trigger('input').trigger('change'); }
-        else if (level !== 'basic' && saved !== null) { if (Math.abs(+sp.value - 3) < 1e-9) $(sp).val(+saved).trigger('input').trigger('change'); try { localStorage.removeItem(K); } catch (_) {} } } }
-    // Basic: at most four slits (the slider and the model), λ from 30 to 50 nm (below 30 nm the
-    // slit beams barely overlap at the default geometry and the fringes go).
-    slitRange.max = level === 'basic' ? '4' : '8';
-    if (level === 'basic' && numSlits > 4) { slitRange.value = '4'; $(slitRange).trigger('input'); }
-    const lam = document.getElementById('wavelength-group'), lamRange = document.getElementById('wavelength');
-    if (lamRange) { lamRange.min = level === 'basic' ? '30' : lamRange.dataset.minAll; const n = document.getElementById('wavelength-input'); if (n) n.min = lamRange.min; }
-    if (lam && level === 'basic' && lam.getValueInFirstUnit() < 30) lam.setValueInFirstUnit(30);
+    slitRange.max = '8';
+    const lamRange = document.getElementById('wavelength');
+    if (lamRange) { lamRange.min = lamRange.dataset.minAll; const n = document.getElementById('wavelength-input'); if (n) n.min = lamRange.min; }
+  };
+  // 4.4: values saved by the old level defaults (up to 4.3.3) come back once, then nothing is saved.
+  const restoreOldLevelSaved = () => { let changed = false;
+    for (const [id, , kind] of LEVEL_DEFAULTS) { if (!(id in levelSaved)) continue; const el = document.getElementById(id); if (el && !same(ctlGet(el, kind), levelSaved[id])) { ctlSet(el, kind, levelSaved[id]); changed = true; } }
+    levelSaved = {}; try { localStorage.removeItem(SAVED_KEY); } catch (_) {}
+    try { const sp = localStorage.getItem('qontic-te-speed-before-basic'); if (sp !== null) { localStorage.removeItem('qontic-te-speed-before-basic'); const r = document.getElementById('animationStep'); if (r) $(r).val(+sp).trigger('input').trigger('change'); } } catch (_) {}
+    try { const h = localStorage.getItem('qontic-te-hits-before-basic'); if (h !== null) { localStorage.removeItem('qontic-te-hits-before-basic'); const g = document.getElementById('MaxPart-group'); if (g) { g.setValueInFirstUnit(+h); document.getElementById('MaxPart-input')?.dispatchEvent(new Event('change', { bubbles: true })); } } } catch (_) {}
   };
   controls.setAttribute('levels', 'basic:Basic,standard:Standard,expert:Expert');
   controls.setAttribute('tab-levels', 'engine:standard,advanced:standard');
@@ -653,7 +646,7 @@ $(function () {
       if (h.get('level') === 'basic' && n >= 1) try { localStorage.setItem('qontic-te-basic-hits', String(Math.min(1000, n))); } catch (_) {} }
     applyLevel(LEVELS.includes(fromUrl) ? fromUrl : LEVELS.includes(saved) ? saved : 'basic');
     // The Pilot-Wave colour menu and Direct PW are attached a little later: a second pass for them.
-    const again = (tries = 40) => { if (document.getElementById('packet-particle-color') && document.getElementById('packet-directed-slits')) levelDefaults(document.body.dataset.qonticLevel); else if (tries > 0) setTimeout(() => again(tries - 1), 100); };
+    const again = (tries = 40) => { if (document.getElementById('packet-particle-color') && document.getElementById('packet-directed-slits')) restoreOldLevelSaved(); else if (tries > 0) setTimeout(() => again(tries - 1), 100); };
     setTimeout(again, 0);
     // run=1 in the link: start the run once the page is ready (used by the notebook's set-ups).
     { const sp = +new URLSearchParams(location.hash.slice(1)).get('speed'); if (sp > 0) document.getElementById('animationStep-group')?.setValueInFirstUnit(sp); }
