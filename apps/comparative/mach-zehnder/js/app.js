@@ -2,10 +2,10 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=resources-20260916';
 import { mountQonticControls } from './qontic-controls.js?v=0.3';
-import { APP_RELEASE } from './release.js?v=0.19';
-import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.19';
-import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY, TEXTBOOK_EXPLAIN, TEXTBOOK_PHYSICS, AGREE } from './content.js?v=0.19';
-import { waveBranches, computeField, paintField } from './waves.js?v=0.19';
+import { APP_RELEASE } from './release.js?v=0.20';
+import { G, OPTIONS, correctOption, probabilities, outcome, branches, componentPoint, pilotWavePath, pathPoint } from './physics.js?v=0.20';
+import { COMMON, EXPLAIN, VIEW_LABEL, ANSWERS, GLOSSARY, GLOSSARY_ONLY, TEXTBOOK_EXPLAIN, TEXTBOOK_PHYSICS, AGREE } from './content.js?v=0.20';
+import { waveBranches, computeField, paintField } from './waves.js?v=0.20';
 
 // Study arm (IUSE design). ?arm=orthodox gives the comparison arm: the same app,
 // setups, tasks and timing, but only the orthodox account with decoherence.
@@ -210,12 +210,13 @@ document.getElementById('mz-many').addEventListener('click', () => {
   if (!canRun()) return flashHint();
   markFirstRun();
   logEvent('send', { atoms: 200 });
-  // Exactly 200 atoms, all tallied at once; the animated atom is the last of them
-  // (already counted), so the counter and the log both read 200.
-  const t = tally();
+  // Exactly 200 atoms. Their outcomes are drawn now but added to the counts only when
+  // the animated atom (the last of them) reaches the detectors, so neither the counts
+  // nor the verdict appear before the arrival.
+  const batch = { d1: 0, d2: 0, bomb: 0, total: 0 };
   let u = 0;
-  for (let i = 0; i < 200; i++) { u = Math.random(); const r = outcome(state.setup, u).result; t[r]++; t.total++; }
-  launch(u, true); state.paused = false; state.running = true; ui.setRunning(true);
+  for (let i = 0; i < 200; i++) { u = Math.random(); const r = outcome(state.setup, u).result; batch[r]++; batch.total++; }
+  launch(u); state.atom.batch = batch; state.paused = false; state.running = true; ui.setRunning(true);
   syncPanel();
 });
 
@@ -355,7 +356,9 @@ function finishAtom() {
   if (a.counted) return;
   a.counted = true;
   if (isCalibration()) { state.calibrated = true; saveFirstRun(); }
-  const t = tally(); t[a.o.result]++; t.total++;
+  const t = tally();
+  if (a.batch) ['d1', 'd2', 'bomb', 'total'].forEach(k => { t[k] += a.batch[k]; });
+  else { t[a.o.result]++; t.total++; }
   syncPanel();
 }
 

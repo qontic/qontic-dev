@@ -1,5 +1,8 @@
 # Atom Mach–Zehnder Interferometer — changelog
 
+## 0.20 — 2026-11-27
+- "Send 200 atoms": the counts, the verdict and the explanation now appear when the animated atom reaches the detectors, not at the click (Pablo: the result showed in the table before the particles arrived). If the setup is changed or Reset is pressed before the arrival, that batch is not counted.
+
 ## 0.19 — 2026-11-27
 Compact control panel (Pablo: too much empty space between controls; the panel needed scrolling).
 - Smaller gaps between the control groups, the prediction form and the hints; slightly lower buttons.
