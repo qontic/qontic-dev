@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te411';
-import { mountMWBranching } from './mw-branching.js?cache=te411';
-import { APP_RELEASE } from './release.js?cache=te411';
-import { mountNSlitQuiz } from './quiz.js?cache=te411';
+import { mountPacketEngine } from './packet-engine.js?cache=te420';
+import { mountMWBranching } from './mw-branching.js?cache=te420';
+import { APP_RELEASE } from './release.js?cache=te420';
+import { mountNSlitQuiz } from './quiz.js?cache=te420';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te411';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te420';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -548,7 +548,7 @@ $(function () {
   levelTag('.qontic-range-panel', 'standard');
   levelTag('.flow-settings', 'expert');
   for (const label of ['Wave range', 'Grid', 'Coordinates and measure', '3D wave surface', 'Edit geometry']) levelTag(`.qontic-media-toolbar button[aria-label="${label}"]`, 'standard');
-  document.querySelectorAll('.info-box.manyworlds-only td.label').forEach(td => { if (/Branch records/.test(td.textContent)) td.closest('tr').dataset.levelMin = 'standard'; });
+  // 4.2: Branch records shown at every level in Many Worlds (with more than one electron per wave the split is not drawn; the count is the record).
   // The Pilot-Wave field button only in the Pilot Wave view.
   const pwFieldButton = document.querySelector('.qontic-media-toolbar button[aria-label="Pilot-Wave field"]');
   const syncPwField = () => { if (pwFieldButton) { pwFieldButton.hidden = interpretation !== 'bohmian'; pwFieldButton.style.setProperty('display', interpretation !== 'bohmian' ? 'none' : '', interpretation !== 'bohmian' ? 'important' : ''); } };

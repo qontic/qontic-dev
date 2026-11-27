@@ -1,4 +1,4 @@
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te411';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te420';
 // Count active branch-view time only; pausing does not consume the interval.
 export function createBranchDwellClock(now=()=>performance.now()) {
   let elapsed=0,last=null;
@@ -10,9 +10,11 @@ export function createBranchDwellClock(now=()=>performance.now()) {
 }
 // A visual tour of detector records, not propagation of separate world wavefunctions.
 export function mountMWBranching({host,controls,isMW,isRunning}) {
+  // 4.2: the split is shown only with one electron per packet; with more, the app only counts branches.
+  const oneParticle=()=>{const v=+document.getElementById('MaxPart-input')?.value;return !(v>1);};
   const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./mw-branching.css?v=85',import.meta.url);document.head.append(style);
   const settings=document.createElement('div');settings.className='mw-branch-settings';
-  settings.innerHTML=`<label title="At each hit the picture splits into one small picture for each place on the screen where the dot could land: one branch for each. One branch is followed; the others continue."><input type="checkbox" id="mw-branch-tour"> Slow motion: the world splits at each hit</label><div class="mw-follow mw-choice-row" hidden><span class="mw-choice-label">Branch to follow</span><select aria-label="Branch to follow" title="Random: the app picks a branch with its weight |ψ|² (its probability). Manual: you pick by clicking a picture; the record is then no longer a fair sample."><option value="auto">Random</option><option value="manual">Manual</option></select><label class="mw-probability" title="Show each branch's weight |ψ|² (its probability) on its picture"><input type="checkbox" id="mw-show-probabilities"> Weights</label></div><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><small class="mw-follow" hidden data-level-min="expert">One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small><small class="mw-follow" hidden data-level-max="standard">Each small picture is one branch: the dot landed at a different place in each. The app follows one of them; the others continue.</small>`;
+  settings.innerHTML=`<label title="With one electron per wave: at each hit the picture splits into one small picture for each place on the screen where the dot could land, one branch for each. One branch is followed; the others continue. With more electrons per wave the split is not drawn; the branch count still grows."><input type="checkbox" id="mw-branch-tour"> Slow motion: the world splits at each hit</label><small class="mw-one-note" hidden>Shown with one electron per wave. With more, each hit multiplies the branch count (Branches in the readouts).</small><div class="mw-follow mw-choice-row" hidden><span class="mw-choice-label">Branch to follow</span><select aria-label="Branch to follow" title="Random: the app picks a branch with its weight |ψ|² (its probability). Manual: you pick by clicking a picture; the record is then no longer a fair sample."><option value="auto">Random</option><option value="manual">Manual</option></select><label class="mw-probability" title="Show each branch's weight |ψ|² (its probability) on its picture"><input type="checkbox" id="mw-show-probabilities"> Weights</label></div><label class="mw-follow mw-dwell-control" hidden><span>Time in branch</span><input id="mw-branch-dwell" type="range" min="1" max="5" step="0.1" value="1" aria-label="Time in branch"><output for="mw-branch-dwell">1.0 s</output></label><small class="mw-follow" hidden data-level-min="expert">One view per detector pixel. Try 10–20 pixels in Advanced for larger views.</small><small class="mw-follow" hidden data-level-max="standard">Each small picture is one branch: the dot landed at a different place in each. The app follows one of them; the others continue.</small>`;
   controls.append(settings);
   const enabled=settings.querySelector('input'),mode=settings.querySelector('select');
   const overlay=document.createElement('div');overlay.className='mw-branch-overlay';overlay.hidden=true;
@@ -26,7 +28,7 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
   const showProbabilities=settings.querySelector("#mw-show-probabilities");
   showProbabilities.addEventListener("change",()=>active?.layout?.());
   const cancel=()=>{dwellClock.reset();if(!active)return;cancelAnimationFrame(active.frame);active=null;overlay.hidden=true;grid.replaceChildren();zoom.hidden=true;};
-  const sync=()=>{if(!isRunning())dwellClock.pause();settings.hidden=!isMW();settings.querySelectorAll('.mw-follow').forEach(el=>el.hidden=!enabled.checked);if(!isMW()||!enabled.checked)cancel();if(window.qonticPacketEngine?.enabled)settings.querySelector('.mw-dwell-control').hidden=true;};
+  const sync=()=>{if(!isRunning())dwellClock.pause();{const n=settings.querySelector('.mw-one-note');if(n)n.hidden=!(enabled.checked&&!oneParticle());}settings.hidden=!isMW();settings.querySelectorAll('.mw-follow').forEach(el=>el.hidden=!enabled.checked);if(!isMW()||!enabled.checked)cancel();if(window.qonticPacketEngine?.enabled)settings.querySelector('.mw-dwell-control').hidden=true;};
   enabled.addEventListener('change',()=>{dwellClock.reset();sync();window.qonticPacketEngine?.syncBranching();});mode.addEventListener('change',cancel);
   // Cancel before existing input handlers can replace geometry or the record.
   for(const type of ['input','change']) document.addEventListener(type,event=>{
@@ -260,5 +262,5 @@ export function mountMWBranching({host,controls,isMW,isRunning}) {
     };
     session.frame=requestAnimationFrame(tick);return true;
   };
-  return {refreshFrame(){active?.refresh?.();},ready(){return dwellClock.tick(isRunning())>=Number(dwell.value)*1000;},get enabled(){return enabled.checked&&isMW();},get busy(){return !!active;},begin,cancel};
+  return {refreshFrame(){active?.refresh?.();},ready(){return dwellClock.tick(isRunning())>=Number(dwell.value)*1000;},get enabled(){return enabled.checked&&isMW()&&oneParticle();},get busy(){return !!active;},begin,cancel};
 }

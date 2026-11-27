@@ -3,6 +3,12 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.2 — 2026-11-27
+- Many Worlds: the split (slow motion) is drawn only with one electron per packet; it no longer forces the count to 1 or locks the Electrons per wave / Part./packet controls. With more, each hit multiplies the Branch records (now shown at every level, Basic included) and the screen fills as in the other views; a note under Slow motion says so. At Basic the split still stops after 3 hits of a run.
+- Numerical engine, Orthodox and Many Worlds: the computed wave is dimmed in proportion to the packet's particles detected on the screen (one particle: it disappears at the hit, as in the analytical engine); kept during a split; Pilot Wave keeps the whole wave. Before, the wave kept arriving at the screen after the hit and the split.
+- Views text updated (Basic Try this; slow-motion paragraph).
+- Checked: Basic MW 1 per wave splits for 3 hits then counts; 30 per wave no split, Branch records 100^150 shown; numerical Orthodox opacity 1 → 0 at the hit → 1 for the next packet; no page errors.
+
 ## 4.1.1 — 2026-11-27
 - Embed mode: on narrow screens the settings panel and readouts fold under a Controls button (picture first); the page reports its height to the notebook, which sizes the frame (phone frames 1,100 → ~500 px). Arrows panel larger (R 60 px) and, on narrow screens, below the picture instead of over it.
 
