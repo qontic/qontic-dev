@@ -38,8 +38,8 @@ This limits the risk; a shared change can still regress multiple apps. The compa
 - `show-appearance="true"`: keep the appearance switch visible when tabs are hidden, for compact single-section control panels.
 - `show-advanced="false"`: hide the Advanced tab when an app has no advanced controls. If Advanced was active, the component returns to Core.
 - `show-engine="true"`: optional **Engine** tab between Core and Advanced, for an app that computes the same experiment with more than one physics engine (for example a closed-form model and a numerical solver). It emits `qontic:tab` with `tab: "engine"` like the other tabs. Fill its pane with `shared/qontic-engine-tab.js` (below). Off by default; apps without it are unchanged.
-- `levels="basic:Basic,standard:Standard,expert:Expert"`, `level="basic"`, `tab-levels="advanced:standard,engine:standard"`: optional **level switch** at the top of the controls, for apps that offer a simple and a detailed interface. It emits `qontic:level` with `level`, hides tabs below their level, and mirrors the level on `<body data-qontic-level>`. Any page element with `data-level-min="standard"` (or `"expert"`) is hidden below that level; one with `data-level-max="basic"` shows only at that level or below. The app decides what each level means (defaults for hidden options, which questions, which text). Off by default. First used in `apps/comparative/n-slits-two-engines`.
-- `interpretation-style="segmented"`: optional; shows the views as one button each (with a "View" label) instead of the cycling interpretation pill. Same `qontic:interpretation` event. Off by default. First used in `apps/comparative/n-slits-two-engines`.
+- `levels="basic:Basic,standard:Standard,expert:Expert"`, `level="basic"`, `tab-levels="advanced:standard,engine:standard"`: optional **level switch** at the top of the controls, for apps that offer a simple and a detailed interface. It emits `qontic:level` with `level`, hides tabs below their level, and mirrors the level on `<body data-qontic-level>`. Any page element with `data-level-min="standard"` (or `"expert"`) is hidden below that level; one with `data-level-max="basic"` shows only at that level or below. The app decides what each level means (defaults for hidden options, which questions, which text). Off by default. First used in `apps/comparative/n-slits`.
+- `interpretation-style="segmented"`: optional; shows the views as one button each (with a "View" label) instead of the cycling interpretation pill. Same `qontic:interpretation` event. Off by default. First used in `apps/comparative/n-slits`.
 - `extra-tabs="id:Label,…"`: further app tabs after Core (the Engine tab is `engine:Engine`). The tab row gets one column per visible tab.
 
 Use these public attributes and the documented `qontic:*` events. New adapters must not query or modify internal shadow-DOM elements. Keep app styles scoped to an app class.
@@ -105,7 +105,7 @@ The distance scale uses a nearly transparent background (10% opacity) to leave t
 
 ## Optional levels of detail (Basic · Standard · Expert)
 
-Reference apps: `apps/comparative/n-slits-two-engines` (its own helper) and `apps/comparative/weak-velocity` (the shared helper below).
+Reference apps: `apps/comparative/n-slits` (its own helper) and `apps/comparative/weak-velocity` (the shared helper below).
 
 - `<qontic-controls levels="basic:Basic,standard:Standard,expert:Expert" level="basic" tab-levels="advanced:standard">` draws the Level switch above Start. It mirrors the level on `<body data-qontic-level>` and hides any element marked `data-level-min="standard"` (or `"expert"`) below that level. An element marked `data-level-max="basic"` shows only at that level or below. `tab-levels` gives the lowest level that shows a tab. Changing the level fires `qontic:level`.
 - `shared/qontic-levels.js`: `mountQonticLevels({ controls, storageKey, settings, minimumLevel, onChange, keepAcrossLoads })` does the rest:
@@ -117,7 +117,7 @@ Reference apps: `apps/comparative/n-slits-two-engines` (its own helper) and `app
 
 ## Optional Engine tab (more than one physics engine)
 
-Use it when one app offers two models of the same experiment that students should be able to compare (reference: `apps/comparative/n-slits-two-engines`, analytical paraxial model and numerical Schrödinger solver).
+Use it when one app offers two models of the same experiment that students should be able to compare (reference: `apps/comparative/n-slits`, analytical paraxial model and numerical Schrödinger solver).
 
 - Set `show-engine="true"` on `<qontic-controls>` and give the app a pane for the `engine` tab (in the template, `<div class="control-pane" data-control-pane="engine">` before the Advanced pane; `mountQonticControls` shows it like the others).
 - `mountQonticEngineTab({ panel, intro, engines: [{ id, label, title, note }], value, onChange })` renders a short introduction, the engine switch (`aria-pressed` toggles in a labelled group), a note line and one options container per engine (`tab.options(id)`, shown only while that engine is active). `tab.setNote(text)`, `tab.setValue(id)`, `tab.disable(id, reason)`.

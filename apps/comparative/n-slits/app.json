@@ -1,0 +1,29 @@
+{
+  "id": "n-slits",
+  "title": "N-Slits",
+  "type": "app",
+  "category": "comparative",
+  "module": "double-slit",
+  "topics": [
+    "wave-mechanics",
+    "interference",
+    "measurement",
+    "trajectories"
+  ],
+  "interpretations": [
+    "orthodox",
+    "pilot-wave",
+    "many-worlds"
+  ],
+  "level": "intermediate",
+  "description": "The double slit and beyond: 1 to 8 slits, which-slit detectors, slits closed during a run, three views (Orthodox, Pilot Wave, Many Worlds), three levels (Basic, Standard, Expert), and two engines for the same geometry: the analytical paraxial model and the Schrödinger equation on a grid (WebGL2).",
+  "tags": [
+    "Multiview",
+    "Double slit",
+    "Many slits",
+    "Born rule"
+  ],
+  "entry": "index.html",
+  "status": "published",
+  "version": "4.0"
+}

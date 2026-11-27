@@ -1,4 +1,4 @@
-// Red–blue phase wheel of the numerical N-slit app (apps/pilot-wave/n-slit-numerical/phase-legend.js), for the classic numerical look.
+// Red–blue phase wheel of the numerical N-slit app (archived: archive/n-slit-numerical-preview/phase-legend.js), for the classic numerical look.
 const WIDTH = 168, HEIGHT = 148;
 
 function phaseColor(phase) {

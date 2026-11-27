@@ -19,17 +19,14 @@
   "recommendedResources": [
     "double-slit-analytical-simulation",
     "double-slit-notebook",
-    "double-slit-webgl-simulation",
+    "n-slits",
     "double-slit-pilot-wave-notebook"
   ],
   "resourceNotes": {
     "double-slit-analytical-simulation": "1. Start with interference and compare three accounts.",
     "double-slit-notebook": "2. Work through the analytical model and its activities.",
-    "double-slit-webgl-simulation": "3. Explore numerical wave dynamics, reflection and trajectories colored by their starting position.",
+    "n-slits": "3. N-Slits: 1 to 8 slits, detectors, slits closed during a run, three levels, and two engines: the analytical model and the full Schrödinger equation (reflection from the wall, trajectories).",
     "double-slit-pilot-wave-notebook": "4. Study pilot-wave trajectories and equivariance.",
-    "weak-velocity-double-slit": "Optional advanced study: weak measurement and reconstructed probability flow.",
-    "n-slits-analytical": "Next step: the same model with 1 to 16 slits, detectors at any slit, and slits closed during a run.",
-    "n-slits-two-engines-preview": "Preview: N-Slits with two engines for the same geometry, the analytical paraxial model and a numerical Schrödinger solver, switchable and compared.",
-    "double-slit-numerical-n-slits-preview": "Preview: the numerical app with 1–16 slits and slits that close during a run (shutter), with the change it causes."
+    "weak-velocity-double-slit": "Optional advanced study: weak measurement and reconstructed probability flow."
   }
 }
