@@ -3,6 +3,11 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.5 — 2026-11-27
+- Numerical controls simplified. Engine tab: Wall (Reflecting / Absorbing; Mask at Expert), a Numerical defaults button, Current (Expert), and "Closing a slit during a run" folded (Expert); its Blade is now "Blade material" and says it does not change the wall (Pablo's link had Wall: Reflecting with Blade: Absorbing, closing time 7: the wall was not absorbing). Trails, half-life and particle size moved to the Display tab (numerical engine, Pilot Wave only).
+- Below Expert, a line lists Expert-only numerical settings still in use (Mask wall, Pauli current, absorbing blade, closing time, replay, show change) with Numerical defaults to reset them.
+- Checked with Pablo's link: Standard shows "Expert settings in use: absorbing blade, closing time 7 σₓ/v"; Numerical defaults clears it; Display block only in numerical Pilot Wave; no page errors.
+
 ## 4.4 — 2026-11-27
 - Changing the level changes nothing but which controls are shown (Pablo). Removed: hidden controls reset to defaults below their level (screen length and distance, source position, packet and slit widths, particle colour, Direct PW, slit extent and balance, tail, interval, detector pixels, flow); Basic speed 3×; Basic's own packet count; Basic slit-separation cap (700 nm), at most 4 slits and λ ≥ 30 nm; Basic forcing the analytical engine and dropping the One-particle preset; Expert numerical options (current, blade, closing time, replay, show change, trails) and the Mask wall reset below Expert. The engine label shows at Basic when the numerical engine is on. Values saved by the old level defaults are restored once. Fresh page: 30 particles per packet at every level (was 400 above Basic).
 - Checked: Expert (6 slits, 250 nm, screen 2000, distance 1500, λ 25, numerical, 200 per packet) and Standard (4 slits, 500 nm) through Basic/Standard/Basic/Expert: every value and the scale identical at each step; old saved values restored; notebook unaffected; no page errors.

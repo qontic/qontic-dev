@@ -526,3 +526,11 @@ body.qontic-light #canvas-container .te-arrows-sum { color:#1d2733; }
 .analytical-template #MaxPart-group { grid-template-columns: max-content minmax(50px,1fr) auto !important; }
 .analytical-template #MaxPart-group > label { width:auto !important; min-width:0 !important; white-space:nowrap; }
 .analytical-template #MaxPart-group > input[type=range] { width:100% !important; min-width:50px; }
+/* 4.5: numerical engine controls */
+details.te-close-box { margin-top:10px; border:1px solid var(--border-color,#476477); border-radius:8px; padding:4px 8px 8px; }
+details.te-close-box > summary.te-close-summary { cursor:pointer; list-style:revert; margin:2px 0; }
+.te-num-defaults { display:flex; flex-direction:column; gap:4px; margin:4px 0 8px; }
+.te-num-defaults .te-num-reset { align-self:flex-start; padding:3px 10px; font-size:12px; }
+.te-num-defaults .te-hidden-expert { color:#f5c542; margin:0; }
+.te-num-look { margin:0 0 10px; padding:0 0 8px; border-bottom:1px solid var(--border-color,#476477); }
+.te-num-look[hidden] { display:none !important; }

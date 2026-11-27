@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te440';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te440';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te440';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te440';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te440';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te440';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te440';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te440';
-import {createNumericalEngine} from './numerical-engine.js?cache=te440';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te440';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te440';
-import {classifySlitSide} from './source-packet-model.js?cache=te440';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te450';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te450';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te450';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te450';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te450';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te450';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te450';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te450';
+import {createNumericalEngine} from './numerical-engine.js?cache=te450';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te450';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te450';
+import {classifySlitSide} from './source-packet-model.js?cache=te450';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -141,6 +141,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  // options take their defaults (not saved), so a hidden control never changes the physics.
  const EXPERT_KEYS=['replay','guide','blade','tau','bladeW','showChange','changeGain','halfLife','dotSize','trails'];
  const EXPERT_DEFAULTS={replay:false,guide:'schrodinger',blade:'reflecting',tau:0,showChange:false,trails:'lines'};
+ let syncHiddenExpert=()=>{};
  // dev.25: Lines became the default trail; move stored Glow once.
  try{if(!localStorage.getItem('qontic-te-trails-v25')){localStorage.setItem('qontic-te-trails-v25','1');if(numOpt.trails==='glow'&&!numOpt.onePreset){numOpt.trails='lines';const o=JSON.parse(localStorage.getItem('qontic-te-num-opts')||'{}');o.trails='lines';localStorage.setItem('qontic-te-num-opts',JSON.stringify(o));}}}catch(_){}
  let numCurveShown=false,maskSaved=false;const ANA_COMPARE='#9b4fd0';
@@ -249,7 +250,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   // Shutter: a blade slides across a slit opened or closed during a run (numerical engine).
   const shutterBox=document.createElement('div');shutterBox.className='engine-shutter-box';
   shutterBox.innerHTML=`<div class="input-group packet-inline engine-slits-row"><label title="The probability current used in every view: for the flux through the screen (the green curve and the hits) and for the Pilot-Wave velocities v = j/ρ. Schrödinger: j = (ħ/m) Im(ψ*∇ψ). Pauli ↑ / ↓: the current of a spin-½ particle with spin up or down along z (out of the screen), which adds (ħ/2m) ∇×(ρ ẑ). The extra term has zero divergence, so |ψ|² is unchanged; the Pilot-Wave paths change, and the pattern on the screen shifts by a few nm.">Current</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-guide="schrodinger">Schrödinger</button><button type="button" class="qontic-app-toggle" data-num-guide="up">Pauli ↑</button><button type="button" class="qontic-app-toggle" data-num-guide="down">Pauli ↓</button></span></div>
-   <div class="input-group packet-inline engine-slits-row"><label title="Numerical engine: close an open slit during a run (click its button) and a blade slides across it from its upper edge over the closing time; opening retracts it. Reflecting blade: the wall potential V₀ in the covered part. Absorbing blade: an absorbing potential −iW there (particles removed with the absorbed probability). Clicks before a run apply at once; the Mask wall changes at once.">Blade</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-blade="reflecting">Reflecting</button><button type="button" class="qontic-app-toggle" data-num-blade="absorbing">Absorbing</button></span></div>
+   <div class="input-group packet-inline engine-slits-row"><label title="Numerical engine: close an open slit during a run (click its button) and a blade slides across it from its upper edge over the closing time; opening retracts it. Reflecting blade: the wall potential V₀ in the covered part. Absorbing blade: an absorbing potential −iW there (particles removed with the absorbed probability). Clicks before a run apply at once; the Mask wall changes at once. This is only the blade that closes a slit; the wall itself is set by Wall.">Blade material</label><span class="engine-slit-buttons"><button type="button" class="qontic-app-toggle" data-num-blade="reflecting">Reflecting</button><button type="button" class="qontic-app-toggle" data-num-blade="absorbing">Absorbing</button></span></div>
    <div class="input-group packet-inline"><label for="num-tau" title="Time the blade takes to cross the slit, in units of σₓ/v (the time the packet takes to move one packet length σₓ). 0 = instant.">Closing time</label><input id="num-tau" type="range" min="0" max="10" step="0.5"><input id="num-tau-n" type="number" min="0" max="10" step="0.5"><output>σₓ/v</output></div>
    <div class="input-group packet-inline"><label for="num-bladew" title="Strength of the absorbing blade, W in units of the packet energy E.">Blade W/E</label><input id="num-bladew" type="range" min="0.5" max="20" step="0.5"><input id="num-bladew-n" type="number" min="0.5" max="20" step="0.5"><output></output></div>
    <div class="input-group packet-inline"><label title="Each new packet starts from the slits as they were when the first change was made, and replays the slit and detector changes at the same packet times (with the same blade settings), so the hits keep accumulating for the same experiment. Off: the next packet uses the slits as they are.">Replay clicks</label><input id="num-replay" type="checkbox" style="justify-self:start"><span></span><output></output></div>
@@ -263,9 +264,9 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
     // Pilot-Wave-only options in their own section (hidden in the other views); blade strength
     // only for the absorbing blade; accessible names for every control.
     const rowOf=sel=>numBox.querySelector(sel)?.closest('.input-group');
-    const closeBox=document.createElement('div');closeBox.className='te-close-box';closeBox.dataset.levelMin='expert';
-    const closeHead=document.createElement('h4');closeHead.className='engine-num-head';closeHead.textContent='Closing a slit during a run';
-    const closeNote=document.createElement('p');closeNote.className='engine-note te-close-note';closeNote.textContent='Used only when you click a slit while a packet is in flight: a blade slides across the opening.';
+    const closeBox=document.createElement('details');closeBox.className='te-close-box';closeBox.dataset.levelMin='expert';
+    const closeHead=document.createElement('summary');closeHead.className='engine-num-head te-close-summary';closeHead.textContent='Closing a slit during a run';
+    const closeNote=document.createElement('p');closeNote.className='engine-note te-close-note';closeNote.textContent='Used only when you click a slit while a packet is in flight: a blade slides across the opening. These settings do not change the wall (Wall, above).';
     const closePreset=document.createElement('button');closePreset.type='button';closePreset.className='qontic-app-toggle te-close-preset';closePreset.textContent='Try it: close slit 2 as the packet reaches the wall';
     closePreset.title='Two open slits, numerical engine, Show change on; slit 2 closes when the packet centre reaches the wall.';
     closePreset.addEventListener('click',()=>closeSlitPreset());
@@ -275,8 +276,13 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
     numBox.append(closeBox);
     const pwBox=document.createElement('div');pwBox.className='te-pw-only';
     const pwHead=document.createElement('h4');pwHead.className='engine-num-head';pwHead.textContent='Pilot Wave view';pwBox.append(pwHead);
-    for(const sel of ['[data-num-one]','[data-num-trails]','#num-half','#num-dot']){const r=rowOf(sel);if(r){if(sel!=='[data-num-one]')r.dataset.levelMin='expert';pwBox.append(r);}}
+    {const r=rowOf('[data-num-one]');if(r)pwBox.append(r);}
     numBox.append(pwBox);
+    // 4.5: how the numerical particles look (trails, half-life, dot size) is display, not physics: Display tab.
+    {const dp=document.getElementById('graphics-parameter-container');const look=document.createElement('div');look.className='te-num-look te-pw-only';look.dataset.levelMin='expert';
+     const h=document.createElement('h4');h.className='engine-num-head';h.textContent='Numerical engine: particles';look.append(h);
+     for(const sel of ['[data-num-trails]','#num-half','#num-dot']){const r=rowOf(sel);if(r){r.dataset.levelMin='expert';look.append(r);}}
+     if(dp)dp.prepend(look);else numBox.append(look);}
     const bw=rowOf('#num-bladew');if(bw){bw.classList.add('te-absorbing-blade');bw.querySelector('label').textContent='Absorber W/E';for(const i of bw.querySelectorAll('input'))i.step='0.1';}
     for(const g of numBox.querySelectorAll('.engine-slit-buttons')){const l=g.closest('.input-group')?.querySelector('label');g.setAttribute('role','group');if(l)g.setAttribute('aria-label',l.textContent.trim());}
     for(const [id,lab] of [['num-replay','Replay clicks'],['num-change','Show change']]){const el=numBox.querySelector('#'+id);const l=el?.closest('.input-group')?.querySelector('label');if(l){l.htmlFor=id;}if(el)el.setAttribute('aria-label',lab);}
@@ -284,12 +290,13 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
     for(const n of numBox.querySelectorAll('input[type=number]')){const l=n.closest('.input-group')?.querySelector('label');if(l)n.setAttribute('aria-label',l.textContent.trim()+' (value)');}
   }
   const tauR=numBox.querySelector('#num-tau'),tauN=numBox.querySelector('#num-tau-n'),wR=numBox.querySelector('#num-bladew'),wN=numBox.querySelector('#num-bladew-n'),chg=numBox.querySelector('#num-change'),gain=numBox.querySelector('#num-gain'),gainO=numBox.querySelector('#num-gain-o');
-  const halfR=numBox.querySelector('#num-half'),halfN=numBox.querySelector('#num-half-n'),dotR=numBox.querySelector('#num-dot'),dotN=numBox.querySelector('#num-dot-n'),oneB=numBox.querySelector('[data-num-one]');
-  numBox.querySelectorAll('[data-num-trails]').forEach(b=>b.addEventListener('click',()=>{numOpt.trails=b.dataset.numTrails;commit();}));
+  const qn=sel=>numBox.querySelector(sel)||document.querySelector('.te-num-look '+sel),qnAll=sel=>[...numBox.querySelectorAll(sel),...document.querySelectorAll('.te-num-look '+sel)];
+  const halfR=qn('#num-half'),halfN=qn('#num-half-n'),dotR=qn('#num-dot'),dotN=qn('#num-dot-n'),oneB=numBox.querySelector('[data-num-one]');
+  qnAll('[data-num-trails]').forEach(b=>b.addEventListener('click',()=>{numOpt.trails=b.dataset.numTrails;commit();}));
   oneB.addEventListener('click',()=>toggleOneParticle());
   const rep=numBox.querySelector('#num-replay');rep.addEventListener('change',()=>{numOpt.replay=rep.checked;if(!rep.checked){replay.events=[];replay.pending=[];replay.start=null;}commit();});
-  const syncOpt=()=>{const ab=numBox.querySelector('.te-absorbing-blade');if(ab)ab.hidden=numOpt.blade!=='absorbing';halfR.value=halfN.value=numOpt.halfLife;dotR.value=dotN.value=numOpt.dotSize;oneB.classList.toggle('active',!!onePreset);oneB.setAttribute('aria-pressed',String(!!onePreset));numBox.querySelectorAll('[data-num-trails]').forEach(b=>{const on=b.dataset.numTrails===numOpt.trails;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});rep.checked=numOpt.replay;tauR.value=tauN.value=numOpt.tau;wR.value=wN.value=numOpt.bladeW;chg.checked=numOpt.showChange;gain.value=numOpt.changeGain;gainO.textContent='×'+numOpt.changeGain;numBox.querySelectorAll('[data-num-blade]').forEach(b=>{const on=b.dataset.numBlade===numOpt.blade;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});numBox.querySelectorAll('[data-num-guide]').forEach(b=>{const on=b.dataset.numGuide===numOpt.guide;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});};
-  syncOpt();syncShutterUI=syncOpt;
+  const syncOpt=()=>{const ab=numBox.querySelector('.te-absorbing-blade');if(ab)ab.hidden=numOpt.blade!=='absorbing';halfR.value=halfN.value=numOpt.halfLife;dotR.value=dotN.value=numOpt.dotSize;oneB.classList.toggle('active',!!onePreset);oneB.setAttribute('aria-pressed',String(!!onePreset));qnAll('[data-num-trails]').forEach(b=>{const on=b.dataset.numTrails===numOpt.trails;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});rep.checked=numOpt.replay;tauR.value=tauN.value=numOpt.tau;wR.value=wN.value=numOpt.bladeW;chg.checked=numOpt.showChange;gain.value=numOpt.changeGain;gainO.textContent='×'+numOpt.changeGain;numBox.querySelectorAll('[data-num-blade]').forEach(b=>{const on=b.dataset.numBlade===numOpt.blade;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});numBox.querySelectorAll('[data-num-guide]').forEach(b=>{const on=b.dataset.numGuide===numOpt.guide;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});};
+  syncOpt();syncShutterUI=()=>{syncOpt();try{syncHiddenExpert();}catch(_){}};
   const commit=()=>{saveNumOpt();syncOpt();pushShutter();draw();};
   numBox.querySelectorAll('[data-num-blade]').forEach(b=>b.addEventListener('click',()=>{numOpt.blade=b.dataset.numBlade;commit();}));
   numBox.querySelectorAll('[data-num-guide]').forEach(b=>b.addEventListener('click',()=>{if(numOpt.guide===b.dataset.numGuide)return;numOpt.guide=b.dataset.numGuide;commit();
@@ -300,8 +307,22 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   gain.addEventListener('input',()=>{numOpt.changeGain=+gain.value;commit();});
   lookRow.querySelectorAll('[data-num-look]').forEach(b=>b.addEventListener('click',()=>{numLook=b.dataset.numLook;localStorage.setItem('qontic-te-num-look',numLook);syncEngineControls();draw();}));
   numBox.insertBefore(slitsRow,numHead.nextSibling);
+  // 4.5: one button back to the numerical defaults, and a line when an Expert-only option is not at
+  // its default while its control is hidden (the level never changes settings since 4.4).
+  const defaultsRow=document.createElement('div');defaultsRow.className='te-num-defaults';
+  defaultsRow.innerHTML='<p class="engine-note te-hidden-expert" hidden></p><button type="button" class="qontic-app-toggle te-num-reset" title="Reflecting wall, Schrödinger current, no blade settings (reflecting blade, closing time 0), replay and show change off, Lines trails.">Numerical defaults</button>';
+  slitsRow.after(defaultsRow);
+  const numDefaults=()=>{numSlitModel='reflecting';try{localStorage.setItem('qontic-te-num-wall','reflecting');}catch(_){}
+   Object.assign(numOpt,{guide:'schrodinger',blade:'reflecting',tau:0,bladeW:4.4,replay:false,showChange:false,trails:'lines',halfLife:1.5,dotSize:3});
+   replay.events=[];replay.pending=[];replay.start=null;saveNumOpt();syncShutterUI();pushShutter();resetEngine();draw();};
+  defaultsRow.querySelector('.te-num-reset').addEventListener('click',numDefaults);
+  syncHiddenExpert=()=>{const el=defaultsRow.querySelector('.te-hidden-expert');if(!el)return;const out=[];
+   if(level!=='expert'){if(numSlitModel==='mask')out.push('Mask wall');if(numOpt.guide!=='schrodinger')out.push(numOpt.guide==='up'?'Pauli ↑ current':'Pauli ↓ current');
+    if(numOpt.blade!=='reflecting')out.push('absorbing blade');if(numOpt.tau>0)out.push('closing time '+numOpt.tau+' σₓ/v');if(numOpt.replay)out.push('replay clicks');if(numOpt.showChange)out.push('show change');}
+   el.hidden=!out.length;if(out.length)el.textContent='Expert settings in use: '+out.join(', ')+'. Numerical defaults resets them.';};
   {const mb=slitsRow.querySelector('[data-num-slits="mask"]');if(mb){mb.dataset.levelMin='expert';mb.title='Mask: the analytical engine\'s soft Gaussian openings as an absorbing mask, so the two engines can be compared like with like (Expert).';}}
-  slitsRow.querySelectorAll('[data-num-slits]').forEach(b=>b.addEventListener('click',()=>{numSlitModel=b.dataset.numSlits;localStorage.setItem('qontic-te-num-wall',numSlitModel);resetEngine();draw();}));
+  slitsRow.querySelectorAll('[data-num-slits]').forEach(b=>b.addEventListener('click',()=>{numSlitModel=b.dataset.numSlits;localStorage.setItem('qontic-te-num-wall',numSlitModel);resetEngine();draw();try{syncHiddenExpert();}catch(_){}}));
+  try{syncHiddenExpert();}catch(_){}
   const css=document.createElement('style');css.textContent='.engine-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;margin:0 0 6px}.engine-row .engine-label{font-size:12px;font-weight:600;margin-right:4px;min-width:52px}.engine-row button{flex:1 1 0;min-width:0}.engine-row button.active,.engine-slit-buttons button.active{background:#2d6e86;border-color:#7ee9fb;color:#fff}.engine-note{flex:1 1 100%;margin:2px 0 0;font-size:11px;line-height:1.35;opacity:.85}.engine-slit-buttons{grid-column:2/-1;display:flex;gap:4px}.engine-slit-buttons button{flex:1;padding:3px 4px;font-size:12px}.engine-panel,#engine-panel{padding:12px 0 0}.engine-num-box .engine-slit-buttons button{padding:3px 2px;font-size:11px}.engine-num-box [data-num-guide="schrodinger"]{flex:1.6 1 0!important;min-width:0}.engine-intro{font-size:12px;line-height:1.45;margin:2px 0 8px;opacity:.9}.engine-num-box{margin-top:8px;padding-top:6px;border-top:1px solid var(--border-color,#476477)}#engine-panel .te-engines-link{color:#7cecff!important;text-decoration:underline}.qontic-light #engine-panel .te-engines-link{color:#075c69!important}.te-close-preset{width:100%;margin:2px 0 6px;white-space:normal}.te-close-note{margin:0 0 4px;font-size:12px;opacity:.85}.te-summary{border:1px solid rgba(124,236,255,.35);border-radius:8px;padding:6px 14px;margin:8px 0 14px;background:rgba(18,57,75,.25)}.engine-num-box[hidden],.te-pw-only[hidden],.te-absorbing-blade[hidden]{display:none!important}.te-pw-only{margin-top:6px;padding-top:4px;border-top:1px dashed var(--border-color,#476477)}.engine-num-head{margin:2px 0 4px;font-size:12px;font-weight:700;letter-spacing:.02em}.te-numerical #manyBranchesInfo{display:none!important}.te-classic #paletteScaleCanvas,.te-classic #paletteRangeSlider,.te-classic #waveRangeLabel,.te-classic .qontic-range-panel{visibility:hidden!important}';document.head.append(css);
  }
  const layoutStyle=document.createElement('style');layoutStyle.textContent='.packet-core-options{display:flex!important;align-items:center;gap:8px;margin:0 0 8px;padding:0 0 8px;border-bottom:1px solid var(--border-color,#476477)}.packet-core-options>select{flex:1 1 78px;min-width:68px}.packet-core-options .packet-directed-inline,.packet-core-options .packet-slit-colors{display:flex!important;align-items:center;gap:4px!important;width:auto;min-width:0;margin:0!important;font-size:12px;white-space:nowrap}.packet-core-options .packet-directed-inline[hidden],.packet-core-options .packet-slit-colors[hidden]{display:none!important}.packet-core-options input{margin:0;flex:0 0 auto}.packet-core-options .packet-slit-colors select{width:86px;min-width:86px;padding:3px 2px;font-size:11px}.packet-settings .packet-balance{grid-template-columns:90px minmax(40px,1fr) 28px 58px}.packet-settings .packet-balance button{width:26px;height:25px;padding:0;border:1px solid #476477;border-radius:4px;background:#153447;color:inherit;font-weight:700;cursor:pointer}.packet-settings .packet-balance button:hover,.packet-settings .packet-balance button:focus-visible{border-color:#62d8e7;background:#1d465c}.packet-settings .packet-balance output{grid-column:auto;text-align:right;min-width:58px}';document.head.append(layoutStyle);
@@ -815,7 +836,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te440').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te450').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1405,7 +1426,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   const key=engineLine+view+colours+legend;if(key===captionKey)return;captionKey=key;
   host.innerHTML=`<p>${engineLine?`<b>${engineLine}</b>`:''}${view}</p><p class="cap-legend">${legend}</p>${colours}`;
  }
- function draw(){try{syncClassicUI();syncAvailability();}catch(_){}if(!enabled)return;ensure();syncMode();updateFringeScale();updateCaption();setupCtx.clearRect(0,0,canvas.width,canvas.height);
+ function draw(){try{syncClassicUI();syncAvailability();const lk=document.querySelector('.te-num-look');if(lk){const off=!(numericalActive()&&interpretation==='bohmian');if(lk.hidden!==off)lk.hidden=off;}}catch(_){}if(!enabled)return;ensure();syncMode();updateFringeScale();updateCaption();setupCtx.clearRect(0,0,canvas.width,canvas.height);
   setupCtx.save();if(!surfaceView&&shown('plot_screen')){setupCtx.globalAlpha=elementOpacity('plot_screen');setupCtx.strokeStyle=classicPalette()&&!numericalActive()?'#8a9bab':colorScreen;if(p.source){
    // Draw the expert-selected slit cores, except that Direct PW displays its
    // fixed ±3σ preparation window. The analytical wave remains untruncated.
