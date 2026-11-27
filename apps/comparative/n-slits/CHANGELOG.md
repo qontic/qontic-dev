@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.5.1 — 2026-11-27
+- Direct PW off by default (Pablo): Pilot Wave shows every particle sent, including the ~86% that stop at the wall at the default settings, so the screen fills more slowly. A stored choice is kept; the control stays at Expert. Physics text updated.
+
 ## 4.5 — 2026-11-27
 - Numerical controls simplified. Engine tab: Wall (Reflecting / Absorbing; Mask at Expert), a Numerical defaults button, Current (Expert), and "Closing a slit during a run" folded (Expert); its Blade is now "Blade material" and says it does not change the wall (Pablo's link had Wall: Reflecting with Blade: Absorbing, closing time 7: the wall was not absorbing). Trails, half-life and particle size moved to the Display tab (numerical engine, Pilot Wave only).
 - Below Expert, a line lists Expert-only numerical settings still in use (Mask wall, Pauli current, absorbing blade, closing time, replay, show change) with Numerical defaults to reset them.
