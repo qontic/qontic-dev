@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te432';
-import { mountMWBranching } from './mw-branching.js?cache=te432';
-import { APP_RELEASE } from './release.js?cache=te432';
-import { mountNSlitQuiz } from './quiz.js?cache=te432';
+import { mountPacketEngine } from './packet-engine.js?cache=te433';
+import { mountMWBranching } from './mw-branching.js?cache=te433';
+import { APP_RELEASE } from './release.js?cache=te433';
+import { mountNSlitQuiz } from './quiz.js?cache=te433';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te432';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te433';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -586,7 +586,9 @@ $(function () {
   let levelSaved = {}; try { levelSaved = JSON.parse(localStorage.getItem(SAVED_KEY) || '{}'); } catch (_) {}
   const ctlGet = (el, kind) => kind === 'group' ? el.getValueInFirstUnit() : kind === 'check' ? el.checked : kind === 'range' ? +el.value : el.value;
   const ctlSet = (el, kind, v) => {
-    if (kind === 'group') { el.setValueInFirstUnit(v); return; }
+    // 4.3.3: a group change goes through its input's change handler, so the geometry is rebuilt
+    // (Basic → screen length 1200 left the old centring and drew the slits off-centre).
+    if (kind === 'group') { el.setValueInFirstUnit(v); const inp = document.getElementById(el.id.replace(/-group$/, '-input')); inp?.dispatchEvent(new Event('change', { bubbles: true })); return; }
     if (kind === 'check') el.checked = !!v; else el.value = String(v);
     for (const type of (kind === 'range' ? ['input', 'change'] : ['change'])) el.dispatchEvent(new Event(type, { bubbles: true }));
   };

@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.3.3 — 2026-11-27
+- Bug: switching level could draw the slits (and the wave) off-centre. Basic resets hidden geometry controls to their defaults (screen length 1200 nm, screen distance, source position); the value was written without the input's change handler, so the picture kept the previous screen's centring (e.g. Standard with screen 2000 nm → Basic: four slits shifted up by 400 nm). Level defaults now go through the control's change handler. Checked: Standard 2000/500 nm and 800/206 nm, 4 slits, Basic ↔ Standard twice: slits symmetric at every step.
+
 ## 4.3.2 — 2026-11-27
 - Many Worlds Slow motion and the packet count are coupled: ticking Slow motion sets Particles per packet to 1, unticking brings the previous number back; choosing more than one particle unticks it. At Basic, choosing one particle per packet in Many Worlds ticks it (unless turned off at Basic). The box is no longer ticked by default at Basic with 30 per packet. Checked at Standard and Basic, and the notebook's Many Worlds buttons.
 
