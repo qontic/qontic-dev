@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te420';
-import { mountMWBranching } from './mw-branching.js?cache=te420';
-import { APP_RELEASE } from './release.js?cache=te420';
-import { mountNSlitQuiz } from './quiz.js?cache=te420';
+import { mountPacketEngine } from './packet-engine.js?cache=te430';
+import { mountMWBranching } from './mw-branching.js?cache=te430';
+import { APP_RELEASE } from './release.js?cache=te430';
+import { mountNSlitQuiz } from './quiz.js?cache=te430';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te420';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te430';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -508,14 +508,15 @@ $(function () {
       if(button){button.disabled=active;button.title=active?'Available in the 2D coordinate view':'';}
     }
   });
-  // Keep the finite detector model's branch count visible in expanded MW view.
+  // Many Worlds: the branch count at the top right of the picture (also in the expanded view).
   const worldCount = document.createElement('div');
   worldCount.className = 'expanded-world-count';
   worldCount.title = document.getElementById('infoBranchCount').closest('tr').dataset.tip;
   const syncWorldCount = () => {
     worldCount.hidden = interpretation !== 'manyworlds';
     const exponent = logNBranches.toFixed(0);
-    const html = 'Branches: ' + (logNBranches > 0 ? `10<sup>${exponent}</sup>` : '1');
+    // 4.3: same number as the Branch records readout (exact powers of N while short).
+    const html = 'Branches: ' + (logNBranches > 0 ? (document.getElementById('infoBranchCount')?.innerHTML || `10<sup>${exponent}</sup>`) : '1');
     if (worldCount.innerHTML !== html) worldCount.innerHTML = html;
     worldCount.setAttribute('aria-label', logNBranches > 0 ? `Branches: 10 to the power of ${exponent}` : 'Branches: 1');
   };

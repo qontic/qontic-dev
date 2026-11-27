@@ -3,6 +3,10 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.3 — 2026-11-27
+- The packet count (Hits / packet, Part./packet) moved from Advanced to Core at Standard and Expert (Basic keeps Electrons per wave in Core). Captions say Core.
+- Many Worlds: the branch count is shown at the top right of the picture at every level (same number as Branch records; in embeds below the Open in N-Slits link).
+
 ## 4.2 — 2026-11-27
 - Many Worlds: the split (slow motion) is drawn only with one electron per packet; it no longer forces the count to 1 or locks the Electrons per wave / Part./packet controls. With more, each hit multiplies the Branch records (now shown at every level, Basic included) and the screen fills as in the other views; a note under Slow motion says so. At Basic the split still stops after 3 hits of a run.
 - Numerical engine, Orthodox and Many Worlds: the computed wave is dimmed in proportion to the packet's particles detected on the screen (one particle: it disappears at the hit, as in the analytical engine); kept during a split; Pilot Wave keeps the whole wave. Before, the wave kept arriving at the screen after the hit and the split.
