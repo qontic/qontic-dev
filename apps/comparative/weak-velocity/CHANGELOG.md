@@ -1,5 +1,13 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.9.8 — 2026-11-27
+- Instants (Pablo): the position along the beam is now recorded by default, as in Wiseman's protocol. Each of the 13 positions in the packet is its own weak–strong pair, with its own column of arrows at its true place along the beam. Before, the default used the transverse position only, so the arrows averaged over the packet and were drawn at its centre by convention while the points were scattered.
+- Switching to Instants raises the runs to 10 million, because each position gets a fifth to a thirteenth of them.
+- The position selector (Δ) and "Runs at this Δ" are now at Standard.
+- Transverse-only is now the Expert option "Drop the position along the beam (shows the averaging)"; turning it on also shows the dotted fixed-time curve. Instants no longer switches on that curve by itself.
+- Links: `recx=0` drops the position; `recx=1` is no longer needed.
+- Physics and instructor question rewritten: Kocsis used planes and Wiseman the full position, so transverse-only is a contrast, not either experiment.
+
 ## 0.9.7 — 2026-11-27
 - Instants (Pablo): the two controls are now times. "Weak at t₁" shows 34.4 ps and "Strong, τ later" shows 3.44 ps, for an electron with the chosen λ; they read "Packet centre at t₁ 500 nm" and "Travel from t₁ to t₂ 50 nm" before. The distances are in the hover text and the screen-reader text. At Planes they stay distances.
 

@@ -4,8 +4,8 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.9.7';
-import * as M from './weak-model.js?v=0.9.7';
+import { APP_RELEASE } from './release.js?v=0.9.8';
+import * as M from './weak-model.js?v=0.9.8';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -67,7 +67,9 @@ const state = {
   equalScales: false,   // same nm-per-pixel both ways in the drawing   // crests travel all the time (the density of a steady beam does not move)
   panelKey: (() => { try { return JSON.parse(localStorage.getItem('qontic-weak-velocity-panel-keys')) || { scatter: true, vel: true }; } catch (e) { return { scatter: true, vel: true }; } })(),   // legends of the two plots
   win: { len: 100, wid: 10, x: 550, y: 50, pinned: false, trace: false },   // stage 4: window centre (nm behind the slits); full length along the beam and width across (nm)
-  timing: 'plane', packet: 150, recx: false, cell: null,
+  // recx: at instants the position along the beam is recorded too (Wiseman's protocol), by default;
+  // switching it off (Expert, "Drop the position along the beam") shows the averaging over the packet.
+  timing: 'plane', packet: 150, recx: true, cell: null,
   pauseEach: true,   // stage 1: stop after each run so it can be looked at   // measure at planes or at instants; packet length in nm
 };
 let exp = null;              // current pair of planes
@@ -374,7 +376,7 @@ function updateText() {
   $('#runsLabel').textContent = W ? 'Runs (whole field)' : instant() ? 'Runs (one packet each)' : 'Runs at these planes';
   $('#pairLabel').textContent = instant() ? 'Packet centre at t₁ → t₂' : 'Plane pair';
   for (const [id, unit] of [['sw', state.sw], ['x1', state.x1], ['gap', state.gap]]) $(`#${id}`).setAttribute('aria-valuetext', instant() && id !== 'sw' ? `${fmtPs(psAt(unit))}, ${unit} nanometres` : `${unit} nanometres`);
-  $('#recx').setAttribute('aria-pressed', String(state.recx));
+  $('#recx').setAttribute('aria-pressed', String(!state.recx));   // the switch is "Drop the position along the beam"
   $('#packet').value = state.packet; $('#packetOut').value = `${state.packet} nm`;
   $('#packet').setAttribute('aria-valuetext', `${state.packet} nanometres`);
   $('#runsRow').style.display = state.stage === 'one' ? 'none' : '';
@@ -494,8 +496,8 @@ function toggle(key) {
 document.querySelectorAll('[data-stage]').forEach((b) => b.addEventListener('click', () => setStage(b.dataset.stage)));
 document.querySelectorAll('[data-timing]').forEach((b) => b.addEventListener('click', () => {
   state.timing = b.dataset.timing;
-  // At instants the fixed-time curve (transverse position only) is the relevant comparison.
-  if (instant() && !state.show.fixedTime) toggle('fixedTime');
+  // Recording the position along the beam: each of the 13 positions gets a fifth to a thirteenth of the runs.
+  if (instant() && state.recx && state.perPlane < 1e7) setRuns(1e7);
   stop(); pending = true; updateText();
 }));
 // Moving wave: show travelling crests and keep them moving, also between runs.
@@ -511,6 +513,8 @@ $('#equalScales').addEventListener('click', () => { state.equalScales = !state.e
 $('#pauseEach').addEventListener('click', () => { state.pauseEach = !state.pauseEach; $('#pauseEach').setAttribute('aria-pressed', String(state.pauseEach)); });
 $('#recx').addEventListener('click', () => {
   state.recx = !state.recx; state.cell = null;
+  // Dropping the position along the beam: the dotted fixed-time curve is the relevant comparison.
+  if (!state.recx && !state.show.fixedTime) toggle('fixedTime');
   // Each position along the beam gets a thirteenth to a fifth of the runs.
   if (state.recx && state.perPlane < 1e7) { state.perPlane = 1e7; $('#perPlane').value = RUNS.indexOf(1e7); $('#perPlaneOut').value = fmtRuns(1e7); }
   stop(); pending = true; updateText();
@@ -786,7 +790,8 @@ function readUrl() {
   for (const key of ['expected', 'current']) if (q.get(key) === '0') state.show[key] = false;
   if (q.get('ft') === '1') state.show.fixedTime = true;
   if (q.get('timing') === 'instant') state.timing = 'instant';
-  if (q.get('recx') === '1') { state.recx = true; if (!q.has('runs')) state.perPlane = 1e7; }
+  if (q.get('recx') === '0') state.recx = false;
+  if (q.get('timing') === 'instant' && state.recx && !q.has('runs') && state.stage !== 'window') state.perPlane = 1e7;
   { const v = parseFloat(q.get('packet')); if (Number.isFinite(v)) { state.packet = Math.min(300, Math.max(50, Math.round(v / 10) * 10)); urlAsked.packet = v; } }
   if (q.get('bohm') === '1') state.show.bohm = true;
   for (const key of ['expected', 'current', 'fixedTime']) document.querySelector(`[data-toggle="${key}"]`).setAttribute('aria-pressed', String(state.show[key]));
@@ -796,7 +801,7 @@ function readUrl() {
 function shareUrl() {
   const u = new URL(location.href);
   const g = {}; for (const k of Object.keys(GEO_DEFAULT)) if (geo[k] !== GEO_DEFAULT[k]) g[k] = geo[k];
-  u.search = new URLSearchParams({ level: document.body.dataset.qonticLevel || 'basic', stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(state.recx ? {recx: 1} : {}), ...(state.packet !== 150 ? {packet: state.packet} : {}), ...(state.stage === 'window' ? {winx: state.win.x, winy: state.win.y, winl: state.win.len, winw: state.win.wid} : {}) }).toString();
+  u.search = new URLSearchParams({ level: document.body.dataset.qonticLevel || 'basic', stage: state.stage, sw: state.sw, x1: state.x1, gap: state.gap, runs: state.perPlane, ...(state.waveMode !== 'density' ? { show: state.waveMode } : {}), ...g, ...(state.show.bohm ? { bohm: 1 } : {}), ...(!state.show.expected ? {expected: 0} : {}), ...(!state.show.current ? {current: 0} : {}), ...(state.show.fixedTime ? {ft: 1} : {}), ...(instant() ? {timing: 'instant'} : {}), ...(instant() && !state.recx ? {recx: 0} : {}), ...(state.packet !== 150 ? {packet: state.packet} : {}), ...(state.stage === 'window' ? {winx: state.win.x, winy: state.win.y, winl: state.win.len, winw: state.win.wid} : {}) }).toString();
   return u.toString();
 }
 
@@ -2023,7 +2028,7 @@ const levelSettings = [
   { id: 'planeRuns', min: 'standard', value: true, get: () => state.show.planeRuns, set: (v) => setShow('planeRuns', v) },
   { id: 'scatterRuns', min: 'standard', value: true, get: () => state.show.scatter, set: (v) => setShow('scatter', v) },
   ...Object.keys(GEO_DEFAULT).map((k) => ({ id: `geo-${k}`, min: 'standard', value: GEO_DEFAULT[k], get: () => geo[k], set: (v) => setGeometry(k, v) })),
-  { id: 'recx', min: 'expert', value: false, get: () => state.recx, set: (v) => { state.recx = v; state.cell = null; $('#recx').setAttribute('aria-pressed', String(v)); pending = true; } },
+  { id: 'recx', min: 'expert', value: true, get: () => state.recx, set: (v) => { state.recx = v; state.cell = null; $('#recx').setAttribute('aria-pressed', String(!v)); pending = true; } },
   { id: 'fixedTime', min: 'expert', value: false, get: () => state.show.fixedTime, set: (v) => setShow('fixedTime', v) },
   { id: 'winLen', min: 'expert', value: 100, get: () => state.win.len, set: (v) => { state.win.len = v; } },
   { id: 'winWid', min: 'expert', value: 10, get: () => state.win.wid, set: (v) => { state.win.wid = v; } },
@@ -2035,7 +2040,7 @@ const levelSettings = [
 // A shared link that uses higher-level settings opens at the level that shows them.
 function linkLevel() {
   const q = new URLSearchParams(location.search);
-  if (['recx', 'winl', 'winw', 'winr', 'ft', 'cell'].some((k) => q.has(k))) return 'expert';
+  if (q.get('recx') === '0' || ['winl', 'winw', 'winr', 'ft', 'cell'].some((k) => q.has(k))) return 'expert';
   if (q.get('stage') === 'window' || ['timing', 'x1', 'gap', 'runs', 'packet', 'show', ...Object.keys(GEO_DEFAULT)].some((k) => q.has(k))) return 'standard';
   return 'basic';
 }
