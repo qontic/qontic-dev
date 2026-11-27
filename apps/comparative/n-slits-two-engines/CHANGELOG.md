@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 1.0-dev.31 — 2026-11-27
+- Background travels in share links like the other display options: a link from a black screen carries bg=black and opens black (and is remembered); a link without it opens grey. Checked: link from black → fresh browser black; link without bg in a black browser → grey.
+
 ## 1.0-dev.30 — 2026-11-23
 - Title is "N-Slits" (page header, browser tab, catalogue entry, version line); "two engines" removed.
 
