@@ -15,7 +15,7 @@ function sketch(canvas, {trap = 'deep', click = null, note = '', dot = false, re
   const seg = (a, b, c, w = 2.5) => { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke(); };
   seg(src, atom, ink); seg(atom, up, teal); seg(up, bs, teal); seg(atom, dn, gold); seg(dn, bs, gold); seg(bs, dp, violet); seg(bs, dm, grey);
   // tweezer and the atom's spread
-  const blob = trap === 'deep' ? 9 : trap === 'warm' ? 17 : 20;
+  const blob = trap === 'sharp' ? 0.1 : trap === 'deep' ? 9 : trap === 'warm' ? 17 : 20;
   g.fillStyle = L ? 'rgba(159,93,0,.12)' : 'rgba(237,188,119,.14)'; g.beginPath(); g.moveTo(atom[0] - 22, cy - 70); g.lineTo(atom[0] + 22, cy - 70); g.lineTo(atom[0] + 4 + blob * .5, cy); g.lineTo(atom[0] + 22, cy + 70); g.lineTo(atom[0] - 22, cy + 70); g.lineTo(atom[0] - 4 - blob * .5, cy); g.closePath(); g.fill();
   const grad = g.createRadialGradient(atom[0], cy, 0, atom[0], cy, blob); grad.addColorStop(0, teal); grad.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = grad; g.beginPath(); g.arc(atom[0], cy, blob, 0, 2 * Math.PI); g.fill();
   if (dot) { g.fillStyle = ink; g.beginPath(); g.arc(atom[0] + 8, cy, 5.5, 0, 2 * Math.PI); g.fill(); g.font = '11px system-ui, sans-serif'; g.textAlign = 'left'; g.fillText('X', atom[0] + 10, cy - 10); }
@@ -29,7 +29,8 @@ function sketch(canvas, {trap = 'deep', click = null, note = '', dot = false, re
     if (on) { g.strokeStyle = c; g.lineWidth = click === 'both' ? 1.5 : 2.5; g.beginPath(); g.arc(p[0], p[1], 16, 0, 2 * Math.PI); g.stroke(); }
   }
   g.font = '12px system-ui, sans-serif'; g.textAlign = 'center'; g.fillStyle = dim;
-  g.fillText('laser', src[0], cy + 22); g.fillText(trap === 'deep' ? 'deep trap' : trap === 'warm' ? 'deep trap, heated' : 'shallow trap', atom[0], cy + 70 + (readout ? 42 : 16));
+  g.fillText('laser', src[0], cy + 22); if (trap === 'sharp') { g.fillStyle = teal; g.beginPath(); g.arc(atom[0], cy, 5, 0, 2 * Math.PI); g.fill(); g.fillStyle = dim; }
+  g.fillText(trap === 'sharp' ? 'classical atom' : trap === 'deep' ? 'deep trap' : trap === 'warm' ? 'deep trap, heated' : 'shallow trap', atom[0], cy + 70 + (readout ? 42 : 16));
   g.fillStyle = teal; g.fillText('A', up[0], up[1] - 8); g.fillStyle = gold; g.fillText('B', dn[0], dn[1] + 18); g.fillStyle = gold; g.fillText('φ', 229, 236);
   if (note) { g.fillStyle = ink; g.font = '13px system-ui, sans-serif'; g.fillText(note, W / 2, H - 16); }
 }
@@ -44,8 +45,18 @@ export function mountRecoilQuiz({panel, tab, simulationTab, setTo, run}) {
       answers: [{id: 'phase', label: 'The path phase φ, read with D₊ and D₋'}, {id: 'atom', label: 'The position of the atom'}, {id: 'det', label: 'Where D₊ and D₋ are placed'}, {id: 'trap', label: 'The trap depth'}],
       answer: 'phase',
       explain: 'On a screen, moving sideways changes the path difference between the two slits, so bright and dark fringes alternate. Here the phase shifter does the same: as φ changes, the fraction of clicks in D₊ rises and falls. That curve is the fringe. The atom plays Einstein’s movable slit; paths A and B play the two slits.',
-      prepare: () => setTo({depth: deep}),
+      prepare: () => setTo({depth: deep, slit: 'fixed'}),
       draw: c => sketch(c, {note: 'Einstein: two slits and a screen'}),
+    },
+    {
+      question: 'Suppose the slit were Einstein’s: a classical atom with a sharp position and a sharp momentum. What would you get?',
+      caption: 'A classical atom at rest in the trap: no spread at all.',
+      plain: 'Both: a full fringe and the path from the recoil. That is what Einstein hoped, and what quantum mechanics forbids.',
+      answers: [{id: 'both', label: 'A full fringe, and the path from the recoil'}, {id: 'fringe', label: 'A full fringe, but no path'}, {id: 'path', label: 'The path, but no fringe'}, {id: 'none', label: 'Neither'}],
+      answer: 'both',
+      explain: 'An atom at rest at one place adds the same phase to every photon, so the fringe stays at 100% (V = 1). Its momentum is sharp, so the ±ħk kick would show the path (D = 1). Quantum mechanics requires V² + D² ≤ 1 (Englert 1996). The real atom has Δx·Δp ≥ ħ/2: the sharper its momentum, the more spread its position, and the fringe pays. In the simulation, compare “Einstein’s slit” with “Atom”.',
+      prepare: () => setTo({depth: deep, slit: 'einstein'}),
+      draw: c => sketch(c, {trap: 'sharp'}),
     },
     {
       question: 'The trap holding the atom is made much shallower. What happens to the fringe?',

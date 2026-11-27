@@ -55,3 +55,28 @@ export function sampleEvent(r, phase, nbar = 0, rng = Math.random) {
   }
   return {x, u: u + pa, port};
 }
+
+// Three slits for comparison.
+//  fixed:    a heavy beam splitter that does not move: no recoil, no path record.
+//  einstein: Einstein's assumption, a classical atom with a sharp position and a sharp momentum.
+//            At rest (n̄ = 0) it sits at x = 0: full fringe, and its ±ħk recoil reveals the path.
+//            Thermal motion is classical jitter with ⟨x²⟩ = 2n̄·Δx0² (no zero-point part).
+//  quantum:  the trapped atom of the experiment (ground state plus n̄ thermal phonons).
+export const SLITS = ['fixed', 'einstein', 'quantum'];
+export function slitVisibility(slit, r, nbar = 0) {
+  if (slit === 'fixed') return 1;
+  if (slit === 'einstein') return Math.exp(-r * r * 2 * nbar / 8);
+  return visibility(r, nbar);
+}
+// Which-path distinguishability of the recoil record (Englert's D): 0, 1, or √(1 − |⟨a|b⟩|²).
+export function distinguishability(slit, r) {
+  if (slit === 'fixed') return 0;
+  if (slit === 'einstein') return 1;
+  return Math.sqrt(1 - visibility(r) ** 2);
+}
+export function sampleSlit(slit, r, phase, nbar = 0, rng = Math.random) {
+  if (slit === 'quantum') return sampleEvent(r, phase, nbar, rng);
+  const x = slit === 'einstein' && nbar > 0 ? Math.sqrt(2 * nbar) * normal(rng) : 0;
+  const p = slit === 'fixed' ? (1 + Math.cos(phase)) / 2 : positionPortProbability(x, r, phase);
+  return {x, u: 0, port: rng() < p ? 1 : -1};
+}

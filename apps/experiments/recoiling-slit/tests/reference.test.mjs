@@ -39,3 +39,13 @@ test('Momentum readout: variance 1 + r²/4 + 2n̄ and phase-independent marginal
 test('Position spread is tens of nanometres across the paper range',()=>{
   assert.ok(Math.abs(positionSpreadNm(1.60)-38.8)<0.2);assert.ok(Math.abs(positionSpreadNm(0.78)-79.6)<0.3);
 });
+import {slitVisibility,distinguishability,sampleSlit} from '../physics.mjs';
+test('Three slits: visibilities, Englert duality and samplers',()=>{
+  for(const r of [0.5,1.25,2.56,6]){
+    const V=slitVisibility('quantum',r),D=distinguishability('quantum',r);assert.ok(Math.abs(V*V+D*D-1)<1e-12);
+    assert.equal(slitVisibility('fixed',r,.3),1);assert.equal(slitVisibility('einstein',r,0),1);
+    assert.ok(slitVisibility('einstein',r,.37)>slitVisibility('quantum',r,.37));
+    for(const slit of ['fixed','einstein']){const nb=slit==='einstein'?.37:0,n=200000;let p=0;for(let i=0;i<n;i++)p+=sampleSlit(slit,r,0.4,nb,rng).port===1;
+      const want=(1+slitVisibility(slit,r,nb)*Math.cos(0.4))/2;assert.ok(Math.abs(p/n-want)<5*Math.sqrt(want*(1-want)/n)+1e-4,`${slit} ${p/n} ${want}`);}
+  }
+});

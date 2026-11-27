@@ -1,5 +1,9 @@
 # Einstein’s Recoiling Slit
 
+## 2.1.0 — 2026-11-27
+
+Built around the comparison that carries the physics (Pablo: the fringe itself is classical interference). New "The slit" choice: Heavy fixed slit (no recoil, V = 1, D = 0); Einstein's slit (classical atom with sharp position and momentum: V = 1 and D = 1, which V² + D² ≤ 1 forbids; with heating, classical jitter V = e^(−4η²n̄)); Atom (the experiment: V = e^(−2η²), D = √(1 − V²), on the Englert bound). Apparatus, Why panel and results change with the slit; the fringe panel always shows the 100% reference; previous setting kept for comparison. Englert, PRL 77, 2154 (1996) cited in Physics. New quiz question on Einstein's slit (9 questions). Tests for the three slits and the duality relation.
+
 ## 2.0.0 — 2026-11-22
 
 Simplified after Pablo found 1.2 still confusing. One picture: the experiment runs continuously (300 photons/s, φ steps through 12 settings), clicks pile up at D₊ and D₋, the fringe builds underneath, and one "Why" panel shows the overlap of the atom's two recoil states (= visibility). Changing the trap depth keeps the previous fringe as open dots. The three views are one line each plus what they change in the apparatus (Pilot Wave: the atom's actual position for each photon; Many Worlds: both outputs carry on). New Quiz tab (shared qontic-quiz module, as in N-Slits): eight questions with a still sketch, explanation and "Watch it in the simulation". Removed: four-stage walkthrough, wave and record panels, Re/Im display, momentum readout, visibility-vs-depth and position-stripe panels (the stripes are explained in the Quiz and Physics). Heating stays under Advanced.
