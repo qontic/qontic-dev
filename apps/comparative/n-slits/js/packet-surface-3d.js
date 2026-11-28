@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {dragSurfaceGeometry} from './packet-interaction.js?cache=te455';
-import {surfaceZeroLevel} from './packet-model.js?cache=te455';
+import {dragSurfaceGeometry} from './packet-interaction.js?cache=te456';
+import {surfaceZeroLevel} from './packet-model.js?cache=te456';
 
 const X_MIN=-2,X_MAX=2,Y_MIN=-1.5,Y_MAX=1.5,SURFACE_HEIGHT=.72;
 // Screen curve and hits lie flat on the floor beyond the screen (height = distance from the screen).
@@ -191,8 +191,12 @@ export function mountPacketSurface3D({host}){
   lastState=state;pwControls.hidden=!state.pilotWave;
   const legendColors=state.showWave&&state.phaseLegend?.length?state.phaseLegend:null;legend.hidden=!visible||!legendColors;
   if(legendColors){const key=legendColors.join('|');if(key!==legendKey){legendKey=key;drawLegend(legendColors);}}
-  const zero=surfaceZeroLevel(state.heightMode,SURFACE_HEIGHT),signed=zero>0;floor.position.z=zero-.025;floor.material.opacity=signed?.12:.76;floor.material.depthWrite=!signed;grid.position.z=zero-.018;grid.material.opacity=signed?.36:.46;recordObjects=[];while(dynamic.children.length)disposeObject(dynamic.children[0]);
+  const zero=surfaceZeroLevel(state.heightMode,SURFACE_HEIGHT),signed=zero>0;floor.position.z=zero-.025;floor.material.opacity=signed?.12:.76;floor.material.depthWrite=!signed;grid.position.z=zero-.018;grid.material.opacity=signed?.36:.46;recordObjects=[];
+  // 4.5.6: build the new objects and render them before disposing the old ones, so the shader
+  // programs stay in use (disposing first made three.js recompile every program each frame: bumpy).
+  const oldObjects=[...dynamic.children];for(const o of oldObjects)o.removeFromParent();
   addWave(state);addWall(state);addDetector(state);addParticles(state);render();
+  for(const o of oldObjects)disposeObject(o);
  }
  function setVisible(next){visible=!!next;renderer.domElement.hidden=!visible;overlay.hidden=!visible;if(!visible)legend.hidden=true;if(visible){resize();if(lastState)update(lastState);cancelAnimationFrame(frame);frame=requestAnimationFrame(animate);}else cancelAnimationFrame(frame);}
  function capture(context,width,height,{includeWave=true,includeRecords=false}={}){

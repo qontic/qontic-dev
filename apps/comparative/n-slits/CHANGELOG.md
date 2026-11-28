@@ -3,6 +3,10 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.5.6 — 2026-11-28
+- Time between packets (analytical engine, Auto interval): the next packet now starts so that its first hits come about 0.5 s after the last hits of the previous one (period = passage of ±2σₓ + 0.5 s at the chosen speed). Before, each packet waited until the previous one was finished and then crossed the whole picture (8–9 s without hits at 1×). Measured at 1×, Orthodox: gaps 0.5–0.9 s (were 8.5 s). Many Worlds slow motion still sends one packet at a time; the numerical engine still runs one packet at a time (one computed wave).
+- 3D view smoother: (1) the old objects were disposed before the new ones were drawn, so three.js recompiled every shader program each frame; (2) the analytical engine computed heights and colours for all 640 × 480 cells per frame though the mesh samples 97 × 65. Now programs are kept and only the sampled cells are computed (JS time per 3D frame from ~25% to ~1% in the profile). Numerical 3D heights read from the GPU every 40 ms (was 120 ms).
+
 ## 4.5.5 — 2026-11-28
 - Pilot Wave particle colour is one setting for both engines (was separate, numerical default By slit): same default (Uniform, green) and the same choice in the analytical and numerical engines.
 
