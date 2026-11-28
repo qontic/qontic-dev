@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te454';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te454';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te454';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te454';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te454';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te454';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te454';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te454';
-import {createNumericalEngine} from './numerical-engine.js?cache=te454';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te454';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te454';
-import {classifySlitSide} from './source-packet-model.js?cache=te454';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te455';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te455';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te455';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te455';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te455';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te455';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te455';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te455';
+import {createNumericalEngine} from './numerical-engine.js?cache=te455';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te455';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te455';
+import {classifySlitSide} from './source-packet-model.js?cache=te455';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -495,9 +495,9 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   document.querySelectorAll('[data-num-look]').forEach(b=>{const on=b.dataset.numLook===numLook;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   // Classic look: the Show menu does not apply; particles coloured by slit unless chosen otherwise.
   syncClassicUI();
-  // Each engine keeps its own particle colour; the numerical default is By slit, as in the numerical N-slit app.
   const colorKey=numericalActive()?'num':'ana';
-  if(colorKey!==particleColorEngine){particleColorEngine=colorKey;particleColorMode.value=colorKey==='num'?(localStorage.getItem('qontic-te-num-particle-color')||'slit'):(localStorage.getItem('qontic-pw-particle-color')||'uniform');}
+  // 4.5.5: one particle colour for both engines (Pablo): the same setting and the same default (Uniform, green).
+  if(colorKey!==particleColorEngine){particleColorEngine=colorKey;particleColorMode.value=localStorage.getItem('qontic-pw-particle-color')||'uniform';}
   document.querySelectorAll('[data-num-slits]').forEach(b=>{const on=b.dataset.numSlits===numSlitModel;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   // In the numerical engine the hits come from the particles in every view.
   const countLabel=document.querySelector('#MaxPart-group label');if(countLabel)countLabel.textContent='Particles per packet:';
@@ -836,7 +836,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te454').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te455').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -1509,7 +1509,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  const count=+params.get('packetCount');if(count>=+(document.getElementById('MaxPart')?.min??1)&&count<=+(document.getElementById('MaxPart')?.max??1000))$('#MaxPart-group')[0]?.setValueInFirstUnit(count);
  interval.addEventListener('input',()=>{syncPacketInput(interval);nextEmission=Math.max(t,(pulses.at(-1)?.born??t)+emissionPeriod());});
  directed.addEventListener('change',()=>{localStorage.setItem('qontic-pw-directed-slits',String(directed.checked));applyPacketLimits();syncMode();draw();});
- particleColorMode.addEventListener('change',()=>{localStorage.setItem(particleColorEngine==='num'?'qontic-te-num-particle-color':'qontic-pw-particle-color',particleColorMode.value);localStorage.removeItem('qontic-pw-color-by-slit');draw();});
+ particleColorMode.addEventListener('change',()=>{localStorage.setItem('qontic-pw-particle-color',particleColorMode.value);localStorage.removeItem('qontic-te-num-particle-color');localStorage.removeItem('qontic-pw-color-by-slit');draw();});
  balance.addEventListener('input',()=>{syncBalance();resetEngine();draw();});
  balanceEqual.addEventListener('click',()=>{if(balance.disabled)return;balance.value='0';balance.dispatchEvent(new Event('input',{bubbles:true}));});
  for(const control of [length,width,sourceWidth,extent])control.addEventListener('input',()=>{applyPacketLimits();syncPacketInput(control);slitWidthHelp(interpretation==='bohmian'&&directed.checked);resetEngine();draw();});

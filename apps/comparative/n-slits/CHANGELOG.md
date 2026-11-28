@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.5.5 — 2026-11-28
+- Pilot Wave particle colour is one setting for both engines (was separate, numerical default By slit): same default (Uniform, green) and the same choice in the analytical and numerical engines.
+
 ## 4.5.4 — 2026-11-28
 - Pilot Wave particles and trajectories green by default (#00c853; was red, lost against the red/blue wave; Basic had used slit colours until 4.4). A saved red default becomes green. With Uniform colour the hits on the screen keep the blue hit colour, apart from the green curve. Particle and trajectory colour swatches (Display) shown at every level (were Standard and up).
 
