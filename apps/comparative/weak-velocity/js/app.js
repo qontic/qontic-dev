@@ -4,9 +4,9 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.12.1';
-import * as M from './weak-model.js?v=0.12.1';
-import { mountWeakQuiz } from './quiz.js?v=0.12.1';
+import { APP_RELEASE } from './release.js?v=0.12.2';
+import * as M from './weak-model.js?v=0.12.2';
+import { mountWeakQuiz } from './quiz.js?v=0.12.2';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -769,6 +769,14 @@ split.addEventListener('keydown', (e) => {
   e.preventDefault(); savePanels();
 });
 $('#resetPanels').addEventListener('click', () => { setColWidth(defaultColWidth()); savePanels(); });
+// Reset all settings: clear everything this app keeps in the browser (level,
+// plots, legends, scale bar, grid...) and reload without the share-link settings,
+// so the page is what a first-time visitor sees.
+$('#resetAll').addEventListener('click', () => {
+  stop();
+  try { Object.keys(localStorage).filter((k) => k.startsWith('qontic-weak-velocity')).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* storage unavailable */ }
+  location.replace(location.pathname);
+});
 new ResizeObserver(() => { if (colWidth !== null) setColWidth(colWidth); }).observe(host);
 const plotBox = (W, H) => ({ x: 58, y: 8, w: Math.max(40, W - 72), h: Math.max(40, H - 54) });
 

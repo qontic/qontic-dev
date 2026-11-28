@@ -1,5 +1,8 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.12.2 — 2026-11-28
+- Display tab: "Reset all settings" gives exactly what a first-time visitor sees (clears every Weak Velocity key in the browser, drops the share-link settings from the address, reloads). Checked: an Expert/Windows/σₚ 50 nm link with changed display → Reset → identical to a fresh page.
+
 ## 0.12.1 — 2026-11-28
 - Header tabs (Simulation, Quiz, Physics, Rationale) now use the shared template style, the same as N-Slits (added to shared/qontic-shell.css).
 - Windows: the gap control is the time τ between the two measurements, shown in ps (electron); the distance travelled in τ is on hover and in the drawing's footer.
