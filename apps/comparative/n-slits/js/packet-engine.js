@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te451';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te451';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te451';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te451';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te451';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te451';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te451';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te451';
-import {createNumericalEngine} from './numerical-engine.js?cache=te451';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te451';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te451';
-import {classifySlitSide} from './source-packet-model.js?cache=te451';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te452';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te452';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te452';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te452';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te452';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te452';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te452';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te452';
+import {createNumericalEngine} from './numerical-engine.js?cache=te452';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te452';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te452';
+import {classifySlitSide} from './source-packet-model.js?cache=te452';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -105,7 +105,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
   separationRange.title=level==='basic'?'Distance between neighbouring slits (up to '+dynamicSeparationMax+' nm here).':'Maximum '+dynamicSeparationMax+' nm: slit cores stay on the wall and the analytical transmitted probability remains concentrated in the drawn openings.';
   separationNumber.title=separationRange.title;
  }
- const directedRow=document.createElement('label');directedRow.className='bohmian-only packet-directed-inline';directedRow.dataset.levelMin='expert';directedRow.title='PW postselection uses a fixed ±3σ window around each Gaussian slit, independently of the displayed Slit extent. It does not add a steering force.';directedRow.innerHTML='Direct PW <input id="packet-directed-slits" type="checkbox">';const directed=directedRow.querySelector('input');directed.checked=localStorage.getItem('qontic-pw-directed-slits')==='true'; // 4.5.1: off by default (Pablo)
+ const directedRow=document.createElement('label');directedRow.className='bohmian-only packet-directed-inline';directedRow.title='Direct PW: draw only the particles that get through a slit (the others stop at the wall); the screen fills faster. PW postselection uses a fixed ±3σ window around each Gaussian slit, independently of the displayed Slit extent. It does not add a steering force.';directedRow.innerHTML='Direct PW <input id="packet-directed-slits" type="checkbox">';const directed=directedRow.querySelector('input');directed.checked=localStorage.getItem('qontic-pw-directed-slits')==='true'; // 4.5.1: off by default (Pablo)
  const slitColorRow=document.createElement('label');slitColorRow.className='bohmian-only packet-slit-colors';slitColorRow.dataset.levelMin='standard';slitColorRow.title='Pilot-Wave particle and hit color. Uniform uses the selected particle color. By slit colours each particle by the slit it went through (sky blue and orange for two slits, one fixed colour per slit for more) and marks on the screen the band reached by the particles of each slit. Spectrum maps each exact wall-crossing position continuously from blue (top) to yellow (bottom), with each histogram bin using the mean hue of its particles. Start up/down, ahead/behind, quadrant, radial: colour by where the particle started in the packet (shows that paths keep their order). This changes only the display.';slitColorRow.innerHTML='<span>Color</span><select id="packet-particle-color" aria-label="Pilot-Wave particle color"><option value="uniform">Uniform</option><option value="slit">By slit</option><option value="spectrum">Spectrum</option><option value="updown">Start up/down</option><option value="rightleft">Start ahead/behind</option><option value="quadrant">Start quadrant</option><option value="radial">Start radial</option></select>';const particleColorMode=slitColorRow.querySelector('select');let particleColorEngine='ana';particleColorMode.value=localStorage.getItem('qontic-pw-particle-color')||(localStorage.getItem('qontic-pw-color-by-slit')==='true'?'slit':'uniform');
  function syncPacketInput(control){const number=control.parentElement.querySelector('input[type=number]');number.value=control.value;number.max=control.max;number.min=control.min;control.parentElement.querySelector('output').textContent=control===interval?(+interval.value===0?'Auto':particleType==='neutron'?'ns':'ps'):control===extent?'σ':'nm';if(control===interval)interval.title='0 = wait until the previous packet has completed all outcomes. Positive values set time between source launches in '+(particleType==='neutron'?'nanoseconds':'picoseconds')+' of simulation time; independent of packet speed and width.';}
  for(const number of panel.querySelectorAll('input[type=number]')){const commitNumber=()=>{const range=number.parentElement.querySelector('input[type=range]'),value=Number(number.value);if(Number.isFinite(value))range.value=Math.max(+range.min,Math.min(+range.max,value));range.dispatchEvent(new Event('input',{bubbles:true}));};number.addEventListener('change',commitNumber);number.addEventListener('blur',commitNumber);number.addEventListener('keydown',event=>{if(event.key==='Enter'){commitNumber();number.blur();}});}
@@ -836,7 +836,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te451').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te452').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;

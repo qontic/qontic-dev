@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.5.2 — 2026-11-28
+- Direct PW checkbox shown in the Pilot Wave view at every level (was Expert only), off by default.
+
 ## 4.5.1 — 2026-11-27
 - Direct PW off by default (Pablo): Pilot Wave shows every particle sent, including the ~86% that stop at the wall at the default settings, so the screen fills more slowly. A stored choice is kept; the control stays at Expert. Physics text updated.
 

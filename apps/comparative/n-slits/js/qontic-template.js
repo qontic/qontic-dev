@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te451';
-import { mountMWBranching } from './mw-branching.js?cache=te451';
-import { APP_RELEASE } from './release.js?cache=te451';
-import { mountNSlitQuiz } from './quiz.js?cache=te451';
+import { mountPacketEngine } from './packet-engine.js?cache=te452';
+import { mountMWBranching } from './mw-branching.js?cache=te452';
+import { APP_RELEASE } from './release.js?cache=te452';
+import { mountNSlitQuiz } from './quiz.js?cache=te452';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te451';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te452';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -538,7 +538,7 @@ $(function () {
   const levelRow = (id, sel = '.input-group, tr, .analytical-layer, label, .slit-count-row') => { const el = document.getElementById(id); return el ? (el.closest(sel) || el) : null; };
   const tag = (ids, level) => ids.forEach(id => { const row = levelRow(id); if (row) row.dataset.levelMin = level; });
   tag(['slit-at-wall', 'basicsWaveFunctionOption', 'detector-distance-group', 'screen-height-group', 'systemTime', 'realTime', 'waveSpeed', 'particleEnergy', 'noHitCount', 'waveFunctionOption', 'plot_palette-opacity', 'plot_sensor-opacity', 'plot_scales-opacity'], 'standard');
-  for (const [id, lvl] of [['packet-directed-slits', 'expert'], ['shownParticles', 'standard']]) { const el = document.getElementById(id); const row = el?.closest('label, tr'); if (row) row.dataset.levelMin = lvl; }
+  for (const [id, lvl] of [['shownParticles', 'standard']]) { const el = document.getElementById(id); const row = el?.closest('label, tr'); if (row) row.dataset.levelMin = lvl; }
   { const c = document.getElementById('packet-particle-color'); const row = c?.closest('label'); if (row) row.dataset.levelMin = 'standard'; }
   tag(['packet-slit-extent', 'packet-slit-balance', 'packet-tail-length', 'packet-interval', 'source-position-group', 'det-pixels-group', 'nSteps', 'flow-arrows', 'flow-lines'], 'expert');
   for (const id of ['flow-arrows', 'flow-lines']) { const el = document.getElementById(id); const box = el?.closest('.flow-overlay-controls, .input-group, div'); if (box) box.dataset.levelMin = 'expert'; }
