@@ -1711,7 +1711,7 @@ $(document).ready(function() {
       var resetDefaultsBtn = $('<button>', { 
          id: 'resetDefaultsButton', 
          text: 'Reset all settings',
-         title: 'Put every setting of this app back to its default: slits, wavelength and other physics, the view (Orthodox), display, theme and the numerical-engine options. The level stays.'
+         title: 'Back to what a first-time visitor sees: every setting (slits, wavelength, geometry, particles per packet, engine and numerical options), the view (Orthodox), the level (Basic), display and theme. Removes the settings in the address (share link).'
       });
       resetDefaultsBtn.css({ marginTop: '10px', width: '100%' });
       $('#graphics-parameter-container').append(resetDefaultsBtn);
@@ -1726,11 +1726,13 @@ $(document).ready(function() {
                          'qontic-te-level-saved', 'qontic-te-hits-before-basic'];
             const keys = [];
             for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-            keys.filter(k => own.includes(k) || /^qontic-(double-slit|pw)-/.test(k))
+            // 4.5.3: every N-Slits key (qontic-te-*: level, packet and flow settings, arrows,
+            // Many Worlds slow motion, numerical options...), so the page is what a first-time user sees.
+            keys.filter(k => own.includes(k) || /^qontic-(double-slit|pw|te)-/.test(k))
                 .forEach(k => localStorage.removeItem(k));
          } catch (_) {}
-         // Reload the page to apply defaults
-         location.reload();
+         // Reload without the share-link hash (it would set its parameters again).
+         location.replace(location.pathname + location.search);
       });
 
       // Screenshot + Share Link buttons on one row

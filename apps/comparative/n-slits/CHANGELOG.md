@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.5.3 — 2026-11-28
+- Reset all settings (Display tab) now gives exactly what a first-time visitor sees: it clears every N-Slits key (was missing packet and flow settings, arrows, Many Worlds slow motion, level and others), returns to Basic, and drops the share-link settings from the address. Checked: Expert/Pilot Wave/6 slits/numerical/200 per packet link → Reset → identical to a fresh page.
+
 ## 4.5.2 — 2026-11-28
 - Direct PW checkbox shown in the Pilot Wave view at every level (was Expert only), off by default.
 
