@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.5.4 — 2026-11-28
+- Pilot Wave particles and trajectories green by default (#00c853; was red, lost against the red/blue wave; Basic had used slit colours until 4.4). A saved red default becomes green. With Uniform colour the hits on the screen keep the blue hit colour, apart from the green curve. Particle and trajectory colour swatches (Display) shown at every level (were Standard and up).
+
 ## 4.5.3 — 2026-11-28
 - Reset all settings (Display tab) now gives exactly what a first-time visitor sees: it clears every N-Slits key (was missing packet and flow settings, arrows, Many Worlds slow motion, level and others), returns to Basic, and drops the share-link settings from the address. Checked: Expert/Pilot Wave/6 slits/numerical/200 per packet link → Reset → identical to a fresh page.
 

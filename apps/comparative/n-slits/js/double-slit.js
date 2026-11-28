@@ -50,10 +50,10 @@ var idebug=0;
 var canvas;
 var colorDetector="blue"
 var colorHit="#2f6fd6" // blue: distinct from the green prediction curve also for red-green colour blindness (3.0-dev.21)
-var colorPart="red"
+var colorPart="#00c853" // 4.5.4: green, clear on the red/blue wave (was red)
 var colorProb="green"
 var colorPsi   ="white"
-var colorTraj="red"
+var colorTraj="#00c853"
 var colorScreen="#d4e6ef" // slit wall; matches the drawn wall
 var colorSensor='#90ee90';
 var colorScale="#000000"
@@ -915,6 +915,8 @@ function restoreSimulationState() {
   if(state.colors&&['#ef4444','rgb(239, 68, 68)'].includes(String(state.colors.hit).toLowerCase()))state.colors.hit='#2f6fd6';
   // Version 2.122 draws the slit wall in its swatch color; migrate the old unused blue default.
   if(state.colors&&['blue','#0000ff','rgb(0, 0, 255)'].includes(String(state.colors.screen).toLowerCase()))state.colors.screen='#d4e6ef';
+  // 4.5.4: the old red default for particles and trajectories becomes the new green default.
+  if(state.colors)for(const k of ['part','traj'])if(['red','#ff0000','rgb(255, 0, 0)'].includes(String(state.colors[k]).toLowerCase()))state.colors[k]='#00c853';
   restoreDisplayOpacities(state.displayOpacities);
 
   // Clear old state if version doesn't match (units changed from mm to nm)

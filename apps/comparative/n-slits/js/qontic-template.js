@@ -1,11 +1,11 @@
 import { mountExpandedResize } from '../../../../shared/qontic-expanded-resize.js?v=1';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
-import { mountPacketEngine } from './packet-engine.js?cache=te453';
-import { mountMWBranching } from './mw-branching.js?cache=te453';
-import { APP_RELEASE } from './release.js?cache=te453';
-import { mountNSlitQuiz } from './quiz.js?cache=te453';
+import { mountPacketEngine } from './packet-engine.js?cache=te454';
+import { mountMWBranching } from './mw-branching.js?cache=te454';
+import { APP_RELEASE } from './release.js?cache=te454';
+import { mountNSlitQuiz } from './quiz.js?cache=te454';
 import { mountCoordinateTools, mountDistanceScale, mountValueRange } from '../../../../shared/qontic-overlays.js?v=5';
-import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te453';
+import { mountQonticMedia } from '../../../../shared/qontic-media.js?cache=te454';
 import { enableResizableSidebar } from '../../../../shared/qontic-resize.js?v=1';
 import { mountQonticShell } from '../../../../shared/qontic-shell.js?v=3.7';
 import '../../../../shared/qontic-controls.js?v=3.6';
@@ -234,7 +234,7 @@ $(function () {
     window.qonticBasicTips = level => { if (nf) nf.title = level === 'basic' ? 'Picks a slit width, separation and screen distance that give clear fringes, and starts a new run.' : nf.dataset.tipFull; };
   }
   // Particle and trajectory colours apply only with the Uniform particle colour (not at Basic, where particles are coloured by slit).
-  for (const id of ['traj-color', 'part-color']) { const el = document.getElementById(id); if (el) { el.dataset.levelMin = 'standard'; el.title = 'Particle colour (used when the Pilot-Wave Color setting is Uniform)'; } }
+  for (const id of ['traj-color', 'part-color']) { const el = document.getElementById(id); if (el) { el.title = 'Particle colour (used when the Pilot-Wave Color setting is Uniform)'; } }
   { const tips = { 'Wave': 'Opacity of the wave picture; the swatch opens the wave palettes.', 'Color scale': 'Opacity of the colour scale shown with the non-Classic palettes.', 'Probability curve': 'Opacity and colour of the predicted distribution on the screen panel.', 'Screen hits': 'Opacity and colour of the counted hits on the screen panel.', 'Sensor band': 'Shading of the detector strip at the screen by hit count.', 'Trajectories': 'Opacity of the Pilot-Wave particle paths.', 'Particles': 'Opacity of the Pilot-Wave particles.', 'Slit wall': 'Opacity and colour of the wall with the slits.', 'Screen': 'Opacity and colour of the screen line.', 'Distance scales': 'Opacity and colour of the scale bars.' };
     for (const row of layers.children) { const name = Object.keys(tips).find(k => row.textContent.trim().startsWith(k)); if (name && !row.title) row.title = tips[name]; } }
   // Canvas background: slate grey (default) or black. Stored per browser.
