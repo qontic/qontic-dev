@@ -3,6 +3,9 @@
 Draft copy of N-Slits 3.0 (apps/comparative/n-slit-analytical, published, unchanged) with a second, numerical engine.
 
 
+## 4.5.7 — 2026-11-28
+- Numerical 3D smoother: ψ is sampled on the GPU at the 97 × 65 mesh points and read back asynchronously (pixel buffer and fence, one frame late), every frame; with the Classic palette the colours are computed from those samples. Before: a copy of the 640 × 480 WebGL picture and a whole-field readPixels (both stall the GPU) plus a 307,000-cell loop, heights only every 40–120 ms. Profile (software GPU): readPixels/drawImage stalls and the JS loop gone.
+
 ## 4.5.6 — 2026-11-28
 - Time between packets (analytical engine, Auto interval): the next packet now starts so that its first hits come about 0.5 s after the last hits of the previous one (period = passage of ±2σₓ + 0.5 s at the chosen speed). Before, each packet waited until the previous one was finished and then crossed the whole picture (8–9 s without hits at 1×). Measured at 1×, Orthodox: gaps 0.5–0.9 s (were 8.5 s). Many Worlds slow motion still sends one packet at a time; the numerical engine still runs one packet at a time (one computed wave).
 - 3D view smoother: (1) the old objects were disposed before the new ones were drawn, so three.js recompiled every shader program each frame; (2) the analytical engine computed heights and colours for all 640 × 480 cells per frame though the mesh samples 97 × 65. Now programs are kept and only the sampled cells are computed (JS time per 3D frame from ~25% to ~1% in the profile). Numerical 3D heights read from the GPU every 40 ms (was 120 ms).

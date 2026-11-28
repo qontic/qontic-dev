@@ -473,6 +473,16 @@ function compile(gl, type, src) {
   if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) + "\n" + src.split("\n").map((l, i) => (i + 1) + ": " + l).join("\n"));
   return s;
 }
+// 4.5.7: samples ψ at a small set of grid points (the 3D mesh), so the 3D view reads a few kB
+// per frame instead of the whole field.
+const SAMPLE = `#version 300 es
+precision highp float; precision highp int;
+uniform sampler2D uState; uniform vec4 uMap; uniform ivec2 uN, uOut;
+out vec4 o;
+void main(){ ivec2 q = ivec2(gl_FragCoord.xy); float u = float(q.x)/float(uOut.x-1), v = float(q.y)/float(uOut.y-1);
+ int gx = int(floor(uMap.x + u*uMap.y + .5)), gy = int(floor(uMap.z + v*uMap.w + .5));
+ if (gx < 0 || gy < 0 || gx >= uN.x || gy >= uN.y) { o = vec4(0., 0., -1., 0.); return; }
+ o = vec4(texelFetch(uState, ivec2(gx, gy), 0).xy, 0., 0.); }`;
 function program(gl, vs, fs, varyings) {
   const p = gl.createProgram();
   gl.attachShader(p, compile(gl, gl.VERTEX_SHADER, vs)); gl.attachShader(p, compile(gl, gl.FRAGMENT_SHADER, fs));
@@ -495,6 +505,7 @@ export function createNumericalEngine() {
   const progPart = program(gl, PARTICLE_VS, PARTICLE_FS, ["vState"]);
   const progBStep = program(gl, VS, BSTEP), progBFlux = program(gl, VS, BFLUX);
   const progStepRef = program(gl, VS, STEP), progColSum = program(gl, VS, COLSUM);
+  const progSample = program(gl, VS, SAMPLE); let sampleTarget = null;
   const vao = gl.createVertexArray();
   const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
 
@@ -1155,6 +1166,31 @@ export function createNumericalEngine() {
     get steps() { return stepsDone; },
     get governor() { return { budget: Math.floor(budget), msPerStep, timer: !!timerExt, behind, speedRatio }; },
     gridX: x => G.gx(x), gridY: y => G.gy(y),
+    // ψ at w × h points: grid x = x0 + u·sx, y = y0 + v·sy with u, v from 0 to 1 (z = −1 outside).
+    readSamples(w, h, x0, sx, y0, sy) {
+      // Asynchronous: the samples are read into a pixel buffer behind a fence and returned on a
+      // later frame (one frame late), so the page never waits for the GPU (no readPixels stall).
+      if (!state) return null;
+      if (!sampleTarget || sampleTarget.w !== w || sampleTarget.h !== h) {
+        if (sampleTarget) { gl.deleteFramebuffer(sampleTarget.f); gl.deleteTexture(sampleTarget.t); gl.deleteBuffer(sampleTarget.pbo); if (sampleTarget.fence) gl.deleteSync(sampleTarget.fence); }
+        const t = tex(w, h), pbo = gl.createBuffer(); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo); gl.bufferData(gl.PIXEL_PACK_BUFFER, w * h * 16, gl.STREAM_READ); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+        sampleTarget = { t, f: fbo(t), w, h, pbo, fence: null, out: new Float32Array(w * h * 4), have: false };
+      }
+      const T = sampleTarget;
+      if (T.fence) {
+        const st = gl.clientWaitSync(T.fence, 0, 0);
+        if (st === gl.TIMEOUT_EXPIRED) return T.have ? T.out : null;
+        gl.deleteSync(T.fence); T.fence = null;
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, T.pbo); gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, T.out); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null); T.have = true;
+      }
+      gl.useProgram(progSample); gl.bindVertexArray(vao);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, state.flip ? state.B : state.A); gl.uniform1i(progSample.u("uState"), 0);
+      gl.uniform4f(progSample.u("uMap"), x0, sx, y0, sy); gl.uniform2i(progSample.u("uN"), G.nx, G.ny); gl.uniform2i(progSample.u("uOut"), w, h);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, T.f); gl.viewport(0, 0, w, h); gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, T.pbo); gl.readPixels(0, 0, w, h, gl.RGBA, gl.FLOAT, 0); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null); T.fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); gl.flush();
+      return T.have ? T.out : null;
+    },
     readField() {  // tests: current psi as Float32Array (nx * ny * 4)
       const out = new Float32Array(G.nx * G.ny * 4);
       gl.bindFramebuffer(gl.FRAMEBUFFER, state.flip ? state.fB : state.fA);

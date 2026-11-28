@@ -1,15 +1,15 @@
-import {mountFlowOverlay} from './flow-overlay.js?cache=te456';
-import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te456';
-import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te456';
-import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te456';
-import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te456';
-import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te456';
-import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te456';
-import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te456';
-import {createNumericalEngine} from './numerical-engine.js?cache=te456';
-import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te456';
-import {paintPhaseLegend} from './phase-legend-classic.js?cache=te456';
-import {classifySlitSide} from './source-packet-model.js?cache=te456';
+import {mountFlowOverlay} from './flow-overlay.js?cache=te457';
+import {physicsHTML,viewsHTML,physicsEquations,whichPathPhysicsHTML,whichPathViewsHTML,whichPathEquations,nSlitPhysicsHTML,nSlitViewsHTML,enginesPhysicsHTML,basicPhysicsHTML,basicViewsHTML,standardSummaryHTML} from './physics-content.js?cache=te457';
+import {drawBinPulse,DETECTOR_PULSE_SECONDS} from './detector-pulse.js?cache=te457';
+import {mountPacketGeometry,mountSlitWidth,mountSlitSeparation,trimTail,tailOpacity} from './packet-interaction.js?cache=te457';
+import {histogramLayout,surfaceHeightValue,surfaceDisplayDensity,surfacePhaseRate} from './packet-model.js?cache=te457';
+import {aperture,sourceCoefficients,sourceComponents,sourceBranches,sourceTransverse,sourceColumn,branchOf,branchCount,detectorBranches,sourceEnvelope,slitBands,sampleSource,sampleTransmittedSource,stepSource,sourceProfile,maximumCoreSafeSeparation} from './source-packet-model.js?cache=te457';
+import {detectorLaw,quantumSchedule,recordWithHit,samplePixel} from './packet-outcomes.js?cache=te457';
+import {niceFringeGeometryAsync} from './nice-fringes.js?cache=te457';
+import {createNumericalEngine} from './numerical-engine.js?cache=te457';
+import {buildSlitGeometry,maskTransmission} from './slit-geometry.js?cache=te457';
+import {paintPhaseLegend} from './phase-legend-classic.js?cache=te457';
+import {classifySlitSide} from './source-packet-model.js?cache=te457';
 export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  physicsEquations.mask='\\phi(y,L^+)=T(y)\\phi(y,L^-),\\qquad T(y)=\\frac1C\\sum_{j\\,\\mathrm{open}}a_j e^{-(y-y_j)^2/(4\\sigma_a^2)},\\quad 0\\le a_j\\le1';
  const panel=document.createElement('div');panel.className='packet-settings';
@@ -846,7 +846,7 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  function drawWave(){ensure();drawSourceWave();}
  async function ensureSurface3D(){
   if(surface3D)return surface3D;
-  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te456').then(({mountPacketSurface3D})=>{
+  if(!surface3DLoad)surface3DLoad=import('./packet-surface-3d.js?cache=te457').then(({mountPacketSurface3D})=>{
    surface3D=mountPacketSurface3D({host:document.getElementById('canvas-container')});configureSurfaceEditor();surface3D.configureHeight(surfaceHeightMode,mode=>{surfaceHeightMode=mode;localStorage.setItem('qontic-double-slit-surface-height',mode);draw();});surface3D.setVisible(surfaceView);surface3D.setEditing(geometryEditing);draw();return surface3D;
   }).catch(error=>{surface3DLoad=null;surfaceView=false;syncSurfaceView();console.error('Unable to start the 3D renderer',error);});
   return surface3DLoad;
@@ -868,7 +868,8 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
    if(opacity&&a.path.length)trails.push({color:groupColor(group,true),points:a.path.map(([x,y])=>[Math.max(0,Math.min(1,X(x)/detectorX)),Math.max(0,Math.min(1,Y(y)/canvas.height))])});
    if(!a.done)points.push({color:groupColor(group),u:Math.max(0,Math.min(1,X(a.x)/detectorX)),v:Math.max(0,Math.min(1,Y(a.y)/canvas.height))});
   }
-  surface3D.update({gridWidth:gridW,gridHeight:gridH,fieldFraction:detectorX/canvas.width,heightMode:surfaceHeightMode,heights:surfaceHeights,phaseLegend:surfaceLegend,rgba:data.data,
+  const nsOn=numericalActive()&&nsRgba;
+  surface3D.update({gridWidth:nsOn?NS_W:gridW,gridHeight:nsOn?NS_H:gridH,fieldFraction:nsOn?1:detectorX/canvas.width,heightMode:surfaceHeightMode,heights:nsOn?nsHeights:surfaceHeights,phaseLegend:surfaceLegend,rgba:nsOn?nsRgba:data.data,
    showWave:waveShown(),showScreen:shown('plot_screen')&&p.source,showDetector:shown('plot_detector'),showProbability:shown('hit_prob')&&!p.focused,showHits:shown('plot_hits'),showParticles:shown('plot_particles'),showTrajectories:shown('plot_trajectories'),
    wallFraction:wallX/detectorX,openings,apertureWeights:p.apertureWeights||[],whichPathFractions:p.whichPath?p.detectorSlots.map(slot=>Y(p.centers[slot])/canvas.height):[],
    pilotWave:interpretation==='bohmian',detectorColor:colorDetector,screenColor:colorScreen,probabilityColor:colorProb,
@@ -1085,18 +1086,31 @@ export function mountPacketEngine({core,advanced,engine:enginePanel=null}){
  // 3D view in the numerical engine: colours from the engine's picture, heights from the
  // computed field (read from the GPU at most ~8 times a second).
  let numSurfaceAt=-Infinity;
+ // 4.5.7: the 3D mesh samples the field on 97 × 65 points (packet-surface-3d.js addWave), so the
+ // numerical engine samples only those: colours from a 97 × 65 copy of its picture, heights from ψ
+ // read every frame (adaptive: every second frame when the GPU read is slow). Before: a 640 × 480
+ // readback and a 307,000-cell loop, heights only 8 times a second (bumpy).
+ const NS_W=97,NS_H=65,nsCanvas=document.createElement('canvas');nsCanvas.width=NS_W;nsCanvas.height=NS_H;const nsCtx=nsCanvas.getContext('2d',{willReadFrequently:true});
+ let nsRgba=null,nsHeights=new Float32Array(NS_W*NS_H),nsReadMs=0,nsSkip=0;
  function numericalSurface(img,mode){
-  fc.clearRect(0,0,gridW,gridH);fc.drawImage(img,0,0,detectorX,canvas.height,0,0,gridW,gridH);data=fc.getImageData(0,0,gridW,gridH);
-  if(!surfaceHeights||surfaceHeights.length!==gridW*gridH)surfaceHeights=new Float32Array(gridW*gridH);
   surfaceLegend=null;
-  if(performance.now()-numSurfaceAt<40)return;numSurfaceAt=performance.now();
-  const f=num.readField?.(),g=num.grid;if(!f||!g)return;
-  const x0=-wallXWorld/100-p.launch,y0=-yOffset,mx0=num.gridX(x0),mx1=worldCanvasDx/100/g.h,my0=num.gridY(y0),my1=screenHeight/100/g.h,fu=detectorX/canvas.width,peak=g.peak||1;
-  for(let j=0;j<gridH;j++){const gy=Math.round(my0+(j+.5)/gridH*my1);
-   for(let i=0;i<gridW;i++){const gx=Math.round(mx0+(i+.5)/gridW*fu*mx1),n=j*gridW+i;
-    if(gx<0||gy<0||gx>=f.nx||gy>=f.ny){surfaceHeights[n]=surfaceHeightValue(surfaceHeightMode,0,1,0);continue;}
-    const q=4*(gy*f.nx+gx),re=f.data[q],im=f.data[q+1],r2=re*re+im*im,a=Math.sqrt(r2)||1;
-    surfaceHeights[n]=surfaceHeightValue(surfaceHeightMode,surfaceDisplayDensity(r2/peak),re/a,im/a);}}
+  // Classic palette: colours computed here from ψ with the Classic formula (no copy of the WebGL
+  // picture, which stalls the GPU); other palettes: a 97 × 65 copy of the picture.
+  const classic=classicLook();
+  if(!classic){nsCtx.clearRect(0,0,NS_W,NS_H);nsCtx.drawImage(img,0,0,detectorX,canvas.height,0,0,NS_W,NS_H);nsRgba=nsCtx.getImageData(0,0,NS_W,NS_H).data;}
+  else if(!nsRgba||nsRgba.length!==4*NS_W*NS_H||!(nsRgba instanceof Uint8ClampedArray&&nsRgba.__own))(nsRgba=new Uint8ClampedArray(4*NS_W*NS_H)).__own=true;
+  const g=num.grid;if(!g)return;
+  const t0=performance.now(),x0=-wallXWorld/100-p.launch,y0=-yOffset,mx0=num.gridX(x0),mx1=worldCanvasDx/100/g.h,my0=num.gridY(y0),my1=screenHeight/100/g.h,fu=detectorX/canvas.width,peak=g.peak||1,alpha=255*elementOpacity('plot_wave');
+  // ψ sampled on the GPU at the 97 × 65 mesh points (a few kB read back), whole field as fallback.
+  let S=num.readSamples?.(NS_W,NS_H,mx0,fu*mx1,my0,my1),F=null;if(!S){if(num.readSamples)return;F=num.readField?.();if(!F)return;}
+  for(let r=0;r<NS_H;r++){const gy=Math.round(my0+(r/(NS_H-1))*my1);
+   for(let c=0;c<NS_W;c++){const n=r*NS_W+c;let re,im;
+    if(S){if(S[4*n+2]<0){nsHeights[n]=surfaceHeightValue(surfaceHeightMode,0,1,0);if(classic)nsRgba[4*n+3]=0;continue;}re=S[4*n];im=S[4*n+1];}
+    else{const gx=Math.round(mx0+(c/(NS_W-1))*fu*mx1);if(gx<0||gy<0||gx>=F.nx||gy>=F.ny){nsHeights[n]=surfaceHeightValue(surfaceHeightMode,0,1,0);if(classic)nsRgba[4*n+3]=0;continue;}const q=4*(gy*F.nx+gx);re=F.data[q];im=F.data[q+1];}
+    const r2=re*re+im*im,a=Math.sqrt(r2)||1,rel=r2/peak;
+    nsHeights[n]=surfaceHeightValue(surfaceHeightMode,surfaceDisplayDensity(rel),re/a,im/a);
+    if(classic)nsRgba[4*n+3]=alpha*classicPixel(rel,re/a,im/a,nsRgba,4*n);}}
+  nsReadMs=.8*nsReadMs+.2*(performance.now()-t0);
  }
  // The wall the numerical engine uses, at its true thickness: reflecting (metal),
  // absorbing (absorbing front, metal back) or the analytical mask (band shaded by 1 - T(y)).
