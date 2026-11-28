@@ -4,9 +4,9 @@ import { mountQonticMedia } from '../../../../shared/qontic-media.js?v=3.0';
 import { mountCoordinateTools, mountDistanceScale } from '../../../../shared/qontic-overlays.js?v=6';
 import { mountQonticShortcuts } from '../../../../shared/qontic-shortcuts.js?v=1';
 import { mountQonticLevels } from '../../../../shared/qontic-levels.js?v=1';
-import { APP_RELEASE } from './release.js?v=0.12.0';
-import * as M from './weak-model.js?v=0.12.0';
-import { mountWeakQuiz } from './quiz.js?v=0.12.0';
+import { APP_RELEASE } from './release.js?v=0.12.1';
+import * as M from './weak-model.js?v=0.12.1';
+import { mountWeakQuiz } from './quiz.js?v=0.12.1';
 import { maximumCoreSafeSeparation, sourceTransverse } from '../../double-slit-analytical/js/source-packet-model.js?cache=20261101';
 
 mountQonticShell({
@@ -371,9 +371,11 @@ function updateText() {
   // At instants the two controls are times (electron with this wavelength); the
   // distances, which the model uses, are shown in brackets.
   $('#x1Out').value = instant() ? fmtPs(psAt(state.x1)) : `${state.x1} nm`;
-  $('#gapOut').value = instant() ? fmtPs(psAt(state.gap)) : `${state.gap} nm`;
+  // Windows: the control is the time τ between the two measurements; the model
+  // uses the distance the packet travels in τ (τ = distance / v), shown on hover.
+  $('#gapOut').value = instant() || isWin() ? fmtPs(psAt(state.gap)) : `${state.gap} nm`;
   $('#x1Out').title = instant() ? `packet centre ${state.x1} nm behind the slits at t₁ (electron, λ = ${geo.wavelength} nm)` : '';
-  $('#gapOut').title = instant() ? `the packet moves ${state.gap} nm between t₁ and t₂` : '';
+  $('#gapOut').title = instant() || isWin() ? `electron, λ = ${geo.wavelength} nm: the packet moves ${state.gap} nm along the beam between t₁ and t₂` : '';
   const angle = geo.wavelength / (4 * Math.PI * state.sw);
   $('#swHint').textContent = 'A wider pointer gives noisier readings and disturbs the wave less. Below about 50 nm the two predictions separate.'
     + (angle > 0.2 ? ' This sharp-pointer setting is a qualitative illustration beyond the reliable paraxial range.' : '');
@@ -398,13 +400,13 @@ function updateText() {
   $('#packetRow').hidden = !(instant() || state.show.fixedTime) || W;
   // Words that change with the timing: planes vs instants.
   $('#x1Label').textContent = instant() ? 'Weak at t₁' : 'Weak plane';
-  $('#gapLabel').textContent = instant() ? 'Strong, τ later' : isWin() ? 'Travel from t₁ to t₂' : 'Gap to strong plane';
+  $('#gapLabel').textContent = instant() ? 'Strong, τ later' : isWin() ? 'Time τ from t₁ to t₂' : 'Gap to strong plane';
   $('#expLabel').textContent = instant() ? (state.recx ? 'Prediction, pointer + recorded position' : 'Prediction, pointer + packet') : 'Prediction for this pointer';
   $('#perPlaneLabel').textContent = W ? 'Runs, whole field' : instant() ? 'Runs (packets)' : 'Runs per pair of planes';
   $('#curLabel').textContent = instant() && state.recx && exp?.mix ? `Ideal weak pointer at Δ = ${Math.round(nm(cellDx())) === 0 ? '0' : (cellDx() > 0 ? '+' : '−') + Math.abs(nm(cellDx())).toFixed(0)} nm` : instant() ? 'Ideal weak pointer, j/|ψ|² at the packet centre' : 'Ideal weak pointer, j/|ψ|²';
   $('#runsLabel').textContent = state.stage === 'wone' ? 'Runs so far' : W ? 'Runs (whole field)' : instant() ? 'Runs (one packet each)' : 'Runs at these planes';
   $('#pairLabel').textContent = instant() ? 'Packet centre at t₁ → t₂' : 'Plane pair';
-  for (const [id, unit] of [['sw', state.sw], ['x1', state.x1], ['gap', state.gap]]) $(`#${id}`).setAttribute('aria-valuetext', instant() && id !== 'sw' ? `${fmtPs(psAt(unit))}, ${unit} nanometres` : `${unit} nanometres`);
+  for (const [id, unit] of [['sw', state.sw], ['x1', state.x1], ['gap', state.gap]]) $(`#${id}`).setAttribute('aria-valuetext', (instant() && id !== 'sw') || (isWin() && id === 'gap') ? `${fmtPs(psAt(unit))}, ${unit} nanometres` : `${unit} nanometres`);
   $('#recx').setAttribute('aria-pressed', String(!state.recx));   // the switch is "Drop the position along the beam"
   $('#packet').value = state.packet; $('#packetOut').value = `${state.packet} nm`;
   $('#packet').setAttribute('aria-valuetext', `${state.packet} nanometres`);
@@ -478,7 +480,7 @@ function windowLive() {
   const what = ` The window selects the runs whose <i>strong</i> result fell inside it. Their weak readings (amber dots, a sample) scatter by σₚ = ${state.sw} nm; only their mean (amber ring) is sharp. The arrow from it to the mean strong position is the measured velocity: a difference of two averages over the same runs, not the path of any particle.`;
   const tr = state.win.trace ? (() => {
     const pts = traceBack(c), last = pts[pts.length - 1].c;
-    return ` <b>Trace back (open circles): a chain of windows, not a path.</b> Each mean weak position became the next window, ${pts.length - 1} steps of about one gap (${state.gap} nm), reaching x = ${nm(last.x - p.wall).toFixed(0)} nm behind the slits at y = ${nm(last.y).toFixed(0)} nm. Each circle uses different runs; no particle is followed. The dashed line is the j/|ψ|² flow line followed backward from the window; the difference comes mostly from the window averaging the velocity over its area, plus sampling noise added over the steps.`;
+    return ` <b>Trace back (open circles): a chain of windows, not a path.</b> Each mean weak position became the next window, ${pts.length - 1} steps of about one τ (${state.gap} nm of travel each), reaching x = ${nm(last.x - p.wall).toFixed(0)} nm behind the slits at y = ${nm(last.y).toFixed(0)} nm. Each circle uses different runs; no particle is followed. The dashed line is the j/|ψ|² flow line followed backward from the window; the difference comes mostly from the window averaging the velocity over its area, plus sampling noise added over the steps.`;
   })() : touch ? ' Use <b>Trace back from this window</b> to repeat the step towards the slits.' : ' Click (or use Trace back) to repeat the step: the mean weak position becomes the next window, towards the slits.';
   const S = windowSummary();
   const sum = S?.live ? ` <b>Field from windows:</b> arrows from windows on a grid build up as the runs come in; the lines traced back from the screen are drawn when all runs are in.` : S ? ` <b>Field from windows:</b> ${S.n} lines traced back from windows next to the screen, started at equal shares of the runs detected there (amber lines); arrows from windows on a grid.${state.show.bohm ? ` The dashed lines follow the flow of j/|ψ|² backward from the same windows; the traces end ${S.rms.toFixed(1)} nm from them (rms), from the window's averaging and the sampling noise added up over the steps.` : ' Switch on the j/|ψ|² flow lines (switch at the top of the drawing) to compare.'} No particle is followed: every step uses different runs.` : '';
@@ -1263,7 +1265,7 @@ function drawApparatus(P, fullBox) {
   text('screen', X(p.screen), box.y + box.h - 4, { color: P.muted, size: 11, align: 'center' });
   if (isWin()) {
     // Status line first, so the runs drawn near the bottom stay on top of it.
-    backedText(P, `Windows method · σₚ ${state.sw} nm · gap ${state.gap} nm${` · τ = ${fmtPs(psAt(state.gap))} (electron)`}${state.stage === 'wone' ? '' : ` · window ${winSize()}`}${stretchNote()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
+    backedText(P, `Windows method · σₚ ${state.sw} nm · τ = ${fmtPs(psAt(state.gap))} (electron; ${state.gap} nm of travel)${state.stage === 'wone' ? '' : ` · window ${winSize()}`}${stretchNote()}${wf && wf.runs < state.perPlane && wf.runs > 0 ? ` · ${Math.floor(100 * wf.runs / state.perPlane)}% of runs` : ''}`, X(p.wall) + 10, Yp(-Y_HALF) - 8, { color: P.muted, size: 10 });
     if (state.stage === 'wone') drawWoneStage(P, X, Yp); else drawWindowStage(P, X, Yp);
     ctx.restore();
     appMap = { X, Yp, box, x0, x1, Yh: YH };

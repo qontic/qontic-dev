@@ -160,6 +160,25 @@
   font-size: 12px;
 }
 
+/* Template look of the header tabs (as in N-Slits). Zero specificity, so an
+   app that styles its own tabs keeps them. */
+:where(.qontic-view-tabs) { display: flex; gap: 6px; flex-wrap: wrap; }
+:where(.qontic-view-tabs) :where(button) {
+  border: 1px solid #294b60;
+  border-radius: 6px;
+  background: #0d202e;
+  color: #b9cfdb;
+  font-family: Inter, Arial, sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+:where(.qontic-view-tabs) :where(button:hover) { border-color: #55d8e6; color: #d9edf7; }
+:where(.qontic-view-tabs) :where(button:focus-visible) { outline: 2px solid #55d8e6; outline-offset: 2px; }
+:where(.qontic-view-tabs) :where(button.active, button[aria-selected="true"]) { background: #12394b; color: #7cecff; border-color: #55d8e6; }
+:where(.qontic-light .qontic-view-tabs) :where(button) { background: #edf5f8; color: #203746; border-color: #aec2cb; }
+:where(.qontic-light .qontic-view-tabs) :where(button.active, button[aria-selected="true"]) { background: #d6eef4; color: #0b5566; border-color: #2aa3b6; }
+
 .qontic-title-purpose {
   position: absolute;
   z-index: 80;

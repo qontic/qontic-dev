@@ -1,5 +1,10 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.12.1 — 2026-11-28
+- Header tabs (Simulation, Quiz, Physics, Rationale) now use the shared template style, the same as N-Slits (added to shared/qontic-shell.css).
+- Windows: the gap control is the time τ between the two measurements, shown in ps (electron); the distance travelled in τ is on hover and in the drawing's footer.
+- Physics: "Stage 4" corrected to "the Windows method".
+
 ## 0.12.0 — 2026-11-27
 - **Quiz tab** (Pablo): eight predict-before-you-watch questions on the shared quiz module, drawn from the misreadings in the ten-student review of 0.11.1: one run read as a velocity; why the mean is sharp when the dots are not; what the window selects (strong results); a 10 nm pointer departs from j/|ψ|² (model: rms slope difference 0.09, against 0.003 at 200 nm); a larger window moves away from j/|ψ|² (−0.246 against −0.360; j/|ψ|² −0.372); the trace back is a chain of windows, not a path; agreement with j/|ψ|² does not decide between the views; the two methods give the same field. Each opens its state in the simulation. Answers shuffled, score shown, `?quiz=N` links.
 - Ten-student review of 0.11.1 (understandability), fixes:
