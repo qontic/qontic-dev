@@ -1,5 +1,11 @@
 # Weak Velocity in the Double Slit — changelog
 
+## 0.13.0 — 2026-11-28
+- Windows method removed (Pablo's decision: it remained the hard part for students, 2–3/5 for clarity, and Planes carries the argument). Gone: the Method switch, the three Windows stages (wone, window, wmap), window controls, Results rows and setup box, touch window handling, the Windows text in Physics, Rationale and instructor notes, and the window functions in weak-model.js with their three tests (21 tests pass). The code is in git history (0.12.2, f40310b).
+- Old links (method=windows, stage=wone|window|wmap, winl, winw…) open the same stage with planes and say so.
+- Quiz: seven questions, all on planes and all at Basic. Kept: one run, the 1/√N mean (now a strip), sharp pointer, agreement with j/|ψ|². New: which runs are averaged (post-selection on the strong result), the sign of the arrow at 40–60 nm (−0.34), whether any particle was measured at all twelve pairs.
+- "Stage" again for the three steps; the credit to Anssi Kuha stays in the Rationale.
+
 ## 0.12.2 — 2026-11-28
 - Display tab: "Reset all settings" gives exactly what a first-time visitor sees (clears every Weak Velocity key in the browser, drops the share-link settings from the address, reloads). Checked: an Expert/Windows/σₚ 50 nm link with changed display → Reset → identical to a fresh page.
 

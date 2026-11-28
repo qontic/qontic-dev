@@ -290,43 +290,6 @@ test('instants: wall and screen cut-offs are the same for the mixture and the fi
   assert.ok(Math.abs(mixLast.parts[mixLast.central].dx) < 1e-12);
 });
 
-test('windows: small window with a wide pointer gives j/|psi|^2 at its centre', () => {
-  const gapX = 0.5, dx = 0.1, x1s = M.windowPlanes(p.wall, p.screen, gapX, dx);
-  const F = M.windowField({terms0: t0, k: p.k, wallX: p.wall, gapX, sw: 40, yfMin: -4, yfMax: 4, nYf: 400, x1s, dx});
-  const acc = M.makeWindowAcc(x1s.length, 400);
-  for (const [xc, yc] of [[p.wall + 5.05, 0.51], [p.wall + 8.05, -1.99], [p.wall + 3.05, 1.21]]) {
-    const q = M.windowQuery(F, acc, xc, yc, 0.06), x2 = q.expected.x2m, y2 = q.expected.yfm;
-    const cur = M.currentVelocity(M.propagate(t0, (x2 - p.wall) / p.k), y2) / p.k;
-    assert.ok(Math.abs(q.expected.slope - cur) < 0.01, `window at ${xc}, ${yc}: ${q.expected.slope} vs ${cur}`);
-    assert.ok(Math.abs(q.expected.x2m - q.expected.Xm - gapX) < 1e-9, 'weak mean along the beam is x2 - gap');
-  }
-});
-
-test('windows: sampled windows match their predictions (chi2)', () => {
-  const gapX = 0.5, dx = 0.1, x1s = M.windowPlanes(p.wall, p.screen, gapX, dx);
-  const F = M.windowField({terms0: t0, k: p.k, wallX: p.wall, gapX, sw: 2, yfMin: -4, yfMax: 4, nYf: 160, x1s, dx});
-  const acc = M.makeWindowAcc(x1s.length, 160);
-  let seed = 7; const rnd = () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  for (let n = 0; n < 4e6; n++) M.addWindowRun(acc, F, M.sampleWindowRun(F, rnd));
-  let chi = 0, m = 0;
-  for (let xs = 2; xs <= 9; xs += 1) for (let ys = -2.5; ys <= 2.5; ys += 0.5) {
-    const q = M.windowQuery(F, acc, p.wall + xs, ys, 0.3);
-    if (!(q.n > 2000)) continue;
-    chi += ((q.slope - q.expected.slope) / q.err) ** 2; m++;
-  }
-  assert.ok(m > 40 && chi / m < 1.6, `windows chi2/n = ${chi / m} over ${m}`);
-});
-
-test('windows: a long narrow window follows j/|psi|^2 where a wide circle does not', () => {
-  const gapX = 0.5, dx = 0.1, x1s = M.windowPlanes(p.wall, p.screen, gapX, dx);
-  const F = M.windowField({terms0: t0, k: p.k, wallX: p.wall, gapX, sw: 2, yfMin: -4, yfMax: 4, nYf: 400, x1s, dx});
-  const acc = M.makeWindowAcc(x1s.length, 400), xc = p.wall + 5.5, yc = 0.5;
-  const cur = M.currentVelocity(M.propagate(t0, (xc - p.wall) / p.k), yc) / p.k;
-  const ell = M.windowQuery(F, acc, xc, yc, 0.5, 0.05).expected.slope, disc = M.windowQuery(F, acc, xc, yc, 0.25).expected.slope;
-  assert.ok(Math.abs(ell - cur) < 0.02, `ellipse ${ell} vs ${cur}`);
-  assert.ok(Math.abs(disc - cur) > 0.08, `disc ${disc} vs ${cur}: the test point should be steep`);
-});
-
 test('N slits: the model takes 1–8 equal slits; probability conserved and the weak limit is j/|psi|^2', () => {
   for (const n of [1, 3, 8]) {
     const g = {...M.DEFAULT_GEOMETRY, slits: n, separation: n === 8 ? 150 : 300};
